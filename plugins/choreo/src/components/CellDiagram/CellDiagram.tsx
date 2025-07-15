@@ -29,12 +29,16 @@ export const CellDiagram = () => {
   const identityApi = useApi(identityApiRef);
 
   useEffect(() => {
+    console.log('Entity:', entity);
+    console.log('Entity labels:', entity.metadata.labels);
 
     const fetchData = async () => {
       try {
+        console.log('Fetching cell diagram info...');
         const data = await getCellDiagramInfo(entity, discovery, identityApi);
         setCellDiagramData(data as Project);
       } catch (error) {
+        console.error('Error fetching cell diagram info:', error);
       }
     };
 
@@ -47,7 +51,7 @@ export const CellDiagram = () => {
       <Content>
         <ContentHeader title="Cell Diagram View" />
         <CellView project={cellDiagramData} />
-        <Suspense fallback={<Progress />} />
+        <Suspense fallback={<Progress />}></Suspense>
       </Content>
     </Page>
   );
