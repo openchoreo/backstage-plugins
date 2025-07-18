@@ -6,6 +6,7 @@ import { createRouter } from './router';
 import { catalogServiceRef } from '@backstage/plugin-catalog-node/alpha';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
 import { CellDiagramInfoService } from './services/CellDiagramService/CellDiagramInfoService';
+import { RuntimeLogsInfoService } from './services/RuntimeLogsService/RuntimeLogsService';
 
 /**
  * choreoPlugin backend plugin
@@ -47,13 +48,23 @@ export const choreoPlugin = createBackendPlugin({
           openchoreoConfig.get('baseUrl'),
         );
 
+        const runtimeLogsInfoService = new RuntimeLogsInfoService(
+          logger,
+          openchoreoConfig.get('observabilityBaseUrl'),
+        );
+
         httpRouter.use(
           await createRouter({
             httpAuth,
             environmentInfoService,
             cellDiagramInfoService,
+            runtimeLogsInfoService,
           }),
         );
+        httpRouter.addAuthPolicy({
+          path: '/logs/component',
+          allow: 'unauthenticated',
+        });
       },
     });
   },

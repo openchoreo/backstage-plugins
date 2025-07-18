@@ -4,14 +4,17 @@ import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
 import { CellDiagramService } from './types';
+import { RuntimeLogsInfoService } from './services/RuntimeLogsService/RuntimeLogsService';
 
 export async function createRouter({
   environmentInfoService,
   cellDiagramInfoService,
+  runtimeLogsInfoService,
 }: {
   httpAuth: HttpAuthService;
   environmentInfoService: EnvironmentInfoService;
   cellDiagramInfoService: CellDiagramService;
+  runtimeLogsInfoService: RuntimeLogsInfoService;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
@@ -50,6 +53,33 @@ export async function createRouter({
           orgName: organizationName as string,
         }),
       );
+    },
+  );
+
+  router.post(
+    '/logs/component/:componentId',
+    async (req: express.Request, res: express.Response) => {
+      const { componentId } = req.params;
+      const { environmentId, logLevels, startTime, endTime, limit, offset } =
+        req.body;
+
+      if (!componentId || !environmentId) {
+        throw new InputError(
+          'componentId, namespace, and environmentId are required',
+        );
+      }
+
+      const result = await runtimeLogsInfoService.fetchRuntimeLogs({
+        componentId,
+        environmentId,
+        logLevels,
+        startTime,
+        endTime,
+        limit,
+        offset,
+      });
+
+      res.json(result);
     },
   );
 
