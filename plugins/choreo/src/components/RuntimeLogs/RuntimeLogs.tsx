@@ -88,14 +88,25 @@ export const RuntimeLogs = () => {
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {
+    console.log('🔄 Environment auto-selection effect triggered', {
+      environmentsCount: environments.length,
+      currentEnvironmentId: filters.environmentId,
+      firstEnvironmentId: environments[0]?.id
+    });
     if (environments.length > 0 && !filters.environmentId) {
+      console.log('✅ Auto-selecting first environment:', environments[0].id);
       updateFilters({ environmentId: environments[0].id });
     }
   }, [environments, filters.environmentId, updateFilters]);
 
   // Fetch logs when filters change
   useEffect(() => {
+    console.log('🔄 Filters change effect triggered', {
+      filters,
+      environmentId: filters.environmentId
+    });
     if (filters.environmentId) {
+      console.log('✅ Fetching logs due to filter change');
       setPagination(prev => ({ ...prev, offset: 0 }));
       fetchLogs(true);
     }
@@ -103,7 +114,12 @@ export const RuntimeLogs = () => {
 
   // Update pagination offset when loading more
   useEffect(() => {
+    console.log('🔄 Pagination update effect triggered', {
+      logsLength: logs.length,
+      currentOffset: pagination.offset
+    });
     if (logs.length > 0) {
+      console.log('✅ Updating pagination offset to:', logs.length);
       setPagination(prev => ({ ...prev, offset: logs.length }));
     }
   }, [logs.length]);

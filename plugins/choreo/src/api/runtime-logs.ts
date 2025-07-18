@@ -2,7 +2,11 @@ import { Entity } from '@backstage/catalog-model/index';
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import { CHOREO_LABELS } from '../constants/labels';
 import { API_ENDPOINTS } from '../constants/api';
-import { LogsResponse, RuntimeLogsParams, Environment } from '../components/RuntimeLogs/types';
+import {
+  LogsResponse,
+  RuntimeLogsParams,
+  Environment,
+} from '../components/RuntimeLogs/types';
 
 export async function getRuntimeLogs(
   entity: Entity,
@@ -11,18 +15,19 @@ export async function getRuntimeLogs(
   params: RuntimeLogsParams,
 ): Promise<LogsResponse> {
   const { token } = await identity.getCredentials();
-  const component = entity.metadata.labels?.[CHOREO_LABELS.NAME];
-  
+  const component = entity.metadata.annotations?.[CHOREO_LABELS.COMPONENT]; // TODO: Inconsistent entity labels
+
   if (!component) {
     throw new Error('Component name not found in entity labels');
   }
 
   const backendUrl = new URL(
-    `${await discovery.getBaseUrl('choreo')}${API_ENDPOINTS.RUNTIME_LOGS}/${component}`,
+    `${await discovery.getBaseUrl('choreo')}${
+      API_ENDPOINTS.RUNTIME_LOGS
+    }/${component}`,
   );
 
   const requestBody = {
-    namespace: params.namespace,
     environmentId: params.environmentId,
     logLevels: params.logLevels,
     startTime: params.startTime,
@@ -41,7 +46,9 @@ export async function getRuntimeLogs(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch runtime logs: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
+    );
   }
 
   return await response.json();
@@ -56,10 +63,11 @@ export async function getEnvironments(
   const backendUrl = new URL(
     `${await discovery.getBaseUrl('choreo')}${API_ENDPOINTS.ENVIRONMENT_INFO}`,
   );
-  
-  const component = entity.metadata.labels?.[CHOREO_LABELS.NAME];
-  const project = entity.metadata.labels?.[CHOREO_LABELS.PROJECT];
-  const organization = entity.metadata.labels?.[CHOREO_LABELS.ORGANIZATION];
+
+  const component = entity.metadata.annotations?.[CHOREO_LABELS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_LABELS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_LABELS.ORGANIZATION];
 
   if (!project || !component || !organization) {
     return [];
@@ -80,11 +88,13 @@ export async function getEnvironments(
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch environments: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch environments: ${response.status} ${response.statusText}`,
+    );
   }
 
   const envData = await response.json();
-  
+
   // Transform the environment data to match our interface
   return envData.map((env: any) => ({
     id: env.id || env.name,
@@ -92,12 +102,15 @@ export async function getEnvironments(
   }));
 }
 
-export function calculateTimeRange(timeRange: string): { startTime: string; endTime: string } {
+export function calculateTimeRange(timeRange: string): {
+  startTime: string;
+  endTime: string;
+} {
   const now = new Date();
   const endTime = now.toISOString();
-  
+
   let startTime: Date;
-  
+
   switch (timeRange) {
     case '10m':
       startTime = new Date(now.getTime() - 10 * 60 * 1000);
@@ -120,7 +133,7 @@ export function calculateTimeRange(timeRange: string): { startTime: string; endT
     default:
       startTime = new Date(now.getTime() - 60 * 60 * 1000); // Default to 1 hour
   }
-  
+
   return {
     startTime: startTime.toISOString(),
     endTime,

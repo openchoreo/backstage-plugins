@@ -45,7 +45,6 @@ export interface RuntimeLogsState {
 }
 
 export interface RuntimeLogsParams {
-  namespace: string;
   environmentId: string;
   logLevels: string[];
   startTime: string;
