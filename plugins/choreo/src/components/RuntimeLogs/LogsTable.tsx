@@ -15,7 +15,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import { LogEntry as LogEntryType } from './types';
 import { LogEntry } from './LogEntry';
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles(theme => ({
   tableContainer: {
     maxHeight: '70vh',
     overflow: 'auto',
@@ -125,20 +125,20 @@ export const LogsTable: React.FC<LogsTableProps> = ({
               <TableCell className={classes.headerCell}>Message</TableCell>
               <TableCell className={classes.headerCell}>Container</TableCell>
               <TableCell className={classes.headerCell}>Pod</TableCell>
-              <TableCell className={classes.headerCell} width={50}>
+              <TableCell className={classes.headerCell} width={100}>
                 Details
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {logs.length === 0 && !loading && renderEmptyState()}
-            
+
             {logs.length === 0 && loading && renderLoadingSkeletons()}
-            
+
             {logs.map((log, index) => (
               <LogEntry key={`${log.timestamp}-${index}`} log={log} />
             ))}
-            
+
             {hasMore && (
               <TableRow>
                 <TableCell colSpan={6}>
@@ -162,13 +162,18 @@ export const LogsTable: React.FC<LogsTableProps> = ({
           </TableBody>
         </Table>
       </Box>
-      
+
       {logs.length > 0 && (
-        <Box p={2} display="flex" justifyContent="space-between" alignItems="center">
+        <Box
+          p={2}
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+        >
           <Typography variant="body2" color="textSecondary">
             Showing {logs.length} of {totalCount} logs
           </Typography>
-          
+
           {!hasMore && logs.length < totalCount && (
             <Typography variant="body2" color="textSecondary">
               Reached end of results
