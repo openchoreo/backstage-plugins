@@ -58,7 +58,7 @@ import {
   isKubernetesAvailable,
 } from '@backstage/plugin-kubernetes';
 
-import { Environments, CellDiagram } from '@internal/plugin-choreo';
+import { Environments, CellDiagram, Builds } from '@internal/plugin-choreo';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -152,13 +152,17 @@ const serviceEntityPage = (
       {overviewContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/environments" title="Environments">
+    <EntityLayout.Route path="/builds" title="Builds">
+      <Builds />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/environments" title="Deploy">
       <Environments />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/ci-cd" title="CI/CD">
+    {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
       {cicdContent}
-    </EntityLayout.Route>
+    </EntityLayout.Route> */}
 
     <EntityLayout.Route
       path="/kubernetes"
@@ -202,13 +206,17 @@ const websiteEntityPage = (
       {overviewContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/environments" title="Environments">
+    <EntityLayout.Route path="/builds" title="Builds">
+      <Builds />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/environments" title="Deploy">
       <Environments />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/ci-cd" title="CI/CD">
+    {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
       {cicdContent}
-    </EntityLayout.Route>
+    </EntityLayout.Route> */}
 
     <EntityLayout.Route
       path="/kubernetes"

@@ -6,11 +6,16 @@ import {
   ModelsOrganization,
   ModelsComponent,
   ModelsEnvironment,
+  ModelsBuildTemplate,
+  ModelsBuild,
   RequestOptions,
   ProjectsGetRequest,
   OrganizationsGetRequest,
   ComponentsGetRequest,
   EnvironmentsGetRequest,
+  BuildTemplatesGetRequest,
+  BuildsGetRequest,
+  BuildsTriggerRequest,
   ProjectsPostRequest,
   ComponentsPostRequest,
   TypedResponse,
@@ -184,6 +189,83 @@ export class DefaultApiClient {
   }
 
   /**
+   * Retrieves all build templates for an organization
+   * List all build templates of an organization
+   */
+  public async buildTemplatesGet(
+    request: BuildTemplatesGetRequest,
+    options?: RequestOptions,
+  ): Promise<TypedResponse<OpenChoreoApiResponse<ModelsBuildTemplate>>> {
+    const uriTemplate = `/orgs/{orgName}/build-templates`;
+
+    const uri = parser.parse(uriTemplate).expand({
+      orgName: request.orgName,
+    });
+
+    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
+      },
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Retrieves all builds for a component
+   * List all builds of a component
+   */
+  public async buildsGet(
+    request: BuildsGetRequest,
+    options?: RequestOptions,
+  ): Promise<TypedResponse<OpenChoreoApiResponse<ModelsBuild>>> {
+    const uriTemplate = `/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds`;
+
+    const uri = parser.parse(uriTemplate).expand({
+      orgName: request.orgName,
+      projectName: request.projectName,
+      componentName: request.componentName,
+    });
+
+    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
+      },
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Triggers a new build for a component
+   * Trigger a build for a component
+   */
+  public async buildsPost(
+    request: BuildsTriggerRequest,
+    options?: RequestOptions,
+  ): Promise<TypedResponse<OpenChoreoApiSingleResponse<ModelsBuild>>> {
+    const uriTemplate = `/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds`;
+
+    let uri = parser.parse(uriTemplate).expand({
+      orgName: request.orgName,
+      projectName: request.projectName,
+      componentName: request.componentName,
+    });
+
+    if (request.commit) {
+      uri += `?commit=${encodeURIComponent(request.commit)}`;
+    }
+
+    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
+      },
+      method: 'POST',
+    });
+  }
+
+  /**
    * Creates a new component in the specified project
    * Create a new component
    */
@@ -203,6 +285,7 @@ export class DefaultApiClient {
       type: request.type,
       ...(request.displayName && { displayName: request.displayName }),
       ...(request.description && { description: request.description }),
+      ...(request.buildConfig && { buildConfig: request.buildConfig }),
     };
 
     return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
