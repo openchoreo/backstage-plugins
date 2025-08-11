@@ -88,8 +88,8 @@ jobs:
           sed -i "s/0.0.0-latest-dev/${VERSION}/" ${{ env.CHART_PATH }}/Chart.yaml
           sed -i "s/latest-dev/${APP_VERSION}/" ${{ env.CHART_PATH }}/Chart.yaml
           
-          # Update image tag in values.yaml to match the Docker image version (without 'v' prefix)
-          sed -i "s/tag: \".*\"/tag: \"${APP_VERSION}\"/" ${{ env.CHART_PATH }}/values.yaml
+          # Update image tag in values.yaml to match the Docker image version (with 'v' prefix)
+          sed -i "s/tag: \".*\"/tag: \"v${APP_VERSION}\"/" ${{ env.CHART_PATH }}/values.yaml
 
       - name: Package Helm chart
         run: |
