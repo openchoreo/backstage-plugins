@@ -1,55 +1,49 @@
-name: PR Builder
+name: ci
 
 on:
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - '**/*.md'
-      - 'LICENSE'
-  workflow_dispatch:
+  push:
+    branches:
+      - multi-arch-pipeline
 
-# Avoid running multiple builds for the same PR.
-concurrency:
-  group: pr-builder-${{ github.ref }}
-  cancel-in-progress: true
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: openchoreo/backstage-plugins
 
 jobs:
-  build:
-    name: PR Build
+  docker:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22]
-        yarn-version: [latest]
     steps:
-      - name: Checkout
-        id: checkout
-        uses: actions/checkout@v4
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
         with:
-          fetch-depth: 0
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
 
-      - name: Setup node
-        id: setup-node
-        uses: actions/setup-node@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            # Extract tag and remove 'v' prefix if present
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "IMAGE_TAG=${TAG#v}" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
-
-      - name: Install Dependencies
-        id: install-dependencies
-        run: yarn install --immutable
-
-      - name: Check Type Errors
-        run: yarn tsc
-
-      - name: Build Project
-        id: build
-        run: yarn build:all
-
-      - name: Lint Files
-        id: lint-files
-        run: yarn lint:all
-
-      - name: Check Prettier
-        id: check-prettier
-        run: yarn prettier --check .
+          push: true
+          file: ./packages/backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.IMAGE_TAG }}
