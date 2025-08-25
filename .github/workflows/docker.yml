@@ -45,5 +45,4 @@ jobs:
         with:
           file: ./packages/backend/Dockerfile
           platforms: linux/amd64,linux/arm64
-          load: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.IMAGE_TAG }}
