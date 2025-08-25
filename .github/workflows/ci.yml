@@ -9,8 +9,13 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: openchoreo/backstage-plugins
 
+# Avoid running multiple builds for the same commit
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  docker:
+  build-push:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker
@@ -31,13 +36,13 @@ jobs:
         id: tag
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
-            # Extract tag and remove 'v' prefix if present
+            # Extract tag (keep 'v' prefix for Docker images)
             TAG=${GITHUB_REF#refs/tags/}
             echo "IMAGE_TAG=${TAG#v}" >> $GITHUB_OUTPUT
           elif [[ $GITHUB_REF == refs/heads/main ]]; then
-            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
+            echo "IMAGE_TAG=${TAG}" >> $GITHUB_OUTPUT
           else
-            echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+            echo "IMAGE_TAG=latest-dev" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push
