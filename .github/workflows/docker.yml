@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - multi-arch-pipeline
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: openchoreo/backstage-plugins
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            # Extract tag and remove 'v' prefix if present
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "IMAGE_TAG=${TAG#v}" >> $GITHUB_OUTPUT
+          elif [[ $GITHUB_REF == refs/heads/main ]]; then
+            echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
+          else
+            echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          load: true
+          tags: ${env.REGISTRY}/${env.IMAGE_NAME}:${{ steps.tag.outputs.IMAGE_TAG }}
