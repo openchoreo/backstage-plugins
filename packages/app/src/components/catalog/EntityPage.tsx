@@ -63,6 +63,7 @@ import {
   RuntimeLogs,
   Builds,
 } from '@openchoreo/backstage-plugin';
+import ConditionalEntityWrapper from '../ConditionalEntityWrapper/ConditionalEntityWrapper';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -150,107 +151,108 @@ const overviewContent = (
   </Grid>
 );
 
-const serviceEntityPage = (
+const overviewRoute = (
+  <EntityLayout.Route path="/" title="Overview" key="overview">
+    {overviewContent}
+  </EntityLayout.Route>
+);
+
+const coreRoutes = [
+  <EntityLayout.Route path="/environments" title="Deploy" key="environments">
+    <Environments />
+  </EntityLayout.Route>,
+  <EntityLayout.Route path="/runtime-logs" title="Runtime Logs" key="runtime-logs">
+    <RuntimeLogs />
+  </EntityLayout.Route>,
+  <EntityLayout.Route
+    path="/kubernetes"
+    title="Kubernetes"
+    if={isKubernetesAvailable}
+    key="kubernetes"
+  >
+    <EntityKubernetesContent />
+  </EntityLayout.Route>,
+];
+
+const buildsRoute = (
+  <EntityLayout.Route path="/builds" title="Builds" key="builds">
+    <Builds />
+  </EntityLayout.Route>
+);
+
+const apiRoute = (
+  <EntityLayout.Route path="/api" title="API" key="api">
+    <Grid container spacing={3} alignItems="stretch">
+      <Grid item md={6}>
+        <EntityProvidedApisCard />
+      </Grid>
+      <Grid item md={6}>
+        <EntityConsumedApisCard />
+      </Grid>
+    </Grid>
+  </EntityLayout.Route>
+);
+
+const dependenciesRoute = (
+  <EntityLayout.Route path="/dependencies" title="Dependencies" key="dependencies">
+    <Grid container spacing={3} alignItems="stretch">
+      <Grid item md={6}>
+        <EntityDependsOnComponentsCard variant="gridItem" />
+      </Grid>
+      <Grid item md={6}>
+        <EntityDependsOnResourcesCard variant="gridItem" />
+      </Grid>
+    </Grid>
+  </EntityLayout.Route>
+);
+
+const docsRoute = (
+  <EntityLayout.Route path="/docs" title="Docs" key="docs">
+    {techdocsContent}
+  </EntityLayout.Route>
+);
+
+const serviceImageEntityPage = (
+  <>
+    <EntityLayout>
+      {overviewRoute}
+      {coreRoutes}
+      {apiRoute}
+      {dependenciesRoute}
+      {docsRoute}
+    </EntityLayout>
+  </>
+);
+
+const serviceSourceEntityPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="Overview">
-      {overviewContent}
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/builds" title="Builds">
-      <Builds />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/environments" title="Deploy">
-      <Environments />
-    </EntityLayout.Route>
-    <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
-      <RuntimeLogs />
-    </EntityLayout.Route>
-
-    {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
-      {cicdContent}
-    </EntityLayout.Route> */}
-
-    <EntityLayout.Route
-      path="/kubernetes"
-      title="Kubernetes"
-      if={isKubernetesAvailable}
-    >
-      <EntityKubernetesContent />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/api" title="API">
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityProvidedApisCard />
-        </Grid>
-        <Grid item md={6}>
-          <EntityConsumedApisCard />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/dependencies" title="Dependencies">
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityDependsOnComponentsCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityDependsOnResourcesCard variant="gridItem" />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/docs" title="Docs">
-      {techdocsContent}
-    </EntityLayout.Route>
+    {overviewRoute}
+    {buildsRoute}
+    {coreRoutes}
+    {apiRoute}
+    {dependenciesRoute}
+    {docsRoute}
   </EntityLayout>
 );
 
-const websiteEntityPage = (
+const websiteImageEntityPage = (
+  <>
+    <EntityLayout>
+      {overviewRoute}
+      {coreRoutes}
+      {dependenciesRoute}
+      {docsRoute}
+    </EntityLayout>
+  </>
+);
+
+const websiteSourceEntityPage = (
   <EntityLayout>
-    <EntityLayout.Route path="/" title="Overview">
-      {overviewContent}
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/builds" title="Builds">
-      <Builds />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/environments" title="Deploy">
-      <Environments />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
-      <RuntimeLogs />
-    </EntityLayout.Route>
-
-    {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
-      {cicdContent}
-    </EntityLayout.Route> */}
-
-    <EntityLayout.Route
-      path="/kubernetes"
-      title="Kubernetes"
-      if={isKubernetesAvailable}
-    >
-      <EntityKubernetesContent />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/dependencies" title="Dependencies">
-      <Grid container spacing={3} alignItems="stretch">
-        <Grid item md={6}>
-          <EntityDependsOnComponentsCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityDependsOnResourcesCard variant="gridItem" />
-        </Grid>
-      </Grid>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/docs" title="Docs">
-      {techdocsContent}
-    </EntityLayout.Route>
+    {overviewRoute}
+    {buildsRoute}
+    {coreRoutes}
+    {dependenciesRoute}
+    {docsRoute}
   </EntityLayout>
 );
 
@@ -276,13 +278,22 @@ const defaultEntityPage = (
 const componentPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isComponentType('service')}>
-      {serviceEntityPage}
+      <ConditionalEntityWrapper activationFn={(e) => !e.metadata.annotations?.['backstage.io/source-location']}>
+        {serviceImageEntityPage}
+      </ConditionalEntityWrapper>
+      <ConditionalEntityWrapper activationFn={(e) => !!e.metadata.annotations?.['backstage.io/source-location']}>
+        {serviceSourceEntityPage}
+      </ConditionalEntityWrapper>
     </EntitySwitch.Case>
 
     <EntitySwitch.Case if={isComponentType('website')}>
-      {websiteEntityPage}
+      <ConditionalEntityWrapper activationFn={(e) => !e.metadata.annotations?.['backstage.io/source-location']}>
+        {websiteImageEntityPage}
+      </ConditionalEntityWrapper>
+      <ConditionalEntityWrapper activationFn={(e) => !!e.metadata.annotations?.['backstage.io/source-location']}>
+        {websiteSourceEntityPage}
+      </ConditionalEntityWrapper>
     </EntitySwitch.Case>
-
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
   </EntitySwitch>
 );

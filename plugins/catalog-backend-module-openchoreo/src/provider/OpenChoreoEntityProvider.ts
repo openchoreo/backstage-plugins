@@ -269,7 +269,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     if (component.type === 'WebApplication') {
       backstageComponentType = 'website';
     }
-
     const componentEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
@@ -288,11 +287,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: component.createdAt,
           [CHOREO_ANNOTATIONS.STATUS]: component.status,
-          ...(component.repositoryUrl && {
-            'backstage.io/source-location': `url:${component.repositoryUrl}`,
+          ...(component.buildConfig?.repoUrl && {
+            'backstage.io/source-location': `url:${component.buildConfig?.repoUrl}`,
           }),
-          ...(component.branch && {
-            [CHOREO_ANNOTATIONS.BRANCH]: component.branch,
+          ...(component.buildConfig?.repoBranch && {
+            [CHOREO_ANNOTATIONS.BRANCH]: component.buildConfig?.repoBranch,
           }),
         },
         labels: {

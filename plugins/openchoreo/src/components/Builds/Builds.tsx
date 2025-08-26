@@ -6,6 +6,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import ErrorIcon from '@material-ui/icons/Error';
 import {
   Progress,
   ResponseErrorPanel,
@@ -34,6 +35,7 @@ import type {
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-api';
 import { formatRelativeTime } from '../../utils/timeUtils';
+import PageBanner from '../CommonComponents/PageBanner';
 
 const BuildStatusComponent = ({ status }: { status?: string }) => {
   if (!status) {
@@ -333,6 +335,15 @@ export const Builds = () => {
     }
   };
 
+  if (!entity.metadata.annotations?.['backstage.io/source-location']) {
+    return (
+      <PageBanner
+        title="Builds Not Available"
+        description="Selected Component is not configured for builds."
+        icon={<ErrorIcon color='primary' fontSize='large' />}
+      />
+    )
+  }
   return (
     <Box>
       {componentDetails && (
@@ -404,7 +415,7 @@ export const Builds = () => {
                 >
                   {triggeringBuild ? 'Building...' : 'Build Latest'}
                 </Button>
-                <Button variant="outlined" size="small" onClick={() => {}}>
+                <Button variant="outlined" size="small" onClick={() => { }}>
                   Show Commits
                 </Button>
               </Box>
@@ -444,9 +455,12 @@ export const Builds = () => {
           setDrawerOpen(true);
         }}
         emptyContent={
-          <Typography variant="body1">
-            No builds found for this component.
-          </Typography>
+
+          <PageBanner
+            title="No Builds Found"
+            description="No builds found for this component."
+            icon={<ErrorIcon color='primary' fontSize='large' />}
+          />
         }
       />
       <BuildLogs
