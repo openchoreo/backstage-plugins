@@ -162,6 +162,11 @@ export function ContainerSection({
                             </MenuItem>
                             {builds
                               .filter(build => build.image)
+                              .sort(
+                                (a, b) =>
+                                  new Date(b.createdAt).getTime() -
+                                  new Date(a.createdAt).getTime(),
+                              )
                               .map(
                                 build =>
                                   build.image && (

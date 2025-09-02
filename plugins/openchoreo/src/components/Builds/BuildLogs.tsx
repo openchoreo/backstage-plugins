@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Drawer,
   Typography,
@@ -7,7 +7,7 @@ import {
   Divider,
   CircularProgress,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import Close from '@material-ui/icons/Close';
 import {
   useApi,
@@ -16,25 +16,38 @@ import {
 } from '@backstage/core-plugin-api';
 import type { ModelsBuild, LogEntry } from '@openchoreo/backstage-plugin-api';
 import { fetchBuildLogsForBuild } from '../../api/buildLogs';
+import { PageBanner } from '../CommonComponents';
+import { useTimerEffect } from '../../hooks/timerEffect';
+import { BuildStatus } from '../CommonComponents/BuildStatus';
 
 const useStyles = makeStyles(theme => ({
   logsContainer: {
     backgroundColor: theme.palette.background.default,
-    fontFamily: 'monospace',
     fontSize: '12px',
-    height: '90%',
+    height: 'calc(100vh - 250px)',
     overflow: 'auto',
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
     whiteSpace: 'pre-wrap',
+
   },
   timestampText: {
     fontSize: '11px',
     color: theme.palette.text.secondary,
   },
+  logLine: {
+    fontSize: '12px',
+    color: theme.palette.text.primary,
+    fontFamily: 'monospace',
+    padding: theme.spacing(0.5, 1),
+    "&:hover": {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
   logText: {
     fontSize: '12px',
     color: theme.palette.text.primary,
+    fontFamily: 'monospace',
   },
 }));
 
@@ -42,9 +55,38 @@ interface BuildLogsProps {
   open: boolean;
   onClose: () => void;
   build: ModelsBuild | null;
+  enableAutoRefresh?: boolean;
 }
 
-export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
+
+export const BuildDetails = ({ build }: { build: ModelsBuild }) => {
+  const theme = useTheme();
+  return (
+    <Box display="flex" 
+    justifyContent="space-between" 
+    flexDirection="row" 
+    sx={{
+      borderRadius: theme.shape.borderRadius,
+    }}>
+      <Box>
+        <Typography variant="body1">
+          Build Name: {build.name}
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          Commit: {build.commit?.slice(0, 8) || 'N/A'}
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          CreatedAt: {new Date(build.createdAt).toLocaleString()}
+        </Typography>
+      </Box>
+      <Box>
+        <BuildStatus build={build} />
+      </Box>
+    </Box>
+  );
+};
+
+export const BuildLogs = ({ open, onClose, build, enableAutoRefresh = false }: BuildLogsProps) => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
@@ -52,11 +94,10 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useTimerEffect(() => {
     const fetchBuildLogs = async (selectedBuild: ModelsBuild) => {
       setLoading(true);
       setError(null);
-      setLogs([]);
 
       try {
         const logsData = await fetchBuildLogsForBuild(
@@ -77,22 +118,16 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
     if (open && build) {
       fetchBuildLogs(build);
     }
-  }, [discoveryApi, identityApi, open, build]);
+  }, enableAutoRefresh ? 5000 : 0, [discoveryApi, identityApi, open, build]);
 
-  const renderLogsContent = () => {
-    if (loading) {
+  const renderLogsContent = useCallback(() => {
+    if (loading && !logs.length) {
       return (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          height="100%"
-        >
-          <CircularProgress size={24} />
-          <Typography variant="body2" style={{ marginLeft: '8px' }}>
-            Loading logs...
-          </Typography>
-        </Box>
+        <PageBanner
+          icon={<CircularProgress size={24} />}
+          title="Loading logs..."
+          description="Please wait while we fetch the logs"
+        />
       );
     }
 
@@ -106,23 +141,24 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
 
     if (logs.length === 0) {
       return (
-        <Typography variant="body2">
-          No logs available for this build
-        </Typography>
+        <PageBanner
+          title="No logs found for this build"
+          description="Please select a different build to view logs"
+        />
       );
     }
 
     return logs.map((logEntry, index) => (
-      <Box key={index} style={{ marginBottom: '4px' }}>
-        <Typography variant="body2" className={classes.timestampText}>
-          [{new Date(logEntry.timestamp).toLocaleTimeString()}]
+      <Box key={index} py={0.25} className={classes.logLine}>
+        <Typography variant="body2" component="span" className={classes.timestampText}>
+          [{new Date(logEntry.timestamp).toLocaleTimeString()}] &nbsp;
         </Typography>
-        <Typography variant="body2" className={classes.logText}>
+        <Typography variant="body2" component="span" className={classes.logText} >
           {logEntry.log}
         </Typography>
       </Box>
     ));
-  };
+  }, [loading, logs, error, classes]);
 
   return (
     <Drawer
@@ -144,7 +180,7 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
           mb={2}
         >
           <Typography variant="h6">
-            Build Logs - {build?.name || 'Unknown Build'}
+            Build Details
           </Typography>
           <IconButton onClick={onClose} size="small">
             <Close />
@@ -156,30 +192,21 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
         <Box mt={2}>
           {build ? (
             <Box>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Build Name: {build.name}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Status: {build.status}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Commit: {build.commit?.slice(0, 8) || 'N/A'}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Created: {new Date(build.createdAt).toLocaleString()}
-              </Typography>
-
-              <Box mt={3}>
+              <BuildDetails build={build} />
+              <Box mt={2}>
                 <Typography variant="subtitle2" gutterBottom>
-                  Logs:
+                  Build Logs
                 </Typography>
-                <Box p={2} className={classes.logsContainer}>
+                <Box py={2} className={classes.logsContainer}>
                   {renderLogsContent()}
                 </Box>
               </Box>
             </Box>
           ) : (
-            <Typography variant="body1">No build selected</Typography>
+            <PageBanner
+              title="No build selected"
+              description="Please select a build to view logs"
+            />
           )}
         </Box>
       </Box>

@@ -1,4 +1,4 @@
-import { Box, Icon, Typography } from '@material-ui/core'
+import { Box, Typography } from '@material-ui/core'
 import ErrorIcon from '@material-ui/icons/Error'
 
 export interface PageBannerProps {
@@ -8,9 +8,9 @@ export interface PageBannerProps {
 }
 const PageBanner = ({ title, description, icon }: PageBannerProps) => {
     return (
-        <Box width="100%" height="100%" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+        <Box width="100%" height="100%" display="flex" py={2} flexDirection="column" alignItems="center" justifyContent="center">
             {icon || <ErrorIcon fontSize='large' />}
-            <Typography variant="h6">
+            <Typography variant="overline">
                 {title}
             </Typography>
             <Typography variant="body2" color="textSecondary" gutterBottom>

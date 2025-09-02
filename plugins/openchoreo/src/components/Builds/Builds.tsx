@@ -35,35 +35,12 @@ import type {
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-api';
 import { formatRelativeTime } from '../../utils/timeUtils';
-import PageBanner from '../CommonComponents/PageBanner';
+import {PageBanner} from '../CommonComponents';
+import { BuildStatus } from '../CommonComponents/BuildStatus';
 
-const BuildStatusComponent = ({ status }: { status?: string }) => {
-  if (!status) {
-    return <StatusPending>Unknown</StatusPending>;
-  }
-
-  const normalizedStatus = status.toLowerCase();
-
-  if (
-    normalizedStatus.includes('succeed') ||
-    normalizedStatus.includes('success')
-  ) {
-    return <StatusOK>Success</StatusOK>;
-  }
-
-  if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
-    return <StatusError>Failed</StatusError>;
-  }
-
-  if (
-    normalizedStatus.includes('running') ||
-    normalizedStatus.includes('progress')
-  ) {
-    return <StatusRunning>Running</StatusRunning>;
-  }
-
-  return <StatusPending>{status}</StatusPending>;
-};
+const isInProgress = (status: string) => {
+  return !(status.toLowerCase().includes('success') || status.toLowerCase().includes('failed') || status.toLowerCase().includes('error') || status.toLowerCase().includes('completed'));
+}
 
 export const Builds = () => {
   const { entity } = useEntity();
@@ -284,7 +261,7 @@ export const Builds = () => {
       title: 'Status',
       field: 'status',
       render: (row: any) => (
-        <BuildStatusComponent status={(row as ModelsBuild).status} />
+        <BuildStatus build={row as ModelsBuild}/>
       ),
     },
     {
@@ -463,10 +440,12 @@ export const Builds = () => {
           />
         }
       />
+      {isInProgress(selectedBuild?.status || '')?"k":"y"}
       <BuildLogs
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         build={selectedBuild}
+        enableAutoRefresh={isInProgress(selectedBuild?.status || '')}
       />
     </Box>
   );
