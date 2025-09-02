@@ -16,13 +16,13 @@ import {
   MenuItem,
   InputLabel,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AddIcon from '@material-ui/icons/Add';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Container, EnvVar } from '@openchoreo/backstage-plugin-api';
 import { formatRelativeTime } from '../../../../utils/timeUtils';
 import { useBuilds } from '../WorkloadContext';
+import { useWorkloadEditorStyles } from './styles';
 
 interface ContainerSectionProps {
   containers: { [key: string]: Container };
@@ -50,26 +50,7 @@ interface ContainerSectionProps {
   singleContainerMode: boolean;
 }
 
-const useStyles = makeStyles(theme => ({
-  accordion: {
-    marginBottom: theme.spacing(2),
-  },
-  dynamicFieldContainer: {
-    padding: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
-  },
-  addButton: {
-    marginTop: theme.spacing(1),
-  },
-  envVarContainer: {
-    padding: theme.spacing(1),
-    border: `1px dashed ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
-    marginBottom: theme.spacing(1),
-  },
-}));
+
 
 export function ContainerSection({
   containers,
@@ -83,14 +64,14 @@ export function ContainerSection({
   disabled,
   singleContainerMode,
 }: ContainerSectionProps) {
-  const classes = useStyles();
+  const classes = useWorkloadEditorStyles();
   const { builds } = useBuilds();
 
   return (
-    <Accordion className={classes.accordion} defaultExpanded>
+    <Accordion className={classes.accordion} variant="outlined" defaultExpanded>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="h6">
-          Containers ({Object.keys(containers).length})
+        <Typography variant="body1">
+          Container Configuration ({Object.keys(containers).length})
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
@@ -99,11 +80,7 @@ export function ContainerSection({
             <Card key={containerName} className={classes.dynamicFieldContainer}>
               <CardHeader
                 title={
-                  <Box
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="space-between"
-                  >
+                  <Box className={classes.flexBetween}>
                     <Typography variant="subtitle1">
                       {containerName === 'main' ? '' : containerName}
                     </Typography>

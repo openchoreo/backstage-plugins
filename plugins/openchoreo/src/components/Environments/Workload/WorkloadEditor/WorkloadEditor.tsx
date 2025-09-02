@@ -77,15 +77,16 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   const endpointCount = Object.keys(formData.endpoints || {}).length;
 
   const handleDeploy = async () => {
-    if (containerCount === 0 && endpointCount === 0) {
-      setError('Please a container and one endpoint');
+    const componentType = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
+    if (containerCount === 0 && componentType === 'Service' && endpointCount === 0) {
+      setError('Please add a container and at least one endpoint');
       return;
     }
     if (containerCount === 0) {
       setError('Please add a container');
       return;
     }
-    if (endpointCount === 0) {
+    if (componentType === 'Service' && endpointCount === 0) {
       setError('Please add at least one endpoint');
       return;
     }
@@ -262,7 +263,8 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   };
 
   return (
-    <Box overflow="hidden">
+    <Box overflow="hidden" pt={1}>
+      <Box>
       <ContainerSection
         disabled={isDeploying}
         containers={formData.containers || {}}
@@ -275,13 +277,15 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
         onArrayFieldChange={handleArrayFieldChange}
         singleContainerMode
       />
-      <EndpointSection
-        disabled={isDeploying}
-        endpoints={formData.endpoints || {}}
-        onEndpointChange={handleEndpointChange}
-        onAddEndpoint={addEndpoint}
-        onRemoveEndpoint={removeEndpoint}
-      />
+      {entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE] === 'Service' && (
+        <EndpointSection
+          disabled={isDeploying}
+          endpoints={formData.endpoints || {}}
+          onEndpointChange={handleEndpointChange}
+          onAddEndpoint={addEndpoint}
+          onRemoveEndpoint={removeEndpoint}
+        />
+      )}
       <ConnectionSection
         disabled={isDeploying}
         connections={formData.connections || {}}
@@ -289,6 +293,7 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
         onAddConnection={addConnection}
         onRemoveConnection={removeConnection}
       />
+      </Box>
       {error && <Alert severity="error">{error}</Alert>}
       <Box display="flex" justifyContent="flex-end" margin={2}>
         <Button
@@ -297,7 +302,7 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
           color="primary"
           onClick={handleDeploy}
         >
-          Submit & Deploy
+          Deploy
         </Button>
       </Box>
     </Box>

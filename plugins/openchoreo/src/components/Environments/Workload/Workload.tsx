@@ -6,6 +6,7 @@ import {
   useTheme,
   IconButton,
   CircularProgress,
+  Divider,
 } from '@material-ui/core';
 import { useEffect, useState } from 'react';
 import { WorkloadEditor } from './WorkloadEditor';
@@ -22,15 +23,18 @@ import { WorkloadProvider } from './WorkloadContext';
 export function Workload({
   onDeployed,
   isWorking,
+  isOpen,
+  onOpenChange,
 }: {
   onDeployed: () => Promise<void>;
   isWorking: boolean;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);
   const { entity } = useEntity();
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
   const [workloadSpec, setWorkloadSpec] = useState<ModelsWorkload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
@@ -40,7 +44,6 @@ export function Workload({
   useEffect(() => {
     const fetchWorkload = async () => {
       try {
-        setIsLoading(true);
         const response = await fetchWorkloadInfo(entity, discovery, identity);
         setWorkloadSpec(response);
       } catch (e) {
@@ -50,6 +53,7 @@ export function Workload({
     };
     fetchWorkload();
     return () => {
+      setIsLoading(true);
       setWorkloadSpec(null);
       setError(null);
     };
@@ -99,7 +103,7 @@ export function Workload({
   }, [entity.metadata.name, entity.metadata.annotations, identity, discovery]);
 
   const toggleDrawer = () => {
-    setOpen(!open);
+    onOpenChange(!isOpen);
   };
 
   const handleDeploy = async () => {
@@ -111,17 +115,18 @@ export function Workload({
       await applyWorkload(entity, discovery, identity, workloadSpec);
       setTimeout(async () => {
         await onDeployed();
-        setOpen(false);
+        onOpenChange(false);
       }, 3000);
     } catch (e) {
       setIsDeploying(false);
       throw new Error('Failed to deploy workload');
     }
+
   };
 
   const enableDeploy =
     (workloadSpec || builds.some(build => build.image)) && !isLoading;
-  const hasBuils = builds.length > 0 || workloadSpec;
+  const hasBuilds = builds.length > 0 || workloadSpec;
 
   return (
     <>
@@ -139,9 +144,10 @@ export function Workload({
         >
           {isLoading && !error && <CircularProgress />}
         </Box>
-        {!enableDeploy && (
-          <Alert severity={!hasBuils ? 'error' : 'warning'}>
-            {!hasBuils ? error : 'Build your application first.'}
+        {!enableDeploy && !isWorking && !isDeploying && (
+          <Alert severity={!hasBuilds ? 'error' : 'warning'}>
+            {!hasBuilds ? error : 'Build your application first.'}
+      
           </Alert>
         )}
         <Button
@@ -155,38 +161,39 @@ export function Workload({
         </Button>
       </Box>
 
-      <Drawer open={open} onClose={toggleDrawer} anchor="right">
+      <Drawer open={isOpen} onClose={toggleDrawer} anchor="right">
         <Box
-          bgcolor={theme.palette.grey[200]}
           minWidth={theme.spacing(80)}
           display="flex"
           flexDirection="column"
           height="100%"
           overflow="hidden"
         >
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            p={2}
-          >
-            <Typography variant="h6" component="h4">
-              Configure Workload
-            </Typography>
-            <IconButton onClick={toggleDrawer} color="default">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Box borderBottom={1} borderColor="grey.400" />
-          <Box flex={1} paddingBottom={2} overflow="auto" bgcolor="grey.200">
-            <WorkloadProvider
-              builds={builds}
-              workloadSpec={workloadSpec}
-              setWorkloadSpec={setWorkloadSpec}
-              isDeploying={isDeploying || isLoading || isWorking}
+          <Box p={2} height="100%">
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mb={2}
             >
-              <WorkloadEditor entity={entity} onDeploy={handleDeploy} />
-            </WorkloadProvider>
+              <Typography variant="h6">
+                Configure Workload
+              </Typography>
+              <IconButton onClick={toggleDrawer} color="default">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <Divider />
+            <Box flex={1} paddingBottom={2} overflow="auto" sx={{ height: 'calc(100% - 70px)' }}>
+              <WorkloadProvider
+                builds={builds}
+                workloadSpec={workloadSpec}
+                setWorkloadSpec={setWorkloadSpec}
+                isDeploying={isDeploying || isLoading || isWorking}
+              >
+                <WorkloadEditor entity={entity} onDeploy={handleDeploy} />
+              </WorkloadProvider>
+            </Box>
           </Box>
         </Box>
       </Drawer>

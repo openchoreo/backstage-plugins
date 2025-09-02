@@ -7,11 +7,11 @@ import {
   AccordionSummary,
   AccordionDetails,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Connection } from '@openchoreo/backstage-plugin-api';
 import { ConnectionItem } from './ConnectionItem';
+import { useWorkloadEditorStyles } from './styles';
 
 interface ConnectionSectionProps {
   connections: { [key: string]: Connection };
@@ -21,15 +21,6 @@ interface ConnectionSectionProps {
   disabled: boolean;
 }
 
-const useStyles = makeStyles(theme => ({
-  accordion: {
-    marginBottom: theme.spacing(2),
-  },
-  addButton: {
-    marginTop: theme.spacing(1),
-  },
-}));
-
 export const ConnectionSection: FC<ConnectionSectionProps> = ({
   connections,
   onConnectionChange,
@@ -37,12 +28,12 @@ export const ConnectionSection: FC<ConnectionSectionProps> = ({
   onRemoveConnection,
   disabled,
 }) => {
-  const classes = useStyles();
+  const classes = useWorkloadEditorStyles();
 
   return (
-    <Accordion className={classes.accordion}>
+    <Accordion className={classes.accordion} variant="outlined">
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="h6">
+        <Typography variant="body1">
           Connections ({Object.keys(connections).length})
         </Typography>
       </AccordionSummary>

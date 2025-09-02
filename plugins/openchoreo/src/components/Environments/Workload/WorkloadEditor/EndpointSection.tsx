@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import {
   TextField,
   Select,
@@ -16,12 +16,14 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  FormControlLabel,
+  Checkbox,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AddIcon from '@material-ui/icons/Add';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { WorkloadEndpoint } from '@openchoreo/backstage-plugin-api';
+import { useWorkloadEditorStyles } from './styles';
 
 interface EndpointSectionProps {
   endpoints: { [key: string]: WorkloadEndpoint };
@@ -34,21 +36,6 @@ interface EndpointSectionProps {
   onRemoveEndpoint: (endpointName: string) => void;
   disabled: boolean;
 }
-
-const useStyles = makeStyles(theme => ({
-  accordion: {
-    marginBottom: theme.spacing(2),
-  },
-  dynamicFieldContainer: {
-    padding: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
-  },
-  addButton: {
-    marginTop: theme.spacing(1),
-  },
-}));
 
 const protocolTypes = [
   'TCP',
@@ -67,13 +54,21 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
   onRemoveEndpoint,
   disabled,
 }) => {
-  const classes = useStyles();
+  const classes = useWorkloadEditorStyles();
+  const [showSchemaFor, setShowSchemaFor] = useState<{ [key: string]: boolean }>({});
+
+  const handleShowSchemaChange = (endpointName: string, show: boolean) => {
+    setShowSchemaFor(prev => ({
+      ...prev,
+      [endpointName]: show,
+    }));
+  };
 
   return (
-    <Accordion className={classes.accordion}>
+    <Accordion className={classes.accordion} variant="outlined">
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography variant="h6">
-          Endpoints ({Object.keys(endpoints).length})
+        <Typography variant="body1">
+          Endpoints & API Specification ({Object.keys(endpoints).length})
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
@@ -82,11 +77,7 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
             <Card key={endpointName} className={classes.dynamicFieldContainer}>
               <CardHeader
                 title={
-                  <Box
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="space-between"
-                  >
+                  <Box className={classes.flexBetween}>
                     <Typography variant="subtitle1">{endpointName}</Typography>
                     <IconButton
                       onClick={() => onRemoveEndpoint(endpointName)}
@@ -138,41 +129,51 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
                       disabled={disabled}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Schema Type"
-                      value={endpoint.schema?.type || ''}
-                      onChange={e =>
-                        onEndpointChange(endpointName, 'schema', {
-                          ...endpoint.schema,
-                          type: e.target.value,
-                        })
-                      }
-                      fullWidth
-                      variant="outlined"
-                      placeholder="e.g., REST, GraphQL, gRPC"
-                      helperText="Optional: Specify the API schema type"
-                      disabled={disabled}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Schema Content"
-                      value={endpoint.schema?.content || ''}
-                      onChange={e =>
-                        onEndpointChange(endpointName, 'schema', {
-                          ...endpoint.schema,
-                          content: e.target.value,
-                        })
-                      }
-                      fullWidth
-                      variant="outlined"
-                      multiline
-                      placeholder="Enter schema definition (OpenAPI, GraphQL schema, protobuf, etc.)"
-                      helperText="Optional: Provide the actual schema definition"
-                      disabled={disabled}
-                    />
-                  </Grid>
+                  {(endpoint?.type === 'REST' || endpoint?.type === 'gRPC') && (
+                    <Grid item xs={12}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={showSchemaFor[endpointName] || false}
+                            onChange={e =>
+                              handleShowSchemaChange(endpointName, e.target.checked)
+                            }
+                            disabled={disabled}
+                            color="primary"
+                          />
+                        }
+                        label="Show API Specification"
+                      />
+                    </Grid>
+                  )}
+                  {(endpoint?.type === 'REST' || endpoint?.type === 'gRPC') && 
+                   showSchemaFor[endpointName] && (
+                    <Grid item xs={12}>
+                      <TextField
+                        label="Schema Content"
+                        value={endpoint.schema?.content || ''}
+                        onChange={e =>
+                          onEndpointChange(endpointName, 'schema', {
+                            ...endpoint.schema,
+                            content: e.target.value,
+                            type: endpoint.type,
+                          })
+                        }
+                        fullWidth
+                        variant="outlined"
+                        multiline
+                        placeholder="Enter schema definition (OpenAPI, GraphQL schema, protobuf, etc.)"
+                        helperText="Optional: Provide the actual schema definition"
+                        disabled={disabled}
+                        inputProps={{
+                          style: {
+                            fontFamily: 'monospace',
+
+                          },
+                        }}
+                      />
+                    </Grid>
+                  )}
                 </Grid>
               </CardContent>
             </Card>
