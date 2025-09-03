@@ -14,10 +14,12 @@ import { Skeleton } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import { LogEntry as LogEntryType } from './types';
 import { LogEntry } from './LogEntry';
+import { PageBanner } from '../CommonComponents';
+import InfoRounded from '@material-ui/icons/InfoRounded';
 
 const useStyles = makeStyles(theme => ({
   tableContainer: {
-    maxHeight: '70vh',
+    height: 'calc(100vh - 380px)',
     overflow: 'auto',
   },
   table: {
@@ -47,6 +49,9 @@ const useStyles = makeStyles(theme => ({
   skeletonRow: {
     height: 60,
   },
+  emptyStateCell: {
+    backgroundColor: 'transparent !important',
+  },
 }));
 
 interface LogsTableProps {
@@ -74,9 +79,6 @@ export const LogsTable: FC<LogsTableProps> = ({
           <Skeleton variant="text" width="100%" />
         </TableCell>
         <TableCell>
-          <Skeleton variant="rect" width={60} height={24} />
-        </TableCell>
-        <TableCell>
           <Skeleton variant="text" width="100%" />
         </TableCell>
         <TableCell>
@@ -96,17 +98,15 @@ export const LogsTable: FC<LogsTableProps> = ({
     if (loading) {
       return null;
     }
-
     return (
-      <TableRow>
-        <TableCell colSpan={6}>
-          <Box className={classes.emptyState}>
-            <Typography variant="h6" gutterBottom>
-              No logs found
-            </Typography>
-            <Typography variant="body2">
-              Try adjusting your filters or time range to see more logs.
-            </Typography>
+      <TableRow className={classes.emptyStateCell}>
+        <TableCell colSpan={5} className={classes.emptyStateCell}>
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%" pt={10}>
+          <PageBanner
+            title="No logs found"
+            description="Try adjusting your filters or time range."
+            icon={<InfoRounded fontSize='large' />}
+          />
           </Box>
         </TableCell>
       </TableRow>
@@ -116,14 +116,13 @@ export const LogsTable: FC<LogsTableProps> = ({
   return (
     <Paper>
       <Box className={classes.tableContainer}>
-        <Table className={classes.table} stickyHeader>
+        <Table className={classes.table} stickyHeader size='small'>
           <TableHead>
             <TableRow>
               <TableCell className={classes.headerCell}>Timestamp</TableCell>
-              <TableCell className={classes.headerCell}>Level</TableCell>
-              <TableCell className={classes.headerCell}>Message</TableCell>
               <TableCell className={classes.headerCell}>Container</TableCell>
               <TableCell className={classes.headerCell}>Pod</TableCell>
+              <TableCell className={classes.headerCell}>Message</TableCell>
               <TableCell className={classes.headerCell} width={100}>
                 Details
               </TableCell>
@@ -140,7 +139,7 @@ export const LogsTable: FC<LogsTableProps> = ({
 
             {hasMore && (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={5}>
                   <div className={classes.loadingContainer} ref={loadingRef}>
                     {loading ? (
                       <Box display="flex" alignItems="center">

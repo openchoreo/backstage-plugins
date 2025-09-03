@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, Typography, Button, Paper } from '@material-ui/core';
+import { Box, Typography, Button, Paper, Card, CardContent } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
-import Refresh from '@material-ui/icons/Refresh';
 import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
 import {
@@ -15,7 +14,10 @@ import { RuntimeLogsPagination } from './types';
 
 const useStyles = makeStyles(theme => ({
   root: {
-    padding: theme.spacing(3),
+    padding: theme.spacing(0, 3),
+    gap: theme.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
   },
   header: {
     display: 'flex',
@@ -26,11 +28,7 @@ const useStyles = makeStyles(theme => ({
   title: {
     fontWeight: 'bold',
   },
-  refreshButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-  },
+
   errorContainer: {
     marginBottom: theme.spacing(2),
   },
@@ -156,28 +154,19 @@ export const RuntimeLogs = () => {
 
   return (
     <Box className={classes.root}>
-      <Box className={classes.header}>
-        <Typography variant="h4" className={classes.title}>
-          Runtime Logs
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={handleRefresh}
-          disabled={logsLoading || !filters.environmentId}
-          className={classes.refreshButton}
-        >
-          Refresh
-        </Button>
-      </Box>
-
-      <LogsFilter
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        environments={environments}
-        environmentsLoading={environmentsLoading}
-        disabled={logsLoading}
-      />
+      <Card>
+        <CardContent>
+          <LogsFilter
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            environments={environments}
+            environmentsLoading={environmentsLoading}
+            disabled={logsLoading}
+            onRefresh={handleRefresh}
+            isRefreshing={logsLoading}
+          />
+        </CardContent>
+      </Card>
 
       {logsError && renderError(logsError)}
 
@@ -194,36 +183,6 @@ export const RuntimeLogs = () => {
 
       {filters.environmentId && (
         <>
-          {totalCount > 0 && (
-            <Paper className={classes.statsContainer}>
-              <Box className={classes.statItem}>
-                <Typography variant="body2" color="textSecondary">
-                  Total logs found:
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {totalCount.toLocaleString()}
-                </Typography>
-              </Box>
-              <Box className={classes.statItem}>
-                <Typography variant="body2" color="textSecondary">
-                  Environment:
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {environments.find(env => env.id === filters.environmentId)
-                    ?.name || filters.environmentId}
-                </Typography>
-              </Box>
-              <Box className={classes.statItem}>
-                <Typography variant="body2" color="textSecondary">
-                  Time range:
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {filters.timeRange}
-                </Typography>
-              </Box>
-            </Paper>
-          )}
-
           <LogsTable
             logs={logs}
             loading={logsLoading}

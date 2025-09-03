@@ -3,16 +3,16 @@ import {
   TableRow,
   TableCell,
   Typography,
-  Chip,
   Box,
   Collapse,
   IconButton,
   Tooltip,
+  Chip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import ExpandLess from '@material-ui/icons/ExpandLess';
-import FileCopy from '@material-ui/icons/FileCopy';
+import FileCopy from '@material-ui/icons/FileCopyOutlined';
 import { LogEntry as LogEntryType } from './types';
 
 const useStyles = makeStyles(theme => ({
@@ -22,45 +22,45 @@ const useStyles = makeStyles(theme => ({
     },
     cursor: 'pointer',
   },
+  cellText: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    width: theme.spacing(9),
+    display: 'block',
+    fontFamily: 'monospace',
+    fontSize: '0.8rem',
+  },
   expandedRow: {
     backgroundColor: theme.palette.action.selected,
   },
-  timestampCell: {
-    fontFamily: 'monospace',
-    fontSize: '0.85rem',
-    whiteSpace: 'nowrap',
-    width: '140px',
+  errorRow: {
+    color: theme.palette.error.dark,
   },
-  logLevelChip: {
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    minWidth: '60px',
+  warnRow: {
+    color: theme.palette.warning.dark,
   },
-  errorChip: {
-    backgroundColor: theme.palette.error.main,
-    color: theme.palette.error.contrastText,
+  infoRow: {
+    color: theme.palette.info.dark,
   },
-  warnChip: {
-    backgroundColor: theme.palette.warning.main,
-    color: theme.palette.warning.contrastText,
+  debugRow: {
+    color: theme.palette.text.primary,
   },
-  infoChip: {
-    backgroundColor: theme.palette.info.main,
-    color: theme.palette.info.contrastText,
-  },
-  debugChip: {
-    backgroundColor: theme.palette.action.disabled,
+  undefinedRow: {
     color: theme.palette.text.secondary,
   },
-  undefinedChip: {
-    backgroundColor: theme.palette.action.disabledBackground,
-    color: theme.palette.text.disabled,
+  timestampCell: {
+    fontFamily: 'monospace',
+    whiteSpace: 'nowrap',
+    fontSize: '0.8rem',
+    width: '140px',
   },
+
   logMessage: {
     fontFamily: 'monospace',
-    fontSize: '0.875rem',
+    fontSize: '0.8rem',
     wordBreak: 'break-word',
-    maxWidth: '400px',
+    maxWidth: 'calc(100vw - 920px)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -70,22 +70,15 @@ const useStyles = makeStyles(theme => ({
     maxWidth: 'none',
     overflow: 'visible',
   },
-  containerCell: {
-    fontSize: '0.875rem',
-    color: theme.palette.text.secondary,
-  },
   podCell: {
-    fontSize: '0.875rem',
-    color: theme.palette.text.secondary,
     fontFamily: 'monospace',
+    fontSize: '0.8rem',
   },
   expandButton: {
     padding: theme.spacing(0.5),
   },
   expandedContent: {
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.background.default,
-    borderRadius: theme.shape.borderRadius,
+    padding: theme.spacing(2, 0),
   },
   metadataSection: {
     marginTop: theme.spacing(2),
@@ -105,16 +98,16 @@ const useStyles = makeStyles(theme => ({
   },
   metadataValue: {
     fontFamily: 'monospace',
-    fontSize: '0.875rem',
-    color: theme.palette.text.secondary,
+    fontSize: '0.8rem',
   },
   copyButton: {
     padding: theme.spacing(0.5),
     marginLeft: theme.spacing(1),
+    color: theme.palette.text.hint,
   },
   fullLogMessage: {
     fontFamily: 'monospace',
-    fontSize: '0.875rem',
+    fontSize: '0.8rem',
     whiteSpace: 'pre-wrap',
     backgroundColor: theme.palette.background.paper,
     padding: theme.spacing(1),
@@ -132,19 +125,18 @@ interface LogEntryProps {
 export const LogEntry: FC<LogEntryProps> = ({ log }) => {
   const classes = useStyles();
   const [expanded, setExpanded] = useState(false);
-
-  const getLogLevelChipClass = (level: string) => {
+  const getLogLevelRowClass = (level: string) => {
     switch (level) {
       case 'ERROR':
-        return classes.errorChip;
+        return classes.errorRow;
       case 'WARN':
-        return classes.warnChip;
+        return classes.warnRow;
       case 'INFO':
-        return classes.infoChip;
+        return classes.infoRow;
       case 'DEBUG':
-        return classes.debugChip;
+        return classes.debugRow;
       case 'UNDEFINED':
-        return classes.undefinedChip;
+        return classes.undefinedRow;
       default:
         return '';
     }
@@ -152,10 +144,6 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
 
   const formatTimestamp = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
-  };
-
-  const truncatePodId = (podId: string) => {
-    return podId.length > 8 ? `${podId.substring(0, 8)}...` : podId;
   };
 
   const handleCopyLog = (event: MouseEvent) => {
@@ -175,24 +163,23 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
         className={`${classes.logRow} ${expanded ? classes.expandedRow : ''}`}
         onClick={handleRowClick}
       >
-        <TableCell className={classes.timestampCell}>
+        <TableCell padding="default" className={`${classes.timestampCell} ${getLogLevelRowClass(log.logLevel)}`}>
           {formatTimestamp(log.timestamp)}
         </TableCell>
-        <TableCell>
-          <Chip
-            label={log.logLevel}
-            size="small"
-            className={`${classes.logLevelChip} ${getLogLevelChipClass(
-              log.logLevel,
-            )}`}
-          />
+        <TableCell padding="none" className={getLogLevelRowClass(log.logLevel)} width={120} align='center'>
+          <Typography component="span" className={classes.cellText}>
+            {log.containerName}
+          </Typography>
         </TableCell>
-        <TableCell>
+        <TableCell padding="none" className={`${classes.podCell} ${getLogLevelRowClass(log.logLevel)}`} width={80}>
+          <Tooltip title={log.podId}>
+            <Typography className={classes.cellText}>{log.podId}</Typography>
+          </Tooltip>
+        </TableCell>
+        <TableCell padding="none" className={getLogLevelRowClass(log.logLevel)}>
           <Box display="flex" alignItems="center">
             <Typography
-              className={`${classes.logMessage} ${
-                expanded ? classes.expandedLogMessage : ''
-              }`}
+              className={classes.logMessage}
             >
               {log.log}
             </Typography>
@@ -207,15 +194,7 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
             </Tooltip>
           </Box>
         </TableCell>
-        <TableCell className={classes.containerCell}>
-          {log.containerName}
-        </TableCell>
-        <TableCell className={classes.podCell}>
-          <Tooltip title={log.podId}>
-            <span>{truncatePodId(log.podId)}</span>
-          </Tooltip>
-        </TableCell>
-        <TableCell>
+        <TableCell padding="none" align='center'>
           <IconButton
             className={classes.expandButton}
             size="small"
@@ -228,94 +207,100 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
           </IconButton>
         </TableCell>
       </TableRow>
-
-      {expanded && (
-        <TableRow>
-          <TableCell colSpan={6} style={{ paddingBottom: 0, paddingTop: 0 }}>
-            <Collapse in={expanded} timeout="auto" unmountOnExit>
-              <Box className={classes.expandedContent}>
-                <Typography variant="h6" gutterBottom>
+      <TableRow>
+        <TableCell colSpan={5} style={{ paddingBottom: 0, paddingTop: 0 }}>
+          <Collapse in={expanded} timeout="auto" unmountOnExit component={Box}>
+            <Box className={classes.expandedContent}>
+              <Box pt={1} display="flex" flexDirection="column" gridGap={1}>
+                <Typography variant="caption" gutterBottom>
                   Full Log Message
                 </Typography>
-                <Box className={classes.fullLogMessage}>{log.log}</Box>
 
-                <Box className={classes.metadataSection}>
-                  <Typography variant="h6" className={classes.metadataTitle}>
-                    Metadata
-                  </Typography>
-
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Component:</span>
-                    <span className={classes.metadataValue}>
-                      {log.componentId}
-                    </span>
-                  </Box>
-
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Environment:</span>
-                    <span className={classes.metadataValue}>
-                      {log.environmentId}
-                    </span>
-                  </Box>
-
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Project:</span>
-                    <span className={classes.metadataValue}>
-                      {log.projectId}
-                    </span>
-                  </Box>
-
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Namespace:</span>
-                    <span className={classes.metadataValue}>
-                      {log.namespace}
-                    </span>
-                  </Box>
-
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Pod ID:</span>
-                    <span className={classes.metadataValue}>{log.podId}</span>
-                  </Box>
-
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Container:</span>
-                    <span className={classes.metadataValue}>
-                      {log.containerName}
-                    </span>
-                  </Box>
-
-                  {log.version && (
-                    <Box className={classes.metadataItem}>
-                      <span className={classes.metadataKey}>Version:</span>
-                      <span className={classes.metadataValue}>
-                        {log.version}
-                      </span>
-                    </Box>
-                  )}
-
-                  {Object.keys(log.labels).length > 0 && (
-                    <>
-                      <Typography
-                        variant="subtitle1"
-                        className={classes.metadataTitle}
-                        style={{ marginTop: 16 }}
-                      >
-                        Labels
-                      </Typography>
-                      {Object.entries(log.labels).map(([key, value]) => (
-                        <Box key={key} className={classes.metadataItem}>
-                          <span className={classes.metadataKey}>{key}:</span>
-                          <span className={classes.metadataValue}>{value}</span>
-                        </Box>
-                      ))}
-                    </>
-                  )}
+                <Box className={classes.fullLogMessage}>
+                  {log.log}
                 </Box>
               </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
-      )}
+
+              <Box className={classes.metadataSection}>
+                <Typography variant="caption">
+                  Metadata
+                </Typography>
+                <Box className={classes.metadataItem}>
+                  <Typography variant="caption" className={classes.metadataKey}>Log Level:</Typography>
+                  <Typography variant="caption" className={`${classes.metadataValue} ${getLogLevelRowClass(log.logLevel)}`}>
+                    {log.logLevel}
+                  </Typography>
+                </Box>
+                <Box className={classes.metadataItem}>
+                  <Typography variant="caption" className={classes.metadataKey}>Component:</Typography>
+                  <Typography variant="caption" className={classes.metadataValue}>
+                    {log.componentId}
+                  </Typography>
+                </Box>
+                <Box className={classes.metadataItem}>
+                  <Typography variant="caption" className={classes.metadataKey}>Environment:</Typography>
+                  <Typography variant="caption" className={classes.metadataValue}>
+                    {log.environmentId}
+                  </Typography>
+                </Box>
+
+                <Box className={classes.metadataItem}>
+                  <Typography variant="caption" className={classes.metadataKey}>Project:</Typography>
+                  <Typography variant="caption" className={classes.metadataValue}>
+                    {log.projectId}
+                  </Typography>
+                </Box>
+
+                <Box className={classes.metadataItem}>
+                  <Typography variant="caption" className={classes.metadataKey}>Namespace:</Typography>
+                  <Typography variant="caption" className={classes.metadataValue}>
+                    {log.namespace}
+                  </Typography>
+                </Box>
+
+                <Box className={classes.metadataItem}>
+                  <Typography variant="caption" className={classes.metadataKey}>Pod ID:</Typography>
+                  <Typography variant="caption" className={classes.metadataValue}>{log.podId}</Typography>
+                </Box>
+
+                <Box className={classes.metadataItem}>
+                  <Typography variant="caption" className={classes.metadataKey}>Container:</Typography>
+                  <Typography variant="caption" className={classes.metadataValue}>
+                    {log.containerName}
+                  </Typography>
+                </Box>
+
+                {log.version && (
+                  <Box className={classes.metadataItem}>
+                    <Typography variant="caption" className={classes.metadataKey}>Version:</Typography>
+                    <Typography variant="caption" className={classes.metadataValue}>
+                      {log.version}
+                    </Typography>
+                  </Box>
+                )}
+
+                {Object.keys(log.labels).length > 0 && (
+                  <Box className={classes.expandedContent}>
+                    <Typography variant="caption" gutterBottom>
+                      Labels
+                    </Typography>
+                    <Box display="flex" flexWrap="wrap" pt={0.5}>
+                      {Object.entries(log.labels).map(([key, value]) => (
+                        <Chip key={key} size="small" variant="outlined" color="default" label={
+                          <Typography variant="caption" className={classes.metadataValue}>
+                            <Typography variant="caption" className={classes.metadataKey}>{key}:</Typography>
+                            <Typography variant="caption">{value}</Typography>
+                          </Typography>
+                        } />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
     </>
   );
 };

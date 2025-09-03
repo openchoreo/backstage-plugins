@@ -5,10 +5,11 @@ export interface PageBannerProps {
     title: string
     description: string
     icon?: React.ReactNode
+    transparent?: boolean
 }
-const PageBanner = ({ title, description, icon }: PageBannerProps) => {
+const PageBanner = ({ title, description, icon, transparent }: PageBannerProps) => {
     return (
-        <Box width="100%" height="100%" display="flex" py={2} flexDirection="column" alignItems="center" justifyContent="center">
+        <Box width="100%" height="100%" display="flex" py={2} flexDirection="column" alignItems="center" justifyContent="center" sx={{ bgcolor: transparent ? 'transparent' : 'inherit' }}>
             {icon || <ErrorIcon fontSize='large' />}
             <Typography variant="overline">
                 {title}
