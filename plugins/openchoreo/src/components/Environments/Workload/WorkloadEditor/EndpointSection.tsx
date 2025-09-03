@@ -55,7 +55,9 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
   disabled,
 }) => {
   const classes = useWorkloadEditorStyles();
-  const [showSchemaFor, setShowSchemaFor] = useState<{ [key: string]: boolean }>({});
+  const [showSchemaFor, setShowSchemaFor] = useState<{
+    [key: string]: boolean;
+  }>({});
 
   const handleShowSchemaChange = (endpointName: string, show: boolean) => {
     setShowSchemaFor(prev => ({
@@ -136,7 +138,10 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
                           <Checkbox
                             checked={showSchemaFor[endpointName] || false}
                             onChange={e =>
-                              handleShowSchemaChange(endpointName, e.target.checked)
+                              handleShowSchemaChange(
+                                endpointName,
+                                e.target.checked,
+                              )
                             }
                             disabled={disabled}
                             color="primary"
@@ -146,34 +151,33 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
                       />
                     </Grid>
                   )}
-                  {(endpoint?.type === 'REST' || endpoint?.type === 'gRPC') && 
-                   showSchemaFor[endpointName] && (
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Schema Content"
-                        value={endpoint.schema?.content || ''}
-                        onChange={e =>
-                          onEndpointChange(endpointName, 'schema', {
-                            ...endpoint.schema,
-                            content: e.target.value,
-                            type: endpoint.type,
-                          })
-                        }
-                        fullWidth
-                        variant="outlined"
-                        multiline
-                        placeholder="Enter schema definition (OpenAPI, GraphQL schema, protobuf, etc.)"
-                        helperText="Optional: Provide the actual schema definition"
-                        disabled={disabled}
-                        inputProps={{
-                          style: {
-                            fontFamily: 'monospace',
-
-                          },
-                        }}
-                      />
-                    </Grid>
-                  )}
+                  {(endpoint?.type === 'REST' || endpoint?.type === 'gRPC') &&
+                    showSchemaFor[endpointName] && (
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Schema Content"
+                          value={endpoint.schema?.content || ''}
+                          onChange={e =>
+                            onEndpointChange(endpointName, 'schema', {
+                              ...endpoint.schema,
+                              content: e.target.value,
+                              type: endpoint.type,
+                            })
+                          }
+                          fullWidth
+                          variant="outlined"
+                          multiline
+                          placeholder="Enter schema definition (OpenAPI, GraphQL schema, protobuf, etc.)"
+                          helperText="Optional: Provide the actual schema definition"
+                          disabled={disabled}
+                          inputProps={{
+                            style: {
+                              fontFamily: 'monospace',
+                            },
+                          }}
+                        />
+                      </Grid>
+                    )}
                 </Grid>
               </CardContent>
             </Card>

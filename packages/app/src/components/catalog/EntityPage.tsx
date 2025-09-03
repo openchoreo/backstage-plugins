@@ -161,7 +161,11 @@ const coreRoutes = [
   <EntityLayout.Route path="/environments" title="Deploy" key="environments">
     <Environments />
   </EntityLayout.Route>,
-  <EntityLayout.Route path="/runtime-logs" title="Runtime Logs" key="runtime-logs">
+  <EntityLayout.Route
+    path="/runtime-logs"
+    title="Runtime Logs"
+    key="runtime-logs"
+  >
     <RuntimeLogs />
   </EntityLayout.Route>,
   <EntityLayout.Route
@@ -194,7 +198,11 @@ const apiRoute = (
 );
 
 const dependenciesRoute = (
-  <EntityLayout.Route path="/dependencies" title="Dependencies" key="dependencies">
+  <EntityLayout.Route
+    path="/dependencies"
+    title="Dependencies"
+    key="dependencies"
+  >
     <Grid container spacing={3} alignItems="stretch">
       <Grid item md={6}>
         <EntityDependsOnComponentsCard variant="gridItem" />
@@ -278,19 +286,35 @@ const defaultEntityPage = (
 const componentPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isComponentType('service')}>
-      <ConditionalEntityWrapper activationFn={(e) => !e.metadata.annotations?.['backstage.io/source-location']}>
+      <ConditionalEntityWrapper
+        activationFn={e =>
+          !e.metadata.annotations?.['backstage.io/source-location']
+        }
+      >
         {serviceImageEntityPage}
       </ConditionalEntityWrapper>
-      <ConditionalEntityWrapper activationFn={(e) => !!e.metadata.annotations?.['backstage.io/source-location']}>
+      <ConditionalEntityWrapper
+        activationFn={e =>
+          !!e.metadata.annotations?.['backstage.io/source-location']
+        }
+      >
         {serviceSourceEntityPage}
       </ConditionalEntityWrapper>
     </EntitySwitch.Case>
 
     <EntitySwitch.Case if={isComponentType('website')}>
-      <ConditionalEntityWrapper activationFn={(e) => !e.metadata.annotations?.['backstage.io/source-location']}>
+      <ConditionalEntityWrapper
+        activationFn={e =>
+          !e.metadata.annotations?.['backstage.io/source-location']
+        }
+      >
         {websiteImageEntityPage}
       </ConditionalEntityWrapper>
-      <ConditionalEntityWrapper activationFn={(e) => !!e.metadata.annotations?.['backstage.io/source-location']}>
+      <ConditionalEntityWrapper
+        activationFn={e =>
+          !!e.metadata.annotations?.['backstage.io/source-location']
+        }
+      >
         {websiteSourceEntityPage}
       </ConditionalEntityWrapper>
     </EntitySwitch.Case>

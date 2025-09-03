@@ -12,10 +12,6 @@ import {
   ResponseErrorPanel,
   Table,
   TableColumn,
-  StatusOK,
-  StatusError,
-  StatusPending,
-  StatusRunning,
 } from '@backstage/core-components';
 import {
   Typography,
@@ -35,12 +31,17 @@ import type {
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-api';
 import { formatRelativeTime } from '../../utils/timeUtils';
-import {PageBanner} from '../CommonComponents';
+import { PageBanner } from '../CommonComponents';
 import { BuildStatus } from '../CommonComponents/BuildStatus';
 
 const isInProgress = (status: string) => {
-  return !(status.toLowerCase().includes('success') || status.toLowerCase().includes('failed') || status.toLowerCase().includes('error') || status.toLowerCase().includes('completed'));
-}
+  return !(
+    status.toLowerCase().includes('success') ||
+    status.toLowerCase().includes('failed') ||
+    status.toLowerCase().includes('error') ||
+    status.toLowerCase().includes('completed')
+  );
+};
 
 export const Builds = () => {
   const { entity } = useEntity();
@@ -260,9 +261,7 @@ export const Builds = () => {
     {
       title: 'Status',
       field: 'status',
-      render: (row: any) => (
-        <BuildStatus build={row as ModelsBuild}/>
-      ),
+      render: (row: any) => <BuildStatus build={row as ModelsBuild} />,
     },
     {
       title: 'Commit',
@@ -317,9 +316,9 @@ export const Builds = () => {
       <PageBanner
         title="Builds Not Available"
         description="Selected Component is not configured for builds."
-        icon={<ErrorIcon color='primary' fontSize='large' />}
+        icon={<ErrorIcon color="primary" fontSize="large" />}
       />
-    )
+    );
   }
   return (
     <Box>
@@ -392,7 +391,7 @@ export const Builds = () => {
                 >
                   {triggeringBuild ? 'Building...' : 'Build Latest'}
                 </Button>
-                <Button variant="outlined" size="small" onClick={() => { }}>
+                <Button variant="outlined" size="small" onClick={() => {}}>
                   Show Commits
                 </Button>
               </Box>
@@ -432,15 +431,14 @@ export const Builds = () => {
           setDrawerOpen(true);
         }}
         emptyContent={
-
           <PageBanner
             title="No Builds Found"
             description="No builds found for this component."
-            icon={<ErrorIcon color='primary' fontSize='large' />}
+            icon={<ErrorIcon color="primary" fontSize="large" />}
           />
         }
       />
-      {isInProgress(selectedBuild?.status || '')?"k":"y"}
+      {isInProgress(selectedBuild?.status || '') ? 'k' : 'y'}
       <BuildLogs
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}

@@ -121,7 +121,6 @@ export function Workload({
       setIsDeploying(false);
       throw new Error('Failed to deploy workload');
     }
-
   };
 
   const enableDeploy =
@@ -147,7 +146,6 @@ export function Workload({
         {!enableDeploy && !isWorking && !isDeploying && (
           <Alert severity={!hasBuilds ? 'error' : 'warning'}>
             {!hasBuilds ? error : 'Build your application first.'}
-      
           </Alert>
         )}
         <Button
@@ -176,15 +174,18 @@ export function Workload({
               alignItems="center"
               mb={2}
             >
-              <Typography variant="h6">
-                Configure Workload
-              </Typography>
+              <Typography variant="h6">Configure Workload</Typography>
               <IconButton onClick={toggleDrawer} color="default">
                 <CloseIcon />
               </IconButton>
             </Box>
             <Divider />
-            <Box flex={1} paddingBottom={2} overflow="auto" sx={{ height: 'calc(100% - 70px)' }}>
+            <Box
+              flex={1}
+              paddingBottom={2}
+              overflow="auto"
+              sx={{ height: 'calc(100% - 70px)' }}
+            >
               <WorkloadProvider
                 builds={builds}
                 workloadSpec={workloadSpec}

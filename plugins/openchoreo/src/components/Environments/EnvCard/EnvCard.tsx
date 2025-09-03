@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Grid,
   Card,
   CardContent,
   Typography,
@@ -102,7 +101,9 @@ interface EnvCardProps {
   updatingBinding: string | null;
   setUpdatingBinding: (value: string | null) => void;
   setEnvironmentsData: (data: Environment[]) => void;
-  setNotification: (notification: { message: string; type: 'success' | 'error' } | null) => void;
+  setNotification: (
+    notification: { message: string; type: 'success' | 'error' } | null,
+  ) => void;
   fetchEnvironmentsData: () => Promise<void>;
 }
 
@@ -134,11 +135,11 @@ export const EnvCard: React.FC<EnvCardProps> = ({
     }
   };
 
-//   if (env.deployment.status === 'success') return 'Active';
-//   if (env.deployment.status === 'pending') return 'Pending';
-//   if (env.deployment.status === 'not-deployed') return 'Not Deployed';
-//   if (env.deployment.status === 'suspended') return 'Suspended';
-//   return 'Failed';
+  //   if (env.deployment.status === 'success') return 'Active';
+  //   if (env.deployment.status === 'pending') return 'Pending';
+  //   if (env.deployment.status === 'not-deployed') return 'Not Deployed';
+  //   if (env.deployment.status === 'suspended') return 'Suspended';
+  //   return 'Failed';
   const getStatusMessage = (status: string) => {
     switch (status) {
       case 'success':
@@ -167,10 +168,7 @@ export const EnvCard: React.FC<EnvCardProps> = ({
               {env.name}
             </Typography>
             <IconButton onClick={() => fetchEnvironmentsData()}>
-              <Refresh
-                fontSize="inherit"
-                style={{ fontSize: '18px' }}
-              />
+              <Refresh fontSize="inherit" style={{ fontSize: '18px' }} />
             </IconButton>
           </Box>
           {/* add a line in the ui */}
@@ -196,12 +194,16 @@ export const EnvCard: React.FC<EnvCardProps> = ({
               severity={getStatusLevel(env.deployment.status)}
               style={{ marginTop: '10px' }}
             >
-                <Typography variant="body2" color="textSecondary">
-                    Deployment Status: &nbsp;
-                    <Typography variant="body2" component="span" color="textPrimary">    
-                      {getStatusMessage(env.deployment.status)}
-                    </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Deployment Status: &nbsp;
+                <Typography
+                  variant="body2"
+                  component="span"
+                  color="textPrimary"
+                >
+                  {getStatusMessage(env.deployment.status)}
                 </Typography>
+              </Typography>
             </Alert>
           )}
           {env.deployment.statusMessage && (
@@ -235,47 +237,46 @@ export const EnvCard: React.FC<EnvCardProps> = ({
             </>
           )}
 
-          {env.deployment.status === 'success' &&
-            env.endpoints.length > 0 && (
-              <>
-                <Box display="flex" alignItems="center" mt={2}>
-                  <Typography variant="body2" color="textSecondary">
-                    Endpoints
-                  </Typography>
-                </Box>
-                {env.endpoints.map((endpoint, index) => (
-                  <Box
-                    key={index}
-                    display="flex"
-                    alignItems="center"
-                    mt={index === 0 ? 0 : 1}
-                    sx={{ minWidth: 0, width: '100%' }}
-                  >
-                    <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                      <a
-                        href={endpoint.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={classes.endpointLink}
-                      >
-                        {endpoint.url}
-                      </a>
-                    </Box>
-                    <Box sx={{ flexShrink: 0 }}>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          navigator.clipboard.writeText(endpoint.url);
-                          // You could add a toast notification here
-                        }}
-                      >
-                        <FileCopyIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
+          {env.deployment.status === 'success' && env.endpoints.length > 0 && (
+            <>
+              <Box display="flex" alignItems="center" mt={2}>
+                <Typography variant="body2" color="textSecondary">
+                  Endpoints
+                </Typography>
+              </Box>
+              {env.endpoints.map((endpoint, index) => (
+                <Box
+                  key={index}
+                  display="flex"
+                  alignItems="center"
+                  mt={index === 0 ? 0 : 1}
+                  sx={{ minWidth: 0, width: '100%' }}
+                >
+                  <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
+                    <a
+                      href={endpoint.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={classes.endpointLink}
+                    >
+                      {endpoint.url}
+                    </a>
                   </Box>
-                ))}
-              </>
-            )}
+                  <Box sx={{ flexShrink: 0 }}>
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        navigator.clipboard.writeText(endpoint.url);
+                        // You could add a toast notification here
+                      }}
+                    >
+                      <FileCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </>
+          )}
 
           {/* Actions section - show if deployment is successful or suspended */}
           {((env.deployment.status === 'success' &&
@@ -294,7 +295,12 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                     key={target.name}
                     mb={(() => {
                       if (index < env.promotionTargets!.length - 1) return 2;
-                      if ((env.deployment.status === 'success' || env.deployment.status === 'suspended') && env.bindingName) return 2;
+                      if (
+                        (env.deployment.status === 'success' ||
+                          env.deployment.status === 'suspended') &&
+                        env.bindingName
+                      )
+                        return 2;
                       return 0;
                     })()}
                   >
@@ -364,14 +370,10 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                         variant="contained"
                         color="primary"
                         size="small"
-                        disabled={
-                          promotingTo === env.promotionTargets[0].name
-                        }
+                        disabled={promotingTo === env.promotionTargets[0].name}
                         onClick={async () => {
                           try {
-                            setPromotingTo(
-                              env.promotionTargets![0].name,
-                            );
+                            setPromotingTo(env.promotionTargets![0].name);
                             const result = await promoteToEnvironment(
                               entity,
                               discovery,
@@ -381,9 +383,7 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                             );
 
                             // Update environments state with fresh data from promotion result
-                            setEnvironmentsData(
-                              result as Environment[],
-                            );
+                            setEnvironmentsData(result as Environment[]);
 
                             setNotification({
                               message: `Component promoted from ${
@@ -393,10 +393,7 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                             });
 
                             // Clear notification after 5 seconds
-                            setTimeout(
-                              () => setNotification(null),
-                              5000,
-                            );
+                            setTimeout(() => setNotification(null), 5000);
                           } catch (err) {
                             setNotification({
                               message: `Error promoting: ${err}`,
@@ -404,10 +401,7 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                             });
 
                             // Clear notification after 7 seconds for errors
-                            setTimeout(
-                              () => setNotification(null),
-                              7000,
-                            );
+                            setTimeout(() => setNotification(null), 7000);
                           } finally {
                             setPromotingTo(null);
                           }
@@ -428,7 +422,11 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                     env.bindingName && (
                       <Button
                         variant="outlined"
-                        color={env.deployment.status === 'suspended' ? 'primary' : 'default'}
+                        color={
+                          env.deployment.status === 'suspended'
+                            ? 'primary'
+                            : 'default'
+                        }
                         size="small"
                         disabled={updatingBinding === env.name}
                         onClick={async () => {
@@ -459,10 +457,7 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                             });
 
                             // Clear notification after 5 seconds
-                            setTimeout(
-                              () => setNotification(null),
-                              5000,
-                            );
+                            setTimeout(() => setNotification(null), 5000);
                           } catch (err) {
                             setNotification({
                               message: `Error updating deployment: ${err}`,
@@ -470,18 +465,17 @@ export const EnvCard: React.FC<EnvCardProps> = ({
                             });
 
                             // Clear notification after 7 seconds for errors
-                            setTimeout(
-                              () => setNotification(null),
-                              7000,
-                            );
+                            setTimeout(() => setNotification(null), 7000);
                           } finally {
                             setUpdatingBinding(null);
                           }
                         }}
                       >
-{(() => {
-                          if (updatingBinding === env.name) return 'Updating...';
-                          if (env.deployment.status === 'suspended') return 'Re-deploy';
+                        {(() => {
+                          if (updatingBinding === env.name)
+                            return 'Updating...';
+                          if (env.deployment.status === 'suspended')
+                            return 'Re-deploy';
                           return 'Suspend';
                         })()}
                       </Button>

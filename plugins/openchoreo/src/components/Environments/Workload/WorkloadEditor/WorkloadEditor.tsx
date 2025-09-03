@@ -77,8 +77,13 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   const endpointCount = Object.keys(formData.endpoints || {}).length;
 
   const handleDeploy = async () => {
-    const componentType = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
-    if (containerCount === 0 && componentType === 'Service' && endpointCount === 0) {
+    const componentType =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
+    if (
+      containerCount === 0 &&
+      componentType === 'Service' &&
+      endpointCount === 0
+    ) {
       setError('Please add a container and at least one endpoint');
       return;
     }
@@ -265,34 +270,35 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   return (
     <Box overflow="hidden" pt={1}>
       <Box>
-      <ContainerSection
-        disabled={isDeploying}
-        containers={formData.containers || {}}
-        onContainerChange={handleContainerChange}
-        onEnvVarChange={handleEnvVarChange}
-        onAddContainer={addContainer}
-        onRemoveContainer={removeContainer}
-        onAddEnvVar={addEnvVar}
-        onRemoveEnvVar={removeEnvVar}
-        onArrayFieldChange={handleArrayFieldChange}
-        singleContainerMode
-      />
-      {entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE] === 'Service' && (
-        <EndpointSection
+        <ContainerSection
           disabled={isDeploying}
-          endpoints={formData.endpoints || {}}
-          onEndpointChange={handleEndpointChange}
-          onAddEndpoint={addEndpoint}
-          onRemoveEndpoint={removeEndpoint}
+          containers={formData.containers || {}}
+          onContainerChange={handleContainerChange}
+          onEnvVarChange={handleEnvVarChange}
+          onAddContainer={addContainer}
+          onRemoveContainer={removeContainer}
+          onAddEnvVar={addEnvVar}
+          onRemoveEnvVar={removeEnvVar}
+          onArrayFieldChange={handleArrayFieldChange}
+          singleContainerMode
         />
-      )}
-      <ConnectionSection
-        disabled={isDeploying}
-        connections={formData.connections || {}}
-        onConnectionChange={handleConnectionChange}
-        onAddConnection={addConnection}
-        onRemoveConnection={removeConnection}
-      />
+        {entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE] ===
+          'Service' && (
+          <EndpointSection
+            disabled={isDeploying}
+            endpoints={formData.endpoints || {}}
+            onEndpointChange={handleEndpointChange}
+            onAddEndpoint={addEndpoint}
+            onRemoveEndpoint={removeEndpoint}
+          />
+        )}
+        <ConnectionSection
+          disabled={isDeploying}
+          connections={formData.connections || {}}
+          onConnectionChange={handleConnectionChange}
+          onAddConnection={addConnection}
+          onRemoveConnection={removeConnection}
+        />
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
       <Box display="flex" justifyContent="flex-end" margin={2}>

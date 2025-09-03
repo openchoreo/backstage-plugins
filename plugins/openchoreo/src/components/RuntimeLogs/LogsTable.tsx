@@ -101,12 +101,18 @@ export const LogsTable: FC<LogsTableProps> = ({
     return (
       <TableRow className={classes.emptyStateCell}>
         <TableCell colSpan={5} className={classes.emptyStateCell}>
-          <Box display="flex" justifyContent="center" alignItems="center" height="100%" pt={10}>
-          <PageBanner
-            title="No logs found"
-            description="Try adjusting your filters or time range."
-            icon={<InfoRounded fontSize='large' />}
-          />
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            height="100%"
+            pt={10}
+          >
+            <PageBanner
+              title="No logs found"
+              description="Try adjusting your filters or time range."
+              icon={<InfoRounded fontSize="large" />}
+            />
           </Box>
         </TableCell>
       </TableRow>
@@ -116,7 +122,7 @@ export const LogsTable: FC<LogsTableProps> = ({
   return (
     <Paper>
       <Box className={classes.tableContainer}>
-        <Table className={classes.table} stickyHeader size='small'>
+        <Table className={classes.table} stickyHeader size="small">
           <TableHead>
             <TableRow>
               <TableCell className={classes.headerCell}>Timestamp</TableCell>

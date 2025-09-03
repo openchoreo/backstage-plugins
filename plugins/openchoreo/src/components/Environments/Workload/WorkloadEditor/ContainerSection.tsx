@@ -50,8 +50,6 @@ interface ContainerSectionProps {
   singleContainerMode: boolean;
 }
 
-
-
 export function ContainerSection({
   containers,
   onContainerChange,

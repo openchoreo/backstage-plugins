@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-export function useTimerEffect(callback: () => void, delay: number, dependencies: any[]) {
+export function useTimerEffect(
+  callback: () => void,
+  delay: number,
+  dependencies: any[],
+) {
   const savedCallback = useRef<() => void>();
 
   useEffect(() => {

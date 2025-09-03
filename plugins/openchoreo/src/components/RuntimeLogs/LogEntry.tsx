@@ -163,26 +163,36 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
         className={`${classes.logRow} ${expanded ? classes.expandedRow : ''}`}
         onClick={handleRowClick}
       >
-        <TableCell padding="default" className={`${classes.timestampCell} ${getLogLevelRowClass(log.logLevel)}`}>
+        <TableCell
+          padding="default"
+          className={`${classes.timestampCell} ${getLogLevelRowClass(
+            log.logLevel,
+          )}`}
+        >
           {formatTimestamp(log.timestamp)}
         </TableCell>
-        <TableCell padding="none" className={getLogLevelRowClass(log.logLevel)} width={120} align='center'>
+        <TableCell
+          padding="none"
+          className={getLogLevelRowClass(log.logLevel)}
+          width={120}
+          align="center"
+        >
           <Typography component="span" className={classes.cellText}>
             {log.containerName}
           </Typography>
         </TableCell>
-        <TableCell padding="none" className={`${classes.podCell} ${getLogLevelRowClass(log.logLevel)}`} width={80}>
+        <TableCell
+          padding="none"
+          className={`${classes.podCell} ${getLogLevelRowClass(log.logLevel)}`}
+          width={80}
+        >
           <Tooltip title={log.podId}>
             <Typography className={classes.cellText}>{log.podId}</Typography>
           </Tooltip>
         </TableCell>
         <TableCell padding="none" className={getLogLevelRowClass(log.logLevel)}>
           <Box display="flex" alignItems="center">
-            <Typography
-              className={classes.logMessage}
-            >
-              {log.log}
-            </Typography>
+            <Typography className={classes.logMessage}>{log.log}</Typography>
             <Tooltip title="Copy log message">
               <IconButton
                 className={classes.copyButton}
@@ -194,7 +204,7 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
             </Tooltip>
           </Box>
         </TableCell>
-        <TableCell padding="none" align='center'>
+        <TableCell padding="none" align="center">
           <IconButton
             className={classes.expandButton}
             size="small"
@@ -216,64 +226,107 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
                   Full Log Message
                 </Typography>
 
-                <Box className={classes.fullLogMessage}>
-                  {log.log}
-                </Box>
+                <Box className={classes.fullLogMessage}>{log.log}</Box>
               </Box>
 
               <Box className={classes.metadataSection}>
-                <Typography variant="caption">
-                  Metadata
-                </Typography>
+                <Typography variant="caption">Metadata</Typography>
                 <Box className={classes.metadataItem}>
-                  <Typography variant="caption" className={classes.metadataKey}>Log Level:</Typography>
-                  <Typography variant="caption" className={`${classes.metadataValue} ${getLogLevelRowClass(log.logLevel)}`}>
+                  <Typography variant="caption" className={classes.metadataKey}>
+                    Log Level:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className={`${classes.metadataValue} ${getLogLevelRowClass(
+                      log.logLevel,
+                    )}`}
+                  >
                     {log.logLevel}
                   </Typography>
                 </Box>
                 <Box className={classes.metadataItem}>
-                  <Typography variant="caption" className={classes.metadataKey}>Component:</Typography>
-                  <Typography variant="caption" className={classes.metadataValue}>
+                  <Typography variant="caption" className={classes.metadataKey}>
+                    Component:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className={classes.metadataValue}
+                  >
                     {log.componentId}
                   </Typography>
                 </Box>
                 <Box className={classes.metadataItem}>
-                  <Typography variant="caption" className={classes.metadataKey}>Environment:</Typography>
-                  <Typography variant="caption" className={classes.metadataValue}>
+                  <Typography variant="caption" className={classes.metadataKey}>
+                    Environment:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className={classes.metadataValue}
+                  >
                     {log.environmentId}
                   </Typography>
                 </Box>
 
                 <Box className={classes.metadataItem}>
-                  <Typography variant="caption" className={classes.metadataKey}>Project:</Typography>
-                  <Typography variant="caption" className={classes.metadataValue}>
+                  <Typography variant="caption" className={classes.metadataKey}>
+                    Project:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className={classes.metadataValue}
+                  >
                     {log.projectId}
                   </Typography>
                 </Box>
 
                 <Box className={classes.metadataItem}>
-                  <Typography variant="caption" className={classes.metadataKey}>Namespace:</Typography>
-                  <Typography variant="caption" className={classes.metadataValue}>
+                  <Typography variant="caption" className={classes.metadataKey}>
+                    Namespace:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className={classes.metadataValue}
+                  >
                     {log.namespace}
                   </Typography>
                 </Box>
 
                 <Box className={classes.metadataItem}>
-                  <Typography variant="caption" className={classes.metadataKey}>Pod ID:</Typography>
-                  <Typography variant="caption" className={classes.metadataValue}>{log.podId}</Typography>
+                  <Typography variant="caption" className={classes.metadataKey}>
+                    Pod ID:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className={classes.metadataValue}
+                  >
+                    {log.podId}
+                  </Typography>
                 </Box>
 
                 <Box className={classes.metadataItem}>
-                  <Typography variant="caption" className={classes.metadataKey}>Container:</Typography>
-                  <Typography variant="caption" className={classes.metadataValue}>
+                  <Typography variant="caption" className={classes.metadataKey}>
+                    Container:
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    className={classes.metadataValue}
+                  >
                     {log.containerName}
                   </Typography>
                 </Box>
 
                 {log.version && (
                   <Box className={classes.metadataItem}>
-                    <Typography variant="caption" className={classes.metadataKey}>Version:</Typography>
-                    <Typography variant="caption" className={classes.metadataValue}>
+                    <Typography
+                      variant="caption"
+                      className={classes.metadataKey}
+                    >
+                      Version:
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      className={classes.metadataValue}
+                    >
                       {log.version}
                     </Typography>
                   </Box>
@@ -286,12 +339,26 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
                     </Typography>
                     <Box display="flex" flexWrap="wrap" pt={0.5}>
                       {Object.entries(log.labels).map(([key, value]) => (
-                        <Chip key={key} size="small" variant="outlined" color="default" label={
-                          <Typography variant="caption" className={classes.metadataValue}>
-                            <Typography variant="caption" className={classes.metadataKey}>{key}:</Typography>
-                            <Typography variant="caption">{value}</Typography>
-                          </Typography>
-                        } />
+                        <Chip
+                          key={key}
+                          size="small"
+                          variant="outlined"
+                          color="default"
+                          label={
+                            <Typography
+                              variant="caption"
+                              className={classes.metadataValue}
+                            >
+                              <Typography
+                                variant="caption"
+                                className={classes.metadataKey}
+                              >
+                                {key}:
+                              </Typography>
+                              <Typography variant="caption">{value}</Typography>
+                            </Typography>
+                          }
+                        />
                       ))}
                     </Box>
                   </Box>

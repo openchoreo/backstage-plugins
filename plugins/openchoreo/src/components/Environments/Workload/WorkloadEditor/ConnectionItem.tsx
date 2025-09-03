@@ -30,8 +30,6 @@ interface ConnectionItemProps {
   disabled: boolean;
 }
 
-
-
 enum ConnectionTypes {
   API = 'api',
 }

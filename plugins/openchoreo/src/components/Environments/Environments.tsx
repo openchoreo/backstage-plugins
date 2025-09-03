@@ -12,7 +12,6 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
-
 import {
   discoveryApiRef,
   identityApiRef,
@@ -54,8 +53,6 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(1),
     borderRadius: theme.shape.borderRadius,
   },
-
-
 }));
 
 interface Environment {
@@ -113,7 +110,11 @@ export const Environments = () => {
     env => env.deployment.status === 'pending',
   );
 
-  useTimerEffect(fetchEnvironmentsData, isWorkloadEditorOpen || !isPending ? 0 : 10000, [isPending, fetchEnvironmentsData]);
+  useTimerEffect(
+    fetchEnvironmentsData,
+    isWorkloadEditorOpen || !isPending ? 0 : 10000,
+    [isPending, fetchEnvironmentsData],
+  );
 
   if (loading && !isPending) {
     return (
@@ -135,11 +136,23 @@ export const Environments = () => {
   return (
     <Box height="100%" p={2}>
       <Collapse in={!!notification} mountOnEnter unmountOnExit>
-        <Alert severity={notification?.type} title={notification?.type === 'success' ? '✓ ' : '✗ '} style={{ marginBottom: '10px' }}>
+        <Alert
+          severity={notification?.type}
+          title={notification?.type === 'success' ? '✓ ' : '✗ '}
+          style={{ marginBottom: '10px' }}
+        >
           {notification?.message}
         </Alert>
       </Collapse>
-      <Box display="flex" flexDirection="row" gridGap={16} py={1} overflow="auto" flexGrow={1} width="100%">
+      <Box
+        display="flex"
+        flexDirection="row"
+        gridGap={16}
+        py={1}
+        overflow="auto"
+        flexGrow={1}
+        width="100%"
+      >
         <Box minWidth={theme.spacing(40)} width={theme.spacing(40)} key="setup">
           <Card>
             {/* Make this card color different from the others */}

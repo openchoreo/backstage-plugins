@@ -29,7 +29,6 @@ const useStyles = makeStyles(theme => ({
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
     whiteSpace: 'pre-wrap',
-
   },
   timestampText: {
     fontSize: '11px',
@@ -40,7 +39,7 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.primary,
     fontFamily: 'monospace',
     padding: theme.spacing(0.5, 1),
-    "&:hover": {
+    '&:hover': {
       backgroundColor: theme.palette.action.hover,
     },
   },
@@ -58,20 +57,19 @@ interface BuildLogsProps {
   enableAutoRefresh?: boolean;
 }
 
-
 export const BuildDetails = ({ build }: { build: ModelsBuild }) => {
   const theme = useTheme();
   return (
-    <Box display="flex" 
-    justifyContent="space-between" 
-    flexDirection="row" 
-    sx={{
-      borderRadius: theme.shape.borderRadius,
-    }}>
+    <Box
+      display="flex"
+      justifyContent="space-between"
+      flexDirection="row"
+      sx={{
+        borderRadius: theme.shape.borderRadius,
+      }}
+    >
       <Box>
-        <Typography variant="body1">
-          Build Name: {build.name}
-        </Typography>
+        <Typography variant="body1">Build Name: {build.name}</Typography>
         <Typography variant="body2" color="textSecondary">
           Commit: {build.commit?.slice(0, 8) || 'N/A'}
         </Typography>
@@ -86,7 +84,12 @@ export const BuildDetails = ({ build }: { build: ModelsBuild }) => {
   );
 };
 
-export const BuildLogs = ({ open, onClose, build, enableAutoRefresh = false }: BuildLogsProps) => {
+export const BuildLogs = ({
+  open,
+  onClose,
+  build,
+  enableAutoRefresh = false,
+}: BuildLogsProps) => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
@@ -94,31 +97,35 @@ export const BuildLogs = ({ open, onClose, build, enableAutoRefresh = false }: B
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useTimerEffect(() => {
-    const fetchBuildLogs = async (selectedBuild: ModelsBuild) => {
-      setLoading(true);
-      setError(null);
+  useTimerEffect(
+    () => {
+      const fetchBuildLogs = async (selectedBuild: ModelsBuild) => {
+        setLoading(true);
+        setError(null);
 
-      try {
-        const logsData = await fetchBuildLogsForBuild(
-          discoveryApi,
-          identityApi,
-          selectedBuild,
-        );
-        setLogs(logsData.logs || []);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to fetch build logs',
-        );
-      } finally {
-        setLoading(false);
+        try {
+          const logsData = await fetchBuildLogsForBuild(
+            discoveryApi,
+            identityApi,
+            selectedBuild,
+          );
+          setLogs(logsData.logs || []);
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : 'Failed to fetch build logs',
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      if (open && build) {
+        fetchBuildLogs(build);
       }
-    };
-
-    if (open && build) {
-      fetchBuildLogs(build);
-    }
-  }, enableAutoRefresh ? 5000 : 0, [discoveryApi, identityApi, open, build]);
+    },
+    enableAutoRefresh ? 5000 : 0,
+    [discoveryApi, identityApi, open, build],
+  );
 
   const renderLogsContent = useCallback(() => {
     if (loading && !logs.length) {
@@ -150,10 +157,18 @@ export const BuildLogs = ({ open, onClose, build, enableAutoRefresh = false }: B
 
     return logs.map((logEntry, index) => (
       <Box key={index} py={0.25} className={classes.logLine}>
-        <Typography variant="body2" component="span" className={classes.timestampText}>
+        <Typography
+          variant="body2"
+          component="span"
+          className={classes.timestampText}
+        >
           [{new Date(logEntry.timestamp).toLocaleTimeString()}] &nbsp;
         </Typography>
-        <Typography variant="body2" component="span" className={classes.logText} >
+        <Typography
+          variant="body2"
+          component="span"
+          className={classes.logText}
+        >
           {logEntry.log}
         </Typography>
       </Box>
@@ -179,9 +194,7 @@ export const BuildLogs = ({ open, onClose, build, enableAutoRefresh = false }: B
           alignItems="center"
           mb={2}
         >
-          <Typography variant="h6">
-            Build Details
-          </Typography>
+          <Typography variant="h6">Build Details</Typography>
           <IconButton onClick={onClose} size="small">
             <Close />
           </IconButton>

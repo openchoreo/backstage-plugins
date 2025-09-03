@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, Typography, Button, Paper, Card, CardContent } from '@material-ui/core';
+import { Box, Typography, Button, Card, CardContent } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import { LogsFilter } from './LogsFilter';

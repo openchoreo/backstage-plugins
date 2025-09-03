@@ -8,7 +8,7 @@ export const useWorkloadEditorStyles = makeStyles(theme => ({
       margin: 0,
     },
   },
-  
+
   // Container styles for dynamic fields (cards)
   dynamicFieldContainer: {
     padding: theme.spacing(2),
@@ -16,7 +16,7 @@ export const useWorkloadEditorStyles = makeStyles(theme => ({
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
   },
-  
+
   // Environment variable container styles
   envVarContainer: {
     padding: theme.spacing(1),
@@ -24,17 +24,17 @@ export const useWorkloadEditorStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     marginBottom: theme.spacing(1),
   },
-  
+
   // Button styles
   addButton: {
     marginTop: theme.spacing(1),
   },
-  
+
   // Common layout utilities
   fullWidth: {
     width: '100%',
   },
-  
+
   // Flex utilities
   flexBetween: {
     display: 'flex',

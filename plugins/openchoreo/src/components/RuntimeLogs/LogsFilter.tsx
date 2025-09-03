@@ -30,7 +30,6 @@ const useStyles = makeStyles(theme => ({
   },
   filterSection: {
     // marginBottom: theme.spacing(2),
-
   },
   refreshButtonContainer: {
     display: 'flex',
@@ -66,7 +65,6 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.disabled,
     borderColor: theme.palette.text.disabled,
   },
-
 }));
 
 interface LogsFilterProps {
@@ -123,13 +121,13 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   const getLogLevelDisplayName = (level: string) => {
     switch (level) {
       case 'ERROR':
-        return "Error";
+        return 'Error';
       case 'WARN':
-        return "Warn";
+        return 'Warn';
       case 'INFO':
-        return "Info";
+        return 'Info';
       case 'DEBUG':
-        return "Debug";
+        return 'Debug';
       case 'UNDEFINED':
         return classes.undefinedLevel;
       default:
@@ -143,7 +141,11 @@ export const LogsFilter: FC<LogsFilterProps> = ({
           <Autocomplete
             multiple
             options={LOG_LEVELS}
-            value={filters.logLevel.length === LOG_LEVELS.length ? [] : filters.logLevel}
+            value={
+              filters.logLevel.length === LOG_LEVELS.length
+                ? []
+                : filters.logLevel
+            }
             onChange={handleLogLevelChange}
             disabled={disabled}
             renderTags={(value, getTagProps) =>
@@ -152,7 +154,11 @@ export const LogsFilter: FC<LogsFilterProps> = ({
                   {...getTagProps({ index })}
                   key={option}
                   label={
-                    <Typography component="span" variant="body2" className={getLogLevelClassName(option)}>
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      className={getLogLevelClassName(option)}
+                    >
                       {getLogLevelDisplayName(option)}
                     </Typography>
                   }
@@ -162,18 +168,22 @@ export const LogsFilter: FC<LogsFilterProps> = ({
                 />
               ))
             }
-            renderOption={(option) => (
+            renderOption={option => (
               <Typography component="span" variant="body2">
                 {getLogLevelDisplayName(option)}
               </Typography>
             )}
-            renderInput={(params) => (
+            renderInput={params => (
               <TextField
                 {...params}
                 variant="outlined"
-                size='small'
+                size="small"
                 label="Log Levels"
-                placeholder={filters.logLevel.length === LOG_LEVELS.length ? "All levels selected" : "Select log levels"}
+                placeholder={
+                  filters.logLevel.length === LOG_LEVELS.length
+                    ? 'All levels selected'
+                    : 'Select log levels'
+                }
               />
             )}
             noOptionsText="No log levels available"
@@ -183,7 +193,12 @@ export const LogsFilter: FC<LogsFilterProps> = ({
 
       <Grid item xs={12} md={4}>
         <Box className={classes.filterSection}>
-          <FormControl fullWidth disabled={disabled || environmentsLoading} variant="outlined" size='small'>
+          <FormControl
+            fullWidth
+            disabled={disabled || environmentsLoading}
+            variant="outlined"
+            size="small"
+          >
             <InputLabel>Environment</InputLabel>
             {environmentsLoading ? (
               <Skeleton variant="rect" height={56} />
@@ -206,7 +221,12 @@ export const LogsFilter: FC<LogsFilterProps> = ({
 
       <Grid item xs={12} md={3}>
         <Box className={classes.filterSection}>
-          <FormControl fullWidth disabled={disabled} variant="outlined" size='small'>
+          <FormControl
+            fullWidth
+            disabled={disabled}
+            variant="outlined"
+            size="small"
+          >
             <InputLabel>Time Range</InputLabel>
             <Select
               value={filters.timeRange}
