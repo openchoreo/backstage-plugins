@@ -103,9 +103,9 @@ The module provides extension points for advanced use cases:
 You can extend the module with custom incremental entity providers:
 
 ```typescript
-import { 
+import {
   openchoreoIncrementalProvidersExtensionPoint,
-  type OpenChoreoIncrementalProviderExtensionPoint 
+  type OpenChoreoIncrementalProviderExtensionPoint,
 } from '@openchoreo/plugin-catalog-backend-module-openchoreo-incremental';
 
 // In your backend module
@@ -130,17 +130,27 @@ export default createBackendModule({
 Implement the `IncrementalEntityProvider` interface for custom providers:
 
 ```typescript
-import { IncrementalEntityProvider, EntityIteratorResult } from '@openchoreo/plugin-catalog-backend-module-openchoreo-incremental';
+import {
+  IncrementalEntityProvider,
+  EntityIteratorResult,
+} from '@openchoreo/plugin-catalog-backend-module-openchoreo-incremental';
 
-class CustomIncrementalProvider implements IncrementalEntityProvider<MyCursor, MyContext> {
-  getProviderName(): string { return 'custom-provider'; }
-  
+class CustomIncrementalProvider
+  implements IncrementalEntityProvider<MyCursor, MyContext>
+{
+  getProviderName(): string {
+    return 'custom-provider';
+  }
+
   async around(burst: (context: MyContext) => Promise<void>): Promise<void> {
     // Setup and teardown logic
     await burst(context);
   }
-  
-  async next(context: MyContext, cursor?: MyCursor): Promise<EntityIteratorResult<MyCursor>> {
+
+  async next(
+    context: MyContext,
+    cursor?: MyCursor,
+  ): Promise<EntityIteratorResult<MyCursor>> {
     // Return batch of entities and next cursor
   }
 }
