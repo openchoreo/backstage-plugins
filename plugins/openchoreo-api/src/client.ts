@@ -14,18 +14,79 @@ import {
   DeploymentPipelineResponse,
   ModelsCompleteComponent,
   ModelsWorkload,
-} from './models';
+} from './models/index';
+import {
+  OrganizationsGetRequest,
+  ProjectsGetRequest,
+  ComponentsGetRequest,
+  EnvironmentsGetRequest,
+  DataplanesGetRequest,
+} from './models/requests';
 import { LoggerService } from '@backstage/backend-plugin-api';
 
+/**
+ * Options for OpenChoreoApiClient constructor
+ * @public
+ */
+export interface OpenChoreoApiClientOptions {
+  baseUrl: string;
+  token?: string;
+  logger?: LoggerService;
+  fetchApi?: { fetch: typeof fetch };
+}
 export class OpenChoreoApiClient {
   private client: DefaultApiClient;
   private token?: string;
   private logger?: LoggerService;
 
-  constructor(baseUrl: string, token?: string, logger?: LoggerService) {
-    this.token = token;
-    this.logger = logger;
-    this.client = new DefaultApiClient(baseUrl, {});
+  constructor(baseUrl: string, token?: string, logger?: LoggerService);
+  constructor(options: OpenChoreoApiClientOptions);
+  constructor(
+    baseUrlOrOptions: string | OpenChoreoApiClientOptions,
+    token?: string,
+    logger?: LoggerService,
+  ) {
+    if (typeof baseUrlOrOptions === 'string') {
+      this.token = token;
+      this.logger = logger;
+      this.client = new DefaultApiClient(baseUrlOrOptions, {});
+    } else {
+      const options = baseUrlOrOptions;
+      this.token = options.token;
+      this.logger = options.logger;
+      this.client = new DefaultApiClient(options.baseUrl, {
+        fetchApi: options.fetchApi,
+      });
+    }
+  }
+
+  async getAllOrganizations(): Promise<ModelsOrganization[]> {
+    this.logger?.info('Fetching all organizations');
+
+    try {
+      const response = await this.client.organizationsGet(
+        {},
+        { token: this.token },
+      );
+
+      const apiResponse: OpenChoreoApiResponse<ModelsOrganization> =
+        await response.json();
+      this.logger?.debug(`API response: ${JSON.stringify(apiResponse)}`);
+
+      if (!apiResponse.success) {
+        throw new Error('API request was not successful');
+      }
+
+      const organizations = apiResponse.data.items;
+      this.logger?.info(
+        `Successfully fetched ${organizations.length} organizations (total: ${apiResponse.data.totalCount})`,
+      );
+
+      return organizations;
+    } catch (error) {
+      this.logger?.error(`Failed to fetch organizations: ${error}`);
+      throw error;
+    }
   }
 
   async getAllProjects(orgName: string): Promise<ModelsProject[]> {
@@ -55,35 +116,6 @@ export class OpenChoreoApiClient {
       this.logger?.error(
         `Failed to fetch projects for org ${orgName}: ${error}`,
       );
-      throw error;
-    }
-  }
-
-  async getAllOrganizations(): Promise<ModelsOrganization[]> {
-    this.logger?.info('Fetching all organizations');
-
-    try {
-      const response = await this.client.organizationsGet(
-        {},
-        { token: this.token },
-      );
-
-      const apiResponse: OpenChoreoApiResponse<ModelsOrganization> =
-        await response.json();
-      this.logger?.debug(`API response: ${JSON.stringify(apiResponse)}`);
-
-      if (!apiResponse.success) {
-        throw new Error('API request was not successful');
-      }
-
-      const organizations = apiResponse.data.items;
-      this.logger?.info(
-        `Successfully fetched ${organizations.length} organizations (total: ${apiResponse.data.totalCount})`,
-      );
-
-      return organizations;
-    } catch (error) {
-      this.logger?.error(`Failed to fetch organizations: ${error}`);
       throw error;
     }
   }
@@ -149,7 +181,6 @@ export class OpenChoreoApiClient {
       throw error;
     }
   }
-
   async getAllComponents(
     orgName: string,
     projectName: string,
@@ -703,5 +734,146 @@ export class OpenChoreoApiClient {
       );
       throw error;
     }
+  }
+
+  private async buildErrorMessage(response: Response): Promise<string> {
+    const status = response.status;
+    const statusText = response.statusText || '';
+    let errorMessage = `HTTP ${status}${statusText ? ` ${statusText}` : ''}`;
+    try {
+      const clonedResponse = response.clone();
+      const errorBody = await clonedResponse.text();
+      if (errorBody) errorMessage += `: ${errorBody}`;
+    } catch (error) {
+      this.logger?.debug(`Could not read error response body: ${error}`);
+    }
+    return errorMessage;
+  }
+
+  async getOrganizationsWithCursor(options?: {
+    cursor?: string;
+    limit?: number;
+  }): Promise<OpenChoreoApiResponse<ModelsOrganization>> {
+    const { cursor, limit } = options || {};
+    const query: OrganizationsGetRequest = {};
+    if (cursor) query.cursor = cursor;
+    if (limit) query.limit = limit;
+
+    const response = await this.client.organizationsGet(query, {
+      token: this.token,
+    });
+
+    this.logger?.debug(
+      `Response status: ${response.status}, ok: ${response.ok}, statusText: ${response.statusText}`,
+    );
+
+    if (!response.ok) {
+      throw new Error(await this.buildErrorMessage(response));
+    }
+
+    const apiResponse: OpenChoreoApiResponse<ModelsOrganization> =
+      await response.json();
+
+    if (!apiResponse.success) {
+      throw new Error('API request was not successful');
+    }
+
+    apiResponse.data = this.convertToPagedResponse(apiResponse.data);
+    if ((cursor || limit) && !apiResponse.data.nextCursor) {
+      this.logger?.debug(
+        'Cursor fields missing in organizations response; treating as final page.',
+      );
+    }
+    return apiResponse;
+  }
+
+  async getProjectsWithCursor(
+    orgName: string,
+    options?: { cursor?: string; limit?: number },
+  ): Promise<OpenChoreoApiResponse<ModelsProject>> {
+    const { cursor, limit } = options || {};
+    const request: ProjectsGetRequest = { orgName };
+    if (cursor) request.cursor = cursor;
+    if (limit) request.limit = limit;
+
+    const response = await this.client.projectsGet(request, {
+      token: this.token,
+    });
+
+    if (!response.ok) {
+      throw new Error(await this.buildErrorMessage(response));
+    }
+
+    const apiResponse: OpenChoreoApiResponse<ModelsProject> =
+      await response.json();
+    if (!apiResponse.success) {
+      throw new Error('API request was not successful');
+    }
+    const convertedData = this.convertToPagedResponse(apiResponse.data);
+    const updatedApiResponse = { ...apiResponse, data: convertedData };
+    if ((cursor || limit) && !updatedApiResponse.data.nextCursor) {
+      this.logger?.debug(
+        `Cursor fields missing in projects response for org ${orgName}; treating as final page.`,
+      );
+    }
+    return updatedApiResponse;
+  }
+
+  async getComponentsWithCursor(
+    orgName: string,
+    projectName: string,
+    options?: { cursor?: string; limit?: number },
+  ): Promise<OpenChoreoApiResponse<ModelsComponent>> {
+    const { cursor, limit } = options || {};
+    const request: ComponentsGetRequest = { orgName, projectName };
+    if (cursor) request.cursor = cursor;
+    if (limit) request.limit = limit;
+
+    const response = await this.client.componentsGet(request, {
+      token: this.token,
+    });
+
+    if (!response.ok) {
+      throw new Error(await this.buildErrorMessage(response));
+    }
+
+    const apiResponse: OpenChoreoApiResponse<ModelsComponent> =
+      await response.json();
+    if (!apiResponse.success) {
+      throw new Error('API request was not successful');
+    }
+    const convertedData = this.convertToPagedResponse(apiResponse.data);
+    const updatedApiResponse = { ...apiResponse, data: convertedData };
+    if ((cursor || limit) && !updatedApiResponse.data.nextCursor) {
+      this.logger?.debug(
+        `Cursor fields missing in components response for ${orgName}/${projectName}; treating as final page.`,
+      );
+    }
+    return updatedApiResponse;
+  }
+
+  private convertToPagedResponse(data: any): {
+    items: any[];
+    totalCount?: number;
+    page: number;
+    pageSize: number;
+    nextCursor?: string;
+  } {
+    if (data && data.nextCursor !== undefined) {
+      return {
+        items: data.items || [],
+        totalCount: data.totalCount,
+        page: data.page ?? 0,
+        pageSize: data.pageSize ?? data.items?.length ?? 0,
+        nextCursor: data.nextCursor,
+      };
+    }
+    return {
+      items: data.items || [],
+      totalCount: data.totalCount,
+      page: data.page ?? 0,
+      pageSize: data.pageSize ?? data.items?.length ?? 0,
+      nextCursor: undefined,
+    };
   }
 }
