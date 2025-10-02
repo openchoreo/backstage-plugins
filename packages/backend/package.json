@@ -47,6 +47,7 @@
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^",
     "@openchoreo/backstage-plugin-scaffolder-backend-module": "workspace:^",
+    "@openchoreo/plugin-catalog-backend-module-openchoreo-incremental": "workspace:^",
     "app": "link:../app",
     "better-sqlite3": "^9.0.0",
     "express-session": "^1.18.2",

@@ -110,9 +110,14 @@ openchoreo:
   baseUrl: ${OPENCHOREO_API_URL}
   token: ${OPENCHOREO_TOKEN} # optional for now: for authentication
   defaultOwner: 'platformengineer' # Default owner for catalog entities
-  schedule:
-    frequency: 30 # seconds between runs (default: 30)
-    timeout: 120 # seconds for timeout (default: 120)
+  # schedule:
+  #   frequency: 30 # seconds between runs (default: 30)
+  #   timeout: 120 # seconds for timeout (default: 120)
+  incremental:
+    burstLength: 10 # Duration of each burst of processing activity in seconds
+    burstInterval: 30 # Interval between bursts of processing activity in seconds
+    restLength: 30 # Duration of rest periods between bursts in minutes
+    chunkSize: 5 # Number of items to fetch per API request
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
