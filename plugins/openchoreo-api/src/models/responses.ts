@@ -17,9 +17,31 @@ export type TypedResponse<T> = Omit<Response, 'json'> & {
  */
 export interface PaginatedData<T> {
   items: T[];
-  totalCount: number;
+  totalCount?: number;
   page: number;
   pageSize: number;
+  nextCursor?: string;
+}
+
+/**
+ * Cursor-based pagination options
+ * @public
+ */
+export interface CursorPaginationOptions {
+  cursor?: string;
+  limit?: number;
+}
+
+/**
+ * Generic cursor paginated wrapper (client side convenience)
+ * @public
+ */
+export interface CursorPaginatedData<T> {
+  items: T[];
+  nextCursor?: string;
+  hasMore: boolean;
+  totalCount?: number;
+  pageSize?: number;
 }
 
 /**
