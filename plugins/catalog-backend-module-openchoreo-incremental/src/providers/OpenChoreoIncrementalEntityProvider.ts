@@ -77,7 +77,8 @@ export class OpenChoreoIncrementalEntityProvider
       const probe = await client.getOrganizationsWithCursor({
         limit: this.chunkSize,
       });
-      const supportsCursor = !!probe?.data && 'nextCursor' in probe.data;
+      const supportsCursor = !!probe?.data && probe.data.nextCursor !== undefined;
+      
       if (!supportsCursor) {
         this.logger.warn(
           'OpenChoreo API response missing "nextCursor" field, falling back to legacy pagination mode',
