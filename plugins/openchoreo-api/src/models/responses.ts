@@ -24,27 +24,6 @@ export interface PaginatedData<T> {
 }
 
 /**
- * Cursor-based pagination options
- * @public
- */
-export interface CursorPaginationOptions {
-  cursor?: string;
-  limit?: number;
-}
-
-/**
- * Generic cursor paginated wrapper (client side convenience)
- * @public
- */
-export interface CursorPaginatedData<T> {
-  items: T[];
-  nextCursor?: string;
-  hasMore: boolean;
-  totalCount?: number;
-  pageSize?: number;
-}
-
-/**
  * Standard OpenChoreo API response wrapper for paginated data
  * @public
  */
