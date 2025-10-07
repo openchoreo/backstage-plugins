@@ -43,6 +43,7 @@
     "@openchoreo/backstage-plugin-backend": "^0.2.0",
     "@openchoreo/backstage-plugin-catalog-backend-module": "^0.2.0",
     "@openchoreo/backstage-plugin-scaffolder-backend-module": "^0.2.0",
+    "@openchoreo/plugin-catalog-backend-module-openchoreo-incremental": "workspace:^",
     "app": "link:../app",
     "better-sqlite3": "^9.0.0",
     "node-gyp": "^10.0.0",

@@ -7,6 +7,8 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+// Import the incremental entity provider to enable burst-based ingestion of OpenChoreo entities
+import { catalogModuleOpenchoreoIncrementalProvider } from '@openchoreo/plugin-catalog-backend-module-openchoreo-incremental';
 
 const backend = createBackend();
 
@@ -50,6 +52,13 @@ backend.add(import('@backstage/plugin-search-backend-module-catalog'));
 backend.add(import('@backstage/plugin-search-backend-module-techdocs'));
 
 backend.add(import('@openchoreo/backstage-plugin-backend'));
-backend.add(import('@openchoreo/backstage-plugin-catalog-backend-module'));
+// Deprecated: Old catalog backend module replaced by incremental provider for better scalability
+// backend.add(import('@openchoreo/backstage-plugin-catalog-backend-module')); // Removed: migrated to incremental provider
 backend.add(import('@openchoreo/backstage-plugin-scaffolder-backend-module'));
+// Initialize the incremental ingestion module that manages entity provider lifecycle
+backend.add(
+  import('@openchoreo/plugin-catalog-backend-module-openchoreo-incremental'),
+);
+// Register the incremental entity provider with the backend for scheduled ingestion
+backend.add(catalogModuleOpenchoreoIncrementalProvider);
 backend.start();
