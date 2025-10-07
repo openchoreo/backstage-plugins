@@ -97,11 +97,13 @@ export class OpenChoreoIncrementalIngestionEngine implements IterationEngine {
       switch (nextAction) {
         case 'rest':
           if (Date.now() > nextActionAt) {
+            this.options.logger.info(
+              `incremental-engine: Ingestion ${ingestionId} rest period complete. Starting new ingestion`,
+            );
+
+            await this.manager.setProviderComplete(ingestionId);
             await this.manager.clearFinishedIngestions(
               this.options.provider.getProviderName(),
-            );
-            this.options.logger.debug(
-              `incremental-engine: Ingestion ${ingestionId} rest period complete. Ingestion will start again`,
             );
 
             this.lastStarted.record(
@@ -110,7 +112,6 @@ export class OpenChoreoIncrementalIngestionEngine implements IterationEngine {
                 providerName: this.options.provider.getProviderName(),
               },
             );
-            await this.manager.setProviderComplete(ingestionId);
           } else {
             this.options.logger.debug(
               `incremental-engine: Ingestion '${ingestionId}' rest period continuing`,
