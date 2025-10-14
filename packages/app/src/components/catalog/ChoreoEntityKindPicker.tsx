@@ -21,6 +21,20 @@ const kindDisplayNames: Record<string, string> = {
   template: 'Template',
 };
 
+// Custom order for displaying entity kinds in the dropdown
+// Organization first, then Project, then Component, then others alphabetically
+const kindDisplayOrder: string[] = [
+  'domain',
+  'system',
+  'component',
+  'api',
+  'resource',
+  'user',
+  'group',
+  'location',
+  'template',
+];
+
 // Hook to fetch all available Choreo entity kinds from the catalog
 function useAllKinds(): {
   allKinds: Map<string, string>;
@@ -189,10 +203,27 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
       )
     : customKindsMap;
 
-  const items = [...filteredKinds.entries()].map(([key, value]) => ({
-    label: value,
-    value: key.toLowerCase(), // Ensure value is lowercase to match selectedKind
-  }));
+  // Sort items according to kindDisplayOrder
+  const items = [...filteredKinds.entries()]
+    .sort(([keyA], [keyB]) => {
+      const indexA = kindDisplayOrder.indexOf(keyA.toLowerCase());
+      const indexB = kindDisplayOrder.indexOf(keyB.toLowerCase());
+
+      // If both are in the order list, sort by their position
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      // If only A is in the order list, A comes first
+      if (indexA !== -1) return -1;
+      // If only B is in the order list, B comes first
+      if (indexB !== -1) return 1;
+      // If neither is in the order list, sort alphabetically by label
+      return keyA.localeCompare(keyB);
+    })
+    .map(([key, value]) => ({
+      label: value,
+      value: key.toLowerCase(), // Ensure value is lowercase to match selectedKind
+    }));
 
   return hidden ? null : (
     <Box pb={1} pt={1}>
