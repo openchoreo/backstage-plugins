@@ -26,6 +26,7 @@ import { UserSettingsPage } from '@backstage/plugin-user-settings';
 import { apis } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { ChoreoCatalogFilters } from './components/catalog/ChoreoCatalogFilters';
+import { choreoCatalogTableColumns } from './components/catalog/ChoreoCatalogTableColumns';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 
@@ -80,6 +81,7 @@ const routes = (
               />
             </>
           }
+          columns={choreoCatalogTableColumns}
         />
       }
     />
