@@ -9,7 +9,6 @@ import {
   FormControl,
   InputLabel,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { Connection, ModelsWorkload } from '@openchoreo/backstage-plugin-api';
 import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
@@ -21,6 +20,7 @@ import {
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-api';
 import { fetchWorkloadInfo } from '../../../../api/workloadInfo';
+import { useWorkloadEditorStyles } from './styles';
 
 interface ConnectionItemProps {
   connectionName: string;
@@ -29,15 +29,6 @@ interface ConnectionItemProps {
   onRemoveConnection: (connectionName: string) => void;
   disabled: boolean;
 }
-
-const useStyles = makeStyles(theme => ({
-  dynamicFieldContainer: {
-    padding: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
-  },
-}));
 
 enum ConnectionTypes {
   API = 'api',
@@ -50,7 +41,7 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
   onRemoveConnection,
   disabled,
 }) => {
-  const classes = useStyles();
+  const classes = useWorkloadEditorStyles();
   const catalogApi = useApi(catalogApiRef);
   const discoveryApi = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);

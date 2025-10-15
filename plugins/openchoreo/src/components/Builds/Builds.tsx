@@ -6,15 +6,12 @@ import {
 } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import ErrorIcon from '@material-ui/icons/Error';
 import {
   Progress,
   ResponseErrorPanel,
   Table,
   TableColumn,
-  StatusOK,
-  StatusError,
-  StatusPending,
-  StatusRunning,
 } from '@backstage/core-components';
 import {
   Typography,
@@ -34,33 +31,16 @@ import type {
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-api';
 import { formatRelativeTime } from '../../utils/timeUtils';
+import { PageBanner } from '../CommonComponents';
+import { BuildStatus } from '../CommonComponents/BuildStatus';
 
-const BuildStatusComponent = ({ status }: { status?: string }) => {
-  if (!status) {
-    return <StatusPending>Unknown</StatusPending>;
-  }
-
-  const normalizedStatus = status.toLowerCase();
-
-  if (
-    normalizedStatus.includes('succeed') ||
-    normalizedStatus.includes('success')
-  ) {
-    return <StatusOK>Success</StatusOK>;
-  }
-
-  if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
-    return <StatusError>Failed</StatusError>;
-  }
-
-  if (
-    normalizedStatus.includes('running') ||
-    normalizedStatus.includes('progress')
-  ) {
-    return <StatusRunning>Running</StatusRunning>;
-  }
-
-  return <StatusPending>{status}</StatusPending>;
+const isInProgress = (status: string) => {
+  return !(
+    status.toLowerCase().includes('success') ||
+    status.toLowerCase().includes('failed') ||
+    status.toLowerCase().includes('error') ||
+    status.toLowerCase().includes('completed')
+  );
 };
 
 export const Builds = () => {
@@ -281,9 +261,7 @@ export const Builds = () => {
     {
       title: 'Status',
       field: 'status',
-      render: (row: any) => (
-        <BuildStatusComponent status={(row as ModelsBuild).status} />
-      ),
+      render: (row: any) => <BuildStatus build={row as ModelsBuild} />,
     },
     {
       title: 'Commit',
@@ -333,6 +311,15 @@ export const Builds = () => {
     }
   };
 
+  if (!entity.metadata.annotations?.['backstage.io/source-location']) {
+    return (
+      <PageBanner
+        title="Builds Not Available"
+        description="Selected Component is not configured for builds."
+        icon={<ErrorIcon color="primary" fontSize="large" />}
+      />
+    );
+  }
   return (
     <Box>
       {componentDetails && (
@@ -444,15 +431,19 @@ export const Builds = () => {
           setDrawerOpen(true);
         }}
         emptyContent={
-          <Typography variant="body1">
-            No builds found for this component.
-          </Typography>
+          <PageBanner
+            title="No Builds Found"
+            description="No builds found for this component."
+            icon={<ErrorIcon color="primary" fontSize="large" />}
+          />
         }
       />
+      {isInProgress(selectedBuild?.status || '') ? 'k' : 'y'}
       <BuildLogs
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         build={selectedBuild}
+        enableAutoRefresh={isInProgress(selectedBuild?.status || '')}
       />
     </Box>
   );
