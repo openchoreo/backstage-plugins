@@ -25,6 +25,8 @@ import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { UserSettingsPage } from '@backstage/plugin-user-settings';
 import { apis } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
+import { ChoreoCatalogFilters } from './components/catalog/ChoreoCatalogFilters';
+import { choreoCatalogTableColumns } from './components/catalog/ChoreoCatalogTableColumns';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 
@@ -82,7 +84,23 @@ const app = createApp({
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<Navigate to="catalog" />} />
-    <Route path="/catalog" element={<CatalogIndexPage />} />
+    <Route
+      path="/catalog"
+      element={
+        <CatalogIndexPage
+          filters={
+            <>
+              <ChoreoCatalogFilters
+                initialKind="component"
+                initiallySelectedFilter="all"
+                ownerPickerMode="all"
+              />
+            </>
+          }
+          columns={choreoCatalogTableColumns}
+        />
+      }
+    />
     <Route
       path="/catalog/:namespace/:kind/:name"
       element={<CatalogEntityPage />}
