@@ -1,4 +1,5 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
+
 import { Content, Page, Header } from '@backstage/core-components';
 import {
   HomePageStarredEntities,
@@ -8,7 +9,7 @@ import {
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
 import { Grid, makeStyles, Typography, Card, CardContent } from '@material-ui/core';
-import { useApi, identityApiRef } from '@backstage/core-plugin-api';
+import { useApi, identityApiRef, errorApiRef } from '@backstage/core-plugin-api';
 
 const useStyles = makeStyles(theme => ({
   searchBarInput: {
@@ -44,33 +45,31 @@ const useStyles = makeStyles(theme => ({
 export const HomePage = () => {
   const classes = useStyles();
   const identityApi = useApi(identityApiRef);
-  const [userGroups, setUserGroups] = React.useState<string[]>([]);
-  const [userName, setUserName] = React.useState<string>('');
-  const [loading, setLoading] = React.useState(true);
+  const [userGroups, setUserGroups] = useState<string[]>([]);
+  const [userName, setUserName] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const errorApi = useApi(errorApiRef);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadUserInfo = async () => {
       try {
         const identity = await identityApi.getBackstageIdentity();
-        console.log('identity', identity);
         const ownershipRefs = identity.ownershipEntityRefs || [];
-        console.log('ownershipRefs', ownershipRefs);
         // Extract group names from refs like "group:default/admins"
         const groups = ownershipRefs
           .filter(ref => ref.startsWith('group:'))
           .map(ref => ref.split('/')[1]);
-        console.log('groups', groups);
         setUserGroups(groups);
         setUserName(identity.userEntityRef.split('/')[1]);
       } catch (error) {
-        console.error('Failed to load user info:', error);
+        errorApi.post(new Error('Failed to load user info:'));
       } finally {
         setLoading(false);
       }
     };
 
     loadUserInfo();
-  }, [identityApi]);
+  }, [identityApi, errorApi]);
 
   // Determine user role based on groups
   const getUserRole = () => {

@@ -75,8 +75,8 @@ auth:
         clientId: 'openchoreo-platform-idp-client'
         clientSecret: 'openchoreo-platform-idp-client-secret'
         authorizationUrl: 'https://localhost:8090/oauth2/authorize'
-        tokenUrl: 'https://localhost:8090/oauth2/token'
-        userInfoUrl: 'https://localhost:8090/userinfo'
+        tokenUrl: 'https://172.30.0.1:8090/oauth2/token'
+        userInfoUrl: 'https://172.30.0.1:8090/userinfo'
         scope: 'openid profile email'
 
 scaffolder:
@@ -91,7 +91,7 @@ openchoreo:
     timeout: 120 # seconds for timeout (default: 120)
 
 thunder:
-  baseUrl: ${THUNDER_BASE_URL} # e.g., https://thunder.example.com:8090
+  baseUrl: https://172.30.0.1:8090 # e.g., https://thunder.example.com:8090
   token: ${THUNDER_TOKEN} # Authentication token for Thunder IdP API
   defaultNamespace: 'default' # Default namespace for User and Group entities
   schedule:

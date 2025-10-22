@@ -1,0 +1,6 @@
+
+# Thunder IdP Client Generated Code (regenerated on build)
+src/generated/
+openapi/*.yaml
+src/version.ts
+.openapi-generator/
