@@ -288,8 +288,8 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
 
     // Filter only user members (not group members) and sanitize their IDs
     return group.members
-      .filter(member => member.type === 'user')
-      .map(member => this.sanitizeName(member.id));
+      .filter((member: GroupAPI.components['schemas']['Member']) => member.type === 'user')
+      .map((member: GroupAPI.components['schemas']['Member']) => this.sanitizeName(member.id));
   }
 
   /**
