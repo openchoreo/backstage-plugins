@@ -28,6 +28,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private connection?: EntityProviderConnection;
   private readonly logger: LoggerService;
   private readonly client: OpenChoreoApiClient;
+  private readonly defaultOwner: string;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
@@ -37,6 +38,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.taskRunner = taskRunner;
     this.logger = logger;
     this.client = createOpenChoreoApiClient(config, logger);
+    // Default owner for all entities - configurable via app-config.yaml
+    this.defaultOwner =
+      config.getOptionalString('openchoreo.defaultOwner') || 'developers';
   }
 
   getProviderName(): string {
@@ -213,7 +217,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        owner: 'guests', // This could be configured or mapped from organization metadata
+        owner: this.defaultOwner,
       },
     };
 
@@ -248,7 +252,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        owner: 'guests', // This could be mapped from project metadata
+        owner: this.defaultOwner,
         domain: orgName,
       },
     };
@@ -302,7 +306,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       spec: {
         type: backstageComponentType,
         lifecycle: component.status.toLowerCase(), // Map status to lifecycle
-        owner: 'guests', // This could be mapped from component metadata
+        owner: this.defaultOwner,
         system: projectName, // Link to the parent system (project)
         ...(providesApis && providesApis.length > 0 && { providesApis }),
       },
@@ -379,7 +383,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           spec: {
             type: this.mapWorkloadEndpointTypeToBackstageType(endpoint.type),
             lifecycle: 'production',
-            owner: 'guests',
+            owner: this.defaultOwner,
             system: projectName,
             definition: this.createApiDefinitionFromWorkloadEndpoint(endpoint),
           },
