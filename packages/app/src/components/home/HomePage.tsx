@@ -8,8 +8,18 @@ import {
 } from '@backstage/plugin-home';
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
-import { Grid, makeStyles, Typography, Card, CardContent } from '@material-ui/core';
-import { useApi, identityApiRef, errorApiRef } from '@backstage/core-plugin-api';
+import {
+  Grid,
+  makeStyles,
+  Typography,
+  Card,
+  CardContent,
+} from '@material-ui/core';
+import {
+  useApi,
+  identityApiRef,
+  errorApiRef,
+} from '@backstage/core-plugin-api';
 
 const useStyles = makeStyles(theme => ({
   searchBarInput: {
@@ -96,14 +106,20 @@ export const HomePage = () => {
     if (userGroups.includes('admins') || userGroups.includes('managers')) {
       return [
         { title: 'Manage Users', link: '/catalog?filters[kind]=user' },
-        { title: 'View All Components', link: '/catalog?filters[kind]=component' },
+        {
+          title: 'View All Components',
+          link: '/catalog?filters[kind]=component',
+        },
         { title: 'Create New Component', link: '/create' },
         { title: 'System Overview', link: '/catalog?filters[kind]=system' },
       ];
     }
     if (userGroups.includes('developers')) {
       return [
-        { title: 'My Components', link: `/catalog?filters[kind]=component&filters[owners]=${userName}` },
+        {
+          title: 'My Components',
+          link: `/catalog?filters[kind]=component&filters[owners]=${userName}`,
+        },
         { title: 'Create Component', link: '/create' },
         { title: 'Browse Catalog', link: '/catalog' },
         { title: 'Documentation', link: '/docs' },
@@ -156,7 +172,11 @@ export const HomePage = () => {
                     <Typography variant="h5" gutterBottom>
                       {getWelcomeMessage()}
                     </Typography>
-                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                    <Typography
+                      variant="body2"
+                      color="textSecondary"
+                      gutterBottom
+                    >
                       Your groups:
                     </Typography>
                     <div>
@@ -184,7 +204,10 @@ export const HomePage = () => {
                             <CardContent>
                               <a
                                 href={action.link}
-                                style={{ textDecoration: 'none', color: 'inherit' }}
+                                style={{
+                                  textDecoration: 'none',
+                                  color: 'inherit',
+                                }}
                               >
                                 <Typography variant="body2">
                                   {action.title}

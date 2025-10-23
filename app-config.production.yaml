@@ -54,7 +54,6 @@ auth:
         userInfoUrl: ${OPENCHOREO_AUTH_USER_INFO_URL}
         scope: 'openid profile email'
 
-
 catalog:
   locations:
     - type: file

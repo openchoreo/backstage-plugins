@@ -14,8 +14,10 @@ import {
 
 type ThunderUser = UserAPI.components['schemas']['User'];
 type ThunderGroup = GroupAPI.components['schemas']['Group'];
-type ThunderUserListResponse = UserAPI.components['schemas']['UserListResponse'];
-type ThunderGroupListResponse = GroupAPI.components['schemas']['GroupListResponse'];
+type ThunderUserListResponse =
+  UserAPI.components['schemas']['UserListResponse'];
+type ThunderGroupListResponse =
+  GroupAPI.components['schemas']['GroupListResponse'];
 
 /**
  * Provides User and Group entities from Thunder IdP API to Backstage Catalog
@@ -24,8 +26,12 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
   private readonly taskRunner: SchedulerServiceTaskRunner;
   private connection?: EntityProviderConnection;
   private readonly logger: LoggerService;
-  private readonly userClient: ReturnType<typeof createThunderClientsFromConfig>['userClient'];
-  private readonly groupClient: ReturnType<typeof createThunderClientsFromConfig>['groupClient'];
+  private readonly userClient: ReturnType<
+    typeof createThunderClientsFromConfig
+  >['userClient'];
+  private readonly groupClient: ReturnType<
+    typeof createThunderClientsFromConfig
+  >['groupClient'];
   private readonly defaultNamespace: string;
 
   constructor(
@@ -36,12 +42,16 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
     this.taskRunner = taskRunner;
     this.logger = logger;
 
-    const { userClient, groupClient } = createThunderClientsFromConfig(config, logger);
+    const { userClient, groupClient } = createThunderClientsFromConfig(
+      config,
+      logger,
+    );
     this.userClient = userClient;
     this.groupClient = groupClient;
 
     // Default namespace for entities - configurable via app-config.yaml
-    this.defaultNamespace = config.getOptionalString('thunder.defaultNamespace') || 'default';
+    this.defaultNamespace =
+      config.getOptionalString('thunder.defaultNamespace') || 'default';
   }
 
   getProviderName(): string {
@@ -81,7 +91,9 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
       allEntities.push(...userEntities);
 
       // Transform groups to Backstage Group entities
-      const groupEntities = groups.map(group => this.transformGroupToEntity(group));
+      const groupEntities = groups.map(group =>
+        this.transformGroupToEntity(group),
+      );
       allEntities.push(...groupEntities);
 
       // Apply full mutation - this replaces all entities managed by this provider
@@ -97,7 +109,9 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
         `Successfully processed ${allEntities.length} entities (${userEntities.length} users, ${groupEntities.length} groups)`,
       );
     } catch (error) {
-      this.logger.error(`Failed to run ThunderUserGroupEntityProvider: ${error}`);
+      this.logger.error(
+        `Failed to run ThunderUserGroupEntityProvider: ${error}`,
+      );
     }
   }
 
@@ -136,7 +150,10 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
       allUsers.push(...users);
 
       // Check if we've fetched all users
-      if (users.length < limit || (response.totalResults && allUsers.length >= response.totalResults)) {
+      if (
+        users.length < limit ||
+        (response.totalResults && allUsers.length >= response.totalResults)
+      ) {
         hasMore = false;
       } else {
         offset += limit;
@@ -181,7 +198,10 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
       allGroups.push(...groups);
 
       // Check if we've fetched all groups
-      if (groups.length < limit || (response.totalResults && allGroups.length >= response.totalResults)) {
+      if (
+        groups.length < limit ||
+        (response.totalResults && allGroups.length >= response.totalResults)
+      ) {
         hasMore = false;
       } else {
         offset += limit;
@@ -223,7 +243,9 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           'thunder.io/user-id': user.id,
-          ...(user.organizationUnit && { 'thunder.io/organization-unit': user.organizationUnit }),
+          ...(user.organizationUnit && {
+            'thunder.io/organization-unit': user.organizationUnit,
+          }),
           ...(user.type && { 'thunder.io/user-type': user.type }),
         },
         labels: {
@@ -288,8 +310,13 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
 
     // Filter only user members (not group members) and sanitize their IDs
     return group.members
-      .filter((member: GroupAPI.components['schemas']['Member']) => member.type === 'user')
-      .map((member: GroupAPI.components['schemas']['Member']) => this.sanitizeName(member.id));
+      .filter(
+        (member: GroupAPI.components['schemas']['Member']) =>
+          member.type === 'user',
+      )
+      .map((member: GroupAPI.components['schemas']['Member']) =>
+        this.sanitizeName(member.id),
+      );
   }
 
   /**

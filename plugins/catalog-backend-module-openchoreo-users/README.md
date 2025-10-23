@@ -22,7 +22,11 @@ const backend = createBackend();
 // ... other plugins
 
 // Add the Thunder User & Group Entity Provider
-backend.add(import('@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users'));
+backend.add(
+  import(
+    '@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users'
+  ),
+);
 
 backend.start();
 ```
@@ -70,6 +74,7 @@ Groups are transformed into Backstage Group entities:
 ### Entity Naming
 
 All entity names are sanitized to comply with Backstage naming requirements:
+
 - Converted to lowercase
 - Only alphanumeric characters, hyphens, and underscores allowed
 - Multiple hyphens are collapsed to a single hyphen

@@ -19,8 +19,10 @@ export const catalogModuleOpenchoreoUsers = createBackendModule({
       async init({ catalog, config, logger, scheduler }) {
         // Read schedule configuration from app-config.yaml
         const thunderConfig = config.getOptionalConfig('thunder');
-        const frequency = thunderConfig?.getOptionalNumber('schedule.frequency') ?? 600; // Default: 10 minutes
-        const timeout = thunderConfig?.getOptionalNumber('schedule.timeout') ?? 300; // Default: 5 minutes
+        const frequency =
+          thunderConfig?.getOptionalNumber('schedule.frequency') ?? 600; // Default: 10 minutes
+        const timeout =
+          thunderConfig?.getOptionalNumber('schedule.timeout') ?? 300; // Default: 5 minutes
 
         // Create a scheduled task runner
         const taskRunner = scheduler.createScheduledTaskRunner({
@@ -37,7 +39,9 @@ export const catalogModuleOpenchoreoUsers = createBackendModule({
 
         catalog.addEntityProvider(provider);
 
-        logger.info('Thunder User & Group Entity Provider registered successfully');
+        logger.info(
+          'Thunder User & Group Entity Provider registered successfully',
+        );
       },
     });
   },
