@@ -69,7 +69,7 @@ catalog:
 openchoreo:
   baseUrl: ${OPENCHOREO_API_URL}
   token: ${OPENCHOREO_TOKEN} # optional for now: for authentication
-  defaultOwner: 'developers' # Default owner for catalog entities: admins, managers, developers, or viewers
+  defaultOwner: 'platformengineer' # Default owner for catalog entities
   schedule:
     frequency: 30 # seconds between runs (default: 30)
     timeout: 120 # seconds for timeout (default: 120)
