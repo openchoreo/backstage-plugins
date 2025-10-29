@@ -151,4 +151,26 @@ export const useStyles = makeStyles(theme => ({
     color: '#6b7280',
     fontStyle: 'italic',
   },
+  emptyStateIcon: {
+    fontSize: '3rem',
+    opacity: 0.3,
+    marginBottom: theme.spacing(2),
+  },
+  emptyStateTitle: {
+    marginBottom: theme.spacing(1),
+  },
+  emptyEnvironmentsIcon: {
+    fontSize: '2rem',
+    opacity: 0.3,
+    marginBottom: theme.spacing(1),
+  },
+  dataplaneDescription: {
+    marginBottom: theme.spacing(2),
+  },
+  sectionTitleIcon: {
+    fontSize: '1rem',
+  },
+  componentCountIcon: {
+    fontSize: '0.875rem',
+  },
 }));
