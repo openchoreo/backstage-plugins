@@ -185,6 +185,34 @@ export async function createRouter(
     }
   });
 
+  // Get healthy workload count using bindings API
+  router.post('/healthy-workload-count', async (req, res) => {
+    try {
+      const { components } = req.body;
+
+      if (!components || !Array.isArray(components)) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'Invalid request body. Expected { components: Array<{orgName, projectName, componentName}> }',
+        });
+      }
+
+      const healthyCount =
+        await platformEnvironmentService.fetchHealthyWorkloadCount(components);
+
+      return res.json({
+        success: true,
+        data: healthyCount,
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
   // Health check endpoint
   router.get('/health', (_req, res) => {
     res.json({

@@ -5,8 +5,7 @@ import {
   useApi,
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { fetchDataplanesWithEnvironmentsAndComponents } from '../../api/dataplanesWithEnvironmentsAndComponents';
-import { DataPlaneWithEnvironments } from '../../types';
+import { fetchPlatformOverview } from '../../api/platformOverview';
 import { SummaryWidgetWrapper } from '../SummaryWidgetWrapper';
 import InfrastructureIcon from '@material-ui/icons/Storage';
 
@@ -14,9 +13,9 @@ import InfrastructureIcon from '@material-ui/icons/Storage';
  * A standalone infrastructure widget for the homepage that handles its own data fetching
  */
 export const InfrastructureWidget: React.FC = () => {
-  const [dataplanesWithEnvironments, setDataplanesWithEnvironments] = useState<
-    DataPlaneWithEnvironments[]
-  >([]);
+  const [totalDataplanes, setTotalDataplanes] = useState<number>(0);
+  const [totalEnvironments, setTotalEnvironments] = useState<number>(0);
+  const [healthyWorkloadCount, setHealthyWorkloadCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,20 +28,24 @@ export const InfrastructureWidget: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const dataplanesData = await fetchDataplanesWithEnvironmentsAndComponents(
+      const platformData = await fetchPlatformOverview(
         discovery,
         identityApi,
         catalogApi,
       );
 
-      setDataplanesWithEnvironments(dataplanesData);
+      setTotalDataplanes(platformData.dataplanes.length);
+      setTotalEnvironments(platformData.environments.length);
+      setHealthyWorkloadCount(platformData.healthyWorkloadCount);
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : 'Failed to fetch infrastructure data',
       );
-      setDataplanesWithEnvironments([]);
+      setTotalDataplanes(0);
+      setTotalEnvironments(0);
+      setHealthyWorkloadCount(0);
     } finally {
       setLoading(false);
     }
@@ -52,21 +55,6 @@ export const InfrastructureWidget: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Calculate metrics from the data
-  const totalDataplanes = dataplanesWithEnvironments.length;
-  const totalEnvironments = dataplanesWithEnvironments.reduce(
-    (total, dp) => total + dp.environments.length,
-    0,
-  );
-  const healthyComponents = dataplanesWithEnvironments.reduce(
-    (total, dp) =>
-      total +
-      dp.environments.reduce((envTotal, env) => {
-        return envTotal + (env.componentCount ?? 0);
-      }, 0),
-    0,
-  );
-
   return (
     <SummaryWidgetWrapper
       icon={<InfrastructureIcon fontSize="inherit" />}
@@ -74,7 +62,7 @@ export const InfrastructureWidget: React.FC = () => {
       metrics={[
         { label: 'Data planes connected:', value: totalDataplanes },
         { label: 'Environments:', value: totalEnvironments },
-        { label: 'Healthy workloads:', value: healthyComponents },
+        { label: 'Healthy workloads:', value: healthyWorkloadCount },
       ]}
       loading={loading}
       errorMessage={error || undefined}
