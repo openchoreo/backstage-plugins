@@ -72,8 +72,8 @@ auth:
     # OpenChoreo Default IDP - Custom OAuth provider (without discovery endpoint)
     default-idp:
       development:
-        clientId: 'openchoreo-platform-idp-client'
-        clientSecret: 'openchoreo-platform-idp-client-secret'
+        clientId: 'openchoreo-backstage-client'
+        clientSecret: 'backstage-portal-secret'
         authorizationUrl: '${THUNDER_BASE_URL}/oauth2/authorize'
         tokenUrl: '${THUNDER_BASE_URL}/oauth2/token'
         scope: 'openid profile email'
