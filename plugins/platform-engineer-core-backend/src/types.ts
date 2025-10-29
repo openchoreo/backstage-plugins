@@ -90,4 +90,16 @@ export interface PlatformEnvironmentService {
       componentName: string;
     }>,
   ): Promise<number>;
+
+  /**
+   * Fetches count of healthy workloads across all components
+   * A workload is considered healthy if its status.status === 'Active'
+   */
+  fetchHealthyWorkloadCount(
+    components: Array<{
+      orgName: string;
+      projectName: string;
+      componentName: string;
+    }>,
+  ): Promise<number>;
 }

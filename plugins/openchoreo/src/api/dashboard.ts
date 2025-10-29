@@ -25,7 +25,6 @@ export async function fetchTotalBindingsCount(
     },
     body: JSON.stringify({ components }),
   });
-  console.log(res);
 
   if (!res.ok) {
     throw new Error('Failed to fetch bindings count');

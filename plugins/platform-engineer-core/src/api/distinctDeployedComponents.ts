@@ -30,12 +30,12 @@ export async function fetchDistinctDeployedComponentsCount(
 
       // Extract org, project, and component name from annotations or metadata
       const orgName =
-        annotations['openchoreo.org/organization'] ||
+        annotations['openchoreo.io/organization'] ||
         annotations['backstage.io/managed-by-location']?.split('/')[3] ||
         'default'; // fallback
 
       const projectName =
-        annotations['openchoreo.org/project'] ||
+        annotations['openchoreo.io/project'] ||
         component.metadata.namespace ||
         'default'; // fallback
 

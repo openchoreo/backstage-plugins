@@ -27,7 +27,6 @@ export async function fetchDataplanesWithEnvironmentsAndComponents(
       Authorization: `Bearer ${token}`,
     },
   });
-  console.log('dataplanesRes', dataplanesRes);
 
   if (!dataplanesRes.ok) {
     throw new Error(
@@ -61,12 +60,12 @@ export async function fetchDataplanesWithEnvironmentsAndComponents(
       // Extract org, project, and component name from annotations or metadata
       // These might be stored in different ways depending on your setup
       const orgName =
-        annotations['openchoreo.org/organization'] ||
+        annotations['openchoreo.io/organization'] ||
         annotations['backstage.io/managed-by-location']?.split('/')[3] ||
         'default'; // fallback
 
       const projectName =
-        annotations['openchoreo.org/project'] ||
+        annotations['openchoreo.io/project'] ||
         component.metadata.namespace ||
         'default'; // fallback
 

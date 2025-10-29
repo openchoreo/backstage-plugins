@@ -52,7 +52,6 @@ export class PlatformEnvironmentInfoService
       const environmentsResponse = await this.defaultClient.environmentsGet({
         orgName: 'default', // This should be configurable or fetched from a platform API
       });
-      console.log('environmentsResponse', environmentsResponse);
 
       if (!environmentsResponse.ok) {
         this.logger.error('Failed to fetch platform environments');
@@ -66,7 +65,6 @@ export class PlatformEnvironmentInfoService
       }
 
       const environments = environmentsData.data.items as ModelsEnvironment[];
-      console.log('environments', environments);
       const result = this.transformEnvironmentData(environments, 'default');
 
       const totalTime = Date.now() - startTime;
@@ -166,7 +164,6 @@ export class PlatformEnvironmentInfoService
       }
 
       const dataplanes = dataplanesData.data.items as ModelsDataPlane[];
-      console.log('dataplanes', dataplanes);
       const result = this.transformDataPlaneData(dataplanes, 'default');
 
       const totalTime = Date.now() - startTime;
@@ -217,7 +214,6 @@ export class PlatformEnvironmentInfoService
       }
 
       const dataplanes = dataplanesData.data.items as ModelsDataPlane[];
-      console.log('dataplanes', dataplanes);
       const result = this.transformDataPlaneData(dataplanes, organizationName);
 
       const totalTime = Date.now() - startTime;
@@ -251,8 +247,6 @@ export class PlatformEnvironmentInfoService
         this.fetchAllDataplanes(),
         this.fetchAllEnvironments(),
       ]);
-      console.log('dataplanes', dataplanes);
-      console.log('environments', environments);
 
       // Group environments by dataPlaneRef
       const environmentsByDataPlane = new Map<string, Environment[]>();
@@ -476,6 +470,85 @@ export class PlatformEnvironmentInfoService
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error fetching distinct deployed components count (${totalTime}ms):`,
+        error as Error,
+      );
+      return 0;
+    }
+  }
+
+  /**
+   * Fetches count of healthy workloads across all components
+   * A workload is considered healthy if its status.status === 'Active'
+   */
+  async fetchHealthyWorkloadCount(
+    components: Array<{
+      orgName: string;
+      projectName: string;
+      componentName: string;
+    }>,
+  ): Promise<number> {
+    const startTime = Date.now();
+    let healthyWorkloadCount = 0;
+
+    try {
+      this.logger.info(
+        `Starting healthy workload count for ${components.length} components`,
+      );
+
+      // Process components in parallel with some concurrency control
+      const batchSize = 10; // Process 10 components at a time to avoid overwhelming the API
+
+      for (let i = 0; i < components.length; i += batchSize) {
+        const batch = components.slice(i, i + batchSize);
+
+        const batchPromises = batch.map(async component => {
+          try {
+            // Get bindings for this component
+            const bindingsResponse = await this.defaultClient.bindingsGet({
+              orgName: component.orgName,
+              projectName: component.projectName,
+              componentName: component.componentName,
+            });
+
+            if (bindingsResponse.ok) {
+              const bindingsData = await bindingsResponse.json();
+              if (bindingsData.success && bindingsData.data?.items) {
+                // Count healthy workloads by checking if status.status === 'Active'
+                const healthyCount = bindingsData.data.items.filter(
+                  (binding: BindingResponse) =>
+                    binding.status?.status === 'Active',
+                ).length;
+                return healthyCount;
+              }
+            }
+            return 0;
+          } catch (error) {
+            this.logger.warn(
+              `Failed to fetch bindings for component ${component.orgName}/${component.projectName}/${component.componentName}:`,
+              error instanceof Error ? error : new Error(String(error)),
+            );
+            return 0;
+          }
+        });
+
+        // Wait for this batch to complete and sum up the counts
+        const batchCounts = await Promise.all(batchPromises);
+        healthyWorkloadCount += batchCounts.reduce(
+          (sum, count) => sum + count,
+          0,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.info(
+        `Healthy workload count completed: Found ${healthyWorkloadCount} healthy workloads (${totalTime}ms)`,
+      );
+
+      return healthyWorkloadCount;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching healthy workload count (${totalTime}ms):`,
         error as Error,
       );
       return 0;
