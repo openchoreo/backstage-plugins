@@ -5,7 +5,10 @@ Common package for shared types, constants, and utilities across OpenChoreo Back
 ## Usage
 
 ```typescript
-import { CHOREO_ANNOTATIONS, CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  CHOREO_LABELS,
+} from '@openchoreo/backstage-plugin-common';
 ```
 
 ## Contents

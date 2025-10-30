@@ -16,9 +16,7 @@ interface EnvironmentsGridProps {
   environments: Environment[];
 }
 
-export const EnvironmentsGrid = ({
-  environments,
-}: EnvironmentsGridProps) => {
+export const EnvironmentsGrid = ({ environments }: EnvironmentsGridProps) => {
   const classes = useStyles();
 
   return (

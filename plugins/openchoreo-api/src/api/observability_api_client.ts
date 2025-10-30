@@ -164,7 +164,6 @@ export class ObservabilityApiClient {
       }
     }
 
-
     try {
       const request: BuildObserverUrlGetRequest = {
         orgName,
@@ -251,7 +250,6 @@ export class ObservabilityApiClient {
         ...(request.offset !== undefined && { offset: request.offset }),
       };
 
-
       return await this.fetchApi.fetch(`${baseUrl}${uri}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -278,7 +276,6 @@ export class ObservabilityApiClient {
     request: ComponentBuildLogsPostRequest,
     options?: RequestOptions,
   ): Promise<TypedResponse<RuntimeLogsResponse>> {
-
     try {
       const { baseUrl, available } = await this.getBuildObserverUrl(
         request.orgName,
@@ -306,7 +303,6 @@ export class ObservabilityApiClient {
         }),
         ...(request.limit !== undefined && { limit: request.limit }),
       };
-
 
       return await this.fetchApi.fetch(`${baseUrl}${uri}`, {
         headers: {

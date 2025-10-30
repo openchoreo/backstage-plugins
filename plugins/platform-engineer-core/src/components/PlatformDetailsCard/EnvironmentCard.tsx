@@ -16,9 +16,7 @@ interface EnvironmentCardProps {
   environment: Environment;
 }
 
-export const EnvironmentCard = ({
-  environment,
-}: EnvironmentCardProps) => {
+export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
   const classes = useStyles();
   const isProduction = environment.isProduction;
   const cardClass = `${classes.environmentCard} ${
