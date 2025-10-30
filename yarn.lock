@@ -9032,6 +9032,7 @@ __metadata:
   resolution: "@openchoreo/backstage-plugin-common@workspace:plugins/openchoreo-common"
   dependencies:
     "@backstage/cli": "npm:^0.34.3"
+    "@openchoreo/backstage-plugin-api": "workspace:^"
   languageName: unknown
   linkType: soft
 
@@ -9144,11 +9145,11 @@ __metadata:
     msw: "npm:^1.0.0"
     pathfinding: "npm:^0.4.18"
     paths-js: "npm:^0.4.11"
-    react-router-dom: "npm:^6.3.0"
     react-use: "npm:^17.2.4"
   peerDependencies:
     react: ^18.0.0
     react-dom: ^18.0.0
+    react-router-dom: ^6.3.0
   languageName: unknown
   linkType: soft
 
