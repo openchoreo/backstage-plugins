@@ -1,9 +1,9 @@
 app:
   title: OpenChoreo Portal
   # Should be the same as backend.baseUrl when using the `app-backend` plugin.
-  # Environment variable is injected by Helm chart (see install/helm/openchoreo/templates/backstage/deployment.yaml)
-  # For local Kind: http://openchoreo.localhost (set via install/dev/openchoreo-values.yaml)
-  # For production: external ingress URL (set via install/helm/openchoreo/values.yaml backstage.baseUrl)
+  # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
+  # For local Kind: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
+  # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
   baseUrl: ${BACKSTAGE_BASE_URL}
 
 backend:
@@ -15,9 +15,9 @@ backend:
   #     - secret: ${BACKEND_SECRET}
   auth:
     dangerouslyDisableDefaultAuthPolicy: true # TODO: Remove this when added auth properly
-  # Environment variable is injected by Helm chart (see install/helm/openchoreo/templates/backstage/deployment.yaml)
-  # For local Kind: http://openchoreo.localhost (set via install/dev/openchoreo-values.yaml)
-  # For production: external ingress URL (set via install/helm/openchoreo/values.yaml backstage.baseUrl)
+  # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
+  # For local Kind: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
+  # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
   baseUrl: ${BACKSTAGE_BASE_URL}
   listen:
     port: 7007
@@ -32,7 +32,7 @@ backend:
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
   # Session configuration for authentication cookies
-  # Environment variable is injected by Helm chart (see install/helm/openchoreo/templates/backstage/deployment.yaml)
+  # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
   session:
     secret: ${BACKEND_SECRET}
     cookie:
@@ -62,7 +62,7 @@ techdocs:
 auth:
   providers:
     # OpenChoreo Default IDP - Custom OAuth provider (without discovery endpoint)
-    # Environment variables are injected by Helm chart (see install/helm/openchoreo/templates/backstage/deployment.yaml)
+    # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
     # Client credentials are automatically configured from asgardeoThunder.backstagePortal values
     # OPENCHOREO_AUTH_AUTHORIZATION_URL and OPENCHOREO_AUTH_TOKEN_URL are auto-configured from backstage.thunder.baseUrl
     # or can be explicitly set via backstage.auth.authorizationUrl and backstage.auth.tokenUrl in Helm values
@@ -86,7 +86,7 @@ catalog:
         - allow: [Template]
 
 openchoreo:
-  # Environment variables are injected by Helm chart (see install/helm/openchoreo/templates/backstage/deployment.yaml)
+  # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
   # OPENCHOREO_API_URL: defaults to internal K8s service URL or set via backstage.openchoreoApi.url
   baseUrl: ${OPENCHOREO_API_URL}
   token: ${OPENCHOREO_TOKEN} # optional for now: for authentication
@@ -96,7 +96,7 @@ openchoreo:
     timeout: 120 # seconds for timeout (default: 120)
 
 thunder:
-  # Environment variables are injected by Helm chart (see install/helm/openchoreo/templates/backstage/deployment.yaml)
+  # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
   # THUNDER_BASE_URL: set via backstage.thunder.baseUrl in Helm values (e.g., https://idp.example.com)
   # THUNDER_TOKEN: set via backstage.thunder.token in Helm values (optional, for API authentication)
   baseUrl: ${THUNDER_BASE_URL} # e.g., https://idp.example.com or http://sts.openchoreo.localhost
