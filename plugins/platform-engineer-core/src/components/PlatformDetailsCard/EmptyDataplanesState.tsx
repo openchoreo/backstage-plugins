@@ -20,4 +20,3 @@ export const EmptyDataplanesState: React.FC = () => {
     </Card>
   );
 };
-

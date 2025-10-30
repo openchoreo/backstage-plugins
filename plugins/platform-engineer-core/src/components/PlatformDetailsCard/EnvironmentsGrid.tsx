@@ -39,4 +39,3 @@ export const EnvironmentsGrid: React.FC<EnvironmentsGridProps> = ({
     </Box>
   );
 };
-
