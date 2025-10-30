@@ -75,10 +75,8 @@ export async function fetchDistinctDeployedComponentsCount(
       }
     }
 
-    console.warn('Failed to fetch distinct deployed components count');
     return 0;
   } catch (error) {
-    console.warn('Failed to fetch distinct deployed components count:', error);
     return 0;
   }
 }

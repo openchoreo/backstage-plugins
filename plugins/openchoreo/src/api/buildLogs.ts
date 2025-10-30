@@ -2,7 +2,7 @@ import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import type {
   ModelsBuild,
   RuntimeLogsResponse,
-} from '@openchoreo/backstage-plugin-api';
+} from '@openchoreo/backstage-plugin-common';
 
 export interface BuildLogsParams {
   componentName: string;

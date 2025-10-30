@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   useApi,
   discoveryApiRef,
@@ -7,13 +7,13 @@ import {
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { SummaryWidgetWrapper } from '../../SummaryWidgetWrapper';
 import FolderIcon from '@material-ui/icons/Folder';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-api';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { fetchTotalBindingsCount } from '../../../api/dashboard';
 
 /**
  * A widget that displays project metrics for developers
  */
-export const MyProjectsWidget: React.FC = () => {
+export const MyProjectsWidget = () => {
   const [componentsCount, setComponentsCount] = useState<number>(0);
   const [projectsCount, setProjectsCount] = useState<number>(0);
   const [componentBindingsCount, setComponentBindingsCount] =

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box } from '@material-ui/core';
 import { EnvironmentCard } from './EnvironmentCard';
 import { useStyles } from './styles';
@@ -17,9 +16,9 @@ interface EnvironmentsGridProps {
   environments: Environment[];
 }
 
-export const EnvironmentsGrid: React.FC<EnvironmentsGridProps> = ({
+export const EnvironmentsGrid = ({
   environments,
-}) => {
+}: EnvironmentsGridProps) => {
   const classes = useStyles();
 
   return (

@@ -119,15 +119,8 @@ export async function fetchDataplanesWithEnvironmentsAndComponents(
       }
     }
 
-    console.warn(
-      'Failed to fetch component counts, returning data without counts',
-    );
     return dataplanesWithEnvironments;
   } catch (catalogError) {
-    console.warn(
-      'Failed to fetch component counts from catalog:',
-      catalogError,
-    );
     // Return the original data without component counts if catalog fails
     return dataplanesWithEnvironments;
   }

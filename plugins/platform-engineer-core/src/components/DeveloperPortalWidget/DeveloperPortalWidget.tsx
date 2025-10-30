@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   discoveryApiRef,
   identityApiRef,
@@ -12,7 +12,7 @@ import DeveloperModeIcon from '@material-ui/icons/DeveloperMode';
 /**
  * A standalone developer portal widget for the homepage that handles its own data fetching
  */
-export const DeveloperPortalWidget: React.FC = () => {
+export const DeveloperPortalWidget= () => {
   const [distinctDeployedComponentsCount, setDistinctDeployedComponentsCount] =
     useState<number>(0);
   const [projectsCount, setProjectsCount] = useState<number>(0);

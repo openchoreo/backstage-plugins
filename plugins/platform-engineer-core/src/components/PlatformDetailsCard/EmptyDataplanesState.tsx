@@ -1,9 +1,8 @@
-import React from 'react';
 import { Box, Typography, Card } from '@material-ui/core';
 import StorageIcon from '@material-ui/icons/Storage';
 import { useStyles } from './styles';
 
-export const EmptyDataplanesState: React.FC = () => {
+export const EmptyDataplanesState = () => {
   const classes = useStyles();
 
   return (
