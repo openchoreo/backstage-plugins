@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   discoveryApiRef,
   identityApiRef,
@@ -12,7 +12,7 @@ import InfrastructureIcon from '@material-ui/icons/Storage';
 /**
  * A standalone infrastructure widget for the homepage that handles its own data fetching
  */
-export const InfrastructureWidget: React.FC = () => {
+export const InfrastructureWidget= () => {
   const [totalDataplanes, setTotalDataplanes] = useState<number>(0);
   const [totalEnvironments, setTotalEnvironments] = useState<number>(0);
   const [healthyWorkloadCount, setHealthyWorkloadCount] = useState<number>(0);

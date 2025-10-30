@@ -19,7 +19,7 @@ import {
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
-} from '@openchoreo/backstage-plugin-api';
+} from '@openchoreo/backstage-plugin-common';
 import { EnvironmentEntityV1alpha1 } from '../kinds';
 
 /**

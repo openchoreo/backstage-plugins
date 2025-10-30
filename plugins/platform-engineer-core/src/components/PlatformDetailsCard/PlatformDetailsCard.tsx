@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Typography } from '@material-ui/core';
 import StorageIcon from '@material-ui/icons/Storage';
 import CloudIcon from '@material-ui/icons/Cloud';
@@ -16,11 +15,11 @@ interface PlatformDetailsCardProps {
   onToggleDataplaneExpansion: (dataplaneName: string) => void;
 }
 
-export const PlatformDetailsCard: React.FC<PlatformDetailsCardProps> = ({
+export const PlatformDetailsCard = ({
   dataplanesWithEnvironments,
   expandedDataplanes,
   onToggleDataplaneExpansion,
-}) => {
+}: PlatformDetailsCardProps) => {
   const classes = useStyles();
 
   return (

@@ -98,15 +98,10 @@ export class ObservabilityApiClient {
 
     // Check if cached entry is still valid
     if (cached && Date.now() - cached.timestamp < this.cacheExpiryMs) {
-      console.debug(`Using cached observer URL for ${cacheKey}`);
       if (cached.url !== undefined) {
         return { baseUrl: cached.url, available: true };
       }
     }
-
-    console.info(
-      `Fetching observer URL for component ${componentName} in environment ${environmentName}`,
-    );
 
     try {
       const request: RuntimeLogsObserverUrlGetRequest = {
@@ -141,12 +136,8 @@ export class ObservabilityApiClient {
         timestamp: Date.now(),
       });
 
-      console.info(
-        `Successfully fetched and cached observer URL for ${cacheKey}`,
-      );
       return { baseUrl, available: true };
     } catch (error) {
-      console.error(`Failed to fetch observer URL for ${cacheKey}:`, error);
       throw new Error(
         `Unable to retrieve observer URL for component ${componentName} in environment ${environmentName}: ${error}`,
       );
@@ -168,13 +159,11 @@ export class ObservabilityApiClient {
 
     // Check if cached entry is still valid
     if (cached && Date.now() - cached.timestamp < this.cacheExpiryMs) {
-      console.debug(`Using cached build observer URL for ${cacheKey}`);
       if (cached.url !== undefined) {
         return { baseUrl: cached.url, available: true };
       }
     }
 
-    console.info(`Fetching build observer URL for component ${componentName}`);
 
     try {
       const request: BuildObserverUrlGetRequest = {
@@ -189,18 +178,6 @@ export class ObservabilityApiClient {
       try {
         responseData = await response.json();
       } catch (jsonError) {
-        console.error(
-          `Failed to parse JSON response from observer URL endpoint:`,
-          {
-            status: response.status,
-            statusText: response.statusText,
-            responseBody: responseData,
-            jsonError:
-              jsonError instanceof Error
-                ? jsonError.message
-                : String(jsonError),
-          },
-        );
         throw new Error(
           `Invalid JSON response from observer URL endpoint (status: ${response.status}): ${responseData}`,
         );
@@ -225,15 +202,8 @@ export class ObservabilityApiClient {
         timestamp: Date.now(),
       });
 
-      console.info(
-        `Successfully fetched and cached build observer URL for ${cacheKey}`,
-      );
       return { baseUrl, available: true };
     } catch (error) {
-      console.error(
-        `Failed to fetch build observer URL for ${cacheKey}:`,
-        error,
-      );
       throw new Error(
         `Unable to retrieve build observer URL for component ${componentName}: ${error}`,
       );
@@ -253,10 +223,6 @@ export class ObservabilityApiClient {
     projectName: string,
     options?: RequestOptions,
   ): Promise<TypedResponse<RuntimeLogsResponse>> {
-    console.info(
-      `Fetching runtime logs for component ${request.componentId} in environment ${request.componentId}`,
-    );
-
     try {
       const { baseUrl, available } = await this.getObserverUrl(
         orgName,
@@ -285,7 +251,6 @@ export class ObservabilityApiClient {
         ...(request.offset !== undefined && { offset: request.offset }),
       };
 
-      console.debug(`Making runtime logs request to ${baseUrl}${uri}`);
 
       return await this.fetchApi.fetch(`${baseUrl}${uri}`, {
         headers: {
@@ -298,10 +263,6 @@ export class ObservabilityApiClient {
         body: JSON.stringify(body),
       });
     } catch (error) {
-      console.error(
-        `Failed to fetch runtime logs for component ${request.componentId}:`,
-        error,
-      );
       throw error;
     }
   }
@@ -317,7 +278,6 @@ export class ObservabilityApiClient {
     request: ComponentBuildLogsPostRequest,
     options?: RequestOptions,
   ): Promise<TypedResponse<RuntimeLogsResponse>> {
-    console.info(`Fetching build logs for component ${request.componentName}`);
 
     try {
       const { baseUrl, available } = await this.getBuildObserverUrl(
@@ -347,7 +307,6 @@ export class ObservabilityApiClient {
         ...(request.limit !== undefined && { limit: request.limit }),
       };
 
-      console.debug(`Making build logs request to ${baseUrl}${uri}`);
 
       return await this.fetchApi.fetch(`${baseUrl}${uri}`, {
         headers: {
@@ -360,10 +319,6 @@ export class ObservabilityApiClient {
         body: JSON.stringify(body),
       });
     } catch (error) {
-      console.error(
-        `Failed to fetch build logs for component ${request.componentName}:`,
-        error,
-      );
       throw error;
     }
   }

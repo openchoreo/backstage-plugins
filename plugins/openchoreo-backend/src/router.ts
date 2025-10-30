@@ -311,7 +311,6 @@ export async function createRouter({
 
       res.json(result);
     } catch (error) {
-      console.error('Workload fetch error:', error);
       res.status(500).json({
         error: {
           message: error instanceof Error ? error.message : 'Unknown error',
@@ -348,7 +347,6 @@ export async function createRouter({
 
       res.json(result);
     } catch (error) {
-      console.error('Workload apply error:', error);
       res.status(500).json({
         error: {
           message: error instanceof Error ? error.message : 'Unknown error',
@@ -372,7 +370,6 @@ export async function createRouter({
 
       res.json({ totalBindings });
     } catch (error) {
-      console.error('Dashboard metrics fetch error:', error);
       res.status(500).json({
         error: {
           message: error instanceof Error ? error.message : 'Unknown error',

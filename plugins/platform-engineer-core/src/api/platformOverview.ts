@@ -113,8 +113,6 @@ export async function fetchPlatformOverview(
       if (healthyWorkloadData.success) {
         healthyWorkloadCount = healthyWorkloadData.data;
       }
-    } else {
-      console.warn('Failed to fetch healthy workload count');
     }
 
     return {
@@ -123,7 +121,6 @@ export async function fetchPlatformOverview(
       healthyWorkloadCount,
     };
   } catch (error) {
-    console.error('Error fetching platform overview:', error);
     throw error;
   }
 }

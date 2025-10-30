@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Typography, Card, Chip } from '@material-ui/core';
 import AppsIcon from '@material-ui/icons/Apps';
 import { useStyles } from './styles';
@@ -17,9 +16,9 @@ interface EnvironmentCardProps {
   environment: Environment;
 }
 
-export const EnvironmentCard: React.FC<EnvironmentCardProps> = ({
+export const EnvironmentCard = ({
   environment,
-}) => {
+}: EnvironmentCardProps) => {
   const classes = useStyles();
   const isProduction = environment.isProduction;
   const cardClass = `${classes.environmentCard} ${

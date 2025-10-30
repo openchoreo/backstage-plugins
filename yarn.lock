@@ -8949,6 +8949,7 @@ __metadata:
     "@backstage/backend-plugin-api": "npm:^1.4.3"
     "@backstage/cli": "npm:^0.34.3"
     "@backstage/config": "npm:^1.3.4"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
     cross-fetch: "npm:^4.1.0"
     uri-template: "npm:^2.0.0"
   languageName: unknown
@@ -9018,9 +9019,19 @@ __metadata:
     "@backstage/catalog-model": "npm:^1.7.5"
     "@backstage/cli": "npm:^0.34.3"
     "@backstage/config": "npm:^1.3.4"
+    "@backstage/plugin-catalog-common": "npm:^1.1.5"
     "@backstage/plugin-catalog-node": "npm:^1.19.0"
     "@backstage/plugin-permission-common": "npm:^0.9.1"
     "@openchoreo/backstage-plugin-api": "npm:*"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
+  languageName: unknown
+  linkType: soft
+
+"@openchoreo/backstage-plugin-common@workspace:^, @openchoreo/backstage-plugin-common@workspace:plugins/openchoreo-common":
+  version: 0.0.0-use.local
+  resolution: "@openchoreo/backstage-plugin-common@workspace:plugins/openchoreo-common"
+  dependencies:
+    "@backstage/cli": "npm:^0.34.3"
   languageName: unknown
   linkType: soft
 
@@ -9036,6 +9047,7 @@ __metadata:
     "@backstage/config": "npm:^1.3.4"
     "@backstage/errors": "npm:^1.2.7"
     "@openchoreo/backstage-plugin-api": "workspace:^"
+    "@testing-library/jest-dom": "npm:^6.0.0"
     "@types/express": "npm:^4.17.6"
     "@types/supertest": "npm:^2.0.12"
     express: "npm:^4.17.1"
@@ -9121,6 +9133,7 @@ __metadata:
     "@material-ui/icons": "npm:^4.11.3"
     "@material-ui/lab": "npm:^4.0.0-alpha.61"
     "@openchoreo/backstage-plugin-api": "workspace:^"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
     "@testing-library/dom": "npm:^9.0.0"
     "@testing-library/jest-dom": "npm:^6.0.0"
     "@testing-library/react": "npm:^14.0.0"

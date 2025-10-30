@@ -1,8 +1,8 @@
 import { Entity } from '@backstage/catalog-model';
 import { API_ENDPOINTS } from '../constants';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-api';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
-import { ModelsWorkload } from '@openchoreo/backstage-plugin-api';
+import { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
 
 export async function fetchWorkloadInfo(
   entity: Entity,

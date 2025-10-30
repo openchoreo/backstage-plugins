@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   discoveryApiRef,
   identityApiRef,
@@ -13,7 +13,7 @@ import { Box, CircularProgress, Typography } from '@material-ui/core';
 /**
  * A standalone platform details card for the homepage that handles its own data fetching
  */
-export const HomePagePlatformDetailsCard: React.FC = () => {
+export const HomePagePlatformDetailsCard= () => {
   const [dataplanesWithEnvironments, setDataplanesWithEnvironments] = useState<
     DataPlaneWithEnvironments[]
   >([]);

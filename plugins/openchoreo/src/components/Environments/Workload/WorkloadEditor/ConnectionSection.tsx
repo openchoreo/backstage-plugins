@@ -10,7 +10,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import { Connection } from '@openchoreo/backstage-plugin-api';
+import { Connection } from '@openchoreo/backstage-plugin-common';
 import { ConnectionItem } from './ConnectionItem';
 
 interface ConnectionSectionProps {
