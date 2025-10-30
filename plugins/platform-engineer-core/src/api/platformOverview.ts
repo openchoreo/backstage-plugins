@@ -94,9 +94,7 @@ export async function fetchPlatformOverview(
     });
 
     // Call the backend to get healthy workload count
-    const healthyWorkloadUrl = new URL(
-      `${baseUrl}/healthy-workload-count`,
-    );
+    const healthyWorkloadUrl = new URL(`${baseUrl}/healthy-workload-count`);
 
     const healthyWorkloadRes = await fetch(healthyWorkloadUrl, {
       method: 'POST',
@@ -129,4 +127,3 @@ export async function fetchPlatformOverview(
     throw error;
   }
 }
-

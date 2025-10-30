@@ -42,9 +42,7 @@ export const EnvironmentCard: React.FC<EnvironmentCardProps> = ({
         <Chip
           label={isProduction ? 'Prod' : 'Non-Prod'}
           className={`${classes.environmentChip} ${
-            isProduction
-              ? classes.productionChip
-              : classes.nonProductionChip
+            isProduction ? classes.productionChip : classes.nonProductionChip
           }`}
           size="small"
           variant="outlined"
@@ -82,4 +80,3 @@ export const EnvironmentCard: React.FC<EnvironmentCardProps> = ({
     </Card>
   );
 };
-
