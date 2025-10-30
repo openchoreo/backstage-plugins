@@ -39,11 +39,11 @@ backend:
   session:
     secret: ${BACKEND_SECRET}
     cookie:
-      secure: false  # Set to true in production with HTTPS
+      secure: false # Set to true in production with HTTPS
       sameSite: 'lax'
       httpOnly: true
       path: /
-      maxAge: 86400000  # 24 hours in milliseconds
+      maxAge: 86400000 # 24 hours in milliseconds
   # This is for local development only, it is not recommended to use this in production
   # The production database configuration is stored in app-config.production.yaml
   database:

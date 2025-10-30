@@ -11,7 +11,10 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
-import { Connection, ModelsWorkload } from '@openchoreo/backstage-plugin-common';
+import {
+  Connection,
+  ModelsWorkload,
+} from '@openchoreo/backstage-plugin-common';
 import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
 import {
   discoveryApiRef,

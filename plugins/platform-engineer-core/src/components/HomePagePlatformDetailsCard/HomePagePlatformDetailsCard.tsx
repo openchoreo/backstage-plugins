@@ -13,7 +13,7 @@ import { Box, CircularProgress, Typography } from '@material-ui/core';
 /**
  * A standalone platform details card for the homepage that handles its own data fetching
  */
-export const HomePagePlatformDetailsCard= () => {
+export const HomePagePlatformDetailsCard = () => {
   const [dataplanesWithEnvironments, setDataplanesWithEnvironments] = useState<
     DataPlaneWithEnvironments[]
   >([]);
