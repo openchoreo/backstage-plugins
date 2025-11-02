@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: openchoreo/backstage-plugins
+  IMAGE_NAME: openchoreo/openchoreo-ui
 
 # Avoid running multiple builds for the same commit
 concurrency:
