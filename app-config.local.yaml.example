@@ -1,0 +1,67 @@
+# Local Development Configuration for Backstage with Kind Cluster
+#
+# This file contains pre-configured values for running Backstage locally
+# (at localhost:3000 and localhost:7007) while connecting to services
+# running in a Kind cluster (*.openchoreo.localhost).
+#
+# Quick Start:
+#   1. Copy this file: cp app-config.local.yaml.example app-config.local.yaml
+#   2. Start Backstage: yarn start
+#   3. Access at: http://localhost:3000
+#
+# Note: app-config.local.yaml is gitignored and won't affect production builds.
+# The Docker build only uses app-config.production.yaml.
+
+app:
+  # Backstage frontend URL (local development)
+  baseUrl: http://localhost:3000
+
+backend:
+  # Backstage backend URL (local development)
+  baseUrl: http://localhost:7007
+
+  # CORS configuration for local development
+  cors:
+    origin: http://localhost:3000
+    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+    credentials: true
+
+  # Session secret for authentication cookies (development only)
+  session:
+    secret: dev-secret-change-in-production
+    cookie:
+      secure: false
+      sameSite: 'lax'
+      httpOnly: true
+      path: /
+      maxAge: 86400000 # 24 hours
+
+# OpenChoreo API configuration (Kind cluster)
+openchoreo:
+  baseUrl: http://api.openchoreo.localhost
+  # token: ""  # Optional: uncomment if you need API authentication
+
+# Thunder IDP configuration (Kind cluster)
+thunder:
+  baseUrl: http://sts.openchoreo.localhost
+
+# OAuth authentication configuration (Kind cluster)
+auth:
+  environment: development
+  providers:
+    default-idp:
+      development:
+        # OAuth credentials from Kind cluster helm values
+        # (see openchoreo/install/dev/openchoreo-values.yaml)
+        clientId: openchoreo-backstage-client
+        clientSecret: backstage-portal-secret
+        authorizationUrl: http://sts.openchoreo.localhost/oauth2/authorize
+        tokenUrl: http://sts.openchoreo.localhost/oauth2/token
+        scope: 'openid profile email'
+
+# GitHub integration (optional)
+# Uncomment and add your personal access token if you need GitHub integration
+# integrations:
+#   github:
+#     - host: github.com
+#       token: YOUR_GITHUB_TOKEN_HERE

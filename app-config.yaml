@@ -1,3 +1,16 @@
+# Base Backstage Configuration
+#
+# This file contains the base configuration with environment variable placeholders.
+# Environment variables are used in Docker builds and production deployments.
+#
+# For local development with Kind cluster:
+#   1. Copy the example file: cp app-config.local.yaml.example app-config.local.yaml
+#   2. Run: yarn start
+#   3. The app-config.local.yaml will automatically override values from this file
+#
+# Note: app-config.local.yaml is gitignored and won't affect Docker builds.
+# Docker builds only use app-config.production.yaml.
+
 app:
   title: OpenChoreo Portal
   # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
@@ -9,7 +22,6 @@ organization:
   name: OpenChoreo
 
 backend:
-  https: true
   # Used for enabling authentication, secret is shared by all backend plugins
   # See https://backstage.io/docs/auth/service-to-service-auth for
   # information on the format
