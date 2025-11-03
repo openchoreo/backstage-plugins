@@ -23,6 +23,7 @@ import {
 import { CatalogTable } from '@backstage/plugin-catalog';
 import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
 import { choreoCatalogTableColumns } from './ChoreoCatalogTableColumns';
+import { CustomPersonalFilters } from './CustomPersonalFilters';
 import { useStyles } from './styles';
 
 export interface CustomCatalogPageProps {
@@ -83,14 +84,14 @@ export const CustomCatalogPage: React.FC<CustomCatalogPageProps> = ({
                 <Grid item sm={12} md={4} lg={2}>
                   <ChoreoEntityKindPicker initialFilter={initialKind} />
                 </Grid>
-                <Grid item sm={12} md={4} lg={2}>
+                <Grid item sm={12} md={4} lg={2} className={classes.hideWhenEmpty}>
                   <EntityTypePicker />
                 </Grid>
                 <Grid item sm={12} md={4} lg={2}>
-                    <EntityOwnerPicker mode={ownerPickerMode} />
+                  <EntityOwnerPicker mode={ownerPickerMode} />
                 </Grid>
-                <Grid item sm={12} md={4} lg={2}>
-                  <EntityTagPicker />
+                <Grid item sm={12} md={6} lg={4} alignContent='center'>
+                  <CustomPersonalFilters />
                 </Grid>
               </Grid>
 
@@ -113,8 +114,10 @@ export const CustomCatalogPage: React.FC<CustomCatalogPageProps> = ({
               {/* Advanced Filters Grid - Shown when expanded, inside same section */}
               {advancedFiltersOpen && (
                 <Grid container spacing={2}>
-                  
                   <Grid item sm={12} md={4} lg={2}>
+                    <EntityTagPicker />
+                  </Grid>
+                  <Grid item sm={12} md={4} lg={2} className={classes.hideWhenEmpty}>
                     <EntityLifecyclePicker />
                   </Grid>
                   <Grid item sm={12} md={4} lg={2}>
@@ -146,6 +149,9 @@ export const CustomCatalogPage: React.FC<CustomCatalogPageProps> = ({
                   </Box>
                   <Box className={classes.filterItem}>
                     <EntityOwnerPicker mode={ownerPickerMode} />
+                  </Box>
+                  <Box className={classes.filterItem}>
+                    <CustomPersonalFilters />
                   </Box>
                   <Box className={classes.filterItem}>
                     <EntityLifecyclePicker />

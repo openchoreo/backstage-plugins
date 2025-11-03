@@ -95,5 +95,10 @@ export const useStyles = makeStyles(theme => ({
   contentArea: {
     flex: 1,
   },
+  hideWhenEmpty: {
+    '&:empty': {
+      display: 'none',
+    },
+  },
 }));
 
