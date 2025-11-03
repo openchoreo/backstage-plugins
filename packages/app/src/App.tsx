@@ -25,8 +25,7 @@ import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { UserSettingsPage } from '@backstage/plugin-user-settings';
 import { apis, defaultIdpAuthApiRef } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
-import { ChoreoCatalogFilters } from './components/catalog/ChoreoCatalogFilters';
-import { choreoCatalogTableColumns } from './components/catalog/ChoreoCatalogTableColumns';
+import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 import { HomePage } from './components/Home';
@@ -47,6 +46,8 @@ import {
 } from '@openchoreo/backstage-design-system';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
+import { ChoreoCatalogFilters } from './components/catalog/ChoreoCatalogFilters';
+import { choreoCatalogTableColumns } from './components/catalog/ChoreoCatalogTableColumns';
 
 const app = createApp({
   apis,
@@ -111,6 +112,16 @@ const routes = (
             </>
           }
           columns={choreoCatalogTableColumns}
+        />
+      }
+    />
+    <Route
+      path="/new-catalog"
+      element={
+        <CustomCatalogPage
+          initialKind="component"
+          initiallySelectedFilter="all"
+          ownerPickerMode="all"
         />
       }
     />
