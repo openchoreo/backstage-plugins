@@ -18,8 +18,8 @@ export interface DataPlane {
   displayName?: string;
   description?: string;
   organization: string;
-  registryPrefix?: string;
-  registrySecretRef?: string;
+  imagePullSecretRefs?: string[];
+  secretStoreRef?: string;
   kubernetesClusterName?: string;
   apiServerURL?: string;
   publicVirtualHost?: string;

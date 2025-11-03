@@ -3,8 +3,8 @@ export interface ModelsDataPlane {
   namespace?: string;
   displayName?: string;
   description?: string;
-  registryPrefix?: string;
-  registrySecretRef?: string;
+  imagePullSecretRefs?: string[];
+  secretStoreRef?: string;
   kubernetesClusterName?: string;
   apiServerURL?: string;
   publicVirtualHost?: string;
