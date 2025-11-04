@@ -1,44 +1,47 @@
 import { createUnifiedTheme, createBaseThemeOptions } from '@backstage/theme';
 import Ubuntu from '../assets/fonts/Ubuntu/UbuntuSans-VariableFont_wdth,wght.ttf';
-import { alpha } from '@material-ui/core';
 
-// Color constants for reuse
+// Color constants for reuse - Modern & Minimal palette
 const colors = {
   primary: {
-    light: '#a6B3ff',
-    main: '#5567d5',
-    dark: '#4d5ec0',
+    light: '#a8b5ff',
+    main: '#6c7fd8', // Softer, less saturated blue
+    dark: '#5568c4',
   },
   secondary: {
-    light: '#f7f8fb',
-    main: '#8d91a3',
-    dark: '#40404b',
+    light: '#fafbfc', // Lighter, more subtle background
+    main: '#6b7280', // Darker gray for better contrast
+    dark: '#374151', // Darker for better readability
   },
   error: {
-    light: '#fceded',
-    main: '#fe523c',
-    dark: '#d64733',
+    light: '#fef2f2',
+    main: '#ef4444',
+    dark: '#dc2626',
   },
   warning: {
-    light: '#fff5eb',
-    main: '#ff9d52',
-    dark: '#ff9133',
+    light: '#fffbeb',
+    main: '#f59e0b',
+    dark: '#d97706',
   },
   success: {
-    light: '#effdf2',
-    main: '#36b475',
-    dark: '#05a26b',
+    light: '#f0fdf4',
+    main: '#10b981',
+    dark: '#059669',
   },
   grey: {
-    100: '#e6e7ec',
-    200: '#cbcedb',
+    50: '#f9fafb', // Added for very light backgrounds
+    100: '#f3f4f6', // Lighter borders
+    200: '#e5e7eb',
+    300: '#d1d5db',
+    400: '#9ca3af',
   },
   indigo: {
-    100: '#f0f1fb',
-    200: '#ccd1f2',
+    50: '#f5f7ff',
+    100: '#eef2ff',
+    200: '#e0e7ff',
   },
   common: {
-    black: '#1d2028',
+    black: '#111827', // Darker for better contrast
     white: '#ffffff',
   },
 };
@@ -63,66 +66,66 @@ export const openChoreoTheme = createUnifiedTheme({
       ...colors,
       // Backstage-specific palette additions
       status: {
-        ok: '#36b475',
-        warning: '#ff9d52',
-        error: '#fe523c',
-        pending: '#8d91a3',
-        running: '#5567d5',
-        aborted: '#40404b',
+        ok: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        pending: '#6b7280',
+        running: '#6c7fd8',
+        aborted: '#374151',
       },
-      border: '#e6e7ec',
-      textContrast: '#1d2028',
-      textVerySubtle: '#8d91a3',
-      textSubtle: '#40404b',
-      highlight: '#5567d5',
-      errorBackground: '#fceded',
-      warningBackground: '#fff5eb',
-      infoBackground: '#f0f1fb',
-      errorText: '#d64733',
-      infoText: '#5567d5',
-      warningText: '#ff9133',
-      linkHover: '#4d5ec0',
-      link: '#5567d5',
-      gold: '#ff9d52',
+      border: '#e5e7eb', // Lighter, more subtle
+      textContrast: '#111827', // Darker for better contrast
+      textVerySubtle: '#9ca3af', // Improved contrast
+      textSubtle: '#4b5563', // Darker for readability
+      highlight: '#6c7fd8',
+      errorBackground: '#fef2f2',
+      warningBackground: '#fffbeb',
+      infoBackground: '#eef2ff',
+      errorText: '#dc2626',
+      infoText: '#6c7fd8',
+      warningText: '#d97706',
+      linkHover: '#5568c4',
+      link: '#6c7fd8',
+      gold: '#f59e0b',
       navigation: {
         background: '#ffffff',
-        indicator: '#5567d5',
-        color: '#1d2028',
-        selectedColor: '#5567d5',
+        indicator: '#6c7fd8',
+        color: '#111827',
+        selectedColor: '#6c7fd8',
         navItem: {
-          hoverBackground: '#f7f8fb',
+          hoverBackground: '#f9fafb', // Lighter hover state
         },
         submenu: {
-          background: '#f7f8fb',
+          background: '#fafbfc',
         },
       },
       tabbar: {
-        indicator: '#5567d5',
+        indicator: '#6c7fd8',
       },
       bursts: {
-        fontColor: '#1d2028',
-        slackChannelText: '#8d91a3',
+        fontColor: '#111827',
+        slackChannelText: '#6b7280',
         backgroundColor: {
-          default: '#f7f8fb',
+          default: '#fafbfc',
         },
         gradient: {
-          linear: 'linear-gradient(135deg, #5567d5 0%, #a6B3ff 100%)',
+          linear: 'linear-gradient(135deg, #6c7fd8 0%, #a8b5ff 100%)',
         },
       },
       pinSidebarButton: {
-        icon: '#8d91a3',
-        background: '#f7f8fb',
+        icon: '#6b7280',
+        background: '#fafbfc',
       },
       banner: {
-        info: '#5567d5',
-        error: '#fe523c',
-        text: '#1d2028',
-        link: '#5567d5',
-        closeButtonColor: '#8d91a3',
-        warning: '#ff9d52',
+        info: '#6c7fd8',
+        error: '#ef4444',
+        text: '#111827',
+        link: '#6c7fd8',
+        closeButtonColor: '#6b7280',
+        warning: '#f59e0b',
       },
       code: {
-        background: '#f7f8fb',
+        background: '#fafbfc',
       },
     },
     typography: {
@@ -130,17 +133,17 @@ export const openChoreoTheme = createUnifiedTheme({
         'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       htmlFontSize: 15,
       h1: {
-        fontSize: 43,
+        fontSize: 38, // Slightly smaller for better proportions
         fontWeight: 700,
         marginBottom: 0,
       },
       h2: {
-        fontSize: 29,
+        fontSize: 28,
         fontWeight: 700,
         marginBottom: 0,
       },
       h3: {
-        fontSize: 22,
+        fontSize: 20, // More refined scale
         fontWeight: 600,
         marginBottom: 0,
       },
@@ -166,34 +169,42 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         header: {
           backgroundColor: colors.primary.main,
-          backgroundImage: 'none',
-          height: 98,
+          backgroundImage: 'linear-gradient(90deg, #6c7fd8 0%, #7c8ee0 100%)', // Subtle gradient
+          height: 72, // Reduced from 98px for modern look
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)', // Subtle shadow
         },
         title: {
-          fontSize: 25,
+          fontSize: 22, // Slightly smaller, more proportional
+          fontWeight: 600,
         },
       },
     },
     BackstageItemCardHeader: {
       styleOverrides: {
         root: {
-          backgroundColor: '#5567d5',
-          backgroundImage: 'none!important',
+          backgroundColor: colors.primary.main,
+          backgroundImage:
+            'linear-gradient(135deg, #6c7fd8 0%, #7c8ee0 100%)!important',
         },
       },
     },
     BackstageSidebarItem: {
       styleOverrides: {
+        root: {
+          paddingTop: 6, // More vertical spacing
+          paddingBottom: 6,
+        },
         label: {
           fontWeight: 500,
+          fontSize: 14,
         },
       },
     },
     CatalogReactEntityDisplayName: {
       styleOverrides: {
         root: {
-          paddingBottom: 8,
-          paddingTop: 8,
+          paddingBottom: 12, // More breathing room
+          paddingTop: 12,
         },
       },
     },
@@ -229,7 +240,23 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         root: {
           textTransform: 'none',
-          fontWeight: 400,
+          fontWeight: 500,
+          borderRadius: 8,
+          padding: '8px 16px',
+          transition: 'all 0.2s ease-in-out',
+        },
+        contained: {
+          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+          '&:hover': {
+            boxShadow:
+              '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          },
+        },
+        outlined: {
+          borderWidth: '1.5px',
+          '&:hover': {
+            borderWidth: '1.5px',
+          },
         },
       },
     },
@@ -240,16 +267,18 @@ export const openChoreoTheme = createUnifiedTheme({
           fontWeight: 'normal',
           fontStretch: 'normal',
           fontStyle: 'normal',
-          lineHeight: 1.53846154,
+          lineHeight: 1.6, // Improved readability
           letterSpacing: 'normal',
+          color: colors.secondary.dark, // Better contrast
         },
         body2: {
           fontSize: 13,
           fontWeight: 'normal',
           fontStretch: 'normal',
           fontStyle: 'normal',
-          lineHeight: 1.33333,
+          lineHeight: 1.5, // Improved readability
           letterSpacing: 'normal',
+          color: colors.secondary.dark,
         },
       },
     },
@@ -257,24 +286,47 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         header: {
           textTransform: 'none',
-          color: '#8d91a3!important',
+          color: '#6b7280!important', // Better contrast
           fontWeight: 500,
-          fontSize: 14,
+          fontSize: 13,
           borderTop: 'none',
+          paddingTop: '12px',
+          paddingBottom: '12px',
         },
       },
     },
     MuiTableCell: {
       styleOverrides: {
         root: {
-          padding: '8px 16px 8px 20px !important',
+          padding: '12px 20px !important', // More generous padding
+          borderBottom: '1px solid #f3f4f6', // Lighter borders
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 12, // More rounded for modern look
+          border: '1px solid #f3f4f6', // Subtle border
+          boxShadow:
+            '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)', // Softer shadow
+        },
+      },
+    },
+    MuiCardContent: {
+      styleOverrides: {
+        root: {
+          padding: '24px', // More generous internal padding
+          '&:last-child': {
+            paddingBottom: '24px', // Override Material-UI default
+          },
+        },
+      },
+    },
+    MuiCardHeader: {
+      styleOverrides: {
+        root: {
+          padding: '20px 24px', // Consistent with card content
         },
       },
     },
@@ -330,31 +382,51 @@ export const openChoreoTheme = createUnifiedTheme({
     },
     MuiOutlinedInput: {
       styleOverrides: {
+        root: {
+          backgroundColor: '#ffffff',
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: colors.grey[300],
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: colors.primary.main,
+            borderWidth: '2px',
+          },
+        },
         notchedOutline: {
-          borderColor: colors.grey[100],
-          boxShadow: `0 1px 2px -1px ${alpha(
-            colors.common.black,
-            0.08,
-          )}, 0 -3px 9px 0 ${alpha(colors.common.black, 0.04)} inset`,
-          borderRadius: 5,
-          '$root:hover &': {
-            borderColor: `${colors.indigo[200]} `,
-          },
-          '$root.Mui-focused &': {
-            borderColor: `${colors.primary.light}`,
-            borderWidth: '1px',
-          },
-          '$root.Mui-error &': {
-            borderColor: `${colors.error.main}`,
-          },
+          borderColor: colors.grey[200],
+          borderRadius: 8,
+          transition: 'border-color 0.2s ease-in-out',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: '16px', // More rounded
+          fontWeight: 500,
+          height: 'auto',
+          padding: '4px 0',
+        },
+        colorPrimary: {
+          backgroundColor: `${colors.primary.light}25`, // Translucent background
+          color: colors.primary.dark,
+          border: `1px solid ${colors.primary.light}50`,
+        },
+        colorSecondary: {
+          backgroundColor: `${colors.secondary.light}`,
+          color: colors.secondary.dark,
         },
       },
     },
     MuiIconButton: {
       styleOverrides: {
         root: {
-          padding: 4,
+          padding: 8, // More generous padding
           fontSize: 'inherit',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            backgroundColor: colors.grey[50],
+          },
         },
       },
     },
