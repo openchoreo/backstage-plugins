@@ -3,7 +3,11 @@ import { Box, Checkbox, Tooltip } from '@material-ui/core';
 import PersonIcon from '@material-ui/icons/PersonOutline';
 import StarIcon from '@material-ui/icons/StarOutline';
 import { useApi, identityApiRef } from '@backstage/core-plugin-api';
-import { useEntityList, useStarredEntities, EntityUserFilter } from '@backstage/plugin-catalog-react';
+import {
+  useEntityList,
+  useStarredEntities,
+  EntityUserFilter,
+} from '@backstage/plugin-catalog-react';
 import { usePersonalFilterStyles } from './styles';
 
 export const CustomPersonalFilters: React.FC = () => {
@@ -37,18 +41,23 @@ export const CustomPersonalFilters: React.FC = () => {
   const ownedCount = React.useMemo(() => {
     if (ownershipRefs.length === 0) return 0;
     const ownedFilter = EntityUserFilter.owned(ownershipRefs);
-    return backendEntities.filter(entity => ownedFilter.filterEntity(entity)).length;
+    return backendEntities.filter(entity => ownedFilter.filterEntity(entity))
+      .length;
   }, [backendEntities, ownershipRefs]);
 
   const starredCount = React.useMemo(() => {
     if (starredEntities.size === 0) return 0;
     const starredRefs = Array.from(starredEntities);
     const starredFilter = EntityUserFilter.starred(starredRefs);
-    return backendEntities.filter(entity => starredFilter.filterEntity(entity)).length;
+    return backendEntities.filter(entity => starredFilter.filterEntity(entity))
+      .length;
   }, [backendEntities, starredEntities]);
 
   const handleFilterChange = (filterType: 'owned' | 'starred') => {
-    if ((filterType === 'owned' && isOwned) || (filterType === 'starred' && isStarred)) {
+    if (
+      (filterType === 'owned' && isOwned) ||
+      (filterType === 'starred' && isStarred)
+    ) {
       // Remove the filter
       updateFilters({
         user: undefined,

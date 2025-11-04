@@ -161,4 +161,3 @@ export const usePersonalFilterStyles = makeStyles(theme => ({
     minWidth: theme.spacing(3),
   },
 }));
-
