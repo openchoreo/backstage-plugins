@@ -17,6 +17,39 @@ This repository contains Backstage plugins for integrating with [OpenChoreo](htt
 
 Follow the setup [guide](https://openchoreo.dev/docs/getting-started/single-cluster/)
 
+## Local Domain Configuration
+
+To access the OpenChoreo services locally, you need to configure DNS resolution for `.localhost` domains.
+
+### Setup (Required)
+
+Add the following entries to your `/etc/hosts` file:
+```bash
+sudo nano /etc/hosts
+```
+
+Add these lines:
+```
+127.0.0.1       openchoreo.localhost
+127.0.0.1       api.openchoreo.localhost
+127.0.0.1       sts.openchoreo.localhost
+```
+
+Save and exit. The changes take effect immediately.
+
+### Why is this needed?
+
+While browsers automatically resolve `.localhost` domains to `127.0.0.1`, Node.js and other tools use system DNS which doesn't have this built-in behavior for subdomains. The `/etc/hosts` entries ensure consistent resolution across all tools.
+
+### Alternative Approaches
+
+If you cannot modify `/etc/hosts`, you can:
+- **Use IP directly**: Connect to `http://127.0.0.1` instead and set the `Host` header manually in your requests
+- **DNS lookup override**: Implement custom DNS resolution in your Node.js code to intercept `.localhost` domains
+- **Local DNS server**: Run `dnsmasq` or similar to handle `.localhost` wildcard resolution
+
+However, the `/etc/hosts` approach is recommended for its simplicity and reliability.
+
 ## Development Setup
 
 ### Required Tools
