@@ -46,8 +46,6 @@ import {
 } from '@openchoreo/backstage-design-system';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
-import { ChoreoCatalogFilters } from './components/catalog/ChoreoCatalogFilters';
-import { choreoCatalogTableColumns } from './components/catalog/ChoreoCatalogTableColumns';
 
 const app = createApp({
   apis,
@@ -100,23 +98,6 @@ const routes = (
     <Route path="/" element={<HomePage />} />
     <Route
       path="/catalog"
-      element={
-        <CatalogIndexPage
-          filters={
-            <>
-              <ChoreoCatalogFilters
-                initialKind="component"
-                initiallySelectedFilter="all"
-                ownerPickerMode="all"
-              />
-            </>
-          }
-          columns={choreoCatalogTableColumns}
-        />
-      }
-    />
-    <Route
-      path="/new-catalog"
       element={
         <CustomCatalogPage
           initialKind="component"
