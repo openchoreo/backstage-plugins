@@ -1,73 +1,13 @@
 import React from 'react';
 import { Box, Checkbox, Tooltip } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import PersonIcon from '@material-ui/icons/PersonOutline';
 import StarIcon from '@material-ui/icons/StarOutline';
 import { useApi, identityApiRef } from '@backstage/core-plugin-api';
 import { useEntityList, useStarredEntities, EntityUserFilter } from '@backstage/plugin-catalog-react';
-
-const useStyles = makeStyles(theme => ({
-  container: {
-    display: 'flex',
-    gap: theme.spacing(2),
-    [theme.breakpoints.down('sm')]: {
-      flexDirection: 'column',
-      gap: theme.spacing(1),
-    },
-    marginTop: theme.spacing(2.5),
-  },
-  filterItem: {
-    flex: 1,
-    padding: theme.spacing(1.5),
-    backgroundColor: theme.palette.background.paper,
-    border: `1px solid ${theme.palette.grey[300]}`,
-    borderRadius: theme.spacing(1),
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1.5),
-    cursor: 'pointer',
-    transition: theme.transitions.create(['border-color', 'background-color'], {
-      duration: theme.transitions.duration.short,
-    }),
-  },
-  checkbox: {
-    padding: 0,
-    marginTop: theme.spacing(0.25),
-  },
-  contentContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    flex: 1,
-  },
-  labelRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(0.75),
-  },
-  icon: {
-    fontSize: '1.25rem',
-    color: theme.palette.primary.main,
-  },
-  label: {
-    color: theme.palette.text.primary,
-    margin: 0,
-  },
-  countBadge: {
-    marginLeft: 'auto',
-    padding: theme.spacing(0.4, 0.8),
-    backgroundColor: theme.palette.grey[100],
-    borderRadius: theme.shape.borderRadius,
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    color: theme.palette.text.secondary,
-    justifyContent: 'center',
-    textAlign: 'center',
-    minWidth: theme.spacing(3),
-  },
-}));
+import { usePersonalFilterStyles } from './styles';
 
 export const CustomPersonalFilters: React.FC = () => {
-  const classes = useStyles();
+  const classes = usePersonalFilterStyles();
   const { filters, updateFilters, backendEntities } = useEntityList();
 
   // Get identity API to fetch ownership refs
