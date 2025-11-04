@@ -8,22 +8,25 @@ export const useStyles = makeStyles(theme => ({
     width: '100%',
   },
   searchPaper: {
-    padding: theme.spacing(1, 2),
+    padding: theme.spacing(1.5, 3), // More generous padding
     display: 'flex',
     alignItems: 'center',
     width: theme.spacing(100),
     backgroundColor: theme.palette.background.paper,
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.spacing(20),
+    border: `2px solid ${theme.palette.grey[200]}`, // Slightly thicker, lighter border
+    borderRadius: theme.spacing(6), // Less extreme rounding for modern look
     cursor: 'pointer',
     transition: 'all 0.2s ease-in-out',
+    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)', // Subtle shadow
     '&:hover': {
-      borderColor: theme.palette.primary.main,
-      boxShadow: theme.shadows[2],
+      borderColor: theme.palette.primary.light,
+      boxShadow:
+        '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
+      transform: 'translateY(-1px)',
     },
     '&:focus-within': {
       borderColor: theme.palette.primary.main,
-      boxShadow: `0 0 0 2px ${theme.palette.primary.main}25`,
+      boxShadow: `0 0 0 3px ${theme.palette.primary.main}20, 0 4px 6px -1px rgba(0, 0, 0, 0.08)`,
     },
   },
   searchPlaceholder: {
@@ -82,8 +85,8 @@ export const useStyles = makeStyles(theme => ({
   },
   widgetContainer: {
     display: 'flex',
-    gap: theme.spacing(3),
-    marginTop: theme.spacing(3),
+    gap: theme.spacing(4), // Increased from 3 to 4 for more breathing room
+    marginTop: theme.spacing(4), // Increased from 3 to 4
     flexWrap: 'wrap',
     '& > *': {
       flex: '1 1 300px',
@@ -103,8 +106,8 @@ export const useStyles = makeStyles(theme => ({
   sidebarSection: {
     display: 'flex',
     flexDirection: 'column',
-    gap: theme.spacing(3),
-    marginTop: theme.spacing(3),
+    gap: theme.spacing(4), // Increased from 3 to 4 for more spacing
+    marginTop: theme.spacing(4), // Increased from 3 to 4
   },
   sidebarTitle: {
     marginBottom: theme.spacing(1),
@@ -143,7 +146,7 @@ export const useStyles = makeStyles(theme => ({
   },
   quickActionCardContent: {
     width: '100%',
-    padding: theme.spacing(3),
+    padding: theme.spacing(4), // Increased from 3 to 4 for more internal spacing
   },
   quickActionHeader: {
     display: 'flex',
@@ -175,11 +178,13 @@ export const useStyles = makeStyles(theme => ({
   },
   groupBadge: {
     display: 'inline-block',
-    padding: '4px 12px',
+    padding: '6px 14px', // More generous padding
     margin: '4px',
-    borderRadius: '12px',
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
+    borderRadius: '16px', // More rounded
+    backgroundColor: `${theme.palette.primary.light}30`, // Softer, translucent background
+    color: theme.palette.primary.dark,
     fontSize: '0.875rem',
+    fontWeight: 500,
+    border: `1px solid ${theme.palette.primary.light}60`,
   },
 }));
