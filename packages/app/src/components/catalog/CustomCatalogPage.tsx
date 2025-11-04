@@ -5,10 +5,7 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { useRouteRef } from '@backstage/core-plugin-api';
 import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { Link } from 'react-router-dom';
-import {
-  PageWithHeader,
-  Content,
-} from '@backstage/core-components';
+import { PageWithHeader, Content } from '@backstage/core-components';
 import {
   EntityListProvider,
   EntityLifecyclePicker,
@@ -46,7 +43,6 @@ export const CustomCatalogPage: React.FC<CustomCatalogPageProps> = ({
   return (
     <PageWithHeader title="OpenChoreo Catalog" themeId="home">
       <Content>
-
         <EntityListProvider pagination={{ mode: 'offset', limit: 25 }}>
           <Box className={classes.root}>
             {/* Header with Filter button and Create button */}
@@ -84,19 +80,30 @@ export const CustomCatalogPage: React.FC<CustomCatalogPageProps> = ({
                 <Grid item sm={12} md={4} lg={2}>
                   <ChoreoEntityKindPicker initialFilter={initialKind} />
                 </Grid>
-                <Grid item sm={12} md={4} lg={2} className={classes.hideWhenEmpty}>
+                <Grid
+                  item
+                  sm={12}
+                  md={4}
+                  lg={2}
+                  className={classes.hideWhenEmpty}
+                >
                   <EntityTypePicker />
                 </Grid>
                 <Grid item sm={12} md={4} lg={2}>
                   <EntityOwnerPicker mode={ownerPickerMode} />
                 </Grid>
-                <Grid item sm={12} md={6} lg={4} alignContent='center'>
+                <Grid item sm={12} md={6} lg={4} alignContent="center">
                   <CustomPersonalFilters />
                 </Grid>
               </Grid>
 
               {/* Advanced Filters Toggle Button */}
-              <Box display="flex" justifyContent="flex-start" mt={1} mb={advancedFiltersOpen ? 1 : 0}>
+              <Box
+                display="flex"
+                justifyContent="flex-start"
+                mt={1}
+                mb={advancedFiltersOpen ? 1 : 0}
+              >
                 <button
                   className={classes.advancedFiltersToggle}
                   onClick={() => setAdvancedFiltersOpen(!advancedFiltersOpen)}
@@ -117,7 +124,13 @@ export const CustomCatalogPage: React.FC<CustomCatalogPageProps> = ({
                   <Grid item sm={12} md={4} lg={2}>
                     <EntityTagPicker />
                   </Grid>
-                  <Grid item sm={12} md={4} lg={2} className={classes.hideWhenEmpty}>
+                  <Grid
+                    item
+                    sm={12}
+                    md={4}
+                    lg={2}
+                    className={classes.hideWhenEmpty}
+                  >
                     <EntityLifecyclePicker />
                   </Grid>
                   <Grid item sm={12} md={4} lg={2}>
