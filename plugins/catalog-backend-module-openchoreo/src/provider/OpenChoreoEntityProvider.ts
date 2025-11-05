@@ -13,6 +13,7 @@ import {
   ModelsOrganization,
   ModelsComponent,
   ModelsEnvironment,
+  ModelsDataPlane,
   ModelsCompleteComponent,
   WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-api';
@@ -20,7 +21,7 @@ import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
 } from '@openchoreo/backstage-plugin-common';
-import { EnvironmentEntityV1alpha1 } from '../kinds';
+import { EnvironmentEntityV1alpha1, DataplaneEntityV1alpha1 } from '../kinds';
 
 /**
  * Provides entities from OpenChoreo API
@@ -98,6 +99,25 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         } catch (error) {
           this.logger.warn(
             `Failed to fetch environments for organization ${org.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get dataplanes for each organization and create Dataplane entities
+      for (const org of organizations) {
+        try {
+          const dataplanes = await this.client.getAllDataplanes(org.name);
+          this.logger.info(
+            `Found ${dataplanes.length} dataplanes in organization: ${org.name}`,
+          );
+
+          const dataplaneEntities: Entity[] = dataplanes.map(dataplane =>
+            this.translateDataplaneToEntity(dataplane, org.name),
+          );
+          allEntities.push(...dataplaneEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch dataplanes for organization ${org.name}: ${error}`,
           );
         }
       }
@@ -334,6 +354,63 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     };
 
     return environmentEntity;
+  }
+
+  /**
+   * Translates a ModelsDataPlane from OpenChoreo API to a Backstage Dataplane entity
+   */
+  private translateDataplaneToEntity(
+    dataplane: ModelsDataPlane,
+    orgName: string,
+  ): DataplaneEntityV1alpha1 {
+    const dataplaneEntity: DataplaneEntityV1alpha1 = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Dataplane',
+      metadata: {
+        name: dataplane.name,
+        title: dataplane.displayName || dataplane.name,
+        description:
+          dataplane.description || `${dataplane.name} dataplane`,
+        tags: [
+          'openchoreo',
+          'dataplane',
+          'infrastructure',
+        ],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: dataplane.namespace || '',
+          [CHOREO_ANNOTATIONS.CREATED_AT]: dataplane.createdAt || '',
+          [CHOREO_ANNOTATIONS.STATUS]: dataplane.status || '',
+          'openchoreo.io/registry-prefix': dataplane.registryPrefix || '',
+          'openchoreo.io/registry-secret-ref': dataplane.registrySecretRef || '',
+          'openchoreo.io/kubernetes-cluster-name': dataplane.kubernetesClusterName || '',
+          'openchoreo.io/api-server-url': dataplane.apiServerURL || '',
+          'openchoreo.io/public-virtual-host': dataplane.publicVirtualHost || '',
+          'openchoreo.io/organization-virtual-host': dataplane.organizationVirtualHost || '',
+          'openchoreo.io/observer-url': dataplane.observerURL || '',
+          'openchoreo.io/observer-username': dataplane.observerUsername || '',
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/dataplane': 'true',
+        },
+      },
+      spec: {
+        type: 'kubernetes',
+        owner: 'guests', // This could be configured or mapped from dataplane metadata
+        domain: orgName, // Link to the parent domain (organization)
+        kubernetesClusterName: dataplane.kubernetesClusterName,
+        apiServerURL: dataplane.apiServerURL,
+        registryPrefix: dataplane.registryPrefix,
+        publicVirtualHost: dataplane.publicVirtualHost,
+        organizationVirtualHost: dataplane.organizationVirtualHost,
+        observerURL: dataplane.observerURL,
+      },
+    };
+
+    return dataplaneEntity;
   }
 
   /**
