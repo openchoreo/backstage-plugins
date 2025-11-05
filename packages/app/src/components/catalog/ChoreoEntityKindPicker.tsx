@@ -7,6 +7,7 @@ import {
   useEntityList,
   catalogApiRef,
 } from '@backstage/plugin-catalog-react';
+import { useUserGroups } from '../../hooks';
 
 // Mapping of internal kind names to Choreo entity kind names
 const kindDisplayNames: Record<string, string> = {
@@ -19,6 +20,8 @@ const kindDisplayNames: Record<string, string> = {
   resource: 'Resource',
   location: 'Location',
   template: 'Template',
+  dataplane: 'Dataplane',
+  environment: 'Environment',
 };
 
 // Custom order for displaying entity kinds in the dropdown
@@ -33,6 +36,8 @@ const kindDisplayOrder: string[] = [
   'group',
   'location',
   'template',
+  'dataplane',
+  'environment',
 ];
 
 // Hook to fetch all available Choreo entity kinds from the catalog
@@ -173,6 +178,10 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
       initialFilter: initialFilter,
     });
 
+  // Get user groups to check if user is a platform engineer
+  const { userGroups } = useUserGroups();
+  const isPlatformEngineer = userGroups.includes('platformengineer');
+
   useEffect(() => {
     if (error) {
       alertApi.post({
@@ -184,46 +193,59 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
 
   if (error) return null;
 
-  // Create a new map with custom labels
-  const customKindsMap = new Map<string, string>();
-  allKinds.forEach((value, key) => {
-    const lowerKey = key.toLowerCase();
-    const customLabel = kindDisplayNames[lowerKey] || value;
-    customKindsMap.set(key, customLabel);
-  });
+  const items = useMemo(() => {
+    // Create a new map with custom labels
+    const customKindsMap = new Map<string, string>();
+    allKinds.forEach((value, key) => {
+      const lowerKey = key.toLowerCase();
+      const customLabel = kindDisplayNames[lowerKey] || value;
+      customKindsMap.set(key, customLabel);
+    });
 
-  // Filter kinds if allowedKinds is specified
-  const filteredKinds = allowedKinds
-    ? new Map(
-        [...customKindsMap].filter(([key]) =>
-          allowedKinds.some(
-            allowed => allowed.toLowerCase() === key.toLowerCase(),
+    // Filter kinds based on allowedKinds prop
+    let filteredKinds = allowedKinds
+      ? new Map(
+          [...customKindsMap].filter(([key]) =>
+            allowedKinds.some(
+              allowed => allowed.toLowerCase() === key.toLowerCase(),
+            ),
           ),
-        ),
-      )
-    : customKindsMap;
+        )
+      : customKindsMap;
 
-  // Sort items according to kindDisplayOrder
-  const items = [...filteredKinds.entries()]
-    .sort(([keyA], [keyB]) => {
-      const indexA = kindDisplayOrder.indexOf(keyA.toLowerCase());
-      const indexB = kindDisplayOrder.indexOf(keyB.toLowerCase());
+    // Always filter out dataplane and environment for non-platform engineers
+    // This applies regardless of allowedKinds
+    if (!isPlatformEngineer) {
+      filteredKinds = new Map(
+        [...filteredKinds].filter(([key]) => {
+          const lowerKey = key.toLowerCase();
+          return lowerKey !== 'dataplane' && lowerKey !== 'environment';
+        }),
+      );
+    }
 
-      // If both are in the order list, sort by their position
-      if (indexA !== -1 && indexB !== -1) {
-        return indexA - indexB;
-      }
-      // If only A is in the order list, A comes first
-      if (indexA !== -1) return -1;
-      // If only B is in the order list, B comes first
-      if (indexB !== -1) return 1;
-      // If neither is in the order list, sort alphabetically by label
-      return keyA.localeCompare(keyB);
-    })
-    .map(([key, value]) => ({
-      label: value,
-      value: key.toLowerCase(), // Ensure value is lowercase to match selectedKind
-    }));
+    // Sort items according to kindDisplayOrder
+    return [...filteredKinds.entries()]
+      .sort(([keyA], [keyB]) => {
+        const indexA = kindDisplayOrder.indexOf(keyA.toLowerCase());
+        const indexB = kindDisplayOrder.indexOf(keyB.toLowerCase());
+
+        // If both are in the order list, sort by their position
+        if (indexA !== -1 && indexB !== -1) {
+          return indexA - indexB;
+        }
+        // If only A is in the order list, A comes first
+        if (indexA !== -1) return -1;
+        // If only B is in the order list, B comes first
+        if (indexB !== -1) return 1;
+        // If neither is in the order list, sort alphabetically by label
+        return keyA.localeCompare(keyB);
+      })
+      .map(([key, value]) => ({
+        label: value,
+        value: key.toLowerCase(), // Ensure value is lowercase to match selectedKind
+      }));
+  }, [allKinds, allowedKinds, isPlatformEngineer]);
 
   return hidden ? null : (
     <Box pb={1} pt={1}>
