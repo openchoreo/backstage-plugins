@@ -15,9 +15,7 @@ export class DataplaneEntityProcessor implements CatalogProcessor {
     return 'DataplaneEntityProcessor';
   }
 
-  async validateEntityKind(
-    entity: DataplaneEntityV1alpha1,
-  ): Promise<boolean> {
+  async validateEntityKind(entity: DataplaneEntityV1alpha1): Promise<boolean> {
     return entity.kind === 'Dataplane';
   }
 

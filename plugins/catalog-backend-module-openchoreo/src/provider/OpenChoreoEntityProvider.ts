@@ -369,13 +369,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       metadata: {
         name: dataplane.name,
         title: dataplane.displayName || dataplane.name,
-        description:
-          dataplane.description || `${dataplane.name} dataplane`,
-        tags: [
-          'openchoreo',
-          'dataplane',
-          'infrastructure',
-        ],
+        description: dataplane.description || `${dataplane.name} dataplane`,
+        tags: ['openchoreo', 'dataplane', 'infrastructure'],
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
@@ -383,12 +378,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.NAMESPACE]: dataplane.namespace || '',
           [CHOREO_ANNOTATIONS.CREATED_AT]: dataplane.createdAt || '',
           [CHOREO_ANNOTATIONS.STATUS]: dataplane.status || '',
-          'openchoreo.io/registry-prefix': dataplane.registryPrefix || '',
-          'openchoreo.io/registry-secret-ref': dataplane.registrySecretRef || '',
-          'openchoreo.io/kubernetes-cluster-name': dataplane.kubernetesClusterName || '',
+          'openchoreo.io/kubernetes-cluster-name':
+            dataplane.kubernetesClusterName || '',
           'openchoreo.io/api-server-url': dataplane.apiServerURL || '',
-          'openchoreo.io/public-virtual-host': dataplane.publicVirtualHost || '',
-          'openchoreo.io/organization-virtual-host': dataplane.organizationVirtualHost || '',
+          'openchoreo.io/public-virtual-host':
+            dataplane.publicVirtualHost || '',
+          'openchoreo.io/organization-virtual-host':
+            dataplane.organizationVirtualHost || '',
           'openchoreo.io/observer-url': dataplane.observerURL || '',
           'openchoreo.io/observer-username': dataplane.observerUsername || '',
         },
@@ -403,7 +399,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         domain: orgName, // Link to the parent domain (organization)
         kubernetesClusterName: dataplane.kubernetesClusterName,
         apiServerURL: dataplane.apiServerURL,
-        registryPrefix: dataplane.registryPrefix,
         publicVirtualHost: dataplane.publicVirtualHost,
         organizationVirtualHost: dataplane.organizationVirtualHost,
         observerURL: dataplane.observerURL,

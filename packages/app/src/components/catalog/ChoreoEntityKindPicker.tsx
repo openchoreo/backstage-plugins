@@ -191,9 +191,12 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     }
   }, [error, alertApi]);
 
-  if (error) return null;
-
   const items = useMemo(() => {
+    // Return empty array if there's an error - component will return null anyway
+    if (error) {
+      return [];
+    }
+
     // Create a new map with custom labels
     const customKindsMap = new Map<string, string>();
     allKinds.forEach((value, key) => {
@@ -245,7 +248,9 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
         label: value,
         value: key.toLowerCase(), // Ensure value is lowercase to match selectedKind
       }));
-  }, [allKinds, allowedKinds, isPlatformEngineer]);
+  }, [allKinds, allowedKinds, isPlatformEngineer, error]);
+
+  if (error) return null;
 
   return hidden ? null : (
     <Box pb={1} pt={1}>

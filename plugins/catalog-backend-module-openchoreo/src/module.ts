@@ -4,7 +4,10 @@ import {
 } from '@backstage/backend-plugin-api';
 import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
 import { OpenChoreoEntityProvider } from './provider/OpenChoreoEntityProvider';
-import { EnvironmentEntityProcessor, DataplaneEntityProcessor } from './processors';
+import {
+  EnvironmentEntityProcessor,
+  DataplaneEntityProcessor,
+} from './processors';
 
 /**
  * OpenChoreo catalog backend module
