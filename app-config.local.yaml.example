@@ -26,16 +26,6 @@ backend:
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
 
-  # Session secret for authentication cookies (development only)
-  session:
-    secret: dev-secret-change-in-production
-    cookie:
-      secure: false
-      sameSite: 'lax'
-      httpOnly: true
-      path: /
-      maxAge: 86400000 # 24 hours
-
 # OpenChoreo API configuration (Kind cluster)
 openchoreo:
   baseUrl: http://api.openchoreo.localhost

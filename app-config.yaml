@@ -46,16 +46,6 @@ backend:
     origin: ${BACKSTAGE_BASE_URL}
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
-  # Session configuration for authentication cookies
-  # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
-  session:
-    secret: ${BACKEND_SECRET}
-    cookie:
-      secure: false # Set to true in production with HTTPS
-      sameSite: 'lax'
-      httpOnly: true
-      path: /
-      maxAge: 86400000 # 24 hours in milliseconds
   # This is for local development only, it is not recommended to use this in production
   # The production database configuration is stored in app-config.production.yaml
   database:
