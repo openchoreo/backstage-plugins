@@ -1,6 +1,6 @@
 import { Route } from 'react-router-dom';
 import { apiDocsPlugin, ApiExplorerPage } from '@backstage/plugin-api-docs';
-import { CatalogEntityPage, catalogPlugin } from '@backstage/plugin-catalog';
+import { CatalogEntityPage, CatalogIndexPage, catalogPlugin } from '@backstage/plugin-catalog';
 import {
   CatalogImportPage,
   catalogImportPlugin,
@@ -95,13 +95,15 @@ const routes = (
     <Route
       path="/catalog"
       element={
-        <CustomCatalogPage
-          initialKind="component"
-          initiallySelectedFilter="all"
-          ownerPickerMode="all"
-        />
+        <CatalogIndexPage />
       }
-    />
+    >
+      <CustomCatalogPage
+        initialKind="component"
+        initiallySelectedFilter="all"
+        ownerPickerMode="all"
+      />
+    </Route>
     <Route
       path="/catalog/:namespace/:kind/:name"
       element={<CatalogEntityPage />}
