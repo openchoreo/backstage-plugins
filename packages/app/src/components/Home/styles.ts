@@ -107,7 +107,6 @@ export const useStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(4), // Increased from 3 to 4 for more spacing
-    marginTop: theme.spacing(4), // Increased from 3 to 4
   },
   sidebarTitle: {
     marginBottom: theme.spacing(1),
