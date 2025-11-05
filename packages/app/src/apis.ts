@@ -13,9 +13,13 @@ import {
   createApiRef,
   errorApiRef,
   identityApiRef,
+  fetchApiRef,
+  storageApiRef,
 } from '@backstage/core-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
 import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
+import { UserSettingsStorage } from '@backstage/plugin-user-settings';
+
 // API reference for default-idp OIDC provider
 export const defaultIdpAuthApiRef: ApiRef<any> = createApiRef({
   id: 'auth.default-idp',
@@ -58,5 +62,16 @@ export const apis: AnyApiFactory[] = [
     },
     factory: ({ identityApi, errorApi }) =>
       VisitsWebStorageApi.create({ identityApi, errorApi }),
+  }),
+  // User settings storage - enables centralized storage for starred entities and preferences
+  createApiFactory({
+    api: storageApiRef,
+    deps: {
+      discoveryApi: discoveryApiRef,
+      errorApi: errorApiRef,
+      fetchApi: fetchApiRef,
+      identityApi: identityApiRef,
+    },
+    factory: deps => UserSettingsStorage.create(deps),
   }),
 ];
