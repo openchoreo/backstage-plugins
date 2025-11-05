@@ -54,6 +54,9 @@ backend.add(import('@backstage/plugin-search-backend-module-pg'));
 backend.add(import('@backstage/plugin-search-backend-module-catalog'));
 backend.add(import('@backstage/plugin-search-backend-module-techdocs'));
 
+// user settings plugin - enables centralized storage for starred entities and user preferences
+backend.add(import('@backstage/plugin-user-settings-backend'));
+
 backend.add(import('@openchoreo/backstage-plugin-backend'));
 backend.add(import('@openchoreo/backstage-plugin-catalog-backend-module'));
 backend.add(import('@openchoreo/backstage-plugin-scaffolder-backend-module'));
