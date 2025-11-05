@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useApi, identityApiRef, errorApiRef } from '@backstage/core-plugin-api';
+import {
+  useApi,
+  identityApiRef,
+  errorApiRef,
+} from '@backstage/core-plugin-api';
 
 /**
  * Hook to fetch the user's group memberships
@@ -34,7 +38,8 @@ export const useUserGroups = () => {
         setUserGroups(groups);
         setUserName(identity.userEntityRef.split('/')[1]);
       } catch (err) {
-        const errorObj = err instanceof Error ? err : new Error('Failed to load user info');
+        const errorObj =
+          err instanceof Error ? err : new Error('Failed to load user info');
         setError(errorObj);
         errorApi.post(errorObj);
       } finally {
