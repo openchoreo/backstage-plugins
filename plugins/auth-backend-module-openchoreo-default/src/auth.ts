@@ -12,7 +12,6 @@ import {
   ProfileInfo,
   AuthResolverContext,
   OAuthAuthenticatorResult,
-  OAuthSession,
 } from '@backstage/plugin-auth-node';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
 import {
@@ -116,6 +115,7 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
     const clientSecret = config.getString('clientSecret');
     const authorizationURL = config.getString('authorizationUrl');
     const tokenURL = config.getString('tokenUrl');
+    const scope = config.getString('scope');
 
     const strategy = new OAuth2Strategy(
       {
@@ -124,7 +124,7 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
         callbackURL: callbackUrl,
         authorizationURL,
         tokenURL,
-        scope: ['openid', 'profile', 'email'],
+        scope,
       },
       (
         accessToken: string,
@@ -133,16 +133,6 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
         _fullProfile: any,
         done: PassportOAuthDoneCallback,
       ) => {
-        // Create OAuthSession object that matches the expected structure
-        const session: OAuthSession = {
-          accessToken,
-          tokenType: 'Bearer',
-          idToken: params.id_token,
-          scope: params.scope || 'openid profile email',
-          expiresInSeconds: params.expires_in,
-          refreshToken,
-        };
-
         // Create a minimal PassportProfile for compatibility
         const passportProfile = {
           provider: 'default-idp',
@@ -150,16 +140,12 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
           displayName: 'temp-display-name', // Will be replaced by profile transform
         };
 
-        // Pass the session as fullProfile and also include it in params
         done(
           undefined,
           {
             fullProfile: passportProfile,
             accessToken,
-            params: {
-              ...params,
-              session,
-            },
+            params,
           },
           { refreshToken },
         );
@@ -174,10 +160,75 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
   },
 
   async authenticate(input, helper) {
-    return helper.authenticate(input);
+    const { fullProfile, session } = await helper.authenticate(input);
+
+    // OpenChoreo at the moment doesn't return refresh tokens, so we use the access token
+    // as a pseudo-refresh token. Since the access token is valid for 3600 seconds,
+    // we can use it to maintain the session without actual OAuth refresh.
+    // TODO: Remove this once OpenChoreo returns refresh tokens.
+    if (!session.refreshToken) {
+      // Prefix to identify this as a pseudo-refresh token
+      session.refreshToken = `openchoreo-pseudo-refresh:${session.accessToken}`;
+    }
+
+    return { fullProfile, session };
   },
 
   async refresh(input, helper) {
+    const { refreshToken } = input;
+
+    // Check if this is our pseudo-refresh token
+    if (refreshToken?.startsWith('openchoreo-pseudo-refresh:')) {
+      // Extract the original access token
+      const accessToken = refreshToken.replace(
+        'openchoreo-pseudo-refresh:',
+        '',
+      );
+
+      // Decode the JWT to check expiration
+      try {
+        const payload: OpenChoreoTokenPayload = JSON.parse(
+          Buffer.from(accessToken.split('.')[1], 'base64').toString(),
+        );
+
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = payload.exp - now;
+
+        // If token is expired or about to expire (less than 60 seconds), fail the refresh
+        if (timeUntilExpiry < 60) {
+          throw new Error('Access token expired, re-authentication required');
+        }
+
+        // Token is still valid, return the same session
+        // This allows Backstage to re-issue user tokens without calling the OAuth provider
+        // We need to return the same structure as helper.refresh() would return
+        const result: OAuthAuthenticatorResult<any> = {
+          fullProfile: {
+            provider: 'default-idp',
+            id: payload.sub,
+            displayName:
+              payload.given_name && payload.family_name
+                ? `${payload.given_name} ${payload.family_name}`
+                : payload.username,
+            emails: [{ value: payload.username }],
+          },
+          session: {
+            accessToken,
+            tokenType: 'Bearer',
+            idToken: payload.jti, // Use JTI as ID token placeholder
+            scope: payload.scope || 'openid profile email',
+            expiresInSeconds: timeUntilExpiry,
+            refreshToken, // Keep the same pseudo-refresh token
+          },
+        };
+
+        return result;
+      } catch (error) {
+        throw new Error('Invalid access token, re-authentication required');
+      }
+    }
+
+    // Fallback to default refresh behavior (will likely fail)
     return helper.refresh(input);
   },
 });
@@ -226,7 +277,7 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
                     groups = [group];
                   }
                 } catch (error) {
-                  logger?.error(
+                  logger.error(
                     'Failed to decode access token for group extraction:',
                     error as Error,
                   );
