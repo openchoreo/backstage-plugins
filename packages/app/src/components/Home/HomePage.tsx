@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react';
-
 import { Content, Page, Header } from '@backstage/core-components';
 import {
   HomePageRecentlyVisited,
@@ -9,12 +7,8 @@ import {
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
 import { Grid, Typography, Card, CardContent, Box } from '@material-ui/core';
-import {
-  useApi,
-  identityApiRef,
-  errorApiRef,
-} from '@backstage/core-plugin-api';
 import { useStyles } from './styles';
+import { useUserGroups } from '../../hooks';
 import {
   DeveloperPortalWidget,
   HomePagePlatformDetailsCard,
@@ -63,32 +57,7 @@ const toolkitTools = [
  */
 export const HomePage = () => {
   const classes = useStyles();
-  const identityApi = useApi(identityApiRef);
-  const [userGroups, setUserGroups] = useState<string[]>([]);
-  const [userName, setUserName] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const errorApi = useApi(errorApiRef);
-
-  useEffect(() => {
-    const loadUserInfo = async () => {
-      try {
-        const identity = await identityApi.getBackstageIdentity();
-        const ownershipRefs = identity.ownershipEntityRefs || [];
-        // Extract group names from refs like "group:default/admins"
-        const groups = ownershipRefs
-          .filter(ref => ref.startsWith('group:'))
-          .map(ref => ref.split('/')[1]);
-        setUserGroups(groups);
-        setUserName(identity.userEntityRef.split('/')[1]);
-      } catch (error) {
-        errorApi.post(new Error('Failed to load user info:'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUserInfo();
-  }, [identityApi, errorApi]);
+  const { userGroups, userName, loading } = useUserGroups();
 
   // Determine user role based on groups
   const getUserRole = () => {
