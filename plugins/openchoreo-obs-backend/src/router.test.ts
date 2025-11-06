@@ -7,7 +7,7 @@ import express from 'express';
 import request from 'supertest';
 
 import { createRouter } from './router';
-import { todoListServiceRef } from './services/TodoListService';
+import { obsServiceRef } from './services/ObsService';
 
 const mockTodoItem = {
   title: 'Do the thing',
@@ -20,17 +20,17 @@ const mockTodoItem = {
 // Testing the router directly allows you to write a unit test that mocks the provided options.
 describe('createRouter', () => {
   let app: express.Express;
-  let todoList: jest.Mocked<typeof todoListServiceRef.T>;
+  let obsService: jest.Mocked<typeof obsServiceRef.T>;
 
   beforeEach(async () => {
-    todoList = {
+    obsService = {
       createTodo: jest.fn(),
       listTodos: jest.fn(),
       getTodo: jest.fn(),
     };
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),
-      todoList,
+      obsService,
     });
     app = express();
     app.use(router);
@@ -38,7 +38,7 @@ describe('createRouter', () => {
   });
 
   it('should create a TODO', async () => {
-    todoList.createTodo.mockResolvedValue(mockTodoItem);
+    obsService.createTodo.mockResolvedValue(mockTodoItem);
 
     const response = await request(app).post('/todos').send({
       title: 'Do the thing',
@@ -49,7 +49,7 @@ describe('createRouter', () => {
   });
 
   it('should not allow unauthenticated requests to create a TODO', async () => {
-    todoList.createTodo.mockResolvedValue(mockTodoItem);
+    obsService.createTodo.mockResolvedValue(mockTodoItem);
 
     // TEMPLATE NOTE:
     // The HttpAuth mock service considers all requests to be authenticated as a
