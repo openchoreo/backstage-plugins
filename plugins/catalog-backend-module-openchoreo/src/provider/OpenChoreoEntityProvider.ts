@@ -72,7 +72,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
       // First, get all organizations
       const organizations = await this.client.getAllOrganizations();
-      this.logger.info(
+      this.logger.debug(
         `Found ${organizations.length} organizations from OpenChoreo`,
       );
 
@@ -88,7 +88,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       for (const org of organizations) {
         try {
           const environments = await this.client.getAllEnvironments(org.name);
-          this.logger.info(
+          this.logger.debug(
             `Found ${environments.length} environments in organization: ${org.name}`,
           );
 
@@ -107,7 +107,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       for (const org of organizations) {
         try {
           const dataplanes = await this.client.getAllDataplanes(org.name);
-          this.logger.info(
+          this.logger.debug(
             `Found ${dataplanes.length} dataplanes in organization: ${org.name}`,
           );
 
@@ -126,7 +126,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       for (const org of organizations) {
         try {
           const projects = await this.client.getAllProjects(org.name);
-          this.logger.info(
+          this.logger.debug(
             `Found ${projects.length} projects in organization: ${org.name}`,
           );
 
@@ -142,7 +142,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 org.name,
                 project.name,
               );
-              this.logger.info(
+              this.logger.debug(
                 `Found ${components.length} components in project: ${project.name}`,
               );
 

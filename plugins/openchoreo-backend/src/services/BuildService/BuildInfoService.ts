@@ -29,7 +29,7 @@ export class BuildInfoService {
     projectName: string,
     componentName: string,
   ): Promise<ModelsBuild[]> {
-    this.logger.info(
+    this.logger.debug(
       `Fetching builds for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
     );
 
@@ -41,7 +41,7 @@ export class BuildInfoService {
         componentName,
       );
 
-      this.logger.info(
+      this.logger.debug(
         `Successfully fetched ${builds.length} builds for component: ${componentName}`,
       );
       return builds;
@@ -74,7 +74,7 @@ export class BuildInfoService {
         commit,
       );
 
-      this.logger.info(
+      this.logger.debug(
         `Successfully triggered build for component: ${componentName}, build name: ${build.name}`,
       );
       return build;
@@ -96,7 +96,7 @@ export class BuildInfoService {
     limit?: number,
     sortOrder?: 'asc' | 'desc',
   ): Promise<RuntimeLogsResponse> {
-    this.logger.info(
+    this.logger.debug(
       `Fetching build logs for component: ${componentName}, build: ${buildId}`,
     );
 
@@ -112,7 +112,7 @@ export class BuildInfoService {
         ...(sortOrder && { sortOrder }),
       };
 
-      this.logger.info(
+      this.logger.debug(
         `Sending build logs request for component ${componentName} with parameters: ${JSON.stringify(
           apiRequest,
         )}`,
@@ -135,7 +135,7 @@ export class BuildInfoService {
 
       const logsData = await response.json();
 
-      this.logger.info(
+      this.logger.debug(
         `Successfully fetched ${
           logsData.logs?.length || 0
         } build logs for component ${componentName}`,

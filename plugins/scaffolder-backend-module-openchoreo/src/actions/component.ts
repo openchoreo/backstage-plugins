@@ -81,7 +81,7 @@ export const createComponentAction = (config: Config) => {
         }),
     },
     async handler(ctx) {
-      ctx.logger.info(
+      ctx.logger.debug(
         `Creating component with parameters: ${JSON.stringify(ctx.input)}`,
       );
 
@@ -100,10 +100,10 @@ export const createComponentAction = (config: Config) => {
       const orgName = extractOrgName(ctx.input.orgName);
       const projectName = extractProjectName(ctx.input.projectName);
 
-      ctx.logger.info(
+      ctx.logger.debug(
         `Extracted organization name: ${orgName} from ${ctx.input.orgName}`,
       );
-      ctx.logger.info(
+      ctx.logger.debug(
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
       );
 
@@ -143,7 +143,7 @@ export const createComponentAction = (config: Config) => {
           buildTemplateRef: ctx.input.buildTemplateName,
           buildTemplateParams,
         };
-        ctx.logger.info(
+        ctx.logger.debug(
           `Build configuration created: ${JSON.stringify(buildConfig)}`,
         );
       }
@@ -157,7 +157,7 @@ export const createComponentAction = (config: Config) => {
           buildConfig,
         });
 
-        ctx.logger.info(
+        ctx.logger.debug(
           `Component created successfully: ${JSON.stringify(response)}`,
         );
 

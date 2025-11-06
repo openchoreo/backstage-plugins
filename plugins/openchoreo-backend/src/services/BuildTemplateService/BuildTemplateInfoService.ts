@@ -14,13 +14,13 @@ export class BuildTemplateInfoService {
   }
 
   async fetchBuildTemplates(orgName: string): Promise<ModelsBuildTemplate[]> {
-    this.logger.info(`Fetching build templates for organization: ${orgName}`);
+    this.logger.debug(`Fetching build templates for organization: ${orgName}`);
 
     try {
       const client = new OpenChoreoApiClient(this.baseUrl, '', this.logger);
       const buildTemplates = await client.getAllBuildTemplates(orgName);
 
-      this.logger.info(
+      this.logger.debug(
         `Successfully fetched ${buildTemplates.length} build templates for org: ${orgName}`,
       );
       return buildTemplates;

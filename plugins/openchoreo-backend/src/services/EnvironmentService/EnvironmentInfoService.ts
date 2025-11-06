@@ -51,7 +51,7 @@ export class EnvironmentInfoService implements EnvironmentService {
   }): Promise<Environment[]> {
     const startTime = Date.now();
     try {
-      this.logger.info(
+      this.logger.debug(
         `Starting environment fetch for component: ${request.componentName}`,
       );
 
@@ -115,10 +115,10 @@ export class EnvironmentInfoService implements EnvironmentService {
       const fetchEnd = Date.now();
 
       // Log individual timings
-      this.logger.info(
+      this.logger.debug(
         `API call timings - Environments: ${environmentsResult.duration}ms, Bindings: ${bindingsResult.duration}ms, Pipeline: ${pipelineResult.duration}ms`,
       );
-      this.logger.info(
+      this.logger.debug(
         `Total parallel API calls completed in ${fetchEnd - fetchStart}ms`,
       );
 
@@ -151,7 +151,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const transformEnd = Date.now();
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Environment fetch completed for ${request.componentName}: ` +
           `Individual API calls (Env: ${environmentsResult.duration}ms, Bind: ${bindingsResult.duration}ms, Pipeline: ${pipelineResult.duration}ms), ` +
           `Parallel execution: ${fetchEnd - fetchStart}ms, ` +
@@ -198,7 +198,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
     // If no pipeline data, use default ordering
     if (!deploymentPipeline || !deploymentPipeline.promotionPaths) {
-      this.logger.info('No deployment pipeline found, using default ordering');
+      this.logger.debug('No deployment pipeline found, using default ordering');
       return this.transformEnvironmentDataWithBindingsOnly(
         environmentData,
         bindingsByEnv,
@@ -572,7 +572,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         request.targetEnvironment,
       );
 
-      this.logger.info(
+      this.logger.debug(
         `Promotion completed successfully. Received ${promotionResult.length} binding responses.`,
       );
 
@@ -584,7 +584,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Component promotion completed for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
@@ -634,7 +634,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         request.releaseState,
       );
 
-      this.logger.info(
+      this.logger.debug(
         `Binding update completed successfully for ${request.bindingName}.`,
       );
 
@@ -646,7 +646,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Component binding update completed for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
