@@ -18,7 +18,7 @@ export class ComponentInfoService {
     projectName: string,
     componentName: string,
   ): Promise<ModelsCompleteComponent> {
-    this.logger.info(
+    this.logger.debug(
       `Fetching component details for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
     );
 
@@ -30,7 +30,7 @@ export class ComponentInfoService {
         componentName,
       );
 
-      this.logger.info(
+      this.logger.debug(
         `Successfully fetched component details for: ${componentName}`,
       );
       return component;

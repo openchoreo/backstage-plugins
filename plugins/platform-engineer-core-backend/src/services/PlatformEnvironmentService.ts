@@ -44,7 +44,7 @@ export class PlatformEnvironmentInfoService
   async fetchAllEnvironments(): Promise<Environment[]> {
     const startTime = Date.now();
     try {
-      this.logger.info('Starting platform-wide environment fetch');
+      this.logger.debug('Starting platform-wide environment fetch');
 
       // For now, we'll fetch environments from a default organization
       // In a real implementation, you might need to fetch from multiple organizations
@@ -68,7 +68,7 @@ export class PlatformEnvironmentInfoService
       const result = this.transformEnvironmentData(environments, 'default');
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Platform environment fetch completed: ${result.length} environments found (${totalTime}ms)`,
       );
 
@@ -91,7 +91,7 @@ export class PlatformEnvironmentInfoService
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
-      this.logger.info(
+      this.logger.debug(
         `Starting environment fetch for organization: ${organizationName}`,
       );
 
@@ -121,7 +121,7 @@ export class PlatformEnvironmentInfoService
       );
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Environment fetch completed for ${organizationName}: ${result.length} environments found (${totalTime}ms)`,
       );
 
@@ -143,7 +143,7 @@ export class PlatformEnvironmentInfoService
   async fetchAllDataplanes(): Promise<DataPlane[]> {
     const startTime = Date.now();
     try {
-      this.logger.info('Starting platform-wide dataplane fetch');
+      this.logger.debug('Starting platform-wide dataplane fetch');
 
       // For now, we'll fetch dataplanes from a default organization
       // In a real implementation, you might need to fetch from multiple organizations
@@ -167,7 +167,7 @@ export class PlatformEnvironmentInfoService
       const result = this.transformDataPlaneData(dataplanes, 'default');
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Platform dataplane fetch completed: ${result.length} dataplanes found (${totalTime}ms)`,
       );
 
@@ -190,7 +190,7 @@ export class PlatformEnvironmentInfoService
   ): Promise<DataPlane[]> {
     const startTime = Date.now();
     try {
-      this.logger.info(
+      this.logger.debug(
         `Starting dataplane fetch for organization: ${organizationName}`,
       );
 
@@ -217,7 +217,7 @@ export class PlatformEnvironmentInfoService
       const result = this.transformDataPlaneData(dataplanes, organizationName);
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Dataplane fetch completed for ${organizationName}: ${result.length} dataplanes found (${totalTime}ms)`,
       );
 
@@ -240,7 +240,7 @@ export class PlatformEnvironmentInfoService
   > {
     const startTime = Date.now();
     try {
-      this.logger.info('Starting dataplanes with environments fetch');
+      this.logger.debug('Starting dataplanes with environments fetch');
 
       // Fetch both dataplanes and environments in parallel
       const [dataplanes, environments] = await Promise.all([
@@ -266,7 +266,7 @@ export class PlatformEnvironmentInfoService
         }));
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Dataplanes with environments fetch completed: ${dataplanesWithEnvironments.length} dataplanes with ${environments.length} total environments (${totalTime}ms)`,
       );
 
@@ -289,7 +289,7 @@ export class PlatformEnvironmentInfoService
   > {
     const startTime = Date.now();
     try {
-      this.logger.info(
+      this.logger.debug(
         'Starting dataplanes with environments and component counts fetch',
       );
 
@@ -313,7 +313,7 @@ export class PlatformEnvironmentInfoService
       }));
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Dataplanes with environments and component counts fetch completed: ${enrichedDataplanes.length} dataplanes (${totalTime}ms)`,
       );
 
@@ -342,7 +342,7 @@ export class PlatformEnvironmentInfoService
     const componentCountsByEnvironment = new Map<string, number>();
 
     try {
-      this.logger.info(
+      this.logger.debug(
         `Starting component counts fetch for ${components.length} components`,
       );
 
@@ -388,7 +388,7 @@ export class PlatformEnvironmentInfoService
       }
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Component counts fetch completed: Found deployments in ${componentCountsByEnvironment.size} environments (${totalTime}ms)`,
       );
 
@@ -417,7 +417,7 @@ export class PlatformEnvironmentInfoService
     const deployedComponents = new Set<string>();
 
     try {
-      this.logger.info(
+      this.logger.debug(
         `Starting distinct deployed components count for ${components.length} components`,
       );
 
@@ -461,7 +461,7 @@ export class PlatformEnvironmentInfoService
       }
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Distinct deployed components count completed: Found ${deployedComponents.size} deployed components (${totalTime}ms)`,
       );
 
@@ -491,7 +491,7 @@ export class PlatformEnvironmentInfoService
     let healthyWorkloadCount = 0;
 
     try {
-      this.logger.info(
+      this.logger.debug(
         `Starting healthy workload count for ${components.length} components`,
       );
 
@@ -540,7 +540,7 @@ export class PlatformEnvironmentInfoService
       }
 
       const totalTime = Date.now() - startTime;
-      this.logger.info(
+      this.logger.debug(
         `Healthy workload count completed: Found ${healthyWorkloadCount} healthy workloads (${totalTime}ms)`,
       );
 

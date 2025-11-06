@@ -80,11 +80,11 @@ export class ThunderUserGroupEntityProvider implements EntityProvider {
 
       // Fetch all users
       const users = await this.fetchAllUsers();
-      this.logger.info(`Found ${users.length} users from Thunder IdP`);
+      this.logger.debug(`Found ${users.length} users from Thunder IdP`);
 
       // Fetch all groups
       const groups = await this.fetchAllGroups();
-      this.logger.info(`Found ${groups.length} groups from Thunder IdP`);
+      this.logger.debug(`Found ${groups.length} groups from Thunder IdP`);
 
       // Transform users to Backstage User entities
       const userEntities = users.map(user => this.transformUserToEntity(user));

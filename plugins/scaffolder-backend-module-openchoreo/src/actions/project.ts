@@ -40,7 +40,7 @@ export const createProjectAction = (config: Config) => {
         }),
     },
     async handler(ctx) {
-      ctx.logger.info(
+      ctx.logger.debug(
         `Creating project with parameters: ${JSON.stringify(ctx.input)}`,
       );
 
@@ -51,7 +51,7 @@ export const createProjectAction = (config: Config) => {
       };
 
       const orgName = extractOrgName(ctx.input.orgName);
-      ctx.logger.info(
+      ctx.logger.debug(
         `Extracted organization name: ${orgName} from ${ctx.input.orgName}`,
       );
 
@@ -69,7 +69,7 @@ export const createProjectAction = (config: Config) => {
           deploymentPipeline: ctx.input.deploymentPipeline,
         });
 
-        ctx.logger.info(
+        ctx.logger.debug(
           `Project created successfully: ${JSON.stringify(response)}`,
         );
 
