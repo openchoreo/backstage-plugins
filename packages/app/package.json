@@ -46,6 +46,7 @@
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin": "workspace:^",
     "@openchoreo/backstage-plugin-api": "workspace:^",
+    "@openchoreo/backstage-plugin-openchoreo-obs": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core": "workspace:^",
     "react": "^18.0.2",
     "react-dom": "^18.0.2",
