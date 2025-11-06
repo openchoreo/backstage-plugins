@@ -166,6 +166,36 @@ export class OpenChoreoIncrementalIngestionEngine implements IterationEngine {
                 error as Error,
               );
 
+              // Log partial progress before backing off
+              try {
+                const entityCounts = await this.manager.getEntityCountsByKind(ingestionId);
+                
+                // Build dynamic summary of entity types
+                const entityEntries = Object.entries(entityCounts)
+                  .filter(([key]) => key !== 'total')
+                  .sort(([,a], [,b]) => b - a) // Sort by count descending
+                  .slice(0, 10); // Limit to top 10
+                  
+                const entityTypesSummary = entityEntries
+                  .map(([kind, count]) => {
+                    // Proper pluralization: avoid double 's' for kinds already ending in 's'
+                    const plural = kind.endsWith('s') ? kind : `${kind}s`;
+                    return `${count} ${plural}`;
+                  })
+                  .join(', ');
+                
+                const totalTypes = Object.keys(entityCounts).length - 1; // minus 'total'
+                const truncated = totalTypes > 10;
+                
+                const message = `incremental-engine: Ingestion '${ingestionId}': Partial progress before failure - ${entityCounts.total} entities ingested so far (${entityTypesSummary}${truncated ? ` +${totalTypes - 10} more types` : ''})`;
+                
+                this.options.logger.info(message);
+              } catch (countError) {
+                this.options.logger.debug(
+                  `incremental-engine: Ingestion '${ingestionId}': Could not retrieve partial entity counts: ${(countError as Error).message}`,
+                );
+              }
+
               const truncatedError = stringifyError(error).substring(
                 0,
                 ERROR_MESSAGE_MAX_LENGTH,
@@ -340,12 +370,51 @@ export class OpenChoreoIncrementalIngestionEngine implements IterationEngine {
         },
       })) ?? [];
 
+    const sortedAdded = this.sortEntitiesByDependencyOrder(added);
+
     const removed: { entityRef: string }[] = [];
 
     if (done) {
       this.options.logger.info(
         `incremental-engine: Ingestion '${id}': Final page reached, calculating removed entities`,
       );
+
+      try {
+        const entityCounts = await this.manager.getEntityCountsByKind(id);
+        
+        // Build dynamic summary of entity types
+        const entityEntries = Object.entries(entityCounts)
+          .filter(([key]) => key !== 'total')
+          .sort(([,a], [,b]) => b - a) // Sort by count descending
+          .slice(0, 10); // Limit to top 10
+          
+        const entityTypesSummary = entityEntries
+          .map(([kind, count]) => {
+            // Proper pluralization: avoid double 's' for kinds already ending in 's'
+            const plural = kind.endsWith('s') ? kind : `${kind}s`;
+            return `${count} ${plural}`;
+          })
+          .join(', ');
+        
+        const totalTypes = Object.keys(entityCounts).length - 1; // minus 'total'
+        const truncated = totalTypes > 10;
+        
+        const message = `incremental-engine: Ingestion '${id}': Successfully processed ${entityCounts.total} entities (${entityTypesSummary}${truncated ? ` +${totalTypes - 10} more types` : ''})`;
+        
+        this.options.logger.info(message);
+      } catch (error) {
+        const errorMessage = error as Error;
+        this.options.logger.warn(
+          `incremental-engine: Ingestion '${id}': Could not calculate entity counts: ${errorMessage.message} (Type: ${errorMessage.constructor.name})`,
+          {
+            ingestionId: id,
+            errorType: errorMessage.constructor.name,
+            errorMessage: errorMessage.message,
+            stack: errorMessage.stack?.substring(0, 1000), // Truncate stack for logging
+          }
+        );
+      }
+
       const result = await this.manager.computeRemoved(
         this.options.provider.getProviderName(),
         id,
@@ -395,8 +464,25 @@ export class OpenChoreoIncrementalIngestionEngine implements IterationEngine {
 
     await this.options.connection.applyMutation({
       type: 'delta',
-      added,
+      added: sortedAdded,
       removed,
+    });
+  }
+
+  private sortEntitiesByDependencyOrder(
+    entities: DeferredEntity[],
+  ): DeferredEntity[] {
+    const kindOrder = new Map<string, number>([
+      ['Domain', 0],
+      ['System', 1],
+      ['Component', 2],
+      ['API', 3],
+    ]);
+
+    return entities.slice().sort((a, b) => {
+      const orderA = kindOrder.get(a.entity.kind) ?? 999;
+      const orderB = kindOrder.get(b.entity.kind) ?? 999;
+      return orderA - orderB;
     });
   }
 

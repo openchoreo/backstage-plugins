@@ -4,6 +4,8 @@ import { Entity } from '@backstage/catalog-model';
 import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { EntityTranslator } from './entityTranslator';
+import { ComponentBatchProcessor } from './componentBatchProcessor';
+import { ApiErrorHandler } from '../utils/ApiErrorHandler';
 
 /**
  * Incremental entity provider for OpenChoreo.
@@ -12,7 +14,6 @@ import { EntityTranslator } from './entityTranslator';
  */
 
 interface CursorTraversalCursor {
-  phase: 'orgs' | 'projects' | 'components';
   orgApiCursor?: string;
   projectApiCursor?: string;
   componentApiCursor?: string;
@@ -22,6 +23,8 @@ interface CursorTraversalCursor {
   currentProjectIndex: number;
   currentOrg?: string;
   currentProject?: string;
+  cursorResetCount?: number;
+  phase?: 'orgs' | 'projects' | 'components';
 }
 
 export type OpenChoreoCursor = CursorTraversalCursor;
@@ -45,6 +48,7 @@ export class OpenChoreoIncrementalEntityProvider
   private readonly logger: LoggerService;
   private readonly chunkSize: number;
   private readonly translator: EntityTranslator;
+  private readonly batchProcessor: ComponentBatchProcessor;
   private mode: 'cursor' | 'legacy' = 'cursor';
 
   /**
@@ -56,8 +60,9 @@ export class OpenChoreoIncrementalEntityProvider
     this.config = config;
     this.logger = logger;
     this.chunkSize =
-      config.getOptionalNumber('openchoreo.incremental.chunkSize') || 50;
+      config.getOptionalNumber('openchoreo.incremental.chunkSize') || 5;
     this.translator = new EntityTranslator(this.getProviderName());
+    this.batchProcessor = new ComponentBatchProcessor(this.getProviderName());
   }
 
   getProviderName(): string {
@@ -82,7 +87,7 @@ export class OpenChoreoIncrementalEntityProvider
 
       if (!supportsCursor) {
         this.logger.warn(
-          'OpenChoreo API response missing "nextCursor" field, falling back to legacy pagination mode',
+          'OpenChoreo API does not support pagination, falling back to legacy pagination mode',
         );
         this.mode = 'legacy';
       } else {
@@ -101,14 +106,18 @@ export class OpenChoreoIncrementalEntityProvider
         );
         this.mode = 'legacy';
       } else if (error instanceof SyntaxError) {
-        throw new Error(
-          `OpenChoreo API returned malformed JSON (SyntaxError). This is a critical server-side bug. Please report this to your OpenChoreo API administrator immediately. Error: ${errorMessage}`,
+        throw ApiErrorHandler.enhanceError(
+          error,
+          'probing cursor pagination support',
         );
       } else {
         this.logger.error(
           `Failed to probe cursor pagination support: ${errorMessage}`,
         );
-        throw error;
+        throw ApiErrorHandler.enhanceError(
+          error instanceof Error ? error : new Error(errorMessage),
+          'probing cursor pagination support',
+        );
       }
     }
 
@@ -138,6 +147,23 @@ export class OpenChoreoIncrementalEntityProvider
       }
       return await this.nextCursorMode(context, cursor);
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Check if this is an expired cursor error (HTTP 500 with specific message)
+      if (
+        errorMessage.includes('HTTP 500') &&
+        (errorMessage.includes('provided continue parameter is too old') ||
+          errorMessage.includes('continue parameter is too old'))
+      ) {
+        context.logger.warn(
+          `Expired cursor detected at top level, restarting from beginning`,
+        );
+
+        // Restart from the beginning without cursor
+        return await this.nextCursorMode(context, undefined);
+      }
+
       context.logger.error(`Error processing OpenChoreo entities: ${error}`);
       throw error;
     }
@@ -289,7 +315,7 @@ export class OpenChoreoIncrementalEntityProvider
 
   private async processOrganizationsCursor(
     client: any,
-    _context: OpenChoreoContext,
+    context: OpenChoreoContext,
     cursor: CursorTraversalCursor,
   ): Promise<EntityIteratorResult<CursorTraversalCursor>> {
     if (!cursor.orgApiCursor) {
@@ -305,10 +331,60 @@ export class OpenChoreoIncrementalEntityProvider
       };
     }
 
-    const resp = await client.getOrganizationsWithCursor({
-      cursor: cursor.orgApiCursor,
-      limit: this.chunkSize,
-    });
+    let resp;
+    try {
+      resp = await client.getOrganizationsWithCursor({
+        cursor: cursor.orgApiCursor,
+        limit: this.chunkSize,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Check if this is an expired cursor error
+      if (
+        errorMessage.includes('HTTP 500') &&
+        errorMessage.includes('provided continue parameter is too old')
+      ) {
+        context.logger.warn(
+          'Expired cursor detected for organizations, restarting fetch from beginning',
+        );
+
+        // Restart organization fetch without cursor
+        resp = await client.getOrganizationsWithCursor({
+          limit: this.chunkSize,
+        });
+
+        // Reset the organization cursor and clear org queue since we're starting over
+        cursor.orgApiCursor = resp.data.nextCursor;
+        cursor.orgQueue = resp.data.items
+          ? resp.data.items.map((o: any) => o.name)
+          : [];
+
+        const entities: Entity[] = resp.data.items
+          ? resp.data.items.map((o: any) =>
+              this.translator.translateOrganizationToDomain(o),
+            )
+          : [];
+
+        const hasMore = !!resp.data.nextCursor;
+
+        return {
+          done: false,
+          entities: entities.map(entity => ({ entity })),
+          cursor: {
+            ...cursor,
+            orgApiCursor: resp.data.nextCursor,
+            orgQueue: cursor.orgQueue,
+            phase: hasMore ? 'orgs' : 'projects',
+          },
+        };
+      }
+
+      // Re-throw other errors
+      throw error;
+    }
+
     const items = resp.data.items || [];
     const entities: Entity[] = items.map((o: any) =>
       this.translator.translateOrganizationToDomain(o),
@@ -332,7 +408,7 @@ export class OpenChoreoIncrementalEntityProvider
 
   private async processProjectsCursor(
     client: any,
-    _context: OpenChoreoContext,
+    context: OpenChoreoContext,
     cursor: CursorTraversalCursor,
   ): Promise<EntityIteratorResult<CursorTraversalCursor>> {
     // If we've processed all organizations, transition to components phase
@@ -351,10 +427,45 @@ export class OpenChoreoIncrementalEntityProvider
     const currentOrg = cursor.orgQueue[cursor.currentOrgIndex];
 
     // Fetch next page of projects for current organization
-    const resp = await client.getProjectsWithCursor(currentOrg, {
-      cursor: cursor.projectApiCursor,
+    const projectOptions: { cursor?: string; limit: number } = {
       limit: this.chunkSize,
-    });
+    };
+    if (cursor.projectApiCursor) {
+      projectOptions.cursor = cursor.projectApiCursor;
+    }
+
+    let resp;
+    try {
+      resp = await client.getProjectsWithCursor(currentOrg, projectOptions);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Check if this is an expired cursor error
+      if (
+        errorMessage.includes('HTTP 500') &&
+        errorMessage.includes('provided continue parameter is too old')
+      ) {
+        context.logger.warn(
+          `Expired cursor detected for projects in org ${currentOrg}, restarting fetch from beginning`,
+        );
+
+        // Restart project fetch for this organization without cursor
+        const restartOptions = { limit: this.chunkSize };
+        resp = await client.getProjectsWithCursor(currentOrg, restartOptions);
+
+        // Reset the project cursor in the traversal state
+        cursor.projectApiCursor = undefined;
+
+        // Clear the existing project queue for this org and rebuild it
+        cursor.projectQueue = cursor.projectQueue.filter(
+          p => p.org !== currentOrg,
+        );
+      } else {
+        // Re-throw other errors
+        throw error;
+      }
+    }
 
     const items = resp.data.items || [];
     const entities: Entity[] = items.map((p: any) =>
@@ -411,23 +522,64 @@ export class OpenChoreoIncrementalEntityProvider
     const { org, project } = cursor.projectQueue[cursor.currentProjectIndex];
 
     // Fetch paginated components for current project
-    const resp = await client.getComponentsWithCursor(org, project, {
-      cursor: cursor.componentApiCursor,
+    const componentOptions: { cursor?: string; limit: number } = {
       limit: this.chunkSize,
-    });
-    const items = resp.data.items || [];
+    };
+    if (cursor.componentApiCursor) {
+      componentOptions.cursor = cursor.componentApiCursor;
+    }
 
-    const entities: Entity[] = [];
-    for (const component of items) {
-      await this.translateComponentWithApis(
-        client,
-        component,
+    let resp;
+    try {
+      resp = await client.getComponentsWithCursor(
         org,
         project,
-        entities,
+        componentOptions,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Check if this is an expired cursor error (HTTP 500 with specific message)
+      if (
+        errorMessage.includes('HTTP 500') &&
+        (errorMessage.includes('provided continue parameter is too old') ||
+          errorMessage.includes('continue parameter is too old'))
+      ) {
+        context.logger.warn(
+          `Expired cursor detected for ${org}/${project}, restarting component fetch from beginning. Error: ${errorMessage}`,
+        );
+
+        // Restart component fetch for this project without cursor
+        const restartOptions = { limit: this.chunkSize };
+        resp = await client.getComponentsWithCursor(
+          org,
+          project,
+          restartOptions,
+        );
+
+        // Reset the component cursor in the traversal state
+        cursor.componentApiCursor = undefined;
+      } else {
+        // Re-throw other errors
+        context.logger.error(
+          `Non-cursor error in ${org}/${project}: ${errorMessage}`,
+        );
+        throw error;
+      }
+    }
+
+    const items = resp.data.items || [];
+
+    // Use batch processing for components to reduce N+1 API calls
+    const batchedEntities =
+      await this.batchProcessor.translateComponentsWithApisBatch(
+        client,
+        items,
+        org,
+        project,
         context,
       );
-    }
 
     const nextComponentCursor = resp.data.nextCursor;
     const hasMore = !!nextComponentCursor;
@@ -436,7 +588,7 @@ export class OpenChoreoIncrementalEntityProvider
       // Finished this project, move to next project
       return {
         done: false,
-        entities: entities.map(entity => ({ entity })),
+        entities: batchedEntities.map(entity => ({ entity })),
         cursor: {
           ...cursor,
           componentApiCursor: undefined,
@@ -449,7 +601,7 @@ export class OpenChoreoIncrementalEntityProvider
 
     return {
       done: false,
-      entities: entities.map(entity => ({ entity })),
+      entities: batchedEntities.map(entity => ({ entity })),
       cursor: {
         ...cursor,
         componentApiCursor: nextComponentCursor,

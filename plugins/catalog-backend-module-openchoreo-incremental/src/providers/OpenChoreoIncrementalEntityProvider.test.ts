@@ -67,7 +67,7 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
       logger: expect.any(Object),
     });
     expect(mockClient.getOrganizationsWithCursor).toHaveBeenCalledWith({
-      limit: 5,
+      limit: 1,
     });
   });
 
