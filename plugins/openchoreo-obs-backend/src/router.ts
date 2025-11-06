@@ -3,14 +3,14 @@ import { InputError } from '@backstage/errors';
 import { z } from 'zod';
 import express from 'express';
 import Router from 'express-promise-router';
-import { todoListServiceRef } from './services/TodoListService';
+import { obsServiceRef } from './services/ObsService';
 
 export async function createRouter({
   httpAuth,
-  todoList,
+  obsService,
 }: {
   httpAuth: HttpAuthService;
-  todoList: typeof todoListServiceRef.T;
+  obsService: typeof obsServiceRef.T;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
@@ -32,7 +32,7 @@ export async function createRouter({
       throw new InputError(parsed.error.toString());
     }
 
-    const result = await todoList.createTodo(parsed.data, {
+    const result = await obsService.createTodo(parsed.data, {
       credentials: await httpAuth.credentials(req, { allow: ['user'] }),
     });
 
@@ -40,11 +40,11 @@ export async function createRouter({
   });
 
   router.get('/todos', async (_req, res) => {
-    res.json(await todoList.listTodos());
+    res.json(await obsService.listTodos());
   });
 
   router.get('/todos/:id', async (req, res) => {
-    res.json(await todoList.getTodo({ id: req.params.id }));
+    res.json(await obsService.getTodo({ id: req.params.id }));
   });
 
   router.get('/metrics', async (_req, res) => {

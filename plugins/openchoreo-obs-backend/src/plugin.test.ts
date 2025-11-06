@@ -3,7 +3,7 @@ import {
   startTestBackend,
 } from '@backstage/backend-test-utils';
 import { createServiceFactory } from '@backstage/backend-plugin-api';
-import { todoListServiceRef } from './services/TodoListService';
+import { obsServiceRef } from './services/ObsService';
 import { openchoreoObservabilityBackendPlugin } from './plugin';
 import request from 'supertest';
 import { catalogServiceMock } from '@backstage/plugin-catalog-node/testUtils';
@@ -90,12 +90,12 @@ describe('plugin', () => {
     });
   });
 
-  it('should forward errors from the TodoListService', async () => {
+  it('should forward errors from the ObsService', async () => {
     const { server } = await startTestBackend({
       features: [
         openchoreoObservabilityBackendPlugin,
         createServiceFactory({
-          service: todoListServiceRef,
+          service: obsServiceRef,
           deps: {},
           factory: () => ({
             createTodo: jest.fn().mockRejectedValue(new ConflictError()),
