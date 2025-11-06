@@ -42,15 +42,120 @@ import {
 
 const POST_PROVIDER_RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const MARK_ENTITY_DELETE_BATCH_SIZE = 100;
+const MARK_ENTITY_INSERT_BATCH_SIZE = 100;
 const DUPLICATE_INGESTION_AGE_THRESHOLD_MS = 60000;
+
+/**
+ * Database-specific SQL variable limits:
+ * - SQLite: 999 (default), can be up to 32,766 at compile time
+ * - PostgreSQL: 32,767 (hard limit from protocol)
+ * - MySQL: 65,535
+ * Using conservative limits to ensure compatibility across all configurations
+ */
+const SQL_VARIABLE_LIMITS = {
+  sqlite3: 900, // Conservative limit for SQLite (default is 999)
+  pg: 30000, // Conservative limit for PostgreSQL (max is 32,767)
+  mysql: 60000, // Conservative limit for MySQL (max is 65,535)
+  mysql2: 60000,
+  default: 900, // Safe default for unknown databases
+};
 
 export class OpenChoreoIncrementalIngestionDatabaseManager {
   private client: Knex;
   private logger: LoggerService;
+  private readonly batchSize: number;
 
   constructor(options: { client: Knex; logger: LoggerService }) {
     this.client = options.client;
     this.logger = options.logger;
+    this.batchSize = this.determineBatchSize();
+    this.logger.info(
+      `Initialized database manager with batch size: ${this.batchSize} for client: ${this.client.client.config.client}`,
+    );
+  }
+
+  /**
+   * Determines the appropriate batch size for SQL IN clause operations
+   * based on the database client type.
+   */
+  private determineBatchSize(): number {
+    const clientType = this.client.client.config.client;
+    const batchSize =
+      SQL_VARIABLE_LIMITS[
+        clientType as keyof typeof SQL_VARIABLE_LIMITS
+      ] || SQL_VARIABLE_LIMITS.default;
+    return batchSize;
+  }
+
+  /**
+   * Safely formats an error for database storage.
+   * Truncates the error message if it's too long to prevent database constraint violations.
+   * @param error - The error to format
+   * @param maxLength - Maximum length (default: 2000 for TEXT fields, set to safe limit)
+   * @returns Formatted error string
+   */
+  private formatErrorForStorage(error: Error | string, maxLength = 2000): string {
+    const errorString = String(error);
+    if (errorString.length <= maxLength) {
+      return errorString;
+    }
+    // Truncate with an indicator
+    return errorString.substring(0, maxLength - 50) + '... [error truncated]';
+  }
+
+  /**
+   * Helper method to execute a batched whereIn query operation.
+   * Automatically chunks the values to stay within database limits.
+   * 
+   * This method prevents "too many SQL variables" errors that occur when
+   * SQL IN clauses contain more parameters than the database can handle:
+   * - SQLite: 999 variables (default)
+   * - PostgreSQL: 32,767 variables (protocol limit)
+   * - MySQL: 65,535 variables
+   * 
+   * @param tx - Knex transaction
+   * @param tableName - Name of the table to query
+   * @param column - Column name for the WHERE IN clause
+   * @param values - Array of values to use in the IN clause
+   * @param operation - Type of operation ('select', 'delete', or 'update')
+   * @param updateData - Data to update (required for 'update' operation)
+   * @returns Array of results for 'select' operations, empty array otherwise
+   */
+  private async batchedWhereIn<T>(
+    tx: Knex.Transaction,
+    tableName: string,
+    column: string,
+    values: any[],
+    operation: 'select' | 'delete' | 'update',
+    updateData?: any,
+  ): Promise<T[]> {
+    if (values.length === 0) {
+      return [];
+    }
+
+    if (values.length > this.batchSize) {
+      this.logger.debug(
+        `Batching ${operation} operation for ${values.length} values into chunks of ${this.batchSize}`,
+      );
+    }
+
+    const results: T[] = [];
+
+    for (let i = 0; i < values.length; i += this.batchSize) {
+      const chunk = values.slice(i, i + this.batchSize);
+      const query = tx(tableName);
+
+      if (operation === 'select') {
+        const batchResults = await query.select('*').whereIn(column, chunk);
+        results.push(...batchResults);
+      } else if (operation === 'delete') {
+        await query.delete().whereIn(column, chunk);
+      } else if (operation === 'update' && updateData) {
+        await query.update(updateData).whereIn(column, chunk);
+      }
+    }
+
+    return results;
   }
 
   private async executeWithRetry<T>(
@@ -267,6 +372,7 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
           return await tx<IngestionRecord>('ingestions')
             .where('provider_name', provider)
             .andWhereNot('completion_ticket', 'open')
+            .orderBy('rest_completed_at', 'desc')
             .first();
         },
       );
@@ -281,44 +387,50 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
 
   /**
    * Removes all entries from `ingestion_marks_entities`, `ingestion_marks`, and `ingestions`
-   * for prior ingestions that completed (i.e., have a `completion_ticket` value other than 'open').
+   * for prior ingestions that completed (i.e., have a `completion_ticket` value other than 'open'),
+   * except for the most recent completed ingestion which is kept for mark-and-sweep comparison.
    * @param provider - string
    * @returns A count of deletions for each record type.
+   * 
+   * Note: This method uses subqueries for deletion which doesn't require manual batching
+   * as the database handles the query execution internally.
    */
   async clearFinishedIngestions(provider: string) {
     try {
       return await this.executeWithRetry(
         `clearFinishedIngestions(provider=${provider})`,
         async tx => {
+          const mostRecentCompleted = await tx<IngestionRecord>('ingestions')
+            .where('provider_name', provider)
+            .andWhereNot('completion_ticket', 'open')
+            .orderBy('rest_completed_at', 'desc')
+            .first();
+
+          const subquery = tx('ingestions')
+            .select('id')
+            .where('provider_name', provider)
+            .andWhereNot('completion_ticket', 'open');
+
+          if (mostRecentCompleted) {
+            subquery.andWhereNot('id', mostRecentCompleted.id);
+          }
+
           const markEntitiesDeleted = await tx('ingestion_mark_entities')
             .delete()
             .whereIn(
               'ingestion_mark_id',
               tx('ingestion_marks')
                 .select('id')
-                .whereIn(
-                  'ingestion_id',
-                  tx('ingestions')
-                    .select('id')
-                    .where('provider_name', provider)
-                    .andWhereNot('completion_ticket', 'open'),
-                ),
+                .whereIn('ingestion_id', subquery.clone()),
             );
 
           const marksDeleted = await tx('ingestion_marks')
             .delete()
-            .whereIn(
-              'ingestion_id',
-              tx('ingestions')
-                .select('id')
-                .where('provider_name', provider)
-                .andWhereNot('completion_ticket', 'open'),
-            );
+            .whereIn('ingestion_id', subquery.clone());
 
           const ingestionsDeleted = await tx('ingestions')
             .delete()
-            .where('provider_name', provider)
-            .andWhereNot('completion_ticket', 'open');
+            .whereIn('id', subquery.clone());
 
           return {
             deletions: {
@@ -344,6 +456,9 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
    * the ingestionId is incorrect is a duplicate ingestion record.
    * @param ingestionId - string
    * @param provider - string
+   * 
+   * Note: This method does not require batching as it operates on a small number of
+   * ingestion metadata records, not entity data.
    */
   async clearDuplicateIngestions(ingestionId: string, provider: string) {
     try {
@@ -401,6 +516,9 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
    * leaves it in a paused state.
    * @param provider - string
    * @returns Counts of all deleted ingestion records
+   * 
+   * Note: This method does not require batching for whereIn operations as it operates
+   * on a small number of ingestion and mark metadata records per provider.
    */
   async purgeAndResetProvider(provider: string) {
     try {
@@ -492,7 +610,14 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
       await this.executeWithRetry(
         `deleteEntityRecordsByRef(count=${refs.length})`,
         async tx => {
-          await tx('ingestion_mark_entities').delete().whereIn('ref', refs);
+          // Delete in batches to avoid "too many SQL variables" error
+          await this.batchedWhereIn(
+            tx,
+            'ingestion_mark_entities',
+            'ref',
+            refs,
+            'delete',
+          );
         },
       );
     } catch (error) {
@@ -562,6 +687,20 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
 
           const removed: { entityRef: string }[] = [];
 
+          const currentEntities: { ref: string }[] = await tx(
+            'ingestion_mark_entities',
+          )
+            .select('ingestion_mark_entities.ref')
+            .join(
+              'ingestion_marks',
+              'ingestion_marks.id',
+              'ingestion_mark_entities.ingestion_mark_id',
+            )
+            .join('ingestions', 'ingestions.id', 'ingestion_marks.ingestion_id')
+            .where('ingestions.id', ingestionId);
+
+          const currentEntityRefs = new Set(currentEntities.map(e => e.ref));
+
           if (previousIngestion) {
             const previousEntities: { ref: string }[] = await tx(
               'ingestion_mark_entities',
@@ -579,24 +718,6 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
               )
               .where('ingestions.id', previousIngestion.id);
 
-            const currentEntities: { ref: string }[] = await tx(
-              'ingestion_mark_entities',
-            )
-              .select('ingestion_mark_entities.ref')
-              .join(
-                'ingestion_marks',
-                'ingestion_marks.id',
-                'ingestion_mark_entities.ingestion_mark_id',
-              )
-              .join(
-                'ingestions',
-                'ingestions.id',
-                'ingestion_marks.ingestion_id',
-              )
-              .where('ingestions.id', ingestionId);
-
-            const currentEntityRefs = new Set(currentEntities.map(e => e.ref));
-
             const staleEntities = previousEntities.filter(
               entity => !currentEntityRefs.has(entity.ref),
             );
@@ -606,12 +727,133 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
             }
           }
 
+          const catalogEntities: {
+            entity_ref: string;
+            unprocessed_entity: string;
+          }[] = await tx('refresh_state')
+            .select(
+              'refresh_state.entity_ref',
+              'refresh_state.unprocessed_entity',
+            )
+            .leftJoin(
+              'refresh_keys',
+              'refresh_keys.entity_id',
+              'refresh_state.entity_id',
+            )
+            .where('refresh_state.location_key', null)
+            .whereNull('refresh_keys.entity_id');
+
+          const filteredCatalogEntities = catalogEntities.filter(row => {
+            try {
+              const entity = JSON.parse(row.unprocessed_entity);
+              const managedBy =
+                entity?.metadata?.annotations?.[
+                  'backstage.io/managed-by-location'
+                ];
+              return managedBy === `provider:${provider}`;
+            } catch (error) {
+              this.logger.debug(
+                `Skipping entity ${row.entity_ref} with invalid JSON during removal computation: ${
+                  (error as Error).message
+                }`,
+              );
+              return false;
+            }
+          });
+
+          for (const entity of filteredCatalogEntities) {
+            if (!currentEntityRefs.has(entity.entity_ref)) {
+              if (!removed.find(e => e.entityRef === entity.entity_ref)) {
+                this.logger.info(
+                  `computeRemoved: Found orphaned catalog entity ${entity.entity_ref} not in current or previous ingestion, marking for removal`,
+                );
+                removed.push({ entityRef: entity.entity_ref });
+              }
+            }
+          }
+
           return { total, removed };
         },
       );
     } catch (error) {
       this.logger.error(
         `Failed to compute removed entities for ${provider}`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  async getEntityCountsByKind(ingestionId: string) {
+    try {
+      return await this.executeWithRetry(
+        `getEntityCountsByKind(ingestionId=${ingestionId})`,
+        async tx => {
+          const entityRefs: { ref: string }[] = await tx(
+            'ingestion_mark_entities',
+          )
+            .select('ingestion_mark_entities.ref')
+            .join(
+              'ingestion_marks',
+              'ingestion_marks.id',
+              'ingestion_mark_entities.ingestion_mark_id',
+            )
+            .join('ingestions', 'ingestions.id', 'ingestion_marks.ingestion_id')
+            .where('ingestions.id', ingestionId);
+
+          // Count entities by kind - parse kind from entity ref format: <kind>:<namespace>/<name>
+          const counts: Record<string, number> = {
+            total: entityRefs.length,
+          };
+          
+          let invalid = 0;
+
+          for (const { ref } of entityRefs) {
+            try {
+              // Entity refs are in format: kind:namespace/name
+              const colonIndex = ref.indexOf(':');
+              if (colonIndex === -1) {
+                invalid++;
+                this.logger.warn(
+                  `Invalid entity ref format (missing colon): ${ref} in ingestion ${ingestionId}`,
+                );
+                continue;
+              }
+              
+              const kind = ref.substring(0, colonIndex).toLowerCase();
+              
+              if (!kind) {
+                invalid++;
+                this.logger.warn(
+                  `Invalid entity ref format (empty kind): ${ref} in ingestion ${ingestionId}`,
+                );
+                continue;
+              }
+              
+              counts[kind] = (counts[kind] || 0) + 1;
+            } catch (error) {
+              invalid++;
+              this.logger.warn(
+                `Failed to parse entity ref ${ref} in ingestion ${ingestionId}: ${
+                  (error as Error).message
+                }`,
+              );
+            }
+          }
+
+          if (invalid > 0) {
+            counts.invalid = invalid;
+            this.logger.warn(
+              `Found ${invalid} entities with invalid ref format out of ${entityRefs.length} total entities in ingestion ${ingestionId}`,
+            );
+          }
+
+          return counts;
+        },
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to get entity counts for ingestion ${ingestionId}`,
         error as Error,
       );
       throw error;
@@ -761,7 +1003,7 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
   async setProviderCanceling(ingestionId: string, message?: string) {
     const update: Partial<IngestionUpsert> = {
       next_action: 'cancel',
-      last_error: message ? message : undefined,
+      last_error: message ? this.formatErrorForStorage(message) : undefined,
       next_action_at: new Date(),
       status: 'canceling',
     };
@@ -802,7 +1044,7 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
       update: {
         next_action: 'backoff',
         attempts: attempts + 1,
-        last_error: String(error),
+        last_error: this.formatErrorForStorage(error),
         next_action_at: new Date(Date.now() + backoffLength),
         status: 'backing off',
       },
@@ -907,10 +1149,24 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
   // persist the stringified data instead
   #decodeMark<T extends MarkRecord | undefined>(knex: Knex, record: T): T {
     if (record && knex.client.config.client.includes('sqlite3')) {
-      return {
-        ...record,
-        cursor: JSON.parse(record.cursor as string),
-      };
+      try {
+        return {
+          ...record,
+          cursor: JSON.parse(record.cursor as string),
+        };
+      } catch (error) {
+        this.logger.error(
+          `Failed to parse cursor JSON for mark record ${record.id}: ${
+            (error as Error).message
+          }. This indicates database corruption.`,
+          error as Error,
+        );
+        throw new DatabaseTransactionError(
+          `Failed to decode mark cursor: ${(error as Error).message}`,
+          'decodeMark',
+          error as Error,
+        );
+      }
     }
     return record;
   }
@@ -927,28 +1183,58 @@ export class OpenChoreoIncrementalIngestionDatabaseManager {
       await this.executeWithRetry(
         `createMarkEntities(markId=${markId}, count=${refs.length})`,
         async tx => {
-          const existingRefsArray = (
-            await tx<{ ref: string }>('ingestion_mark_entities')
-              .select('ref')
-              .whereIn('ref', refs)
-          ).map(e => e.ref);
+          // Query existing refs in batches to avoid "too many SQL variables" error
+          const existingRefsSet = new Set<string>();
+          for (let i = 0; i < refs.length; i += this.batchSize) {
+            const chunk = refs.slice(i, i + this.batchSize);
+            const existingBatch = (
+              await tx<{ ref: string }>('ingestion_mark_entities')
+                .select('ref')
+                .whereIn('ref', chunk)
+            ).map(e => e.ref);
+            existingBatch.forEach(ref => existingRefsSet.add(ref));
+          }
 
-          const existingRefsSet = new Set(existingRefsArray);
-
+          const existingRefsArray = Array.from(existingRefsSet);
           const newRefs = refs.filter(e => !existingRefsSet.has(e));
 
-          await tx('ingestion_mark_entities')
-            .update('ingestion_mark_id', markId)
-            .whereIn('ref', existingRefsArray);
+          // Update existing refs in batches
+          if (existingRefsArray.length > 0) {
+            await this.batchedWhereIn(
+              tx,
+              'ingestion_mark_entities',
+              'ref',
+              existingRefsArray,
+              'update',
+              { ingestion_mark_id: markId },
+            );
+          }
 
           if (newRefs.length > 0) {
-            await tx('ingestion_mark_entities').insert(
-              newRefs.map(ref => ({
-                id: v4(),
-                ingestion_mark_id: markId,
-                ref,
-              })),
-            );
+            // Process newRefs in batches to avoid overwhelming the database
+            for (
+              let i = 0;
+              i < newRefs.length;
+              i += MARK_ENTITY_INSERT_BATCH_SIZE
+            ) {
+              const chunk = newRefs.slice(i, i + MARK_ENTITY_INSERT_BATCH_SIZE);
+              await tx('ingestion_mark_entities').insert(
+                chunk.map(ref => ({
+                  id: v4(),
+                  ingestion_mark_id: markId,
+                  ref,
+                })),
+              );
+              this.logger.info(
+                `Batch ${
+                  Math.floor(i / MARK_ENTITY_INSERT_BATCH_SIZE) + 1
+                }/${Math.ceil(
+                  newRefs.length / MARK_ENTITY_INSERT_BATCH_SIZE,
+                )} completed: inserted ${
+                  chunk.length
+                } entities for mark ${markId}`,
+              );
+            }
           }
         },
       );
