@@ -9259,10 +9259,10 @@ __metadata:
     "@testing-library/react": "npm:^14.0.0"
     "@testing-library/user-event": "npm:^14.0.0"
     msw: "npm:^1.0.0"
-    react: "npm:^16.13.1 || ^17.0.0 || ^18.0.0"
+    react: "npm:^18.0.0"
     react-use: "npm:^17.2.4"
   peerDependencies:
-    react: ^16.13.1 || ^17.0.0 || ^18.0.0
+    react: ^18.0.0
   languageName: unknown
   linkType: soft
 
@@ -30451,7 +30451,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:^16.13.1 || ^17.0.0 || ^18.0.0, react@npm:^18.0.2":
+"react@npm:^18.0.0, react@npm:^18.0.2":
   version: 18.3.1
   resolution: "react@npm:18.3.1"
   dependencies:
