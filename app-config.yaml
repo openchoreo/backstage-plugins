@@ -110,14 +110,20 @@ openchoreo:
   baseUrl: ${OPENCHOREO_API_URL}
   token: ${OPENCHOREO_TOKEN} # optional for now: for authentication
   defaultOwner: 'platformengineer' # Default owner for catalog entities
-  # schedule:
-  #   frequency: 30 # seconds between runs (default: 30)
-  #   timeout: 120 # seconds for timeout (default: 120)
-  incremental:
-    burstLength: 16 # Duration of each burst of processing activity in seconds (increased from 16)
-    burstInterval: 8 # Interval between bursts of processing activity in seconds
-    chunkSize: 512 # Number of items to fetch per API request
-    restLength: 60 # Duration of rest periods between bursts in minutes (6 hours)
+  
+  # DEFAULT: Standard scheduled ingestion (recommended for most deployments)
+  schedule:
+    frequency: 30 # seconds between runs (default: 30)
+    timeout: 120 # seconds for timeout (default: 120)
+  
+  # OPTIONAL: For large-scale deployments, use incremental ingestion instead
+  # Uncomment the section below and comment out the schedule section above
+  # Also update packages/backend/src/index.ts to use the incremental module
+  # incremental:
+  #   burstLength: 16 # Duration of each burst of processing activity in seconds
+  #   burstInterval: 8 # Interval between bursts of processing activity in seconds
+  #   chunkSize: 512 # Number of items to fetch per API request
+  #   restLength: 60 # Duration of rest periods between bursts in minutes
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
