@@ -1,0 +1,1 @@
+export { MetricsContent } from './MetricsContent';
