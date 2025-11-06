@@ -64,6 +64,8 @@ import {
   Builds,
 } from '@openchoreo/backstage-plugin';
 
+import { MetricsContent } from '@openchoreo/backstage-plugin-openchoreo-obs';
+
 const techdocsContent = (
   <EntityTechdocsContent>
     <TechDocsAddons>
@@ -167,6 +169,10 @@ const serviceEntityPage = (
       <RuntimeLogs />
     </EntityLayout.Route>
 
+    <EntityLayout.Route path="/metrics" title="Metrics">
+      <MetricsContent />
+    </EntityLayout.Route>
+
     {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
       {cicdContent}
     </EntityLayout.Route> */}
@@ -223,6 +229,10 @@ const websiteEntityPage = (
 
     <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
       <RuntimeLogs />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/metrics" title="Metrics">
+      <MetricsContent />
     </EntityLayout.Route>
 
     {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
