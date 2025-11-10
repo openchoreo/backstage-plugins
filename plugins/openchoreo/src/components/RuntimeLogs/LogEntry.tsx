@@ -1,4 +1,4 @@
-import { FC, MouseEvent, useState } from 'react';
+import React, { FC, MouseEvent, useState } from 'react';
 import {
   TableRow,
   TableCell,
@@ -9,128 +9,19 @@ import {
   IconButton,
   Tooltip,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import ExpandLess from '@material-ui/icons/ExpandLess';
 import FileCopy from '@material-ui/icons/FileCopy';
-import { LogEntry as LogEntryType } from './types';
-
-const useStyles = makeStyles(theme => ({
-  logRow: {
-    '&:hover': {
-      backgroundColor: theme.palette.action.hover,
-    },
-    cursor: 'pointer',
-  },
-  expandedRow: {
-    backgroundColor: theme.palette.action.selected,
-  },
-  timestampCell: {
-    fontFamily: 'monospace',
-    fontSize: '0.85rem',
-    whiteSpace: 'nowrap',
-    width: '140px',
-  },
-  logLevelChip: {
-    fontSize: '0.75rem',
-    fontWeight: 'bold',
-    minWidth: '60px',
-  },
-  errorChip: {
-    backgroundColor: theme.palette.error.main,
-    color: theme.palette.error.contrastText,
-  },
-  warnChip: {
-    backgroundColor: theme.palette.warning.main,
-    color: theme.palette.warning.contrastText,
-  },
-  infoChip: {
-    backgroundColor: theme.palette.info.main,
-    color: theme.palette.info.contrastText,
-  },
-  debugChip: {
-    backgroundColor: theme.palette.action.disabled,
-    color: theme.palette.text.secondary,
-  },
-  undefinedChip: {
-    backgroundColor: theme.palette.action.disabledBackground,
-    color: theme.palette.text.disabled,
-  },
-  logMessage: {
-    fontFamily: 'monospace',
-    fontSize: '0.875rem',
-    wordBreak: 'break-word',
-    maxWidth: '400px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  expandedLogMessage: {
-    whiteSpace: 'pre-wrap',
-    maxWidth: 'none',
-    overflow: 'visible',
-  },
-  containerCell: {
-    fontSize: '0.875rem',
-    color: theme.palette.text.secondary,
-  },
-  podCell: {
-    fontSize: '0.875rem',
-    color: theme.palette.text.secondary,
-    fontFamily: 'monospace',
-  },
-  expandButton: {
-    padding: theme.spacing(0.5),
-  },
-  expandedContent: {
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.background.default,
-    borderRadius: theme.shape.borderRadius,
-  },
-  metadataSection: {
-    marginTop: theme.spacing(2),
-  },
-  metadataTitle: {
-    fontWeight: 'bold',
-    marginBottom: theme.spacing(1),
-  },
-  metadataItem: {
-    display: 'flex',
-    marginBottom: theme.spacing(0.5),
-  },
-  metadataKey: {
-    fontWeight: 'bold',
-    minWidth: '120px',
-    marginRight: theme.spacing(1),
-  },
-  metadataValue: {
-    fontFamily: 'monospace',
-    fontSize: '0.875rem',
-    color: theme.palette.text.secondary,
-  },
-  copyButton: {
-    padding: theme.spacing(0.5),
-    marginLeft: theme.spacing(1),
-  },
-  fullLogMessage: {
-    fontFamily: 'monospace',
-    fontSize: '0.875rem',
-    whiteSpace: 'pre-wrap',
-    backgroundColor: theme.palette.background.paper,
-    padding: theme.spacing(1),
-    borderRadius: theme.shape.borderRadius,
-    border: `1px solid ${theme.palette.divider}`,
-    maxHeight: '200px',
-    overflow: 'auto',
-  },
-}));
+import { LogEntry as LogEntryType, LogEntryField } from './types';
+import { useLogEntryStyles } from './styles';
 
 interface LogEntryProps {
   log: LogEntryType;
+  selectedFields: LogEntryField[];
 }
 
-export const LogEntry: FC<LogEntryProps> = ({ log }) => {
-  const classes = useStyles();
+export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
+  const classes = useLogEntryStyles();
   const [expanded, setExpanded] = useState(false);
 
   const getLogLevelChipClass = (level: string) => {
@@ -169,52 +60,88 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
     setExpanded(!expanded);
   };
 
+  const renderFieldCell = (field: LogEntryField) => {
+    switch (field) {
+      case LogEntryField.Timestamp:
+        return (
+          <TableCell className={classes.timestampCell}>
+            {formatTimestamp(log.timestamp)}
+          </TableCell>
+        );
+
+      case LogEntryField.LogLevel:
+        return (
+          <TableCell>
+            <Chip
+              label={log.logLevel}
+              size="small"
+              className={`${classes.logLevelChip} ${getLogLevelChipClass(
+                log.logLevel,
+              )}`}
+            />
+          </TableCell>
+        );
+
+      case LogEntryField.Log:
+        return (
+          <TableCell className={classes.logCell}>
+            <Box display="flex" alignItems="center">
+              <Typography
+                className={`${classes.logMessage} ${
+                  expanded ? classes.expandedLogMessage : ''
+                }`}
+              >
+                {log.log}
+              </Typography>
+              <Tooltip title="Copy log message">
+                <IconButton
+                  className={classes.copyButton}
+                  onClick={handleCopyLog}
+                  size="small"
+                >
+                  <FileCopy fontSize="inherit" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </TableCell>
+        );
+
+      case LogEntryField.Container:
+        return (
+          <TableCell className={classes.containerCell}>
+            {log.containerName}
+          </TableCell>
+        );
+
+      case LogEntryField.Pod:
+        return (
+          <TableCell className={classes.podCell}>
+            <Tooltip title={log.podId}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+                {truncatePodId(log.podId)}
+              </span>
+            </Tooltip>
+          </TableCell>
+        );
+
+      default:
+        return <TableCell />;
+    }
+  };
+
+  const totalColumns = selectedFields.length + 1; // +1 for Details column
+
   return (
     <>
       <TableRow
         className={`${classes.logRow} ${expanded ? classes.expandedRow : ''}`}
         onClick={handleRowClick}
       >
-        <TableCell className={classes.timestampCell}>
-          {formatTimestamp(log.timestamp)}
-        </TableCell>
-        <TableCell>
-          <Chip
-            label={log.logLevel}
-            size="small"
-            className={`${classes.logLevelChip} ${getLogLevelChipClass(
-              log.logLevel,
-            )}`}
-          />
-        </TableCell>
-        <TableCell>
-          <Box display="flex" alignItems="center">
-            <Typography
-              className={`${classes.logMessage} ${
-                expanded ? classes.expandedLogMessage : ''
-              }`}
-            >
-              {log.log}
-            </Typography>
-            <Tooltip title="Copy log message">
-              <IconButton
-                className={classes.copyButton}
-                onClick={handleCopyLog}
-                size="small"
-              >
-                <FileCopy fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </TableCell>
-        <TableCell className={classes.containerCell}>
-          {log.containerName}
-        </TableCell>
-        <TableCell className={classes.podCell}>
-          <Tooltip title={log.podId}>
-            <span>{truncatePodId(log.podId)}</span>
-          </Tooltip>
-        </TableCell>
+        {selectedFields.map((field) => (
+          <React.Fragment key={field}>
+            {renderFieldCell(field)}
+          </React.Fragment>
+        ))}
         <TableCell>
           <IconButton
             className={classes.expandButton}
@@ -231,7 +158,7 @@ export const LogEntry: FC<LogEntryProps> = ({ log }) => {
 
       {expanded && (
         <TableRow>
-          <TableCell colSpan={6} style={{ paddingBottom: 0, paddingTop: 0 }}>
+          <TableCell colSpan={totalColumns} style={{ paddingBottom: 0, paddingTop: 0 }}>
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={classes.expandedContent}>
                 <Typography variant="h6" gutterBottom>

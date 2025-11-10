@@ -11,80 +11,58 @@ import {
   CircularProgress,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { makeStyles } from '@material-ui/core/styles';
-import { LogEntry as LogEntryType } from './types';
+import { LogEntryField, LogEntry as LogEntryType } from './types';
 import { LogEntry } from './LogEntry';
-
-const useStyles = makeStyles(theme => ({
-  tableContainer: {
-    maxHeight: '70vh',
-    overflow: 'auto',
-  },
-  table: {
-    minWidth: 650,
-  },
-  headerCell: {
-    fontWeight: 'bold',
-    backgroundColor: theme.palette.background.paper,
-    position: 'sticky',
-    top: 0,
-    zIndex: 1,
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: theme.spacing(4),
-    color: theme.palette.text.secondary,
-  },
-  loadingContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing(2),
-  },
-  loadingRow: {
-    padding: theme.spacing(2),
-  },
-  skeletonRow: {
-    height: 60,
-  },
-}));
+import { useLogsTableStyles } from './styles';
 
 interface LogsTableProps {
+  selectedFields: LogEntryField[];
   logs: LogEntryType[];
   loading: boolean;
   hasMore: boolean;
-  totalCount: number;
   loadingRef: RefObject<HTMLDivElement>;
-  onRetry?: () => void;
 }
 
 export const LogsTable: FC<LogsTableProps> = ({
+  selectedFields,
   logs,
   loading,
   hasMore,
-  totalCount,
   loadingRef,
 }) => {
-  const classes = useStyles();
+  const classes = useLogsTableStyles();
+
+  const getFieldWidth = (field: LogEntryField): string | undefined => {
+    switch (field) {
+      case LogEntryField.Timestamp:
+        return '12%';
+      case LogEntryField.LogLevel:
+        return '8%';
+      case LogEntryField.Container:
+        return '8%';
+      case LogEntryField.Pod:
+        return '10%';
+      case LogEntryField.Log:
+        return 'auto';
+      default:
+        return undefined;
+    }
+  };
+
+  const totalColumns = selectedFields.length + 1; // +1 for Details column
 
   const renderLoadingSkeletons = () => {
     return Array.from({ length: 5 }).map((_, index) => (
       <TableRow key={`skeleton-${index}`}>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="rect" width={60} height={24} />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width="100%" />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width={80} />
-        </TableCell>
-        <TableCell>
-          <Skeleton variant="text" width={100} />
-        </TableCell>
+        {selectedFields.map((field) => (
+          <TableCell key={field}>
+            <Skeleton
+              variant={field === LogEntryField.LogLevel ? "rect" : "text"}
+              width={field === LogEntryField.LogLevel ? 60 : "100%"}
+              height={field === LogEntryField.LogLevel ? 24 : undefined}
+            />
+          </TableCell>
+        ))}
         <TableCell>
           <Skeleton variant="rect" width={24} height={24} />
         </TableCell>
@@ -99,7 +77,7 @@ export const LogsTable: FC<LogsTableProps> = ({
 
     return (
       <TableRow>
-        <TableCell colSpan={6}>
+        <TableCell colSpan={totalColumns}>
           <Box className={classes.emptyState}>
             <Typography variant="h6" gutterBottom>
               No logs found
@@ -114,17 +92,21 @@ export const LogsTable: FC<LogsTableProps> = ({
   };
 
   return (
-    <Paper>
+    <Paper className={classes.tablePaper}>
       <Box className={classes.tableContainer}>
         <Table className={classes.table} stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell className={classes.headerCell}>Timestamp</TableCell>
-              <TableCell className={classes.headerCell}>Level</TableCell>
-              <TableCell className={classes.headerCell}>Message</TableCell>
-              <TableCell className={classes.headerCell}>Container</TableCell>
-              <TableCell className={classes.headerCell}>Pod</TableCell>
-              <TableCell className={classes.headerCell} width={100}>
+              {selectedFields.map((field) => (
+                <TableCell
+                  key={field}
+                  className={classes.headerCell}
+                  width={getFieldWidth(field)}
+                >
+                  {field}
+                </TableCell>
+              ))}
+              <TableCell className={classes.headerCell} width="80px">
                 Details
               </TableCell>
             </TableRow>
@@ -135,12 +117,16 @@ export const LogsTable: FC<LogsTableProps> = ({
             {logs.length === 0 && loading && renderLoadingSkeletons()}
 
             {logs.map((log, index) => (
-              <LogEntry key={`${log.timestamp}-${index}`} log={log} />
+              <LogEntry
+                key={`${log.timestamp}-${index}`}
+                log={log}
+                selectedFields={selectedFields}
+              />
             ))}
 
             {hasMore && (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={totalColumns}>
                   <div className={classes.loadingContainer} ref={loadingRef}>
                     {loading ? (
                       <Box display="flex" alignItems="center">
@@ -162,24 +148,6 @@ export const LogsTable: FC<LogsTableProps> = ({
         </Table>
       </Box>
 
-      {logs.length > 0 && (
-        <Box
-          p={2}
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Typography variant="body2" color="textSecondary">
-            Showing {logs.length} of {totalCount} logs
-          </Typography>
-
-          {!hasMore && logs.length < totalCount && (
-            <Typography variant="body2" color="textSecondary">
-              Reached end of results
-            </Typography>
-          )}
-        </Box>
-      )}
     </Paper>
   );
 };

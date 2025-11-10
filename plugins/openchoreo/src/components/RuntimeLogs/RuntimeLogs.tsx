@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, Typography, Button, Paper } from '@material-ui/core';
+import { Box, Typography, Button } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
-import { makeStyles } from '@material-ui/core/styles';
-import Refresh from '@material-ui/icons/Refresh';
 import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
+import { LogsActions } from './LogsActions';
 import {
   useEnvironments,
   useRuntimeLogs,
@@ -12,48 +11,10 @@ import {
   useFilters,
 } from './hooks';
 import { RuntimeLogsPagination } from './types';
-
-const useStyles = makeStyles(theme => ({
-  root: {
-    padding: theme.spacing(3),
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing(3),
-  },
-  title: {
-    fontWeight: 'bold',
-  },
-  refreshButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-  },
-  errorContainer: {
-    marginBottom: theme.spacing(2),
-  },
-  loadingContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '200px',
-  },
-  statsContainer: {
-    marginBottom: theme.spacing(2),
-    padding: theme.spacing(2),
-  },
-  statItem: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing(1),
-  },
-}));
+import { useRuntimeLogsStyles } from './styles';
 
 export const RuntimeLogs = () => {
-  const classes = useStyles();
+  const classes = useRuntimeLogsStyles();
   const { filters, updateFilters } = useFilters();
   const {
     environments,
@@ -82,6 +43,21 @@ export const RuntimeLogs = () => {
 
   // Track previous filters to avoid unnecessary fetches
   const previousFiltersRef = useRef(filters);
+
+  // Auto-refresh logs every 10 seconds when enabled
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const handleAutoRefreshToggle = () => {
+    setAutoRefresh(prev => !prev);
+  };
+  useEffect(() => {
+    if (autoRefresh && filters.environmentId && !logsLoading) {
+      const intervalId = setInterval(() => {
+        refresh();
+      }, 10000); // 10 seconds
+      return () => clearInterval(intervalId);
+    }
+    return undefined;
+  }, [autoRefresh, filters.environmentId, logsLoading, refresh]);
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {
@@ -145,32 +121,14 @@ export const RuntimeLogs = () => {
 
   if (environmentsError) {
     return (
-      <Box className={classes.root}>
-        <Typography variant="h4" className={classes.title} gutterBottom>
-          Runtime Logs
-        </Typography>
+      <Box>
         {renderError(environmentsError)}
       </Box>
     );
   }
 
   return (
-    <Box className={classes.root}>
-      <Box className={classes.header}>
-        <Typography variant="h4" className={classes.title}>
-          Runtime Logs
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<Refresh />}
-          onClick={handleRefresh}
-          disabled={logsLoading || !filters.environmentId}
-          className={classes.refreshButton}
-        >
-          Refresh
-        </Button>
-      </Box>
-
+    <Box>
       <LogsFilter
         filters={filters}
         onFiltersChange={handleFiltersChange}
@@ -194,43 +152,20 @@ export const RuntimeLogs = () => {
 
       {filters.environmentId && (
         <>
-          {totalCount > 0 && (
-            <Paper className={classes.statsContainer}>
-              <Box className={classes.statItem}>
-                <Typography variant="body2" color="textSecondary">
-                  Total logs found:
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {totalCount.toLocaleString()}
-                </Typography>
-              </Box>
-              <Box className={classes.statItem}>
-                <Typography variant="body2" color="textSecondary">
-                  Environment:
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {environments.find(env => env.id === filters.environmentId)
-                    ?.name || filters.environmentId}
-                </Typography>
-              </Box>
-              <Box className={classes.statItem}>
-                <Typography variant="body2" color="textSecondary">
-                  Time range:
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  {filters.timeRange}
-                </Typography>
-              </Box>
-            </Paper>
-          )}
+          <LogsActions
+            totalCount={totalCount}
+            autoRefresh={autoRefresh}
+            disabled={logsLoading || !filters.environmentId}
+            onRefresh={handleRefresh}
+            onAutoRefreshToggle={handleAutoRefreshToggle}
+          />
 
           <LogsTable
+            selectedFields={filters.selectedFields}
             logs={logs}
             loading={logsLoading}
             hasMore={hasMore}
-            totalCount={totalCount}
             loadingRef={loadingRef}
-            onRetry={handleRefresh}
           />
         </>
       )}
