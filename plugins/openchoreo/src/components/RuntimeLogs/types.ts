@@ -26,6 +26,7 @@ export interface Environment {
 
 export interface RuntimeLogsFilters {
   logLevel: string[];
+  selectedFields: LogEntryField[];
   environmentId: string;
   timeRange: string;
 }
@@ -65,3 +66,13 @@ export const TIME_RANGE_OPTIONS = [
 ] as const;
 
 export const LOG_LEVELS: LogLevel[] = ['ERROR', 'WARN', 'INFO', 'DEBUG'];
+
+export enum LogEntryField {
+  Timestamp = 'Timestamp',
+  Log = 'Log',
+  LogLevel = 'LogLevel',
+  Pod = 'Pod',
+  Container = 'Container',
+}
+
+export const SELECTED_FIELDS = [LogEntryField.Timestamp,  LogEntryField.LogLevel,LogEntryField.Log, LogEntryField.Pod, LogEntryField.Container];

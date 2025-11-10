@@ -4,58 +4,18 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormGroup,
-  FormControlLabel,
   Checkbox,
-  Typography,
-  Paper,
   Grid,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { makeStyles } from '@material-ui/core/styles';
 import {
   RuntimeLogsFilters,
   Environment,
   LOG_LEVELS,
   TIME_RANGE_OPTIONS,
+  SELECTED_FIELDS,
+  LogEntryField,
 } from './types';
-
-const useStyles = makeStyles(theme => ({
-  filterContainer: {
-    padding: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-  filterSection: {
-    marginBottom: theme.spacing(2),
-  },
-  filterTitle: {
-    marginBottom: theme.spacing(1),
-    fontWeight: 'bold',
-  },
-  logLevelCheckbox: {
-    padding: theme.spacing(0.5),
-  },
-  errorLevel: {
-    color: theme.palette.error.main,
-    fontWeight: 500,
-  },
-  warnLevel: {
-    color: theme.palette.warning.main,
-    fontWeight: 500,
-  },
-  infoLevel: {
-    color: theme.palette.info.main,
-    fontWeight: 500,
-  },
-  debugLevel: {
-    color: theme.palette.text.secondary,
-    fontWeight: 500,
-  },
-  undefinedLevel: {
-    color: theme.palette.text.disabled,
-    fontWeight: 500,
-  },
-}));
 
 interface LogsFilterProps {
   filters: RuntimeLogsFilters;
@@ -72,16 +32,6 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   environmentsLoading,
   disabled = false,
 }) => {
-  const classes = useStyles();
-
-  const handleLogLevelChange = (level: string) => {
-    const newLogLevels = filters.logLevel.includes(level)
-      ? filters.logLevel.filter(l => l !== level)
-      : [...filters.logLevel, level];
-
-    onFiltersChange({ logLevel: newLogLevels });
-  };
-
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ environmentId: event.target.value as string });
   };
@@ -90,54 +40,67 @@ export const LogsFilter: FC<LogsFilterProps> = ({
     onFiltersChange({ timeRange: event.target.value as string });
   };
 
-  const getLogLevelClassName = (level: string) => {
-    switch (level) {
-      case 'ERROR':
-        return classes.errorLevel;
-      case 'WARN':
-        return classes.warnLevel;
-      case 'INFO':
-        return classes.infoLevel;
-      case 'DEBUG':
-        return classes.debugLevel;
-      case 'UNDEFINED':
-        return classes.undefinedLevel;
-      default:
-        return '';
+  const handleLogLevelSelectChange = (event: ChangeEvent<{ value: unknown }>) => {
+    onFiltersChange({ logLevel: event.target.value as string[] });
+  };
+
+  const handleSelectedFieldsChange = (event: ChangeEvent<{ value: unknown }>) => {
+    let selectedFields = event.target.value as LogEntryField[];
+    // Ensure Log field is always included
+    if (!selectedFields.includes(LogEntryField.Log)) {
+      selectedFields = [...selectedFields, LogEntryField.Log];
     }
+    // sort by the order of the SELECTED_FIELDS array
+    // Customizing the order of the selected fields is not supported yet
+    onFiltersChange({
+      selectedFields: SELECTED_FIELDS.filter(field => selectedFields.includes(field))
+    });
   };
 
   return (
-    <Paper className={classes.filterContainer}>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <div className={classes.filterSection}>
-            <Typography variant="subtitle2" className={classes.filterTitle}>
-              Log Levels
-            </Typography>
-            <FormGroup>
-              {LOG_LEVELS.map(level => (
-                <FormControlLabel
-                  key={level}
-                  control={
-                    <Checkbox
-                      checked={filters.logLevel.includes(level)}
-                      onChange={() => handleLogLevelChange(level)}
-                      disabled={disabled}
-                      className={classes.logLevelCheckbox}
-                    />
-                  }
-                  label={
-                    <span className={getLogLevelClassName(level)}>{level}</span>
-                  }
-                />
-              ))}
-            </FormGroup>
-          </div>
+        <Grid item xs={12} md={3}>
+            <FormControl fullWidth disabled={disabled}>
+              <InputLabel>Log Levels</InputLabel>
+              <Select
+                multiple
+                value={filters.logLevel}
+                onChange={handleLogLevelSelectChange}
+                renderValue={(selected) => (selected as string[]).join(', ')}
+              >
+                {LOG_LEVELS.map(level => (
+                  <MenuItem key={level} value={level}>
+                    <Checkbox checked={filters.logLevel.includes(level)} />
+                    {level}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <div className={classes.filterSection}>
+        <Grid item xs={12} md={3}>
+            <FormControl fullWidth disabled={disabled}>
+              <InputLabel>Selected Fields</InputLabel>
+              <Select
+                multiple
+                value={filters.selectedFields}
+                onChange={handleSelectedFieldsChange}
+                renderValue={(selected) => (selected as LogEntryField[]).join(', ')}
+              >
+                {SELECTED_FIELDS.map((field: LogEntryField) => (
+                  <MenuItem key={field} value={field} disabled={field === LogEntryField.Log}>
+                    <Checkbox
+                      checked={filters.selectedFields.includes(field)}
+                      disabled={field === LogEntryField.Log}
+                    />
+                    {field}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+        </Grid>
+
+          <Grid item xs={12} md={3}>
             <FormControl fullWidth disabled={disabled || environmentsLoading}>
               <InputLabel>Environment</InputLabel>
               {environmentsLoading ? (
@@ -155,11 +118,9 @@ export const LogsFilter: FC<LogsFilterProps> = ({
                 </Select>
               )}
             </FormControl>
-          </div>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <div className={classes.filterSection}>
+        <Grid item xs={12} md={3}>
             <FormControl fullWidth disabled={disabled}>
               <InputLabel>Time Range</InputLabel>
               <Select
@@ -173,9 +134,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
                 ))}
               </Select>
             </FormControl>
-          </div>
         </Grid>
       </Grid>
-    </Paper>
   );
 };

@@ -12,6 +12,7 @@ import {
   Environment,
   RuntimeLogsFilters,
   RuntimeLogsPagination,
+  LogEntryField,
 } from './types';
 
 export function useEnvironments() {
@@ -176,13 +177,23 @@ export function useInfiniteScroll(
 export function useFilters() {
   const [filters, setFilters] = useState<RuntimeLogsFilters>({
     logLevel: [],
+    selectedFields: [LogEntryField.Log],
     environmentId: '',
-    timeRange: '1h',
+    timeRange: '1h'
   });
 
   const updateFilters = useCallback(
     (newFilters: Partial<RuntimeLogsFilters>) => {
-      setFilters(prev => ({ ...prev, ...newFilters }));
+      setFilters(prev => {
+        const updated = { ...prev, ...newFilters };
+
+        // Ensure Log field is always included in selectedFields
+        if (updated.selectedFields && !updated.selectedFields.includes(LogEntryField.Log)) {
+          updated.selectedFields = [...updated.selectedFields, LogEntryField.Log];
+        }
+
+        return updated;
+      });
     },
     [],
   );
@@ -190,6 +201,7 @@ export function useFilters() {
   const resetFilters = useCallback(() => {
     setFilters({
       logLevel: [],
+      selectedFields: [LogEntryField.Log],
       environmentId: '',
       timeRange: '1h',
     });
