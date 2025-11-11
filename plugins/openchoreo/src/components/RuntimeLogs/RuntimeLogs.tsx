@@ -22,11 +22,13 @@ export const RuntimeLogs = () => {
     error: environmentsError,
   } = useEnvironments();
 
-  const [pagination, setPagination] = useState<RuntimeLogsPagination>({
+  // Pagination config
+  // (offset pagination is not supported by the backend, using timestamp-based pagination instead)
+  const pagination: RuntimeLogsPagination = {
     hasMore: true,
     offset: 0,
     limit: 50,
-  });
+  };
 
   const {
     logs,
@@ -41,8 +43,12 @@ export const RuntimeLogs = () => {
 
   const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
 
-  // Track previous filters to avoid unnecessary fetches
-  const previousFiltersRef = useRef(filters);
+  // Track previous backend-relevant filters to avoid unnecessary fetches
+  const previousBackendFiltersRef = useRef({
+    environmentId: filters.environmentId,
+    logLevel: filters.logLevel,
+    timeRange: filters.timeRange,
+  });
 
   // Auto-refresh logs every 10 seconds when enabled
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -66,28 +72,27 @@ export const RuntimeLogs = () => {
     }
   }, [environments, filters.environmentId, updateFilters]);
 
-  // Fetch logs when filters change
+  // Fetch logs when backend-relevant filters change
   useEffect(() => {
-    // Only fetch if the filter actually changed
-    const filtersChanged =
-      JSON.stringify(previousFiltersRef.current) !== JSON.stringify(filters);
-    if (filters.environmentId && filtersChanged) {
-      setPagination(prev => ({ ...prev, offset: 0 }));
+    const currentBackendFilters = {
+      environmentId: filters.environmentId,
+      logLevel: filters.logLevel,
+      timeRange: filters.timeRange,
+      // TODO: Sort filter will be added here later
+    };
+
+    // Only fetch if backend-relevant filters changed
+    const backendFiltersChanged =
+      JSON.stringify(previousBackendFiltersRef.current) !== JSON.stringify(currentBackendFilters);
+
+    if (filters.environmentId && backendFiltersChanged) {
       fetchLogs(true);
     }
 
-    previousFiltersRef.current = filters;
-  }, [filters, fetchLogs]);
-
-  // Update pagination offset when loading more
-  useEffect(() => {
-    if (logs.length > 0) {
-      setPagination(prev => ({ ...prev, offset: logs.length }));
-    }
-  }, [logs.length]);
+    previousBackendFiltersRef.current = currentBackendFilters;
+  }, [filters.environmentId, filters.logLevel, filters.timeRange, fetchLogs]);
 
   const handleRefresh = () => {
-    setPagination(prev => ({ ...prev, offset: 0 }));
     refresh();
   };
 
