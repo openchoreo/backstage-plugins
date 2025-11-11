@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { LogsFilter } from './LogsFilter';
@@ -49,21 +49,6 @@ export const RuntimeLogs = () => {
     logLevel: filters.logLevel,
     timeRange: filters.timeRange,
   });
-
-  // Auto-refresh logs every 10 seconds when enabled
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const handleAutoRefreshToggle = () => {
-    setAutoRefresh(prev => !prev);
-  };
-  useEffect(() => {
-    if (autoRefresh && filters.environmentId && !logsLoading) {
-      const intervalId = setInterval(() => {
-        refresh();
-      }, 10000); // 10 seconds
-      return () => clearInterval(intervalId);
-    }
-    return undefined;
-  }, [autoRefresh, filters.environmentId, logsLoading, refresh]);
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {
@@ -156,10 +141,8 @@ export const RuntimeLogs = () => {
         <>
           <LogsActions
             totalCount={totalCount}
-            autoRefresh={autoRefresh}
             disabled={logsLoading || !filters.environmentId}
             onRefresh={handleRefresh}
-            onAutoRefreshToggle={handleAutoRefreshToggle}
           />
 
           <LogsTable
