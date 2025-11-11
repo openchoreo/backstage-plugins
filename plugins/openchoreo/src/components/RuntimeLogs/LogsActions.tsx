@@ -1,8 +1,6 @@
 import { Box, Typography, Button } from '@material-ui/core';
-import {
-  Refresh,
-  Autorenew,
-} from '@material-ui/icons';
+import Refresh from '@material-ui/icons/Refresh';
+import Autorenew from '@material-ui/icons/Autorenew';
 import { useLogsActionsStyles } from './styles';
 
 interface LogsActionsProps {
