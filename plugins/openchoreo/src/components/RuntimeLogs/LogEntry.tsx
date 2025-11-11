@@ -11,7 +11,7 @@ import {
 } from '@material-ui/core';
 import ExpandMore from '@material-ui/icons/ExpandMore';
 import ExpandLess from '@material-ui/icons/ExpandLess';
-import FileCopy from '@material-ui/icons/FileCopy';
+import FileCopyOutlined from '@material-ui/icons/FileCopyOutlined';
 import { LogEntry as LogEntryType, LogEntryField } from './types';
 import { useLogEntryStyles } from './styles';
 
@@ -99,7 +99,7 @@ export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
                   onClick={handleCopyLog}
                   size="small"
                 >
-                  <FileCopy fontSize="inherit" />
+                  <FileCopyOutlined fontSize="inherit" />
                 </IconButton>
               </Tooltip>
             </Box>
