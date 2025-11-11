@@ -215,7 +215,8 @@ export const openChoreoTheme = createUnifiedTheme({
           fontFamily:
             'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
         },
-        '[class*="BackstageSidebarDivider-root"]': {
+        // Sidebar divider opacity - use aria-label selector to work in both dev and production
+        'nav[aria-label="sidebar nav"] hr': {
           opacity: 0.2,
         },
         // SVG elements in the entity relations diagram
