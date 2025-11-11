@@ -1,4 +1,4 @@
-import React, { FC, MouseEvent, useState } from 'react';
+import { FC, MouseEvent, useState } from 'react';
 import {
   TableRow,
   TableCell,
@@ -49,7 +49,7 @@ export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
     return podId.length > 8 ? `${podId.substring(0, 8)}...` : podId;
   };
 
-  const handleCopyLog = (event: MouseEvent) => {
+  const handleCopyLog = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     navigator.clipboard.writeText(log.log).catch(_ => {
       // TODO: Add error handling
@@ -138,9 +138,7 @@ export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
         onClick={handleRowClick}
       >
         {selectedFields.map((field) => (
-          <React.Fragment key={field}>
-            {renderFieldCell(field)}
-          </React.Fragment>
+          renderFieldCell(field)
         ))}
         <TableCell>
           <IconButton
