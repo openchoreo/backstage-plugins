@@ -1,22 +1,17 @@
 import { Box, Typography, Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
-import Autorenew from '@material-ui/icons/Autorenew';
 import { useLogsActionsStyles } from './styles';
 
 interface LogsActionsProps {
   totalCount: number;
-  autoRefresh: boolean;
   disabled: boolean;
   onRefresh: () => void;
-  onAutoRefreshToggle: () => void;
 }
 
 export const LogsActions = ({
   totalCount,
-  autoRefresh,
   disabled,
   onRefresh,
-  onAutoRefreshToggle,
 }: LogsActionsProps) => {
   const classes = useLogsActionsStyles();
 
@@ -39,16 +34,7 @@ export const LogsActions = ({
         >
           Refresh
         </Button>
-        <Button
-          variant={autoRefresh ? 'contained' : 'outlined'}
-          color={autoRefresh ? 'primary' : 'default'}
-          startIcon={<Autorenew />}
-          onClick={onAutoRefreshToggle}
-          disabled={disabled}
-        >
-          {autoRefresh ? 'Auto Refresh: ON' : 'Auto Refresh: OFF'}
-        </Button>
-        {/* TODO: Add Sort Button and Download Button */}
+        {/* TODO: Add Auto Refresh Button, Sort Button and Download Button */}
       </Box>
     </Box>
   );
