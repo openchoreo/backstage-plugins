@@ -75,4 +75,10 @@ export enum LogEntryField {
   Container = 'Container',
 }
 
-export const SELECTED_FIELDS = [LogEntryField.Timestamp,  LogEntryField.LogLevel,LogEntryField.Log, LogEntryField.Pod, LogEntryField.Container];
+export const SELECTED_FIELDS = [
+  LogEntryField.Timestamp,
+  LogEntryField.LogLevel,
+  LogEntryField.Log,
+  LogEntryField.Pod,
+  LogEntryField.Container,
+];

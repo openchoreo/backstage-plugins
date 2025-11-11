@@ -54,11 +54,11 @@ export const LogsTable: FC<LogsTableProps> = ({
   const renderLoadingSkeletons = () => {
     return Array.from({ length: 5 }).map((_, index) => (
       <TableRow key={`skeleton-${index}`}>
-        {selectedFields.map((field) => (
+        {selectedFields.map(field => (
           <TableCell key={field}>
             <Skeleton
-              variant={field === LogEntryField.LogLevel ? "rect" : "text"}
-              width={field === LogEntryField.LogLevel ? 60 : "100%"}
+              variant={field === LogEntryField.LogLevel ? 'rect' : 'text'}
+              width={field === LogEntryField.LogLevel ? 60 : '100%'}
               height={field === LogEntryField.LogLevel ? 24 : undefined}
             />
           </TableCell>
@@ -97,7 +97,7 @@ export const LogsTable: FC<LogsTableProps> = ({
         <Table className={classes.table} stickyHeader>
           <TableHead>
             <TableRow>
-              {selectedFields.map((field) => (
+              {selectedFields.map(field => (
                 <TableCell
                   key={field}
                   className={classes.headerCell}
@@ -147,7 +147,6 @@ export const LogsTable: FC<LogsTableProps> = ({
           </TableBody>
         </Table>
       </Box>
-
     </Paper>
   );
 };
