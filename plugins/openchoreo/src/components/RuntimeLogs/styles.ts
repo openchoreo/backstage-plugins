@@ -174,7 +174,7 @@ export const useLogEntryStyles = makeStyles(theme => ({
   },
   copyButton: {
     padding: 0,
-    marginLeft: theme.spacing(0.5),
+    marginLeft: theme.spacing(1),
   },
   fullLogMessage: {
     fontFamily: 'monospace',
