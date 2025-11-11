@@ -117,7 +117,13 @@ export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
         return (
           <TableCell className={classes.podCell}>
             <Tooltip title={log.podId}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'block',
+                }}
+              >
                 {truncatePodId(log.podId)}
               </span>
             </Tooltip>
@@ -137,9 +143,7 @@ export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
         className={`${classes.logRow} ${expanded ? classes.expandedRow : ''}`}
         onClick={handleRowClick}
       >
-        {selectedFields.map((field) => (
-          renderFieldCell(field)
-        ))}
+        {selectedFields.map(field => renderFieldCell(field))}
         <TableCell>
           <IconButton
             className={classes.expandButton}
@@ -156,7 +160,10 @@ export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
 
       {expanded && (
         <TableRow>
-          <TableCell colSpan={totalColumns} style={{ paddingBottom: 0, paddingTop: 0 }}>
+          <TableCell
+            colSpan={totalColumns}
+            style={{ paddingBottom: 0, paddingTop: 0 }}
+          >
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={classes.expandedContent}>
                 <Typography variant="h6" gutterBottom>

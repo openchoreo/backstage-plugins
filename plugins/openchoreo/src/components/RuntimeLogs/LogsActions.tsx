@@ -21,35 +21,35 @@ export const LogsActions = ({
   const classes = useLogsActionsStyles();
 
   return (
-      <Box className={classes.statsContainer}>
-        <Box>
-          <Typography variant="body2" color="textSecondary">
-            Total logs: {totalCount}
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Last updated at: {new Date().toLocaleString()}
-          </Typography>
-        </Box>
-        <Box className={classes.actionsContainer}>
-          <Button
-            variant="outlined"
-            startIcon={<Refresh />}
-            onClick={onRefresh}
-            disabled={disabled}
-          >
-            Refresh
-          </Button>
-          <Button
-            variant={autoRefresh ? 'contained' : 'outlined'}
-            color={autoRefresh ? 'primary' : 'default'}
-            startIcon={<Autorenew />}
-            onClick={onAutoRefreshToggle}
-            disabled={disabled}
-          >
-            {autoRefresh ? 'Auto Refresh: ON' : 'Auto Refresh: OFF'}
-          </Button>
-          {/* TODO: Add Sort Button and Download Button */}
-        </Box>
+    <Box className={classes.statsContainer}>
+      <Box>
+        <Typography variant="body2" color="textSecondary">
+          Total logs: {totalCount}
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          Last updated at: {new Date().toLocaleString()}
+        </Typography>
       </Box>
+      <Box className={classes.actionsContainer}>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={onRefresh}
+          disabled={disabled}
+        >
+          Refresh
+        </Button>
+        <Button
+          variant={autoRefresh ? 'contained' : 'outlined'}
+          color={autoRefresh ? 'primary' : 'default'}
+          startIcon={<Autorenew />}
+          onClick={onAutoRefreshToggle}
+          disabled={disabled}
+        >
+          {autoRefresh ? 'Auto Refresh: ON' : 'Auto Refresh: OFF'}
+        </Button>
+        {/* TODO: Add Sort Button and Download Button */}
+      </Box>
+    </Box>
   );
 };

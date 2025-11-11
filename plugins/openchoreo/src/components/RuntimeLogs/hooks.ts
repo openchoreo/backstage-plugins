@@ -68,7 +68,9 @@ export function useRuntimeLogs(
         setLoading(true);
         setError(null);
 
-        const { startTime, endTime: initialEndTime } = calculateTimeRange(filters.timeRange);
+        const { startTime, endTime: initialEndTime } = calculateTimeRange(
+          filters.timeRange,
+        );
 
         // Use timestamp-based pagination instead of offset
         let endTime = initialEndTime;
@@ -187,7 +189,7 @@ export function useFilters() {
     logLevel: [],
     selectedFields: [LogEntryField.Log],
     environmentId: '',
-    timeRange: '1h'
+    timeRange: '1h',
   });
 
   const updateFilters = useCallback(
@@ -196,8 +198,14 @@ export function useFilters() {
         const updated = { ...prev, ...newFilters };
 
         // Ensure Log field is always included in selectedFields
-        if (updated.selectedFields && !updated.selectedFields.includes(LogEntryField.Log)) {
-          updated.selectedFields = [...updated.selectedFields, LogEntryField.Log];
+        if (
+          updated.selectedFields &&
+          !updated.selectedFields.includes(LogEntryField.Log)
+        ) {
+          updated.selectedFields = [
+            ...updated.selectedFields,
+            LogEntryField.Log,
+          ];
         }
 
         return updated;

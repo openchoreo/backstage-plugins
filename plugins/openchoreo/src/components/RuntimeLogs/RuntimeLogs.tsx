@@ -83,7 +83,8 @@ export const RuntimeLogs = () => {
 
     // Only fetch if backend-relevant filters changed
     const backendFiltersChanged =
-      JSON.stringify(previousBackendFiltersRef.current) !== JSON.stringify(currentBackendFilters);
+      JSON.stringify(previousBackendFiltersRef.current) !==
+      JSON.stringify(currentBackendFilters);
 
     if (filters.environmentId && backendFiltersChanged) {
       fetchLogs(true);
@@ -125,11 +126,7 @@ export const RuntimeLogs = () => {
   };
 
   if (environmentsError) {
-    return (
-      <Box>
-        {renderError(environmentsError)}
-      </Box>
-    );
+    return <Box>{renderError(environmentsError)}</Box>;
   }
 
   return (
