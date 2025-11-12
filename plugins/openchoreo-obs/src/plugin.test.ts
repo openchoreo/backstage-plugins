@@ -1,7 +1,7 @@
-import { openchoreoObsPlugin } from './plugin';
+import { ObservabilityMetrics } from './plugin';
 
 describe('openchoreo-obs', () => {
-  it('should export plugin', () => {
-    expect(openchoreoObsPlugin).toBeDefined();
+  it('Should export ObservabilityMetrics', () => {
+    expect(ObservabilityMetrics).toBeDefined();
   });
 });

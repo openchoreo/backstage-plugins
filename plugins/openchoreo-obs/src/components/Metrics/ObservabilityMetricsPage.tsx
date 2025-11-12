@@ -1,7 +1,7 @@
-import React from 'react';
 import { Typography, Grid, Card, CardContent, Chip } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import {
+  Content,
   Progress,
   ResponseErrorPanel,
 } from '@backstage/core-components';
@@ -36,7 +36,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export const MetricsContent = () => {
+export const ObservabilityMetricsPage = () => {
   const classes = useStyles();
   const observabilityApi = useApi(observabilityApiRef);
 
@@ -57,46 +57,40 @@ export const MetricsContent = () => {
     }
   };
 
-  if (loading) {
-    return <Progress />;
-  }
-
-  if (error) {
-    return <ResponseErrorPanel error={error} />;
-  }
-
   return (
-    <>
-      {value && (
-        <>
-          <Typography variant="body2" color="textSecondary" gutterBottom>
-            Last updated: {new Date(value.timestamp).toLocaleString()}
-          </Typography>
-          <Grid container spacing={3} style={{ marginTop: 16 }}>
-            {value.metrics.map((metric, index) => (
-              <Grid item xs={12} sm={6} md={4} key={index}>
-                <Card className={classes.metricCard}>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      {metric.name}
-                    </Typography>
-                    <Typography className={classes.metricValue}>
-                      {metric.value}
-                      <span className={classes.metricUnit}>{metric.unit}</span>
-                    </Typography>
-                    <Chip
-                      label={metric.status.toUpperCase()}
-                      size="small"
-                      className={getStatusClass(metric.status)}
-                      style={{ marginTop: 8 }}
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </>
-      )}
-    </>
+      <Content>
+        {loading && <Progress />}
+        {error && <ResponseErrorPanel error={error} />}
+        {value && (
+          <>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              Last updated: {new Date(value.timestamp).toLocaleString()}
+            </Typography>
+            <Grid container spacing={3} style={{ marginTop: 16 }}>
+              {value.metrics.map((metric, index) => (
+                <Grid item xs={12} sm={6} md={4} key={index}>
+                  <Card className={classes.metricCard}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        {metric.name}
+                      </Typography>
+                      <Typography className={classes.metricValue}>
+                        {metric.value}
+                        <span className={classes.metricUnit}>{metric.unit}</span>
+                      </Typography>
+                      <Chip
+                        label={metric.status.toUpperCase()}
+                        size="small"
+                        className={getStatusClass(metric.status)}
+                        style={{ marginTop: 8 }}
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </>
+        )}
+      </Content>
   );
 };
