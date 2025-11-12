@@ -1,0 +1,346 @@
+openapi: 3.0.3
+info:
+  title: OpenChoreo Observability API
+  description: OpenChoreo observability API for runtime and build logs
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: /
+    description: OpenChoreo Observability API Server (dynamically resolved)
+
+components:
+  securitySchemes:
+    OriginalAuth:
+      type: apiKey
+      in: header
+      name: X-Original-Authorization
+      description: Original authorization token passed through to observability service
+
+  schemas:
+    LogEntry:
+      type: object
+      required:
+        - timestamp
+        - log
+        - logLevel
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the log entry
+        log:
+          type: string
+          description: The actual log message content
+        logLevel:
+          type: string
+          enum: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
+          description: Log level
+        componentId:
+          type: string
+          description: ID of the component
+        environmentId:
+          type: string
+          description: ID of the environment
+        projectId:
+          type: string
+          description: ID of the project
+        version:
+          type: string
+          description: Version of the component
+        versionId:
+          type: string
+          description: ID of the version
+        namespace:
+          type: string
+          description: Kubernetes namespace
+        podId:
+          type: string
+          description: Kubernetes pod ID
+        containerName:
+          type: string
+          description: Container name
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Labels associated with the log entry
+        source:
+          type: string
+          description: Source of the log
+        message:
+          type: string
+          description: Alternative message field
+        level:
+          type: string
+          enum: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
+          description: Alternative level field
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata
+
+    RuntimeLogsResponse:
+      type: object
+      required:
+        - logs
+        - totalCount
+        - tookMs
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEntry'
+          description: Array of log entries
+        totalCount:
+          type: integer
+          description: Total number of logs available
+        tookMs:
+          type: integer
+          description: Time taken in milliseconds to fetch logs
+        total:
+          type: integer
+          description: Total number of logs available (deprecated, use totalCount)
+        hasMore:
+          type: boolean
+          description: Whether there are more logs available
+
+    ComponentLogsRequest:
+      type: object
+      required:
+        - componentId
+        - environmentId
+      properties:
+        componentId:
+          type: string
+          description: Component identifier
+        environmentId:
+          type: string
+          description: Environment identifier
+        logLevels:
+          type: array
+          items:
+            type: string
+            enum: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
+          description: Filter logs by levels
+        startTime:
+          type: string
+          format: date-time
+          description: Start time for log range
+        endTime:
+          type: string
+          format: date-time
+          description: End time for log range
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 100
+          description: Maximum number of logs to return
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Offset for pagination
+
+    BuildLogsRequest:
+      type: object
+      required:
+        - buildId
+        - buildUuid
+      properties:
+        buildId:
+          type: string
+          description: Build identifier
+        buildUuid:
+          type: string
+          description: Build UUID
+        searchPhrase:
+          type: string
+          description: Search phrase to filter logs
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 100
+          description: Maximum number of logs to return
+
+security:
+  - OriginalAuth: []
+
+paths:
+  /api/logs/component/{componentId}:
+    post:
+      summary: Fetch runtime logs for a component
+      description: Retrieves runtime logs for a specific component in an environment
+      operationId: getComponentRuntimeLogs
+      tags:
+        - Runtime Logs
+      parameters:
+        - name: componentId
+          in: path
+          required: true
+          description: Component identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - environmentId
+              properties:
+                environmentId:
+                  type: string
+                  description: Environment identifier
+                logLevels:
+                  type: array
+                  items:
+                    type: string
+                    enum: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
+                  description: Filter logs by levels
+                startTime:
+                  type: string
+                  format: date-time
+                  description: Start time for log range
+                endTime:
+                  type: string
+                  format: date-time
+                  description: End time for log range
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 100
+                  description: Maximum number of logs to return
+                offset:
+                  type: integer
+                  minimum: 0
+                  default: 0
+                  description: Offset for pagination
+      responses:
+        '200':
+          description: Successful response with runtime logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeLogsResponse'
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Component or environment not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '503':
+          description: Observability not configured for this component
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+
+  /api/logs/component/{componentName}:
+    post:
+      summary: Fetch build logs for a component
+      description: Retrieves build logs for a specific component build
+      operationId: getComponentBuildLogs
+      tags:
+        - Build Logs
+      parameters:
+        - name: componentName
+          in: path
+          required: true
+          description: Component name
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - buildId
+                - buildUuid
+              properties:
+                buildId:
+                  type: string
+                  description: Build identifier
+                buildUuid:
+                  type: string
+                  description: Build UUID
+                logLevels:
+                  type: array
+                  items:
+                    type: string
+                  default: ['INFO']
+                  description: Log levels to fetch
+                logType:
+                  type: string
+                  default: 'BUILD'
+                  description: Type of logs
+                searchPhrase:
+                  type: string
+                  description: Search phrase to filter logs
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 1000
+                  default: 100
+                  description: Maximum number of logs to return
+      responses:
+        '200':
+          description: Successful response with build logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeLogsResponse'
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '404':
+          description: Component or build not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        '503':
+          description: Build logs not available for this component
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string

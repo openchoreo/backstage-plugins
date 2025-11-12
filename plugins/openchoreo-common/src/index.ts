@@ -1,4 +1,43 @@
 export { CHOREO_ANNOTATIONS, CHOREO_LABELS } from './constants';
 
-// Re-export all models/types from the API package for use in frontend plugins
-export * from '@openchoreo/backstage-plugin-api';
+// Re-export types from the generated OpenAPI client for use in frontend plugins
+export type {
+  OpenChoreoComponents,
+  ObservabilityComponents,
+} from '@openchoreo/openchoreo-client-node';
+
+// Export commonly used type aliases for convenience
+import type {
+  OpenChoreoComponents,
+  ObservabilityComponents,
+} from '@openchoreo/openchoreo-client-node';
+
+export type ModelsBuild = OpenChoreoComponents['schemas']['Build'];
+export type ModelsWorkload = OpenChoreoComponents['schemas']['Workload'];
+export type ModelsCompleteComponent =
+  OpenChoreoComponents['schemas']['CompleteComponent'];
+
+// Workload-related types
+export type Container = OpenChoreoComponents['schemas']['Container'];
+export type EnvVar = OpenChoreoComponents['schemas']['EnvVar'];
+export type WorkloadEndpoint =
+  OpenChoreoComponents['schemas']['WorkloadEndpoint'];
+export type Connection = OpenChoreoComponents['schemas']['Connection'];
+export type WorkloadOwner = OpenChoreoComponents['schemas']['WorkloadOwner'];
+export type ConnectionParams =
+  OpenChoreoComponents['schemas']['ConnectionParams'];
+export type ConnectionInject =
+  OpenChoreoComponents['schemas']['ConnectionInject'];
+export type Schema = OpenChoreoComponents['schemas']['Schema'];
+
+// Define WorkloadType as a string union since it's defined as enum in OpenAPI
+export type WorkloadType =
+  | 'Service'
+  | 'ManualTask'
+  | 'ScheduledTask'
+  | 'WebApplication';
+
+// Observability types
+export type RuntimeLogsResponse =
+  ObservabilityComponents['schemas']['RuntimeLogsResponse'];
+export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];

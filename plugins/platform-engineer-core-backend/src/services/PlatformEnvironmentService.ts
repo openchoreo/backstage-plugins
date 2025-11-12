@@ -1,18 +1,19 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  DefaultApiClient,
-  ModelsEnvironment,
-  ModelsDataPlane,
-  BindingResponse,
-} from '@openchoreo/backstage-plugin-api';
+  createOpenChoreoApiClient,
+  type OpenChoreoComponents,
+} from '@openchoreo/openchoreo-client-node';
+
+// Use generated types from OpenAPI spec
+type ModelsEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
+
 import {
   PlatformEnvironmentService,
   Environment,
   DataPlane,
   DataPlaneWithEnvironments,
 } from '../types';
-// import { DefaultApiClient } from '../api';
-// import { ModelsEnvironment, ModelsDataPlane, BindingResponse } from '../models';
 
 /**
  * Service for managing platform-wide environment information.
@@ -22,11 +23,11 @@ export class PlatformEnvironmentInfoService
   implements PlatformEnvironmentService
 {
   private readonly logger: LoggerService;
-  private readonly defaultClient: DefaultApiClient;
+  private readonly baseUrl: string;
 
   public constructor(logger: LoggerService, baseUrl: string, _token?: string) {
     this.logger = logger;
-    this.defaultClient = new DefaultApiClient(baseUrl, {});
+    this.baseUrl = baseUrl;
   }
 
   static create(
@@ -46,25 +47,36 @@ export class PlatformEnvironmentInfoService
     try {
       this.logger.debug('Starting platform-wide environment fetch');
 
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
       // For now, we'll fetch environments from a default organization
       // In a real implementation, you might need to fetch from multiple organizations
       // or have a platform-wide API endpoint
-      const environmentsResponse = await this.defaultClient.environmentsGet({
-        orgName: 'default', // This should be configurable or fetched from a platform API
-      });
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/environments',
+        {
+          params: {
+            path: { orgName: 'default' }, // This should be configurable or fetched from a platform API
+          },
+        },
+      );
 
-      if (!environmentsResponse.ok) {
-        this.logger.error('Failed to fetch platform environments');
+      if (error || !response.ok) {
+        this.logger.error(
+          `Failed to fetch platform environments: ${response.status} ${response.statusText}`,
+        );
         return [];
       }
 
-      const environmentsData = await environmentsResponse.json();
-      if (!environmentsData.success || !environmentsData.data?.items) {
+      if (!data.success || !data.data?.items) {
         this.logger.warn('No environments found in platform API response');
         return [];
       }
 
-      const environments = environmentsData.data.items as ModelsEnvironment[];
+      const environments = data.data.items;
       const result = this.transformEnvironmentData(environments, 'default');
 
       const totalTime = Date.now() - startTime;
@@ -95,26 +107,35 @@ export class PlatformEnvironmentInfoService
         `Starting environment fetch for organization: ${organizationName}`,
       );
 
-      const environmentsResponse = await this.defaultClient.environmentsGet({
-        orgName: organizationName,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
       });
 
-      if (!environmentsResponse.ok) {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/environments',
+        {
+          params: {
+            path: { orgName: organizationName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
         this.logger.error(
-          `Failed to fetch environments for organization ${organizationName}`,
+          `Failed to fetch environments for organization ${organizationName}: ${response.status} ${response.statusText}`,
         );
         return [];
       }
 
-      const environmentsData = await environmentsResponse.json();
-      if (!environmentsData.success || !environmentsData.data?.items) {
+      if (!data.success || !data.data?.items) {
         this.logger.warn(
           `No environments found for organization ${organizationName}`,
         );
         return [];
       }
 
-      const environments = environmentsData.data.items as ModelsEnvironment[];
+      const environments = data.data.items;
       const result = this.transformEnvironmentData(
         environments,
         organizationName,
@@ -145,25 +166,36 @@ export class PlatformEnvironmentInfoService
     try {
       this.logger.debug('Starting platform-wide dataplane fetch');
 
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
       // For now, we'll fetch dataplanes from a default organization
       // In a real implementation, you might need to fetch from multiple organizations
       // or have a platform-wide API endpoint
-      const dataplanesResponse = await this.defaultClient.dataplanesGet({
-        orgName: 'default', // This should be configurable or fetched from a platform API
-      });
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/dataplanes',
+        {
+          params: {
+            path: { orgName: 'default' }, // This should be configurable or fetched from a platform API
+          },
+        },
+      );
 
-      if (!dataplanesResponse.ok) {
-        this.logger.error('Failed to fetch platform dataplanes');
+      if (error || !response.ok) {
+        this.logger.error(
+          `Failed to fetch platform dataplanes: ${response.status} ${response.statusText}`,
+        );
         return [];
       }
 
-      const dataplanesData = await dataplanesResponse.json();
-      if (!dataplanesData.success || !dataplanesData.data?.items) {
+      if (!data.success || !data.data?.items) {
         this.logger.warn('No dataplanes found in platform API response');
         return [];
       }
 
-      const dataplanes = dataplanesData.data.items as ModelsDataPlane[];
+      const dataplanes = data.data.items;
       const result = this.transformDataPlaneData(dataplanes, 'default');
 
       const totalTime = Date.now() - startTime;
@@ -194,26 +226,35 @@ export class PlatformEnvironmentInfoService
         `Starting dataplane fetch for organization: ${organizationName}`,
       );
 
-      const dataplanesResponse = await this.defaultClient.dataplanesGet({
-        orgName: organizationName,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
       });
 
-      if (!dataplanesResponse.ok) {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/dataplanes',
+        {
+          params: {
+            path: { orgName: organizationName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
         this.logger.error(
-          `Failed to fetch dataplanes for organization ${organizationName}`,
+          `Failed to fetch dataplanes for organization ${organizationName}: ${response.status} ${response.statusText}`,
         );
         return [];
       }
 
-      const dataplanesData = await dataplanesResponse.json();
-      if (!dataplanesData.success || !dataplanesData.data?.items) {
+      if (!data.success || !data.data?.items) {
         this.logger.warn(
           `No dataplanes found for organization ${organizationName}`,
         );
         return [];
       }
 
-      const dataplanes = dataplanesData.data.items as ModelsDataPlane[];
+      const dataplanes = data.data.items;
       const result = this.transformDataPlaneData(dataplanes, organizationName);
 
       const totalTime = Date.now() - startTime;
@@ -346,6 +387,11 @@ export class PlatformEnvironmentInfoService
         `Starting component counts fetch for ${components.length} components`,
       );
 
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
       // Process components in parallel with some concurrency control
       const batchSize = 10; // Process 10 components at a time to avoid overwhelming the API
 
@@ -355,25 +401,29 @@ export class PlatformEnvironmentInfoService
         const batchPromises = batch.map(async component => {
           try {
             // Get bindings for this component
-            const bindingsResponse = await this.defaultClient.bindingsGet({
-              orgName: component.orgName,
-              projectName: component.projectName,
-              componentName: component.componentName,
-            });
+            const { data, error, response } = await client.GET(
+              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+              {
+                params: {
+                  path: {
+                    orgName: component.orgName,
+                    projectName: component.projectName,
+                    componentName: component.componentName,
+                  },
+                },
+              },
+            );
 
-            if (bindingsResponse.ok) {
-              const bindingsData = await bindingsResponse.json();
-              if (bindingsData.success && bindingsData.data?.items) {
-                // Count environments where this component is deployed
-                bindingsData.data.items.forEach((binding: BindingResponse) => {
-                  const envName = binding.environment;
-                  if (envName) {
-                    const currentCount =
-                      componentCountsByEnvironment.get(envName) || 0;
-                    componentCountsByEnvironment.set(envName, currentCount + 1);
-                  }
-                });
-              }
+            if (!error && response.ok && data.success && data.data?.items) {
+              // Count environments where this component is deployed
+              data.data.items.forEach(binding => {
+                const envName = binding.environment;
+                if (envName) {
+                  const currentCount =
+                    componentCountsByEnvironment.get(envName) || 0;
+                  componentCountsByEnvironment.set(envName, currentCount + 1);
+                }
+              });
             }
           } catch (error) {
             this.logger.warn(
@@ -421,6 +471,11 @@ export class PlatformEnvironmentInfoService
         `Starting distinct deployed components count for ${components.length} components`,
       );
 
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
       // Process components in parallel with some concurrency control
       const batchSize = 10; // Process 10 components at a time to avoid overwhelming the API
 
@@ -430,23 +485,29 @@ export class PlatformEnvironmentInfoService
         const batchPromises = batch.map(async component => {
           try {
             // Get bindings for this component
-            const bindingsResponse = await this.defaultClient.bindingsGet({
-              orgName: component.orgName,
-              projectName: component.projectName,
-              componentName: component.componentName,
-            });
+            const { data, error, response } = await client.GET(
+              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+              {
+                params: {
+                  path: {
+                    orgName: component.orgName,
+                    projectName: component.projectName,
+                    componentName: component.componentName,
+                  },
+                },
+              },
+            );
 
-            if (bindingsResponse.ok) {
-              const bindingsData = await bindingsResponse.json();
-              if (
-                bindingsData.success &&
-                bindingsData.data?.items &&
-                bindingsData.data.items.length > 0
-              ) {
-                // If component has at least one binding, count it as deployed
-                const componentKey = `${component.orgName}/${component.projectName}/${component.componentName}`;
-                deployedComponents.add(componentKey);
-              }
+            if (
+              !error &&
+              response.ok &&
+              data.success &&
+              data.data?.items &&
+              data.data.items.length > 0
+            ) {
+              // If component has at least one binding, count it as deployed
+              const componentKey = `${component.orgName}/${component.projectName}/${component.componentName}`;
+              deployedComponents.add(componentKey);
             }
           } catch (error) {
             this.logger.warn(
@@ -495,6 +556,11 @@ export class PlatformEnvironmentInfoService
         `Starting healthy workload count for ${components.length} components`,
       );
 
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
       // Process components in parallel with some concurrency control
       const batchSize = 10; // Process 10 components at a time to avoid overwhelming the API
 
@@ -504,22 +570,25 @@ export class PlatformEnvironmentInfoService
         const batchPromises = batch.map(async component => {
           try {
             // Get bindings for this component
-            const bindingsResponse = await this.defaultClient.bindingsGet({
-              orgName: component.orgName,
-              projectName: component.projectName,
-              componentName: component.componentName,
-            });
+            const { data, error, response } = await client.GET(
+              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+              {
+                params: {
+                  path: {
+                    orgName: component.orgName,
+                    projectName: component.projectName,
+                    componentName: component.componentName,
+                  },
+                },
+              },
+            );
 
-            if (bindingsResponse.ok) {
-              const bindingsData = await bindingsResponse.json();
-              if (bindingsData.success && bindingsData.data?.items) {
-                // Count healthy workloads by checking if status.status === 'Active'
-                const healthyCount = bindingsData.data.items.filter(
-                  (binding: BindingResponse) =>
-                    binding.status?.status === 'Active',
-                ).length;
-                return healthyCount;
-              }
+            if (!error && response.ok && data.success && data.data?.items) {
+              // Count healthy workloads by checking if status.status === 'Active'
+              const healthyCount = data.data.items.filter(
+                binding => binding.status?.status === 'Active',
+              ).length;
+              return healthyCount;
             }
             return 0;
           } catch (error) {
@@ -562,15 +631,15 @@ export class PlatformEnvironmentInfoService
     return environmentData.map(env => {
       const transformedEnv: Environment = {
         name: env.name,
-        namespace: env.namespace,
-        displayName: env.displayName,
-        description: env.description,
+        namespace: env.namespace || '',
+        displayName: env.displayName || env.name,
+        description: env.description || '',
         organization: organizationName,
-        dataPlaneRef: env.dataPlaneRef,
-        isProduction: env.isProduction,
-        dnsPrefix: env.dnsPrefix,
-        createdAt: env.createdAt,
-        status: env.status,
+        dataPlaneRef: env.dataPlaneRef || '',
+        isProduction: env.isProduction ?? false,
+        dnsPrefix: env.dnsPrefix || '',
+        createdAt: env.createdAt || '',
+        status: env.status || '',
       };
 
       return transformedEnv;

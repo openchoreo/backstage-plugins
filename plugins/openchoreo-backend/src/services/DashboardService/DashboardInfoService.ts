@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { OpenChoreoApiClient } from '@openchoreo/backstage-plugin-api';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 
 export interface DashboardMetrics {
   totalBindings: number;
@@ -24,14 +24,32 @@ export class DashboardInfoService {
     );
 
     try {
-      const client = new OpenChoreoApiClient(this.baseUrl, '', this.logger);
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
 
       // Fetch bindings for the component
-      const bindings = await client.getComponentBindings(
-        orgName,
-        projectName,
-        componentName,
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+        {
+          params: {
+            path: {
+              orgName,
+              projectName,
+              componentName,
+            },
+          },
+        },
       );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch bindings: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const bindings = data.success && data.data?.items ? data.data.items : [];
 
       const bindingsCount = bindings.length;
 

@@ -1,27 +1,30 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  OpenChoreoApiClient,
-  ModelsBuild,
-  ObservabilityApiClient,
-  DefaultApiClient,
-  ComponentBuildLogsPostRequest,
-  RuntimeLogsResponse,
-  ObservabilityNotConfiguredError,
-} from '@openchoreo/backstage-plugin-api';
+  createOpenChoreoApiClient,
+  createObservabilityClientWithUrl,
+  type OpenChoreoComponents,
+} from '@openchoreo/openchoreo-client-node';
+import { RuntimeLogsResponse } from '../../types';
+
+// Use generated type from OpenAPI spec
+type ModelsBuild = OpenChoreoComponents['schemas']['Build'];
+
+export class ObservabilityNotConfiguredError extends Error {
+  constructor(componentName: string) {
+    super(`Build logs are not available for component ${componentName}`);
+    this.name = 'ObservabilityNotConfiguredError';
+  }
+}
 
 export class BuildInfoService {
   private logger: LoggerService;
-  private observabilityApiClient: ObservabilityApiClient;
   private baseUrl: string;
+  private token?: string;
 
-  constructor(logger: LoggerService, baseUrl: string) {
+  constructor(logger: LoggerService, baseUrl: string, token?: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    const defaultApiClient = new DefaultApiClient(baseUrl, {});
-    this.observabilityApiClient = new ObservabilityApiClient(
-      defaultApiClient,
-      {},
-    );
+    this.token = token;
   }
 
   async fetchBuilds(
@@ -34,12 +37,31 @@ export class BuildInfoService {
     );
 
     try {
-      const client = new OpenChoreoApiClient(this.baseUrl, '', this.logger);
-      const builds = await client.getAllBuilds(
-        orgName,
-        projectName,
-        componentName,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+          },
+        },
       );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch builds: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success) {
+        throw new Error('API request was not successful');
+      }
+
+      const builds = data.data?.items || [];
 
       this.logger.debug(
         `Successfully fetched ${builds.length} builds for component: ${componentName}`,
@@ -66,18 +88,35 @@ export class BuildInfoService {
     );
 
     try {
-      const client = new OpenChoreoApiClient(this.baseUrl, '', this.logger);
-      const build = await client.triggerBuild(
-        orgName,
-        projectName,
-        componentName,
-        commit,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.POST(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+            query: commit ? { commit } : undefined,
+          },
+        },
       );
 
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to trigger build: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data) {
+        throw new Error('No build data returned');
+      }
+
       this.logger.debug(
-        `Successfully triggered build for component: ${componentName}, build name: ${build.name}`,
+        `Successfully triggered build for component: ${componentName}, build name: ${data.data.name}`,
       );
-      return build;
+      return data.data;
     } catch (error) {
       this.logger.error(
         `Failed to trigger build for component ${componentName}: ${error}`,
@@ -101,28 +140,75 @@ export class BuildInfoService {
     );
 
     try {
-      const apiRequest: ComponentBuildLogsPostRequest = {
-        orgName,
-        projectName,
-        componentName,
-        buildId,
-        buildUuid,
-        ...(searchPhrase && { searchPhrase }),
-        ...(limit && { limit }),
-        ...(sortOrder && { sortOrder }),
-      };
+      // First, get the observer URL from the main API
+      const mainClient = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const {
+        data: urlData,
+        error: urlError,
+        response: urlResponse,
+      } = await mainClient.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/observer-url',
+        {
+          params: {
+            path: {
+              orgName,
+              projectName,
+              componentName,
+            },
+          },
+        },
+      );
+
+      if (urlError || !urlResponse.ok) {
+        throw new Error(
+          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
+        );
+      }
+
+      if (!urlData.success || !urlData.data) {
+        throw new Error(
+          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
+        );
+      }
+
+      const observerUrl = urlData.data.observerUrl;
+      if (!observerUrl) {
+        throw new ObservabilityNotConfiguredError(componentName);
+      }
+
+      // Now use the observability client with the resolved URL
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        this.token,
+        this.logger,
+      );
 
       this.logger.debug(
-        `Sending build logs request for component ${componentName} with parameters: ${JSON.stringify(
-          apiRequest,
-        )}`,
+        `Sending build logs request for component ${componentName} with build: ${buildId}`,
       );
 
-      const response = await this.observabilityApiClient.componentBuildLogsPost(
-        apiRequest,
+      const { data, error, response } = await obsClient.POST(
+        '/api/logs/component/{componentName}',
+        {
+          params: {
+            path: { componentName },
+          },
+          body: {
+            buildId,
+            buildUuid,
+            ...(searchPhrase && { searchPhrase }),
+            ...(limit && { limit }),
+            ...(sortOrder && { sortOrder }),
+          },
+        },
       );
 
-      if (!response.ok) {
+      if (error || !response.ok) {
         const errorText = await response.text();
         this.logger.error(
           `Failed to fetch build logs for component ${componentName}: ${response.status} ${response.statusText}`,
@@ -133,18 +219,16 @@ export class BuildInfoService {
         );
       }
 
-      const logsData = await response.json();
-
       this.logger.debug(
         `Successfully fetched ${
-          logsData.logs?.length || 0
+          data.logs?.length || 0
         } build logs for component ${componentName}`,
       );
 
       return {
-        logs: logsData.logs || [],
-        totalCount: logsData.totalCount || 0,
-        tookMs: logsData.tookMs || 0,
+        logs: data.logs || [],
+        totalCount: data.totalCount || data.total || 0,
+        tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {

@@ -3,11 +3,16 @@ import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
 import { BuildTemplateInfoService } from './services/BuildTemplateService/BuildTemplateInfoService';
-import { BuildInfoService } from './services/BuildService/BuildInfoService';
+import {
+  BuildInfoService,
+  ObservabilityNotConfiguredError as BuildObservabilityNotConfiguredError,
+} from './services/BuildService/BuildInfoService';
 import { CellDiagramService, WorkloadService } from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
-import { RuntimeLogsInfoService } from './services/RuntimeLogsService/RuntimeLogsService';
-import { ObservabilityNotConfiguredError } from '@openchoreo/backstage-plugin-api';
+import {
+  RuntimeLogsInfoService,
+  ObservabilityNotConfiguredError as RuntimeObservabilityNotConfiguredError,
+} from './services/RuntimeLogsService/RuntimeLogsService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 
 export async function createRouter({
@@ -217,7 +222,7 @@ export async function createRouter({
       );
       return res.json(result);
     } catch (error: unknown) {
-      if (error instanceof ObservabilityNotConfiguredError) {
+      if (error instanceof BuildObservabilityNotConfiguredError) {
         return res.status(200).json({
           message: "Observability hasn't been configured",
         });
@@ -259,7 +264,7 @@ export async function createRouter({
 
         return res.json(result);
       } catch (error: unknown) {
-        if (error instanceof ObservabilityNotConfiguredError) {
+        if (error instanceof RuntimeObservabilityNotConfiguredError) {
           return res.status(200).json({
             message: 'observability is disabled',
           });

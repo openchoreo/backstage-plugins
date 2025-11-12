@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { OpenChoreoApiClient } from '@openchoreo/backstage-plugin-api';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 
@@ -110,8 +110,11 @@ export const createComponentAction = (config: Config) => {
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
 
-      // Create a new instance of the OpenChoreoApiClient
-      const client = new OpenChoreoApiClient(baseUrl, '', ctx.logger);
+      // Create a new instance of the OpenChoreo API client using the generated client
+      const client = createOpenChoreoApiClient({
+        baseUrl,
+        logger: ctx.logger,
+      });
 
       // Build configuration for built-in CI
       let buildConfig = undefined;
@@ -149,20 +152,38 @@ export const createComponentAction = (config: Config) => {
       }
 
       try {
-        const response = await client.createComponent(orgName, projectName, {
-          name: ctx.input.componentName,
-          displayName: ctx.input.displayName,
-          description: ctx.input.description,
-          type: ctx.input.componentType,
-          buildConfig,
-        });
+        const { data, error, response } = await client.POST(
+          '/orgs/{orgName}/projects/{projectName}/components',
+          {
+            params: {
+              path: { orgName, projectName },
+            },
+            body: {
+              name: ctx.input.componentName,
+              displayName: ctx.input.displayName,
+              description: ctx.input.description,
+              type: ctx.input.componentType,
+              buildConfig,
+            },
+          },
+        );
+
+        if (error || !response.ok) {
+          throw new Error(
+            `Failed to create component: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        if (!data.success || !data.data) {
+          throw new Error('API request was not successful');
+        }
 
         ctx.logger.debug(
-          `Component created successfully: ${JSON.stringify(response)}`,
+          `Component created successfully: ${JSON.stringify(data.data)}`,
         );
 
         // Set outputs for the scaffolder
-        ctx.output('componentName', response.name);
+        ctx.output('componentName', data.data.name || ctx.input.componentName);
         ctx.output('projectName', projectName);
         ctx.output('organizationName', orgName);
       } catch (error) {

@@ -60,8 +60,16 @@ export async function fetchBuildLogsForBuild(
   identity: IdentityApi,
   build: ModelsBuild,
 ): Promise<RuntimeLogsResponse> {
-  if (!build.componentName || !build.name || !build.uuid) {
-    throw new Error('Component name, Build ID, or UUID not available');
+  if (
+    !build.componentName ||
+    !build.name ||
+    !build.uuid ||
+    !build.projectName ||
+    !build.orgName
+  ) {
+    throw new Error(
+      'Component name, Build ID, UUID, Project name, or Organization name not available',
+    );
   }
 
   const params: BuildLogsParams = {

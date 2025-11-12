@@ -1,0 +1,43 @@
+{
+  "name": "@openchoreo/openchoreo-client-node",
+  "version": "0.1.0",
+  "description": "OpenChoreo API client with auto-generated TypeScript types",
+  "license": "Apache-2.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.cjs.js",
+    "types": "dist/index.d.ts"
+  },
+  "backstage": {
+    "role": "node-library"
+  },
+  "openChoreoVersion": "1.0.0",
+  "scripts": {
+    "start": "backstage-cli package start",
+    "build": "backstage-cli package build",
+    "lint": "backstage-cli package lint",
+    "test": "backstage-cli package test",
+    "clean": "backstage-cli package clean",
+    "clean:generated": "rimraf src/generated src/version.ts",
+    "generate:clients": "bash ../../node_modules/@openchoreo/openapi-client-generator-node/scripts/generate-client.sh --config openapi-config.json",
+    "prepack": "backstage-cli package prepack",
+    "postpack": "backstage-cli package postpack"
+  },
+  "dependencies": {
+    "@backstage/backend-plugin-api": "^1.4.3",
+    "@backstage/config": "^1.3.4",
+    "openapi-fetch": "^0.13.3"
+  },
+  "devDependencies": {
+    "@backstage/cli": "^0.34.3",
+    "@openchoreo/openapi-client-generator-node": "workspace:^",
+    "openapi-typescript": "^7.4.4",
+    "rimraf": "^5.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

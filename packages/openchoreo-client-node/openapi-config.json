@@ -1,0 +1,17 @@
+{
+  "outputDir": "src/generated",
+  "specs": [
+    {
+      "name": "openchoreo",
+      "input": "openapi/openchoreo-api.yaml",
+      "description": "OpenChoreo Main API"
+    },
+    {
+      "name": "observability",
+      "input": "openapi/openchoreo-observability-api.yaml",
+      "description": "OpenChoreo Observability API"
+    }
+  ],
+  "versionField": "openChoreoVersion",
+  "versionFile": "src/version.ts"
+}
