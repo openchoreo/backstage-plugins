@@ -1,9 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { WorkloadService } from '../../types';
 import {
-  OpenChoreoApiClient,
-  ModelsWorkload,
-} from '@openchoreo/backstage-plugin-api';
+  createOpenChoreoApiClient,
+  type OpenChoreoComponents,
+} from '@openchoreo/openchoreo-client-node';
+
+// Use generated type from OpenAPI spec
+type ModelsWorkload = OpenChoreoComponents['schemas']['Workload'];
 
 /**
  * Service for managing and retrieving workload information.
@@ -11,11 +14,13 @@ import {
  */
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
-  private readonly client: OpenChoreoApiClient;
+  private readonly baseUrl: string;
+  private readonly token?: string;
 
   public constructor(logger: LoggerService, baseUrl: string, token?: string) {
     this.logger = logger;
-    this.client = new OpenChoreoApiClient(baseUrl, token, logger);
+    this.baseUrl = baseUrl;
+    this.token = token;
   }
 
   static create(
@@ -48,12 +53,37 @@ export class WorkloadInfoService implements WorkloadService {
       this.logger.info(
         `Fetching workload info for component: ${componentName} in project: ${projectName}, org: ${organizationName}`,
       );
-      const workload = await this.client.getWorkload(
-        organizationName,
-        projectName,
-        componentName,
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads',
+        {
+          params: {
+            path: {
+              orgName: organizationName,
+              projectName,
+              componentName,
+            },
+          },
+        },
       );
-      return workload;
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workload: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data) {
+        throw new Error('No workload data returned');
+      }
+
+      return data.data;
     } catch (error) {
       this.logger.error(`Failed to fetch workload info: ${error}`);
       throw new Error('Failed to fetch workload info', { cause: error });
@@ -85,15 +115,37 @@ export class WorkloadInfoService implements WorkloadService {
         `Applying workload for component: ${componentName} in project: ${projectName}, org: ${organizationName}`,
       );
 
-      // Use the new workload client method
-      const result = await this.client.updateWorkload(
-        organizationName,
-        projectName,
-        componentName,
-        workloadSpec,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.POST(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads',
+        {
+          params: {
+            path: {
+              orgName: organizationName,
+              projectName,
+              componentName,
+            },
+          },
+          body: workloadSpec,
+        },
       );
 
-      return result;
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to update workload: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data) {
+        throw new Error('No workload data returned');
+      }
+
+      return data.data;
     } catch (error) {
       this.logger.error(`Failed to apply workload: ${error}`);
       throw error;

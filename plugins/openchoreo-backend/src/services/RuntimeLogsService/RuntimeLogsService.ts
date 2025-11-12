@@ -1,10 +1,19 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { RuntimeLogsService, RuntimeLogsResponse } from '../../types';
 import {
-  ObservabilityApiClient,
-  ComponentLogsPostRequest,
-  ObservabilityNotConfiguredError,
-} from '@openchoreo/backstage-plugin-api';
+  createOpenChoreoApiClient,
+  createObservabilityClientWithUrl,
+} from '@openchoreo/openchoreo-client-node';
+
+/**
+ * Error thrown when observability is not configured for a component
+ */
+export class ObservabilityNotConfiguredError extends Error {
+  constructor(componentName: string) {
+    super(`Runtime logs are not available for component ${componentName}`);
+    this.name = 'ObservabilityNotConfiguredError';
+  }
+}
 
 /**
  * Service for fetching runtime logs for components.
@@ -12,14 +21,13 @@ import {
  */
 export class RuntimeLogsInfoService implements RuntimeLogsService {
   private readonly logger: LoggerService;
-  private readonly observabilityClient: ObservabilityApiClient;
+  private readonly baseUrl: string;
+  private readonly token?: string;
 
-  public constructor(
-    logger: LoggerService,
-    observabilityClient: ObservabilityApiClient,
-  ) {
+  public constructor(logger: LoggerService, baseUrl: string, token?: string) {
     this.logger = logger;
-    this.observabilityClient = observabilityClient;
+    this.baseUrl = baseUrl;
+    this.token = token;
   }
 
   /**
@@ -42,7 +50,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
     request: {
       componentId: string;
       environmentId: string;
-      logLevels?: string[];
+      logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -66,29 +74,77 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         `Fetching runtime logs for component ${componentId} in environment ${environmentId}`,
       );
 
-      const apiRequest: ComponentLogsPostRequest = {
-        componentId,
-        environmentId,
-        ...(logLevels && { logLevels }),
-        ...(startTime && { startTime }),
-        ...(endTime && { endTime }),
-        limit,
-        offset,
-      };
+      // First, get the observer URL from the main API
+      const mainClient = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const {
+        data: urlData,
+        error: urlError,
+        response: urlResponse,
+      } = await mainClient.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
+        {
+          params: {
+            path: {
+              orgName,
+              projectName,
+              componentName: componentId,
+              environmentName: environmentId,
+            },
+          },
+        },
+      );
+
+      if (urlError || !urlResponse.ok) {
+        throw new Error(
+          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
+        );
+      }
+
+      if (!urlData.success || !urlData.data) {
+        throw new Error(
+          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
+        );
+      }
+
+      const observerUrl = urlData.data.observerUrl;
+      if (!observerUrl) {
+        throw new ObservabilityNotConfiguredError(componentId);
+      }
+
+      // Now use the observability client with the resolved URL
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        this.token,
+        this.logger,
+      );
 
       this.logger.info(
-        `Sending logs request for component ${componentId} with parameters: ${JSON.stringify(
-          apiRequest,
-        )}`,
+        `Sending logs request for component ${componentId} with limit: ${limit}, offset: ${offset}`,
       );
 
-      const response = await this.observabilityClient.componentRuntimeLogsPost(
-        apiRequest,
-        orgName,
-        projectName,
+      const { data, error, response } = await obsClient.POST(
+        '/api/logs/component/{componentId}',
+        {
+          params: {
+            path: { componentId },
+          },
+          body: {
+            environmentId,
+            ...(logLevels && logLevels.length > 0 && { logLevels }),
+            ...(startTime && { startTime }),
+            ...(endTime && { endTime }),
+            limit,
+            offset,
+          },
+        },
       );
 
-      if (!response.ok) {
+      if (error || !response.ok) {
         const errorText = await response.text();
         this.logger.error(
           `Failed to fetch runtime logs for component ${componentId}: ${response.status} ${response.statusText}`,
@@ -99,18 +155,16 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         );
       }
 
-      const logsData = await response.json();
-
       this.logger.info(
         `Successfully fetched ${
-          logsData.logs?.length || 0
+          data.logs?.length || 0
         } runtime logs for component ${componentId}`,
       );
 
       return {
-        logs: logsData.logs || [],
-        totalCount: logsData.totalCount || 0,
-        tookMs: logsData.tookMs || 0,
+        logs: data.logs || [],
+        totalCount: data.totalCount || data.total || 0,
+        tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {

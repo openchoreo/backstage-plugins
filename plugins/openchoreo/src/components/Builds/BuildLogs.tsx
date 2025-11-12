@@ -169,7 +169,10 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
                 Commit: {build.commit?.slice(0, 8) || 'N/A'}
               </Typography>
               <Typography variant="body2" color="textSecondary" gutterBottom>
-                Created: {new Date(build.createdAt).toLocaleString()}
+                Created:{' '}
+                {build.createdAt
+                  ? new Date(build.createdAt).toLocaleString()
+                  : 'N/A'}
               </Typography>
 
               <Box mt={3}>

@@ -1,12 +1,20 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 
-import { Project, Component, Connection } from '@wso2/cell-diagram';
+import {
+  Project,
+  Component,
+  Connection as CellDiagramConnection,
+} from '@wso2/cell-diagram';
 import { CellDiagramService } from '../../types';
 import {
-  DefaultApiClient,
-  ModelsCompleteComponent,
-  Connection as WorkloadConnection,
-} from '@openchoreo/backstage-plugin-api';
+  createOpenChoreoApiClient,
+  type OpenChoreoComponents,
+} from '@openchoreo/openchoreo-client-node';
+
+// Use generated type from OpenAPI spec
+type ModelsCompleteComponent =
+  OpenChoreoComponents['schemas']['CompleteComponent'];
+type WorkloadConnection = OpenChoreoComponents['schemas']['Connection'];
 
 enum ComponentType {
   SERVICE = 'service',
@@ -35,7 +43,7 @@ enum ConnectionType {
  */
 export class CellDiagramInfoService implements CellDiagramService {
   private readonly logger: LoggerService;
-  private readonly client: DefaultApiClient;
+  private readonly baseUrl: string;
 
   /**
    * Private constructor for CellDiagramInfoService.
@@ -45,7 +53,7 @@ export class CellDiagramInfoService implements CellDiagramService {
    * @private
    */
   public constructor(logger: LoggerService, baseUrl: string) {
-    this.client = new DefaultApiClient(baseUrl, {});
+    this.baseUrl = baseUrl;
     this.logger = logger;
   }
 
@@ -64,32 +72,67 @@ export class CellDiagramInfoService implements CellDiagramService {
     orgName: string;
   }): Promise<Project | undefined> {
     try {
-      const response = await this.client.componentsGet({
-        orgName,
-        projectName,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
       });
 
-      if (!response.ok) {
+      const {
+        data: componentsListData,
+        error: listError,
+        response: listResponse,
+      } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components',
+        {
+          params: {
+            path: { orgName, projectName },
+          },
+        },
+      );
+
+      if (listError || !listResponse.ok) {
         this.logger.error(
           `Failed to fetch components for project ${projectName}`,
         );
         return undefined;
       }
 
-      const componentsData = await response.json();
+      if (!componentsListData.success || !componentsListData.data?.items) {
+        this.logger.warn('No components found in API response');
+        return undefined;
+      }
+
       const completeComponents: ModelsCompleteComponent[] = [];
 
-      for (const component of componentsData.data.items) {
-        try {
-          const componentResponse = await this.client.componentGet({
-            orgName,
-            projectName,
-            componentName: component.name,
-          });
+      for (const component of componentsListData.data.items) {
+        const componentName = (component as { name?: string }).name;
+        if (!componentName) continue;
 
-          if (componentResponse.ok) {
-            const componentData = await componentResponse.json();
-            completeComponents.push(componentData.data);
+        try {
+          const {
+            data: componentData,
+            error: componentError,
+            response: componentResponse,
+          } = await client.GET(
+            '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+            {
+              params: {
+                path: {
+                  orgName,
+                  projectName,
+                  componentName,
+                },
+                query: {
+                  include: 'type,workload',
+                },
+              },
+            },
+          );
+
+          if (!componentError && componentResponse.ok) {
+            if (componentData.success && componentData.data) {
+              completeComponents.push(componentData.data);
+            }
           }
         } catch (error) {
           this.logger.warn(
@@ -134,7 +177,9 @@ export class CellDiagramInfoService implements CellDiagramService {
               },
             );
             const connections = this.generateConnections(
-              component.workload?.connections,
+              component.workload?.connections as
+                | { [key: string]: WorkloadConnection }
+                | undefined,
               orgName,
               projectName,
               completeComponents,
@@ -174,7 +219,9 @@ export class CellDiagramInfoService implements CellDiagramService {
                 },
               },
               connections: this.generateConnections(
-                component.workload?.connections,
+                component.workload?.connections as
+                  | { [key: string]: WorkloadConnection }
+                  | undefined,
                 orgName,
                 projectName,
                 completeComponents,
@@ -208,12 +255,12 @@ export class CellDiagramInfoService implements CellDiagramService {
     orgName: string,
     projectName: string,
     completeComponents: ModelsCompleteComponent[],
-  ): Connection[] {
+  ): CellDiagramConnection[] {
     if (!connections) {
       return [];
     }
 
-    const conns: Connection[] = [];
+    const conns: CellDiagramConnection[] = [];
     Object.entries(connections).forEach(
       ([connectionName, connection]: [string, WorkloadConnection]) => {
         const dependentComponentName = connection.params.componentName;

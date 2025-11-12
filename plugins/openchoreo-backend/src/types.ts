@@ -1,5 +1,10 @@
 import { Project } from '@wso2/cell-diagram';
-import { ModelsWorkload } from '@openchoreo/backstage-plugin-api';
+import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+
+// Import generated types from observability client
+export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
+export type RuntimeLogsResponse =
+  ObservabilityComponents['schemas']['RuntimeLogsResponse'];
 
 export interface EnvironmentService {
   fetchDeploymentInfo(request: {
@@ -110,13 +115,13 @@ export interface WorkloadService {
     projectName: string;
     componentName: string;
     organizationName: string;
-  }): Promise<ModelsWorkload>;
+  }): Promise<any>;
 
   applyWorkload(request: {
     projectName: string;
     componentName: string;
     organizationName: string;
-    workloadSpec: ModelsWorkload;
+    workloadSpec: any;
   }): Promise<any>;
 }
 
@@ -124,9 +129,8 @@ export interface RuntimeLogsService {
   fetchRuntimeLogs(
     request: {
       componentId: string;
-      namespace: string;
       environmentId: string;
-      logLevels?: string[];
+      logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -137,23 +141,5 @@ export interface RuntimeLogsService {
   ): Promise<RuntimeLogsResponse>;
 }
 
-export interface LogEntry {
-  timestamp: string;
-  log: string;
-  logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
-  componentId: string;
-  environmentId: string;
-  projectId: string;
-  version: string;
-  versionId: string;
-  namespace: string;
-  podId: string;
-  containerName: string;
-  labels: Record<string, string>;
-}
-
-export interface RuntimeLogsResponse {
-  logs: LogEntry[];
-  totalCount: number;
-  tookMs: number;
-}
+// LogEntry and RuntimeLogsResponse are now imported from the generated observability client
+// See @openchoreo/openchoreo-client-node/src/generated/observability/types

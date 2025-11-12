@@ -176,7 +176,10 @@ export function ContainerSection({
                                       value={build.image}
                                     >
                                       {build.name} (
-                                      {formatRelativeTime(build.createdAt)})
+                                      {formatRelativeTime(
+                                        build.createdAt || '',
+                                      )}
+                                      )
                                     </MenuItem>
                                   ),
                               )}
@@ -249,7 +252,7 @@ export function ContainerSection({
                             disabled={!!envVar.valueFrom || disabled}
                           />
                         </Grid>
-                        {envVar.valueFrom ? (
+                        {envVar.valueFrom?.configurationGroupRef ? (
                           <>
                             <Grid item xs={5}>
                               <Typography variant="body2">

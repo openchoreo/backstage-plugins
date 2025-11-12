@@ -14,10 +14,11 @@ import {
   discoveryApiRef,
   identityApiRef,
 } from '@backstage/core-plugin-api';
-import type {
-  ModelsBuildTemplate,
-  BuildTemplateParameter,
-} from '@openchoreo/backstage-plugin-api';
+import type { OpenChoreoComponents } from '@openchoreo/backstage-plugin-common';
+
+type ModelsBuildTemplate = OpenChoreoComponents['schemas']['BuildTemplate'];
+type BuildTemplateParameter =
+  OpenChoreoComponents['schemas']['BuildTemplateParameter'];
 
 /*
  Schema for the Build Template Parameters Field

@@ -302,16 +302,20 @@ export const Builds = () => {
     {
       title: 'Time',
       field: 'time',
-      render: (row: any) => formatRelativeTime((row as ModelsBuild).createdAt),
+      render: (row: any) =>
+        formatRelativeTime((row as ModelsBuild).createdAt || ''),
     },
   ];
 
-  const getRepositoryUrl = (component: ModelsCompleteComponent) => {
-    const baseUrl = component.buildConfig?.repoUrl || component.repositoryUrl;
+  const getRepositoryUrl = (
+    component: ModelsCompleteComponent,
+  ): string | undefined => {
+    const baseUrl = (component.buildConfig?.repoUrl ||
+      component.repositoryUrl) as string;
     const branch = component.buildConfig?.repoBranch || component.branch;
     const componentPath = component.buildConfig?.componentPath;
 
-    if (!componentPath) {
+    if (!componentPath || !baseUrl) {
       return baseUrl;
     }
 
@@ -366,7 +370,7 @@ export const Builds = () => {
               <IconButton
                 size="small"
                 onClick={() =>
-                  copyToClipboard(getRepositoryUrl(componentDetails))
+                  copyToClipboard(getRepositoryUrl(componentDetails) || '')
                 }
                 style={{ marginLeft: '8px', padding: '4px' }}
                 title="Copy URL to clipboard"
@@ -389,8 +393,11 @@ export const Builds = () => {
                   }}
                 />
                 <Typography variant="body2">
-                  {componentDetails.buildConfig?.repoBranch ||
-                    componentDetails.branch}
+                  {(componentDetails.buildConfig?.repoBranch as
+                    | string
+                    | undefined) ||
+                    componentDetails.branch ||
+                    'N/A'}
                 </Typography>
               </Box>
               <Box display="flex">
@@ -437,7 +444,8 @@ export const Builds = () => {
         columns={columns}
         data={builds.sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime(),
         )}
         onRowClick={(_, rowData) => {
           setSelectedBuild(rowData as ModelsBuild);

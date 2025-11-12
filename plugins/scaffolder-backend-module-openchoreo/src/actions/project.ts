@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { OpenChoreoApiClient } from '@openchoreo/backstage-plugin-api';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 
@@ -58,23 +58,44 @@ export const createProjectAction = (config: Config) => {
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
 
-      // Create a new instance of the OpenChoreoApiClient
-      const client = new OpenChoreoApiClient(baseUrl, '', ctx.logger);
+      // Create a new instance of the OpenChoreo API client using the generated client
+      const client = createOpenChoreoApiClient({
+        baseUrl,
+        logger: ctx.logger,
+      });
 
       try {
-        const response = await client.createProject(orgName, {
-          name: ctx.input.projectName,
-          displayName: ctx.input.displayName,
-          description: ctx.input.description,
-          deploymentPipeline: ctx.input.deploymentPipeline,
-        });
+        const { data, error, response } = await client.POST(
+          '/orgs/{orgName}/projects',
+          {
+            params: {
+              path: { orgName },
+            },
+            body: {
+              name: ctx.input.projectName,
+              displayName: ctx.input.displayName,
+              description: ctx.input.description,
+              deploymentPipeline: ctx.input.deploymentPipeline,
+            },
+          },
+        );
+
+        if (error || !response.ok) {
+          throw new Error(
+            `Failed to create project: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        if (!data.success || !data.data) {
+          throw new Error('API request was not successful');
+        }
 
         ctx.logger.debug(
-          `Project created successfully: ${JSON.stringify(response)}`,
+          `Project created successfully: ${JSON.stringify(data.data)}`,
         );
 
         // Set outputs for the scaffolder
-        ctx.output('projectName', response.name);
+        ctx.output('projectName', data.data.name || ctx.input.projectName);
         ctx.output('organizationName', orgName);
       } catch (error) {
         ctx.logger.error(`Error creating project: ${error}`);
