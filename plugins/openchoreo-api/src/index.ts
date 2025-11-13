@@ -11,5 +11,5 @@ export {
   ObservabilityApiClient,
   ObservabilityNotConfiguredError,
 } from './api';
-export * from './models';
+export * from './models/index';
 export * from './types/labels';

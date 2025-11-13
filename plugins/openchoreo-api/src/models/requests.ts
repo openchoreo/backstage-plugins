@@ -9,6 +9,8 @@
  */
 export type ProjectsGetRequest = {
   orgName: string;
+  cursor?: string;
+  limit?: number;
 };
 
 /**
@@ -24,7 +26,8 @@ export type OrgProjectsGetRequest = {
  * @public
  */
 export type OrganizationsGetRequest = {
-  // No parameters needed for getting all organizations
+  cursor?: string;
+  limit?: number;
 };
 
 /**
@@ -34,6 +37,8 @@ export type OrganizationsGetRequest = {
 export type ComponentsGetRequest = {
   orgName: string;
   projectName: string;
+  cursor?: string;
+  limit?: number;
 };
 
 /**

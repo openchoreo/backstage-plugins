@@ -57,8 +57,58 @@ export class DefaultApiClient {
   }
 
   /**
+   * Wraps a Response object to create a TypedResponse
+   */
+  private wrapResponse<T>(response: Response): TypedResponse<T> {
+    return {
+      ...response,
+      json: async (): Promise<T> => await response.json(),
+      text: async (): Promise<string> => await response.text(),
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      url: response.url,
+    } as TypedResponse<T>;
+  }
+
+  /**
+   * Builds query string from cursor and limit parameters, or from a generic params object
+   */
+  private buildQueryString(
+    cursor?: string,
+    limit?: number,
+    params?: Record<string, string | number | string[] | undefined>,
+  ): string {
+    let queryParams: Array<string> = [];
+
+    if (params) {
+      // Use generic params object if provided
+      queryParams = Object.entries(params)
+        .filter(([_, value]) => value !== undefined && value !== null)
+        .flatMap(([key, value]) => {
+          if (Array.isArray(value)) {
+            // Handle arrays by creating multiple key=value pairs
+            return value.map(
+              item => `${key}=${encodeURIComponent(String(item))}`,
+            );
+          }
+          // Handle single values
+          return [`${key}=${encodeURIComponent(String(value))}`];
+        });
+    } else {
+      // Use cursor/limit parameters for backward compatibility
+      queryParams = [
+        cursor && `cursor=${encodeURIComponent(cursor)}`,
+        limit && `limit=${encodeURIComponent(String(limit))}`,
+      ].filter(Boolean) as Array<string>;
+    }
+
+    return queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+  }
+
+  /**
    * Retrieves all Project CRs from all namespaces
-   * List all projects
    */
   public async projectsGet(
     request: ProjectsGetRequest,
@@ -66,36 +116,43 @@ export class DefaultApiClient {
   ): Promise<TypedResponse<OpenChoreoApiResponse<ModelsProject>>> {
     const uriTemplate = `/orgs/{orgName}/projects`;
 
-    const uri = parser.parse(uriTemplate).expand({
+    let uri = parser.parse(uriTemplate).expand({
       orgName: request.orgName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    uri += this.buildQueryString(request.cursor, request.limit);
+
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiResponse<ModelsProject>>(response);
   }
 
   /**
    * Retrieves all Organization CRs from all namespaces
-   * List all organizations
    */
   public async organizationsGet(
     _request: OrganizationsGetRequest,
     options?: RequestOptions,
   ): Promise<TypedResponse<OpenChoreoApiResponse<ModelsOrganization>>> {
-    const uri = `/orgs`;
+    let uri = `/orgs`;
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    uri += this.buildQueryString(_request.cursor, _request.limit);
+
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiResponse<ModelsOrganization>>(
+      response,
+    );
   }
 
   /**
@@ -111,13 +168,16 @@ export class DefaultApiClient {
     const uri = parser.parse(uriTemplate).expand({
       orgName: request.orgName,
     });
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiResponse<ModelsEnvironment>>(
+      response,
+    );
   }
 
   /**
@@ -144,7 +204,6 @@ export class DefaultApiClient {
 
   /**
    * Retrieves all Component CRs from a project
-   * List all components of a project
    */
   public async componentsGet(
     request: ComponentsGetRequest,
@@ -152,18 +211,21 @@ export class DefaultApiClient {
   ): Promise<TypedResponse<OpenChoreoApiResponse<ModelsComponent>>> {
     const uriTemplate = `/orgs/{orgName}/projects/{projectName}/components`;
 
-    const uri = parser.parse(uriTemplate).expand({
+    let uri = parser.parse(uriTemplate).expand({
       orgName: request.orgName,
       projectName: request.projectName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    uri += this.buildQueryString(request.cursor, request.limit);
+
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiResponse<ModelsComponent>>(response);
   }
 
   /**
@@ -184,13 +246,16 @@ export class DefaultApiClient {
       componentName: request.componentName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<
+      OpenChoreoApiSingleResponse<ModelsCompleteComponent>
+    >(response);
   }
 
   /**
@@ -240,13 +305,16 @@ export class DefaultApiClient {
       orgName: request.orgName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiResponse<ModelsBuildTemplate>>(
+      response,
+    );
   }
 
   /**
@@ -265,13 +333,14 @@ export class DefaultApiClient {
       componentName: request.componentName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiResponse<ModelsBuild>>(response);
   }
 
   /**
@@ -290,9 +359,9 @@ export class DefaultApiClient {
       componentName: request.componentName,
     });
 
-    if (request.commit) {
-      uri += `?commit=${encodeURIComponent(request.commit)}`;
-    }
+    uri += this.buildQueryString(undefined, undefined, {
+      commit: request.commit,
+    });
 
     return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
@@ -352,21 +421,18 @@ export class DefaultApiClient {
       componentName: request.componentName,
     });
 
-    // Add environment query parameters if provided
-    if (request.environment && request.environment.length > 0) {
-      const envParams = request.environment
-        .map(env => `environment=${encodeURIComponent(env)}`)
-        .join('&');
-      uri += `?${envParams}`;
-    }
+    uri += this.buildQueryString(undefined, undefined, {
+      environment: request.environment,
+    });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiResponse<BindingResponse>>(response);
   }
 
   /**
@@ -386,13 +452,16 @@ export class DefaultApiClient {
       projectName: request.projectName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<
+      OpenChoreoApiSingleResponse<DeploymentPipelineResponse>
+    >(response);
   }
 
   /**
@@ -437,13 +506,16 @@ export class DefaultApiClient {
       componentName: request.componentName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiSingleResponse<ModelsWorkload>>(
+      response,
+    );
   }
 
   /**
@@ -489,13 +561,16 @@ export class DefaultApiClient {
       environmentName: request.environmentName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(options?.token && { Authorization: `Bearer ${options?.token}` }),
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiSingleResponse<ObserverUrlData>>(
+      response,
+    );
   }
 
   /**
@@ -513,12 +588,15 @@ export class DefaultApiClient {
       componentName: request.componentName,
     });
 
-    return await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
+    const response = await this.fetchApi.fetch(`${this.baseUrl}${uri}`, {
       headers: {
         'Content-Type': 'application/json',
       },
       method: 'GET',
     });
+    return this.wrapResponse<OpenChoreoApiSingleResponse<ObserverUrlData>>(
+      response,
+    );
   }
 
   /**
