@@ -16,7 +16,8 @@ import {
 } from '@backstage/core-plugin-api';
 import type { OpenChoreoComponents } from '@openchoreo/backstage-plugin-common';
 
-type ModelsBuildTemplate = OpenChoreoComponents['schemas']['BuildTemplate'];
+type ModelsBuildTemplate =
+  OpenChoreoComponents['schemas']['BuildTemplateResponse'];
 
 /*
  Schema for the Custom Field Explorer

@@ -13,7 +13,7 @@ import {
 
 // Use generated type from OpenAPI spec
 type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['CompleteComponent'];
+  OpenChoreoComponents['schemas']['ComponentResponse'];
 type WorkloadConnection = OpenChoreoComponents['schemas']['Connection'];
 
 enum ComponentType {
@@ -121,9 +121,6 @@ export class CellDiagramInfoService implements CellDiagramService {
                   orgName,
                   projectName,
                   componentName,
-                },
-                query: {
-                  include: 'type,workload',
                 },
               },
             },

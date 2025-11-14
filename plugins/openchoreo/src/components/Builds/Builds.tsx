@@ -310,9 +310,8 @@ export const Builds = () => {
   const getRepositoryUrl = (
     component: ModelsCompleteComponent,
   ): string | undefined => {
-    const baseUrl = (component.buildConfig?.repoUrl ||
-      component.repositoryUrl) as string;
-    const branch = component.buildConfig?.repoBranch || component.branch;
+    const baseUrl = component.buildConfig?.repoUrl;
+    const branch = component.buildConfig?.repoBranch;
     const componentPath = component.buildConfig?.componentPath;
 
     if (!componentPath || !baseUrl) {
@@ -393,11 +392,7 @@ export const Builds = () => {
                   }}
                 />
                 <Typography variant="body2">
-                  {(componentDetails.buildConfig?.repoBranch as
-                    | string
-                    | undefined) ||
-                    componentDetails.branch ||
-                    'N/A'}
+                  {componentDetails.buildConfig?.repoBranch || 'N/A'}
                 </Typography>
               </Box>
               <Box display="flex">

@@ -8,7 +8,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 
 servers:
-  - url: /
+  - url: /api/v1
     description: OpenChoreo API Server
 
 components:
@@ -19,10 +19,41 @@ components:
       bearerFormat: JWT
 
   schemas:
-    Organization:
+    # Core response wrapper types
+    APIResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          additionalProperties: true
+        error:
+          type: string
+        code:
+          type: string
+
+    ListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    # Organization
+    OrganizationResponse:
       type: object
       required:
         - name
+        - createdAt
       properties:
         name:
           type: string
@@ -37,14 +68,32 @@ components:
           format: date-time
         status:
           type: string
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
 
-    Project:
+    # Project
+    ProjectResponse:
+      type: object
+      required:
+        - name
+        - orgName
+        - createdAt
+      properties:
+        name:
+          type: string
+        orgName:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        deploymentPipeline:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    CreateProjectRequest:
       type: object
       required:
         - name
@@ -55,93 +104,142 @@ components:
           type: string
         description:
           type: string
-        createdAt:
+        deploymentPipeline:
           type: string
-          format: date-time
-        status:
-          type: string
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
 
-    Component:
+    # DeploymentPipeline
+    DeploymentPipelineResponse:
       type: object
       required:
         - name
+        - orgName
+        - createdAt
       properties:
         name:
           type: string
-        type:
+        displayName:
           type: string
         description:
           type: string
-        namespace:
-          type: string
-        repositoryUrl:
-          type: string
-        branch:
+        orgName:
           type: string
         createdAt:
           type: string
           format: date-time
         status:
           type: string
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
+        promotionPaths:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromotionPath'
 
-    CompleteComponent:
+    PromotionPath:
+      type: object
+      required:
+        - sourceEnvironmentRef
+        - targetEnvironmentRefs
+      properties:
+        sourceEnvironmentRef:
+          type: string
+        targetEnvironmentRefs:
+          type: array
+          items:
+            $ref: '#/components/schemas/TargetEnvironmentRef'
+
+    TargetEnvironmentRef:
       type: object
       required:
         - name
       properties:
         name:
           type: string
-        type:
+        requiresApproval:
+          type: boolean
+        isManualApprovalRequired:
+          type: boolean
+
+    # Component
+    ComponentResponse:
+      type: object
+      required:
+        - name
+        - type
+        - projectName
+        - orgName
+        - createdAt
+      properties:
+        name:
           type: string
-          description: Component type
         displayName:
           type: string
-        repositoryUrl:
+        description:
           type: string
-        branch:
+        type:
           type: string
-        buildConfig:
-          type: object
-          additionalProperties: true
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
+        projectName:
+          type: string
+        orgName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
         service:
           type: object
           additionalProperties: true
-          description: Service configuration
+        webApplication:
+          type: object
+          additionalProperties: true
+        scheduledTask:
+          type: object
+          additionalProperties: true
+        api:
+          type: object
+          additionalProperties: true
         workload:
           type: object
           additionalProperties: true
-          description: Workload configuration
-        builds:
-          type: array
-          items:
-            $ref: '#/components/schemas/Build'
-        buildTemplates:
-          type: array
-          items:
-            $ref: '#/components/schemas/BuildTemplate'
+        buildConfig:
+          $ref: '#/components/schemas/BuildConfig'
 
-    Environment:
+    BuildConfig:
+      type: object
+      required:
+        - repoUrl
+        - repoBranch
+        - componentPath
+        - buildTemplateRef
+      properties:
+        repoUrl:
+          type: string
+        repoBranch:
+          type: string
+        componentPath:
+          type: string
+        buildTemplateRef:
+          type: string
+        buildTemplateParams:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateParameter'
+
+    TemplateParameter:
       type: object
       required:
         - name
+        - value
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+
+    CreateComponentRequest:
+      type: object
+      required:
+        - name
+        - type
       properties:
         name:
           type: string
@@ -149,7 +247,27 @@ components:
           type: string
         description:
           type: string
+        type:
+          type: string
+        buildConfig:
+          $ref: '#/components/schemas/BuildConfig'
+
+    # Environment
+    EnvironmentResponse:
+      type: object
+      required:
+        - name
+        - namespace
+        - isProduction
+        - createdAt
+      properties:
+        name:
+          type: string
         namespace:
+          type: string
+        displayName:
+          type: string
+        description:
           type: string
         dataPlaneRef:
           type: string
@@ -162,17 +280,12 @@ components:
           format: date-time
         status:
           type: string
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
 
-    DataPlane:
+    CreateEnvironmentRequest:
       type: object
       required:
         - name
+        - isProduction
       properties:
         name:
           type: string
@@ -180,7 +293,32 @@ components:
           type: string
         description:
           type: string
+        dataPlaneRef:
+          type: string
+        isProduction:
+          type: boolean
+        dnsPrefix:
+          type: string
+
+    # DataPlane
+    DataPlaneResponse:
+      type: object
+      required:
+        - name
+        - namespace
+        - kubernetesClusterName
+        - apiServerURL
+        - publicVirtualHost
+        - organizationVirtualHost
+        - createdAt
+      properties:
+        name:
+          type: string
         namespace:
+          type: string
+        displayName:
+          type: string
+        description:
           type: string
         imagePullSecretRefs:
           type: array
@@ -205,35 +343,18 @@ components:
           format: date-time
         status:
           type: string
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
 
-    BuildTemplate:
+    CreateDataPlaneRequest:
       type: object
       required:
         - name
-      properties:
-        name:
-          type: string
-        parameters:
-          type: array
-          items:
-            $ref: '#/components/schemas/BuildTemplateParameter'
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
-
-    BuildTemplateParameter:
-      type: object
-      required:
-        - name
+        - kubernetesClusterName
+        - apiServerURL
+        - caCert
+        - clientCert
+        - clientKey
+        - publicVirtualHost
+        - organizationVirtualHost
       properties:
         name:
           type: string
@@ -241,17 +362,69 @@ components:
           type: string
         description:
           type: string
-        type:
+        kubernetesClusterName:
           type: string
-        default:
+        apiServerURL:
           type: string
-        required:
-          type: boolean
+        caCert:
+          type: string
+        clientCert:
+          type: string
+        clientKey:
+          type: string
+        publicVirtualHost:
+          type: string
+        organizationVirtualHost:
+          type: string
+        observerURL:
+          type: string
+        observerUsername:
+          type: string
+        observerPassword:
+          type: string
 
-    Build:
+    # BuildPlane
+    BuildPlaneResponse:
       type: object
       required:
         - name
+        - namespace
+        - kubernetesClusterName
+        - apiServerURL
+        - createdAt
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        kubernetesClusterName:
+          type: string
+        apiServerURL:
+          type: string
+        observerURL:
+          type: string
+        observerUsername:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    # Build
+    BuildResponse:
+      type: object
+      required:
+        - name
+        - uuid
+        - componentName
+        - projectName
+        - orgName
+        - createdAt
       properties:
         name:
           type: string
@@ -265,19 +438,279 @@ components:
           type: string
         commit:
           type: string
-        image:
+        status:
           type: string
         createdAt:
           type: string
           format: date-time
+        image:
+          type: string
+
+    # BuildTemplate
+    BuildTemplateResponse:
+      type: object
+      required:
+        - name
+        - createdAt
+      properties:
+        name:
+          type: string
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildTemplateParameter'
+        createdAt:
+          type: string
+          format: date-time
+
+    BuildTemplateParameter:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        default:
+          type: string
+
+    # ComponentType
+    ComponentTypeResponse:
+      type: object
+      required:
+        - name
+        - workloadType
+        - createdAt
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        workloadType:
+          type: string
+        allowedWorkflows:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Workflow
+    WorkflowResponse:
+      type: object
+      required:
+        - name
+        - createdAt
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Trait
+    TraitResponse:
+      type: object
+      required:
+        - name
+        - createdAt
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Binding
+    BindingResponse:
+      type: object
+      required:
+        - name
+        - type
+        - componentName
+        - projectName
+        - orgName
+        - environment
+        - status
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        componentName:
+          type: string
+        projectName:
+          type: string
+        orgName:
+          type: string
+        environment:
+          type: string
+        status:
+          $ref: '#/components/schemas/BindingStatus'
+        serviceBinding:
+          $ref: '#/components/schemas/ServiceBinding'
+        webApplicationBinding:
+          $ref: '#/components/schemas/WebApplicationBinding'
+        scheduledTaskBinding:
+          $ref: '#/components/schemas/ScheduledTaskBinding'
+
+    BindingStatus:
+      type: object
+      required:
+        - reason
+        - message
+        - status
+        - lastTransitioned
+      properties:
+        reason:
+          type: string
+        message:
+          type: string
         status:
           type: string
+          enum: [InProgress, Active, Failed, Suspended, NotYetDeployed]
+        lastTransitioned:
+          type: string
+          format: date-time
+
+    ServiceBinding:
+      type: object
+      properties:
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/EndpointStatus'
+        image:
+          type: string
+        releaseState:
+          type: string
+
+    WebApplicationBinding:
+      type: object
+      properties:
+        endpoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/EndpointStatus'
+        image:
+          type: string
+        releaseState:
+          type: string
+
+    ScheduledTaskBinding:
+      type: object
+      properties:
+        image:
+          type: string
+        releaseState:
+          type: string
+
+    EndpointStatus:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        project:
+          $ref: '#/components/schemas/ExposedEndpoint'
+        organization:
+          $ref: '#/components/schemas/ExposedEndpoint'
+        public:
+          $ref: '#/components/schemas/ExposedEndpoint'
+
+    ExposedEndpoint:
+      type: object
+      required:
+        - host
+        - port
+      properties:
+        host:
+          type: string
+        port:
+          type: integer
+        scheme:
+          type: string
+        basePath:
+          type: string
+        uri:
+          type: string
+
+    UpdateBindingRequest:
+      type: object
+      required:
+        - releaseState
+      properties:
+        releaseState:
+          type: string
+          enum: [Active, Suspend, Undeploy]
+
+    # Promotion
+    PromoteComponentRequest:
+      type: object
+      required:
+        - sourceEnv
+        - targetEnv
+      properties:
+        sourceEnv:
+          type: string
+        targetEnv:
+          type: string
+
+    # Workload
+    WorkloadResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - Service
+            - ManualTask
+            - ScheduledTask
+            - WebApplication
+          description: The workload type determines how the workload is deployed
+        owner:
+          $ref: '#/components/schemas/WorkloadOwner'
         metadata:
           type: object
           additionalProperties: true
         spec:
           type: object
           additionalProperties: true
+        containers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Container'
+        endpoints:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/WorkloadEndpoint'
+        connections:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Connection'
+
+    # Observer URL
+    ObserverUrlData:
+      type: object
+      properties:
+        observerUrl:
+          type: string
 
     EnvVar:
       type: object
@@ -319,14 +752,6 @@ components:
           items:
             $ref: '#/components/schemas/EnvVar'
 
-    Schema:
-      type: object
-      properties:
-        type:
-          type: string
-        content:
-          type: string
-
     WorkloadEndpoint:
       type: object
       required:
@@ -340,39 +765,6 @@ components:
           type: integer
         schema:
           $ref: '#/components/schemas/Schema'
-
-    ConnectionInjectEnv:
-      type: object
-      required:
-        - name
-        - value
-      properties:
-        name:
-          type: string
-        value:
-          type: string
-
-    ConnectionInject:
-      type: object
-      properties:
-        env:
-          type: array
-          items:
-            $ref: '#/components/schemas/ConnectionInjectEnv'
-
-    ConnectionParams:
-      type: object
-      required:
-        - componentName
-        - endpoint
-        - projectName
-      properties:
-        componentName:
-          type: string
-        endpoint:
-          type: string
-        projectName:
-          type: string
 
     Connection:
       type: object
@@ -398,383 +790,134 @@ components:
         componentName:
           type: string
 
-    Workload:
+    ConnectionParams:
+      type: object
+      required:
+        - componentName
+        - endpoint
+        - projectName
+      properties:
+        componentName:
+          type: string
+        endpoint:
+          type: string
+        projectName:
+          type: string
+
+    ConnectionInject:
+      type: object
+      properties:
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectionInjectEnv'
+
+    ConnectionInjectEnv:
       type: object
       required:
         - name
-        - type
-        - owner
+        - value
       properties:
         name:
           type: string
+        value:
+          type: string
+
+    Schema:
+      type: object
+      properties:
         type:
           type: string
-          enum: ['Service', 'ManualTask', 'ScheduledTask', 'WebApplication']
-        owner:
-          $ref: '#/components/schemas/WorkloadOwner'
-        containers:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Container'
-        endpoints:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/WorkloadEndpoint'
-        connections:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Connection'
-        status:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-
-    Binding:
-      type: object
-      properties:
-        environment:
-          type: string
-        status:
-          type: object
-          properties:
-            status:
-              type: string
-        metadata:
-          type: object
-          additionalProperties: true
-        spec:
-          type: object
-          additionalProperties: true
-
-    DeploymentPipeline:
-      type: object
-      properties:
-        stages:
-          type: array
-          items:
-            type: object
-
-    ObserverUrlData:
-      type: object
-      properties:
-        observerUrl:
-          type: string
-
-    ApiResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          type: object
-          additionalProperties: true
-        error:
-          type: string
-        code:
-          type: string
-        message:
-          type: string
-
-    ApiListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          type: object
-          properties:
-            items:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-            totalCount:
-              type: integer
-            page:
-              type: integer
-            pageSize:
-              type: integer
-        error:
-          type: string
-        code:
-          type: string
-        message:
-          type: string
-
-    # Specific response types
-    ComponentListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Component'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    ComponentListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/ComponentListData'
-        error:
-          type: string
-        message:
-          type: string
-
-    ComponentResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/CompleteComponent'
-        error:
-          type: string
-        message:
-          type: string
-
-    ProjectResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/Project'
-        error:
-          type: string
-        message:
-          type: string
-
-    BuildListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Build'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    BuildListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/BuildListData'
-        error:
-          type: string
-        message:
-          type: string
-
-    BuildResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/Build'
-        error:
-          type: string
-        message:
-          type: string
-
-    BuildTemplateListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/BuildTemplate'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    BuildTemplateListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/BuildTemplateListData'
-        error:
-          type: string
-        message:
-          type: string
-
-    BindingListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Binding'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    BindingListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/BindingListData'
-        error:
-          type: string
-        message:
-          type: string
-
-    WorkloadResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/Workload'
-        error:
-          type: string
-        message:
-          type: string
-
-    ObserverUrlResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/ObserverUrlData'
-        error:
-          type: string
-        message:
-          type: string
-
-    OrganizationListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Organization'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    OrganizationListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/OrganizationListData'
-        error:
-          type: string
-        message:
-          type: string
-
-    ProjectListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Project'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    ProjectListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/ProjectListData'
-        error:
-          type: string
-        message:
-          type: string
-
-    EnvironmentListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Environment'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    EnvironmentListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/EnvironmentListData'
-        error:
-          type: string
-        message:
-          type: string
-
-    DataPlaneListData:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/DataPlane'
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
-
-    DataPlaneListResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          $ref: '#/components/schemas/DataPlaneListData'
-        error:
-          type: string
-        message:
+        content:
           type: string
 
 security:
   - BearerAuth: []
 
 paths:
+  # Health check
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: health
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /ready:
+    get:
+      summary: Readiness check endpoint
+      operationId: ready
+      tags:
+        - Health
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  # Apply/Delete operations (kubectl-like)
+  /apply:
+    post:
+      summary: Apply a resource (kubectl-like)
+      operationId: applyResource
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Kubernetes-style resource definition
+              additionalProperties: true
+      responses:
+        '200':
+          description: Resource applied successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+        '201':
+          description: Resource created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  /delete:
+    delete:
+      summary: Delete a resource (kubectl-like)
+      operationId: deleteResource
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Kubernetes-style resource definition
+              additionalProperties: true
+      responses:
+        '200':
+          description: Resource deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  # Organizations
   /orgs:
     get:
       summary: List all organizations
@@ -787,14 +930,26 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationListResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/OrganizationResponse'
 
-  /orgs/{orgName}/projects:
+  /orgs/{orgName}:
     get:
-      summary: List all projects in an organization
-      operationId: listProjects
+      summary: Get a specific organization
+      operationId: getOrganization
       tags:
-        - Projects
+        - Organizations
       parameters:
         - name: orgName
           in: path
@@ -807,62 +962,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProjectListResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrganizationResponse'
 
-    post:
-      summary: Create a new project
-      operationId: createProject
-      tags:
-        - Projects
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                displayName:
-                  type: string
-                description:
-                  type: string
-                deploymentPipeline:
-                  type: string
-      responses:
-        '201':
-          description: Project created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProjectResponse'
-
-  /orgs/{orgName}/environments:
-    get:
-      summary: List all environments
-      operationId: listEnvironments
-      tags:
-        - Environments
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EnvironmentListResponse'
-
+  # DataPlanes
   /orgs/{orgName}/dataplanes:
     get:
       summary: List all data planes
@@ -881,8 +988,207 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DataPlaneListResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/DataPlaneResponse'
 
+    post:
+      summary: Create a new data plane
+      operationId: createDataPlane
+      tags:
+        - DataPlanes
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDataPlaneRequest'
+      responses:
+        '201':
+          description: Data plane created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DataPlaneResponse'
+
+  /orgs/{orgName}/dataplanes/{dpName}:
+    get:
+      summary: Get a specific data plane
+      operationId: getDataPlane
+      tags:
+        - DataPlanes
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: dpName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DataPlaneResponse'
+
+  # Environments
+  /orgs/{orgName}/environments:
+    get:
+      summary: List all environments
+      operationId: listEnvironments
+      tags:
+        - Environments
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/EnvironmentResponse'
+
+    post:
+      summary: Create a new environment
+      operationId: createEnvironment
+      tags:
+        - Environments
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEnvironmentRequest'
+      responses:
+        '201':
+          description: Environment created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EnvironmentResponse'
+
+  /orgs/{orgName}/environments/{envName}:
+    get:
+      summary: Get a specific environment
+      operationId: getEnvironment
+      tags:
+        - Environments
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: envName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EnvironmentResponse'
+
+  # BuildPlanes
+  /orgs/{orgName}/buildplanes:
+    get:
+      summary: List build planes
+      operationId: listBuildPlanes
+      tags:
+        - BuildPlanes
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/BuildPlaneResponse'
+
+  # Build Templates
   /orgs/{orgName}/build-templates:
     get:
       summary: List build templates for an organization
@@ -901,8 +1207,345 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BuildTemplateListResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/BuildTemplateResponse'
 
+  # ComponentTypes
+  /orgs/{orgName}/component-types:
+    get:
+      summary: List all component types for an organization
+      operationId: listComponentTypes
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ComponentTypeResponse'
+
+  /orgs/{orgName}/component-types/{ctName}/schema:
+    get:
+      summary: Get the JSON schema for a specific component type
+      operationId: getComponentTypeSchema
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ctName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: JSON Schema for the component type
+                        additionalProperties: true
+        '404':
+          description: Component type not found
+
+  # Workflows
+  /orgs/{orgName}/workflows:
+    get:
+      summary: List all workflows for an organization
+      operationId: listWorkflows
+      tags:
+        - Workflows
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/WorkflowResponse'
+
+  /orgs/{orgName}/workflows/{workflowName}/schema:
+    get:
+      summary: Get the JSON schema for a specific workflow
+      operationId: getWorkflowSchema
+      tags:
+        - Workflows
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workflowName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: JSON Schema for the workflow
+                        additionalProperties: true
+        '404':
+          description: Workflow not found
+
+  # Traits
+  /orgs/{orgName}/traits:
+    get:
+      summary: List all traits for an organization
+      operationId: listTraits
+      tags:
+        - Traits
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/TraitResponse'
+
+  /orgs/{orgName}/traits/{traitName}/schema:
+    get:
+      summary: Get the JSON schema for a specific trait
+      operationId: getTraitSchema
+      tags:
+        - Traits
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: traitName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: JSON Schema for the trait
+                        additionalProperties: true
+        '404':
+          description: Trait not found
+
+  # Projects
+  /orgs/{orgName}/projects:
+    get:
+      summary: List all projects in an organization
+      operationId: listProjects
+      tags:
+        - Projects
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ProjectResponse'
+
+    post:
+      summary: Create a new project
+      operationId: createProject
+      tags:
+        - Projects
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ProjectResponse'
+
+  /orgs/{orgName}/projects/{projectName}:
+    get:
+      summary: Get a specific project
+      operationId: getProject
+      tags:
+        - Projects
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ProjectResponse'
+
+  /orgs/{orgName}/projects/{projectName}/deployment-pipeline:
+    get:
+      summary: Get project deployment pipeline
+      operationId: getProjectDeploymentPipeline
+      tags:
+        - Projects
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DeploymentPipelineResponse'
+
+  # Components
   /orgs/{orgName}/projects/{projectName}/components:
     get:
       summary: List all components in a project
@@ -926,7 +1569,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComponentListResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ComponentResponse'
 
     post:
       summary: Create a new component
@@ -949,26 +1604,19 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                type:
-                  type: string
-                displayName:
-                  type: string
-                description:
-                  type: string
-                buildConfig:
-                  type: object
-                  additionalProperties: true
+              $ref: '#/components/schemas/CreateComponentRequest'
       responses:
         '201':
           description: Component created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComponentResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentResponse'
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}:
     get:
@@ -992,88 +1640,24 @@ paths:
           required: true
           schema:
             type: string
-        - name: include
-          in: query
-          required: false
-          schema:
-            type: string
-            default: 'type,workload'
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComponentResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentResponse'
 
-  /orgs/{orgName}/projects/{projectName}/components/{componentName}/builds:
-    get:
-      summary: List builds for a component
-      operationId: listBuilds
-      tags:
-        - Builds
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: componentName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BuildListResponse'
-
-    post:
-      summary: Trigger a new build
-      operationId: triggerBuild
-      tags:
-        - Builds
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: componentName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: commit
-          in: query
-          required: false
-          schema:
-            type: string
-      responses:
-        '201':
-          description: Build triggered successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BuildResponse'
-
+  # Component Bindings
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings:
     get:
       summary: Get component bindings
-      operationId: getBindings
+      operationId: getComponentBinding
       tags:
         - Bindings
       parameters:
@@ -1092,25 +1676,30 @@ paths:
           required: true
           schema:
             type: string
-        - name: environment
-          in: query
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
       responses:
         '200':
           description: Successful response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BindingListResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/BindingResponse'
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}:
     patch:
       summary: Update a component binding
-      operationId: updateBinding
+      operationId: updateComponentBinding
       tags:
         - Bindings
       parameters:
@@ -1139,46 +1728,16 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                releaseState:
-                  type: string
-                  enum: ['Active', 'Suspend', 'Undeploy']
-              required:
-                - releaseState
+              $ref: '#/components/schemas/UpdateBindingRequest'
       responses:
         '200':
           description: Binding updated successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponse'
+                $ref: '#/components/schemas/APIResponse'
 
-  /orgs/{orgName}/projects/{projectName}/deployment-pipeline:
-    get:
-      summary: Get project deployment pipeline
-      operationId: getDeploymentPipeline
-      tags:
-        - Deployment
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-
+  # Component Promotion
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/promote:
     post:
       summary: Promote component to environment
@@ -1206,29 +1765,68 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                sourceEnv:
-                  type: string
-                targetEnv:
-                  type: string
-              required:
-                - sourceEnv
-                - targetEnv
+              $ref: '#/components/schemas/PromoteComponentRequest'
       responses:
         '200':
           description: Component promoted successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BindingListResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/BindingResponse'
 
-  /orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads:
-    get:
-      summary: Get workload for component
-      operationId: getWorkload
+  # Builds
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/builds:
+    post:
+      summary: Trigger a new build
+      operationId: triggerBuild
       tags:
-        - Workloads
+        - Builds
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Build triggered successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BuildResponse'
+
+    get:
+      summary: List builds for a component
+      operationId: listBuilds
+      tags:
+        - Builds
       parameters:
         - name: orgName
           in: path
@@ -1251,48 +1849,25 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WorkloadResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/BuildResponse'
 
-    post:
-      summary: Create or update workload
-      operationId: createWorkload
-      tags:
-        - Workloads
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: componentName
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: true
-      responses:
-        '200':
-          description: Workload created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WorkloadResponse'
-
+  # Observer URLs
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url:
     get:
       summary: Get runtime logs observer URL
-      operationId: getRuntimeLogsObserverUrl
+      operationId: getComponentObserverURL
       tags:
         - Observability
       parameters:
@@ -1322,12 +1897,17 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ObserverUrlResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ObserverUrlData'
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/observer-url:
     get:
       summary: Get build logs observer URL
-      operationId: getBuildObserverUrl
+      operationId: getBuildObserverURL
       tags:
         - Observability
       parameters:
@@ -1353,8 +1933,86 @@ paths:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/ApiResponse'
+                  - $ref: '#/components/schemas/APIResponse'
                   - type: object
                     properties:
                       data:
                         $ref: '#/components/schemas/ObserverUrlData'
+
+  # Workloads
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads:
+    post:
+      summary: Create or update workload
+      operationId: createWorkload
+      tags:
+        - Workloads
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Workload specification
+              additionalProperties: true
+      responses:
+        '200':
+          description: Workload created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/WorkloadResponse'
+
+    get:
+      summary: Get workload for component
+      operationId: getWorkloads
+      tags:
+        - Workloads
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/WorkloadResponse'

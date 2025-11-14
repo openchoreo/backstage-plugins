@@ -4,6 +4,74 @@
  */
 
 export interface paths {
+  '/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Health check endpoint */
+    get: operations['health'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/ready': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Readiness check endpoint */
+    get: operations['ready'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/apply': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Apply a resource (kubectl-like) */
+    post: operations['applyResource'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/delete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete a resource (kubectl-like) */
+    delete: operations['deleteResource'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/orgs': {
     parameters: {
       query?: never;
@@ -13,6 +81,229 @@ export interface paths {
     };
     /** List all organizations */
     get: operations['listOrganizations'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific organization */
+    get: operations['getOrganization'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/dataplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all data planes */
+    get: operations['listDataPlanes'];
+    put?: never;
+    /** Create a new data plane */
+    post: operations['createDataPlane'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/dataplanes/{dpName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific data plane */
+    get: operations['getDataPlane'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/environments': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all environments */
+    get: operations['listEnvironments'];
+    put?: never;
+    /** Create a new environment */
+    post: operations['createEnvironment'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/environments/{envName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific environment */
+    get: operations['getEnvironment'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/buildplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List build planes */
+    get: operations['listBuildPlanes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/build-templates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List build templates for an organization */
+    get: operations['listBuildTemplates'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/component-types': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all component types for an organization */
+    get: operations['listComponentTypes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/component-types/{ctName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the JSON schema for a specific component type */
+    get: operations['getComponentTypeSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/workflows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all workflows for an organization */
+    get: operations['listWorkflows'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/workflows/{workflowName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the JSON schema for a specific workflow */
+    get: operations['getWorkflowSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/traits': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all traits for an organization */
+    get: operations['listTraits'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/traits/{traitName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the JSON schema for a specific trait */
+    get: operations['getTraitSchema'];
     put?: never;
     post?: never;
     delete?: never;
@@ -39,15 +330,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/environments': {
+  '/orgs/{orgName}/projects/{projectName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List all environments */
-    get: operations['listEnvironments'];
+    /** Get a specific project */
+    get: operations['getProject'];
     put?: never;
     post?: never;
     delete?: never;
@@ -56,32 +347,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/dataplanes': {
+  '/orgs/{orgName}/projects/{projectName}/deployment-pipeline': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List all data planes */
-    get: operations['listDataPlanes'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/orgs/{orgName}/build-templates': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List build templates for an organization */
-    get: operations['listBuildTemplates'];
+    /** Get project deployment pipeline */
+    get: operations['getProjectDeploymentPipeline'];
     put?: never;
     post?: never;
     delete?: never;
@@ -125,24 +399,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List builds for a component */
-    get: operations['listBuilds'];
-    put?: never;
-    /** Trigger a new build */
-    post: operations['triggerBuild'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings': {
     parameters: {
       query?: never;
@@ -151,7 +407,7 @@ export interface paths {
       cookie?: never;
     };
     /** Get component bindings */
-    get: operations['getBindings'];
+    get: operations['getComponentBinding'];
     put?: never;
     post?: never;
     delete?: never;
@@ -174,24 +430,7 @@ export interface paths {
     options?: never;
     head?: never;
     /** Update a component binding */
-    patch: operations['updateBinding'];
-    trace?: never;
-  };
-  '/orgs/{orgName}/projects/{projectName}/deployment-pipeline': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get project deployment pipeline */
-    get: operations['getDeploymentPipeline'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
+    patch: operations['updateComponentBinding'];
     trace?: never;
   };
   '/orgs/{orgName}/projects/{projectName}/components/{componentName}/promote': {
@@ -211,18 +450,18 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads': {
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get workload for component */
-    get: operations['getWorkload'];
+    /** List builds for a component */
+    get: operations['listBuilds'];
     put?: never;
-    /** Create or update workload */
-    post: operations['createWorkload'];
+    /** Trigger a new build */
+    post: operations['triggerBuild'];
     delete?: never;
     options?: never;
     head?: never;
@@ -237,7 +476,7 @@ export interface paths {
       cookie?: never;
     };
     /** Get runtime logs observer URL */
-    get: operations['getRuntimeLogsObserverUrl'];
+    get: operations['getComponentObserverURL'];
     put?: never;
     post?: never;
     delete?: never;
@@ -254,9 +493,27 @@ export interface paths {
       cookie?: never;
     };
     /** Get build logs observer URL */
-    get: operations['getBuildObserverUrl'];
+    get: operations['getBuildObserverURL'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get workload for component */
+    get: operations['getWorkloads'];
+    put?: never;
+    /** Create or update workload */
+    post: operations['createWorkload'];
     delete?: never;
     options?: never;
     head?: never;
@@ -267,155 +524,308 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    Organization: {
+    APIResponse: {
+      success?: boolean;
+      data?: {
+        [key: string]: unknown;
+      };
+      error?: string;
+      code?: string;
+    };
+    ListResponse: {
+      items?: {
+        [key: string]: unknown;
+      }[];
+      totalCount?: number;
+      page?: number;
+      pageSize?: number;
+    };
+    OrganizationResponse: {
       name: string;
       displayName?: string;
       description?: string;
       namespace?: string;
       /** Format: date-time */
-      createdAt?: string;
+      createdAt: string;
       status?: string;
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
     };
-    Project: {
+    ProjectResponse: {
+      name: string;
+      orgName: string;
+      displayName?: string;
+      description?: string;
+      deploymentPipeline?: string;
+      /** Format: date-time */
+      createdAt: string;
+      status?: string;
+    };
+    CreateProjectRequest: {
       name: string;
       displayName?: string;
       description?: string;
-      /** Format: date-time */
-      createdAt?: string;
-      status?: string;
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
+      deploymentPipeline?: string;
     };
-    Component: {
+    DeploymentPipelineResponse: {
       name: string;
-      type?: string;
-      description?: string;
-      namespace?: string;
-      repositoryUrl?: string;
-      branch?: string;
-      /** Format: date-time */
-      createdAt?: string;
-      status?: string;
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
-    };
-    CompleteComponent: {
-      name: string;
-      /** @description Component type */
-      type?: string;
       displayName?: string;
-      repositoryUrl?: string;
-      branch?: string;
-      buildConfig?: {
-        [key: string]: unknown;
-      };
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
-      /** @description Service configuration */
+      description?: string;
+      orgName: string;
+      /** Format: date-time */
+      createdAt: string;
+      status?: string;
+      promotionPaths?: components['schemas']['PromotionPath'][];
+    };
+    PromotionPath: {
+      sourceEnvironmentRef: string;
+      targetEnvironmentRefs: components['schemas']['TargetEnvironmentRef'][];
+    };
+    TargetEnvironmentRef: {
+      name: string;
+      requiresApproval?: boolean;
+      isManualApprovalRequired?: boolean;
+    };
+    ComponentResponse: {
+      name: string;
+      displayName?: string;
+      description?: string;
+      type: string;
+      projectName: string;
+      orgName: string;
+      /** Format: date-time */
+      createdAt: string;
+      status?: string;
       service?: {
         [key: string]: unknown;
       };
-      /** @description Workload configuration */
+      webApplication?: {
+        [key: string]: unknown;
+      };
+      scheduledTask?: {
+        [key: string]: unknown;
+      };
+      api?: {
+        [key: string]: unknown;
+      };
       workload?: {
         [key: string]: unknown;
       };
-      builds?: components['schemas']['Build'][];
-      buildTemplates?: components['schemas']['BuildTemplate'][];
+      buildConfig?: components['schemas']['BuildConfig'];
     };
-    Environment: {
+    BuildConfig: {
+      repoUrl: string;
+      repoBranch: string;
+      componentPath: string;
+      buildTemplateRef: string;
+      buildTemplateParams?: components['schemas']['TemplateParameter'][];
+    };
+    TemplateParameter: {
+      name: string;
+      value: string;
+    };
+    CreateComponentRequest: {
       name: string;
       displayName?: string;
       description?: string;
-      namespace?: string;
+      type: string;
+      buildConfig?: components['schemas']['BuildConfig'];
+    };
+    EnvironmentResponse: {
+      name: string;
+      namespace: string;
+      displayName?: string;
+      description?: string;
       dataPlaneRef?: string;
-      isProduction?: boolean;
+      isProduction: boolean;
       dnsPrefix?: string;
       /** Format: date-time */
-      createdAt?: string;
+      createdAt: string;
       status?: string;
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
     };
-    DataPlane: {
+    CreateEnvironmentRequest: {
       name: string;
       displayName?: string;
       description?: string;
-      namespace?: string;
+      dataPlaneRef?: string;
+      isProduction: boolean;
+      dnsPrefix?: string;
+    };
+    DataPlaneResponse: {
+      name: string;
+      namespace: string;
+      displayName?: string;
+      description?: string;
       imagePullSecretRefs?: string[];
       secretStoreRef?: string;
-      kubernetesClusterName?: string;
-      apiServerURL?: string;
-      publicVirtualHost?: string;
-      organizationVirtualHost?: string;
+      kubernetesClusterName: string;
+      apiServerURL: string;
+      publicVirtualHost: string;
+      organizationVirtualHost: string;
       observerURL?: string;
       observerUsername?: string;
       /** Format: date-time */
-      createdAt?: string;
+      createdAt: string;
       status?: string;
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
     };
-    BuildTemplate: {
-      name: string;
-      parameters?: components['schemas']['BuildTemplateParameter'][];
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
-    };
-    BuildTemplateParameter: {
+    CreateDataPlaneRequest: {
       name: string;
       displayName?: string;
       description?: string;
-      type?: string;
-      default?: string;
-      required?: boolean;
+      kubernetesClusterName: string;
+      apiServerURL: string;
+      caCert: string;
+      clientCert: string;
+      clientKey: string;
+      publicVirtualHost: string;
+      organizationVirtualHost: string;
+      observerURL?: string;
+      observerUsername?: string;
+      observerPassword?: string;
     };
-    Build: {
+    BuildPlaneResponse: {
       name: string;
-      uuid?: string;
-      componentName?: string;
-      projectName?: string;
-      orgName?: string;
-      commit?: string;
-      image?: string;
+      namespace: string;
+      displayName?: string;
+      description?: string;
+      kubernetesClusterName: string;
+      apiServerURL: string;
+      observerURL?: string;
+      observerUsername?: string;
       /** Format: date-time */
-      createdAt?: string;
+      createdAt: string;
       status?: string;
+    };
+    BuildResponse: {
+      name: string;
+      uuid: string;
+      componentName: string;
+      projectName: string;
+      orgName: string;
+      commit?: string;
+      status?: string;
+      /** Format: date-time */
+      createdAt: string;
+      image?: string;
+    };
+    BuildTemplateResponse: {
+      name: string;
+      parameters?: components['schemas']['BuildTemplateParameter'][];
+      /** Format: date-time */
+      createdAt: string;
+    };
+    BuildTemplateParameter: {
+      name: string;
+      default?: string;
+    };
+    ComponentTypeResponse: {
+      name: string;
+      displayName?: string;
+      description?: string;
+      workloadType: string;
+      allowedWorkflows?: string[];
+      /** Format: date-time */
+      createdAt: string;
+    };
+    WorkflowResponse: {
+      name: string;
+      displayName?: string;
+      description?: string;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    TraitResponse: {
+      name: string;
+      displayName?: string;
+      description?: string;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    BindingResponse: {
+      name: string;
+      type: string;
+      componentName: string;
+      projectName: string;
+      orgName: string;
+      environment: string;
+      status: components['schemas']['BindingStatus'];
+      serviceBinding?: components['schemas']['ServiceBinding'];
+      webApplicationBinding?: components['schemas']['WebApplicationBinding'];
+      scheduledTaskBinding?: components['schemas']['ScheduledTaskBinding'];
+    };
+    BindingStatus: {
+      reason: string;
+      message: string;
+      /** @enum {string} */
+      status:
+        | 'InProgress'
+        | 'Active'
+        | 'Failed'
+        | 'Suspended'
+        | 'NotYetDeployed';
+      /** Format: date-time */
+      lastTransitioned: string;
+    };
+    ServiceBinding: {
+      endpoints?: components['schemas']['EndpointStatus'][];
+      image?: string;
+      releaseState?: string;
+    };
+    WebApplicationBinding: {
+      endpoints?: components['schemas']['EndpointStatus'][];
+      image?: string;
+      releaseState?: string;
+    };
+    ScheduledTaskBinding: {
+      image?: string;
+      releaseState?: string;
+    };
+    EndpointStatus: {
+      name: string;
+      type: string;
+      project?: components['schemas']['ExposedEndpoint'];
+      organization?: components['schemas']['ExposedEndpoint'];
+      public?: components['schemas']['ExposedEndpoint'];
+    };
+    ExposedEndpoint: {
+      host: string;
+      port: number;
+      scheme?: string;
+      basePath?: string;
+      uri?: string;
+    };
+    UpdateBindingRequest: {
+      /** @enum {string} */
+      releaseState: 'Active' | 'Suspend' | 'Undeploy';
+    };
+    PromoteComponentRequest: {
+      sourceEnv: string;
+      targetEnv: string;
+    };
+    WorkloadResponse: {
+      name?: string;
+      /**
+       * @description The workload type determines how the workload is deployed
+       * @enum {string}
+       */
+      type?: 'Service' | 'ManualTask' | 'ScheduledTask' | 'WebApplication';
+      owner?: components['schemas']['WorkloadOwner'];
       metadata?: {
         [key: string]: unknown;
       };
       spec?: {
         [key: string]: unknown;
       };
+      containers?: {
+        [key: string]: components['schemas']['Container'];
+      };
+      endpoints?: {
+        [key: string]: components['schemas']['WorkloadEndpoint'];
+      };
+      connections?: {
+        [key: string]: components['schemas']['Connection'];
+      };
+    };
+    ObserverUrlData: {
+      observerUrl?: string;
     };
     EnvVar: {
       key: string;
@@ -433,27 +843,11 @@ export interface components {
       args?: string[];
       env?: components['schemas']['EnvVar'][];
     };
-    Schema: {
-      type?: string;
-      content?: string;
-    };
     WorkloadEndpoint: {
       /** @enum {string} */
       type: 'TCP' | 'UDP' | 'HTTP' | 'REST' | 'gRPC' | 'Websocket' | 'GraphQL';
       port: number;
       schema?: components['schemas']['Schema'];
-    };
-    ConnectionInjectEnv: {
-      name: string;
-      value: string;
-    };
-    ConnectionInject: {
-      env?: components['schemas']['ConnectionInjectEnv'][];
-    };
-    ConnectionParams: {
-      componentName: string;
-      endpoint: string;
-      projectName: string;
     };
     Connection: {
       inject?: components['schemas']['ConnectionInject'];
@@ -464,190 +858,21 @@ export interface components {
       projectName: string;
       componentName: string;
     };
-    Workload: {
+    ConnectionParams: {
+      componentName: string;
+      endpoint: string;
+      projectName: string;
+    };
+    ConnectionInject: {
+      env?: components['schemas']['ConnectionInjectEnv'][];
+    };
+    ConnectionInjectEnv: {
       name: string;
-      /** @enum {string} */
-      type: 'Service' | 'ManualTask' | 'ScheduledTask' | 'WebApplication';
-      owner: components['schemas']['WorkloadOwner'];
-      containers?: {
-        [key: string]: components['schemas']['Container'];
-      };
-      endpoints?: {
-        [key: string]: components['schemas']['WorkloadEndpoint'];
-      };
-      connections?: {
-        [key: string]: components['schemas']['Connection'];
-      };
-      status?: string;
-      /** Format: date-time */
-      createdAt?: string;
+      value: string;
     };
-    Binding: {
-      environment?: string;
-      status?: {
-        status?: string;
-      };
-      metadata?: {
-        [key: string]: unknown;
-      };
-      spec?: {
-        [key: string]: unknown;
-      };
-    };
-    DeploymentPipeline: {
-      stages?: Record<string, never>[];
-    };
-    ObserverUrlData: {
-      observerUrl?: string;
-    };
-    ApiResponse: {
-      success?: boolean;
-      data?: {
-        [key: string]: unknown;
-      };
-      error?: string;
-      code?: string;
-      message?: string;
-    };
-    ApiListResponse: {
-      success?: boolean;
-      data?: {
-        items?: {
-          [key: string]: unknown;
-        }[];
-        totalCount?: number;
-        page?: number;
-        pageSize?: number;
-      };
-      error?: string;
-      code?: string;
-      message?: string;
-    };
-    ComponentListData: {
-      items?: components['schemas']['Component'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    ComponentListResponse: {
-      success?: boolean;
-      data?: components['schemas']['ComponentListData'];
-      error?: string;
-      message?: string;
-    };
-    ComponentResponse: {
-      success?: boolean;
-      data?: components['schemas']['CompleteComponent'];
-      error?: string;
-      message?: string;
-    };
-    ProjectResponse: {
-      success?: boolean;
-      data?: components['schemas']['Project'];
-      error?: string;
-      message?: string;
-    };
-    BuildListData: {
-      items?: components['schemas']['Build'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    BuildListResponse: {
-      success?: boolean;
-      data?: components['schemas']['BuildListData'];
-      error?: string;
-      message?: string;
-    };
-    BuildResponse: {
-      success?: boolean;
-      data?: components['schemas']['Build'];
-      error?: string;
-      message?: string;
-    };
-    BuildTemplateListData: {
-      items?: components['schemas']['BuildTemplate'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    BuildTemplateListResponse: {
-      success?: boolean;
-      data?: components['schemas']['BuildTemplateListData'];
-      error?: string;
-      message?: string;
-    };
-    BindingListData: {
-      items?: components['schemas']['Binding'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    BindingListResponse: {
-      success?: boolean;
-      data?: components['schemas']['BindingListData'];
-      error?: string;
-      message?: string;
-    };
-    WorkloadResponse: {
-      success?: boolean;
-      data?: components['schemas']['Workload'];
-      error?: string;
-      message?: string;
-    };
-    ObserverUrlResponse: {
-      success?: boolean;
-      data?: components['schemas']['ObserverUrlData'];
-      error?: string;
-      message?: string;
-    };
-    OrganizationListData: {
-      items?: components['schemas']['Organization'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    OrganizationListResponse: {
-      success?: boolean;
-      data?: components['schemas']['OrganizationListData'];
-      error?: string;
-      message?: string;
-    };
-    ProjectListData: {
-      items?: components['schemas']['Project'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    ProjectListResponse: {
-      success?: boolean;
-      data?: components['schemas']['ProjectListData'];
-      error?: string;
-      message?: string;
-    };
-    EnvironmentListData: {
-      items?: components['schemas']['Environment'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    EnvironmentListResponse: {
-      success?: boolean;
-      data?: components['schemas']['EnvironmentListData'];
-      error?: string;
-      message?: string;
-    };
-    DataPlaneListData: {
-      items?: components['schemas']['DataPlane'][];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    DataPlaneListResponse: {
-      success?: boolean;
-      data?: components['schemas']['DataPlaneListData'];
-      error?: string;
-      message?: string;
+    Schema: {
+      type?: string;
+      content?: string;
     };
   };
   responses: never;
@@ -658,6 +883,107 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  health: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Service is healthy */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
+        };
+      };
+    };
+  };
+  ready: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Service is ready */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
+        };
+      };
+    };
+  };
+  applyResource: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Resource applied successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+      /** @description Resource created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+    };
+  };
+  deleteResource: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Resource deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+    };
+  };
   listOrganizations: {
     parameters: {
       query?: never;
@@ -673,12 +999,16 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['OrganizationListResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['OrganizationResponse'][];
+            };
+          };
         };
       };
     };
   };
-  listProjects: {
+  getOrganization: {
     parameters: {
       query?: never;
       header?: never;
@@ -695,60 +1025,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ProjectListResponse'];
-        };
-      };
-    };
-  };
-  createProject: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          name?: string;
-          displayName?: string;
-          description?: string;
-          deploymentPipeline?: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Project created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProjectResponse'];
-        };
-      };
-    };
-  };
-  listEnvironments: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['EnvironmentListResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['OrganizationResponse'];
+          };
         };
       };
     };
@@ -770,7 +1049,169 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['DataPlaneListResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['DataPlaneResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  createDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateDataPlaneRequest'];
+      };
+    };
+    responses: {
+      /** @description Data plane created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['DataPlaneResponse'];
+          };
+        };
+      };
+    };
+  };
+  getDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        dpName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['DataPlaneResponse'];
+          };
+        };
+      };
+    };
+  };
+  listEnvironments: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['EnvironmentResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  createEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateEnvironmentRequest'];
+      };
+    };
+    responses: {
+      /** @description Environment created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['EnvironmentResponse'];
+          };
+        };
+      };
+    };
+  };
+  getEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        envName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['EnvironmentResponse'];
+          };
+        };
+      };
+    };
+  };
+  listBuildPlanes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['BuildPlaneResponse'][];
+            };
+          };
         };
       };
     };
@@ -792,7 +1233,298 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BuildTemplateListResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['BuildTemplateResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  listComponentTypes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['ComponentTypeResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  getComponentTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        ctName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description JSON Schema for the component type */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Component type not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listWorkflows: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['WorkflowResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  getWorkflowSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        workflowName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description JSON Schema for the workflow */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Workflow not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listTraits: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['TraitResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  getTraitSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        traitName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description JSON Schema for the trait */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Trait not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listProjects: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['ProjectResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  createProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateProjectRequest'];
+      };
+    };
+    responses: {
+      /** @description Project created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ProjectResponse'];
+          };
+        };
+      };
+    };
+  };
+  getProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ProjectResponse'];
+          };
+        };
+      };
+    };
+  };
+  getProjectDeploymentPipeline: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['DeploymentPipelineResponse'];
+          };
         };
       };
     };
@@ -815,7 +1547,11 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentListResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['ComponentResponse'][];
+            };
+          };
         };
       };
     };
@@ -832,15 +1568,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': {
-          name?: string;
-          type?: string;
-          displayName?: string;
-          description?: string;
-          buildConfig?: {
-            [key: string]: unknown;
-          };
-        };
+        'application/json': components['schemas']['CreateComponentRequest'];
       };
     };
     responses: {
@@ -850,16 +1578,16 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentResponse'];
+          };
         };
       };
     };
   };
   getComponent: {
     parameters: {
-      query?: {
-        include?: string;
-      };
+      query?: never;
       header?: never;
       path: {
         orgName: string;
@@ -876,7 +1604,98 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentResponse'];
+          };
+        };
+      };
+    };
+  };
+  getComponentBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['BindingResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  updateComponentBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+        bindingName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+    };
+  };
+  promoteComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PromoteComponentRequest'];
+      };
+    };
+    responses: {
+      /** @description Component promoted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['BindingResponse'][];
+            };
+          };
         };
       };
     };
@@ -900,16 +1719,18 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BuildListResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['BuildResponse'][];
+            };
+          };
         };
       };
     };
   };
   triggerBuild: {
     parameters: {
-      query?: {
-        commit?: string;
-      };
+      query?: never;
       header?: never;
       path: {
         orgName: string;
@@ -926,21 +1747,22 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BuildResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['BuildResponse'];
+          };
         };
       };
     };
   };
-  getBindings: {
+  getComponentObserverURL: {
     parameters: {
-      query?: {
-        environment?: string[];
-      };
+      query?: never;
       header?: never;
       path: {
         orgName: string;
         projectName: string;
         componentName: string;
+        environmentName: string;
       };
       cookie?: never;
     };
@@ -952,98 +1774,14 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['BindingListResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ObserverUrlData'];
+          };
         };
       };
     };
   };
-  updateBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-        projectName: string;
-        componentName: string;
-        bindingName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          /** @enum {string} */
-          releaseState: 'Active' | 'Suspend' | 'Undeploy';
-        };
-      };
-    };
-    responses: {
-      /** @description Binding updated successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ApiResponse'];
-        };
-      };
-    };
-  };
-  getDeploymentPipeline: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-        projectName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ApiResponse'];
-        };
-      };
-    };
-  };
-  promoteComponent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          sourceEnv: string;
-          targetEnv: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Component promoted successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['BindingListResponse'];
-        };
-      };
-    };
-  };
-  getWorkload: {
+  getBuildObserverURL: {
     parameters: {
       query?: never;
       header?: never;
@@ -1062,7 +1800,35 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['WorkloadResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ObserverUrlData'];
+          };
+        };
+      };
+    };
+  };
+  getWorkloads: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['WorkloadResponse'];
+          };
         };
       };
     };
@@ -1092,57 +1858,8 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['WorkloadResponse'];
-        };
-      };
-    };
-  };
-  getRuntimeLogsObserverUrl: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-        projectName: string;
-        componentName: string;
-        environmentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ObserverUrlResponse'];
-        };
-      };
-    };
-  };
-  getBuildObserverUrl: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ApiResponse'] & {
-            data?: components['schemas']['ObserverUrlData'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['WorkloadResponse'];
           };
         };
       };
