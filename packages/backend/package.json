@@ -45,7 +45,7 @@
     "@openchoreo/backstage-plugin-backend": "workspace:^",
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^",
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^",
-    "@openchoreo/backstage-plugin-openchoreo-obs-backend": "workspace:^",
+    "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^",
     "@openchoreo/backstage-plugin-scaffolder-backend-module": "workspace:^",
     "app": "link:../app",

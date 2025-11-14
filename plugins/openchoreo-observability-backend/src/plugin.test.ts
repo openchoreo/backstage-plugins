@@ -3,7 +3,7 @@ import {
   startTestBackend,
 } from '@backstage/backend-test-utils';
 import { createServiceFactory } from '@backstage/backend-plugin-api';
-import { obsServiceRef } from './services/ObsService';
+import { observabilityServiceRef } from './services/ObservabilityService';
 import { openchoreoObservabilityBackendPlugin } from './plugin';
 import request from 'supertest';
 import { catalogServiceMock } from '@backstage/plugin-catalog-node/testUtils';
@@ -24,12 +24,12 @@ describe('plugin', () => {
       features: [openchoreoObservabilityBackendPlugin],
     });
 
-    await request(server).get('/api/openchoreo-obs-backend/todos').expect(200, {
+    await request(server).get('/api/openchoreo-observability-backend/todos').expect(200, {
       items: [],
     });
 
     const createRes = await request(server)
-      .post('/api/openchoreo-obs-backend/todos')
+      .post('/api/openchoreo-observability-backend/todos')
       .send({ title: 'My Todo' });
 
     expect(createRes.status).toBe(201);
@@ -43,13 +43,13 @@ describe('plugin', () => {
     const createdTodoItem = createRes.body;
 
     await request(server)
-      .get('/api/openchoreo-obs-backend/todos')
+      .get('/api/openchoreo-observability-backend/todos')
       .expect(200, {
         items: [createdTodoItem],
       });
 
     await request(server)
-      .get(`/api/openchoreo-obs-backend/todos/${createdTodoItem.id}`)
+      .get(`/api/openchoreo-observability-backend/todos/${createdTodoItem.id}`)
       .expect(200, createdTodoItem);
   });
 
@@ -78,7 +78,7 @@ describe('plugin', () => {
     });
 
     const createRes = await request(server)
-      .post('/api/openchoreo-obs-backend/todos')
+      .post('/api/openchoreo-observability-backend/todos')
       .send({ title: 'My Todo', entityRef: 'component:default/my-component' });
 
     expect(createRes.status).toBe(201);
@@ -90,12 +90,12 @@ describe('plugin', () => {
     });
   });
 
-  it('should forward errors from the ObsService', async () => {
+  it('should forward errors from the ObservabilityService', async () => {
     const { server } = await startTestBackend({
       features: [
         openchoreoObservabilityBackendPlugin,
         createServiceFactory({
-          service: obsServiceRef,
+          service: observabilityServiceRef,
           deps: {},
           factory: () => ({
             createTodo: jest.fn().mockRejectedValue(new ConflictError()),
@@ -107,20 +107,20 @@ describe('plugin', () => {
     });
 
     const createRes = await request(server)
-      .post('/api/openchoreo-obs-backend/todos')
+      .post('/api/openchoreo-observability-backend/todos')
       .send({ title: 'My Todo', entityRef: 'component:default/my-component' });
     expect(createRes.status).toBe(409);
     expect(createRes.body).toMatchObject({
       error: { name: 'ConflictError' },
     });
 
-    const listRes = await request(server).get('/api/openchoreo-obs-backend/todos');
+    const listRes = await request(server).get('/api/openchoreo-observability-backend/todos');
     expect(listRes.status).toBe(401);
     expect(listRes.body).toMatchObject({
       error: { name: 'AuthenticationError' },
     });
 
-    const getRes = await request(server).get('/api/openchoreo-obs-backend/todos/123');
+    const getRes = await request(server).get('/api/openchoreo-observability-backend/todos/123');
     expect(getRes.status).toBe(403);
     expect(getRes.body).toMatchObject({
       error: { name: 'NotAllowedError' },

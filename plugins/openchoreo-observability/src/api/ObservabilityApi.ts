@@ -17,7 +17,7 @@ export interface ObservabilityApi {
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
-  id: 'plugin.openchoreo-obs.service',
+  id: 'plugin.openchoreo-observability.service',
 });
 
 export class ObservabilityClient implements ObservabilityApi {
@@ -30,7 +30,7 @@ export class ObservabilityClient implements ObservabilityApi {
   }
 
   async getMetrics(): Promise<MetricsResponse> {
-    const baseUrl = await this.discoveryApi.getBaseUrl('openchoreo-obs-backend');
+    const baseUrl = await this.discoveryApi.getBaseUrl('openchoreo-observability-backend');
     const response = await this.fetchApi.fetch(`${baseUrl}/metrics`);
 
     if (!response.ok) {

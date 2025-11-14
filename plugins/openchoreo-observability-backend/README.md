@@ -1,14 +1,14 @@
-# openchoreo-obs-backend
+# openchoreo-observability-backend
 
 This plugin backend was templated using the Backstage CLI. You should replace this text with a description of your plugin backend.
 
 ## Installation
 
-This plugin is installed via the `@openchoreo/backstage-plugin-openchoreo-obs-backend` package. To install it to your backend package, run the following command:
+This plugin is installed via the `@openchoreo/backstage-plugin-openchoreo-observability-backend` package. To install it to your backend package, run the following command:
 
 ```bash
 # From your root directory
-yarn --cwd packages/backend add @openchoreo/backstage-plugin-openchoreo-obs-backend
+yarn --cwd packages/backend add @openchoreo/backstage-plugin-openchoreo-observability-backend
 ```
 
 Then add the plugin to your backend in `packages/backend/src/index.ts`:
@@ -16,7 +16,7 @@ Then add the plugin to your backend in `packages/backend/src/index.ts`:
 ```ts
 const backend = createBackend();
 // ...
-backend.add(import('@openchoreo/backstage-plugin-openchoreo-obs-backend'));
+backend.add(import('@openchoreo/backstage-plugin-openchoreo-observability-backend'));
 ```
 
 ## Development

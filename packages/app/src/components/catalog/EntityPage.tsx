@@ -64,7 +64,7 @@ import {
   Builds,
 } from '@openchoreo/backstage-plugin';
 
-import { ObservabilityMetrics } from '@openchoreo/backstage-plugin-openchoreo-obs';
+import { ObservabilityMetrics } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 const techdocsContent = (
   <EntityTechdocsContent>
