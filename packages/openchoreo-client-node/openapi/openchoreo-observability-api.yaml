@@ -167,6 +167,75 @@ components:
           default: 100
           description: Maximum number of logs to return
 
+    TimeValuePoint:
+      type: object
+      properties:
+        time:
+          type: string
+          description: ISO 8601 formatted timestamp
+        value:
+          type: number
+          format: double
+          description: Numeric value
+
+    ResourceMetricsTimeSeries:
+      type: object
+      properties:
+        cpuUsage:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeValuePoint'
+          description: CPU usage time series data
+        cpuRequests:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeValuePoint'
+          description: CPU requests time series data
+        cpuLimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeValuePoint'
+          description: CPU limits time series data
+        memory:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeValuePoint'
+          description: Memory usage time series data
+        memoryRequests:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeValuePoint'
+          description: Memory requests time series data
+        memoryLimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeValuePoint'
+          description: Memory limits time series data
+
+    MetricsRequest:
+      type: object
+      required:
+        - environmentId
+        - projectId
+      properties:
+        componentId:
+          type: string
+          description: Component identifier
+        environmentId:
+          type: string
+          description: Environment identifier
+        projectId:
+          type: string
+          description: Project identifier
+        startTime:
+          type: string
+          format: date-time
+          description: Start time for metrics range (RFC3339)
+        endTime:
+          type: string
+          format: date-time
+          description: End time for metrics range (RFC3339)
+
 security:
   - OriginalAuth: []
 
@@ -341,6 +410,52 @@ paths:
                 type: object
                 properties:
                   error:
+                    type: string
+                  message:
+                    type: string
+
+  /api/metrics/component/usage:
+    post:
+      summary: Get resource usage metrics for a component
+      operationId: getComponentResourceMetrics
+      tags:
+        - Metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MetricsRequest'
+      responses:
+        '200':
+          description: Successful response with metrics time series
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceMetricsTimeSeries'
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                  message:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
                     type: string
                   message:
                     type: string

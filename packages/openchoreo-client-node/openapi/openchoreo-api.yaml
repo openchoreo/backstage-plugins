@@ -771,6 +771,123 @@ components:
         message:
           type: string
 
+    ComponentType:
+      type: object
+      required:
+        - name
+        - workloadType
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        workloadType:
+          type: string
+        allowedWorkflows:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ComponentTypeListData:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentType'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    ComponentTypeListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ComponentTypeListData'
+        error:
+          type: string
+        message:
+          type: string
+
+    ComponentTypeSchemaResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          description: JSON Schema for the component type
+          additionalProperties: true
+        error:
+          type: string
+        message:
+          type: string
+
+    Addon:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AddonListData:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Addon'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    AddonListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/AddonListData'
+        error:
+          type: string
+        message:
+          type: string
+
+    AddonSchemaResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          description: JSON Schema for the addon
+          additionalProperties: true
+        error:
+          type: string
+        message:
+          type: string
+
 security:
   - BearerAuth: []
 
@@ -902,6 +1019,100 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BuildTemplateListResponse'
+
+  /orgs/{orgName}/component-types:
+    get:
+      summary: List all component types for an organization
+      operationId: listComponentTypes
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentTypeListResponse'
+
+  /orgs/{orgName}/component-types/{ctdName}/schema:
+    get:
+      summary: Get the JSON schema for a specific component type
+      operationId: getComponentTypeSchema
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ctdName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentTypeSchemaResponse'
+        '404':
+          description: Component type not found
+
+  /orgs/{orgName}/addons:
+    get:
+      summary: List all addons for an organization
+      operationId: listAddons
+      tags:
+        - Addons
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddonListResponse'
+
+  /orgs/{orgName}/addons/{addonName}/schema:
+    get:
+      summary: Get the JSON schema for a specific addon
+      operationId: getAddonSchema
+      tags:
+        - Addons
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: addonName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddonSchemaResponse'
+        '404':
+          description: Addon not found
 
   /orgs/{orgName}/projects/{projectName}/components:
     get:
