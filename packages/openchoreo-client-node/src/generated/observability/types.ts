@@ -44,6 +44,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/metrics/component/usage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Get resource usage metrics for a component */
+    post: operations['getComponentResourceMetrics'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -147,6 +164,47 @@ export interface components {
        * @default 100
        */
       limit: number;
+    };
+    TimeValuePoint: {
+      /** @description ISO 8601 formatted timestamp */
+      time?: string;
+      /**
+       * Format: double
+       * @description Numeric value
+       */
+      value?: number;
+    };
+    ResourceMetricsTimeSeries: {
+      /** @description CPU usage time series data */
+      cpuUsage?: components['schemas']['TimeValuePoint'][];
+      /** @description CPU requests time series data */
+      cpuRequests?: components['schemas']['TimeValuePoint'][];
+      /** @description CPU limits time series data */
+      cpuLimits?: components['schemas']['TimeValuePoint'][];
+      /** @description Memory usage time series data */
+      memory?: components['schemas']['TimeValuePoint'][];
+      /** @description Memory requests time series data */
+      memoryRequests?: components['schemas']['TimeValuePoint'][];
+      /** @description Memory limits time series data */
+      memoryLimits?: components['schemas']['TimeValuePoint'][];
+    };
+    MetricsRequest: {
+      /** @description Component identifier */
+      componentId?: string;
+      /** @description Environment identifier */
+      environmentId: string;
+      /** @description Project identifier */
+      projectId: string;
+      /**
+       * Format: date-time
+       * @description Start time for metrics range (RFC3339)
+       */
+      startTime?: string;
+      /**
+       * Format: date-time
+       * @description End time for metrics range (RFC3339)
+       */
+      endTime?: string;
     };
   };
   responses: never;
@@ -329,6 +387,56 @@ export interface operations {
         content: {
           'application/json': {
             error?: string;
+            message?: string;
+          };
+        };
+      };
+    };
+  };
+  getComponentResourceMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MetricsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful response with metrics time series */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceMetricsTimeSeries'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            error?: string;
+            code?: string;
+            message?: string;
+          };
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            error?: string;
+            code?: string;
             message?: string;
           };
         };

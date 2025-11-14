@@ -90,6 +90,74 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/orgs/{orgName}/component-types': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all component types for an organization */
+    get: operations['listComponentTypes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/component-types/{ctdName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the JSON schema for a specific component type */
+    get: operations['getComponentTypeSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/addons': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all addons for an organization */
+    get: operations['listAddons'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/addons/{addonName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the JSON schema for a specific addon */
+    get: operations['getAddonSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/orgs/{orgName}/projects/{projectName}/components': {
     parameters: {
       query?: never;
@@ -649,6 +717,64 @@ export interface components {
       error?: string;
       message?: string;
     };
+    ComponentType: {
+      name: string;
+      displayName?: string;
+      description?: string;
+      workloadType: string;
+      allowedWorkflows?: string[];
+      /** Format: date-time */
+      createdAt?: string;
+    };
+    ComponentTypeListData: {
+      items?: components['schemas']['ComponentType'][];
+      totalCount?: number;
+      page?: number;
+      pageSize?: number;
+    };
+    ComponentTypeListResponse: {
+      success?: boolean;
+      data?: components['schemas']['ComponentTypeListData'];
+      error?: string;
+      message?: string;
+    };
+    ComponentTypeSchemaResponse: {
+      success?: boolean;
+      /** @description JSON Schema for the component type */
+      data?: {
+        [key: string]: unknown;
+      };
+      error?: string;
+      message?: string;
+    };
+    Addon: {
+      name: string;
+      displayName?: string;
+      description?: string;
+      /** Format: date-time */
+      createdAt?: string;
+    };
+    AddonListData: {
+      items?: components['schemas']['Addon'][];
+      totalCount?: number;
+      page?: number;
+      pageSize?: number;
+    };
+    AddonListResponse: {
+      success?: boolean;
+      data?: components['schemas']['AddonListData'];
+      error?: string;
+      message?: string;
+    };
+    AddonSchemaResponse: {
+      success?: boolean;
+      /** @description JSON Schema for the addon */
+      data?: {
+        [key: string]: unknown;
+      };
+      error?: string;
+      message?: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -794,6 +920,110 @@ export interface operations {
         content: {
           'application/json': components['schemas']['BuildTemplateListResponse'];
         };
+      };
+    };
+  };
+  listComponentTypes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentTypeListResponse'];
+        };
+      };
+    };
+  };
+  getComponentTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        ctdName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentTypeSchemaResponse'];
+        };
+      };
+      /** @description Component type not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listAddons: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AddonListResponse'];
+        };
+      };
+    };
+  };
+  getAddonSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        addonName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AddonSchemaResponse'];
+        };
+      };
+      /** @description Addon not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
