@@ -5,7 +5,8 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated type from OpenAPI spec
-type ModelsBuildTemplate = OpenChoreoComponents['schemas']['BuildTemplate'];
+type ModelsBuildTemplate =
+  OpenChoreoComponents['schemas']['BuildTemplateResponse'];
 
 export class BuildTemplateInfoService {
   private logger: LoggerService;

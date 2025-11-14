@@ -37,7 +37,6 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
     containers: {},
     endpoints: {},
     connections: {},
-    status: '',
   });
 
   const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
@@ -46,7 +45,9 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   useEffect(() => {
     if (workloadSpec) {
       setFormData(workloadSpec);
-      setWorkloadType(workloadSpec.type);
+      if (workloadSpec.type) {
+        setWorkloadType(workloadSpec.type);
+      }
     }
   }, [workloadSpec]);
 

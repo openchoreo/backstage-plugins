@@ -12,13 +12,14 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated types from OpenAPI spec
-type ModelsProject = OpenChoreoComponents['schemas']['Project'];
-type ModelsOrganization = OpenChoreoComponents['schemas']['Organization'];
-type ModelsComponent = OpenChoreoComponents['schemas']['Component'];
-type ModelsEnvironment = OpenChoreoComponents['schemas']['Environment'];
-type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
+type ModelsProject = OpenChoreoComponents['schemas']['ProjectResponse'];
+type ModelsOrganization =
+  OpenChoreoComponents['schemas']['OrganizationResponse'];
+type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
+type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
+type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
 type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['CompleteComponent'];
+  OpenChoreoComponents['schemas']['ComponentResponse'];
 
 // WorkloadEndpoint is part of the workload.endpoints structure
 // Since Workload uses additionalProperties, we define this locally
@@ -105,7 +106,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         throw new Error('Failed to retrieve organization list');
       }
 
-      const organizations = orgData.data.items;
+      const organizations = orgData.data.items as ModelsOrganization[];
       this.logger.debug(
         `Found ${organizations.length} organizations from OpenChoreo`,
       );
@@ -139,7 +140,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           }
 
           const environments =
-            envData.success && envData.data?.items ? envData.data.items : [];
+            envData.success && envData.data?.items
+              ? (envData.data.items as ModelsEnvironment[])
+              : [];
           this.logger.debug(
             `Found ${environments.length} environments in organization: ${org.name}`,
           );
@@ -176,7 +179,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           }
 
           const dataplanes =
-            dpData.success && dpData.data?.items ? dpData.data.items : [];
+            dpData.success && dpData.data?.items
+              ? (dpData.data.items as ModelsDataPlane[])
+              : [];
           this.logger.debug(
             `Found ${dataplanes.length} dataplanes in organization: ${org.name}`,
           );
@@ -213,7 +218,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           }
 
           const projects =
-            projData.success && projData.data?.items ? projData.data.items : [];
+            projData.success && projData.data?.items
+              ? (projData.data.items as ModelsProject[])
+              : [];
           this.logger.debug(
             `Found ${projects.length} projects in organization: ${org.name}`,
           );
@@ -611,11 +618,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           ...(component.status && {
             [CHOREO_ANNOTATIONS.STATUS]: component.status,
           }),
-          ...(component.repositoryUrl && {
-            'backstage.io/source-location': `url:${component.repositoryUrl}`,
+          ...(component.buildConfig?.repoUrl && {
+            'backstage.io/source-location': `url:${component.buildConfig.repoUrl}`,
           }),
-          ...(component.branch && {
-            [CHOREO_ANNOTATIONS.BRANCH]: component.branch,
+          ...(component.buildConfig?.repoBranch && {
+            [CHOREO_ANNOTATIONS.BRANCH]: component.buildConfig.repoBranch,
           }),
         },
         labels: {

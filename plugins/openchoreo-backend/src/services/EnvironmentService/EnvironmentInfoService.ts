@@ -6,7 +6,7 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated type from OpenAPI spec
-type ModelsEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 
 interface BindingResponse {
   name: string;

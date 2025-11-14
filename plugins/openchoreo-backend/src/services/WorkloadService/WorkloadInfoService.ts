@@ -6,7 +6,7 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated type from OpenAPI spec
-type ModelsWorkload = OpenChoreoComponents['schemas']['Workload'];
+type ModelsWorkload = OpenChoreoComponents['schemas']['WorkloadResponse'];
 
 /**
  * Service for managing and retrieving workload information.

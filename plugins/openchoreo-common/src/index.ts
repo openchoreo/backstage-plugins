@@ -12,10 +12,11 @@ import type {
   ObservabilityComponents,
 } from '@openchoreo/openchoreo-client-node';
 
-export type ModelsBuild = OpenChoreoComponents['schemas']['Build'];
-export type ModelsWorkload = OpenChoreoComponents['schemas']['Workload'];
+export type ModelsBuild = OpenChoreoComponents['schemas']['BuildResponse'];
+export type ModelsWorkload =
+  OpenChoreoComponents['schemas']['WorkloadResponse'];
 export type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['CompleteComponent'];
+  OpenChoreoComponents['schemas']['ComponentResponse'];
 
 // Workload-related types
 export type Container = OpenChoreoComponents['schemas']['Container'];

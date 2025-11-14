@@ -7,7 +7,7 @@ import {
 import { RuntimeLogsResponse } from '../../types';
 
 // Use generated type from OpenAPI spec
-type ModelsBuild = OpenChoreoComponents['schemas']['Build'];
+type ModelsBuild = OpenChoreoComponents['schemas']['BuildResponse'];
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -98,7 +98,6 @@ export class BuildInfoService {
         {
           params: {
             path: { orgName, projectName, componentName },
-            query: commit ? { commit } : undefined,
           },
         },
       );

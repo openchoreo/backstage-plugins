@@ -6,7 +6,7 @@ import {
 
 // Use the generated type from OpenAPI spec
 export type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['CompleteComponent'];
+  OpenChoreoComponents['schemas']['ComponentResponse'];
 
 export class ComponentInfoService {
   private logger: LoggerService;

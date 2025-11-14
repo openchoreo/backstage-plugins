@@ -5,8 +5,9 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated types from OpenAPI spec
-type ModelsEnvironment = OpenChoreoComponents['schemas']['Environment'];
-type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
+type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
+type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
+type BindingResponse = OpenChoreoComponents['schemas']['BindingResponse'];
 
 import {
   PlatformEnvironmentService,
@@ -416,7 +417,8 @@ export class PlatformEnvironmentInfoService
 
             if (!error && response.ok && data.success && data.data?.items) {
               // Count environments where this component is deployed
-              data.data.items.forEach(binding => {
+              const bindings = data.data.items as BindingResponse[];
+              bindings.forEach(binding => {
                 const envName = binding.environment;
                 if (envName) {
                   const currentCount =
@@ -585,7 +587,8 @@ export class PlatformEnvironmentInfoService
 
             if (!error && response.ok && data.success && data.data?.items) {
               // Count healthy workloads by checking if status.status === 'Active'
-              const healthyCount = data.data.items.filter(
+              const bindings = data.data.items as BindingResponse[];
+              const healthyCount = bindings.filter(
                 binding => binding.status?.status === 'Active',
               ).length;
               return healthyCount;
