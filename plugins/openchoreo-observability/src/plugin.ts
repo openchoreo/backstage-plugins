@@ -9,8 +9,8 @@ import {
 import { rootRouteRef } from './routes';
 import { observabilityApiRef, ObservabilityClient } from './api/ObservabilityApi';
 
-const openchoreoObsPlugin = createPlugin({
-  id: 'openchoreo-obs',
+const openchoreoObservabilityPlugin = createPlugin({
+  id: 'openchoreo-observability',
   routes: {
     root: rootRouteRef,
   },
@@ -27,7 +27,7 @@ const openchoreoObsPlugin = createPlugin({
   ],
 });
 
-export const ObservabilityMetrics = openchoreoObsPlugin.provide(
+export const ObservabilityMetrics = openchoreoObservabilityPlugin.provide(
   createRoutableExtension({
     name: 'ObservabilityMetrics',
     component: () =>

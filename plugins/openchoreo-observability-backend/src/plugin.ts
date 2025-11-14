@@ -3,7 +3,7 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
-import { obsServiceRef } from './services/ObsService';
+import { observabilityServiceRef } from './services/ObservabilityService';
 
 /**
  * openchoreoObservabilityBackendPlugin backend plugin
@@ -11,19 +11,19 @@ import { obsServiceRef } from './services/ObsService';
  * @public
  */
 export const openchoreoObservabilityBackendPlugin = createBackendPlugin({
-  pluginId: 'openchoreo-obs-backend',
+  pluginId: 'openchoreo-observability-backend',
   register(env) {
     env.registerInit({
       deps: {
         httpAuth: coreServices.httpAuth,
         httpRouter: coreServices.httpRouter,
-        obsService: obsServiceRef,
+        observabilityService: observabilityServiceRef,
       },
-      async init({ httpAuth, httpRouter, obsService }) {
+      async init({ httpAuth, httpRouter, observabilityService }) {
         httpRouter.use(
           await createRouter({
             httpAuth,
-            obsService,
+            observabilityService,
           }),
         );
       },

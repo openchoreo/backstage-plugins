@@ -1,5 +1,5 @@
 {
-  "name": "@openchoreo/backstage-plugin-openchoreo-obs-backend",
+  "name": "@openchoreo/backstage-plugin-openchoreo-observability-backend",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
@@ -12,7 +12,7 @@
   },
   "backstage": {
     "role": "backend-plugin",
-    "pluginId": "openchoreo-obs-backend"
+    "pluginId": "openchoreo-observability-backend"
   },
   "scripts": {
     "start": "backstage-cli package start",

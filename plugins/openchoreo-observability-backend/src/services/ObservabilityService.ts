@@ -40,7 +40,7 @@ export interface TodoItem {
 // database to store data in a real application. See the database service
 // documentation for more information on how to do this:
 // https://backstage.io/docs/backend-system/core-services/database
-export class ObsService {
+export class ObservabilityService {
   readonly #logger: LoggerService;
   readonly #catalog: typeof catalogServiceRef.T;
 
@@ -50,7 +50,7 @@ export class ObsService {
     logger: LoggerService;
     catalog: typeof catalogServiceRef.T;
   }) {
-    return new ObsService(options.logger, options.catalog);
+    return new ObservabilityService(options.logger, options.catalog);
   }
 
   private constructor(
@@ -139,8 +139,8 @@ export class ObsService {
   }
 }
 
-export const obsServiceRef = createServiceRef<Expand<ObsService>>({
-  id: 'openchoreo.obs',
+export const observabilityServiceRef = createServiceRef<Expand<ObservabilityService>>({
+  id: 'openchoreo.observability',
   defaultFactory: async service =>
     createServiceFactory({
       service,
@@ -149,7 +149,7 @@ export const obsServiceRef = createServiceRef<Expand<ObsService>>({
         catalog: catalogServiceRef,
       },
       async factory(deps) {
-        return ObsService.create(deps);
+        return ObservabilityService.create(deps);
       },
     }),
 });
