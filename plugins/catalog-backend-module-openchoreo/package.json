@@ -38,8 +38,8 @@
     "@backstage/plugin-catalog-common": "^1.1.5",
     "@backstage/plugin-catalog-node": "^1.19.0",
     "@backstage/plugin-permission-common": "^0.9.1",
-    "@openchoreo/openchoreo-client-node": "workspace:^",
-    "@openchoreo/backstage-plugin-common": "workspace:^"
+    "@openchoreo/backstage-plugin-common": "workspace:^",
+    "@openchoreo/openchoreo-client-node": "workspace:^"
   },
   "devDependencies": {
     "@backstage/backend-test-utils": "^1.9.0",
