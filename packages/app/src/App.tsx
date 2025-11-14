@@ -13,6 +13,9 @@ import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePicker';
 import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
+import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
+import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
+import { AddonsFieldExtension } from './scaffolder/AddonsField';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -122,6 +125,9 @@ const routes = (
       <ScaffolderFieldExtensions>
         <BuildTemplatePickerFieldExtension />
         <BuildTemplateParametersFieldExtension />
+        <BuildWorkflowPickerFieldExtension />
+        <BuildWorkflowParametersFieldExtension />
+        <AddonsFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />
