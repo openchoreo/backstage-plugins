@@ -2,6 +2,7 @@ import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
+import { buildComponentResource } from './componentResourceBuilder';
 
 export const createComponentAction = (config: Config) => {
   return createTemplateAction({
@@ -10,6 +11,7 @@ export const createComponentAction = (config: Config) => {
     schema: {
       input: (zImpl: typeof z) =>
         zImpl.object({
+          // Keep existing validation for required fields
           orgName: zImpl
             .string()
             .describe(
@@ -33,40 +35,12 @@ export const createComponentAction = (config: Config) => {
             .describe('The description of the component'),
           componentType: zImpl
             .string()
-            .describe(
-              'The type of the component (e.g., Service, WebApp, ScheduledTask, APIProxy)',
-            ),
-          useBuiltInCI: zImpl
-            .boolean()
-            .optional()
-            .describe('Whether to use built-in CI in OpenChoreo'),
-          repoUrl: zImpl
-            .string()
-            .optional()
-            .describe(
-              'The URL of the repository containing the component source code',
-            ),
-          branch: zImpl
-            .string()
-            .optional()
-            .describe('The branch of the repository to use'),
-          componentPath: zImpl
-            .string()
-            .optional()
-            .describe(
-              'The path within the repository where the component source code is located',
-            ),
-          buildTemplateName: zImpl
-            .string()
-            .optional()
-            .describe(
-              'The name of the build template to use (e.g., java-maven, nodejs-npm)',
-            ),
-          buildParameters: zImpl
-            .record(zImpl.any())
-            .optional()
-            .describe('Parameters specific to the selected build template'),
-        }),
+            .describe('The type of the component'),
+
+          // Optional field
+          useBuiltInCI: zImpl.boolean().optional(),
+        })
+        .passthrough(), // Allow any additional fields (CTD params, workflow params, addons, etc.)
       output: (zImpl: typeof z) =>
         zImpl.object({
           componentName: zImpl
@@ -81,7 +55,7 @@ export const createComponentAction = (config: Config) => {
         }),
     },
     async handler(ctx) {
-      ctx.logger.debug(
+      ctx.logger.info(
         `Creating component with parameters: ${JSON.stringify(ctx.input)}`,
       );
 
@@ -100,92 +74,114 @@ export const createComponentAction = (config: Config) => {
       const orgName = extractOrgName(ctx.input.orgName);
       const projectName = extractProjectName(ctx.input.projectName);
 
-      ctx.logger.debug(
+      ctx.logger.info(
         `Extracted organization name: ${orgName} from ${ctx.input.orgName}`,
       );
-      ctx.logger.debug(
+      ctx.logger.info(
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
       );
 
-      // Get the base URL from configuration
-      const baseUrl = config.getString('openchoreo.baseUrl');
-
-      // Create a new instance of the OpenChoreo API client using the generated client
-      const client = createOpenChoreoApiClient({
-        baseUrl,
-        logger: ctx.logger,
-      });
-
-      // Build configuration for built-in CI
-      let buildConfig = undefined;
-      if (
-        ctx.input.useBuiltInCI &&
-        ctx.input.repoUrl &&
-        ctx.input.branch &&
-        ctx.input.componentPath &&
-        ctx.input.buildTemplateName
-      ) {
-        // Convert buildParameters object to array of TemplateParameter
-        let buildTemplateParams = undefined;
-        if (
-          ctx.input.buildParameters &&
-          Object.keys(ctx.input.buildParameters).length > 0
-        ) {
-          buildTemplateParams = Object.entries(ctx.input.buildParameters).map(
-            ([name, value]) => ({
-              name,
-              value: String(value),
-            }),
-          );
-        }
-
-        buildConfig = {
-          repoUrl: ctx.input.repoUrl,
-          repoBranch: ctx.input.branch,
-          componentPath: ctx.input.componentPath,
-          buildTemplateRef: ctx.input.buildTemplateName,
-          buildTemplateParams,
-        };
-        ctx.logger.debug(
-          `Build configuration created: ${JSON.stringify(buildConfig)}`,
-        );
-      }
-
       try {
-        const { data, error, response } = await client.POST(
-          '/orgs/{orgName}/projects/{projectName}/components',
-          {
-            params: {
-              path: { orgName, projectName },
-            },
-            body: {
-              name: ctx.input.componentName,
-              displayName: ctx.input.displayName,
-              description: ctx.input.description,
-              type: ctx.input.componentType,
-              buildConfig,
-            },
-          },
+        // Filter out UI-specific fields from addons (id, schema)
+        const cleanedAddons = (ctx.input as any).addons?.map((addon: any) => ({
+          name: addon.name,
+          instanceName: addon.instanceName,
+          config: addon.config,
+        }));
+
+        // Extract CTD-specific parameters by filtering out known scaffolder fields
+        const knownScaffolderFields = new Set([
+          'orgName',
+          'projectName',
+          'componentName',
+          'displayName',
+          'description',
+          'componentType',
+          'useBuiltInCI',
+          'workflow_name',
+          'workflow_parameters',
+          'addons',
+          'external_ci_note',
+          'repo_url',
+          'branch',
+          'component_path',
+          'component_type_workload_type',
+        ]);
+
+        const ctdParameters: Record<string, any> = {};
+        for (const [key, value] of Object.entries(ctx.input)) {
+          if (!knownScaffolderFields.has(key)) {
+            ctdParameters[key] = value;
+          }
+        }
+
+        ctx.logger.debug(
+          `Extracted CTD parameters: ${JSON.stringify(ctdParameters)}`,
         );
 
-        if (error || !response.ok) {
+        // Build the ComponentResource from form input
+        const componentResource = buildComponentResource({
+          componentName: ctx.input.componentName,
+          displayName: ctx.input.displayName,
+          description: ctx.input.description,
+          organizationName: orgName,
+          projectName: projectName,
+          componentType: ctx.input.componentType,
+          componentTypeWorkloadType: (ctx.input as any).component_type_workload_type || 'deployment',
+          ctdParameters: ctdParameters,
+          useBuiltInCI: ctx.input.useBuiltInCI,
+          repoUrl: (ctx.input as any).repo_url,
+          branch: (ctx.input as any).branch,
+          componentPath: (ctx.input as any).component_path,
+          workflowName: (ctx.input as any).workflow_name,
+          workflowParameters: (ctx.input as any).workflow_parameters,
+          addons: cleanedAddons,
+        });
+
+        // Log the generated ComponentResource object
+        ctx.logger.info('Generated ComponentResource:');
+        console.log('='.repeat(80));
+        console.log('COMPONENT RESOURCE JSON:');
+        console.log('='.repeat(80));
+        console.log(JSON.stringify(componentResource, null, 2));
+        console.log('='.repeat(80));
+
+        // Create the API client using the auto-generated client
+        const baseUrl = config.getString('openchoreo.baseUrl');
+        const client = createOpenChoreoApiClient({
+          baseUrl,
+          logger: ctx.logger,
+        });
+
+        ctx.logger.debug(`Invoking /apply resource for component: ${componentResource.metadata.name}`);
+
+        // Call the apply API to create the component
+        const { data: applyData, error: applyError, response: applyResponse } = await client.POST('/apply', {
+          body: componentResource as any,
+        });
+
+        if (applyError || !applyResponse.ok) {
           throw new Error(
-            `Failed to create component: ${response.status} ${response.statusText}`,
+            `Failed to create component: ${applyResponse.status} ${applyResponse.statusText}`,
           );
         }
 
-        if (!data.success || !data.data) {
+        if (!applyData?.success) {
           throw new Error('API request was not successful');
         }
 
-        ctx.logger.debug(
-          `Component created successfully: ${JSON.stringify(data.data)}`,
+        ctx.logger.info(
+          `Component created successfully via /apply: ${JSON.stringify(applyData)}`,
         );
 
         // Set outputs for the scaffolder
-        ctx.output('componentName', data.data.name || ctx.input.componentName);
+        ctx.output('componentName', ctx.input.componentName);
         ctx.output('projectName', projectName);
         ctx.output('organizationName', orgName);
+
+        ctx.logger.info(
+          `Component '${ctx.input.componentName}' created successfully in project '${projectName}'`,
+        );
       } catch (error) {
         ctx.logger.error(`Error creating component: ${error}`);
         throw new Error(`Failed to create component: ${error}`);
