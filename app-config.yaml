@@ -138,10 +138,10 @@ catalog:
       target: ../../templates/create-openchoreo-project/template.yaml
       rules:
         - allow: [Template]
-    - type: file
-      target: ../../templates/create-openchoreo-component/template.yaml
-      rules:
-        - allow: [Template]
+    # - type: file
+    #   target: ../../templates/create-openchoreo-component/template.yaml
+    #   rules:
+    #     - allow: [Template]
 
     ## Uncomment these lines to add more example data
     # - type: url

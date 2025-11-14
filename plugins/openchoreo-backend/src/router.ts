@@ -14,6 +14,8 @@ import {
   ObservabilityNotConfiguredError as RuntimeObservabilityNotConfiguredError,
 } from './services/RuntimeLogsService/RuntimeLogsService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
+import { AddonInfoService } from './services/AddonService/AddonInfoService';
+import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
 
 export async function createRouter({
   environmentInfoService,
@@ -24,6 +26,8 @@ export async function createRouter({
   runtimeLogsInfoService,
   workloadInfoService,
   dashboardInfoService,
+  addonInfoService,
+  workflowSchemaService,
 }: {
   environmentInfoService: EnvironmentInfoService;
   cellDiagramInfoService: CellDiagramService;
@@ -33,6 +37,8 @@ export async function createRouter({
   runtimeLogsInfoService: RuntimeLogsInfoService;
   workloadInfoService: WorkloadService;
   dashboardInfoService: DashboardInfoService;
+  addonInfoService: AddonInfoService;
+  workflowSchemaService: WorkflowSchemaService;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
@@ -144,6 +150,64 @@ export async function createRouter({
     res.json(
       await buildTemplateInfoService.fetchBuildTemplates(
         organizationName as string,
+      ),
+    );
+  });
+
+
+  // Endpoint for listing addons
+  router.get('/addons', async (req, res) => {
+    const { organizationName, page, pageSize } = req.query;
+
+    if (!organizationName) {
+      throw new InputError('organizationName is a required query parameter');
+    }
+
+    res.json(
+      await addonInfoService.fetchAddons(
+        organizationName as string,
+        page ? parseInt(page as string, 10) : undefined,
+        pageSize ? parseInt(pageSize as string, 10) : undefined,
+      ),
+    );
+  });
+
+  // Endpoint for fetching addon schema
+  router.get('/addon-schema', async (req, res) => {
+    const { organizationName, addonName } = req.query;
+
+    if (!organizationName) {
+      throw new InputError('organizationName is a required query parameter');
+    }
+
+    if (!addonName) {
+      throw new InputError('addonName is a required query parameter');
+    }
+
+    res.json(
+      await addonInfoService.fetchAddonSchema(
+        organizationName as string,
+        addonName as string,
+      ),
+    );
+  });
+
+  // Endpoint for fetching workflow schema
+  router.get('/workflow-schema', async (req, res) => {
+    const { organizationName, workflowName } = req.query;
+
+    if (!organizationName) {
+      throw new InputError('organizationName is a required query parameter');
+    }
+
+    if (!workflowName) {
+      throw new InputError('workflowName is a required query parameter');
+    }
+
+    res.json(
+      await workflowSchemaService.fetchWorkflowSchema(
+        organizationName as string,
+        workflowName as string,
       ),
     );
   });

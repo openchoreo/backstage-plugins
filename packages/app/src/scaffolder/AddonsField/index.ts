@@ -1,0 +1,1 @@
+export { AddonsFieldExtension } from './extensions';
