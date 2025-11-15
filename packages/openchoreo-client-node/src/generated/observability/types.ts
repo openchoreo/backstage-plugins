@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+  '/health': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Health check
+     * @description Check the health status of the observer service including OpenSearch and Prometheus connectivity
+     */
+    get: operations['health'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/logs/component/{componentId}': {
     parameters: {
       query?: never;
@@ -14,17 +34,17 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Fetch runtime logs for a component
-     * @description Retrieves runtime logs for a specific component in an environment
+     * Get component logs
+     * @description Retrieve logs for a specific component
      */
-    post: operations['getComponentRuntimeLogs'];
+    post: operations['getComponentLogs'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/logs/component/{componentName}': {
+  '/api/logs/project/{projectId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -34,10 +54,90 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Fetch build logs for a component
-     * @description Retrieves build logs for a specific component build
+     * Get project logs
+     * @description Retrieve logs for all components in a specific project
      */
-    post: operations['getComponentBuildLogs'];
+    post: operations['getProjectLogs'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/logs/gateway': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get gateway logs
+     * @description Retrieve logs from API gateway
+     */
+    post: operations['getGatewayLogs'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/logs/org/{orgId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get organization logs
+     * @description Retrieve logs for an entire organization
+     */
+    post: operations['getOrganizationLogs'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/traces/component': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get component traces
+     * @description Retrieve distributed traces for a component
+     */
+    post: operations['getComponentTraces'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/metrics/component/usage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get component resource metrics
+     * @description Retrieve resource usage metrics (CPU, memory) for a component as time series data
+     */
+    post: operations['getComponentResourceMetrics'];
     delete?: never;
     options?: never;
     head?: never;
@@ -48,105 +148,382 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    LogEntry: {
+    ComponentLogsRequest: {
       /**
        * Format: date-time
-       * @description Timestamp of the log entry
+       * @description Start time for log query in RFC3339 format
+       * @example 2025-01-10T00:00:00Z
        */
-      timestamp: string;
-      /** @description The actual log message content */
-      log: string;
+      startTime: string;
       /**
-       * @description Log level
+       * Format: date-time
+       * @description End time for log query in RFC3339 format
+       * @example 2025-01-10T23:59:59Z
+       */
+      endTime: string;
+      /**
+       * @description Environment identifier
+       * @example env-dev
+       */
+      environmentId: string;
+      /**
+       * @description Kubernetes namespace
+       * @example default
+       */
+      namespace: string;
+      /**
+       * @description Search phrase to filter logs
+       * @example error
+       */
+      searchPhrase?: string;
+      /**
+       * @description Filter by log levels
+       * @example [
+       *       "ERROR",
+       *       "WARN"
+       *     ]
+       */
+      logLevels?: string[];
+      /**
+       * @description Component versions to filter
+       * @example [
+       *       "v1.0.0",
+       *       "v1.0.1"
+       *     ]
+       */
+      versions?: string[];
+      /**
+       * @description Version IDs to filter
+       * @example [
+       *       "ver-123",
+       *       "ver-456"
+       *     ]
+       */
+      versionIds?: string[];
+      /**
+       * @description Maximum number of log entries to return
+       * @default 100
+       * @example 100
+       */
+      limit: number;
+      /**
+       * @description Sort order for logs
+       * @default desc
+       * @example desc
        * @enum {string}
        */
-      logLevel: 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
-      /** @description ID of the component */
-      componentId?: string;
-      /** @description ID of the environment */
-      environmentId?: string;
-      /** @description ID of the project */
-      projectId?: string;
-      /** @description Version of the component */
-      version?: string;
-      /** @description ID of the version */
-      versionId?: string;
-      /** @description Kubernetes namespace */
-      namespace?: string;
-      /** @description Kubernetes pod ID */
-      podId?: string;
-      /** @description Container name */
-      containerName?: string;
-      /** @description Labels associated with the log entry */
-      labels?: {
+      sortOrder: 'asc' | 'desc';
+      /**
+       * @description Type of logs to retrieve
+       * @example runtime
+       * @enum {string}
+       */
+      logType?: 'runtime' | 'build';
+      /**
+       * @description Build ID for build logs
+       * @example build-123
+       */
+      buildId?: string;
+      /**
+       * @description Build UUID for build logs
+       * @example 550e8400-e29b-41d4-a716-446655440000
+       */
+      buildUuid?: string;
+    };
+    ProjectLogsRequest: components['schemas']['ComponentLogsRequest'] & {
+      /**
+       * @description Filter logs by specific component IDs
+       * @example [
+       *       "comp-123",
+       *       "comp-456"
+       *     ]
+       */
+      componentIds?: string[];
+    };
+    GatewayLogsRequest: {
+      /**
+       * Format: date-time
+       * @description Start time for log query in RFC3339 format
+       * @example 2025-01-10T00:00:00Z
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description End time for log query in RFC3339 format
+       * @example 2025-01-10T23:59:59Z
+       */
+      endTime: string;
+      /**
+       * @description Organization identifier
+       * @example org-789
+       */
+      organizationId: string;
+      /**
+       * @description Search phrase to filter logs
+       * @example error
+       */
+      searchPhrase?: string;
+      /**
+       * @description Map of API IDs to their versions
+       * @example {
+       *       "api-123": "v1",
+       *       "api-456": "v2"
+       *     }
+       */
+      apiIdToVersionMap?: {
         [key: string]: string;
       };
-      /** @description Source of the log */
-      source?: string;
-      /** @description Alternative message field */
-      message?: string;
       /**
-       * @description Alternative level field
+       * @description Gateway virtual hosts to filter
+       * @example [
+       *       "api.example.com",
+       *       "gateway.example.com"
+       *     ]
+       */
+      gatewayVHosts?: string[];
+      /**
+       * @description Maximum number of log entries to return
+       * @default 100
+       * @example 100
+       */
+      limit: number;
+      /**
+       * @description Sort order for logs
+       * @default desc
+       * @example desc
        * @enum {string}
        */
-      level?: 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
-      /** @description Additional metadata */
-      metadata?: {
-        [key: string]: unknown;
+      sortOrder: 'asc' | 'desc';
+      /**
+       * @description Type of logs to retrieve
+       * @example runtime
+       * @enum {string}
+       */
+      logType?: 'runtime' | 'build';
+    };
+    OrganizationLogsRequest: components['schemas']['ComponentLogsRequest'] & {
+      /**
+       * @description Kubernetes pod labels to filter logs
+       * @example {
+       *       "app": "myapp",
+       *       "tier": "backend"
+       *     }
+       */
+      podLabels?: {
+        [key: string]: string;
       };
     };
-    RuntimeLogsResponse: {
-      /** @description Array of log entries */
-      logs: components['schemas']['LogEntry'][];
-      /** @description Total number of logs available */
-      totalCount: number;
-      /** @description Time taken in milliseconds to fetch logs */
-      tookMs: number;
-      /** @description Total number of logs available (deprecated, use totalCount) */
-      total?: number;
-      /** @description Whether there are more logs available */
-      hasMore?: boolean;
-    };
-    ComponentLogsRequest: {
-      /** @description Component identifier */
-      componentId: string;
-      /** @description Environment identifier */
-      environmentId: string;
-      /** @description Filter logs by levels */
-      logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
+    ComponentTracesRequest: {
       /**
        * Format: date-time
-       * @description Start time for log range
+       * @description Start time for trace query in RFC3339 format
+       * @example 2025-01-10T00:00:00Z
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description End time for trace query in RFC3339 format
+       * @example 2025-01-10T23:59:59Z
+       */
+      endTime: string;
+      /**
+       * @description Service name for trace filtering
+       * @example user-service
+       */
+      serviceName: string;
+      /**
+       * @description Maximum number of traces to return
+       * @default 100
+       * @example 100
+       */
+      limit: number;
+      /**
+       * @description Sort order for traces
+       * @default desc
+       * @example desc
+       * @enum {string}
+       */
+      sortOrder: 'asc' | 'desc';
+    };
+    MetricsRequest: {
+      /**
+       * @description Component identifier
+       * @example comp-123
+       */
+      componentId?: string;
+      /**
+       * @description Environment identifier
+       * @example env-dev
+       */
+      environmentId: string;
+      /**
+       * @description Project identifier
+       * @example proj-456
+       */
+      projectId: string;
+      /**
+       * Format: date-time
+       * @description Start time for metrics query in RFC3339 format
+       * @example 2025-01-10T00:00:00Z
        */
       startTime?: string;
       /**
        * Format: date-time
-       * @description End time for log range
+       * @description End time for metrics query in RFC3339 format
+       * @example 2025-01-10T23:59:59Z
        */
       endTime?: string;
-      /**
-       * @description Maximum number of logs to return
-       * @default 100
-       */
-      limit: number;
-      /**
-       * @description Offset for pagination
-       * @default 0
-       */
-      offset: number;
     };
-    BuildLogsRequest: {
-      /** @description Build identifier */
-      buildId: string;
-      /** @description Build UUID */
-      buildUuid: string;
-      /** @description Search phrase to filter logs */
-      searchPhrase?: string;
+    LogEntry: {
       /**
-       * @description Maximum number of logs to return
-       * @default 100
+       * Format: date-time
+       * @description Timestamp of the log entry
+       * @example 2025-01-10T12:34:56.789Z
        */
-      limit: number;
+      timestamp?: string;
+      /**
+       * @description The actual log message
+       * @example Request processed successfully
+       */
+      log?: string;
+      /**
+       * @description Log level
+       * @example INFO
+       */
+      level?: string;
+      /**
+       * @description Log stream (stdout/stderr)
+       * @example stdout
+       */
+      stream?: string;
+      /** @description Kubernetes metadata */
+      kubernetes?: {
+        [key: string]: unknown;
+      };
+    };
+    LogResponse: {
+      /** @description Array of log entries */
+      logs?: components['schemas']['LogEntry'][];
+      /**
+       * @description Total number of matching logs
+       * @example 1234
+       */
+      totalCount?: number;
+      /**
+       * @description Query execution time in milliseconds
+       * @example 42
+       */
+      tookMs?: number;
+    };
+    TimeValuePoint: {
+      /**
+       * Format: date-time
+       * @description Timestamp in ISO 8601 format
+       * @example 2025-01-10T12:00:00Z
+       */
+      time?: string;
+      /**
+       * Format: double
+       * @description Metric value at this timestamp
+       * @example 0.75
+       */
+      value?: number;
+    };
+    /**
+     * @example {
+     *       "cpuUsage": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 0.25
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 0.3
+     *         }
+     *       ],
+     *       "cpuRequests": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 0.5
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 0.5
+     *         }
+     *       ],
+     *       "cpuLimits": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 1
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 1
+     *         }
+     *       ],
+     *       "memory": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 536870912
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 549453824
+     *         }
+     *       ],
+     *       "memoryRequests": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 1073741824
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 1073741824
+     *         }
+     *       ],
+     *       "memoryLimits": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 2147483648
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 2147483648
+     *         }
+     *       ]
+     *     }
+     */
+    ResourceMetricsTimeSeries: {
+      /** @description CPU usage time series (in cores) */
+      cpuUsage?: components['schemas']['TimeValuePoint'][];
+      /** @description CPU requests time series (in cores) */
+      cpuRequests?: components['schemas']['TimeValuePoint'][];
+      /** @description CPU limits time series (in cores) */
+      cpuLimits?: components['schemas']['TimeValuePoint'][];
+      /** @description Memory usage time series (in bytes) */
+      memory?: components['schemas']['TimeValuePoint'][];
+      /** @description Memory requests time series (in bytes) */
+      memoryRequests?: components['schemas']['TimeValuePoint'][];
+      /** @description Memory limits time series (in bytes) */
+      memoryLimits?: components['schemas']['TimeValuePoint'][];
+    };
+    ErrorResponse: {
+      /**
+       * @description Error type
+       * @example invalidRequest
+       * @enum {string}
+       */
+      error: 'missingParameter' | 'invalidRequest' | 'internalError';
+      /**
+       * @description Error code
+       * @example OBS-L-12
+       */
+      code: string;
+      /**
+       * @description Human-readable error message
+       * @example Invalid request format
+       */
+      message: string;
     };
   };
   responses: never;
@@ -157,61 +534,66 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  getComponentRuntimeLogs: {
+  health: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Service is healthy */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @example healthy */
+            status?: string;
+          };
+        };
+      };
+      /** @description Service is unhealthy */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @example unhealthy */
+            status?: string;
+            /** @example opensearch: connection failed */
+            error?: string;
+          };
+        };
+      };
+    };
+  };
+  getComponentLogs: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Component identifier */
+        /** @description The unique identifier of the component */
         componentId: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': {
-          /** @description Environment identifier */
-          environmentId: string;
-          /** @description Filter logs by levels */
-          logLevels?: (
-            | 'TRACE'
-            | 'DEBUG'
-            | 'INFO'
-            | 'WARN'
-            | 'ERROR'
-            | 'FATAL'
-          )[];
-          /**
-           * Format: date-time
-           * @description Start time for log range
-           */
-          startTime?: string;
-          /**
-           * Format: date-time
-           * @description End time for log range
-           */
-          endTime?: string;
-          /**
-           * @description Maximum number of logs to return
-           * @default 100
-           */
-          limit?: number;
-          /**
-           * @description Offset for pagination
-           * @default 0
-           */
-          offset?: number;
-        };
+        'application/json': components['schemas']['ComponentLogsRequest'];
       };
     };
     responses: {
-      /** @description Successful response with runtime logs */
+      /** @description Successfully retrieved component logs */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RuntimeLogsResponse'];
+          'application/json': components['schemas']['LogResponse'];
         };
       };
       /** @description Bad request - invalid parameters */
@@ -220,83 +602,43 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            error?: string;
-          };
+          'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Component or environment not found */
-      404: {
+      /** @description Internal server error */
+      500: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            error?: string;
-          };
-        };
-      };
-      /** @description Observability not configured for this component */
-      503: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            error?: string;
-            message?: string;
-          };
+          'application/json': components['schemas']['ErrorResponse'];
         };
       };
     };
   };
-  getComponentBuildLogs: {
+  getProjectLogs: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Component name */
-        componentName: string;
+        /** @description The unique identifier of the project */
+        projectId: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': {
-          /** @description Build identifier */
-          buildId: string;
-          /** @description Build UUID */
-          buildUuid: string;
-          /**
-           * @description Log levels to fetch
-           * @default [
-           *       "INFO"
-           *     ]
-           */
-          logLevels?: string[];
-          /**
-           * @description Type of logs
-           * @default BUILD
-           */
-          logType?: string;
-          /** @description Search phrase to filter logs */
-          searchPhrase?: string;
-          /**
-           * @description Maximum number of logs to return
-           * @default 100
-           */
-          limit?: number;
-        };
+        'application/json': components['schemas']['ProjectLogsRequest'];
       };
     };
     responses: {
-      /** @description Successful response with build logs */
+      /** @description Successfully retrieved project logs */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RuntimeLogsResponse'];
+          'application/json': components['schemas']['LogResponse'];
         };
       };
       /** @description Bad request - invalid parameters */
@@ -305,32 +647,187 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            error?: string;
-          };
+          'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Component or build not found */
-      404: {
+      /** @description Internal server error */
+      500: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            error?: string;
-          };
+          'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Build logs not available for this component */
-      503: {
+    };
+  };
+  getGatewayLogs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GatewayLogsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved gateway logs */
+      200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            error?: string;
-            message?: string;
-          };
+          'application/json': components['schemas']['LogResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getOrganizationLogs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The unique identifier of the organization */
+        orgId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OrganizationLogsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved organization logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LogResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getComponentTraces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ComponentTracesRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved component traces */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LogResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getComponentResourceMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MetricsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved resource metrics */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceMetricsTimeSeries'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
         };
       };
     };
