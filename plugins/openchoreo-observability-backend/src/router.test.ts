@@ -9,11 +9,43 @@ import request from 'supertest';
 import { createRouter } from './router';
 import { observabilityServiceRef } from './services/ObservabilityService';
 
-const mockTodoItem = {
-  title: 'Do the thing',
-  id: '123',
-  createdBy: mockCredentials.user().principal.userEntityRef,
-  createdAt: new Date().toISOString(),
+const mockResourceMetricsTimeSeries = {
+  cpuUsage: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  cpuRequests: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  cpuLimits: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  memory: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  memoryRequests: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  memoryLimits: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
 };
 
 // TEMPLATE NOTE:
@@ -24,9 +56,8 @@ describe('createRouter', () => {
 
   beforeEach(async () => {
     observabilityService = {
-      createTodo: jest.fn(),
-      listTodos: jest.fn(),
-      getTodo: jest.fn(),
+      fetchMetricsByComponent: jest.fn(),
+      fetchEnvironmentsByOrganization: jest.fn(),
     };
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),
@@ -37,30 +68,54 @@ describe('createRouter', () => {
     app.use(mockErrorHandler());
   });
 
-  it('should create a TODO', async () => {
-    observabilityService.createTodo.mockResolvedValue(mockTodoItem);
+  it('should fetch metrics by component', async () => {
+    observabilityService.fetchMetricsByComponent.mockResolvedValue(
+      mockResourceMetricsTimeSeries,
+    );
 
-    const response = await request(app).post('/todos').send({
-      title: 'Do the thing',
-    });
+    const response = await request(app)
+      .post('/metrics')
+      .send({
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        orgName: 'org-1',
+        projectName: 'project-1',
+        options: {
+          limit: 100,
+          offset: 0,
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      });
 
-    expect(response.status).toBe(201);
-    expect(response.body).toEqual(mockTodoItem);
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockResourceMetricsTimeSeries);
   });
 
-  it('should not allow unauthenticated requests to create a TODO', async () => {
-    observabilityService.createTodo.mockResolvedValue(mockTodoItem);
+  it('should not allow unauthenticated requests to fetch metrics by component', async () => {
+    observabilityService.fetchMetricsByComponent.mockResolvedValue(
+      mockResourceMetricsTimeSeries,
+    );
 
     // TEMPLATE NOTE:
     // The HttpAuth mock service considers all requests to be authenticated as a
     // mock user by default. In order to test other cases we need to explicitly
     // pass an authorization header with mock credentials.
     const response = await request(app)
-      .post('/todos')
-      .set('Authorization', mockCredentials.none.header())
+      .post('/metrics')
       .send({
-        title: 'Do the thing',
-      });
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        orgName: 'org-1',
+        projectName: 'project-1',
+        options: {
+          limit: 100,
+          offset: 0,
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      })
+      .set('Authorization', mockCredentials.none.header());
 
     expect(response.status).toBe(401);
   });

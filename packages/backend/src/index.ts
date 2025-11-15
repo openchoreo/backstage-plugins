@@ -69,5 +69,7 @@ backend.add(
   import('@openchoreo/backstage-plugin-platform-engineer-core-backend'),
 );
 // backend.add(import('@openchoreo/backstage-plugin-home-backend'));
-backend.add(import('@openchoreo/backstage-plugin-openchoreo-observability-backend'));
+backend.add(
+  import('@openchoreo/backstage-plugin-openchoreo-observability-backend'),
+);
 backend.start();
