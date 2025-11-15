@@ -30,6 +30,7 @@
     "@backstage/errors": "^1.2.7",
     "@backstage/plugin-catalog-node": "^1.19.0",
     "@backstage/types": "^1.2.2",
+    "@openchoreo/openchoreo-client-node": "workspace:^",
     "express": "^4.17.1",
     "express-promise-router": "^4.1.0",
     "zod": "^3.22.4"

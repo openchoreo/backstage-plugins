@@ -1,17 +1,47 @@
-import {
-  mockCredentials,
-  startTestBackend,
-} from '@backstage/backend-test-utils';
+import { startTestBackend } from '@backstage/backend-test-utils';
 import { createServiceFactory } from '@backstage/backend-plugin-api';
 import { observabilityServiceRef } from './services/ObservabilityService';
 import { openchoreoObservabilityBackendPlugin } from './plugin';
 import request from 'supertest';
-import { catalogServiceMock } from '@backstage/plugin-catalog-node/testUtils';
-import {
-  ConflictError,
-  AuthenticationError,
-  NotAllowedError,
-} from '@backstage/errors';
+
+const mockResourceMetricsTimeSeries = {
+  cpuUsage: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  cpuRequests: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  cpuLimits: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  memory: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  memoryRequests: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+  memoryLimits: [
+    {
+      time: '2021-01-01T00:00:00Z',
+      value: 100,
+    },
+  ],
+};
 
 // TEMPLATE NOTE:
 // Plugin tests are integration tests for your plugin, ensuring that all pieces
@@ -19,75 +49,38 @@ import {
 // however, just like anyone who installs your plugin might replace the
 // services with their own implementations.
 describe('plugin', () => {
-  it('should create and read TODO items', async () => {
-    const { server } = await startTestBackend({
-      features: [openchoreoObservabilityBackendPlugin],
-    });
-
-    await request(server).get('/api/openchoreo-observability-backend/todos').expect(200, {
-      items: [],
-    });
-
-    const createRes = await request(server)
-      .post('/api/openchoreo-observability-backend/todos')
-      .send({ title: 'My Todo' });
-
-    expect(createRes.status).toBe(201);
-    expect(createRes.body).toEqual({
-      id: expect.any(String),
-      title: 'My Todo',
-      createdBy: mockCredentials.user().principal.userEntityRef,
-      createdAt: expect.any(String),
-    });
-
-    const createdTodoItem = createRes.body;
-
-    await request(server)
-      .get('/api/openchoreo-observability-backend/todos')
-      .expect(200, {
-        items: [createdTodoItem],
-      });
-
-    await request(server)
-      .get(`/api/openchoreo-observability-backend/todos/${createdTodoItem.id}`)
-      .expect(200, createdTodoItem);
-  });
-
-  it('should create TODO item with catalog information', async () => {
+  it('should get metrics', async () => {
     const { server } = await startTestBackend({
       features: [
         openchoreoObservabilityBackendPlugin,
-        catalogServiceMock.factory({
-          entities: [
-            {
-              apiVersion: 'backstage.io/v1alpha1',
-              kind: 'Component',
-              metadata: {
-                name: 'my-component',
-                namespace: 'default',
-                title: 'My Component',
-              },
-              spec: {
-                type: 'service',
-                owner: 'me',
-              },
-            },
-          ],
+        createServiceFactory({
+          service: observabilityServiceRef,
+          deps: {},
+          factory: () => ({
+            fetchMetricsByComponent: jest
+              .fn()
+              .mockResolvedValue(mockResourceMetricsTimeSeries),
+            fetchEnvironmentsByOrganization: jest.fn().mockResolvedValue([]),
+          }),
         }),
       ],
     });
 
-    const createRes = await request(server)
-      .post('/api/openchoreo-observability-backend/todos')
-      .send({ title: 'My Todo', entityRef: 'component:default/my-component' });
-
-    expect(createRes.status).toBe(201);
-    expect(createRes.body).toEqual({
-      id: expect.any(String),
-      title: '[My Component] My Todo',
-      createdBy: mockCredentials.user().principal.userEntityRef,
-      createdAt: expect.any(String),
-    });
+    await request(server)
+      .post('/api/openchoreo-observability-backend/metrics')
+      .send({
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        orgName: 'org-1',
+        projectName: 'project-1',
+        options: {
+          limit: 100,
+          offset: 0,
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      })
+      .expect(200, mockResourceMetricsTimeSeries);
   });
 
   it('should forward errors from the ObservabilityService', async () => {
@@ -98,32 +91,34 @@ describe('plugin', () => {
           service: observabilityServiceRef,
           deps: {},
           factory: () => ({
-            createTodo: jest.fn().mockRejectedValue(new ConflictError()),
-            listTodos: jest.fn().mockRejectedValue(new AuthenticationError()),
-            getTodo: jest.fn().mockRejectedValue(new NotAllowedError()),
+            fetchMetricsByComponent: jest
+              .fn()
+              .mockRejectedValue(new Error('Failed to fetch metrics')),
+            fetchEnvironmentsByOrganization: jest
+              .fn()
+              .mockRejectedValue(new Error('Failed to fetch environments')),
           }),
-        })
+        }),
       ],
     });
 
-    const createRes = await request(server)
-      .post('/api/openchoreo-observability-backend/todos')
-      .send({ title: 'My Todo', entityRef: 'component:default/my-component' });
-    expect(createRes.status).toBe(409);
-    expect(createRes.body).toMatchObject({
-      error: { name: 'ConflictError' },
-    });
-
-    const listRes = await request(server).get('/api/openchoreo-observability-backend/todos');
-    expect(listRes.status).toBe(401);
-    expect(listRes.body).toMatchObject({
-      error: { name: 'AuthenticationError' },
-    });
-
-    const getRes = await request(server).get('/api/openchoreo-observability-backend/todos/123');
-    expect(getRes.status).toBe(403);
-    expect(getRes.body).toMatchObject({
-      error: { name: 'NotAllowedError' },
+    const getMetricsRes = await request(server)
+      .post('/api/openchoreo-observability-backend/metrics')
+      .send({
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        orgName: 'org-1',
+        projectName: 'project-1',
+        options: {
+          limit: 100,
+          offset: 0,
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      });
+    expect(getMetricsRes.status).toBe(500);
+    expect(getMetricsRes.body).toMatchObject({
+      error: 'Failed to fetch metrics',
     });
   });
 });

@@ -9219,6 +9219,7 @@ __metadata:
     "@backstage/errors": "npm:^1.2.7"
     "@backstage/plugin-catalog-node": "npm:^1.19.0"
     "@backstage/types": "npm:^1.2.2"
+    "@openchoreo/openchoreo-client-node": "workspace:^"
     "@types/express": "npm:^4.17.6"
     "@types/supertest": "npm:^2.0.12"
     express: "npm:^4.17.1"

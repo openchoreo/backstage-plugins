@@ -1,155 +1,271 @@
-/*
- * Copyright 2025 The Backstage Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-import crypto from 'node:crypto';
 import {
   coreServices,
   createServiceFactory,
   createServiceRef,
   LoggerService,
 } from '@backstage/backend-plugin-api';
-import { NotFoundError } from '@backstage/errors';
-import { catalogServiceRef } from '@backstage/plugin-catalog-node';
-import {
-  BackstageCredentials,
-  BackstageUserPrincipal,
-} from '@backstage/backend-plugin-api';
 import { Expand } from '@backstage/types';
+import {
+  createOpenChoreoApiClient,
+  createObservabilityClientWithUrl,
+} from '@openchoreo/openchoreo-client-node';
+import { Environment, ResourceMetricsTimeSeries } from '../types';
 
-export interface TodoItem {
-  title: string;
-  id: string;
-  createdBy: string;
-  createdAt: string;
+/**
+ * Error thrown when observability is not configured for a component
+ */
+export class ObservabilityNotConfiguredError extends Error {
+  constructor(componentId: string) {
+    super(`Observability is not configured for component ${componentId}`);
+    this.name = 'ObservabilityNotConfiguredError';
+  }
 }
 
-// TEMPLATE NOTE:
-// This is a simple in-memory todo list store. It is recommended to use a
-// database to store data in a real application. See the database service
-// documentation for more information on how to do this:
-// https://backstage.io/docs/backend-system/core-services/database
 export class ObservabilityService {
-  readonly #logger: LoggerService;
-  readonly #catalog: typeof catalogServiceRef.T;
+  private readonly logger: LoggerService;
+  private readonly baseUrl: string;
+  private readonly token?: string;
 
-  readonly #storedTodos = new Array<TodoItem>();
-
-  static create(options: {
-    logger: LoggerService;
-    catalog: typeof catalogServiceRef.T;
-  }) {
-    return new ObservabilityService(options.logger, options.catalog);
-  }
-
-  private constructor(
+  static create(
     logger: LoggerService,
-    catalog: typeof catalogServiceRef.T,
-  ) {
-    this.#logger = logger;
-    this.#catalog = catalog;
+    baseUrl: string,
+    token?: string,
+  ): ObservabilityService {
+    return new ObservabilityService(logger, baseUrl, token);
   }
 
-  async createTodo(
-    input: {
-      title: string;
-      entityRef?: string;
-    },
-    options: {
-      credentials: BackstageCredentials<BackstageUserPrincipal>;
-    },
-  ): Promise<TodoItem> {
-    let title = input.title;
+  private constructor(logger: LoggerService, baseUrl: string, token?: string) {
+    this.logger = logger;
+    this.baseUrl = baseUrl;
+    this.token = token;
+  }
 
-    // TEMPLATE NOTE:
-    // A common pattern for Backstage plugins is to pass an entity reference
-    // from the frontend to then fetch the entire entity from the catalog in the
-    // backend plugin.
-    if (input.entityRef) {
-      // TEMPLATE NOTE:
-      // Cross-plugin communication uses service-to-service authentication. The
-      // `AuthService` lets you generate a token that is valid for communication
-      // with the target plugin only. You must also provide credentials for the
-      // identity that you are making the request on behalf of.
-      //
-      // If you want to make a request using the plugin backend's own identity,
-      // you can access it via the `auth.getOwnServiceCredentials()` method.
-      // Beware that this bypasses any user permission checks.
-      const entity = await this.#catalog.getEntityByRef(
-        input.entityRef,
-        options,
+  /**
+   * Fetches environments for observability filtering purposes.
+   */
+  async fetchEnvironmentsByOrganization(
+    organizationName: string,
+  ): Promise<Environment[]> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Starting environment fetch for organization: ${organizationName}`,
       );
-      if (!entity) {
-        throw new NotFoundError(`No entity found for ref '${input.entityRef}'`);
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+        token: this.token,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/environments',
+        {
+          params: {
+            path: { orgName: organizationName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        this.logger.error(
+          `Failed to fetch environments for organization ${organizationName}: ${response.status} ${response.statusText}`,
+        );
+        return [];
       }
 
-      // TEMPLATE NOTE:
-      // Here you could read any form of data from the entity. A common use case
-      // is to read the value of a custom annotation for your plugin. You can
-      // read more about how to add custom annotations here:
-      // https://backstage.io/docs/features/software-catalog/extending-the-model#adding-a-new-annotation
-      //
-      // In this example we just use the entity title to decorate the todo item.
+      if (!data.success || !data.data?.items) {
+        this.logger.warn(
+          `No environments found for organization ${organizationName}`,
+        );
+        return [];
+      }
 
-      const entityDisplay = entity.metadata.title ?? input.entityRef;
-      title = `[${entityDisplay}] ${input.title}`;
+      const environments = data.data.items as Environment[];
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Environment fetch completed: ${environments.length} environments found (${totalTime}ms)`,
+      );
+
+      return environments;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching environments for organization ${organizationName} (${totalTime}ms):`,
+        error as Error,
+      );
+      return [];
     }
-
-    const id = crypto.randomUUID();
-    const createdBy = options.credentials.principal.userEntityRef;
-    const newTodo = {
-      title,
-      id,
-      createdBy,
-      createdAt: new Date().toISOString(),
-    };
-
-    this.#storedTodos.push(newTodo);
-
-    // TEMPLATE NOTE:
-    // The second argument of the logger methods can be used to pass
-    // structured metadata. You can read more about the logger service here:
-    // https://backstage.io/docs/backend-system/core-services/logger
-    this.#logger.info('Created new todo item', { id, title, createdBy });
-
-    return newTodo;
   }
 
-  async listTodos(): Promise<{ items: TodoItem[] }> {
-    return { items: Array.from(this.#storedTodos) };
-  }
+  /**
+   * Fetches metrics for a specific component.
+   * This method dynamically resolves the observability URL from the main API,
+   * then fetches metrics from the observability service.
+   *
+   * @param componentId - The ID of the component
+   * @param environmentId - The ID of the environment
+   * @param orgName - The organization name
+   * @param projectName - The project name
+   * @param options - Optional parameters for filtering metrics
+   * @param options.limit - The maximum number of metrics to return
+   * @param options.offset - The offset from the first metric to return
+   * @param options.startTime - The start time of the metrics
+   * @param options.endTime - The end time of the metrics
+   * @returns Promise<ResourceMetricsTimeSeries> - The metrics data
+   */
+  async fetchMetricsByComponent(
+    componentId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<ResourceMetricsTimeSeries> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching metrics for component ${componentId} in environment ${environmentId}`,
+      );
 
-  async getTodo(request: { id: string }): Promise<TodoItem> {
-    const todo = this.#storedTodos.find(item => item.id === request.id);
-    if (!todo) {
-      throw new NotFoundError(`No todo found with id '${request.id}'`);
+      // First, get the observer URL from the main API
+      const mainClient = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+      const {
+        data: urlData,
+        error: urlError,
+        response: urlResponse,
+      } = await mainClient.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentId}/environments/{environmentId}/observer-url' as any,
+        {
+          params: {
+            path: { orgName, projectName, componentId, environmentId },
+          },
+        },
+      );
+
+      if (urlError || !urlResponse.ok) {
+        throw new Error(
+          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
+        );
+      }
+
+      if (!urlData.success || !urlData.data) {
+        throw new Error(
+          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
+        );
+      }
+
+      const observerUrl = urlData.data.observerUrl;
+      if (!observerUrl) {
+        throw new ObservabilityNotConfiguredError(componentId);
+      }
+
+      // Now use the observability client with the resolved URL
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        this.token,
+        this.logger,
+      );
+
+      this.logger.debug(
+        `Sending metrics request for component ${componentId} with limit: ${
+          options?.limit || 100
+        }`,
+      );
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/metrics/component/usage',
+        {
+          body: {
+            componentId,
+            environmentId,
+            projectId: projectName,
+            limit: options?.limit || 100,
+            offset: options?.offset || 0,
+            startTime: options?.startTime,
+            endTime: options?.endTime,
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to fetch metrics for component ${componentId}: ${response.status} ${response.statusText}`,
+          { error: errorText },
+        );
+        throw new Error(
+          `Failed to fetch metrics: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully fetched metrics for component ${componentId}: ${JSON.stringify(
+          data,
+        )}`,
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Metrics fetch completed for component ${componentId} (${totalTime}ms)`,
+      );
+
+      // return {...data};
+      // TODO: Fix the ObservabilityClient to return empty arrays if the data is not available
+      return {
+        cpuUsage: data.cpuUsage ?? [],
+        cpuRequests: data.cpuRequests ?? [],
+        cpuLimits: data.cpuLimits ?? [],
+        memory: data.memory ?? [],
+        memoryRequests: data.memoryRequests ?? [],
+        memoryLimits: data.memoryLimits ?? [],
+      };
+    } catch (error: unknown) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        this.logger.info(
+          `Observability not configured for component ${componentId}`,
+        );
+        throw error;
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching metrics for component ${componentId} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
     }
-    return todo;
   }
 }
 
-export const observabilityServiceRef = createServiceRef<Expand<ObservabilityService>>({
+export const observabilityServiceRef = createServiceRef<
+  Expand<ObservabilityService>
+>({
   id: 'openchoreo.observability',
   defaultFactory: async service =>
     createServiceFactory({
       service,
       deps: {
         logger: coreServices.logger,
-        catalog: catalogServiceRef,
+        config: coreServices.rootConfig,
       },
       async factory(deps) {
-        return ObservabilityService.create(deps);
+        // Read configuration from app-config.yaml
+        const baseUrl =
+          deps.config.getOptionalString('openchoreo.baseUrl') ||
+          'http://localhost:8080';
+        const token = deps.config.getOptionalString('openchoreo.token');
+
+        return ObservabilityService.create(deps.logger, baseUrl, token);
       },
     }),
 });
