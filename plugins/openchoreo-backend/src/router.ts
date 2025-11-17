@@ -237,8 +237,7 @@ export async function createRouter({
     async (req: express.Request, res: express.Response) => {
       const { componentId } = req.params;
       const { orgName, projectName } = req.query;
-      const { environmentId, logLevels, startTime, endTime, limit, offset } =
-        req.body;
+      const { environmentId, logLevels, startTime, endTime, limit } = req.body;
 
       if (!componentId || !environmentId) {
         return res.status(422).json({
@@ -256,7 +255,6 @@ export async function createRouter({
             startTime,
             endTime,
             limit,
-            offset,
           },
           orgName as string,
           projectName as string,

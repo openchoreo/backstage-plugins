@@ -42,7 +42,6 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
    * @param {string} request.startTime - Optional start time for log range
    * @param {string} request.endTime - Optional end time for log range
    * @param {number} request.limit - Optional limit for number of logs (default 50)
-   * @param {number} request.offset - Optional offset for pagination (default 0)
    * @returns {Promise<RuntimeLogsResponse>} Response containing logs array, total count, and timing
    * @throws {Error} When there's an error fetching data from the API
    */
@@ -54,7 +53,6 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       startTime?: string;
       endTime?: string;
       limit?: number;
-      offset?: number;
     },
     orgName: string,
     projectName: string,
@@ -67,7 +65,6 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         startTime,
         endTime,
         limit = 50,
-        offset = 0,
       } = request;
 
       this.logger.info(
@@ -124,7 +121,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       );
 
       this.logger.info(
-        `Sending logs request for component ${componentId} with limit: ${limit}, offset: ${offset}`,
+        `Sending logs request for component ${componentId} with limit: ${limit}`,
       );
 
       const { data, error, response } = await obsClient.POST(
@@ -134,12 +131,13 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
             path: { componentId },
           },
           body: {
+            startTime:
+              startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Default: 1 hour ago
+            endTime: endTime || new Date().toISOString(), // Default: now
             environmentId,
-            ...(logLevels && logLevels.length > 0 && { logLevels }),
-            ...(startTime && { startTime }),
-            ...(endTime && { endTime }),
             limit,
-            offset,
+            sortOrder: 'desc',
+            ...(logLevels && logLevels.length > 0 && { logLevels }),
           },
         },
       );
@@ -163,7 +161,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
 
       return {
         logs: data.logs || [],
-        totalCount: data.totalCount || data.total || 0,
+        totalCount: data.totalCount || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {
