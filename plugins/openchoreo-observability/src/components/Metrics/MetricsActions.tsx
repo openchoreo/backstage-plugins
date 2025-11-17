@@ -1,6 +1,6 @@
-import { Box, Typography, Button, makeStyles } from '@material-ui/core';
+import { Box, Typography, Button } from '@material-ui/core';
 import Refresh from '@material-ui/icons/Refresh';
-import { metricsActionsStyles } from './styles';
+import { useMetricsActionsStyles } from './styles';
 
 interface MetricsActionsProps {
   disabled: boolean;
@@ -11,7 +11,7 @@ export const MetricsActions = ({
   disabled,
   onRefresh,
 }: MetricsActionsProps) => {
-  const classes = makeStyles(metricsActionsStyles)();
+  const classes = useMetricsActionsStyles();
   return (
     <Box className={classes.statsContainer}>
       <Box>
