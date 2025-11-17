@@ -1,19 +1,23 @@
-import { createApiRef, DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
-
-export interface Metric {
-  name: string;
-  value: number;
-  unit: string;
-  status: string;
-}
-
-export interface MetricsResponse {
-  timestamp: string;
-  metrics: Metric[];
-}
+import {
+  createApiRef,
+  DiscoveryApi,
+  FetchApi,
+} from '@backstage/core-plugin-api';
+import { UsageMetrics } from '../types';
 
 export interface ObservabilityApi {
-  getMetrics(): Promise<MetricsResponse>;
+  getMetrics(
+    componentId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<UsageMetrics>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -29,14 +33,51 @@ export class ObservabilityClient implements ObservabilityApi {
     this.fetchApi = options.fetchApi;
   }
 
-  async getMetrics(): Promise<MetricsResponse> {
-    const baseUrl = await this.discoveryApi.getBaseUrl('openchoreo-observability-backend');
-    const response = await this.fetchApi.fetch(`${baseUrl}/metrics`);
+  async getMetrics(
+    componentId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<UsageMetrics> {
+    const baseUrl = await this.discoveryApi.getBaseUrl(
+      'openchoreo-observability-backend',
+    );
+    const response = await this.fetchApi.fetch(`${baseUrl}/metrics`, {
+      method: 'POST',
+      body: JSON.stringify({
+        componentId,
+        environmentId,
+        orgName,
+        projectName,
+        options,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch metrics: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    return {
+      cpuUsage: {
+        cpuUsage: data.cpuUsage,
+        cpuRequests: data.cpuRequests,
+        cpuLimits: data.cpuLimits,
+      },
+      memoryUsage: {
+        memoryUsage: data.memory,
+        memoryRequests: data.memoryRequests,
+        memoryLimits: data.memoryLimits,
+      },
+    };
   }
 }
