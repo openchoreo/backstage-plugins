@@ -21,6 +21,7 @@ import {
   getLineOpacity,
   formatMetricName,
 } from './utils';
+import { useMetricGraphStyles } from './styles';
 
 export const MetricGraphByComponent = ({
   usageData,
@@ -31,6 +32,7 @@ export const MetricGraphByComponent = ({
   usageType: 'cpu' | 'memory';
   timeRange?: string;
 }) => {
+  const classes = useMetricGraphStyles();
   const [hoveringDataKey, setHoveringDataKey] = useState<
     DataKey<any> | undefined
   >();
@@ -53,14 +55,9 @@ export const MetricGraphByComponent = ({
   const handleMouseLeave = () => setHoveringDataKey(undefined);
 
   return (
-    <div style={{ width: '100%' }}>
+    <div className={classes.chartContainer}>
       <LineChart
-        style={{
-          width: '100%',
-          maxWidth: '100%',
-          maxHeight: '70vh',
-          aspectRatio: 1.618,
-        }}
+        className={classes.lineChart}
         responsive
         data={transformedData}
       >

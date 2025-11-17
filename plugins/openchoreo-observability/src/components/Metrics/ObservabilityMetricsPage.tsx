@@ -22,8 +22,10 @@ import {
 } from '../../hooks';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CpuUsageMetrics, Environment, MemoryUsageMetrics } from '../../types';
+import { useObservabilityMetricsPageStyles } from './styles';
 
 export const ObservabilityMetricsPage = () => {
+  const classes = useObservabilityMetricsPageStyles();
   const { entity } = useEntity();
   const { filters, updateFilters } = useFilters();
   const {
@@ -111,7 +113,7 @@ export const ObservabilityMetricsPage = () => {
             disabled={isLoading}
           />
           <MetricsActions onRefresh={handleRefresh} disabled={metricsLoading} />
-          <Grid container spacing={4} style={{ marginTop: 16 }}>
+          <Grid container spacing={4} className={classes.metricsGridContainer}>
             <Grid item xs={12} md={6}>
               <Card>
                 <CardHeader title="CPU Usage" />
