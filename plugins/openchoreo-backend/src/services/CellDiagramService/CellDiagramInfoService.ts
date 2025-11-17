@@ -122,6 +122,9 @@ export class CellDiagramInfoService implements CellDiagramService {
                   projectName,
                   componentName,
                 },
+                query: {
+                  include: 'type,workload',
+                },
               },
             },
           );
@@ -146,6 +149,16 @@ export class CellDiagramInfoService implements CellDiagramService {
           );
         })
         .map(component => {
+          // Get connections from workload data included in component response
+          const connections = this.generateConnections(
+            component.workload?.connections as
+              | { [key: string]: WorkloadConnection }
+              | undefined,
+            orgName,
+            projectName,
+            completeComponents,
+          );
+
           if (component.type === 'Service') {
             // Extract API information from the Service.apis object
             const apis = component.service?.apis || {};
@@ -172,14 +185,6 @@ export class CellDiagramInfoService implements CellDiagramService {
                   },
                 };
               },
-            );
-            const connections = this.generateConnections(
-              component.workload?.connections as
-                | { [key: string]: WorkloadConnection }
-                | undefined,
-              orgName,
-              projectName,
-              completeComponents,
             );
 
             return {
@@ -215,14 +220,7 @@ export class CellDiagramInfoService implements CellDiagramService {
                   },
                 },
               },
-              connections: this.generateConnections(
-                component.workload?.connections as
-                  | { [key: string]: WorkloadConnection }
-                  | undefined,
-                orgName,
-                projectName,
-                completeComponents,
-              ),
+              connections: connections,
             } as Component;
           }
           return null;
