@@ -7,7 +7,10 @@ import {
 } from '@backstage/core-plugin-api';
 
 import { rootRouteRef } from './routes';
-import { observabilityApiRef, ObservabilityClient } from './api/ObservabilityApi';
+import {
+  observabilityApiRef,
+  ObservabilityClient,
+} from './api/ObservabilityApi';
 
 const openchoreoObservabilityPlugin = createPlugin({
   id: 'openchoreo-observability',
@@ -31,7 +34,9 @@ export const ObservabilityMetrics = openchoreoObservabilityPlugin.provide(
   createRoutableExtension({
     name: 'ObservabilityMetrics',
     component: () =>
-      import('./components/Metrics/ObservabilityMetricsPage').then(m => m.ObservabilityMetricsPage),
+      import('./components/Metrics/ObservabilityMetricsPage').then(
+        m => m.ObservabilityMetricsPage,
+      ),
     mountPoint: rootRouteRef,
   }),
 );
