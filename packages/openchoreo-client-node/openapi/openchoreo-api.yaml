@@ -1640,6 +1640,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: include
+          in: query
+          required: false
+          schema:
+            type: string
+            description: Comma-separated list of additional resources to include (e.g., "type,workload")
+          description: Additional resources to include in the response. Valid values are "type" and "workload".
       responses:
         '200':
           description: Successful response

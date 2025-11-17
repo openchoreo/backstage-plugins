@@ -1587,7 +1587,10 @@ export interface operations {
   };
   getComponent: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Additional resources to include in the response. Valid values are "type" and "workload". */
+        include?: string;
+      };
       header?: never;
       path: {
         orgName: string;
