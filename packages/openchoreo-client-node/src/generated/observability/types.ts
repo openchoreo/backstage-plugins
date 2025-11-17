@@ -170,7 +170,7 @@ export interface components {
        * @description Kubernetes namespace
        * @example default
        */
-      namespace: string;
+      namespace?: string;
       /**
        * @description Search phrase to filter logs
        * @example error

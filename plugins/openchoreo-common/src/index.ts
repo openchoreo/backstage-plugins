@@ -39,5 +39,5 @@ export type WorkloadType =
 
 // Observability types
 export type RuntimeLogsResponse =
-  ObservabilityComponents['schemas']['RuntimeLogsResponse'];
+  ObservabilityComponents['schemas']['LogResponse'];
 export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];

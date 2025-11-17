@@ -118,7 +118,11 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
     return logs.map((logEntry, index) => (
       <Box key={index} style={{ marginBottom: '4px' }}>
         <Typography variant="body2" className={classes.timestampText}>
-          [{new Date(logEntry.timestamp).toLocaleTimeString()}]
+          [
+          {logEntry.timestamp
+            ? new Date(logEntry.timestamp).toLocaleTimeString()
+            : 'N/A'}
+          ]
         </Typography>
         <Typography variant="body2" className={classes.logText}>
           {logEntry.log}

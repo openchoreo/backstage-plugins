@@ -193,17 +193,24 @@ export class BuildInfoService {
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/component/{componentName}',
+        '/api/logs/component/{componentId}',
         {
           params: {
-            path: { componentName },
+            path: { componentId: componentName },
           },
           body: {
+            startTime: new Date(
+              Date.now() - 30 * 24 * 60 * 60 * 1000,
+            ).toISOString(), // 30 days ago
+            endTime: new Date().toISOString(),
+            environmentId: 'default',
+            namespace: 'default',
+            limit: limit || 100,
+            sortOrder: sortOrder || 'desc',
+            logType: 'build',
             buildId,
             buildUuid,
             ...(searchPhrase && { searchPhrase }),
-            ...(limit && { limit }),
-            ...(sortOrder && { sortOrder }),
           },
         },
       );
@@ -227,7 +234,7 @@ export class BuildInfoService {
 
       return {
         logs: data.logs || [],
-        totalCount: data.totalCount || data.total || 0,
+        totalCount: data.totalCount || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {

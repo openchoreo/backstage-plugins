@@ -285,7 +285,7 @@ components:
         - startTime
         - endTime
         - environmentId
-        - namespace
+        # - namespace
       properties:
         startTime:
           type: string
