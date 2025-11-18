@@ -3,6 +3,12 @@ import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import { buildComponentResource } from './componentResourceBuilder';
+import { CatalogClient } from '@backstage/catalog-client';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+
+// Kubernetes DNS subdomain name validation
+const K8S_NAME_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
+const MAX_NAME_LENGTH = 253;
 
 export const createComponentAction = (config: Config) => {
   return createTemplateAction({
@@ -24,6 +30,11 @@ export const createComponentAction = (config: Config) => {
             ),
           componentName: zImpl
             .string()
+            .max(MAX_NAME_LENGTH, `Component name must not exceed ${MAX_NAME_LENGTH} characters`)
+            .regex(
+              K8S_NAME_PATTERN,
+              'Component name must be a valid Kubernetes name: lowercase letters, numbers, hyphens, or dots only. Must start and end with an alphanumeric character.',
+            )
             .describe('The name of the component to create'),
           displayName: zImpl
             .string()
@@ -80,6 +91,52 @@ export const createComponentAction = (config: Config) => {
       ctx.logger.info(
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
       );
+
+      // Check if component with the same name already exists in this organization
+      // Note: This requires catalog-backend to be accessible
+      try {
+        const backstageUrl = config.getString('backend.baseUrl');
+        const catalogApi = new CatalogClient({
+          discoveryApi: {
+            async getBaseUrl(pluginId: string) {
+              return `${backstageUrl}/api/${pluginId}`;
+            },
+          },
+        });
+
+        // Get all components from catalog
+        const { items } = await catalogApi.getEntities({
+          filter: {
+            kind: 'Component',
+          },
+        });
+
+        // Filter components by organization annotation and check if name exists
+        const existsInOrg = items.some(
+          component =>
+            component.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION] === orgName &&
+            component.metadata.name === ctx.input.componentName,
+        );
+
+        if (existsInOrg) {
+          throw new Error(
+            `A component named "${ctx.input.componentName}" already exists in organization "${orgName}". Please choose a different name.`,
+          );
+        }
+
+        ctx.logger.debug(
+          `Component name "${ctx.input.componentName}" is available in organization "${orgName}"`,
+        );
+      } catch (error) {
+        // If it's our duplicate error, rethrow it
+        if (error instanceof Error && error.message.includes('already exists')) {
+          throw error;
+        }
+        // For other catalog API errors, log warning but continue
+        ctx.logger.warn(
+          `Failed to check for duplicate component name: ${error}. Proceeding with creation.`,
+        );
+      }
 
       try {
         // Filter out UI-specific fields from addons (id, schema)
