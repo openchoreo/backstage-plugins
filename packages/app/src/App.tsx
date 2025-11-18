@@ -11,6 +11,7 @@ import {
 } from '@backstage/plugin-catalog-import';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
+import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
 import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePicker';
 import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
 import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
@@ -123,6 +124,7 @@ const routes = (
     </Route>
     <Route path="/create" element={<ScaffolderPage />}>
       <ScaffolderFieldExtensions>
+        <ComponentNamePickerFieldExtension />
         <BuildTemplatePickerFieldExtension />
         <BuildTemplateParametersFieldExtension />
         <BuildWorkflowPickerFieldExtension />
