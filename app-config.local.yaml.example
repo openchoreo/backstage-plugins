@@ -28,12 +28,12 @@ backend:
 
 # OpenChoreo API configuration (Kind cluster)
 openchoreo:
-  baseUrl: http://api.openchoreo.localhost
+  baseUrl: http://api.openchoreo.localhost:8080/api/v1
   # token: ""  # Optional: uncomment if you need API authentication
 
 # Thunder IDP configuration (Kind cluster)
 thunder:
-  baseUrl: http://sts.openchoreo.localhost
+  baseUrl: http://thunder.openchoreo.localhost:8080
 
 # OAuth authentication configuration (Kind cluster)
 auth:
@@ -45,8 +45,8 @@ auth:
         # (see openchoreo/install/dev/openchoreo-values.yaml)
         clientId: openchoreo-backstage-client
         clientSecret: backstage-portal-secret
-        authorizationUrl: http://sts.openchoreo.localhost/oauth2/authorize
-        tokenUrl: http://sts.openchoreo.localhost/oauth2/token
+        authorizationUrl: http://thunder.openchoreo.localhost:8080/oauth2/authorize
+        tokenUrl: http://thunder.openchoreo.localhost:8080/oauth2/token
         scope: 'openid profile email'
 
 # GitHub integration (optional)
