@@ -1,0 +1,1 @@
+export { ComponentNamePickerFieldExtension } from './extensions';

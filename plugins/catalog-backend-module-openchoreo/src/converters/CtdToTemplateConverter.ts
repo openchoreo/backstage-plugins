@@ -137,7 +137,7 @@ export class CtdToTemplateConverter {
           title: 'Component Name',
           type: 'string',
           description: 'Unique name for your component',
-          'ui:field': 'EntityNamePicker',
+          'ui:field': 'ComponentNamePicker',
         },
         displayName: {
           title: 'Display Name',
