@@ -13,5 +13,8 @@
     }
   ],
   "versionField": "openChoreoVersion",
-  "versionFile": "src/version.ts"
+  "versionFile": "src/version.ts",
+  "lastSyncCommit": "67eecf3a09fe1de4688ba3f2b39010a098e51600",
+  "lastSyncDate": "2025-01-19T00:00:00Z",
+  "lastSyncDescription": "Synced with openchoreo API changes: added uid to Project/Component/Environment responses, replaced buildConfig with workflow in ComponentResponse"
 }

@@ -73,6 +73,7 @@ components:
     ProjectResponse:
       type: object
       required:
+        - uid
         - name
         - orgName
         - createdAt
@@ -164,6 +165,7 @@ components:
     ComponentResponse:
       type: object
       required:
+        - uid
         - name
         - type
         - projectName
@@ -204,40 +206,20 @@ components:
         workload:
           type: object
           additionalProperties: true
-        buildConfig:
-          $ref: '#/components/schemas/BuildConfig'
+        workflow:
+          $ref: '#/components/schemas/Workflow'
 
-    BuildConfig:
-      type: object
-      required:
-        - repoUrl
-        - repoBranch
-        - componentPath
-        - buildTemplateRef
-      properties:
-        repoUrl:
-          type: string
-        repoBranch:
-          type: string
-        componentPath:
-          type: string
-        buildTemplateRef:
-          type: string
-        buildTemplateParams:
-          type: array
-          items:
-            $ref: '#/components/schemas/TemplateParameter'
-
-    TemplateParameter:
+    Workflow:
       type: object
       required:
         - name
-        - value
       properties:
         name:
           type: string
-        value:
-          type: string
+        schema:
+          type: object
+          additionalProperties: true
+          description: Runtime extension for workflow schema
 
     CreateComponentRequest:
       type: object
@@ -253,13 +235,14 @@ components:
           type: string
         type:
           type: string
-        buildConfig:
-          $ref: '#/components/schemas/BuildConfig'
+        workflow:
+          $ref: '#/components/schemas/Workflow'
 
     # Environment
     EnvironmentResponse:
       type: object
       required:
+        - uid
         - name
         - namespace
         - isProduction

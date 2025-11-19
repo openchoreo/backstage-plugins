@@ -550,7 +550,7 @@ export interface components {
       status?: string;
     };
     ProjectResponse: {
-      uid?: string;
+      uid: string;
       name: string;
       orgName: string;
       displayName?: string;
@@ -586,7 +586,7 @@ export interface components {
       isManualApprovalRequired?: boolean;
     };
     ComponentResponse: {
-      uid?: string;
+      uid: string;
       name: string;
       displayName?: string;
       description?: string;
@@ -611,28 +611,24 @@ export interface components {
       workload?: {
         [key: string]: unknown;
       };
-      buildConfig?: components['schemas']['BuildConfig'];
+      workflow?: components['schemas']['Workflow'];
     };
-    BuildConfig: {
-      repoUrl: string;
-      repoBranch: string;
-      componentPath: string;
-      buildTemplateRef: string;
-      buildTemplateParams?: components['schemas']['TemplateParameter'][];
-    };
-    TemplateParameter: {
+    Workflow: {
       name: string;
-      value: string;
+      /** @description Runtime extension for workflow schema */
+      schema?: {
+        [key: string]: unknown;
+      };
     };
     CreateComponentRequest: {
       name: string;
       displayName?: string;
       description?: string;
       type: string;
-      buildConfig?: components['schemas']['BuildConfig'];
+      workflow?: components['schemas']['Workflow'];
     };
     EnvironmentResponse: {
-      uid?: string;
+      uid: string;
       name: string;
       namespace: string;
       displayName?: string;
