@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Button } from '@material-ui/core';
+import { Box, Button, CircularProgress } from '@material-ui/core';
 import {
   ModelsWorkload,
   Container,
@@ -75,19 +75,10 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   };
 
   const containerCount = Object.keys(formData.containers || {}).length;
-  const endpointCount = Object.keys(formData.endpoints || {}).length;
 
   const handleDeploy = async () => {
-    if (containerCount === 0 && endpointCount === 0) {
-      setError('Please a container and one endpoint');
-      return;
-    }
     if (containerCount === 0) {
       setError('Please add a container');
-      return;
-    }
-    if (endpointCount === 0) {
-      setError('Please add at least one endpoint');
       return;
     }
     setError(null);
@@ -297,8 +288,9 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
           variant="contained"
           color="primary"
           onClick={handleDeploy}
+          startIcon={isDeploying ? <CircularProgress size={20} /> : undefined}
         >
-          Submit & Deploy
+          {isDeploying ? 'Deploying...' : 'Submit & Deploy'}
         </Button>
       </Box>
     </Box>

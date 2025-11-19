@@ -7,4 +7,6 @@ export const API_ENDPOINTS = {
   DEPLOYEMNT_WORKLOAD: '/workload',
   UPDATE_BINDING: '/update-binding',
   DASHBOARD_BINDINGS_COUNT: '/dashboard/bindings-count',
+  CREATE_RELEASE: '/create-release',
+  DEPLOY_RELEASE: '/deploy-release',
 } as const;

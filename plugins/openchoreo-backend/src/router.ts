@@ -513,5 +513,49 @@ export async function createRouter({
     }
   });
 
+  router.post('/create-release', async (req, res) => {
+    const { componentName, projectName, organizationName } = req.query;
+    const { releaseName } = req.body;
+
+    if (!componentName || !projectName || !organizationName) {
+      throw new InputError(
+        'componentName, projectName and organizationName are required query parameters',
+      );
+    }
+
+    res.json(
+      await environmentInfoService.createComponentRelease({
+        componentName: componentName as string,
+        projectName: projectName as string,
+        organizationName: organizationName as string,
+        releaseName: releaseName as string | undefined,
+      }),
+    );
+  });
+
+  router.post('/deploy-release', async (req, res) => {
+    const { componentName, projectName, organizationName } = req.query;
+    const { releaseName } = req.body;
+
+    if (!componentName || !projectName || !organizationName) {
+      throw new InputError(
+        'componentName, projectName and organizationName are required query parameters',
+      );
+    }
+
+    if (!releaseName) {
+      throw new InputError('releaseName is required in request body');
+    }
+
+    res.json(
+      await environmentInfoService.deployRelease({
+        componentName: componentName as string,
+        projectName: projectName as string,
+        organizationName: organizationName as string,
+        releaseName: releaseName as string,
+      }),
+    );
+  });
+
   return router;
 }

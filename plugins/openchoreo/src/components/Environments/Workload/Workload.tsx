@@ -15,12 +15,17 @@ import {
   ModelsBuild,
 } from '@openchoreo/backstage-plugin-common';
 import { applyWorkload, fetchWorkloadInfo } from '../../../api/workloadInfo';
+import {
+  createComponentRelease,
+  deployRelease,
+} from '../../../api/environments';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { discoveryApiRef } from '@backstage/core-plugin-api';
 import { identityApiRef } from '@backstage/core-plugin-api';
 import { Alert } from '@material-ui/lab';
 import { WorkloadProvider } from './WorkloadContext';
+import { isFromSourceComponent } from '../../../utils/componentUtils';
 
 export function Workload({
   onDeployed,
@@ -111,20 +116,39 @@ export function Workload({
     }
     setIsDeploying(true);
     try {
+      // Step 1: Apply workload
       await applyWorkload(entity, discovery, identity, workloadSpec);
-      setTimeout(async () => {
-        await onDeployed();
-        setOpen(false);
-      }, 3000);
+
+      // Step 2: Create ComponentRelease (auto-generated name)
+      const releaseResponse = await createComponentRelease(
+        entity,
+        discovery,
+        identity,
+      );
+
+      // Step 3: Deploy release to lowest environment
+      await deployRelease(
+        entity,
+        discovery,
+        identity,
+        releaseResponse.data.name,
+      );
+
+      // Step 4: Close drawer and refresh environment data immediately
+      setOpen(false);
+      setIsDeploying(false);
+      await onDeployed();
     } catch (e) {
       setIsDeploying(false);
-      throw new Error('Failed to deploy workload');
+      throw new Error(`Failed to deploy workload: ${e}`);
     }
   };
 
-  const enableDeploy =
-    (workloadSpec || builds.some(build => build.image)) && !isLoading;
-  const hasBuils = builds.length > 0 || workloadSpec;
+  const isFromSource = isFromSourceComponent(entity);
+  const enableDeploy = isFromSource
+    ? builds.some(build => build.image) && !isLoading
+    : !isLoading;
+  const hasBuilds = builds.length > 0;
 
   return (
     <>
@@ -143,8 +167,14 @@ export function Workload({
           {isLoading && !error && <CircularProgress />}
         </Box>
         {!enableDeploy && (
-          <Alert severity={!hasBuils ? 'error' : 'warning'}>
-            {!hasBuils ? error : 'Build your application first.'}
+          <Alert
+            severity={isFromSource && !hasBuilds ? 'warning' : 'info'}
+          >
+            {isFromSource && !hasBuilds
+              ? 'Build your application first to generate a container image.'
+              : workloadSpec
+                ? 'Loading workload configuration...'
+                : 'Configure your workload to enable deployment.'}
           </Alert>
         )}
         <Button

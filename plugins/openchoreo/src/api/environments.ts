@@ -177,3 +177,95 @@ export async function updateComponentBinding(
 
   return await res.json();
 }
+
+export async function createComponentRelease(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+  releaseName?: string,
+) {
+  const { token } = await identity.getCredentials();
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.CREATE_RELEASE
+    }`,
+  );
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!project || !component || !organization) {
+    throw new Error('Missing required metadata in entity');
+  }
+
+  const params = new URLSearchParams({
+    componentName: component,
+    projectName: project,
+    organizationName: organization,
+  });
+
+  backendUrl.search = params.toString();
+
+  const res = await fetch(backendUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ releaseName }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to create release: ${errText}`);
+  }
+
+  return await res.json();
+}
+
+export async function deployRelease(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+  releaseName: string,
+) {
+  const { token } = await identity.getCredentials();
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.DEPLOY_RELEASE
+    }`,
+  );
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!project || !component || !organization) {
+    throw new Error('Missing required metadata in entity');
+  }
+
+  const params = new URLSearchParams({
+    componentName: component,
+    projectName: project,
+    organizationName: organization,
+  });
+
+  backendUrl.search = params.toString();
+
+  const res = await fetch(backendUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ releaseName }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Deployment failed: ${errText}`);
+  }
+
+  return await res.json();
+}
