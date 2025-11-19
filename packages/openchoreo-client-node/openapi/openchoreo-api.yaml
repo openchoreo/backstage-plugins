@@ -77,6 +77,8 @@ components:
         - orgName
         - createdAt
       properties:
+        uid:
+          type: string # TODO: Make this required with v0.5.0.
         name:
           type: string
         orgName:
@@ -168,6 +170,8 @@ components:
         - orgName
         - createdAt
       properties:
+        uid:
+          type: string # TODO: Make this required with v0.5.0.
         name:
           type: string
         displayName:
@@ -261,6 +265,8 @@ components:
         - isProduction
         - createdAt
       properties:
+        uid:
+          type: string # TODO: Make this required with v0.5.0.
         name:
           type: string
         namespace:

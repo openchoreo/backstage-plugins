@@ -47,7 +47,9 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
    */
   async fetchRuntimeLogs(
     request: {
+      componentName: string;
       componentId: string;
+      environmentName: string;
       environmentId: string;
       logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
       startTime?: string;
@@ -60,7 +62,9 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
     try {
       const {
         componentId,
+        componentName,
         environmentId,
+        environmentName,
         logLevels,
         startTime,
         endTime,
@@ -68,7 +72,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       } = request;
 
       this.logger.info(
-        `Fetching runtime logs for component ${componentId} in environment ${environmentId}`,
+        `Fetching runtime logs for component ${componentName} in environment ${environmentName}`,
       );
 
       // First, get the observer URL from the main API
@@ -89,8 +93,8 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
             path: {
               orgName,
               projectName,
-              componentName: componentId,
-              environmentName: environmentId,
+              componentName,
+              environmentName,
             },
           },
         },
@@ -110,7 +114,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
 
       const observerUrl = urlData.data.observerUrl;
       if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(componentId);
+        throw new ObservabilityNotConfiguredError(componentName);
       }
 
       // Now use the observability client with the resolved URL

@@ -8,6 +8,51 @@ import {
   Environment,
 } from '../components/RuntimeLogs/types';
 
+export async function getComponentDetails(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+): Promise<{ uid?: string }> {
+  const { token } = await identity.getCredentials();
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!component || !project || !organization) {
+    throw new Error(
+      'Component name, project name, or organization name not found in entity annotations',
+    );
+  }
+
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}/component`,
+  );
+
+  const params = new URLSearchParams({
+    componentName: component,
+    projectName: project,
+    organizationName: organization,
+  });
+
+  backendUrl.search = params.toString();
+
+  const response = await fetch(backendUrl.toString(), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch component details: ${response.status} ${response.statusText}`,
+    );
+  }
+
+  const componentData = await response.json();
+  return componentData;
+}
+
 export async function getRuntimeLogs(
   entity: Entity,
   discovery: DiscoveryApi,
@@ -15,16 +60,12 @@ export async function getRuntimeLogs(
   params: RuntimeLogsParams,
 ): Promise<LogsResponse> {
   const { token } = await identity.getCredentials();
-  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT]; // TODO: Inconsistent entity labels
-
-  if (!component) {
-    throw new Error('Component name not found in entity labels');
-  }
+  const componentName = params.componentName;
 
   const backendUrl = new URL(
     `${await discovery.getBaseUrl('openchoreo')}${
       API_ENDPOINTS.RUNTIME_LOGS
-    }/${component}`,
+    }/${componentName}`,
   );
 
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
@@ -40,7 +81,10 @@ export async function getRuntimeLogs(
   }
 
   const requestBody = {
+    componentId: params.componentId,
+    componentName: params.componentName,
     environmentId: params.environmentId,
+    environmentName: params.environmentName,
     logLevels: params.logLevels,
     startTime: params.startTime,
     endTime: params.endTime,
@@ -118,8 +162,8 @@ export async function getEnvironments(
 
   // Transform the environment data to match our interface
   return envData.map((env: any) => ({
-    id: env.id || env.name,
-    name: env.name || env.id,
+    id: env.uid || env.name,
+    name: env.name || env.uid,
   }));
 }
 

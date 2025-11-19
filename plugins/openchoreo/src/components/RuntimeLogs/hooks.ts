@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { useApi } from '@backstage/core-plugin-api';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   getRuntimeLogs,
   getEnvironments,
+  getComponentDetails,
   calculateTimeRange,
 } from '../../api/runtimeLogs';
 import {
@@ -48,6 +50,7 @@ export function useEnvironments() {
 export function useRuntimeLogs(
   filters: RuntimeLogsFilters,
   pagination: RuntimeLogsPagination,
+  environments: Environment[],
 ) {
   const { entity } = useEntity();
   const discovery = useApi(discoveryApiRef);
@@ -57,16 +60,49 @@ export function useRuntimeLogs(
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [componentId, setComponentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchComponentId = async () => {
+      try {
+        const componentDetails = await getComponentDetails(
+          entity,
+          discovery,
+          identity,
+        );
+        setComponentId(componentDetails.uid || null);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch component ID',
+        );
+      }
+    };
+
+    fetchComponentId();
+  }, [entity, discovery, identity]);
 
   const fetchLogs = useCallback(
     async (reset: boolean = false) => {
-      if (!filters.environmentId) {
+      if (!filters.environmentId || !componentId) {
         return;
       }
 
       try {
         setLoading(true);
         setError(null);
+
+        const selectedEnvironment = environments.find(
+          env => env.id === filters.environmentId,
+        );
+        if (!selectedEnvironment) {
+          throw new Error('Selected environment not found');
+        }
+
+        const componentName =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+        if (!componentName) {
+          throw new Error('Component name not found in entity annotations');
+        }
 
         const { startTime, endTime: initialEndTime } = calculateTimeRange(
           filters.timeRange,
@@ -82,10 +118,10 @@ export function useRuntimeLogs(
         }
 
         const response = await getRuntimeLogs(entity, discovery, identity, {
-          environmentId:
-            typeof filters.environmentId === 'string'
-              ? filters.environmentId.toLowerCase()
-              : '',
+          componentId,
+          componentName,
+          environmentId: filters.environmentId,
+          environmentName: selectedEnvironment.name,
           logLevels: filters.logLevel,
           startTime,
           endTime,
@@ -107,7 +143,16 @@ export function useRuntimeLogs(
         setLoading(false);
       }
     },
-    [entity, discovery, identity, filters, pagination.limit, logs],
+    [
+      entity,
+      discovery,
+      identity,
+      filters,
+      pagination.limit,
+      logs,
+      componentId,
+      environments,
+    ],
   );
 
   const loadMore = useCallback(() => {

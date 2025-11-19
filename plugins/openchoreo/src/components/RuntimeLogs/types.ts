@@ -46,7 +46,10 @@ export interface RuntimeLogsState {
 }
 
 export interface RuntimeLogsParams {
+  componentId: string;
+  componentName: string;
   environmentId: string;
+  environmentName: string;
   logLevels: string[];
   startTime: string;
   endTime: string;

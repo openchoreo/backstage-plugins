@@ -38,6 +38,7 @@ export interface EndpointInfo {
 }
 
 export interface Environment {
+  uid?: string;
   name: string;
   bindingName?: string;
   deployment: {
@@ -128,7 +129,9 @@ export interface WorkloadService {
 export interface RuntimeLogsService {
   fetchRuntimeLogs(
     request: {
+      componentName: string;
       componentId: string;
+      environmentName: string;
       environmentId: string;
       logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
       startTime?: string;
