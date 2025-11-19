@@ -43,7 +43,6 @@ export class CtdToTemplateConverter {
     const inferredTags = this.inferTagsFromCtd(componentType);
     const tags = [
       'openchoreo',
-      'component-type',
       ...inferredTags,
       ...(componentType.metadata.tags || []),
     ].filter(tag => tag && tag.trim().length > 0); // Filter out empty/whitespace-only tags
@@ -107,8 +106,7 @@ export class CtdToTemplateConverter {
     const tags: string[] = [];
 
     // Add tags from component type name (split by hyphen)
-    const nameParts = componentType.metadata.name.split('-').filter((part: string) => part.length > 0);
-    tags.push(...nameParts);
+    tags.push(componentType.metadata.name);
 
     // Add workloadType as tag if available
     if (componentType.metadata.workloadType) {
