@@ -1,4 +1,4 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useState, useEffect } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
@@ -7,7 +7,13 @@ import {
   Select,
   MenuItem,
   FormHelperText,
+  CircularProgress,
 } from '@material-ui/core';
+import {
+  useApi,
+  discoveryApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
 
 /*
  Schema for the Build Workflow Picker field
@@ -19,9 +25,10 @@ export const BuildWorkflowPickerSchema = {
 /*
  This is the actual component that will get rendered in the form
 
- Note: The workflows are defined via enum in the schema (from allowedWorkflows in CTD).
- This component handles workflow selection, and the BuildWorkflowParameters component
- (which is a sibling field) reads the selected workflow from formData to fetch its schema.
+ Note: The workflows can be defined via enum in the schema (from allowedWorkflows in CTD).
+ If enum is not provided, this component fetches all workflows from the API.
+ The BuildWorkflowParameters component (which is a sibling field) reads the selected
+ workflow from formData to fetch its schema.
 */
 export const BuildWorkflowPicker = ({
   onChange,
@@ -32,7 +39,88 @@ export const BuildWorkflowPicker = ({
   uiSchema,
   schema,
 }: FieldExtensionComponentProps<string>) => {
-  const workflowOptions = (schema.enum as string[]) || [];
+  const [workflowOptions, setWorkflowOptions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const discoveryApi = useApi(discoveryApiRef);
+  const identityApi = useApi(identityApiRef);
+
+  // Get workflows from enum (if provided) or organizationName from ui:options
+  const enumWorkflows = (schema.enum as string[]) || null;
+  const organizationName =
+    typeof uiSchema?.['ui:options']?.organizationName === 'string'
+      ? uiSchema['ui:options'].organizationName
+      : '';
+
+  // Fetch workflows from API if enum is not provided
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchWorkflows = async () => {
+      // If enum is provided, use it directly
+      if (enumWorkflows && enumWorkflows.length > 0) {
+        setWorkflowOptions(enumWorkflows);
+        return;
+      }
+
+      // Otherwise, fetch from API
+      if (!organizationName) {
+        setError('Organization name is required to fetch workflows');
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { token } = await identityApi.getCredentials();
+        const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+
+        // Extract organization name if it's in entity reference format
+        const extractOrgName = (fullOrgName: string): string => {
+          const parts = fullOrgName.split('/');
+          return parts[parts.length - 1];
+        };
+
+        const orgName = extractOrgName(organizationName);
+
+        const response = await fetch(
+          `${baseUrl}/workflows?organizationName=${encodeURIComponent(orgName)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        if (!ignore && result.success) {
+          const workflows = result.data.items.map((item: any) => item.name);
+          setWorkflowOptions(workflows);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setError(`Failed to fetch workflows: ${err}`);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchWorkflows();
+
+    return () => {
+      ignore = true;
+    };
+  }, [organizationName, enumWorkflows, discoveryApi, identityApi]);
 
   const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedWorkflow = event.target.value as string;
@@ -43,7 +131,7 @@ export const BuildWorkflowPicker = ({
     <FormControl
       fullWidth
       margin="normal"
-      error={!!rawErrors?.length}
+      error={!!rawErrors?.length || !!error}
       required={required}
     >
       <InputLabel id={`${idSchema?.$id}-label`}>
@@ -53,21 +141,29 @@ export const BuildWorkflowPicker = ({
         labelId={`${idSchema?.$id}-label`}
         value={formData || ''}
         onChange={handleChange}
-        disabled={workflowOptions.length === 0}
+        disabled={loading || workflowOptions.length === 0}
       >
-        {workflowOptions.length === 0 && (
+        {loading && (
+          <MenuItem disabled>
+            <CircularProgress size={20} style={{ marginRight: 8 }} />
+            Loading workflows...
+          </MenuItem>
+        )}
+        {!loading && workflowOptions.length === 0 && (
           <MenuItem disabled>No workflows available</MenuItem>
         )}
-        {workflowOptions.map(workflow => (
-          <MenuItem key={workflow} value={workflow}>
-            {workflow}
-          </MenuItem>
-        ))}
+        {!loading &&
+          workflowOptions.map(workflow => (
+            <MenuItem key={workflow} value={workflow}>
+              {workflow}
+            </MenuItem>
+          ))}
       </Select>
+      {error && <FormHelperText error>{error}</FormHelperText>}
       {rawErrors?.length ? (
-        <FormHelperText>{rawErrors.join(', ')}</FormHelperText>
+        <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
       ) : null}
-      {schema.description && !rawErrors?.length && (
+      {schema.description && !rawErrors?.length && !error && (
         <FormHelperText>{schema.description}</FormHelperText>
       )}
     </FormControl>

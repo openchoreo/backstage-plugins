@@ -195,6 +195,21 @@ export async function createRouter({
     );
   });
 
+  // Endpoint for listing workflows
+  router.get('/workflows', async (req, res) => {
+    const { organizationName } = req.query;
+
+    if (!organizationName) {
+      throw new InputError('organizationName is a required query parameter');
+    }
+
+    res.json(
+      await workflowSchemaService.fetchWorkflows(
+        organizationName as string,
+      ),
+    );
+  });
+
   // Endpoint for fetching workflow schema
   router.get('/workflow-schema', async (req, res) => {
     const { organizationName, workflowName } = req.query;

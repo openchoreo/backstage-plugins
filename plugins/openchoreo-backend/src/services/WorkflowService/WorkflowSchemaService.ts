@@ -11,6 +11,12 @@ type WorkflowSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   };
 };
 
+type WorkflowListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
+  data: OpenChoreoComponents['schemas']['ListResponse'] & {
+    items: OpenChoreoComponents['schemas']['WorkflowResponse'][];
+  };
+};
+
 export class WorkflowSchemaService {
   private logger: LoggerService;
   private baseUrl: string;
@@ -18,6 +24,50 @@ export class WorkflowSchemaService {
   constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+  }
+
+  /**
+   * Fetch list of workflows for an organization
+   */
+  async fetchWorkflows(
+    orgName: string,
+  ): Promise<WorkflowListResponse> {
+    this.logger.debug(`Fetching workflows for org: ${orgName}`);
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET('/orgs/{orgName}/workflows', {
+        params: {
+          path: { orgName },
+        },
+      });
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workflows: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data?.success) {
+        throw new Error('Failed to fetch workflows');
+      }
+
+      const workflowList: WorkflowListResponse = data as WorkflowListResponse;
+
+      this.logger.debug(
+        `Successfully fetched ${workflowList.data.items.length} workflows for org: ${orgName}`,
+      );
+      return workflowList;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch workflows for org ${orgName}: ${error}`,
+      );
+      throw error;
+    }
   }
 
   /**
