@@ -8,7 +8,10 @@ import { UsageMetrics } from '../types';
 export interface ObservabilityApi {
   getMetrics(
     componentId: string,
+    projectId: string,
     environmentId: string,
+    environmentName: string,
+    componentName: string,
     orgName: string,
     projectName: string,
     options?: {
@@ -35,7 +38,10 @@ export class ObservabilityClient implements ObservabilityApi {
 
   async getMetrics(
     componentId: string,
+    projectId: string,
     environmentId: string,
+    environmentName: string,
+    componentName: string,
     orgName: string,
     projectName: string,
     options?: {
@@ -52,7 +58,10 @@ export class ObservabilityClient implements ObservabilityApi {
       method: 'POST',
       body: JSON.stringify({
         componentId,
+        projectId,
         environmentId,
+        environmentName,
+        componentName,
         orgName,
         projectName,
         options,

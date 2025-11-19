@@ -46,38 +46,56 @@ export const ObservabilityMetricsPage = () => {
     error: metricsError,
     fetchMetrics,
     refresh,
+    componentId,
+    projectId,
   } = useMetrics(filters, entity, organization as string, project as string);
 
   // Track previous filter values to detect changes
   const previousFiltersRef = useRef({
-    environmentId: filters.environmentId,
+    environmentId: filters.environment?.uid,
     timeRange: filters.timeRange,
+    componentId: componentId,
+    projectId: projectId,
   });
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {
-    if (environments.length > 0 && !filters.environmentId) {
-      updateFilters({ environmentId: environments[0].name });
+    if (environments.length > 0 && !filters.environment) {
+      updateFilters({ environment: environments[0] });
     }
-  }, [environments, filters.environmentId, updateFilters]);
+  }, [environments, filters.environment, updateFilters]);
 
-  // Fetch metrics when filters change
+  // Fetch metrics when filters change or when component/project IDs become available
   useEffect(() => {
     const currentFilters = {
-      environmentId: filters.environmentId,
+      environmentId: filters.environment?.uid,
       timeRange: filters.timeRange,
+      componentId: componentId,
+      projectId: projectId,
     };
 
     const filtersChanged =
       JSON.stringify(previousFiltersRef.current) !==
       JSON.stringify(currentFilters);
 
-    if (filters.environmentId && filtersChanged) {
+    if (
+      filters.environment &&
+      filters.timeRange &&
+      componentId &&
+      projectId &&
+      filtersChanged
+    ) {
       fetchMetrics(true);
     }
 
     previousFiltersRef.current = currentFilters;
-  }, [filters.environmentId, filters.timeRange, fetchMetrics]);
+  }, [
+    filters.environment,
+    filters.timeRange,
+    componentId,
+    projectId,
+    fetchMetrics,
+  ]);
 
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
     updateFilters(newFilters);

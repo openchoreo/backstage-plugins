@@ -9,6 +9,7 @@ import {
 } from './services/BuildService/BuildInfoService';
 import { CellDiagramService, WorkloadService } from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
+import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
 import {
   RuntimeLogsInfoService,
   ObservabilityNotConfiguredError as RuntimeObservabilityNotConfiguredError,
@@ -21,6 +22,7 @@ export async function createRouter({
   buildTemplateInfoService,
   buildInfoService,
   componentInfoService,
+  projectInfoService,
   runtimeLogsInfoService,
   workloadInfoService,
   dashboardInfoService,
@@ -30,6 +32,7 @@ export async function createRouter({
   buildTemplateInfoService: BuildTemplateInfoService;
   buildInfoService: BuildInfoService;
   componentInfoService: ComponentInfoService;
+  projectInfoService: ProjectInfoService;
   runtimeLogsInfoService: RuntimeLogsInfoService;
   workloadInfoService: WorkloadService;
   dashboardInfoService: DashboardInfoService;
@@ -199,6 +202,23 @@ export async function createRouter({
         organizationName as string,
         projectName as string,
         componentName as string,
+      ),
+    );
+  });
+
+  router.get('/project', async (req, res) => {
+    const { projectName, organizationName } = req.query;
+
+    if (!projectName || !organizationName) {
+      throw new InputError(
+        'projectName and organizationName are required query parameters',
+      );
+    }
+
+    res.json(
+      await projectInfoService.fetchProjectDetails(
+        organizationName as string,
+        projectName as string,
       ),
     );
   });

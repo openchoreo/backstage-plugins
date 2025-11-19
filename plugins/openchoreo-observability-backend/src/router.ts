@@ -18,9 +18,12 @@ export async function createRouter({
     try {
       const metrics = await observabilityService.fetchMetricsByComponent(
         _req.body.componentId,
+        _req.body.projectId,
         _req.body.environmentId,
         _req.body.orgName,
         _req.body.projectName,
+        _req.body.environmentName,
+        _req.body.componentName,
         _req.body.options,
       );
       return res.status(200).json(metrics);
