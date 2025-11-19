@@ -320,6 +320,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       | 'suspended' = 'not-deployed';
     let statusMessage: string | undefined;
     let lastDeployed: string | undefined;
+    let releaseName: string | undefined;
 
     if (binding) {
       // Map the ReleaseBinding status string to our deployment status
@@ -341,6 +342,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       statusMessage = binding.status;
       lastDeployed = binding.createdAt;
+      releaseName = binding.releaseName;
 
       // TODO: Once the API is updated to return deployment details,
       // extract image and endpoints information here
@@ -355,6 +357,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         lastDeployed,
         image,
         statusMessage,
+        releaseName,
       },
       endpoints,
     };
