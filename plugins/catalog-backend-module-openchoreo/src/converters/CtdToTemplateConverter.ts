@@ -182,11 +182,8 @@ export class CtdToTemplateConverter {
       });
     }
 
-    // Section 3: CI Setup (only if component type has allowedWorkflows)
-    const ciSetupSection = this.generateCISetupSection(componentType);
-    if (ciSetupSection) {
-      parameters.push(ciSetupSection);
-    }
+    // Section 3: CI Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
+    parameters.push(this.generateCISetupSection(componentType, organizationName));
 
     // Section 4: Traits
     parameters.push(this.generateTraitsSection(organizationName));
@@ -196,19 +193,31 @@ export class CtdToTemplateConverter {
 
   /**
    * Generate CI Setup section with workflow configuration
-   * Returns null if component type doesn't have allowedWorkflows (no CI support)
+   * Always shows CI Setup section. If allowedWorkflows is provided, uses them for the dropdown.
+   * Otherwise, BuildWorkflowPicker will fetch all workflows from the API.
    */
-  private generateCISetupSection(componentType: ComponentType): any | null {
+  private generateCISetupSection(componentType: ComponentType, organizationName: string): any {
     const hasAllowedWorkflows =
       componentType.metadata.allowedWorkflows &&
       componentType.metadata.allowedWorkflows.length > 0;
 
-    // If component type has no allowedWorkflows, don't show CI Setup section at all
-    if (!hasAllowedWorkflows) {
-      return null;
+    // Build workflow_name field properties
+    const workflowNameField: any = {
+      title: 'Build Workflow',
+      type: 'string',
+      description: 'Select the build workflow to use for this component',
+      'ui:field': 'BuildWorkflowPicker',
+      'ui:options': {
+        organizationName: organizationName,
+      },
+    };
+
+    // Only add enum if allowedWorkflows is available
+    if (hasAllowedWorkflows) {
+      workflowNameField.enum = componentType.metadata.allowedWorkflows;
     }
 
-    // Component type has allowedWorkflows - show full CI setup
+    // Always show CI Setup section
     return {
       title: 'CI Setup',
       required: ['useBuiltInCI'],
@@ -233,13 +242,7 @@ export class CtdToTemplateConverter {
               },
               then: {
                 properties: {
-                  workflow_name: {
-                    title: 'Build Workflow',
-                    type: 'string',
-                    description: 'Select the build workflow to use for this component',
-                    enum: componentType.metadata.allowedWorkflows,
-                    'ui:field': 'BuildWorkflowPicker',
-                  },
+                  workflow_name: workflowNameField,
                   workflow_parameters: {
                     title: 'Workflow Parameters',
                     type: 'object',
