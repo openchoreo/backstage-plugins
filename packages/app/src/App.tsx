@@ -16,7 +16,7 @@ import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePic
 import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
 import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
 import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
-import { AddonsFieldExtension } from './scaffolder/AddonsField';
+import { TraitsFieldExtension } from './scaffolder/TraitsField';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -129,7 +129,7 @@ const routes = (
         <BuildTemplateParametersFieldExtension />
         <BuildWorkflowPickerFieldExtension />
         <BuildWorkflowParametersFieldExtension />
-        <AddonsFieldExtension />
+        <TraitsFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />

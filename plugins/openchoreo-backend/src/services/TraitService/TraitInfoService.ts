@@ -17,7 +17,7 @@ type TraitSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   };
 };
 
-export class AddonInfoService {
+export class TraitInfoService {
   private logger: LoggerService;
   private baseUrl: string;
 
@@ -26,13 +26,13 @@ export class AddonInfoService {
     this.baseUrl = baseUrl;
   }
 
-  async fetchAddons(
+  async fetchTraits(
     orgName: string,
     page: number = 1,
     pageSize: number = 100,
   ): Promise<TraitListResponse> {
     this.logger.debug(
-      `Fetching addons (traits) for organization: ${orgName} (page: ${page}, pageSize: ${pageSize})`,
+      `Fetching traits (traits) for organization: ${orgName} (page: ${page}, pageSize: ${pageSize})`,
     );
 
     try {
@@ -49,7 +49,7 @@ export class AddonInfoService {
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to fetch addons: ${response.status} ${response.statusText}`,
+          `Failed to fetch traits: ${response.status} ${response.statusText}`,
         );
       }
 
@@ -60,23 +60,23 @@ export class AddonInfoService {
       const traitListResponse: TraitListResponse = data as TraitListResponse;
 
       this.logger.debug(
-        `Successfully fetched ${traitListResponse.data?.items?.length || 0} addons for org: ${orgName}`,
+        `Successfully fetched ${traitListResponse.data?.items?.length || 0} traits for org: ${orgName}`,
       );
       return traitListResponse;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch addons for org ${orgName}: ${error}`,
+        `Failed to fetch traits for org ${orgName}: ${error}`,
       );
       throw error;
     }
   }
 
-  async fetchAddonSchema(
+  async fetchTraitSchema(
     orgName: string,
-    addonName: string,
+    traitName: string,
   ): Promise<TraitSchemaResponse> {
     this.logger.debug(
-      `Fetching schema for addon (trait): ${addonName} in org: ${orgName}`,
+      `Fetching schema for trait (trait): ${traitName} in org: ${orgName}`,
     );
 
     try {
@@ -87,13 +87,13 @@ export class AddonInfoService {
 
       const { data, error, response } = await client.GET('/orgs/{orgName}/traits/{traitName}/schema', {
         params: {
-          path: { orgName, traitName: addonName },
+          path: { orgName, traitName: traitName },
         },
       });
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to fetch addon schema: ${response.status} ${response.statusText}`,
+          `Failed to fetch trait schema: ${response.status} ${response.statusText}`,
         );
       }
 
@@ -104,12 +104,12 @@ export class AddonInfoService {
       const schemaResponse: TraitSchemaResponse = data as TraitSchemaResponse;
 
       this.logger.debug(
-        `Successfully fetched schema for addon: ${addonName}`,
+        `Successfully fetched schema for trait: ${traitName}`,
       );
       return schemaResponse;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch schema for addon ${addonName} in org ${orgName}: ${error}`,
+        `Failed to fetch schema for trait ${traitName} in org ${orgName}: ${error}`,
       );
       throw error;
     }

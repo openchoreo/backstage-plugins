@@ -1,0 +1,1 @@
+export { TraitsFieldExtension } from './extensions';
