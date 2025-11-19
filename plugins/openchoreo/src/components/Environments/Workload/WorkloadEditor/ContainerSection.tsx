@@ -52,28 +52,32 @@ interface ContainerSectionProps {
 
 const useStyles = makeStyles(theme => ({
   accordion: {
-    border: `1px solid ${theme.palette.grey[100]}`,
-    marginBottom: theme.spacing(1),
-    borderRadius: 4,
+    border: 'none',
+    marginBottom: theme.spacing(0),
+    borderRadius: 8,
     boxShadow: 'none',
+    backgroundColor: 'transparent',
     '&:before': {
       backgroundColor: 'transparent',
     },
   },
   dynamicFieldContainer: {
-    padding: theme.spacing(2),
+    padding: theme.spacing(0),
     marginBottom: theme.spacing(2),
     border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
+    borderRadius: 8,
+    backgroundColor: theme.palette.background.paper,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   },
   addButton: {
     marginTop: theme.spacing(1),
   },
   envVarContainer: {
-    padding: theme.spacing(1),
-    border: `1px dashed ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
+    padding: theme.spacing(1.5),
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 6,
     marginBottom: theme.spacing(1),
+    backgroundColor: theme.palette.background.default,
   },
 }));
 
@@ -104,14 +108,17 @@ export function ContainerSection({
           {Object.entries(containers).map(([containerName, container]) => (
             <Card key={containerName} className={classes.dynamicFieldContainer}>
               <CardHeader
+                style={{ paddingBottom: 8 }}
                 title={
                   <Box
                     display="flex"
                     alignItems="center"
                     justifyContent="space-between"
                   >
-                    <Typography variant="subtitle1">
-                      {containerName === 'main' ? '' : containerName}
+                    <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
+                      {containerName === 'main'
+                        ? 'app'
+                        : containerName}
                     </Typography>
                     <IconButton
                       onClick={() => onRemoveContainer(containerName)}
@@ -124,28 +131,25 @@ export function ContainerSection({
                   </Box>
                 }
               />
-              <CardContent>
+              <CardContent style={{ paddingTop: 8 }}>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <Box mb={2}>
                       {builds.length === 0 && container.image ? (
-                        <FormControl fullWidth variant="outlined">
-                          <InputLabel>Image</InputLabel>
-                          <TextField
-                            label="Image"
-                            value={container.image}
-                            onChange={e =>
-                              onContainerChange(
-                                containerName,
-                                'image',
-                                e.target.value as string,
-                              )
-                            }
-                            fullWidth
-                            variant="outlined"
-                            disabled={disabled}
-                          />
-                        </FormControl>
+                        <TextField
+                          label="Image"
+                          value={container.image}
+                          onChange={e =>
+                            onContainerChange(
+                              containerName,
+                              'image',
+                              e.target.value as string,
+                            )
+                          }
+                          fullWidth
+                          variant="outlined"
+                          disabled={disabled}
+                        />
                       ) : (
                         <FormControl fullWidth variant="outlined">
                           <InputLabel>Select Image from Builds</InputLabel>
@@ -227,8 +231,12 @@ export function ContainerSection({
                 </Grid>
 
                 {/* Environment Variables */}
-                <Box mt={2}>
-                  <Typography variant="subtitle2" gutterBottom>
+                <Box mt={3}>
+                  <Typography
+                    variant="subtitle2"
+                    gutterBottom
+                    style={{ fontWeight: 600 }}
+                  >
                     Environment Variables
                   </Typography>
                   {container.env?.map((envVar, index) => (

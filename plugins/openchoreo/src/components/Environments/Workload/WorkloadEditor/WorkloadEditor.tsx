@@ -255,39 +255,56 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
 
   return (
     <Box overflow="hidden">
-      <ContainerSection
-        disabled={isDeploying}
-        containers={formData.containers || {}}
-        onContainerChange={handleContainerChange}
-        onEnvVarChange={handleEnvVarChange}
-        onAddContainer={addContainer}
-        onRemoveContainer={removeContainer}
-        onAddEnvVar={addEnvVar}
-        onRemoveEnvVar={removeEnvVar}
-        onArrayFieldChange={handleArrayFieldChange}
-        singleContainerMode
-      />
-      <EndpointSection
-        disabled={isDeploying}
-        endpoints={formData.endpoints || {}}
-        onEndpointChange={handleEndpointChange}
-        onAddEndpoint={addEndpoint}
-        onRemoveEndpoint={removeEndpoint}
-      />
-      <ConnectionSection
-        disabled={isDeploying}
-        connections={formData.connections || {}}
-        onConnectionChange={handleConnectionChange}
-        onAddConnection={addConnection}
-        onRemoveConnection={removeConnection}
-      />
-      {error && <Alert severity="error">{error}</Alert>}
-      <Box display="flex" justifyContent="flex-end" margin={2}>
+      <Box mb={2}>
+        <ContainerSection
+          disabled={isDeploying}
+          containers={formData.containers || {}}
+          onContainerChange={handleContainerChange}
+          onEnvVarChange={handleEnvVarChange}
+          onAddContainer={addContainer}
+          onRemoveContainer={removeContainer}
+          onAddEnvVar={addEnvVar}
+          onRemoveEnvVar={removeEnvVar}
+          onArrayFieldChange={handleArrayFieldChange}
+          singleContainerMode
+        />
+      </Box>
+      <Box mb={2}>
+        <EndpointSection
+          disabled={isDeploying}
+          endpoints={formData.endpoints || {}}
+          onEndpointChange={handleEndpointChange}
+          onAddEndpoint={addEndpoint}
+          onRemoveEndpoint={removeEndpoint}
+        />
+      </Box>
+      <Box mb={2}>
+        <ConnectionSection
+          disabled={isDeploying}
+          connections={formData.connections || {}}
+          onConnectionChange={handleConnectionChange}
+          onAddConnection={addConnection}
+          onRemoveConnection={removeConnection}
+        />
+      </Box>
+      {error && (
+        <Box mb={2}>
+          <Alert severity="error">{error}</Alert>
+        </Box>
+      )}
+      <Box
+        display="flex"
+        justifyContent="flex-end"
+        pt={3}
+        pb={2}
+        px={2}
+      >
         <Button
           disabled={isDeploying}
           variant="contained"
           color="primary"
           onClick={handleDeploy}
+          size="large"
           startIcon={isDeploying ? <CircularProgress size={20} /> : undefined}
         >
           {isDeploying ? 'Deploying...' : 'Submit & Deploy'}

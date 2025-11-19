@@ -37,19 +37,22 @@ interface EndpointSectionProps {
 
 const useStyles = makeStyles(theme => ({
   accordion: {
-    border: `1px solid ${theme.palette.grey[100]}`,
-    marginBottom: theme.spacing(1),
-    borderRadius: 4,
+    border: 'none',
+    marginBottom: theme.spacing(0),
+    borderRadius: 8,
     boxShadow: 'none',
+    backgroundColor: 'transparent',
     '&:before': {
       backgroundColor: 'transparent',
     },
   },
   dynamicFieldContainer: {
-    padding: theme.spacing(2),
+    padding: theme.spacing(0),
     marginBottom: theme.spacing(2),
     border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
+    borderRadius: 8,
+    backgroundColor: theme.palette.background.paper,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   },
   addButton: {
     marginTop: theme.spacing(1),
@@ -87,13 +90,16 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
           {Object.entries(endpoints).map(([endpointName, endpoint]) => (
             <Card key={endpointName} className={classes.dynamicFieldContainer}>
               <CardHeader
+                style={{ paddingBottom: 8 }}
                 title={
                   <Box
                     display="flex"
                     alignItems="center"
                     justifyContent="space-between"
                   >
-                    <Typography variant="subtitle1">{endpointName}</Typography>
+                    <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
+                      {endpointName}
+                    </Typography>
                     <IconButton
                       onClick={() => onRemoveEndpoint(endpointName)}
                       color="secondary"
@@ -105,7 +111,7 @@ export const EndpointSection: FC<EndpointSectionProps> = ({
                   </Box>
                 }
               />
-              <CardContent>
+              <CardContent style={{ paddingTop: 8 }}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <FormControl fullWidth variant="outlined">

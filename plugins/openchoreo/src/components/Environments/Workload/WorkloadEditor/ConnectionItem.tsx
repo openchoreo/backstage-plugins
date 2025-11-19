@@ -38,7 +38,9 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(2),
     marginBottom: theme.spacing(2),
     border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
+    borderRadius: 8,
+    backgroundColor: theme.palette.background.paper,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   },
 }));
 
@@ -175,10 +177,20 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
   return (
     <Box className={classes.dynamicFieldContainer}>
       <Grid container spacing={2} alignItems="center">
-        <Grid item xs={12}>
-          <Typography variant="subtitle2" style={{ marginBottom: 8 }}>
+        <Grid item xs={11}>
+          <Typography variant="subtitle1" style={{ marginBottom: 8, fontWeight: 600 }}>
             {connectionName}
           </Typography>
+        </Grid>
+        <Grid item xs={1}>
+          <IconButton
+            onClick={() => onRemoveConnection(connectionName)}
+            color="secondary"
+            size="small"
+            disabled={disabled}
+          >
+            <DeleteIcon />
+          </IconButton>
         </Grid>
         <Grid item xs={12}>
           <FormControl fullWidth variant="outlined">
@@ -252,7 +264,7 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={5}>
+        <Grid item xs={12}>
           <FormControl fullWidth variant="outlined">
             <InputLabel>Endpoint</InputLabel>
             <Select
@@ -272,16 +284,6 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
               ))}
             </Select>
           </FormControl>
-        </Grid>
-        <Grid item xs={1}>
-          <IconButton
-            onClick={() => onRemoveConnection(connectionName)}
-            color="secondary"
-            size="small"
-            disabled={disabled}
-          >
-            <DeleteIcon />
-          </IconButton>
         </Grid>
       </Grid>
     </Box>

@@ -190,29 +190,39 @@ export function Workload({
 
       <Drawer open={open} onClose={toggleDrawer} anchor="right">
         <Box
-          bgcolor={theme.palette.secondary.light}
+          bgcolor={theme.palette.background.default}
           minWidth={theme.spacing(80)}
           display="flex"
           flexDirection="column"
           height="100%"
           overflow="hidden"
-          p={1}
         >
           <Box
             display="flex"
             justifyContent="space-between"
             alignItems="center"
-            p={2}
+            px={3}
+            py={2.5}
+            bgcolor={theme.palette.background.paper}
+            borderBottom={`1px solid ${theme.palette.divider}`}
+            boxShadow="0 1px 3px rgba(0,0,0,0.06)"
           >
-            <Typography variant="h4" component="h4">
+            <Typography
+              variant="h5"
+              component="h2"
+              style={{ fontWeight: 600, fontSize: '1.25rem' }}
+            >
               Configure Workload
             </Typography>
-            <IconButton onClick={toggleDrawer} color="default">
+            <IconButton
+              onClick={toggleDrawer}
+              size="small"
+              style={{ color: theme.palette.text.secondary }}
+            >
               <CloseIcon />
             </IconButton>
           </Box>
-          {/* <Box borderBottom={1} borderColor="grey.400" /> */}
-          <Box flex={1} paddingBottom={2} overflow="auto">
+          <Box flex={1} overflow="auto" p={2}>
             <WorkloadProvider
               builds={builds}
               workloadSpec={workloadSpec}
