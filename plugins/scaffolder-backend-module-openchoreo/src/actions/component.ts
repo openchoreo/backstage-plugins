@@ -51,7 +51,7 @@ export const createComponentAction = (config: Config) => {
           // Optional field
           useBuiltInCI: zImpl.boolean().optional(),
         })
-        .passthrough(), // Allow any additional fields (CTD params, workflow params, addons, etc.)
+        .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
       output: (zImpl: typeof z) =>
         zImpl.object({
           componentName: zImpl
@@ -139,11 +139,11 @@ export const createComponentAction = (config: Config) => {
       }
 
       try {
-        // Filter out UI-specific fields from addons (id, schema)
-        const cleanedAddons = (ctx.input as any).addons?.map((addon: any) => ({
-          name: addon.name,
-          instanceName: addon.instanceName,
-          config: addon.config,
+        // Filter out UI-specific fields from traits (id, schema)
+        const cleanedTraits = (ctx.input as any).traits?.map((trait: any) => ({
+          name: trait.name,
+          instanceName: trait.instanceName,
+          config: trait.config,
         }));
 
         // Extract CTD-specific parameters by filtering out known scaffolder fields
@@ -157,7 +157,7 @@ export const createComponentAction = (config: Config) => {
           'useBuiltInCI',
           'workflow_name',
           'workflow_parameters',
-          'addons',
+          'traits',
           'external_ci_note',
           'repo_url',
           'branch',
@@ -192,7 +192,7 @@ export const createComponentAction = (config: Config) => {
           componentPath: (ctx.input as any).component_path,
           workflowName: (ctx.input as any).workflow_name,
           workflowParameters: (ctx.input as any).workflow_parameters,
-          addons: cleanedAddons,
+          traits: cleanedTraits,
         });
 
         // Log the generated ComponentResource object
