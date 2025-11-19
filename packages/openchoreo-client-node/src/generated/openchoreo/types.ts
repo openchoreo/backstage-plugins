@@ -550,6 +550,7 @@ export interface components {
       status?: string;
     };
     ProjectResponse: {
+      uid?: string;
       name: string;
       orgName: string;
       displayName?: string;
@@ -585,6 +586,7 @@ export interface components {
       isManualApprovalRequired?: boolean;
     };
     ComponentResponse: {
+      uid?: string;
       name: string;
       displayName?: string;
       description?: string;
@@ -630,6 +632,7 @@ export interface components {
       buildConfig?: components['schemas']['BuildConfig'];
     };
     EnvironmentResponse: {
+      uid?: string;
       name: string;
       namespace: string;
       displayName?: string;

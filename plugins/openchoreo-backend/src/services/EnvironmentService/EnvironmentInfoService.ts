@@ -470,6 +470,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
 
     const transformedEnv: Environment = {
+      uid: envData.uid,
       name: envName,
       bindingName: binding?.name,
       deployment: {

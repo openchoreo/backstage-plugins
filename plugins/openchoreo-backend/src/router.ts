@@ -233,16 +233,30 @@ export async function createRouter({
 
   // Runtime logs
   router.post(
-    '/logs/component/:componentId',
+    '/logs/component/:componentName',
     async (req: express.Request, res: express.Response) => {
-      const { componentId } = req.params;
+      const { componentName } = req.params;
       const { orgName, projectName } = req.query;
-      const { environmentId, logLevels, startTime, endTime, limit } = req.body;
+      const {
+        componentId,
+        environmentName,
+        environmentId,
+        logLevels,
+        startTime,
+        endTime,
+        limit,
+      } = req.body;
 
-      if (!componentId || !environmentId) {
+      if (
+        !componentName ||
+        !componentId ||
+        !environmentName ||
+        !environmentId
+      ) {
         return res.status(422).json({
           error: 'Missing Parameter',
-          message: 'Component ID or Environment ID is missing from request',
+          message:
+            'Component Name, Component ID or Environment Name or Environment ID is missing from request',
         });
       }
 
@@ -250,7 +264,9 @@ export async function createRouter({
         const result = await runtimeLogsInfoService.fetchRuntimeLogs(
           {
             componentId,
+            componentName,
             environmentId,
+            environmentName,
             logLevels,
             startTime,
             endTime,

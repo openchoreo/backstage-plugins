@@ -39,7 +39,7 @@ export const RuntimeLogs = () => {
     fetchLogs,
     loadMore,
     refresh,
-  } = useRuntimeLogs(filters, pagination);
+  } = useRuntimeLogs(filters, pagination, environments);
 
   const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
 
