@@ -188,8 +188,8 @@ export class CtdToTemplateConverter {
       parameters.push(ciSetupSection);
     }
 
-    // Section 4: Addons
-    parameters.push(this.generateAddonsSection(organizationName));
+    // Section 4: Traits
+    parameters.push(this.generateTraitsSection(organizationName));
 
     return parameters;
   }
@@ -274,19 +274,19 @@ export class CtdToTemplateConverter {
   }
 
   /**
-   * Generate Addons section
-   * Allows users to add multiple addons to the component
+   * Generate Traits section
+   * Allows users to add multiple traits to the component
    */
-  private generateAddonsSection(organizationName: string): any {
+  private generateTraitsSection(organizationName: string): any {
     return {
-      title: 'Addons',
-      description: 'Add optional addons to enhance your component functionality',
+      title: 'Traits',
+      description: 'Add optional traits to enhance your component functionality',
       properties: {
-        addons: {
-          title: 'Component Addons',
+        traits: {
+          title: 'Component Traits',
           type: 'array',
-          description: 'Select and configure addons for your component. You can add multiple addons.',
-          'ui:field': 'AddonsField',
+          description: 'Select and configure traits for your component. You can add multiple traits.',
+          'ui:field': 'TraitsField',
           'ui:options': {
             organizationName: organizationName,
           },
@@ -549,8 +549,8 @@ export class CtdToTemplateConverter {
           workflow_name: '${{ parameters.workflow_name }}',
           workflow_parameters: '${{ parameters.workflow_parameters }}',
 
-          // Section 4: Addons
-          addons: '${{ parameters.addons }}',
+          // Section 4: Traits
+          traits: '${{ parameters.traits }}',
         },
       },
     ];

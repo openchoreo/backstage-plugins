@@ -12,7 +12,7 @@ import { ComponentInfoService } from './services/ComponentService/ComponentInfoS
 import { RuntimeLogsInfoService } from './services/RuntimeLogsService/RuntimeLogsService';
 import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
-import { AddonInfoService } from './services/AddonService/AddonInfoService';
+import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
 
 /**
@@ -87,7 +87,7 @@ export const choreoPlugin = createBackendPlugin({
           openchoreoConfig.get('baseUrl'),
         );
 
-        const addonInfoService = new AddonInfoService(
+        const traitInfoService = new TraitInfoService(
           logger,
           openchoreoConfig.get('baseUrl'),
         );
@@ -107,7 +107,7 @@ export const choreoPlugin = createBackendPlugin({
             runtimeLogsInfoService,
             workloadInfoService,
             dashboardInfoService,
-            addonInfoService,
+            traitInfoService,
             workflowSchemaService,
           }),
         );

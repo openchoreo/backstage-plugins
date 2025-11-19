@@ -14,7 +14,7 @@ import {
   ObservabilityNotConfiguredError as RuntimeObservabilityNotConfiguredError,
 } from './services/RuntimeLogsService/RuntimeLogsService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
-import { AddonInfoService } from './services/AddonService/AddonInfoService';
+import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
 
 export async function createRouter({
@@ -26,7 +26,7 @@ export async function createRouter({
   runtimeLogsInfoService,
   workloadInfoService,
   dashboardInfoService,
-  addonInfoService,
+  traitInfoService,
   workflowSchemaService,
 }: {
   environmentInfoService: EnvironmentInfoService;
@@ -37,7 +37,7 @@ export async function createRouter({
   runtimeLogsInfoService: RuntimeLogsInfoService;
   workloadInfoService: WorkloadService;
   dashboardInfoService: DashboardInfoService;
-  addonInfoService: AddonInfoService;
+  traitInfoService: TraitInfoService;
   workflowSchemaService: WorkflowSchemaService;
 }): Promise<express.Router> {
   const router = Router();
@@ -155,8 +155,8 @@ export async function createRouter({
   });
 
 
-  // Endpoint for listing addons
-  router.get('/addons', async (req, res) => {
+  // Endpoint for listing traits
+  router.get('/traits', async (req, res) => {
     const { organizationName, page, pageSize } = req.query;
 
     if (!organizationName) {
@@ -164,7 +164,7 @@ export async function createRouter({
     }
 
     res.json(
-      await addonInfoService.fetchAddons(
+      await traitInfoService.fetchTraits(
         organizationName as string,
         page ? parseInt(page as string, 10) : undefined,
         pageSize ? parseInt(pageSize as string, 10) : undefined,
@@ -173,21 +173,21 @@ export async function createRouter({
   });
 
   // Endpoint for fetching addon schema
-  router.get('/addon-schema', async (req, res) => {
-    const { organizationName, addonName } = req.query;
+  router.get('/trait-schema', async (req, res) => {
+    const { organizationName, traitName } = req.query;
 
     if (!organizationName) {
       throw new InputError('organizationName is a required query parameter');
     }
 
-    if (!addonName) {
-      throw new InputError('addonName is a required query parameter');
+    if (!traitName) {
+      throw new InputError('traitName is a required query parameter');
     }
 
     res.json(
-      await addonInfoService.fetchAddonSchema(
+      await traitInfoService.fetchTraitSchema(
         organizationName as string,
-        addonName as string,
+        traitName as string,
       ),
     );
   });
