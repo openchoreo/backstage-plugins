@@ -106,8 +106,11 @@ export class ObservabilityService {
    *
    * @param componentId - The ID of the component
    * @param environmentId - The ID of the environment
+   * @param projectId - The ID of the project
    * @param orgName - The organization name
    * @param projectName - The project name
+   * @param environmentName - The name of the environment
+   * @param componentName - The name of the component
    * @param options - Optional parameters for filtering metrics
    * @param options.limit - The maximum number of metrics to return
    * @param options.offset - The offset from the first metric to return
@@ -117,9 +120,12 @@ export class ObservabilityService {
    */
   async fetchMetricsByComponent(
     componentId: string,
+    projectId: string,
     environmentId: string,
     orgName: string,
     projectName: string,
+    environmentName: string,
+    componentName: string,
     options?: {
       limit?: number;
       offset?: number;
@@ -130,7 +136,7 @@ export class ObservabilityService {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Fetching metrics for component ${componentId} in environment ${environmentId}`,
+        `Fetching metrics for component ${componentName} in environment ${environmentName}`,
       );
 
       // First, get the observer URL from the main API
@@ -144,10 +150,10 @@ export class ObservabilityService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentId}/environments/{environmentId}/observer-url' as any,
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url' as any,
         {
           params: {
-            path: { orgName, projectName, componentId, environmentId },
+            path: { orgName, projectName, componentName, environmentName },
           },
         },
       );
@@ -166,7 +172,7 @@ export class ObservabilityService {
 
       const observerUrl = urlData.data.observerUrl;
       if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(componentId);
+        throw new ObservabilityNotConfiguredError(componentName);
       }
 
       // Now use the observability client with the resolved URL
@@ -188,7 +194,7 @@ export class ObservabilityService {
           body: {
             componentId,
             environmentId,
-            projectId: projectName,
+            projectId,
             limit: options?.limit || 100,
             offset: options?.offset || 0,
             startTime: options?.startTime,

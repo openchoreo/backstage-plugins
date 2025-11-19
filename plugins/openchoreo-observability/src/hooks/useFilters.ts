@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Filters } from '../types';
+import { Environment, Filters } from '../types';
 
 /**
  * Hook to manage metrics filters state
@@ -7,7 +7,7 @@ import { Filters } from '../types';
  */
 export function useFilters() {
   const [filters, setFilters] = useState<Filters>({
-    environmentId: '',
+    environment: null as unknown as Environment,
     timeRange: '1h',
   });
 
@@ -20,7 +20,7 @@ export function useFilters() {
 
   const resetFilters = useCallback(() => {
     setFilters({
-      environmentId: '',
+      environment: null as unknown as Environment,
       timeRange: '1h',
     });
   }, []);

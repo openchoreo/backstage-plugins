@@ -35,19 +35,20 @@ export const TIME_RANGE_OPTIONS: TimeRangeOption[] = [
 ];
 
 export interface Filters {
-  environmentId: string;
+  environment: Environment;
   timeRange: string;
 }
 
 export interface Environment {
+  uid?: string;
   name: string;
   namespace: string;
-  displayName: string;
-  description: string;
-  organization: string;
-  dataPlaneRef: string;
+  displayName?: string;
+  description?: string;
+  organization?: string;
+  dataPlaneRef?: string;
   isProduction: boolean;
-  dnsPrefix: string;
+  dnsPrefix?: string;
   createdAt: string;
-  status: string;
+  status?: string;
 }

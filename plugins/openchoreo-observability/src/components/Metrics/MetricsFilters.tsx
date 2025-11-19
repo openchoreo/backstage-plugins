@@ -28,7 +28,12 @@ export const MetricsFilters = ({
   const handleEnvironmentChange = (
     event: React.ChangeEvent<{ value: unknown }>,
   ) => {
-    onFiltersChange({ environmentId: event.target.value as string });
+    const selectedEnvironment = environments.find(
+      env => env.uid === (event.target.value as string),
+    );
+    if (selectedEnvironment) {
+      onFiltersChange({ environment: selectedEnvironment });
+    }
   };
 
   const handleTimeRangeChange = (
@@ -51,12 +56,12 @@ export const MetricsFilters = ({
         <FormControl fullWidth disabled={disabled}>
           <InputLabel>Environment</InputLabel>
           <Select
-            value={filters.environmentId}
+            value={filters.environment?.uid || ''}
             onChange={handleEnvironmentChange}
           >
             {environments.map((environment: Environment) => (
-              <MenuItem key={environment.name} value={environment.name}>
-                {environment.displayName}
+              <MenuItem key={environment.uid} value={environment.uid}>
+                {environment.displayName || environment.name}
               </MenuItem>
             ))}
           </Select>
