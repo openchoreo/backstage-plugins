@@ -86,6 +86,51 @@ export async function promoteToEnvironment(
   return await res.json();
 }
 
+export async function deleteReleaseBinding(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+  environment: string,
+) {
+  const { token } = await identity.getCredentials();
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.DELETE_RELEASE_BINDING
+    }`,
+  );
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!project || !component || !organization) {
+    throw new Error('Missing required metadata in entity');
+  }
+
+  const deleteReq = {
+    orgName: organization,
+    projectName: project,
+    componentName: component,
+    environment: environment,
+  };
+
+  const res = await fetch(backendUrl, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(deleteReq),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to delete release binding: ${errText}`);
+  }
+
+  return await res.json();
+}
+
 export async function updateComponentBinding(
   entity: Entity,
   discovery: DiscoveryApi,

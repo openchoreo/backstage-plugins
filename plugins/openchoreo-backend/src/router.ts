@@ -91,6 +91,25 @@ export async function createRouter({
     );
   });
 
+  router.delete('/delete-release-binding', async (req, res) => {
+    const { componentName, projectName, orgName, environment } = req.body;
+
+    if (!componentName || !projectName || !orgName || !environment) {
+      throw new InputError(
+        'componentName, projectName, orgName and environment are required in request body',
+      );
+    }
+
+    res.json(
+      await environmentInfoService.deleteReleaseBinding({
+        componentName: componentName as string,
+        projectName: projectName as string,
+        organizationName: orgName as string,
+        environment: environment as string,
+      }),
+    );
+  });
+
   router.patch('/update-binding', async (req, res) => {
     const { componentName, projectName, orgName, bindingName, releaseState } =
       req.body;
