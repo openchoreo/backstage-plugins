@@ -97,6 +97,17 @@ const app = createApp({
   ],
 });
 
+const templateGroups = [
+  {
+    title: 'Component Templates',
+    filter: (entity: any) => entity.spec?.type === 'Component Type',
+  },
+  {
+    title: 'Other Templates',
+    filter: (entity: any) => entity.spec?.type !== 'Component Type',
+  },
+];
+
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<HomePage />} />
@@ -122,7 +133,7 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
-    <Route path="/create" element={<ScaffolderPage />}>
+    <Route path="/create" element={<ScaffolderPage groups={templateGroups} />}>
       <ScaffolderFieldExtensions>
         <ComponentNamePickerFieldExtension />
         <BuildTemplatePickerFieldExtension />
