@@ -9,3 +9,6 @@ export const rootCatalogCellDiagramRouteRef = createRouteRef({
 export const rootCatalogRuntimeLogsRouteRef = createRouteRef({
   id: 'runtime-logs',
 });
+export const rootCatalogWorkflowsRouteRef = createRouteRef({
+  id: 'workflows',
+});
