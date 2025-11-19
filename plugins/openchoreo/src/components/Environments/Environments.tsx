@@ -152,9 +152,11 @@ export const Environments = () => {
     fetchEnvironmentsData();
   }, [fetchEnvironmentsData]);
 
-  const isWorkloadEditorSupported = entity.metadata.tags?.find(
-    tag => tag === 'webapplication' || tag === 'service',
-  );
+  const isWorkloadEditorSupported =
+    entity.metadata.tags?.find(
+      tag => tag === 'webapplication' || tag === 'service',
+    ) ||
+    entity.metadata.annotations?.['openchoreo.io/component'] !== undefined;
   const isPending = environments.some(
     env => env.deployment.status === 'pending',
   );

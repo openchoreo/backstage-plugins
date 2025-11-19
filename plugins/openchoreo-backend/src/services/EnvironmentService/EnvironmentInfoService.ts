@@ -741,4 +741,147 @@ export class EnvironmentInfoService implements EnvironmentService {
       throw error;
     }
   }
+
+  /**
+   * Creates a ComponentRelease with an optional release name.
+   * If no release name is provided, the backend auto-generates one.
+   *
+   * @param {Object} request - The create release request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.organizationName - Name of the organization
+   * @param {string} [request.releaseName] - Optional release name (auto-generated if omitted)
+   * @returns {Promise<any>} Response from the OpenChoreo API
+   */
+  async createComponentRelease(request: {
+    componentName: string;
+    projectName: string;
+    organizationName: string;
+    releaseName?: string;
+  }) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Creating component release for ${request.componentName} in ${request.projectName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const requestBody: any = {};
+      if (request.releaseName) {
+        requestBody.releaseName = request.releaseName;
+      }
+
+      const { data, error, response } = await client.POST(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases',
+        {
+          params: {
+            path: {
+              orgName: request.organizationName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+            },
+          },
+          body: requestBody,
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to create component release: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Component release created for ${request.componentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error creating component release for ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Deploys a ComponentRelease to the lowest environment in the deployment pipeline.
+   *
+   * @param {Object} request - The deploy request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.releaseName - Name of the release to deploy
+   * @returns {Promise<Environment[]>} Updated environment information
+   */
+  async deployRelease(request: {
+    componentName: string;
+    projectName: string;
+    organizationName: string;
+    releaseName: string;
+  }): Promise<Environment[]> {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Deploying release ${request.releaseName} for component ${request.componentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { error, response } = await client.POST(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/deploy',
+        {
+          params: {
+            path: {
+              orgName: request.organizationName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+            },
+          },
+          body: {
+            releaseName: request.releaseName,
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to deploy release: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      // Fetch fresh environment data to return updated information
+      const refreshedEnvironments = await this.fetchDeploymentInfo({
+        componentName: request.componentName,
+        projectName: request.projectName,
+        organizationName: request.organizationName,
+      });
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Release deployment completed for ${request.componentName}: Total: ${totalTime}ms`,
+      );
+
+      return refreshedEnvironments;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error deploying release ${request.releaseName} for component ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
 }
