@@ -114,6 +114,33 @@ openchoreo:
     frequency: 30 # seconds between runs (default: 30)
     timeout: 120 # seconds for timeout (default: 120)
 
+  # Component Type Mappings (optional - defaults provided)
+  # Maps OpenChoreo component types to Backstage page variants
+  # Custom mappings are evaluated before defaults
+  # componentTypes:
+  #   mappings:
+  #     # Example: All React-based components should use website page variant
+  #     - pattern: '^deployment/react-.*'
+  #       pageVariant: 'website'
+  #
+  #     # Example: Anything with 'api' should be a service page variant
+  #     - pattern: '^deployment/.*api.*'
+  #       pageVariant: 'service'
+  #
+  #     # Example: Python workers might be scheduled tasks
+  #     - pattern: '^deployment/python-worker.*'
+  #       pageVariant: 'scheduled-task'
+  #
+  # Default mappings (applied if no custom mapping matches):
+  # - deployment/.*web-app.*     -> website
+  # - deployment/.*webapp.*      -> website
+  # - deployment/.*frontend.*    -> website
+  # - cronjob/.*                 -> scheduled-task
+  # - job/.*                     -> scheduled-task
+  # - deployment/.*              -> service
+  # - statefulset/.*             -> service
+  # - (no match)                 -> default (uses defaultEntityPage)
+
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
   # For local Kind: set THUNDER_BASE_URL via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml (defaults to internal service URL)

@@ -20,13 +20,16 @@ import {
   EntitySwitch,
   EntityOrphanWarning,
   EntityProcessingErrorsPanel,
-  isComponentType,
   isKind,
   hasCatalogProcessingErrors,
   isOrphan,
   hasRelationWarnings,
   EntityRelationWarning,
 } from '@backstage/plugin-catalog';
+import {
+  ComponentTypeUtils,
+  type PageVariant,
+} from '@openchoreo/backstage-plugin-common';
 import {
   EntityUserProfileCard,
   EntityGroupProfileCard,
@@ -39,6 +42,7 @@ import {
   EntityCatalogGraphCard,
 } from '@backstage/plugin-catalog-graph';
 import {
+  Entity,
   RELATION_API_CONSUMED_BY,
   RELATION_API_PROVIDED_BY,
   RELATION_CONSUMES_API,
@@ -61,7 +65,7 @@ import {
   Environments,
   CellDiagram,
   RuntimeLogs,
-  Builds,
+  Workflows,
 } from '@openchoreo/backstage-plugin';
 
 import { ObservabilityMetrics } from '@openchoreo/backstage-plugin-openchoreo-observability';
@@ -158,8 +162,8 @@ const serviceEntityPage = (
       {overviewContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/builds" title="Builds">
-      <Builds />
+    <EntityLayout.Route path="/workflows" title="Workflows">
+      <Workflows />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/environments" title="Deploy">
@@ -219,8 +223,8 @@ const websiteEntityPage = (
       {overviewContent}
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/builds" title="Builds">
-      <Builds />
+    <EntityLayout.Route path="/workflows" title="Workflows">
+      <Workflows />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/environments" title="Deploy">
@@ -283,14 +287,49 @@ const defaultEntityPage = (
   </EntityLayout>
 );
 
+/**
+ * Helper function to determine the page variant for a component entity.
+ * Uses ComponentTypeUtils to map OpenChoreo component types to page variants.
+ */
+function getComponentPageVariant(entity: Entity): PageVariant {
+  if (entity.kind !== 'Component') return 'default';
+
+  const componentType = entity.spec?.type as string;
+  if (!componentType) return 'default';
+
+  // Use default mappings for routing decisions
+  const utils = ComponentTypeUtils.createDefault();
+  return utils.getPageVariant(componentType);
+}
+
+/**
+ * Condition functions for EntitySwitch routing.
+ * These determine which page variant to show based on the component type.
+ */
+const isServiceComponent = (entity: Entity) =>
+  getComponentPageVariant(entity) === 'service';
+
+const isWebsiteComponent = (entity: Entity) =>
+  getComponentPageVariant(entity) === 'website';
+
+const isScheduledTaskComponent = (entity: Entity) =>
+  getComponentPageVariant(entity) === 'scheduled-task';
+
 const componentPage = (
   <EntitySwitch>
-    <EntitySwitch.Case>{serviceEntityPage}</EntitySwitch.Case>
+    <EntitySwitch.Case if={isServiceComponent}>
+      {serviceEntityPage}
+    </EntitySwitch.Case>
 
-    <EntitySwitch.Case if={isComponentType('website')}>
+    <EntitySwitch.Case if={isWebsiteComponent}>
       {websiteEntityPage}
     </EntitySwitch.Case>
 
+    <EntitySwitch.Case if={isScheduledTaskComponent}>
+      {defaultEntityPage}
+    </EntitySwitch.Case>
+
+    {/* Fallback for unknown component types or 'default' variant */}
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
   </EntitySwitch>
 );

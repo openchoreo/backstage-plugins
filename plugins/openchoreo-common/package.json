@@ -28,6 +28,7 @@
     "postpack": "backstage-cli package postpack"
   },
   "dependencies": {
+    "@backstage/config": "^1.2.0",
     "@openchoreo/openchoreo-client-node": "workspace:^"
   },
   "devDependencies": {

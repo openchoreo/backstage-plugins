@@ -34,6 +34,7 @@ import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
   getRepositoryInfo,
+  ComponentTypeUtils,
 } from '@openchoreo/backstage-plugin-common';
 import { EnvironmentEntityV1alpha1, DataplaneEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
@@ -48,6 +49,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly baseUrl: string;
   private readonly defaultOwner: string;
   private readonly ctdConverter: CtdToTemplateConverter;
+  private readonly componentTypeUtils: ComponentTypeUtils;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
@@ -65,6 +67,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       defaultOwner: this.defaultOwner,
       namespace: 'openchoreo',
     });
+    // Initialize component type utilities from config
+    this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
   }
 
   getProviderName(): string {
@@ -725,12 +729,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     projectName: string,
     providesApis?: string[],
   ): Entity {
-    let backstageComponentType: string =
-      component.type?.toLowerCase() || 'service'; // e.g., 'service', 'webapp', etc.
-    if (component.type === 'WebApplication') {
-      backstageComponentType = 'website';
-    }
-
     const componentEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Component',
@@ -739,11 +737,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         title: component.name,
         description: component.description || component.name,
         // namespace: orgName,
-        tags: [
-          'openchoreo',
-          'component',
-          component.type?.toLowerCase().replace('/', '-') || 'unknown',
-        ],
+        tags: this.componentTypeUtils.generateTags(component.type || 'unknown'),
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
@@ -776,7 +770,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: backstageComponentType,
+        type: component.type || 'unknown',
         lifecycle: component.status?.toLowerCase() || 'unknown', // Map status to lifecycle
         owner: this.defaultOwner,
         system: projectName, // Link to the parent system (project)
