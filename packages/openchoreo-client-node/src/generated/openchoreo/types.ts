@@ -433,6 +433,92 @@ export interface paths {
     patch: operations['updateComponentBinding'];
     trace?: never;
   };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List component releases */
+    get: operations['listComponentReleases'];
+    put?: never;
+    /** Create a component release */
+    post: operations['createComponentRelease'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific component release */
+    get: operations['getComponentRelease'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List release bindings */
+    get: operations['listReleaseBindings'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Patch a release binding */
+    patch: operations['patchReleaseBinding'];
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/deploy': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Deploy a release to the lowest environment */
+    post: operations['deployRelease'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/orgs/{orgName}/projects/{projectName}/components/{componentName}/promote': {
     parameters: {
       query?: never;
@@ -825,6 +911,59 @@ export interface components {
     };
     ObserverUrlData: {
       observerUrl?: string;
+    };
+    ComponentReleaseResponse: {
+      name: string;
+      componentName: string;
+      projectName: string;
+      orgName: string;
+      /** Format: date-time */
+      createdAt: string;
+      status?: string;
+    };
+    CreateComponentReleaseRequest: {
+      releaseName?: string;
+    };
+    ReleaseBindingResponse: {
+      name: string;
+      componentName: string;
+      projectName: string;
+      orgName: string;
+      environment: string;
+      releaseName: string;
+      componentTypeEnvOverrides?: {
+        [key: string]: unknown;
+      };
+      traitOverrides?: {
+        [key: string]: unknown;
+      };
+      configurationOverrides?: components['schemas']['ConfigurationOverrides'];
+      /** Format: date-time */
+      createdAt: string;
+      status?: string;
+    };
+    PatchReleaseBindingRequest: {
+      releaseName?: string;
+      environment?: string;
+      componentTypeEnvOverrides?: {
+        [key: string]: unknown;
+      };
+      traitOverrides?: {
+        [key: string]: unknown;
+      };
+      configurationOverrides?: components['schemas']['ConfigurationOverrides'];
+    };
+    ConfigurationOverrides: {
+      env?: components['schemas']['EnvVar'][];
+      files?: components['schemas']['FileVar'][];
+    };
+    FileVar: {
+      key: string;
+      mountPath: string;
+      value?: string;
+    };
+    DeployReleaseRequest: {
+      releaseName: string;
     };
     EnvVar: {
       key: string;
@@ -1660,6 +1799,176 @@ export interface operations {
     };
     responses: {
       /** @description Binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+    };
+  };
+  listComponentReleases: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['ComponentReleaseResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  createComponentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateComponentReleaseRequest'];
+      };
+    };
+    responses: {
+      /** @description Component release created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentReleaseResponse'];
+          };
+        };
+      };
+    };
+  };
+  getComponentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+        releaseName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentReleaseResponse'];
+          };
+        };
+      };
+    };
+  };
+  listReleaseBindings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['ReleaseBindingResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  patchReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+        bindingName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PatchReleaseBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Release binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+    };
+  };
+  deployRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeployReleaseRequest'];
+      };
+    };
+    responses: {
+      /** @description Release deployed successfully */
       200: {
         headers: {
           [name: string]: unknown;

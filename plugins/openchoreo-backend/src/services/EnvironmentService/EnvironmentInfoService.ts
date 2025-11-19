@@ -5,53 +5,9 @@ import {
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 
-// Use generated type from OpenAPI spec
+// Use generated types from OpenAPI spec
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
-
-interface BindingResponse {
-  name: string;
-  environment: string;
-  type: string;
-  status?: {
-    status: 'Active' | 'Failed' | 'InProgress' | 'NotYetDeployed' | 'Suspended';
-    message?: string;
-    lastTransitioned?: string;
-  };
-  webApplicationBinding?: {
-    image?: string;
-    endpoints?: BindingEndpoint[];
-  };
-  serviceBinding?: {
-    image?: string;
-    endpoints?: BindingEndpoint[];
-  };
-}
-
-interface BindingEndpoint {
-  name: string;
-  type: string;
-  public?: {
-    scheme: string;
-    host: string;
-    port: number;
-    basePath?: string;
-    uri?: string;
-  };
-  organization?: {
-    scheme: string;
-    host: string;
-    port: number;
-    basePath?: string;
-    uri?: string;
-  };
-  project?: {
-    scheme: string;
-    host: string;
-    port: number;
-    basePath?: string;
-    uri?: string;
-  };
-}
+type ReleaseBindingResponse = OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
 
 /**
  * Service for managing and retrieving environment-related information for deployments.
@@ -151,7 +107,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const bindingsPromise = createTimedPromise(
         (async () => {
           const { data, error, response } = await client.GET(
-            '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+            '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
             {
               params: {
                 path: {
@@ -163,7 +119,7 @@ export class EnvironmentInfoService implements EnvironmentService {
             },
           );
           if (error || !response.ok) {
-            throw new Error(`Failed to fetch bindings: ${response.status}`);
+            throw new Error(`Failed to fetch release bindings: ${response.status}`);
           }
           return data.success && data.data?.items ? data.data.items : [];
         })(),
@@ -258,13 +214,13 @@ export class EnvironmentInfoService implements EnvironmentService {
 
   private transformEnvironmentDataWithBindings(
     environmentData: ModelsEnvironment[],
-    bindings: BindingResponse[],
+    bindings: ReleaseBindingResponse[],
     deploymentPipeline: any | null,
   ): Environment[] {
     // Create maps for easy lookup
     const envMap = new Map<string, ModelsEnvironment>();
     const envNameMap = new Map<string, string>(); // lowercase -> actual name
-    const bindingsByEnv = new Map<string, BindingResponse>();
+    const bindingsByEnv = new Map<string, ReleaseBindingResponse>();
 
     // Build environment maps
     for (const env of environmentData) {
@@ -347,12 +303,13 @@ export class EnvironmentInfoService implements EnvironmentService {
 
   private createEnvironmentFromBinding(
     envData: ModelsEnvironment,
-    binding: BindingResponse | undefined,
+    binding: ReleaseBindingResponse | undefined,
     promotionTargets?: any[],
   ): Environment {
     const envName = envData.displayName || envData.name;
 
-    // Extract endpoints from binding
+    // For now, ReleaseBinding doesn't provide detailed status, endpoints, or image info
+    // Those would need to come from querying the actual deployed resources
     const endpoints: EndpointInfo[] = [];
     let image: string | undefined;
     let deploymentStatus:
@@ -365,108 +322,28 @@ export class EnvironmentInfoService implements EnvironmentService {
     let lastDeployed: string | undefined;
 
     if (binding) {
-      // Get deployment status from binding using new status values
+      // Map the ReleaseBinding status string to our deployment status
+      // The status field is a simple string from the ReleaseBinding CRD status
       if (binding.status) {
-        switch (binding.status.status) {
-          case 'Active':
-            deploymentStatus = 'success';
-            break;
-          case 'Failed':
-            deploymentStatus = 'failed';
-            break;
-          case 'InProgress':
-            deploymentStatus = 'pending';
-            break;
-          case 'NotYetDeployed':
-            deploymentStatus = 'not-deployed';
-            break;
-          case 'Suspended':
-            deploymentStatus = 'suspended';
-            break;
-          default:
-            deploymentStatus = 'pending';
-        }
-        statusMessage = binding.status.message;
-        lastDeployed = binding.status.lastTransitioned || envData.createdAt;
-      }
-
-      // Extract image from binding
-      if (binding.webApplicationBinding?.image) {
-        image = binding.webApplicationBinding.image;
-      } else if (binding.serviceBinding?.image) {
-        image = binding.serviceBinding.image;
-      }
-
-      // Extract endpoints
-      const bindingEndpoints =
-        binding.webApplicationBinding?.endpoints ||
-        binding.serviceBinding?.endpoints ||
-        [];
-
-      // Check if this is a WebApplication component
-      const isWebApp =
-        binding.type === 'WebApplication' || binding.webApplicationBinding;
-
-      for (const endpoint of bindingEndpoints) {
-        if (isWebApp) {
-          // For WebApplication components, only show public endpoints
-          if (endpoint.public) {
-            endpoints.push({
-              name: endpoint.name,
-              type: endpoint.type,
-              url:
-                endpoint.public.uri ||
-                `${endpoint.public.scheme}://${endpoint.public.host}:${
-                  endpoint.public.port
-                }${endpoint.public.basePath || ''}`,
-              visibility: 'public',
-            });
-          }
+        const status = binding.status.toLowerCase();
+        if (status.includes('ready') || status.includes('active')) {
+          deploymentStatus = 'success';
+        } else if (status.includes('failed') || status.includes('error')) {
+          deploymentStatus = 'failed';
+        } else if (status.includes('suspend')) {
+          deploymentStatus = 'suspended';
+        } else if (status.includes('notready') || status.includes('pending')) {
+          deploymentStatus = 'pending';
         } else {
-          // For other component types, show all endpoints
-          // Add public endpoint if available
-          if (endpoint.public) {
-            endpoints.push({
-              name: endpoint.name,
-              type: endpoint.type,
-              url:
-                endpoint.public.uri ||
-                `${endpoint.public.scheme}://${endpoint.public.host}:${
-                  endpoint.public.port
-                }${endpoint.public.basePath || ''}`,
-              visibility: 'public',
-            });
-          }
-          // Add organization endpoint if available
-          if (endpoint.organization) {
-            endpoints.push({
-              name: endpoint.name,
-              type: endpoint.type,
-              url:
-                endpoint.organization.uri ||
-                `${endpoint.organization.scheme}://${
-                  endpoint.organization.host
-                }:${endpoint.organization.port}${
-                  endpoint.organization.basePath || ''
-                }`,
-              visibility: 'organization',
-            });
-          }
-          // Add project endpoint if available
-          if (endpoint.project) {
-            endpoints.push({
-              name: endpoint.name,
-              type: endpoint.type,
-              url:
-                endpoint.project.uri ||
-                `${endpoint.project.scheme}://${endpoint.project.host}:${
-                  endpoint.project.port
-                }${endpoint.project.basePath || ''}`,
-              visibility: 'project',
-            });
-          }
+          deploymentStatus = 'pending';
         }
       }
+
+      statusMessage = binding.status;
+      lastDeployed = binding.createdAt;
+
+      // TODO: Once the API is updated to return deployment details,
+      // extract image and endpoints information here
     }
 
     const transformedEnv: Environment = {
@@ -496,7 +373,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
   private transformEnvironmentDataWithBindingsOnly(
     environmentData: ModelsEnvironment[],
-    bindingsByEnv: Map<string, BindingResponse>,
+    bindingsByEnv: Map<string, ReleaseBindingResponse>,
   ): Environment[] {
     return environmentData.map(env => {
       const envName = env.displayName || env.name;
