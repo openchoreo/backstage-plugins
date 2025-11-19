@@ -11,6 +11,7 @@ import {
   Button,
   IconButton,
 } from '@material-ui/core';
+import { Skeleton } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
@@ -39,9 +40,9 @@ import Refresh from '@material-ui/icons/Refresh';
 const useStyles = makeStyles(theme => ({
   notificationBox: {
     padding: theme.spacing(2),
-    marginBottom: theme.spacing(2),
     borderRadius: theme.shape.borderRadius,
     border: `1px solid`,
+    boxShadow: theme.shadows[4],
   },
   successNotification: {
     backgroundColor: theme.palette.success.light,
@@ -56,13 +57,16 @@ const useStyles = makeStyles(theme => ({
   setupCard: {
     backgroundColor: theme.palette.background.paper,
     color: theme.palette.text.primary,
-    padding: theme.spacing(1),
+    padding: theme.spacing(2),
     borderRadius: theme.shape.borderRadius,
   },
   deploymentStatusBox: {
-    padding: theme.spacing(1),
+    padding: theme.spacing(1.5),
     borderRadius: theme.shape.borderRadius,
     marginTop: theme.spacing(2),
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
   },
   successStatus: {
     backgroundColor: theme.palette.success.light,
@@ -81,12 +85,18 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.primary,
   },
   imageContainer: {
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.palette.background.default,
     padding: theme.spacing(1.5),
-    borderRadius: theme.spacing(1),
+    borderRadius: theme.spacing(0.5),
     border: `1px solid ${theme.palette.divider}`,
-    boxShadow: theme.shadows[2],
     marginTop: theme.spacing(1),
+    fontFamily: 'monospace',
+  },
+  sectionLabel: {
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    color: theme.palette.text.primary,
+    marginBottom: theme.spacing(1),
   },
   endpointLink: {
     color: theme.palette.primary.main,
@@ -127,6 +137,7 @@ export const Environments = () => {
   const { entity } = useEntity();
   const [environments, setEnvironmentsData] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [promotingTo, setPromotingTo] = useState<string | null>(null);
   const [updatingBinding, setUpdatingBinding] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
@@ -136,15 +147,20 @@ export const Environments = () => {
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 
-  const fetchEnvironmentsData = useCallback(async () => {
+  const fetchEnvironmentsData = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       const data = await fetchEnvironmentInfo(entity, discovery, identityApi);
       setEnvironmentsData(data as Environment[]);
     } catch (error) {
       // TODO: Log this error
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [entity, discovery, identityApi]);
 
@@ -166,7 +182,7 @@ export const Environments = () => {
 
     if (isPending) {
       intervalId = setInterval(() => {
-        fetchEnvironmentsData();
+        fetchEnvironmentsData(true);
       }, 10000); // 10 seconds
     }
 
@@ -177,7 +193,7 @@ export const Environments = () => {
     };
   }, [isPending, fetchEnvironmentsData]);
 
-  if (loading && !isPending) {
+  if (loading && environments.length === 0) {
     return (
       <Page themeId="tool">
         <Content>
@@ -199,6 +215,11 @@ export const Environments = () => {
       <Content>
         {notification && (
           <Box
+            position="fixed"
+            top={80}
+            right={24}
+            zIndex={1300}
+            maxWidth={400}
             className={`${classes.notificationBox} ${
               notification.type === 'success'
                 ? classes.successNotification
@@ -252,7 +273,7 @@ export const Environments = () => {
                     <Typography variant="h6" component="h4">
                       {env.name}
                     </Typography>
-                    <IconButton onClick={() => fetchEnvironmentsData()}>
+                    <IconButton onClick={() => fetchEnvironmentsData(true)}>
                       <Refresh
                         fontSize="inherit"
                         style={{ fontSize: '18px' }}
@@ -266,9 +287,31 @@ export const Environments = () => {
                     marginBottom={2}
                     marginTop={1}
                   />
-                  {env.deployment.lastDeployed && (
-                    <Box display="flex" alignItems="center">
-                      <Typography>Deployed</Typography>
+                  {refreshing ? (
+                    <>
+                      <Skeleton variant="text" width="60%" height={30} />
+                      <Skeleton
+                        variant="rect"
+                        width="100%"
+                        height={40}
+                        style={{ marginTop: 16, marginBottom: 16 }}
+                      />
+                      <Skeleton variant="text" width="40%" />
+                      <Skeleton variant="text" width="80%" />
+                      <Skeleton
+                        variant="rect"
+                        width="100%"
+                        height={60}
+                        style={{ marginTop: 16 }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {env.deployment.lastDeployed && (
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Typography variant="body2" style={{ fontWeight: 500 }}>
+                        Deployed
+                      </Typography>
                       <AccessTimeIcon className={classes.timeIcon} />
                       <Typography variant="body2" color="textSecondary">
                         {formatRelativeTime(env.deployment.lastDeployed)}
@@ -276,8 +319,6 @@ export const Environments = () => {
                     </Box>
                   )}
                   <Box
-                    display="flex"
-                    alignItems="center"
                     className={`${classes.deploymentStatusBox} ${
                       env.deployment.status === 'success'
                         ? classes.successStatus
@@ -290,26 +331,25 @@ export const Environments = () => {
                         : classes.defaultStatus
                     }`}
                   >
-                    <Typography>
-                      Deployment Status:{' '}
-                      <span
-                        style={{
-                          fontWeight:
-                            env.deployment.status === 'success'
-                              ? 'bold'
-                              : 'normal',
-                        }}
-                      >
-                        {env.deployment.status === 'success'
-                          ? 'Active'
-                          : env.deployment.status === 'pending'
-                          ? 'Pending'
-                          : env.deployment.status === 'not-deployed'
-                          ? 'Not Deployed'
-                          : env.deployment.status === 'suspended'
-                          ? 'Suspended'
-                          : 'Failed'}
-                      </span>
+                    <Typography variant="body2" style={{ fontWeight: 500 }}>
+                      Deployment Status:
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      style={{
+                        fontWeight:
+                          env.deployment.status === 'success' ? 'bold' : 500,
+                      }}
+                    >
+                      {env.deployment.status === 'success'
+                        ? 'Active'
+                        : env.deployment.status === 'pending'
+                        ? 'Pending'
+                        : env.deployment.status === 'not-deployed'
+                        ? 'Not Deployed'
+                        : env.deployment.status === 'suspended'
+                        ? 'Suspended'
+                        : 'Failed'}
                     </Typography>
                   </Box>
                   {env.deployment.statusMessage && (
@@ -321,32 +361,28 @@ export const Environments = () => {
                   )}
 
                   {env.deployment.image && (
-                    <>
-                      <Box display="flex" alignItems="center" mt={2}>
-                        <Typography>Image</Typography>
-                      </Box>
-                      <Box
-                        display="flex"
-                        alignItems="center"
-                        className={classes.imageContainer}
-                      >
+                    <Box mt={2}>
+                      <Typography className={classes.sectionLabel}>
+                        Image
+                      </Typography>
+                      <Box className={classes.imageContainer}>
                         <Typography
                           variant="body2"
                           color="textSecondary"
-                          style={{ wordBreak: 'break-all' }}
+                          style={{ wordBreak: 'break-all', fontSize: '0.8rem' }}
                         >
                           {env.deployment.image}
                         </Typography>
                       </Box>
-                    </>
+                    </Box>
                   )}
 
                   {env.deployment.status === 'success' &&
                     env.endpoints.length > 0 && (
-                      <>
-                        <Box display="flex" alignItems="center" mt={2}>
-                          <Typography>Endpoints</Typography>
-                        </Box>
+                      <Box mt={2}>
+                        <Typography className={classes.sectionLabel}>
+                          Endpoints
+                        </Typography>
                         {env.endpoints.map((endpoint, index) => (
                           <Box
                             key={index}
@@ -378,7 +414,7 @@ export const Environments = () => {
                             </Box>
                           </Box>
                         ))}
-                      </>
+                      </Box>
                     )}
 
                   {/* Actions section - show if deployment is successful or suspended */}
@@ -549,7 +585,7 @@ export const Environments = () => {
                                     );
 
                                     // Refresh the environments data
-                                    await fetchEnvironmentsData();
+                                    await fetchEnvironmentsData(true);
 
                                     setNotification({
                                       message: `Component suspended from ${env.name} successfully`,
@@ -585,6 +621,8 @@ export const Environments = () => {
                         </Box>
                       )}
                     </Box>
+                  )}
+                    </>
                   )}
                 </CardContent>
               </Card>

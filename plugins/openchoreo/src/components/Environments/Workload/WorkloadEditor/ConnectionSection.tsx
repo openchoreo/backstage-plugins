@@ -23,10 +23,11 @@ interface ConnectionSectionProps {
 
 const useStyles = makeStyles(theme => ({
   accordion: {
-    border: `1px solid ${theme.palette.grey[100]}`,
-    marginBottom: theme.spacing(1),
-    borderRadius: 4,
+    border: 'none',
+    marginBottom: theme.spacing(0),
+    borderRadius: 8,
     boxShadow: 'none',
+    backgroundColor: 'transparent',
     '&:before': {
       backgroundColor: 'transparent',
     },
