@@ -33,6 +33,7 @@ interface WorkloadEndpoint {
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
+  getRepositoryInfo,
 } from '@openchoreo/backstage-plugin-common';
 import { EnvironmentEntityV1alpha1, DataplaneEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
@@ -739,12 +740,17 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           ...(component.status && {
             [CHOREO_ANNOTATIONS.STATUS]: component.status,
           }),
-          ...(component.buildConfig?.repoUrl && {
-            'backstage.io/source-location': `url:${component.buildConfig.repoUrl}`,
-          }),
-          ...(component.buildConfig?.repoBranch && {
-            [CHOREO_ANNOTATIONS.BRANCH]: component.buildConfig.repoBranch,
-          }),
+          ...(() => {
+            const repoInfo = getRepositoryInfo(component);
+            return {
+              ...(repoInfo.url && {
+                'backstage.io/source-location': `url:${repoInfo.url}`,
+              }),
+              ...(repoInfo.branch && {
+                [CHOREO_ANNOTATIONS.BRANCH]: repoInfo.branch,
+              }),
+            };
+          })(),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',

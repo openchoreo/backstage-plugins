@@ -33,6 +33,7 @@ import type {
   ModelsBuild,
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
+import { getRepositoryUrl, getRepositoryInfo } from '@openchoreo/backstage-plugin-common';
 import { formatRelativeTime } from '../../utils/timeUtils';
 
 const BuildStatusComponent = ({ status }: { status?: string }) => {
@@ -307,21 +308,6 @@ export const Builds = () => {
     },
   ];
 
-  const getRepositoryUrl = (
-    component: ModelsCompleteComponent,
-  ): string | undefined => {
-    const baseUrl = component.buildConfig?.repoUrl;
-    const branch = component.buildConfig?.repoBranch;
-    const componentPath = component.buildConfig?.componentPath;
-
-    if (!componentPath || !baseUrl) {
-      return baseUrl;
-    }
-
-    const separator = baseUrl.endsWith('/') ? '' : '/';
-    return `${baseUrl}${separator}tree/${branch}/${componentPath}`;
-  };
-
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -392,7 +378,7 @@ export const Builds = () => {
                   }}
                 />
                 <Typography variant="body2">
-                  {componentDetails.buildConfig?.repoBranch || 'N/A'}
+                  {getRepositoryInfo(componentDetails).branch || 'N/A'}
                 </Typography>
               </Box>
               <Box display="flex">

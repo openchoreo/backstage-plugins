@@ -1,4 +1,6 @@
 export { CHOREO_ANNOTATIONS, CHOREO_LABELS } from './constants';
+export { getRepositoryInfo, getRepositoryUrl } from './utils';
+export type { RepositoryInfo } from './utils';
 
 // Re-export types from the generated OpenAPI client for use in frontend plugins
 export type {
