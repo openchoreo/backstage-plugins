@@ -23,7 +23,7 @@ import {
 import {
   fetchEnvironmentInfo,
   promoteToEnvironment,
-  updateComponentBinding,
+  deleteReleaseBinding,
 } from '../../api/environments';
 import { formatRelativeTime } from '../../utils/timeUtils';
 
@@ -528,43 +528,29 @@ export const Environments = () => {
                               </Button>
                             )}
 
-                          {/* Suspend/Re-deploy button */}
-                          {(env.deployment.status === 'success' ||
-                            env.deployment.status === 'suspended') &&
+                          {/* Suspend button */}
+                          {env.deployment.status === 'success' &&
                             env.bindingName && (
                               <Button
                                 variant="outlined"
-                                color={
-                                  env.deployment.status === 'suspended'
-                                    ? 'primary'
-                                    : 'default'
-                                }
+                                color="secondary"
                                 size="small"
                                 disabled={updatingBinding === env.name}
                                 onClick={async () => {
                                   try {
                                     setUpdatingBinding(env.name);
-                                    const newState =
-                                      env.deployment.status === 'suspended'
-                                        ? 'Active'
-                                        : 'Suspend';
-                                    await updateComponentBinding(
+                                    await deleteReleaseBinding(
                                       entity,
                                       discovery,
                                       identityApi,
-                                      env.bindingName!,
-                                      newState,
+                                      env.name.toLowerCase(),
                                     );
 
                                     // Refresh the environments data
                                     await fetchEnvironmentsData();
 
                                     setNotification({
-                                      message: `Deployment ${
-                                        newState === 'Active'
-                                          ? 're-deployed'
-                                          : 'suspended'
-                                      } successfully`,
+                                      message: `Component suspended from ${env.name} successfully`,
                                       type: 'success',
                                     });
 
@@ -575,7 +561,7 @@ export const Environments = () => {
                                     );
                                   } catch (err) {
                                     setNotification({
-                                      message: `Error updating deployment: ${err}`,
+                                      message: `Error suspending: ${err}`,
                                       type: 'error',
                                     });
 
@@ -590,9 +576,7 @@ export const Environments = () => {
                                 }}
                               >
                                 {updatingBinding === env.name
-                                  ? 'Updating...'
-                                  : env.deployment.status === 'suspended'
-                                  ? 'Re-deploy'
+                                  ? 'Suspending...'
                                   : 'Suspend'}
                               </Button>
                             )}

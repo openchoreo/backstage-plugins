@@ -586,6 +586,82 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
+   * Deletes a ReleaseBinding from an environment (unpromote).
+   * Uses the OpenChoreo API DELETE endpoint to remove the ReleaseBinding resource.
+   *
+   * @param {Object} request - The delete request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.organizationName - Name of the organization owning the project
+   * @param {string} request.environment - Environment to unpromote from
+   * @returns {Promise<Environment[]>} Array of environments with updated deployment information
+   * @throws {Error} When there's an error deleting the binding
+   */
+  async deleteReleaseBinding(request: {
+    componentName: string;
+    projectName: string;
+    organizationName: string;
+    environment: string;
+  }): Promise<Environment[]> {
+    const startTime = Date.now();
+    try {
+      this.logger.info(
+        `Deleting release binding for component: ${request.componentName} from environment: ${request.environment}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      // Construct the ReleaseBinding name (format: componentName-environment)
+      const bindingName = `${request.componentName}-${request.environment}`;
+
+      // Call the DELETE endpoint with ReleaseBinding resource definition
+      const { error, response } = await client.DELETE('/delete', {
+        body: {
+          apiVersion: 'openchoreo.dev/v1alpha1',
+          kind: 'ReleaseBinding',
+          metadata: {
+            name: bindingName,
+            namespace: request.organizationName,
+          },
+        },
+      });
+
+      if (error || !response.ok) {
+        throw new Error(`Failed to delete release binding: ${response.status}`);
+      }
+
+      this.logger.debug(
+        `Release binding deleted successfully for ${request.componentName} from ${request.environment}`,
+      );
+
+      // Fetch fresh environment data to return updated information
+      const refreshedEnvironments = await this.fetchDeploymentInfo({
+        componentName: request.componentName,
+        projectName: request.projectName,
+        organizationName: request.organizationName,
+      });
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Component unpromote completed for ${request.componentName}: Total: ${totalTime}ms`,
+      );
+
+      return refreshedEnvironments;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error deleting release binding for component ${request.componentName} from ${request.environment} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Updates a component binding's release state (Active, Suspend, or Undeploy).
    * Uses the OpenChoreo API client to update the binding and returns updated environment data.
    *
