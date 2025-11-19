@@ -1,4 +1,4 @@
-import { ComponentResource, ComponentTrait } from '../../../openchoreo-api/src/models/ModelsComponentResource.model';
+import { ComponentResource, ComponentTrait } from './componentResourceInterface';
 
 /**
  * Input data for building a component resource
@@ -24,14 +24,13 @@ export interface ComponentResourceInput {
   workflowName?: string;
   workflowParameters?: Record<string, any>;
 
-  // Section 4: Addons (optional)
-  addons?: Array<{
+  // Section 4: Traits (optional)
+  traits?: Array<{
     name: string;
     instanceName: string;
     config: Record<string, any>;
   }>;
 }
-
 /**
  * Builds a ComponentResource object from scaffolder form input
  *
@@ -79,12 +78,12 @@ export function buildComponentResource(input: ComponentResourceInput): Component
     };
   }
 
-  // Add traits (addons) if provided
-  if (input.addons && input.addons.length > 0) {
-    resource.spec.traits = input.addons.map((addon): ComponentTrait => ({
-      name: addon.name,
-      instanceName: addon.instanceName,
-      config: addon.config,
+  // Add traits (traits) if provided
+  if (input.traits && input.traits.length > 0) {
+    resource.spec.traits = input.traits.map((trait): ComponentTrait => ({
+      name: trait.name,
+      instanceName: trait.instanceName,
+      config: trait.config,
     }));
   }
 
