@@ -123,6 +123,7 @@ interface Environment {
     lastDeployed?: string;
     image?: string;
     statusMessage?: string;
+    releaseName?: string;
   };
   endpoints: EndpointInfo[];
   promotionTargets?: {
@@ -192,6 +193,22 @@ export const Environments = () => {
       }
     };
   }, [isPending, fetchEnvironmentsData]);
+
+  const isAlreadyPromoted = (
+    sourceEnv: Environment,
+    targetEnvName: string,
+  ): boolean => {
+    const targetEnv = environments.find(e => e.name === targetEnvName);
+
+    if (
+      !sourceEnv.deployment.releaseName ||
+      !targetEnv?.deployment.releaseName
+    ) {
+      return false;
+    }
+
+    return sourceEnv.deployment.releaseName === targetEnv.deployment.releaseName;
+  };
 
   if (loading && environments.length === 0) {
     return (
@@ -446,7 +463,10 @@ export const Environments = () => {
                               variant="contained"
                               color="primary"
                               size="small"
-                              disabled={promotingTo === target.name}
+                              disabled={
+                                promotingTo === target.name ||
+                                isAlreadyPromoted(env, target.name)
+                              }
                               onClick={async () => {
                                 try {
                                   setPromotingTo(target.name);
@@ -481,10 +501,13 @@ export const Environments = () => {
                                 }
                               }}
                             >
-                              {promotingTo === target.name
+                              {isAlreadyPromoted(env, target.name)
+                                ? `Promoted to ${target.name}`
+                                : promotingTo === target.name
                                 ? 'Promoting...'
                                 : `Promote to ${target.name}`}
-                              {target.requiresApproval &&
+                              {!isAlreadyPromoted(env, target.name) &&
+                                target.requiresApproval &&
                                 !promotingTo &&
                                 ' (Approval Required)'}
                             </Button>
@@ -509,7 +532,11 @@ export const Environments = () => {
                                 color="primary"
                                 size="small"
                                 disabled={
-                                  promotingTo === env.promotionTargets[0].name
+                                  promotingTo === env.promotionTargets[0].name ||
+                                  isAlreadyPromoted(
+                                    env,
+                                    env.promotionTargets[0].name,
+                                  )
                                 }
                                 onClick={async () => {
                                   try {
@@ -557,10 +584,19 @@ export const Environments = () => {
                                   }
                                 }}
                               >
-                                {promotingTo === env.promotionTargets[0].name
+                                {isAlreadyPromoted(
+                                  env,
+                                  env.promotionTargets[0].name,
+                                )
+                                  ? `Promoted`
+                                  : promotingTo === env.promotionTargets[0].name
                                   ? 'Promoting...'
                                   : 'Promote'}
-                                {env.promotionTargets[0].requiresApproval &&
+                                {!isAlreadyPromoted(
+                                  env,
+                                  env.promotionTargets[0].name,
+                                ) &&
+                                  env.promotionTargets[0].requiresApproval &&
                                   !promotingTo &&
                                   ' (Approval Required)'}
                               </Button>

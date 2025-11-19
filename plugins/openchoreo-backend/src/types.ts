@@ -46,6 +46,7 @@ export interface Environment {
     lastDeployed?: string;
     image?: string;
     statusMessage?: string;
+    releaseName?: string;
   };
   endpoints: EndpointInfo[];
   promotionTargets?: {
