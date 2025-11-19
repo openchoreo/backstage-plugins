@@ -701,6 +701,123 @@ components:
         observerUrl:
           type: string
 
+    # ComponentRelease
+    ComponentReleaseResponse:
+      type: object
+      required:
+        - name
+        - componentName
+        - projectName
+        - orgName
+        - createdAt
+      properties:
+        name:
+          type: string
+        componentName:
+          type: string
+        projectName:
+          type: string
+        orgName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    CreateComponentReleaseRequest:
+      type: object
+      properties:
+        releaseName:
+          type: string
+
+    # ReleaseBinding
+    ReleaseBindingResponse:
+      type: object
+      required:
+        - name
+        - componentName
+        - projectName
+        - orgName
+        - environment
+        - releaseName
+        - createdAt
+      properties:
+        name:
+          type: string
+        componentName:
+          type: string
+        projectName:
+          type: string
+        orgName:
+          type: string
+        environment:
+          type: string
+        releaseName:
+          type: string
+        componentTypeEnvOverrides:
+          type: object
+          additionalProperties: true
+        traitOverrides:
+          type: object
+          additionalProperties: true
+        configurationOverrides:
+          $ref: '#/components/schemas/ConfigurationOverrides'
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    PatchReleaseBindingRequest:
+      type: object
+      properties:
+        releaseName:
+          type: string
+        environment:
+          type: string
+        componentTypeEnvOverrides:
+          type: object
+          additionalProperties: true
+        traitOverrides:
+          type: object
+          additionalProperties: true
+        configurationOverrides:
+          $ref: '#/components/schemas/ConfigurationOverrides'
+
+    ConfigurationOverrides:
+      type: object
+      properties:
+        env:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvVar'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileVar'
+
+    FileVar:
+      type: object
+      required:
+        - key
+        - mountPath
+      properties:
+        key:
+          type: string
+        mountPath:
+          type: string
+        value:
+          type: string
+
+    DeployReleaseRequest:
+      type: object
+      required:
+        - releaseName
+      properties:
+        releaseName:
+          type: string
+
     EnvVar:
       type: object
       required:
@@ -1728,6 +1845,250 @@ paths:
       responses:
         '200':
           description: Binding updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  # Component Releases
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases:
+    get:
+      summary: List component releases
+      operationId: listComponentReleases
+      tags:
+        - Releases
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ComponentReleaseResponse'
+
+    post:
+      summary: Create a component release
+      operationId: createComponentRelease
+      tags:
+        - Releases
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComponentReleaseRequest'
+      responses:
+        '201':
+          description: Component release created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentReleaseResponse'
+
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}:
+    get:
+      summary: Get a specific component release
+      operationId: getComponentRelease
+      tags:
+        - Releases
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: releaseName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentReleaseResponse'
+
+  # Release Bindings
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings:
+    get:
+      summary: List release bindings
+      operationId: listReleaseBindings
+      tags:
+        - Releases
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/ReleaseBindingResponse'
+
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}:
+    patch:
+      summary: Patch a release binding
+      operationId: patchReleaseBinding
+      tags:
+        - Releases
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: bindingName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchReleaseBindingRequest'
+      responses:
+        '200':
+          description: Release binding updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+  # Component Deployment
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/deploy:
+    post:
+      summary: Deploy a release to the lowest environment
+      operationId: deployRelease
+      tags:
+        - Deployment
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeployReleaseRequest'
+      responses:
+        '200':
+          description: Release deployed successfully
           content:
             application/json:
               schema:
