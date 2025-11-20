@@ -84,7 +84,7 @@ export const HomePage = () => {
         <Content>
           <Grid container spacing={3}>
             {/* Search Bar */}
-            <Grid item xs={12} justifyContent="center">
+            <Grid item xs={12}>
               <HomePageSearchBar
                 InputProps={{
                   classes: {
