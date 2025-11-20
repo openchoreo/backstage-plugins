@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "248f75d1da253f4fbe7c5b6cc5e2b5ed58a4c263",
-  "lastSyncDate": "2025-11-20T00:00:00Z",
-  "lastSyncDescription": "Synced with openchoreo API changes: added component/release schema endpoints, refactored to use workloadOverrides instead of configurationOverrides, added HTTP metrics endpoint"
+  "lastSyncCommit": "509e0caa13a16ba7c0aa64407c182dfdce5145f5",
+  "lastSyncDate": "2025-11-20T19:07:19Z",
+  "lastSyncDescription": "Synced with openchoreo API changes: added GET environment release endpoint, added PATCH workflow schema endpoint, added immutability constraints to ComponentRelease"
 }

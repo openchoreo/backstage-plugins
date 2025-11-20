@@ -185,6 +185,15 @@ for ((i=0; i<$SPECS_COUNT; i++)); do
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Types generated successfully${NC}"
+
+    # Format with Prettier
+    echo -e "   Formatting with Prettier..."
+    npx prettier --write "$SPEC_OUTPUT_DIR/types.ts" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      echo -e "${GREEN}✓ Types formatted with Prettier${NC}"
+    else
+      echo -e "${YELLOW}⚠️  Prettier formatting failed, continuing anyway${NC}"
+    fi
   else
     echo -e "${RED}❌ Failed to generate types for ${SPEC_NAME}${NC}"
     exit 1

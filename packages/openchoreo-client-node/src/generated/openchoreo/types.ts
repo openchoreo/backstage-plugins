@@ -416,6 +416,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update component workflow schema */
+    patch: operations['updateComponentWorkflowSchema'];
+    trace?: never;
+  };
   '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings': {
     parameters: {
       query?: never;
@@ -614,6 +631,23 @@ export interface paths {
     };
     /** Get build logs observer URL */
     get: operations['getBuildObserverURL'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get environment release */
+    get: operations['getEnvironmentRelease'];
     put?: never;
     post?: never;
     delete?: never;
@@ -946,6 +980,14 @@ export interface components {
     ObserverUrlData: {
       observerUrl?: string;
     };
+    /**
+     * @description Immutable snapshot of component configuration.
+     *     Note: The following fields are immutable after creation and cannot be modified:
+     *     - componentType
+     *     - traits
+     *     - componentProfile
+     *     - workload
+     */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
@@ -1053,6 +1095,75 @@ export interface components {
     Schema: {
       type?: string;
       content?: string;
+    };
+    ReleaseResponse: {
+      spec: components['schemas']['ReleaseSpec'];
+      status: components['schemas']['ReleaseStatus'];
+    };
+    ReleaseSpec: {
+      owner: components['schemas']['ReleaseOwner'];
+      environmentName: string;
+      resources?: components['schemas']['Resource'][];
+      /** @description Watch interval for release resources when stable (default 5m) */
+      interval?: string;
+      /** @description Watch interval for release resources when transitioning (default 10s) */
+      progressingInterval?: string;
+    };
+    ReleaseStatus: {
+      resources?: components['schemas']['ResourceStatus'][];
+      conditions?: components['schemas']['Condition'][];
+    };
+    ReleaseOwner: {
+      projectName: string;
+      componentName: string;
+    };
+    Resource: {
+      /** @description Unique identifier for the resource */
+      id: string;
+      /** @description Complete Kubernetes resource definition */
+      object: {
+        [key: string]: unknown;
+      };
+    };
+    ResourceStatus: {
+      id: string;
+      /** @description API group of the resource (empty for core resources) */
+      group?: string;
+      version: string;
+      kind: string;
+      name: string;
+      /** @description Namespace (empty for cluster-scoped resources) */
+      namespace?: string;
+      /** @description Entire .status field of the resource */
+      status?: {
+        [key: string]: unknown;
+      };
+      /** @enum {string} */
+      healthStatus?:
+        | 'Unknown'
+        | 'Progressing'
+        | 'Healthy'
+        | 'Suspended'
+        | 'Degraded';
+      /** Format: date-time */
+      lastObservedTime?: string;
+    };
+    Condition: {
+      type: string;
+      /** @enum {string} */
+      status: 'True' | 'False' | 'Unknown';
+      /** Format: int64 */
+      observedGeneration?: number;
+      /** Format: date-time */
+      lastTransitionTime: string;
+      reason?: string;
+      message?: string;
+    };
+    UpdateWorkflowSchemaRequest: {
+      /** @description Component workflow schema as arbitrary JSON */
+      schema: {
+        [key: string]: unknown;
+      };
     };
   };
   responses: never;
@@ -1830,6 +1941,36 @@ export interface operations {
       };
     };
   };
+  updateComponentWorkflowSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateWorkflowSchemaRequest'];
+      };
+    };
+    responses: {
+      /** @description Workflow schema updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentResponse'];
+          };
+        };
+      };
+    };
+  };
   getComponentBinding: {
     parameters: {
       query?: never;
@@ -2230,6 +2371,40 @@ export interface operations {
             data?: components['schemas']['ObserverUrlData'];
           };
         };
+      };
+    };
+  };
+  getEnvironmentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+        environmentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ReleaseResponse'];
+          };
+        };
+      };
+      /** @description Release not found for the specified environment */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
