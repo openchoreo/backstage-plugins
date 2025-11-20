@@ -17,6 +17,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import SettingsIcon from '@material-ui/icons/Settings';
+import DescriptionIcon from '@material-ui/icons/Description';
 
 import {
   discoveryApiRef,
@@ -38,6 +39,7 @@ interface EndpointInfo {
 }
 import { Workload } from './Workload/Workload';
 import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';
+import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
 import Refresh from '@material-ui/icons/Refresh';
 
 const useStyles = makeStyles(theme => ({
@@ -119,7 +121,9 @@ const useStyles = makeStyles(theme => ({
 }));
 
 interface Environment {
+  uid?: string;
   name: string;
+  resourceName?: string;
   bindingName?: string;
   hasComponentTypeOverrides?: boolean;
   deployment: {
@@ -151,6 +155,9 @@ export const Environments = () => {
   } | null>(null);
   const [overridesDialogOpen, setOverridesDialogOpen] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] =
+    useState<Environment | null>(null);
+  const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
+  const [selectedReleaseEnvironment, setSelectedReleaseEnvironment] =
     useState<Environment | null>(null);
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
@@ -229,6 +236,16 @@ export const Environments = () => {
   const handleCloseOverridesDialog = () => {
     setOverridesDialogOpen(false);
     setSelectedEnvironment(null);
+  };
+
+  const handleOpenReleaseDialog = (env: Environment) => {
+    setSelectedReleaseEnvironment(env);
+    setReleaseDialogOpen(true);
+  };
+
+  const handleCloseReleaseDialog = () => {
+    setReleaseDialogOpen(false);
+    setSelectedReleaseEnvironment(null);
   };
 
   const handleOverridesSaved = () => {
@@ -422,6 +439,16 @@ export const Environments = () => {
                             ? 'Suspended'
                             : 'Failed'}
                         </Typography>
+                        {env.deployment.releaseName && (
+                          <IconButton
+                            onClick={() => handleOpenReleaseDialog(env)}
+                            size="small"
+                            title="View release details"
+                            style={{ marginLeft: 'auto' }}
+                          >
+                            <DescriptionIcon fontSize="small" />
+                          </IconButton>
+                        )}
                       </Box>
 
                       {env.deployment.image && (
@@ -739,6 +766,18 @@ export const Environments = () => {
           environment={selectedEnvironment}
           entity={entity}
           onSaved={handleOverridesSaved}
+        />
+
+        <ReleaseDetailsDialog
+          open={releaseDialogOpen}
+          onClose={handleCloseReleaseDialog}
+          environmentName={
+            selectedReleaseEnvironment?.resourceName ||
+            selectedReleaseEnvironment?.name ||
+            ''
+          }
+          environmentDisplayName={selectedReleaseEnvironment?.name}
+          entity={entity}
         />
       </Content>
     </Page>

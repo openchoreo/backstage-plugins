@@ -621,5 +621,30 @@ export async function createRouter({
     );
   });
 
+  router.get('/environment-release', async (req, res) => {
+    const { componentName, projectName, organizationName, environmentName } =
+      req.query;
+
+    if (
+      !componentName ||
+      !projectName ||
+      !organizationName ||
+      !environmentName
+    ) {
+      throw new InputError(
+        'componentName, projectName, organizationName and environmentName are required query parameters',
+      );
+    }
+
+    res.json(
+      await environmentInfoService.fetchEnvironmentRelease({
+        componentName: componentName as string,
+        projectName: projectName as string,
+        organizationName: organizationName as string,
+        environmentName: environmentName as string,
+      }),
+    );
+  });
+
   return router;
 }

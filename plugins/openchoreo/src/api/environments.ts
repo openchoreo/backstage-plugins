@@ -405,3 +405,48 @@ export async function patchReleaseBindingOverrides(
 
   return await res.json();
 }
+
+export async function fetchEnvironmentRelease(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+  environmentName: string,
+) {
+  const { token } = await identity.getCredentials();
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!project || !component || !organization) {
+    throw new Error('Missing required metadata in entity');
+  }
+
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.ENVIRONMENT_RELEASE
+    }`,
+  );
+
+  const params = new URLSearchParams({
+    componentName: component,
+    projectName: project,
+    organizationName: organization,
+    environmentName: environmentName,
+  });
+
+  backendUrl.search = params.toString();
+
+  const res = await fetch(backendUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to fetch environment release: ${errText}`);
+  }
+
+  return await res.json();
+}

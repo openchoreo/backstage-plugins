@@ -1093,8 +1093,8 @@ components:
         status:
           type: string
           enum:
-            - "True"
-            - "False"
+            - 'True'
+            - 'False'
             - Unknown
         observedGeneration:
           type: integer
