@@ -285,9 +285,7 @@ const defaultEntityPage = (
 
 const componentPage = (
   <EntitySwitch>
-    <EntitySwitch.Case>
-      {serviceEntityPage}
-    </EntitySwitch.Case>
+    <EntitySwitch.Case>{serviceEntityPage}</EntitySwitch.Case>
 
     <EntitySwitch.Case if={isComponentType('website')}>
       {websiteEntityPage}

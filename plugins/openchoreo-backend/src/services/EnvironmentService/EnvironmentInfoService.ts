@@ -7,7 +7,8 @@ import {
 
 // Use generated types from OpenAPI spec
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
-type ReleaseBindingResponse = OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
+type ReleaseBindingResponse =
+  OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
 
 /**
  * Service for managing and retrieving environment-related information for deployments.
@@ -119,7 +120,9 @@ export class EnvironmentInfoService implements EnvironmentService {
             },
           );
           if (error || !response.ok) {
-            throw new Error(`Failed to fetch release bindings: ${response.status}`);
+            throw new Error(
+              `Failed to fetch release bindings: ${response.status}`,
+            );
           }
           return data.success && data.data?.items ? data.data.items : [];
         })(),

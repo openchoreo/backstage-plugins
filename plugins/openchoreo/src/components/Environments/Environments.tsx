@@ -148,22 +148,25 @@ export const Environments = () => {
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 
-  const fetchEnvironmentsData = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
+  const fetchEnvironmentsData = useCallback(
+    async (isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+        const data = await fetchEnvironmentInfo(entity, discovery, identityApi);
+        setEnvironmentsData(data as Environment[]);
+      } catch (error) {
+        // TODO: Log this error
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-      const data = await fetchEnvironmentInfo(entity, discovery, identityApi);
-      setEnvironmentsData(data as Environment[]);
-    } catch (error) {
-      // TODO: Log this error
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [entity, discovery, identityApi]);
+    },
+    [entity, discovery, identityApi],
+  );
 
   useEffect(() => {
     fetchEnvironmentsData();
@@ -172,8 +175,7 @@ export const Environments = () => {
   const isWorkloadEditorSupported =
     entity.metadata.tags?.find(
       tag => tag === 'webapplication' || tag === 'service',
-    ) ||
-    entity.metadata.annotations?.['openchoreo.io/component'] !== undefined;
+    ) || entity.metadata.annotations?.['openchoreo.io/component'] !== undefined;
   const isPending = environments.some(
     env => env.deployment.status === 'pending',
   );
@@ -207,7 +209,9 @@ export const Environments = () => {
       return false;
     }
 
-    return sourceEnv.deployment.releaseName === targetEnv.deployment.releaseName;
+    return (
+      sourceEnv.deployment.releaseName === targetEnv.deployment.releaseName
+    );
   };
 
   if (loading && environments.length === 0) {
@@ -325,339 +329,364 @@ export const Environments = () => {
                   ) : (
                     <>
                       {env.deployment.lastDeployed && (
-                    <Box display="flex" alignItems="center" mb={2}>
-                      <Typography variant="body2" style={{ fontWeight: 500 }}>
-                        Deployed
-                      </Typography>
-                      <AccessTimeIcon className={classes.timeIcon} />
-                      <Typography variant="body2" color="textSecondary">
-                        {formatRelativeTime(env.deployment.lastDeployed)}
-                      </Typography>
-                    </Box>
-                  )}
-                  <Box
-                    className={`${classes.deploymentStatusBox} ${
-                      env.deployment.status === 'success'
-                        ? classes.successStatus
-                        : env.deployment.status === 'failed'
-                        ? classes.errorStatus
-                        : env.deployment.status === 'pending'
-                        ? classes.warningStatus
-                        : env.deployment.status === 'suspended'
-                        ? classes.warningStatus
-                        : classes.defaultStatus
-                    }`}
-                  >
-                    <Typography variant="body2" style={{ fontWeight: 500 }}>
-                      Deployment Status:
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      style={{
-                        fontWeight:
-                          env.deployment.status === 'success' ? 'bold' : 500,
-                      }}
-                    >
-                      {env.deployment.status === 'success'
-                        ? 'Active'
-                        : env.deployment.status === 'pending'
-                        ? 'Pending'
-                        : env.deployment.status === 'not-deployed'
-                        ? 'Not Deployed'
-                        : env.deployment.status === 'suspended'
-                        ? 'Suspended'
-                        : 'Failed'}
-                    </Typography>
-                  </Box>
-                  {env.deployment.statusMessage && (
-                    <Box mt={1}>
-                      <Typography variant="caption" color="textSecondary">
-                        {env.deployment.statusMessage}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {env.deployment.image && (
-                    <Box mt={2}>
-                      <Typography className={classes.sectionLabel}>
-                        Image
-                      </Typography>
-                      <Box className={classes.imageContainer}>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <Typography
+                            variant="body2"
+                            style={{ fontWeight: 500 }}
+                          >
+                            Deployed
+                          </Typography>
+                          <AccessTimeIcon className={classes.timeIcon} />
+                          <Typography variant="body2" color="textSecondary">
+                            {formatRelativeTime(env.deployment.lastDeployed)}
+                          </Typography>
+                        </Box>
+                      )}
+                      <Box
+                        className={`${classes.deploymentStatusBox} ${
+                          env.deployment.status === 'success'
+                            ? classes.successStatus
+                            : env.deployment.status === 'failed'
+                            ? classes.errorStatus
+                            : env.deployment.status === 'pending'
+                            ? classes.warningStatus
+                            : env.deployment.status === 'suspended'
+                            ? classes.warningStatus
+                            : classes.defaultStatus
+                        }`}
+                      >
+                        <Typography variant="body2" style={{ fontWeight: 500 }}>
+                          Deployment Status:
+                        </Typography>
                         <Typography
                           variant="body2"
-                          color="textSecondary"
-                          style={{ wordBreak: 'break-all', fontSize: '0.8rem' }}
+                          style={{
+                            fontWeight:
+                              env.deployment.status === 'success'
+                                ? 'bold'
+                                : 500,
+                          }}
                         >
-                          {env.deployment.image}
+                          {env.deployment.status === 'success'
+                            ? 'Active'
+                            : env.deployment.status === 'pending'
+                            ? 'Pending'
+                            : env.deployment.status === 'not-deployed'
+                            ? 'Not Deployed'
+                            : env.deployment.status === 'suspended'
+                            ? 'Suspended'
+                            : 'Failed'}
                         </Typography>
                       </Box>
-                    </Box>
-                  )}
+                      {env.deployment.statusMessage && (
+                        <Box mt={1}>
+                          <Typography variant="caption" color="textSecondary">
+                            {env.deployment.statusMessage}
+                          </Typography>
+                        </Box>
+                      )}
 
-                  {env.deployment.status === 'success' &&
-                    env.endpoints.length > 0 && (
-                      <Box mt={2}>
-                        <Typography className={classes.sectionLabel}>
-                          Endpoints
-                        </Typography>
-                        {env.endpoints.map((endpoint, index) => (
-                          <Box
-                            key={index}
-                            display="flex"
-                            alignItems="center"
-                            mt={index === 0 ? 0 : 1}
-                            sx={{ minWidth: 0, width: '100%' }}
-                          >
-                            <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                              <a
-                                href={endpoint.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={classes.endpointLink}
-                              >
-                                {endpoint.url}
-                              </a>
-                            </Box>
-                            <Box sx={{ flexShrink: 0 }}>
-                              <IconButton
-                                size="small"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(endpoint.url);
-                                  // You could add a toast notification here
-                                }}
-                              >
-                                <FileCopyIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-
-                  {/* Actions section - show if deployment is successful or suspended */}
-                  {((env.deployment.status === 'success' &&
-                    env.promotionTargets &&
-                    env.promotionTargets.length > 0) ||
-                    ((env.deployment.status === 'success' ||
-                      env.deployment.status === 'suspended') &&
-                      env.bindingName)) && (
-                    <Box mt={3}>
-                      {/* Multiple promotion targets - stack vertically */}
-                      {env.deployment.status === 'success' &&
-                        env.promotionTargets &&
-                        env.promotionTargets.length > 1 &&
-                        env.promotionTargets.map((target, index) => (
-                          <Box
-                            key={target.name}
-                            mb={
-                              index < env.promotionTargets!.length - 1
-                                ? 2
-                                : (env.deployment.status === 'success' ||
-                                    env.deployment.status === 'suspended') &&
-                                  env.bindingName
-                                ? 2
-                                : 0
-                            }
-                          >
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              size="small"
-                              disabled={
-                                promotingTo === target.name ||
-                                isAlreadyPromoted(env, target.name)
-                              }
-                              onClick={async () => {
-                                try {
-                                  setPromotingTo(target.name);
-                                  const result = await promoteToEnvironment(
-                                    entity,
-                                    discovery,
-                                    identityApi,
-                                    env.name.toLowerCase(), // source environment
-                                    target.name.toLowerCase(), // target environment
-                                  );
-
-                                  // Update environments state with fresh data from promotion result
-                                  setEnvironmentsData(result as Environment[]);
-
-                                  setNotification({
-                                    message: `Component promoted from ${env.name} to ${target.name}`,
-                                    type: 'success',
-                                  });
-
-                                  // Clear notification after 5 seconds
-                                  setTimeout(() => setNotification(null), 5000);
-                                } catch (err) {
-                                  setNotification({
-                                    message: `Error promoting: ${err}`,
-                                    type: 'error',
-                                  });
-
-                                  // Clear notification after 7 seconds for errors
-                                  setTimeout(() => setNotification(null), 7000);
-                                } finally {
-                                  setPromotingTo(null);
-                                }
+                      {env.deployment.image && (
+                        <Box mt={2}>
+                          <Typography className={classes.sectionLabel}>
+                            Image
+                          </Typography>
+                          <Box className={classes.imageContainer}>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              style={{
+                                wordBreak: 'break-all',
+                                fontSize: '0.8rem',
                               }}
                             >
-                              {isAlreadyPromoted(env, target.name)
-                                ? `Promoted to ${target.name}`
-                                : promotingTo === target.name
-                                ? 'Promoting...'
-                                : `Promote to ${target.name}`}
-                              {!isAlreadyPromoted(env, target.name) &&
-                                target.requiresApproval &&
-                                !promotingTo &&
-                                ' (Approval Required)'}
-                            </Button>
+                              {env.deployment.image}
+                            </Typography>
                           </Box>
-                        ))}
+                        </Box>
+                      )}
 
-                      {/* Single promotion target and suspend button - show in same row */}
+                      {env.deployment.status === 'success' &&
+                        env.endpoints.length > 0 && (
+                          <Box mt={2}>
+                            <Typography className={classes.sectionLabel}>
+                              Endpoints
+                            </Typography>
+                            {env.endpoints.map((endpoint, index) => (
+                              <Box
+                                key={index}
+                                display="flex"
+                                alignItems="center"
+                                mt={index === 0 ? 0 : 1}
+                                sx={{ minWidth: 0, width: '100%' }}
+                              >
+                                <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
+                                  <a
+                                    href={endpoint.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={classes.endpointLink}
+                                  >
+                                    {endpoint.url}
+                                  </a>
+                                </Box>
+                                <Box sx={{ flexShrink: 0 }}>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(
+                                        endpoint.url,
+                                      );
+                                      // You could add a toast notification here
+                                    }}
+                                  >
+                                    <FileCopyIcon fontSize="small" />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
+                        )}
+
+                      {/* Actions section - show if deployment is successful or suspended */}
                       {((env.deployment.status === 'success' &&
                         env.promotionTargets &&
-                        env.promotionTargets.length === 1) ||
+                        env.promotionTargets.length > 0) ||
                         ((env.deployment.status === 'success' ||
                           env.deployment.status === 'suspended') &&
                           env.bindingName)) && (
-                        <Box display="flex" flexWrap="wrap">
-                          {/* Single promotion button */}
+                        <Box mt={3}>
+                          {/* Multiple promotion targets - stack vertically */}
                           {env.deployment.status === 'success' &&
                             env.promotionTargets &&
-                            env.promotionTargets.length === 1 && (
-                              <Button
-                                style={{ marginRight: '8px' }}
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                disabled={
-                                  promotingTo === env.promotionTargets[0].name ||
-                                  isAlreadyPromoted(
-                                    env,
-                                    env.promotionTargets[0].name,
-                                  )
+                            env.promotionTargets.length > 1 &&
+                            env.promotionTargets.map((target, index) => (
+                              <Box
+                                key={target.name}
+                                mb={
+                                  index < env.promotionTargets!.length - 1
+                                    ? 2
+                                    : (env.deployment.status === 'success' ||
+                                        env.deployment.status ===
+                                          'suspended') &&
+                                      env.bindingName
+                                    ? 2
+                                    : 0
                                 }
-                                onClick={async () => {
-                                  try {
-                                    setPromotingTo(
-                                      env.promotionTargets![0].name,
-                                    );
-                                    const result = await promoteToEnvironment(
-                                      entity,
-                                      discovery,
-                                      identityApi,
-                                      env.name.toLowerCase(), // source environment
-                                      env.promotionTargets![0].name.toLowerCase(), // target environment
-                                    );
-
-                                    // Update environments state with fresh data from promotion result
-                                    setEnvironmentsData(
-                                      result as Environment[],
-                                    );
-
-                                    setNotification({
-                                      message: `Component promoted from ${
-                                        env.name
-                                      } to ${env.promotionTargets![0].name}`,
-                                      type: 'success',
-                                    });
-
-                                    // Clear notification after 5 seconds
-                                    setTimeout(
-                                      () => setNotification(null),
-                                      5000,
-                                    );
-                                  } catch (err) {
-                                    setNotification({
-                                      message: `Error promoting: ${err}`,
-                                      type: 'error',
-                                    });
-
-                                    // Clear notification after 7 seconds for errors
-                                    setTimeout(
-                                      () => setNotification(null),
-                                      7000,
-                                    );
-                                  } finally {
-                                    setPromotingTo(null);
-                                  }
-                                }}
                               >
-                                {isAlreadyPromoted(
-                                  env,
-                                  env.promotionTargets[0].name,
-                                )
-                                  ? `Promoted`
-                                  : promotingTo === env.promotionTargets[0].name
-                                  ? 'Promoting...'
-                                  : 'Promote'}
-                                {!isAlreadyPromoted(
-                                  env,
-                                  env.promotionTargets[0].name,
-                                ) &&
-                                  env.promotionTargets[0].requiresApproval &&
-                                  !promotingTo &&
-                                  ' (Approval Required)'}
-                              </Button>
-                            )}
-
-                          {/* Suspend button */}
-                          {env.deployment.status === 'success' &&
-                            env.bindingName && (
-                              <Button
-                                variant="outlined"
-                                color="secondary"
-                                size="small"
-                                disabled={updatingBinding === env.name}
-                                onClick={async () => {
-                                  try {
-                                    setUpdatingBinding(env.name);
-                                    await deleteReleaseBinding(
-                                      entity,
-                                      discovery,
-                                      identityApi,
-                                      env.name.toLowerCase(),
-                                    );
-
-                                    // Refresh the environments data
-                                    await fetchEnvironmentsData(true);
-
-                                    setNotification({
-                                      message: `Component suspended from ${env.name} successfully`,
-                                      type: 'success',
-                                    });
-
-                                    // Clear notification after 5 seconds
-                                    setTimeout(
-                                      () => setNotification(null),
-                                      5000,
-                                    );
-                                  } catch (err) {
-                                    setNotification({
-                                      message: `Error suspending: ${err}`,
-                                      type: 'error',
-                                    });
-
-                                    // Clear notification after 7 seconds for errors
-                                    setTimeout(
-                                      () => setNotification(null),
-                                      7000,
-                                    );
-                                  } finally {
-                                    setUpdatingBinding(null);
+                                <Button
+                                  variant="contained"
+                                  color="primary"
+                                  size="small"
+                                  disabled={
+                                    promotingTo === target.name ||
+                                    isAlreadyPromoted(env, target.name)
                                   }
-                                }}
-                              >
-                                {updatingBinding === env.name
-                                  ? 'Suspending...'
-                                  : 'Suspend'}
-                              </Button>
-                            )}
+                                  onClick={async () => {
+                                    try {
+                                      setPromotingTo(target.name);
+                                      const result = await promoteToEnvironment(
+                                        entity,
+                                        discovery,
+                                        identityApi,
+                                        env.name.toLowerCase(), // source environment
+                                        target.name.toLowerCase(), // target environment
+                                      );
+
+                                      // Update environments state with fresh data from promotion result
+                                      setEnvironmentsData(
+                                        result as Environment[],
+                                      );
+
+                                      setNotification({
+                                        message: `Component promoted from ${env.name} to ${target.name}`,
+                                        type: 'success',
+                                      });
+
+                                      // Clear notification after 5 seconds
+                                      setTimeout(
+                                        () => setNotification(null),
+                                        5000,
+                                      );
+                                    } catch (err) {
+                                      setNotification({
+                                        message: `Error promoting: ${err}`,
+                                        type: 'error',
+                                      });
+
+                                      // Clear notification after 7 seconds for errors
+                                      setTimeout(
+                                        () => setNotification(null),
+                                        7000,
+                                      );
+                                    } finally {
+                                      setPromotingTo(null);
+                                    }
+                                  }}
+                                >
+                                  {isAlreadyPromoted(env, target.name)
+                                    ? `Promoted to ${target.name}`
+                                    : promotingTo === target.name
+                                    ? 'Promoting...'
+                                    : `Promote to ${target.name}`}
+                                  {!isAlreadyPromoted(env, target.name) &&
+                                    target.requiresApproval &&
+                                    !promotingTo &&
+                                    ' (Approval Required)'}
+                                </Button>
+                              </Box>
+                            ))}
+
+                          {/* Single promotion target and suspend button - show in same row */}
+                          {((env.deployment.status === 'success' &&
+                            env.promotionTargets &&
+                            env.promotionTargets.length === 1) ||
+                            ((env.deployment.status === 'success' ||
+                              env.deployment.status === 'suspended') &&
+                              env.bindingName)) && (
+                            <Box display="flex" flexWrap="wrap">
+                              {/* Single promotion button */}
+                              {env.deployment.status === 'success' &&
+                                env.promotionTargets &&
+                                env.promotionTargets.length === 1 && (
+                                  <Button
+                                    style={{ marginRight: '8px' }}
+                                    variant="contained"
+                                    color="primary"
+                                    size="small"
+                                    disabled={
+                                      promotingTo ===
+                                        env.promotionTargets[0].name ||
+                                      isAlreadyPromoted(
+                                        env,
+                                        env.promotionTargets[0].name,
+                                      )
+                                    }
+                                    onClick={async () => {
+                                      try {
+                                        setPromotingTo(
+                                          env.promotionTargets![0].name,
+                                        );
+                                        const result =
+                                          await promoteToEnvironment(
+                                            entity,
+                                            discovery,
+                                            identityApi,
+                                            env.name.toLowerCase(), // source environment
+                                            env.promotionTargets![0].name.toLowerCase(), // target environment
+                                          );
+
+                                        // Update environments state with fresh data from promotion result
+                                        setEnvironmentsData(
+                                          result as Environment[],
+                                        );
+
+                                        setNotification({
+                                          message: `Component promoted from ${
+                                            env.name
+                                          } to ${
+                                            env.promotionTargets![0].name
+                                          }`,
+                                          type: 'success',
+                                        });
+
+                                        // Clear notification after 5 seconds
+                                        setTimeout(
+                                          () => setNotification(null),
+                                          5000,
+                                        );
+                                      } catch (err) {
+                                        setNotification({
+                                          message: `Error promoting: ${err}`,
+                                          type: 'error',
+                                        });
+
+                                        // Clear notification after 7 seconds for errors
+                                        setTimeout(
+                                          () => setNotification(null),
+                                          7000,
+                                        );
+                                      } finally {
+                                        setPromotingTo(null);
+                                      }
+                                    }}
+                                  >
+                                    {isAlreadyPromoted(
+                                      env,
+                                      env.promotionTargets[0].name,
+                                    )
+                                      ? `Promoted`
+                                      : promotingTo ===
+                                        env.promotionTargets[0].name
+                                      ? 'Promoting...'
+                                      : 'Promote'}
+                                    {!isAlreadyPromoted(
+                                      env,
+                                      env.promotionTargets[0].name,
+                                    ) &&
+                                      env.promotionTargets[0]
+                                        .requiresApproval &&
+                                      !promotingTo &&
+                                      ' (Approval Required)'}
+                                  </Button>
+                                )}
+
+                              {/* Suspend button */}
+                              {env.deployment.status === 'success' &&
+                                env.bindingName && (
+                                  <Button
+                                    variant="outlined"
+                                    color="secondary"
+                                    size="small"
+                                    disabled={updatingBinding === env.name}
+                                    onClick={async () => {
+                                      try {
+                                        setUpdatingBinding(env.name);
+                                        await deleteReleaseBinding(
+                                          entity,
+                                          discovery,
+                                          identityApi,
+                                          env.name.toLowerCase(),
+                                        );
+
+                                        // Refresh the environments data
+                                        await fetchEnvironmentsData(true);
+
+                                        setNotification({
+                                          message: `Component suspended from ${env.name} successfully`,
+                                          type: 'success',
+                                        });
+
+                                        // Clear notification after 5 seconds
+                                        setTimeout(
+                                          () => setNotification(null),
+                                          5000,
+                                        );
+                                      } catch (err) {
+                                        setNotification({
+                                          message: `Error suspending: ${err}`,
+                                          type: 'error',
+                                        });
+
+                                        // Clear notification after 7 seconds for errors
+                                        setTimeout(
+                                          () => setNotification(null),
+                                          7000,
+                                        );
+                                      } finally {
+                                        setUpdatingBinding(null);
+                                      }
+                                    }}
+                                  >
+                                    {updatingBinding === env.name
+                                      ? 'Suspending...'
+                                      : 'Suspend'}
+                                  </Button>
+                                )}
+                            </Box>
+                          )}
                         </Box>
                       )}
-                    </Box>
-                  )}
                     </>
                   )}
                 </CardContent>

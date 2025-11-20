@@ -292,13 +292,7 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
           <Alert severity="error">{error}</Alert>
         </Box>
       )}
-      <Box
-        display="flex"
-        justifyContent="flex-end"
-        pt={3}
-        pb={2}
-        px={2}
-      >
+      <Box display="flex" justifyContent="flex-end" pt={3} pb={2} px={2}>
         <Button
           disabled={isDeploying}
           variant="contained"
