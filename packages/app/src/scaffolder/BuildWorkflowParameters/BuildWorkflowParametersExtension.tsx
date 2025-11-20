@@ -35,11 +35,12 @@ export interface WorkflowParametersData {
 */
 export const BuildWorkflowParameters = ({
   onChange,
-  rawErrors,
   formData,
   formContext,
 }: FieldExtensionComponentProps<WorkflowParametersData>) => {
-  const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(null);
+  const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(
+    null,
+  );
   const [uiSchema, setUiSchema] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +133,11 @@ export const BuildWorkflowParameters = ({
         schema: workflowSchema,
       });
     }
-  }, [workflowSchema]); // Only trigger when schema changes, not when formData changes
+    // We intentionally only depend on workflowSchema to avoid infinite loop.
+    // Adding onChange or formData would cause infinite re-renders:
+    // onChange -> formData changes -> useEffect triggers -> onChange -> loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowSchema]);
 
   // Handle form data changes from RJSF
   const handleFormChange = (changeEvent: any) => {
@@ -163,7 +168,12 @@ export const BuildWorkflowParameters = ({
     );
   }
 
-  if (selectedWorkflowName && (!workflowSchema || !workflowSchema.properties || Object.keys(workflowSchema.properties).length === 0)) {
+  if (
+    selectedWorkflowName &&
+    (!workflowSchema ||
+      !workflowSchema.properties ||
+      Object.keys(workflowSchema.properties).length === 0)
+  ) {
     return (
       <Box mt={2}>
         <Typography variant="body2" color="textSecondary">
@@ -173,26 +183,28 @@ export const BuildWorkflowParameters = ({
     );
   }
 
-  return workflowSchema && (
-    <Box mt={2}>
-      <Typography variant="subtitle1" gutterBottom>
-        Workflow Parameters
-      </Typography>
-      <Form
-        schema={workflowSchema}
-        uiSchema={uiSchema}
-        formData={formData?.parameters || {}}
-        onChange={handleFormChange}
-        validator={validator}
-        liveValidate={false}
-        showErrorList={false}
-        noHtml5Validate
-        tagName="div"
-      >
-        {/* Hide the default submit button - we're just using this for the form fields */}
-        <div style={{ display: 'none' }} />
-      </Form>
-    </Box>
+  return (
+    workflowSchema && (
+      <Box mt={2}>
+        <Typography variant="subtitle1" gutterBottom>
+          Workflow Parameters
+        </Typography>
+        <Form
+          schema={workflowSchema}
+          uiSchema={uiSchema}
+          formData={formData?.parameters || {}}
+          onChange={handleFormChange}
+          validator={validator}
+          liveValidate={false}
+          showErrorList={false}
+          noHtml5Validate
+          tagName="div"
+        >
+          {/* Hide the default submit button - we're just using this for the form fields */}
+          <div style={{ display: 'none' }} />
+        </Form>
+      </Box>
+    )
   );
 };
 

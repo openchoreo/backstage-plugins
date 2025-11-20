@@ -8,7 +8,6 @@ import {
   CardHeader,
   CircularProgress,
   FormControl,
-  FormHelperText,
   IconButton,
   InputLabel,
   MenuItem,
@@ -67,7 +66,6 @@ export interface AddedTrait {
  */
 export const TraitsField = ({
   onChange,
-  rawErrors,
   formData,
   uiSchema,
 }: FieldExtensionComponentProps<AddedTrait[]>) => {
@@ -254,13 +252,18 @@ export const TraitsField = ({
       {/* Trait Selection - Only show when traits are available or loading */}
       {(loadingTraits || availableTraits.length > 0) && (
         <Box display="flex" alignItems="center" mt={2} mb={3}>
-        <FormControl fullWidth variant="outlined" disabled={loadingTraits || loadingSchema} style={{ marginRight: 16 }}>
-          <InputLabel>Select a Trait</InputLabel>
-          <Select
-            label="Select a Trait"
-            value={selectedTrait}
-            onChange={e => setSelectedTrait(e.target.value as string)}
+          <FormControl
+            fullWidth
+            variant="outlined"
+            disabled={loadingTraits || loadingSchema}
+            style={{ marginRight: 16 }}
           >
+            <InputLabel>Select a Trait</InputLabel>
+            <Select
+              label="Select a Trait"
+              value={selectedTrait}
+              onChange={e => setSelectedTrait(e.target.value as string)}
+            >
               {loadingTraits && (
                 <MenuItem disabled>
                   <CircularProgress size={20} style={{ marginRight: 8 }} />

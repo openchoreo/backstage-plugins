@@ -1,4 +1,4 @@
-import React from 'react';
+import { ChangeEvent } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import { Box, Typography, Switch } from '@material-ui/core';
 
@@ -12,7 +12,7 @@ export const SwitchField = ({
   formData,
   schema,
 }: FieldExtensionComponentProps<boolean>) => {
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onChange(event.target.checked);
   };
 
@@ -23,7 +23,10 @@ export const SwitchField = ({
     <Box mt={2} mb={2}>
       <Box display="flex" alignItems="center">
         <Box style={{ marginRight: 16 }}>
-          <Typography variant="body1" style={{ fontSize: '1.125rem', marginBottom: 4 }}>
+          <Typography
+            variant="body1"
+            style={{ fontSize: '1.125rem', marginBottom: 4 }}
+          >
             {title}
           </Typography>
         </Box>
@@ -35,9 +38,9 @@ export const SwitchField = ({
       </Box>
       {description && (
         <Typography variant="body2" color="textSecondary">
-            {description}
+          {description}
         </Typography>
-       )}
+      )}
       {rawErrors?.length ? (
         <Typography variant="body2" color="error" style={{ marginTop: 8 }}>
           {rawErrors.join(', ')}
