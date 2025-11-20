@@ -48,17 +48,33 @@ describe('CtdToTemplateConverter', () => {
       expect(result.kind).toBe('Template');
 
       // Check metadata
-      expect(result.metadata.name).toBe('template-test-namespace-simple-service');
+      expect(result.metadata.name).toBe(
+        'template-test-namespace-simple-service',
+      );
       expect(result.metadata.namespace).toBe('test-namespace');
       expect(result.metadata.title).toBe('Simple Service');
       expect(result.metadata.description).toBe('A simple service for testing');
       // Tags now include inferred tags from name ('simple', 'service') and workloadType ('deployment')
-      expect(result.metadata.tags).toEqual(['openchoreo', 'component-type', 'simple', 'service', 'deployment', 'test', 'simple']);
+      expect(result.metadata.tags).toEqual([
+        'openchoreo',
+        'component-type',
+        'simple',
+        'service',
+        'deployment',
+        'test',
+        'simple',
+      ]);
 
       // Check annotations
-      expect(result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_NAME]).toBe('simple-service');
-      expect(result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_GENERATED]).toBe('true');
-      expect(result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_DISPLAY_NAME]).toBe('Simple Service');
+      expect(result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_NAME]).toBe(
+        'simple-service',
+      );
+      expect(
+        result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_GENERATED],
+      ).toBe('true');
+      expect(
+        result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_DISPLAY_NAME],
+      ).toBe('Simple Service');
 
       // Check spec
       expect(result.spec?.owner).toBe('test-owner');
@@ -85,7 +101,9 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
 
       expect(result.metadata.title).toBe('Web Service');
-      expect(result.metadata.description).toBe('Create a Web Service component');
+      expect(result.metadata.description).toBe(
+        'Create a Web Service component',
+      );
     });
 
     it('should handle CTD without tags', () => {
@@ -106,7 +124,13 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
 
       // Even without explicit tags, should have inferred tags from name and workloadType
-      expect(result.metadata.tags).toEqual(['openchoreo', 'component-type', 'simple', 'service', 'deployment']);
+      expect(result.metadata.tags).toEqual([
+        'openchoreo',
+        'component-type',
+        'simple',
+        'service',
+        'deployment',
+      ]);
     });
   });
 
@@ -131,7 +155,11 @@ describe('CtdToTemplateConverter', () => {
 
       // First section should be Component Metadata
       expect(parameters[0].title).toBe('Component Metadata');
-      expect(parameters[0].required).toEqual(['organization_name', 'project_name', 'component_name']);
+      expect(parameters[0].required).toEqual([
+        'organization_name',
+        'project_name',
+        'component_name',
+      ]);
       expect(parameters[0].properties.component_name).toBeDefined();
       expect(parameters[0].properties.organization_name).toBeDefined();
       expect(parameters[0].properties.project_name).toBeDefined();
@@ -139,9 +167,15 @@ describe('CtdToTemplateConverter', () => {
       expect(parameters[0].properties.description).toBeDefined();
 
       // Check UI fields
-      expect(parameters[0].properties.component_name['ui:field']).toBe('EntityNamePicker');
-      expect(parameters[0].properties.organization_name['ui:disabled']).toBe(true); // Organization is fixed from CTD
-      expect(parameters[0].properties.project_name['ui:field']).toBe('EntityPicker');
+      expect(parameters[0].properties.component_name['ui:field']).toBe(
+        'EntityNamePicker',
+      );
+      expect(parameters[0].properties.organization_name['ui:disabled']).toBe(
+        true,
+      ); // Organization is fixed from CTD
+      expect(parameters[0].properties.project_name['ui:field']).toBe(
+        'EntityPicker',
+      );
     });
 
     it('should convert CTD parameters to RJSF format', () => {
@@ -191,7 +225,11 @@ describe('CtdToTemplateConverter', () => {
       // Check string with enum
       expect(props.databaseType.type).toBe('string');
       expect(props.databaseType.title).toBe('Database Type');
-      expect(props.databaseType.enum).toEqual(['postgresql', 'mysql', 'mongodb']);
+      expect(props.databaseType.enum).toEqual([
+        'postgresql',
+        'mysql',
+        'mongodb',
+      ]);
 
       // Check integer with min/max
       expect(props.storageSize.type).toBe('integer');
@@ -427,7 +465,9 @@ describe('CtdToTemplateConverter', () => {
       // Check useBuiltInCI property
       expect(ciSetupSection.properties.useBuiltInCI).toBeDefined();
       expect(ciSetupSection.properties.useBuiltInCI.type).toBe('boolean');
-      expect(ciSetupSection.properties.useBuiltInCI.title).toBe('Use Built-in CI in OpenChoreo');
+      expect(ciSetupSection.properties.useBuiltInCI.title).toBe(
+        'Use Built-in CI in OpenChoreo',
+      );
       expect(ciSetupSection.properties.useBuiltInCI['ui:widget']).toBe('radio');
 
       // Check dependencies structure
@@ -449,21 +489,33 @@ describe('CtdToTemplateConverter', () => {
       expect(trueCase.then.properties.component_path).toBeUndefined();
 
       // Check workflow_name has enum from allowedWorkflows
-      expect(trueCase.then.properties.workflow_name.enum).toEqual(['nodejs-build', 'docker-build']);
-      expect(trueCase.then.properties.workflow_name['ui:field']).toBe('BuildWorkflowPicker');
+      expect(trueCase.then.properties.workflow_name.enum).toEqual([
+        'nodejs-build',
+        'docker-build',
+      ]);
+      expect(trueCase.then.properties.workflow_name['ui:field']).toBe(
+        'BuildWorkflowPicker',
+      );
 
       // Check workflow_parameters uses custom UI field
-      expect(trueCase.then.properties.workflow_parameters['ui:field']).toBe('BuildWorkflowParameters');
+      expect(trueCase.then.properties.workflow_parameters['ui:field']).toBe(
+        'BuildWorkflowParameters',
+      );
 
       // Check required fields when CI is enabled - only workflow fields now
-      expect(trueCase.then.required).toEqual(['workflow_name', 'workflow_parameters']);
+      expect(trueCase.then.required).toEqual([
+        'workflow_name',
+        'workflow_parameters',
+      ]);
 
       // Check false case (when CI is disabled)
       const falseCase = ciSetupSection.dependencies.useBuiltInCI.allOf[1];
       expect(falseCase.if.properties.useBuiltInCI.const).toBe(false);
       expect(falseCase.then.properties.external_ci_note).toBeDefined();
       expect(falseCase.then.properties.external_ci_note.type).toBe('null');
-      expect(falseCase.then.properties.external_ci_note['ui:widget']).toBe('markdown');
+      expect(falseCase.then.properties.external_ci_note['ui:widget']).toBe(
+        'markdown',
+      );
     });
 
     it('should not include CI Setup section when CTD has no allowedWorkflows', () => {
@@ -767,7 +819,10 @@ describe('CtdToTemplateConverter', () => {
         },
       };
 
-      const result = converterWithDefaults.convertCtdToTemplateEntity(ctd, 'test-org');
+      const result = converterWithDefaults.convertCtdToTemplateEntity(
+        ctd,
+        'test-org',
+      );
 
       expect(result.spec?.owner).toBe('guests');
       expect(result.metadata.namespace).toBe('openchoreo');

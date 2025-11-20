@@ -49,7 +49,9 @@ export const useWorkflowStyles = makeStyles(theme => ({
   },
   propertyValueCode: {
     backgroundColor: alpha(
-      theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+      theme.palette.type === 'dark'
+        ? theme.palette.common.white
+        : theme.palette.common.black,
       0.05,
     ),
     padding: theme.spacing(0.5, 1),
@@ -65,7 +67,9 @@ export const useWorkflowStyles = makeStyles(theme => ({
     marginTop: theme.spacing(2),
     padding: theme.spacing(2),
     backgroundColor: alpha(
-      theme.palette.type === 'dark' ? theme.palette.common.white : theme.palette.common.black,
+      theme.palette.type === 'dark'
+        ? theme.palette.common.white
+        : theme.palette.common.black,
       0.02,
     ),
     borderRadius: theme.shape.borderRadius,

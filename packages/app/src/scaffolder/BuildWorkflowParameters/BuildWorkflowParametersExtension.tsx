@@ -30,7 +30,9 @@ export const BuildWorkflowParameters = ({
   formData,
   formContext,
 }: FieldExtensionComponentProps<Record<string, any>>) => {
-  const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(null);
+  const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,7 +147,11 @@ export const BuildWorkflowParameters = ({
     );
   }
 
-  if (!workflowSchema || !workflowSchema.properties || Object.keys(workflowSchema.properties).length === 0) {
+  if (
+    !workflowSchema ||
+    !workflowSchema.properties ||
+    Object.keys(workflowSchema.properties).length === 0
+  ) {
     return (
       <Box mt={2}>
         <Typography variant="body2" color="textSecondary">

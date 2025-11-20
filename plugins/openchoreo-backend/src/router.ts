@@ -157,7 +157,6 @@ export async function createRouter({
     );
   });
 
-
   // Endpoint for listing traits
   router.get('/traits', async (req, res) => {
     const { organizationName, page, pageSize } = req.query;
@@ -204,9 +203,7 @@ export async function createRouter({
     }
 
     res.json(
-      await workflowSchemaService.fetchWorkflows(
-        organizationName as string,
-      ),
+      await workflowSchemaService.fetchWorkflows(organizationName as string),
     );
   });
 

@@ -15,7 +15,8 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 // - Must be lowercase alphanumeric characters, '-' or '.'
 // - Must start and end with an alphanumeric character
 // - Maximum length 253 characters
-const K8S_NAME_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
+const K8S_NAME_PATTERN =
+  /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 const MAX_LENGTH = 253;
 
 export const ComponentNamePickerSchema = {
@@ -99,13 +100,13 @@ export const ComponentNamePicker = ({
         // Filter components by organization annotation and check if name exists
         const existsInOrg = items.some(
           component =>
-            component.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION] === orgName &&
-            component.metadata.name === componentName,
+            component.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.ORGANIZATION
+            ] === orgName && component.metadata.name === componentName,
         );
 
         return existsInOrg;
       } catch (error) {
-        console.error('Error checking component existence:', error);
         // On error, don't block - allow the user to proceed
         return false;
       }
@@ -156,7 +157,13 @@ export const ComponentNamePicker = ({
     const timeoutId = setTimeout(validateAsync, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [formData, organizationName, validateFormat, checkComponentExists, extractOrgName]);
+  }, [
+    formData,
+    organizationName,
+    validateFormat,
+    checkComponentExists,
+    extractOrgName,
+  ]);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     setTouched(true);
@@ -169,16 +176,12 @@ export const ComponentNamePicker = ({
 
   // Only show validation errors if the field has been touched or if there are submission errors (rawErrors)
   const shouldShowError = touched || !!rawErrors?.length;
-  const hasError = shouldShowError && (!!rawErrors?.length || !!validationState.error);
+  const hasError =
+    shouldShowError && (!!rawErrors?.length || !!validationState.error);
   const errorMessage = rawErrors?.[0] || validationState.error;
 
   return (
-    <FormControl
-      fullWidth
-      margin="normal"
-      error={hasError}
-      required={required}
-    >
+    <FormControl fullWidth margin="normal" error={hasError} required={required}>
       <TextField
         id={idSchema?.$id}
         label={uiSchema?.['ui:title'] || schema.title || 'Component Name'}

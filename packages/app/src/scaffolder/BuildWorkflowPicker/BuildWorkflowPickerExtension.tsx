@@ -86,7 +86,9 @@ export const BuildWorkflowPicker = ({
         const orgName = extractOrgName(organizationName);
 
         const response = await fetch(
-          `${baseUrl}/workflows?organizationName=${encodeURIComponent(orgName)}`,
+          `${baseUrl}/workflows?organizationName=${encodeURIComponent(
+            orgName,
+          )}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

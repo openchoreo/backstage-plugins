@@ -1,9 +1,4 @@
-import React from 'react';
-import {
-  Typography,
-  Box,
-  Grid,
-} from '@material-ui/core';
+import { Typography, Box, Grid } from '@material-ui/core';
 import { useWorkflowStyles } from './styles';
 
 interface WorkflowDetailsRendererProps {
@@ -12,15 +7,25 @@ interface WorkflowDetailsRendererProps {
   compact?: boolean;
 }
 
-export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = ({
+// Helper function to format keys (convert camelCase to Title Case)
+const formatKey = (key: string): string => {
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .trim();
+};
+
+export const WorkflowDetailsRenderer = ({
   data,
   parentKey = '',
   compact = false,
-}) => {
+}: WorkflowDetailsRendererProps) => {
   const classes = useWorkflowStyles();
 
   if (data === null || data === undefined || data === '') {
-    return <Typography className={classes.emptyValue}>Not specified</Typography>;
+    return (
+      <Typography className={classes.emptyValue}>Not specified</Typography>
+    );
   }
 
   // Primitive values (string, number, boolean)
@@ -56,16 +61,20 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
     }
 
     // Check if all items are primitives (not objects)
-    const allPrimitives = data.every(item => typeof item !== 'object' || item === null);
+    const allPrimitives = data.every(
+      item => typeof item !== 'object' || item === null,
+    );
 
     // For arrays of primitive values, render inline with comma separation
     if (allPrimitives) {
-      const arrayValue = `[ ${data.map(item => {
-        if (typeof item === 'string') {
-          return `"${item}"`;
-        }
-        return String(item);
-      }).join(', ')} ]`;
+      const arrayValue = `[ ${data
+        .map(item => {
+          if (typeof item === 'string') {
+            return `"${item}"`;
+          }
+          return String(item);
+        })
+        .join(', ')} ]`;
       return <code className={classes.propertyValueCode}>{arrayValue}</code>;
     }
 
@@ -74,7 +83,10 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
       <Box>
         {data.map((item, index) => (
           <Box key={index} className={classes.nestedSection}>
-            <WorkflowDetailsRenderer data={item} parentKey={`${parentKey}[${index}]`} />
+            <WorkflowDetailsRenderer
+              data={item}
+              parentKey={`${parentKey}[${index}]`}
+            />
           </Box>
         ))}
       </Box>
@@ -103,7 +115,10 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
     return (
       <Box>
         {entries.map(([key, value]) => {
-          const isObjectValue = typeof value === 'object' && value !== null && !Array.isArray(value);
+          const isObjectValue =
+            typeof value === 'object' &&
+            value !== null &&
+            !Array.isArray(value);
 
           if (isObjectValue) {
             return (
@@ -111,14 +126,22 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
                 <Typography variant="h5" className={classes.nestedSectionTitle}>
                   {formatKey(key)}
                 </Typography>
-                <WorkflowDetailsRenderer data={value} parentKey={`${parentKey}.${key}`} compact />
+                <WorkflowDetailsRenderer
+                  data={value}
+                  parentKey={`${parentKey}.${key}`}
+                  compact
+                />
               </Box>
             );
           }
 
           // Simple value at top level
           return (
-            <Box key={key} className={classes.propertyRow} style={{ marginTop: '16px', marginBottom: '12px' }}>
+            <Box
+              key={key}
+              className={classes.propertyRow}
+              style={{ marginTop: '16px', marginBottom: '12px' }}
+            >
               <Typography className={classes.propertyKey}>
                 {formatKey(key)}:
               </Typography>
@@ -161,7 +184,8 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
   // For nested objects, check if we need accordion or simple rendering
   const hasComplexNesting = entries.some(([_, value]) => {
     if (typeof value !== 'object' || value === null) return false;
-    if (Array.isArray(value)) return value.length > 1 || (value[0] && typeof value[0] === 'object');
+    if (Array.isArray(value))
+      return value.length > 1 || (value[0] && typeof value[0] === 'object');
     return Object.keys(value).length > 3;
   });
 
@@ -194,7 +218,9 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
         const isComplexValue =
           typeof value === 'object' &&
           value !== null &&
-          (Array.isArray(value) ? value.length > 1 : Object.keys(value).length > 2);
+          (Array.isArray(value)
+            ? value.length > 1
+            : Object.keys(value).length > 2);
 
         if (isComplexValue) {
           // Use subtle section for nested complex data
@@ -203,13 +229,21 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
               <Typography variant="h5" className={classes.nestedSectionTitle}>
                 {formatKey(key)}
               </Typography>
-              <WorkflowDetailsRenderer data={value} parentKey={`${parentKey}.${key}`} compact />
+              <WorkflowDetailsRenderer
+                data={value}
+                parentKey={`${parentKey}.${key}`}
+                compact
+              />
             </Box>
           );
         }
 
         return (
-          <Box key={key} className={classes.propertyRow} style={{ marginBottom: '12px' }}>
+          <Box
+            key={key}
+            className={classes.propertyRow}
+            style={{ marginBottom: '12px' }}
+          >
             <Typography className={classes.propertyKey}>
               {formatKey(key)}:
             </Typography>
@@ -223,12 +257,4 @@ export const WorkflowDetailsRenderer: React.FC<WorkflowDetailsRendererProps> = (
       })}
     </Box>
   );
-};
-
-// Helper function to format keys (convert camelCase to Title Case)
-const formatKey = (key: string): string => {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, str => str.toUpperCase())
-    .trim();
 };

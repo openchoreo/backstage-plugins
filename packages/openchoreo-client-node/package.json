@@ -29,6 +29,7 @@
   "dependencies": {
     "@backstage/backend-plugin-api": "^1.4.3",
     "@backstage/config": "^1.3.4",
+    "json-schema": "^0.4.0",
     "openapi-fetch": "^0.13.3"
   },
   "devDependencies": {
