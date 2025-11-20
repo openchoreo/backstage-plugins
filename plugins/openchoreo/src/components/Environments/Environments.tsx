@@ -18,6 +18,7 @@ import FileCopyIcon from '@material-ui/icons/FileCopy';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import SettingsIcon from '@material-ui/icons/Settings';
 import DescriptionIcon from '@material-ui/icons/Description';
+import Refresh from '@material-ui/icons/Refresh';
 
 import {
   discoveryApiRef,
@@ -25,24 +26,22 @@ import {
   useApi,
 } from '@backstage/core-plugin-api';
 import {
-  fetchEnvironmentInfo,
   promoteToEnvironment,
   deleteReleaseBinding,
 } from '../../api/environments';
 import { formatRelativeTime } from '../../utils/timeUtils';
-
-interface EndpointInfo {
-  name: string;
-  type: string;
-  url: string;
-  visibility: 'project' | 'organization' | 'public';
-}
+import { useEnvironmentData, Environment } from './hooks/useEnvironmentData';
 import { Workload } from './Workload/Workload';
 import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';
 import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
-import Refresh from '@material-ui/icons/Refresh';
 
 const useStyles = makeStyles(theme => ({
+  '@global': {
+    '@keyframes spin': {
+      from: { transform: 'rotate(0deg)' },
+      to: { transform: 'rotate(360deg)' },
+    },
+  },
   notificationBox: {
     padding: theme.spacing(2),
     borderRadius: theme.shape.borderRadius,
@@ -64,6 +63,25 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.primary,
     padding: theme.spacing(2),
     borderRadius: theme.shape.borderRadius,
+    minHeight: '300px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  environmentCard: {
+    minHeight: '300px',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  cardContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  skeletonContainer: {
+    height: '200px',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
   deploymentStatusBox: {
     padding: theme.spacing(1.5),
@@ -120,33 +138,20 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-interface Environment {
-  uid?: string;
-  name: string;
-  resourceName?: string;
-  bindingName?: string;
-  hasComponentTypeOverrides?: boolean;
-  deployment: {
-    status: 'success' | 'failed' | 'pending' | 'not-deployed' | 'suspended';
-    lastDeployed?: string;
-    image?: string;
-    statusMessage?: string;
-    releaseName?: string;
-  };
-  endpoints: EndpointInfo[];
-  promotionTargets?: {
-    name: string;
-    requiresApproval?: boolean;
-    isManualApprovalRequired?: boolean;
-  }[];
-}
-
 export const Environments = () => {
   const classes = useStyles();
   const { entity } = useEntity();
-  const [environments, setEnvironmentsData] = useState<Environment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+
+  // Use the new hook for data fetching
+  const { environments, loading, refetch } = useEnvironmentData(entity);
+
+  // Per-environment refresh state
+  const [refreshingEnvironments, setRefreshingEnvironments] = useState<
+    Set<string>
+  >(new Set());
+  const [staleEnvironments, setStaleEnvironments] = useState<Environment[]>([]);
+
+  // Other state
   const [promotingTo, setPromotingTo] = useState<string | null>(null);
   const [updatingBinding, setUpdatingBinding] = useState<string | null>(null);
   const [notification, setNotification] = useState<{
@@ -162,44 +167,60 @@ export const Environments = () => {
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 
-  const fetchEnvironmentsData = useCallback(
-    async (isRefresh = false) => {
+  // Update stale cache when environments change
+  useEffect(() => {
+    if (environments.length > 0) {
+      setStaleEnvironments(environments);
+    }
+  }, [environments]);
+
+  // Handle per-environment refresh
+  const handleRefreshEnvironment = useCallback(
+    async (envName: string) => {
+      setRefreshingEnvironments(prev => new Set(prev).add(envName));
       try {
-        if (isRefresh) {
-          setRefreshing(true);
-        } else {
-          setLoading(true);
-        }
-        const data = await fetchEnvironmentInfo(entity, discovery, identityApi);
-        setEnvironmentsData(data as Environment[]);
-      } catch (error) {
-        // TODO: Log this error
+        // Add minimum delay to ensure loading state is visible
+        const [result] = await Promise.all([
+          refetch(),
+          new Promise(resolve => setTimeout(resolve, 300)),
+        ]);
+        return result;
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        setRefreshingEnvironments(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(envName);
+          return newSet;
+        });
       }
     },
-    [entity, discovery, identityApi],
+    [refetch],
   );
-
-  useEffect(() => {
-    fetchEnvironmentsData();
-  }, [fetchEnvironmentsData]);
 
   const isWorkloadEditorSupported =
     entity.metadata.tags?.find(
       tag => tag === 'webapplication' || tag === 'service',
     ) || entity.metadata.annotations?.['openchoreo.io/component'] !== undefined;
-  const isPending = environments.some(
+
+  // Wrapper to convert refetch (void) to async function for Workload component
+  const refetchAsync = async () => {
+    refetch();
+  };
+
+  // Determine display environments (use stale cache if available during refresh)
+  const displayEnvironments =
+    staleEnvironments.length > 0 ? staleEnvironments : environments;
+
+  const isPending = displayEnvironments.some(
     env => env.deployment.status === 'pending',
   );
 
+  // Polling for pending deployments
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
     if (isPending) {
       intervalId = setInterval(() => {
-        fetchEnvironmentsData(true);
+        refetch();
       }, 10000); // 10 seconds
     }
 
@@ -208,13 +229,13 @@ export const Environments = () => {
         clearInterval(intervalId);
       }
     };
-  }, [isPending, fetchEnvironmentsData]);
+  }, [isPending, refetch]);
 
   const isAlreadyPromoted = (
     sourceEnv: Environment,
     targetEnvName: string,
   ): boolean => {
-    const targetEnv = environments.find(e => e.name === targetEnvName);
+    const targetEnv = displayEnvironments.find(e => e.name === targetEnvName);
 
     if (
       !sourceEnv.deployment.releaseName ||
@@ -249,7 +270,7 @@ export const Environments = () => {
   };
 
   const handleOverridesSaved = () => {
-    fetchEnvironmentsData(true);
+    refetch();
   };
 
   if (loading && environments.length === 0) {
@@ -293,10 +314,10 @@ export const Environments = () => {
         )}
         <Grid container spacing={3}>
           <Grid item xs={12} md={3}>
-            <Card>
+            <Card className={classes.environmentCard}>
               {/* Make this card color different from the others */}
               <Box className={classes.setupCard}>
-                <CardContent>
+                <CardContent className={classes.cardContent}>
                   <Typography variant="h6" component="h4">
                     Set up
                   </Typography>
@@ -307,23 +328,37 @@ export const Environments = () => {
                     marginBottom={2}
                     marginTop={1}
                   />
-                  <Typography color="textSecondary">
-                    View and manage deployment environments
-                  </Typography>
-                  {isWorkloadEditorSupported && !loading && (
-                    <Workload
-                      onDeployed={fetchEnvironmentsData}
-                      isWorking={isPending}
-                    />
+                  {loading && environments.length === 0 ? (
+                    <Box className={classes.skeletonContainer}>
+                      <Skeleton variant="text" width="80%" height={20} />
+                      <Skeleton
+                        variant="rect"
+                        width="100%"
+                        height={40}
+                        style={{ marginTop: 16 }}
+                      />
+                    </Box>
+                  ) : (
+                    <>
+                      <Typography color="textSecondary">
+                        View and manage deployment environments
+                      </Typography>
+                      {isWorkloadEditorSupported && (
+                        <Workload
+                          onDeployed={refetchAsync}
+                          isWorking={isPending}
+                        />
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Box>
             </Card>
           </Grid>
-          {environments.map(env => (
+          {displayEnvironments.map(env => (
             <Grid key={env.name} item xs={12} md={3}>
-              <Card>
-                <CardContent>
+              <Card className={classes.environmentCard}>
+                <CardContent className={classes.cardContent}>
                   <Box
                     display="flex"
                     alignItems="center"
@@ -353,12 +388,23 @@ export const Environments = () => {
                         </IconButton>
                       )}
                       <IconButton
-                        onClick={() => fetchEnvironmentsData(true)}
+                        onClick={() => handleRefreshEnvironment(env.name)}
                         size="small"
+                        disabled={refreshingEnvironments.has(env.name)}
+                        title={
+                          refreshingEnvironments.has(env.name)
+                            ? 'Refreshing...'
+                            : 'Refresh'
+                        }
                       >
                         <Refresh
                           fontSize="inherit"
-                          style={{ fontSize: '18px' }}
+                          style={{
+                            fontSize: '18px',
+                            animation: refreshingEnvironments.has(env.name)
+                              ? 'spin 1s linear infinite'
+                              : 'none',
+                          }}
                         />
                       </IconButton>
                     </Box>
@@ -370,24 +416,28 @@ export const Environments = () => {
                     marginBottom={2}
                     marginTop={1}
                   />
-                  {refreshing ? (
-                    <>
-                      <Skeleton variant="text" width="60%" height={30} />
+                  {refreshingEnvironments.has(env.name) ? (
+                    <Box className={classes.skeletonContainer}>
+                      <Skeleton variant="text" width="60%" height={24} />
                       <Skeleton
                         variant="rect"
                         width="100%"
-                        height={40}
-                        style={{ marginTop: 16, marginBottom: 16 }}
+                        height={50}
+                        style={{ marginTop: 12 }}
                       />
-                      <Skeleton variant="text" width="40%" />
+                      <Skeleton
+                        variant="text"
+                        width="40%"
+                        style={{ marginTop: 12 }}
+                      />
                       <Skeleton variant="text" width="80%" />
                       <Skeleton
                         variant="rect"
                         width="100%"
                         height={60}
-                        style={{ marginTop: 16 }}
+                        style={{ marginTop: 12 }}
                       />
-                    </>
+                    </Box>
                   ) : (
                     <>
                       {env.deployment.lastDeployed && (
@@ -520,7 +570,7 @@ export const Environments = () => {
                         ((env.deployment.status === 'success' ||
                           env.deployment.status === 'suspended') &&
                           env.bindingName)) && (
-                        <Box mt={3}>
+                        <Box mt="auto" mb={2}>
                           {/* Multiple promotion targets - stack vertically */}
                           {env.deployment.status === 'success' &&
                             env.promotionTargets &&
@@ -528,6 +578,8 @@ export const Environments = () => {
                             env.promotionTargets.map((target, index) => (
                               <Box
                                 key={target.name}
+                                display="flex"
+                                justifyContent="flex-end"
                                 mb={
                                   index < env.promotionTargets!.length - 1
                                     ? 2
@@ -550,7 +602,7 @@ export const Environments = () => {
                                   onClick={async () => {
                                     try {
                                       setPromotingTo(target.name);
-                                      const result = await promoteToEnvironment(
+                                      await promoteToEnvironment(
                                         entity,
                                         discovery,
                                         identityApi,
@@ -558,10 +610,8 @@ export const Environments = () => {
                                         target.name.toLowerCase(), // target environment
                                       );
 
-                                      // Update environments state with fresh data from promotion result
-                                      setEnvironmentsData(
-                                        result as Environment[],
-                                      );
+                                      // Refetch environments to get updated data
+                                      await refetch();
 
                                       setNotification({
                                         message: `Component promoted from ${env.name} to ${target.name}`,
@@ -609,7 +659,11 @@ export const Environments = () => {
                             ((env.deployment.status === 'success' ||
                               env.deployment.status === 'suspended') &&
                               env.bindingName)) && (
-                            <Box display="flex" flexWrap="wrap">
+                            <Box
+                              display="flex"
+                              flexWrap="wrap"
+                              justifyContent="flex-end"
+                            >
                               {/* Single promotion button */}
                               {env.deployment.status === 'success' &&
                                 env.promotionTargets &&
@@ -632,19 +686,16 @@ export const Environments = () => {
                                         setPromotingTo(
                                           env.promotionTargets![0].name,
                                         );
-                                        const result =
-                                          await promoteToEnvironment(
-                                            entity,
-                                            discovery,
-                                            identityApi,
-                                            env.name.toLowerCase(), // source environment
-                                            env.promotionTargets![0].name.toLowerCase(), // target environment
-                                          );
-
-                                        // Update environments state with fresh data from promotion result
-                                        setEnvironmentsData(
-                                          result as Environment[],
+                                        await promoteToEnvironment(
+                                          entity,
+                                          discovery,
+                                          identityApi,
+                                          env.name.toLowerCase(), // source environment
+                                          env.promotionTargets![0].name.toLowerCase(), // target environment
                                         );
+
+                                        // Refetch environments to get updated data
+                                        await refetch();
 
                                         setNotification({
                                           message: `Component promoted from ${
@@ -715,7 +766,7 @@ export const Environments = () => {
                                         );
 
                                         // Refresh the environments data
-                                        await fetchEnvironmentsData(true);
+                                        await refetch();
 
                                         setNotification({
                                           message: `Component suspended from ${env.name} successfully`,
