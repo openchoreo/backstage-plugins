@@ -258,12 +258,12 @@ export function ContainerSection({
                             disabled={!!envVar.valueFrom || disabled}
                           />
                         </Grid>
-                        {envVar.valueFrom?.configurationGroupRef ? (
+                        {envVar.valueFrom?.secretRef ? (
                           <>
                             <Grid item xs={5}>
                               <Typography variant="body2">
-                                {envVar.valueFrom.configurationGroupRef.name}:
-                                {envVar.valueFrom.configurationGroupRef.key}
+                                Secret: {envVar.valueFrom.secretRef.name}:
+                                {envVar.valueFrom.secretRef.key}
                               </Typography>
                             </Grid>
                           </>

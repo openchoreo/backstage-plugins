@@ -355,6 +355,9 @@ export class EnvironmentInfoService implements EnvironmentService {
       uid: envData.uid,
       name: envName,
       bindingName: binding?.name,
+      hasComponentTypeOverrides:
+        binding?.componentTypeEnvOverrides &&
+        Object.keys(binding.componentTypeEnvOverrides).length > 0,
       deployment: {
         status: deploymentStatus,
         lastDeployed,
@@ -885,6 +888,205 @@ export class EnvironmentInfoService implements EnvironmentService {
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error deploying release ${request.releaseName} for component ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the JSON schema for environment overrides for a specific component release.
+   * This schema defines what override fields are available based on the ComponentType.
+   *
+   * @param {Object} request - The request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.releaseName - Name of the release to get schema for
+   * @returns {Promise<any>} JSON Schema for the release's override configuration
+   */
+  async fetchComponentReleaseSchema(request: {
+    componentName: string;
+    projectName: string;
+    organizationName: string;
+    releaseName: string;
+  }) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching component release schema for ${request.releaseName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema',
+        {
+          params: {
+            path: {
+              orgName: request.organizationName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              releaseName: request.releaseName,
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch component release schema: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Component release schema fetched for ${request.releaseName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching component release schema for ${request.releaseName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches all release bindings for a specific component.
+   *
+   * @param {Object} request - The request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.organizationName - Name of the organization
+   * @returns {Promise<any>} List of release bindings
+   */
+  async fetchReleaseBindings(request: {
+    componentName: string;
+    projectName: string;
+    organizationName: string;
+  }) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching release bindings for component ${request.componentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+        {
+          params: {
+            path: {
+              orgName: request.organizationName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch release bindings: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Release bindings fetched for ${request.componentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching release bindings for ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Patches a release binding with component type environment overrides.
+   * Creates the binding if it doesn't exist.
+   *
+   * @param {Object} request - The request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.environment - Environment to patch binding for
+   * @param {any} request.componentTypeEnvOverrides - Component type environment overrides to apply
+   * @returns {Promise<any>} Updated binding response
+   */
+  async patchReleaseBindingOverrides(request: {
+    componentName: string;
+    projectName: string;
+    organizationName: string;
+    environment: string;
+    componentTypeEnvOverrides: any;
+  }) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Patching release binding overrides for component ${request.componentName} in environment ${request.environment}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      // Construct the binding name: componentName-environment
+      const bindingName = `${request.componentName}-${request.environment}`;
+
+      const { data, error, response } = await client.PATCH(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}',
+        {
+          params: {
+            path: {
+              orgName: request.organizationName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              bindingName: bindingName,
+            },
+          },
+          body: {
+            componentTypeEnvOverrides: request.componentTypeEnvOverrides,
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to patch release binding: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Release binding patched for ${request.componentName} in ${request.environment}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error patching release binding for ${request.componentName} in ${request.environment} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
