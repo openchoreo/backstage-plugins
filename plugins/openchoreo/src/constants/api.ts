@@ -12,4 +12,5 @@ export const API_ENDPOINTS = {
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
+  ENVIRONMENT_RELEASE: '/environment-release',
 } as const;

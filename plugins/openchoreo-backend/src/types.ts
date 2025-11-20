@@ -40,6 +40,7 @@ export interface EndpointInfo {
 export interface Environment {
   uid?: string;
   name: string;
+  resourceName?: string;
   bindingName?: string;
   hasComponentTypeOverrides?: boolean;
   deployment: {

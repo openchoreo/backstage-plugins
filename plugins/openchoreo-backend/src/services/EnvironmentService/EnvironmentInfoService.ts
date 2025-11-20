@@ -310,6 +310,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     promotionTargets?: any[],
   ): Environment {
     const envName = envData.displayName || envData.name;
+    const envResourceName = envData.name; // Actual Kubernetes resource name
 
     // For now, ReleaseBinding doesn't provide detailed status, endpoints, or image info
     // Those would need to come from querying the actual deployed resources
@@ -354,6 +355,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     const transformedEnv: Environment = {
       uid: envData.uid,
       name: envName,
+      resourceName: envResourceName,
       bindingName: binding?.name,
       hasComponentTypeOverrides:
         binding?.componentTypeEnvOverrides &&
@@ -1087,6 +1089,71 @@ export class EnvironmentInfoService implements EnvironmentService {
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error patching release binding for ${request.componentName} in ${request.environment} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the release information for a specific environment.
+   * Returns the complete Release CRD with spec and status information.
+   *
+   * @param {Object} request - The request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.environmentName - Name of the environment
+   * @returns {Promise<any>} Release information including spec and status
+   */
+  async fetchEnvironmentRelease(request: {
+    componentName: string;
+    projectName: string;
+    organizationName: string;
+    environmentName: string;
+  }) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching environment release for component ${request.componentName} in environment ${request.environmentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release',
+        {
+          params: {
+            path: {
+              orgName: request.organizationName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              environmentName: request.environmentName,
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch environment release: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Environment release fetched for ${request.componentName} in ${request.environmentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching environment release for ${request.componentName} in ${request.environmentName} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
