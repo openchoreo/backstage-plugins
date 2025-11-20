@@ -120,16 +120,6 @@ export const BuildWorkflowParameters = ({
     onChange(changeEvent.formData || {});
   };
 
-  if (!selectedWorkflowName) {
-    return (
-      <Box mt={2}>
-        <Typography variant="body2" color="textSecondary">
-          Please select a workflow first
-        </Typography>
-      </Box>
-    );
-  }
-
   if (loading) {
     return (
       <Box mt={2}>
@@ -150,11 +140,7 @@ export const BuildWorkflowParameters = ({
     );
   }
 
-  if (
-    !workflowSchema ||
-    !workflowSchema.properties ||
-    Object.keys(workflowSchema.properties).length === 0
-  ) {
+  if (selectedWorkflowName && (!workflowSchema || !workflowSchema.properties || Object.keys(workflowSchema.properties).length === 0)) {
     return (
       <Box mt={2}>
         <Typography variant="body2" color="textSecondary">
@@ -164,7 +150,7 @@ export const BuildWorkflowParameters = ({
     );
   }
 
-  return (
+  return workflowSchema && (
     <Box mt={2}>
       <Typography variant="subtitle1" gutterBottom>
         Workflow Parameters

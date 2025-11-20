@@ -247,48 +247,31 @@ export class CtdToTemplateConverter {
           description:
             'OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.',
           type: 'boolean',
-          'ui:widget': 'radio',
+          default: true,
+          'ui:field': 'SwitchField',
         },
       },
       dependencies: {
         useBuiltInCI: {
-          allOf: [
+          oneOf: [
             {
-              if: {
-                properties: {
-                  useBuiltInCI: {
-                    const: true,
-                  },
+              properties: {
+                useBuiltInCI: {
+                  const: true,
+                },
+                workflow_name: workflowNameField,
+                workflow_parameters: {
+                  title: 'Workflow Parameters',
+                  type: 'object',
+                  'ui:field': 'BuildWorkflowParameters',
                 },
               },
-              then: {
-                properties: {
-                  workflow_name: workflowNameField,
-                  workflow_parameters: {
-                    title: 'Workflow Parameters',
-                    type: 'object',
-                    'ui:field': 'BuildWorkflowParameters',
-                  },
-                },
-                required: ['workflow_name', 'workflow_parameters'],
-              },
+              required: ['workflow_name', 'workflow_parameters'],
             },
             {
-              if: {
-                properties: {
-                  useBuiltInCI: {
-                    const: false,
-                  },
-                },
-              },
-              then: {
-                properties: {
-                  external_ci_note: {
-                    type: 'null',
-                    'ui:widget': 'markdown',
-                    description:
-                      '## Configure your CI\n\nThis section contains details for configuring your CI pipeline to notify OpenChoreo for each build.',
-                  },
+              properties: {
+                useBuiltInCI: {
+                  const: false,
                 },
               },
             },
@@ -316,6 +299,9 @@ export class CtdToTemplateConverter {
           'ui:field': 'TraitsField',
           'ui:options': {
             organizationName: organizationName,
+          },
+          items: {
+            type: 'object',
           },
         },
       },
@@ -432,10 +418,8 @@ export class CtdToTemplateConverter {
    * Add UI enhancements based on schema type and format
    */
   private addUIEnhancements(converted: any, schema: JSONSchema7): void {
-    // Boolean fields: use radio buttons for better UX
-    if (schema.type === 'boolean') {
-      converted['ui:widget'] = 'radio';
-    }
+    // Boolean fields: use default checkbox widget
+    // (Custom switch widgets can be applied via ui:field in specific cases)
 
     // String fields with format hints
     if (schema.type === 'string') {
