@@ -21,6 +21,14 @@ export const BuildWorkflowParametersSchema = {
   },
 };
 
+/**
+ * Interface for the workflow parameters with schema included
+ */
+export interface WorkflowParametersData {
+  parameters: Record<string, any>;
+  schema?: JSONSchema7;
+}
+
 /*
  This component dynamically renders form fields based on the selected workflow's JSONSchema
  using RJSF (React JSON Schema Form) to handle complex types like arrays, nested objects, etc.
@@ -30,7 +38,7 @@ export const BuildWorkflowParameters = ({
   rawErrors,
   formData,
   formContext,
-}: FieldExtensionComponentProps<Record<string, any>>) => {
+}: FieldExtensionComponentProps<WorkflowParametersData>) => {
   const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(null);
   const [uiSchema, setUiSchema] = useState<any>({});
   const [loading, setLoading] = useState(false);
@@ -115,9 +123,24 @@ export const BuildWorkflowParameters = ({
     };
   }, [selectedWorkflowName, organizationName, discoveryApi, identityApi]);
 
+  // Sync schema to formData when workflow schema changes
+  useEffect(() => {
+    if (workflowSchema) {
+      // Update formData to include the schema for validation
+      onChange({
+        parameters: formData?.parameters || {},
+        schema: workflowSchema,
+      });
+    }
+  }, [workflowSchema]); // Only trigger when schema changes, not when formData changes
+
   // Handle form data changes from RJSF
   const handleFormChange = (changeEvent: any) => {
-    onChange(changeEvent.formData || {});
+    // Store parameters and schema together
+    onChange({
+      parameters: changeEvent.formData || {},
+      schema: workflowSchema || undefined,
+    });
   };
 
   if (loading) {
@@ -158,34 +181,29 @@ export const BuildWorkflowParameters = ({
       <Form
         schema={workflowSchema}
         uiSchema={uiSchema}
-        formData={formData || {}}
+        formData={formData?.parameters || {}}
         onChange={handleFormChange}
         validator={validator}
         liveValidate={false}
         showErrorList={false}
         noHtml5Validate
+        tagName="div"
       >
         {/* Hide the default submit button - we're just using this for the form fields */}
         <div style={{ display: 'none' }} />
       </Form>
-      {rawErrors?.length ? (
-        <Box mt={1}>
-          <Typography variant="body2" color="error">
-            {rawErrors.join(', ')}
-          </Typography>
-        </Box>
-      ) : null}
     </Box>
   );
 };
 
-/*
- Validation function for workflow parameters
- RJSF handles validation based on the schema, so this is just a placeholder
-*/
+/**
+ * Validation function for workflow parameters
+ * Note: RJSF handles validation automatically when tagName="div" is set.
+ * This function is kept for any additional custom validation if needed in the future.
+ */
 export const buildWorkflowParametersValidation = (
-  _value: Record<string, any>,
+  _value: WorkflowParametersData | any,
   _validation: any,
 ) => {
-  // Validation is handled by RJSF using the workflow schema
+  // RJSF handles validation automatically - no custom validation needed
 };

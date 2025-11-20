@@ -346,6 +346,7 @@ export const TraitsField = ({
                     }
                     validator={validator}
                     showErrorList={false}
+                    tagName="div"
                     children={<div />} // Hide submit button
                   />
                 )}
@@ -354,17 +355,15 @@ export const TraitsField = ({
           ))}
         </Box>
       )}
-
-      {rawErrors?.length ? (
-        <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
-      ) : null}
     </Box>
   );
 };
 
 /**
  * Validation function for traits
- * Validates trait configurations against their JSON schemas
+ * Handles custom validation logic:
+ * - Unique instance names (business rule)
+ * Note: RJSF handles schema validation automatically when tagName="div" is set
  */
 export const traitsFieldValidation = (value: AddedTrait[], validation: any) => {
   if (!value || value.length === 0) {
@@ -375,19 +374,14 @@ export const traitsFieldValidation = (value: AddedTrait[], validation: any) => {
   // Track instance names for uniqueness validation
   const instanceNames = new Set<string>();
 
-  // Validate each trait configuration
+  // Validate each trait
   value.forEach((trait, index) => {
-    if (!trait.name) {
-      validation.addError(`Trait #${index + 1}: Name is required`);
-      return;
-    }
-
     if (!trait.instanceName || trait.instanceName.trim() === '') {
       validation.addError(`Trait #${index + 1}: Instance name is required`);
       return;
     }
 
-    // Check for duplicate instance names
+    // Check for duplicate instance names (custom business rule)
     if (instanceNames.has(trait.instanceName)) {
       validation.addError(
         `Trait #${index + 1}: Instance name "${
@@ -396,30 +390,6 @@ export const traitsFieldValidation = (value: AddedTrait[], validation: any) => {
       );
     } else {
       instanceNames.add(trait.instanceName);
-    }
-
-    if (!trait.config) {
-      validation.addError(`Trait #${index + 1}: Configuration is required`);
-      return;
-    }
-
-    // Validate against schema if available
-    if (trait.schema) {
-      const validationResult = validator.validateFormData(
-        trait.config,
-        trait.schema,
-      );
-
-      if (validationResult.errors && validationResult.errors.length > 0) {
-        validationResult.errors.forEach((error: any) => {
-          const fieldPath = error.property
-            ? error.property.replace(/^\./, '')
-            : 'field';
-          validation.addError(
-            `${trait.instanceName}: ${fieldPath} ${error.message}`,
-          );
-        });
-      }
     }
   });
 };
