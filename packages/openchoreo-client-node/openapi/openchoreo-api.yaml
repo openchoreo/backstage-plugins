@@ -761,8 +761,8 @@ components:
         traitOverrides:
           type: object
           additionalProperties: true
-        configurationOverrides:
-          $ref: '#/components/schemas/ConfigurationOverrides'
+        workloadOverrides:
+          $ref: '#/components/schemas/WorkloadOverrides'
         createdAt:
           type: string
           format: date-time
@@ -782,10 +782,18 @@ components:
         traitOverrides:
           type: object
           additionalProperties: true
-        configurationOverrides:
-          $ref: '#/components/schemas/ConfigurationOverrides'
+        workloadOverrides:
+          $ref: '#/components/schemas/WorkloadOverrides'
 
-    ConfigurationOverrides:
+    WorkloadOverrides:
+      type: object
+      properties:
+        containers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ContainerOverride'
+
+    ContainerOverride:
       type: object
       properties:
         env:
@@ -809,6 +817,8 @@ components:
           type: string
         value:
           type: string
+        valueFrom:
+          $ref: '#/components/schemas/EnvVarValueFrom'
 
     DeployReleaseRequest:
       type: object
@@ -828,15 +838,24 @@ components:
         value:
           type: string
         valueFrom:
-          type: object
-          properties:
-            configurationGroupRef:
-              type: object
-              properties:
-                name:
-                  type: string
-                key:
-                  type: string
+          $ref: '#/components/schemas/EnvVarValueFrom'
+
+    EnvVarValueFrom:
+      type: object
+      properties:
+        secretRef:
+          $ref: '#/components/schemas/SecretKeyRef'
+
+    SecretKeyRef:
+      type: object
+      required:
+        - name
+        - key
+      properties:
+        name:
+          type: string
+        key:
+          type: string
 
     Container:
       type: object
@@ -1766,6 +1785,45 @@ paths:
                       data:
                         $ref: '#/components/schemas/ComponentResponse'
 
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/schema:
+    get:
+      summary: Get the JSON schema for a specific component
+      operationId: getComponentSchema
+      tags:
+        - Components
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: JSON Schema for the component
+                        additionalProperties: true
+        '404':
+          description: Component not found
+
   # Component Bindings
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings:
     get:
@@ -1972,6 +2030,50 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/ComponentReleaseResponse'
+
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema:
+    get:
+      summary: Get the JSON schema for a specific component release
+      operationId: getComponentReleaseSchema
+      tags:
+        - Releases
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: releaseName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: JSON Schema for the component release
+                        additionalProperties: true
+        '404':
+          description: Component release not found
 
   # Release Bindings
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings:
