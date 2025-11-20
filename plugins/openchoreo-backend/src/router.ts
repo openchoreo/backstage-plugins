@@ -557,5 +557,69 @@ export async function createRouter({
     );
   });
 
+  router.get('/component-release-schema', async (req, res) => {
+    const { componentName, projectName, organizationName, releaseName } =
+      req.query;
+
+    if (!componentName || !projectName || !organizationName || !releaseName) {
+      throw new InputError(
+        'componentName, projectName, organizationName and releaseName are required query parameters',
+      );
+    }
+
+    res.json(
+      await environmentInfoService.fetchComponentReleaseSchema({
+        componentName: componentName as string,
+        projectName: projectName as string,
+        organizationName: organizationName as string,
+        releaseName: releaseName as string,
+      }),
+    );
+  });
+
+  router.get('/release-bindings', async (req, res) => {
+    const { componentName, projectName, organizationName } = req.query;
+
+    if (!componentName || !projectName || !organizationName) {
+      throw new InputError(
+        'componentName, projectName and organizationName are required query parameters',
+      );
+    }
+
+    res.json(
+      await environmentInfoService.fetchReleaseBindings({
+        componentName: componentName as string,
+        projectName: projectName as string,
+        organizationName: organizationName as string,
+      }),
+    );
+  });
+
+  router.patch('/patch-release-binding', async (req, res) => {
+    const {
+      componentName,
+      projectName,
+      orgName,
+      environment,
+      componentTypeEnvOverrides,
+    } = req.body;
+
+    if (!componentName || !projectName || !orgName || !environment) {
+      throw new InputError(
+        'componentName, projectName, orgName and environment are required in request body',
+      );
+    }
+
+    res.json(
+      await environmentInfoService.patchReleaseBindingOverrides({
+        componentName: componentName as string,
+        projectName: projectName as string,
+        organizationName: orgName as string,
+        environment: environment as string,
+        componentTypeEnvOverrides: componentTypeEnvOverrides,
+      }),
+    );
+  });
+
   return router;
 }

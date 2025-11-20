@@ -10,11 +10,13 @@ import {
   Box,
   Button,
   IconButton,
+  Badge,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
+import SettingsIcon from '@material-ui/icons/Settings';
 
 import {
   discoveryApiRef,
@@ -35,6 +37,7 @@ interface EndpointInfo {
   visibility: 'project' | 'organization' | 'public';
 }
 import { Workload } from './Workload/Workload';
+import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';
 import Refresh from '@material-ui/icons/Refresh';
 
 const useStyles = makeStyles(theme => ({
@@ -118,6 +121,7 @@ const useStyles = makeStyles(theme => ({
 interface Environment {
   name: string;
   bindingName?: string;
+  hasComponentTypeOverrides?: boolean;
   deployment: {
     status: 'success' | 'failed' | 'pending' | 'not-deployed' | 'suspended';
     lastDeployed?: string;
@@ -145,6 +149,9 @@ export const Environments = () => {
     message: string;
     type: 'success' | 'error';
   } | null>(null);
+  const [overridesDialogOpen, setOverridesDialogOpen] = useState(false);
+  const [selectedEnvironment, setSelectedEnvironment] =
+    useState<Environment | null>(null);
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 
@@ -212,6 +219,20 @@ export const Environments = () => {
     return (
       sourceEnv.deployment.releaseName === targetEnv.deployment.releaseName
     );
+  };
+
+  const handleOpenOverridesDialog = (env: Environment) => {
+    setSelectedEnvironment(env);
+    setOverridesDialogOpen(true);
+  };
+
+  const handleCloseOverridesDialog = () => {
+    setOverridesDialogOpen(false);
+    setSelectedEnvironment(null);
+  };
+
+  const handleOverridesSaved = () => {
+    fetchEnvironmentsData(true);
   };
 
   if (loading && environments.length === 0) {
@@ -294,12 +315,36 @@ export const Environments = () => {
                     <Typography variant="h6" component="h4">
                       {env.name}
                     </Typography>
-                    <IconButton onClick={() => fetchEnvironmentsData(true)}>
-                      <Refresh
-                        fontSize="inherit"
-                        style={{ fontSize: '18px' }}
-                      />
-                    </IconButton>
+                    <Box display="flex" alignItems="center">
+                      {env.deployment.releaseName && (
+                        <IconButton
+                          onClick={() => handleOpenOverridesDialog(env)}
+                          size="small"
+                          title="Configure environment overrides"
+                          style={{ marginLeft: 8 }}
+                        >
+                          <Badge
+                            color="primary"
+                            variant="dot"
+                            invisible={!env.hasComponentTypeOverrides}
+                          >
+                            <SettingsIcon
+                              fontSize="inherit"
+                              style={{ fontSize: '18px' }}
+                            />
+                          </Badge>
+                        </IconButton>
+                      )}
+                      <IconButton
+                        onClick={() => fetchEnvironmentsData(true)}
+                        size="small"
+                      >
+                        <Refresh
+                          fontSize="inherit"
+                          style={{ fontSize: '18px' }}
+                        />
+                      </IconButton>
+                    </Box>
                   </Box>
                   {/* add a line in the ui */}
                   <Box
@@ -378,13 +423,6 @@ export const Environments = () => {
                             : 'Failed'}
                         </Typography>
                       </Box>
-                      {env.deployment.statusMessage && (
-                        <Box mt={1}>
-                          <Typography variant="caption" color="textSecondary">
-                            {env.deployment.statusMessage}
-                          </Typography>
-                        </Box>
-                      )}
 
                       {env.deployment.image && (
                         <Box mt={2}>
@@ -694,6 +732,14 @@ export const Environments = () => {
             </Grid>
           ))}
         </Grid>
+
+        <EnvironmentOverridesDialog
+          open={overridesDialogOpen}
+          onClose={handleCloseOverridesDialog}
+          environment={selectedEnvironment}
+          entity={entity}
+          onSaved={handleOverridesSaved}
+        />
       </Content>
     </Page>
   );

@@ -41,6 +41,7 @@ export interface Environment {
   uid?: string;
   name: string;
   bindingName?: string;
+  hasComponentTypeOverrides?: boolean;
   deployment: {
     status: 'success' | 'failed' | 'pending' | 'not-deployed' | 'suspended';
     lastDeployed?: string;

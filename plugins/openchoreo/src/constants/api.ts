@@ -9,4 +9,7 @@ export const API_ENDPOINTS = {
   DASHBOARD_BINDINGS_COUNT: '/dashboard/bindings-count',
   CREATE_RELEASE: '/create-release',
   DEPLOY_RELEASE: '/deploy-release',
+  COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
+  RELEASE_BINDINGS: '/release-bindings',
+  PATCH_RELEASE_BINDING: '/patch-release-binding',
 } as const;

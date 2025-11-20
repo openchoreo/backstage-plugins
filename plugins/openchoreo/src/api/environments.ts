@@ -269,3 +269,139 @@ export async function deployRelease(
 
   return await res.json();
 }
+
+export async function fetchComponentReleaseSchema(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+  releaseName: string,
+) {
+  const { token } = await identity.getCredentials();
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!project || !component || !organization) {
+    throw new Error('Missing required metadata in entity');
+  }
+
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.COMPONENT_RELEASE_SCHEMA
+    }`,
+  );
+
+  const params = new URLSearchParams({
+    componentName: component,
+    projectName: project,
+    organizationName: organization,
+    releaseName: releaseName,
+  });
+
+  backendUrl.search = params.toString();
+
+  const res = await fetch(backendUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to fetch schema: ${errText}`);
+  }
+
+  return await res.json();
+}
+
+export async function fetchReleaseBindings(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+) {
+  const { token } = await identity.getCredentials();
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!project || !component || !organization) {
+    throw new Error('Missing required metadata in entity');
+  }
+
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.RELEASE_BINDINGS
+    }`,
+  );
+
+  const params = new URLSearchParams({
+    componentName: component,
+    projectName: project,
+    organizationName: organization,
+  });
+
+  backendUrl.search = params.toString();
+
+  const res = await fetch(backendUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to fetch bindings: ${errText}`);
+  }
+
+  return await res.json();
+}
+
+export async function patchReleaseBindingOverrides(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+  environment: string,
+  overrides: any,
+) {
+  const { token } = await identity.getCredentials();
+  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+  if (!project || !component || !organization) {
+    throw new Error('Missing required metadata in entity');
+  }
+
+  const backendUrl = new URL(
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.PATCH_RELEASE_BINDING
+    }`,
+  );
+
+  const patchReq = {
+    orgName: organization,
+    projectName: project,
+    componentName: component,
+    environment: environment,
+    componentTypeEnvOverrides: overrides,
+  };
+
+  const res = await fetch(backendUrl, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(patchReq),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to patch binding: ${errText}`);
+  }
+
+  return await res.json();
+}
