@@ -150,6 +150,16 @@ export function Workload({
     : !isLoading;
   const hasBuilds = builds.length > 0;
 
+  const getAlertMessage = () => {
+    if (isFromSource && !hasBuilds) {
+      return 'Build your application first to generate a container image.';
+    }
+    if (workloadSpec) {
+      return 'Loading workload configuration...';
+    }
+    return 'Configure your workload to enable deployment.';
+  };
+
   return (
     <>
       <Box
@@ -167,14 +177,8 @@ export function Workload({
           {isLoading && !error && <CircularProgress />}
         </Box>
         {!enableDeploy && (
-          <Alert
-            severity={isFromSource && !hasBuilds ? 'warning' : 'info'}
-          >
-            {isFromSource && !hasBuilds
-              ? 'Build your application first to generate a container image.'
-              : workloadSpec
-                ? 'Loading workload configuration...'
-                : 'Configure your workload to enable deployment.'}
+          <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
+            {getAlertMessage()}
           </Alert>
         )}
         <Button

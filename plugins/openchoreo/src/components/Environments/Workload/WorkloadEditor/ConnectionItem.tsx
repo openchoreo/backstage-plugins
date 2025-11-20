@@ -178,7 +178,10 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
     <Box className={classes.dynamicFieldContainer}>
       <Grid container spacing={2} alignItems="center">
         <Grid item xs={11}>
-          <Typography variant="subtitle1" style={{ marginBottom: 8, fontWeight: 600 }}>
+          <Typography
+            variant="subtitle1"
+            style={{ marginBottom: 8, fontWeight: 600 }}
+          >
             {connectionName}
           </Typography>
         </Grid>

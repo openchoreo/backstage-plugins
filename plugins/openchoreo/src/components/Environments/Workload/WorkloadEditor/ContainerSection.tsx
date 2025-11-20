@@ -116,9 +116,7 @@ export function ContainerSection({
                     justifyContent="space-between"
                   >
                     <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
-                      {containerName === 'main'
-                        ? 'app'
-                        : containerName}
+                      {containerName === 'main' ? 'app' : containerName}
                     </Typography>
                     <IconButton
                       onClick={() => onRemoveContainer(containerName)}
