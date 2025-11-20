@@ -7,7 +7,7 @@ import {
 // Use generated types from OpenAPI spec
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
-type BindingResponse = OpenChoreoComponents['schemas']['BindingResponse'];
+type ReleaseBindingResponse = OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
 
 import {
   PlatformEnvironmentService,
@@ -403,7 +403,7 @@ export class PlatformEnvironmentInfoService
           try {
             // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
               {
                 params: {
                   path: {
@@ -417,7 +417,7 @@ export class PlatformEnvironmentInfoService
 
             if (!error && response.ok && data.success && data.data?.items) {
               // Count environments where this component is deployed
-              const bindings = data.data.items as BindingResponse[];
+              const bindings = data.data.items as ReleaseBindingResponse[];
               bindings.forEach(binding => {
                 const envName = binding.environment;
                 if (envName) {
@@ -488,7 +488,7 @@ export class PlatformEnvironmentInfoService
           try {
             // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
               {
                 params: {
                   path: {
@@ -573,7 +573,7 @@ export class PlatformEnvironmentInfoService
           try {
             // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
               {
                 params: {
                   path: {
@@ -587,9 +587,9 @@ export class PlatformEnvironmentInfoService
 
             if (!error && response.ok && data.success && data.data?.items) {
               // Count healthy workloads by checking if status.status === 'Active'
-              const bindings = data.data.items as BindingResponse[];
+              const bindings = data.data.items as ReleaseBindingResponse[];
               const healthyCount = bindings.filter(
-                binding => binding.status?.status === 'Active',
+                binding => binding.status === 'Ready',
               ).length;
               return healthyCount;
             }
