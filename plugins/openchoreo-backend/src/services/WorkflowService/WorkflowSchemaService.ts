@@ -29,9 +29,7 @@ export class WorkflowSchemaService {
   /**
    * Fetch list of workflows for an organization
    */
-  async fetchWorkflows(
-    orgName: string,
-  ): Promise<WorkflowListResponse> {
+  async fetchWorkflows(orgName: string): Promise<WorkflowListResponse> {
     this.logger.debug(`Fetching workflows for org: ${orgName}`);
 
     try {
@@ -40,11 +38,14 @@ export class WorkflowSchemaService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET('/orgs/{orgName}/workflows', {
-        params: {
-          path: { orgName },
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/workflows',
+        {
+          params: {
+            path: { orgName },
+          },
         },
-      });
+      );
 
       if (error || !response.ok) {
         throw new Error(
@@ -87,11 +88,14 @@ export class WorkflowSchemaService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET('/orgs/{orgName}/workflows/{workflowName}/schema', {
-        params: {
-          path: { orgName, workflowName },
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/workflows/{workflowName}/schema',
+        {
+          params: {
+            path: { orgName, workflowName },
+          },
         },
-      });
+      );
 
       if (error || !response.ok) {
         throw new Error(
@@ -103,7 +107,8 @@ export class WorkflowSchemaService {
         throw new Error('Failed to fetch workflow schema');
       }
 
-      const workflowSchema: WorkflowSchemaResponse = data as WorkflowSchemaResponse;
+      const workflowSchema: WorkflowSchemaResponse =
+        data as WorkflowSchemaResponse;
 
       this.logger.debug(
         `Successfully fetched schema for workflow: ${workflowName}`,

@@ -41,11 +41,14 @@ export class TraitInfoService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET('/orgs/{orgName}/traits', {
-        params: {
-          path: { orgName },
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/traits',
+        {
+          params: {
+            path: { orgName },
+          },
         },
-      });
+      );
 
       if (error || !response.ok) {
         throw new Error(
@@ -60,13 +63,13 @@ export class TraitInfoService {
       const traitListResponse: TraitListResponse = data as TraitListResponse;
 
       this.logger.debug(
-        `Successfully fetched ${traitListResponse.data?.items?.length || 0} traits for org: ${orgName}`,
+        `Successfully fetched ${
+          traitListResponse.data?.items?.length || 0
+        } traits for org: ${orgName}`,
       );
       return traitListResponse;
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch traits for org ${orgName}: ${error}`,
-      );
+      this.logger.error(`Failed to fetch traits for org ${orgName}: ${error}`);
       throw error;
     }
   }
@@ -85,11 +88,14 @@ export class TraitInfoService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET('/orgs/{orgName}/traits/{traitName}/schema', {
-        params: {
-          path: { orgName, traitName: traitName },
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/traits/{traitName}/schema',
+        {
+          params: {
+            path: { orgName, traitName: traitName },
+          },
         },
-      });
+      );
 
       if (error || !response.ok) {
         throw new Error(
@@ -103,9 +109,7 @@ export class TraitInfoService {
 
       const schemaResponse: TraitSchemaResponse = data as TraitSchemaResponse;
 
-      this.logger.debug(
-        `Successfully fetched schema for trait: ${traitName}`,
-      );
+      this.logger.debug(`Successfully fetched schema for trait: ${traitName}`);
       return schemaResponse;
     } catch (error) {
       this.logger.error(

@@ -39,7 +39,8 @@
     "@backstage/plugin-catalog-node": "^1.19.0",
     "@backstage/plugin-permission-common": "^0.9.1",
     "@openchoreo/backstage-plugin-common": "workspace:^",
-    "@openchoreo/openchoreo-client-node": "workspace:^"
+    "@openchoreo/openchoreo-client-node": "workspace:^",
+    "json-schema": "^0.4.0"
   },
   "devDependencies": {
     "@backstage/backend-test-utils": "^1.9.0",

@@ -7,7 +7,8 @@ import { CatalogClient } from '@backstage/catalog-client';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 // Kubernetes DNS subdomain name validation
-const K8S_NAME_PATTERN = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
+const K8S_NAME_PATTERN =
+  /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 const MAX_NAME_LENGTH = 253;
 
 export const createComponentAction = (config: Config) => {
@@ -16,42 +17,44 @@ export const createComponentAction = (config: Config) => {
     description: 'Create OpenChoreo Component',
     schema: {
       input: (zImpl: typeof z) =>
-        zImpl.object({
-          // Keep existing validation for required fields
-          orgName: zImpl
-            .string()
-            .describe(
-              'The name of the organization where the component will be created',
-            ),
-          projectName: zImpl
-            .string()
-            .describe(
-              'The name of the project where the component will be created',
-            ),
-          componentName: zImpl
-            .string()
-            .max(MAX_NAME_LENGTH, `Component name must not exceed ${MAX_NAME_LENGTH} characters`)
-            .regex(
-              K8S_NAME_PATTERN,
-              'Component name must be a valid Kubernetes name: lowercase letters, numbers, hyphens, or dots only. Must start and end with an alphanumeric character.',
-            )
-            .describe('The name of the component to create'),
-          displayName: zImpl
-            .string()
-            .optional()
-            .describe('The display name of the component'),
-          description: zImpl
-            .string()
-            .optional()
-            .describe('The description of the component'),
-          componentType: zImpl
-            .string()
-            .describe('The type of the component'),
+        zImpl
+          .object({
+            // Keep existing validation for required fields
+            orgName: zImpl
+              .string()
+              .describe(
+                'The name of the organization where the component will be created',
+              ),
+            projectName: zImpl
+              .string()
+              .describe(
+                'The name of the project where the component will be created',
+              ),
+            componentName: zImpl
+              .string()
+              .max(
+                MAX_NAME_LENGTH,
+                `Component name must not exceed ${MAX_NAME_LENGTH} characters`,
+              )
+              .regex(
+                K8S_NAME_PATTERN,
+                'Component name must be a valid Kubernetes name: lowercase letters, numbers, hyphens, or dots only. Must start and end with an alphanumeric character.',
+              )
+              .describe('The name of the component to create'),
+            displayName: zImpl
+              .string()
+              .optional()
+              .describe('The display name of the component'),
+            description: zImpl
+              .string()
+              .optional()
+              .describe('The description of the component'),
+            componentType: zImpl.string().describe('The type of the component'),
 
-          // Optional field
-          useBuiltInCI: zImpl.boolean().optional(),
-        })
-        .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
+            // Optional field
+            useBuiltInCI: zImpl.boolean().optional(),
+          })
+          .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
       output: (zImpl: typeof z) =>
         zImpl.object({
           componentName: zImpl
@@ -114,7 +117,9 @@ export const createComponentAction = (config: Config) => {
         // Filter components by organization annotation and check if name exists
         const existsInOrg = items.some(
           component =>
-            component.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION] === orgName &&
+            component.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.ORGANIZATION
+            ] === orgName &&
             component.metadata.name === ctx.input.componentName,
         );
 
@@ -129,7 +134,10 @@ export const createComponentAction = (config: Config) => {
         );
       } catch (error) {
         // If it's our duplicate error, rethrow it
-        if (error instanceof Error && error.message.includes('already exists')) {
+        if (
+          error instanceof Error &&
+          error.message.includes('already exists')
+        ) {
           throw error;
         }
         // For other catalog API errors, log warning but continue
@@ -184,7 +192,8 @@ export const createComponentAction = (config: Config) => {
           organizationName: orgName,
           projectName: projectName,
           componentType: ctx.input.componentType,
-          componentTypeWorkloadType: (ctx.input as any).component_type_workload_type || 'deployment',
+          componentTypeWorkloadType:
+            (ctx.input as any).component_type_workload_type || 'deployment',
           ctdParameters: ctdParameters,
           useBuiltInCI: ctx.input.useBuiltInCI,
           repoUrl: (ctx.input as any).repo_url,
@@ -210,10 +219,16 @@ export const createComponentAction = (config: Config) => {
           logger: ctx.logger,
         });
 
-        ctx.logger.debug(`Invoking /apply resource for component: ${componentResource.metadata.name}`);
+        ctx.logger.debug(
+          `Invoking /apply resource for component: ${componentResource.metadata.name}`,
+        );
 
         // Call the apply API to create the component
-        const { data: applyData, error: applyError, response: applyResponse } = await client.POST('/apply', {
+        const {
+          data: applyData,
+          error: applyError,
+          response: applyResponse,
+        } = await client.POST('/apply', {
           body: componentResource as any,
         });
 
@@ -228,7 +243,9 @@ export const createComponentAction = (config: Config) => {
         }
 
         ctx.logger.info(
-          `Component created successfully via /apply: ${JSON.stringify(applyData)}`,
+          `Component created successfully via /apply: ${JSON.stringify(
+            applyData,
+          )}`,
         );
 
         // Set outputs for the scaffolder

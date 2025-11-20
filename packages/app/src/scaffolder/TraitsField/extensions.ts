@@ -4,10 +4,7 @@
 
 import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { createScaffolderFieldExtension } from '@backstage/plugin-scaffolder-react';
-import {
-  TraitsField,
-  traitsFieldValidation,
-} from './TraitsFieldExtension';
+import { TraitsField, traitsFieldValidation } from './TraitsFieldExtension';
 
 export const TraitsFieldExtension = scaffolderPlugin.provide(
   createScaffolderFieldExtension({

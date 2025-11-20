@@ -1,7 +1,7 @@
 import { Card, CardContent, Link, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles(theme => ({
   card: {
     marginTop: theme.spacing(2),
     marginBottom: theme.spacing(2),
@@ -27,11 +27,14 @@ export const NoTraitsAvailableMessage = () => {
           No Traits Available for This Organization
         </Typography>
         <Typography variant="body2" paragraph>
-          Traits are cross-cutting capabilities that extend components without modifying their core definitions.
-          Add persistent storage, observability, security policies, or service mesh integration to your components.
+          Traits are cross-cutting capabilities that extend components without
+          modifying their core definitions. Add persistent storage,
+          observability, security policies, or service mesh integration to your
+          components.
         </Typography>
         <Typography variant="body2" paragraph>
-          Platform engineers can create traits to provide these capabilities. Once created, they'll appear here for selection.
+          Platform engineers can create traits to provide these capabilities.
+          Once created, they'll appear here for selection.
         </Typography>
         <Link
           href="https://openchoreo.dev/docs/next/reference/api/platform/trait/"

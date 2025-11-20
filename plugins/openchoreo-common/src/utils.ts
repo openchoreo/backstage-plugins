@@ -33,7 +33,9 @@ export interface RepositoryInfo {
  * @param component - The component response from the OpenChoreo API
  * @returns Repository URL, branch, and path if available in the workflow schema
  */
-export function getRepositoryInfo(component: ModelsCompleteComponent): RepositoryInfo {
+export function getRepositoryInfo(
+  component: ModelsCompleteComponent,
+): RepositoryInfo {
   const workflow = component.workflow;
   if (!workflow?.schema) {
     return {};
@@ -69,7 +71,9 @@ export function getRepositoryInfo(component: ModelsCompleteComponent): Repositor
  * // Returns: "https://github.com/org/repo/tree/main/services/api"
  * ```
  */
-export function getRepositoryUrl(component: ModelsCompleteComponent): string | undefined {
+export function getRepositoryUrl(
+  component: ModelsCompleteComponent,
+): string | undefined {
   const { url, branch, path } = getRepositoryInfo(component);
 
   if (!url) {
