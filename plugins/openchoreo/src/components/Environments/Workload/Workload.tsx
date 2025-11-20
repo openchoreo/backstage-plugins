@@ -5,7 +5,6 @@ import {
   Box,
   useTheme,
   IconButton,
-  CircularProgress,
 } from '@material-ui/core';
 import { useEffect, useState } from 'react';
 import { WorkloadEditor } from './WorkloadEditor';
@@ -23,7 +22,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { discoveryApiRef } from '@backstage/core-plugin-api';
 import { identityApiRef } from '@backstage/core-plugin-api';
-import { Alert } from '@material-ui/lab';
+import { Alert, Skeleton } from '@material-ui/lab';
 import { WorkloadProvider } from './WorkloadContext';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -154,9 +153,6 @@ export function Workload({
     if (isFromSource && !hasBuilds) {
       return 'Build your application first to generate a container image.';
     }
-    if (workloadSpec) {
-      return 'Loading workload configuration...';
-    }
     return 'Configure your workload to enable deployment.';
   };
 
@@ -166,30 +162,32 @@ export function Workload({
         display="flex"
         justifyContent="space-between"
         flexDirection="column"
-        gridGap={8}
+        gridGap={16}
+        mt="auto"
       >
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          p={2}
-        >
-          {isLoading && !error && <CircularProgress />}
-        </Box>
-        {!enableDeploy && (
-          <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
-            {getAlertMessage()}
-          </Alert>
+        {isLoading && !error ? (
+          <Box p={2}>
+            <Skeleton variant="rect" width="100%" height={40} />
+          </Box>
+        ) : (
+          <>
+            {!enableDeploy && (
+              <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
+                {getAlertMessage()}
+              </Alert>
+            )}
+            <Button
+              onClick={toggleDrawer}
+              disabled={!enableDeploy || isDeploying || isLoading || isWorking}
+              variant="contained"
+              color="primary"
+              size="small"
+              style={{ alignSelf: 'flex-end' }}
+            >
+              Configure & Deploy
+            </Button>
+          </>
         )}
-        <Button
-          onClick={toggleDrawer}
-          disabled={!enableDeploy || isDeploying || isLoading || isWorking}
-          variant="contained"
-          color="primary"
-          size="small"
-        >
-          Configure & Deploy
-        </Button>
       </Box>
 
       <Drawer open={open} onClose={toggleDrawer} anchor="right">
