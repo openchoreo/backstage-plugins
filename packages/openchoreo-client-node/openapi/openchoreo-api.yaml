@@ -704,6 +704,13 @@ components:
     # ComponentRelease
     ComponentReleaseResponse:
       type: object
+      description: |
+        Immutable snapshot of component configuration.
+        Note: The following fields are immutable after creation and cannot be modified:
+        - componentType
+        - traits
+        - componentProfile
+        - workload
       required:
         - name
         - componentName
@@ -955,6 +962,161 @@ components:
           type: string
         content:
           type: string
+
+    # Release (deployed state in environment)
+    ReleaseResponse:
+      type: object
+      required:
+        - spec
+        - status
+      properties:
+        spec:
+          $ref: '#/components/schemas/ReleaseSpec'
+        status:
+          $ref: '#/components/schemas/ReleaseStatus'
+
+    ReleaseSpec:
+      type: object
+      required:
+        - owner
+        - environmentName
+      properties:
+        owner:
+          $ref: '#/components/schemas/ReleaseOwner'
+        environmentName:
+          type: string
+          minLength: 1
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Resource'
+        interval:
+          type: string
+          pattern: '^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$'
+          description: Watch interval for release resources when stable (default 5m)
+        progressingInterval:
+          type: string
+          pattern: '^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$'
+          description: Watch interval for release resources when transitioning (default 10s)
+
+    ReleaseStatus:
+      type: object
+      properties:
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceStatus'
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Condition'
+
+    ReleaseOwner:
+      type: object
+      required:
+        - projectName
+        - componentName
+      properties:
+        projectName:
+          type: string
+          minLength: 1
+        componentName:
+          type: string
+          minLength: 1
+
+    Resource:
+      type: object
+      required:
+        - id
+        - object
+      properties:
+        id:
+          type: string
+          minLength: 1
+          description: Unique identifier for the resource
+        object:
+          type: object
+          description: Complete Kubernetes resource definition
+          additionalProperties: true
+
+    ResourceStatus:
+      type: object
+      required:
+        - id
+        - version
+        - kind
+        - name
+      properties:
+        id:
+          type: string
+          minLength: 1
+        group:
+          type: string
+          description: API group of the resource (empty for core resources)
+        version:
+          type: string
+          minLength: 1
+        kind:
+          type: string
+          minLength: 1
+        name:
+          type: string
+          minLength: 1
+        namespace:
+          type: string
+          description: Namespace (empty for cluster-scoped resources)
+        status:
+          type: object
+          additionalProperties: true
+          description: Entire .status field of the resource
+        healthStatus:
+          type: string
+          enum:
+            - Unknown
+            - Progressing
+            - Healthy
+            - Suspended
+            - Degraded
+        lastObservedTime:
+          type: string
+          format: date-time
+
+    Condition:
+      type: object
+      required:
+        - type
+        - status
+        - lastTransitionTime
+      properties:
+        type:
+          type: string
+        status:
+          type: string
+          enum:
+            - "True"
+            - "False"
+            - Unknown
+        observedGeneration:
+          type: integer
+          format: int64
+        lastTransitionTime:
+          type: string
+          format: date-time
+        reason:
+          type: string
+        message:
+          type: string
+
+    # Request schemas
+    UpdateWorkflowSchemaRequest:
+      type: object
+      required:
+        - schema
+      properties:
+        schema:
+          type: object
+          additionalProperties: true
+          description: Component workflow schema as arbitrary JSON
 
 security:
   - BearerAuth: []
@@ -1824,6 +1986,47 @@ paths:
         '404':
           description: Component not found
 
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-schema:
+    patch:
+      summary: Update component workflow schema
+      operationId: updateComponentWorkflowSchema
+      tags:
+        - Components
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWorkflowSchemaRequest'
+      responses:
+        '200':
+          description: Workflow schema updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentResponse'
+
   # Component Bindings
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings:
     get:
@@ -2397,6 +2600,48 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/ObserverUrlData'
+
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release:
+    get:
+      summary: Get environment release
+      operationId: getEnvironmentRelease
+      tags:
+        - Releases
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: environmentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReleaseResponse'
+        '404':
+          description: Release not found for the specified environment
 
   # Workloads
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads:
