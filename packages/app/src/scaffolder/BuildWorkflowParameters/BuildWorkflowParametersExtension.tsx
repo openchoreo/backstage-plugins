@@ -9,6 +9,7 @@ import {
 import { JSONSchema7 } from 'json-schema';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
+import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 
 /*
  Schema for the Build Workflow Parameters Field
@@ -30,9 +31,8 @@ export const BuildWorkflowParameters = ({
   formData,
   formContext,
 }: FieldExtensionComponentProps<Record<string, any>>) => {
-  const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(
-    null,
-  );
+  const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(null);
+  const [uiSchema, setUiSchema] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,6 +93,9 @@ export const BuildWorkflowParameters = ({
 
         if (!ignore) {
           setWorkflowSchema(schema);
+          // Generate UI schema with sanitized titles for fields without explicit titles
+          const generatedUiSchema = generateUiSchemaWithTitles(schema);
+          setUiSchema(generatedUiSchema);
         }
       } catch (err) {
         if (!ignore) {
@@ -168,6 +171,7 @@ export const BuildWorkflowParameters = ({
       </Typography>
       <Form
         schema={workflowSchema}
+        uiSchema={uiSchema}
         formData={formData || {}}
         onChange={handleFormChange}
         validator={validator}

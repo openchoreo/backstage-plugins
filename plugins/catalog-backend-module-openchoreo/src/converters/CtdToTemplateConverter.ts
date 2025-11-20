@@ -1,7 +1,7 @@
 import { Entity } from '@backstage/catalog-model';
 import { OpenChoreoAPI } from '@openchoreo/openchoreo-client-node';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { CHOREO_ANNOTATIONS, sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 
 type ComponentType = OpenChoreoAPI.ComponentType;
 
@@ -348,13 +348,18 @@ export class CtdToTemplateConverter {
   /**
    * Convert a single JSONSchema property to Backstage RJSF format
    */
-  private convertJsonSchemaProperty(_key: string, schema: JSONSchema7): any {
+  private convertJsonSchemaProperty(key: string, schema: JSONSchema7): any {
     const converted: any = {
       type: schema.type,
     };
 
     // Copy basic properties
-    if (schema.title) converted.title = schema.title;
+    // If schema doesn't have a title, generate one from the key
+    if (schema.title) {
+      converted.title = schema.title;
+    } else if (key) {
+      converted.title = sanitizeLabel(key);
+    }
     if (schema.description) converted.description = schema.description;
     if (schema.default !== undefined) converted.default = schema.default;
 
