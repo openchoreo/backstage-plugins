@@ -87,3 +87,52 @@ export function getRepositoryUrl(
   const separator = url.endsWith('/') ? '' : '/';
   return `${url}${separator}tree/${branch || 'main'}/${path}`;
 }
+
+/**
+ * Converts camelCase or snake_case strings to Title Case for display labels
+ *
+ * This utility is used to generate human-readable labels from schema property keys
+ * that are typically written in camelCase or snake_case.
+ *
+ * @param key - The string to convert (camelCase or snake_case)
+ * @returns Title Case version of the string
+ *
+ * @example
+ * ```typescript
+ * sanitizeLabel('imagePullPolicy')      // "Image Pull Policy"
+ * sanitizeLabel('image_pull_policy')    // "Image Pull Policy"
+ * sanitizeLabel('CPU')                  // "CPU" (preserves acronyms)
+ * sanitizeLabel('httpPort')             // "Http Port"
+ * sanitizeLabel('maxRetries3')          // "Max Retries 3"
+ * ```
+ */
+export function sanitizeLabel(key: string): string {
+  if (!key) return '';
+
+  // Handle snake_case first
+  let result = key.replace(/_/g, ' ');
+
+  // Insert spaces before uppercase letters (for camelCase)
+  result = result.replace(/([a-z])([A-Z])/g, '$1 $2');
+
+  // Insert spaces before numbers
+  result = result.replace(/([a-zA-Z])(\d)/g, '$1 $2');
+
+  // Split into words
+  const words = result.split(/\s+/);
+
+  // Capitalize each word
+  const titleCased = words.map(word => {
+    if (!word) return '';
+
+    // Keep all-caps acronyms as-is (e.g., CPU, HTTP, URL)
+    if (word.length > 1 && word === word.toUpperCase()) {
+      return word;
+    }
+
+    // Capitalize first letter, lowercase the rest
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  });
+
+  return titleCased.join(' ');
+}

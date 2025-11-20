@@ -27,6 +27,7 @@ import Form from '@rjsf/material-ui';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
 import { NoTraitsAvailableMessage } from './NoTraitsAvailableMessage';
+import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 
 /**
  * Schema for the Traits Field
@@ -57,6 +58,7 @@ export interface AddedTrait {
   instanceName: string; // User-editable instance name
   config: Record<string, any>;
   schema?: JSONSchema7;
+  uiSchema?: any; // UI schema with sanitized field labels
 }
 
 /**
@@ -186,12 +188,17 @@ export const TraitsField = ({
       const result = await response.json();
 
       if (result.success) {
+        const schema = result.data;
+        // Generate UI schema with sanitized titles for fields without explicit titles
+        const generatedUiSchema = generateUiSchemaWithTitles(schema);
+
         const newTrait: AddedTrait = {
           id: `${selectedTrait}-${Date.now()}`, // Unique ID for this instance
           name: selectedTrait,
           instanceName: `${selectedTrait}-${addedTraits.length + 1}`, // Default instance name
           config: {},
-          schema: result.data,
+          schema: schema,
+          uiSchema: generatedUiSchema,
         };
 
         const updatedTraits = [...addedTraits, newTrait];
@@ -335,6 +342,7 @@ export const TraitsField = ({
                 {trait.schema && (
                   <Form
                     schema={trait.schema}
+                    uiSchema={trait.uiSchema || {}}
                     formData={trait.config}
                     onChange={data =>
                       handleTraitConfigChange(trait.id, data.formData)
