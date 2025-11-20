@@ -6,7 +6,7 @@ import {
 } from '@backstage/plugin-home';
 import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
-import { Grid, Typography, Card, CardContent, Box } from '@material-ui/core';
+import { Grid, Typography, Box } from '@material-ui/core';
 import { useStyles } from './styles';
 import { useUserGroups } from '../../hooks';
 import {
@@ -66,19 +66,6 @@ export const HomePage = () => {
     return 'user';
   };
 
-  // Get welcome message based on role
-  const getWelcomeMessage = () => {
-    const role = getUserRole();
-    switch (role) {
-      case 'platformengineer':
-        return 'You have full administrative access to all features and resources.';
-      case 'developer':
-        return 'You can create and manage your own components and services.';
-      default:
-        return 'Welcome to the developer portal!';
-    }
-  };
-
   if (loading) {
     return (
       <Page themeId="home">
@@ -107,31 +94,6 @@ export const HomePage = () => {
                 }}
                 placeholder="Search"
               />
-            </Grid>
-
-            {/* Welcome Card with Role Information */}
-            <Grid item xs={12} md={6}>
-              <Card className={classes.welcomeCard}>
-                <CardContent>
-                  <Typography variant="h5" gutterBottom>
-                    {getWelcomeMessage()}
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="textSecondary"
-                    gutterBottom
-                  >
-                    Your groups:
-                  </Typography>
-                  <div>
-                    {userGroups.map(group => (
-                      <span key={group} className={classes.groupBadge}>
-                        {group}
-                      </span>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
             </Grid>
 
             <Grid item xs={12} md={8}>
