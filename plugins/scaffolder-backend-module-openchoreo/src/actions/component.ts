@@ -154,6 +154,11 @@ export const createComponentAction = (config: Config) => {
           config: trait.config,
         }));
 
+        // Extract CI setup data
+        const useBuiltInCI = ctx.input.useBuiltInCI ?? false;
+        const workflowName = (ctx.input as any).workflow_name;
+        const workflowParameters = (ctx.input as any).workflow_parameters;
+
         // Extract CTD-specific parameters by filtering out known scaffolder fields
         const knownScaffolderFields = new Set([
           'orgName',
@@ -166,7 +171,6 @@ export const createComponentAction = (config: Config) => {
           'workflow_name',
           'workflow_parameters',
           'traits',
-          'external_ci_note',
           'repo_url',
           'branch',
           'component_path',
@@ -195,22 +199,14 @@ export const createComponentAction = (config: Config) => {
           componentTypeWorkloadType:
             (ctx.input as any).component_type_workload_type || 'deployment',
           ctdParameters: ctdParameters,
-          useBuiltInCI: ctx.input.useBuiltInCI,
+          useBuiltInCI: useBuiltInCI,
           repoUrl: (ctx.input as any).repo_url,
           branch: (ctx.input as any).branch,
           componentPath: (ctx.input as any).component_path,
-          workflowName: (ctx.input as any).workflow_name,
-          workflowParameters: (ctx.input as any).workflow_parameters,
+          workflowName: workflowName,
+          workflowParameters: workflowParameters,
           traits: cleanedTraits,
         });
-
-        // Log the generated ComponentResource object
-        ctx.logger.info('Generated ComponentResource:');
-        console.log('='.repeat(80));
-        console.log('COMPONENT RESOURCE JSON:');
-        console.log('='.repeat(80));
-        console.log(JSON.stringify(componentResource, null, 2));
-        console.log('='.repeat(80));
 
         // Create the API client using the auto-generated client
         const baseUrl = config.getString('openchoreo.baseUrl');

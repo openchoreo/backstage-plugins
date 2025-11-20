@@ -129,18 +129,22 @@ export const BuildWorkflowPicker = ({
     onChange(selectedWorkflow);
   };
 
+  const label = uiSchema?.['ui:title'] || schema.title || 'Build Workflow';
+
   return (
     <FormControl
       fullWidth
       margin="normal"
+      variant="outlined"
       error={!!rawErrors?.length || !!error}
       required={required}
     >
       <InputLabel id={`${idSchema?.$id}-label`}>
-        {uiSchema?.['ui:title'] || schema.title || 'Build Workflow'}
+        {label}
       </InputLabel>
       <Select
         labelId={`${idSchema?.$id}-label`}
+        label={label}
         value={formData || ''}
         onChange={handleChange}
         disabled={loading || workflowOptions.length === 0}

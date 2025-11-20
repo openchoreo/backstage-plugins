@@ -17,6 +17,8 @@ import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplat
 import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
 import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
 import { TraitsFieldExtension } from './scaffolder/TraitsField';
+import { SwitchFieldExtension } from './scaffolder/SwitchField';
+import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -133,7 +135,17 @@ const routes = (
         <ReportIssue />
       </TechDocsAddons>
     </Route>
-    <Route path="/create" element={<ScaffolderPage groups={templateGroups} />}>
+    <Route
+      path="/create"
+      element={
+        <ScaffolderPage
+          groups={templateGroups}
+          components={{
+            ReviewStepComponent: CustomReviewStep,
+          }}
+        />
+      }
+    >
       <ScaffolderFieldExtensions>
         <ComponentNamePickerFieldExtension />
         <BuildTemplatePickerFieldExtension />
@@ -141,6 +153,7 @@ const routes = (
         <BuildWorkflowPickerFieldExtension />
         <BuildWorkflowParametersFieldExtension />
         <TraitsFieldExtension />
+        <SwitchFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />

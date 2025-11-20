@@ -213,7 +213,7 @@ export const TraitsField = ({
     }
   };
 
-  // Remove an trait
+  // Remove a trait
   const handleRemoveTrait = (id: string) => {
     const updatedTraits = addedTraits.filter(trait => trait.id !== id);
     setAddedTraits(updatedTraits);
@@ -254,16 +254,13 @@ export const TraitsField = ({
       {/* Trait Selection - Only show when traits are available or loading */}
       {(loadingTraits || availableTraits.length > 0) && (
         <Box display="flex" alignItems="center" mt={2} mb={3}>
-          <FormControl
-            fullWidth
-            disabled={loadingTraits || loadingSchema}
-            style={{ marginRight: 16 }}
+        <FormControl fullWidth variant="outlined" disabled={loadingTraits || loadingSchema} style={{ marginRight: 16 }}>
+          <InputLabel>Select a Trait</InputLabel>
+          <Select
+            label="Select a Trait"
+            value={selectedTrait}
+            onChange={e => setSelectedTrait(e.target.value as string)}
           >
-            <InputLabel>Select an Trait</InputLabel>
-            <Select
-              value={selectedTrait}
-              onChange={e => setSelectedTrait(e.target.value as string)}
-            >
               {loadingTraits && (
                 <MenuItem disabled>
                   <CircularProgress size={20} style={{ marginRight: 8 }} />
@@ -367,6 +364,7 @@ export const TraitsField = ({
 
 /**
  * Validation function for traits
+ * Validates trait configurations against their JSON schemas
  */
 export const traitsFieldValidation = (value: AddedTrait[], validation: any) => {
   if (!value || value.length === 0) {

@@ -87,13 +87,12 @@ export function buildComponentResource(
 
   // Add traits (traits) if provided
   if (input.traits && input.traits.length > 0) {
-    resource.spec.traits = input.traits.map(
-      (trait): ComponentTrait => ({
-        name: trait.name,
-        instanceName: trait.instanceName,
-        config: trait.config,
-      }),
-    );
+    resource.spec.traits = input.traits.map((trait): ComponentTrait => ({
+      name: trait.name,
+      instanceName: trait.instanceName,
+      // Convert flat dot-notation config to nested structure (same as workflow parameters)
+      parameters: convertFlatToNested(trait.config),
+    }));
   }
 
   return resource;

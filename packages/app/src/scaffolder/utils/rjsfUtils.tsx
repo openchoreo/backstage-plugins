@@ -2,7 +2,7 @@ import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 
 /**
  * Recursively generates a UI Schema with sanitized titles for all fields
- * that don't already have a title in the JSON Schema
+ * that don't already have a title in the JSON Schema.
  */
 export function generateUiSchemaWithTitles(
   schema: any,
@@ -17,8 +17,12 @@ export function generateUiSchemaWithTitles(
   // Handle object properties
   if (schema.properties) {
     Object.entries(schema.properties).forEach(([key, propSchema]: [string, any]) => {
+      if (!propSchema || typeof propSchema !== 'object') {
+        return;
+      }
+
       // If the property doesn't have a title, add one in the UI schema
-      if (propSchema && typeof propSchema === 'object' && !propSchema.title) {
+      if (!propSchema.title) {
         uiSchema[key] = {
           'ui:title': sanitizeLabel(key),
         };
