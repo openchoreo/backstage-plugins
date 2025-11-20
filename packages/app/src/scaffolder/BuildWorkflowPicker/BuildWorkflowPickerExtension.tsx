@@ -139,9 +139,7 @@ export const BuildWorkflowPicker = ({
       error={!!rawErrors?.length || !!error}
       required={required}
     >
-      <InputLabel id={`${idSchema?.$id}-label`}>
-        {label}
-      </InputLabel>
+      <InputLabel id={`${idSchema?.$id}-label`}>{label}</InputLabel>
       <Select
         labelId={`${idSchema?.$id}-label`}
         label={label}

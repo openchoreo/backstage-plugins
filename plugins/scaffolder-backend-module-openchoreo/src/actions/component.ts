@@ -159,7 +159,8 @@ export const createComponentAction = (config: Config) => {
         const workflowName = (ctx.input as any).workflow_name;
         const workflowParametersData = (ctx.input as any).workflow_parameters;
         // Extract parameters from the new structure (workflow_parameters.parameters)
-        const workflowParameters = workflowParametersData?.parameters || workflowParametersData;
+        const workflowParameters =
+          workflowParametersData?.parameters || workflowParametersData;
 
         // Extract CTD-specific parameters by filtering out known scaffolder fields
         const knownScaffolderFields = new Set([

@@ -16,38 +16,43 @@ export function generateUiSchemaWithTitles(
 
   // Handle object properties
   if (schema.properties) {
-    Object.entries(schema.properties).forEach(([key, propSchema]: [string, any]) => {
-      if (!propSchema || typeof propSchema !== 'object') {
-        return;
-      }
+    Object.entries(schema.properties).forEach(
+      ([key, propSchema]: [string, any]) => {
+        if (!propSchema || typeof propSchema !== 'object') {
+          return;
+        }
 
-      // If the property doesn't have a title, add one in the UI schema
-      if (!propSchema.title) {
-        uiSchema[key] = {
-          'ui:title': sanitizeLabel(key),
-        };
-      }
-
-      // Recursively handle nested objects
-      if (propSchema.type === 'object' && propSchema.properties) {
-        const nestedUiSchema = generateUiSchemaWithTitles(propSchema, key);
-        uiSchema[key] = {
-          ...uiSchema[key],
-          ...nestedUiSchema,
-        };
-      }
-
-      // Handle array items
-      if (propSchema.type === 'array' && propSchema.items) {
-        const itemsUiSchema = generateUiSchemaWithTitles(propSchema.items, key);
-        if (Object.keys(itemsUiSchema).length > 0) {
+        // If the property doesn't have a title, add one in the UI schema
+        if (!propSchema.title) {
           uiSchema[key] = {
-            ...uiSchema[key],
-            items: itemsUiSchema,
+            'ui:title': sanitizeLabel(key),
           };
         }
-      }
-    });
+
+        // Recursively handle nested objects
+        if (propSchema.type === 'object' && propSchema.properties) {
+          const nestedUiSchema = generateUiSchemaWithTitles(propSchema, key);
+          uiSchema[key] = {
+            ...uiSchema[key],
+            ...nestedUiSchema,
+          };
+        }
+
+        // Handle array items
+        if (propSchema.type === 'array' && propSchema.items) {
+          const itemsUiSchema = generateUiSchemaWithTitles(
+            propSchema.items,
+            key,
+          );
+          if (Object.keys(itemsUiSchema).length > 0) {
+            uiSchema[key] = {
+              ...uiSchema[key],
+              items: itemsUiSchema,
+            };
+          }
+        }
+      },
+    );
   }
 
   return uiSchema;

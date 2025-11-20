@@ -45,7 +45,10 @@ export const CustomReviewStep = ({
   }
 
   // Filter workflow_parameters to remove schema and show only the parameters
-  if (filteredFormData.workflow_parameters && typeof filteredFormData.workflow_parameters === 'object') {
+  if (
+    filteredFormData.workflow_parameters &&
+    typeof filteredFormData.workflow_parameters === 'object'
+  ) {
     const { schema, ...rest } = filteredFormData.workflow_parameters;
     filteredFormData.workflow_parameters = rest.parameters || rest;
   }
