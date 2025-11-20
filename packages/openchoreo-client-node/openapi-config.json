@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "67eecf3a09fe1de4688ba3f2b39010a098e51600",
-  "lastSyncDate": "2025-01-19T00:00:00Z",
-  "lastSyncDescription": "Synced with openchoreo API changes: added uid to Project/Component/Environment responses, replaced buildConfig with workflow in ComponentResponse"
+  "lastSyncCommit": "248f75d1da253f4fbe7c5b6cc5e2b5ed58a4c263",
+  "lastSyncDate": "2025-11-20T00:00:00Z",
+  "lastSyncDescription": "Synced with openchoreo API changes: added component/release schema endpoints, refactored to use workloadOverrides instead of configurationOverrides, added HTTP metrics endpoint"
 }
