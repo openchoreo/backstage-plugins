@@ -14,7 +14,9 @@ const useStyles = makeStyles(theme => ({
 
 /**
  * Custom Review Step Component
- * Filters out internal fields (schema, uiSchema, id) from traits before rendering
+ * Filters out internal fields before rendering:
+ * - Traits: removes id, schema, uiSchema
+ * - Workflow Parameters: removes schema, shows only parameters
  */
 export const CustomReviewStep = ({
   formData,
@@ -40,6 +42,12 @@ export const CustomReviewStep = ({
       const { id, schema, uiSchema, ...cleanTrait } = trait;
       return cleanTrait;
     });
+  }
+
+  // Filter workflow_parameters to remove schema and show only the parameters
+  if (filteredFormData.workflow_parameters && typeof filteredFormData.workflow_parameters === 'object') {
+    const { schema, ...rest } = filteredFormData.workflow_parameters;
+    filteredFormData.workflow_parameters = rest.parameters || rest;
   }
 
   return (
