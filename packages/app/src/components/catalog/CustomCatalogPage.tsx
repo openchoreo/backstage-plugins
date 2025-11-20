@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Box, Drawer, Button, Grid } from '@material-ui/core';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
@@ -30,11 +30,11 @@ export interface CustomCatalogPageProps {
   initiallySelectedNamespaces?: string[];
 }
 
-export const CustomCatalogPage: React.FC<CustomCatalogPageProps> = ({
+export const CustomCatalogPage = ({
   initialKind = 'component',
   ownerPickerMode = 'all',
   initiallySelectedNamespaces,
-}) => {
+}: CustomCatalogPageProps) => {
   const classes = useStyles();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);

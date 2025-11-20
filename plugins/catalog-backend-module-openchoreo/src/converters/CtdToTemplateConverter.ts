@@ -34,10 +34,16 @@ export class CtdToTemplateConverter {
   /**
    * Convert a Component Type to a Backstage Template entity
    */
-  convertCtdToTemplateEntity(componentType: ComponentType, organizationName: string): Entity {
+  convertCtdToTemplateEntity(
+    componentType: ComponentType,
+    organizationName: string,
+  ): Entity {
     const templateName = this.generateTemplateName(componentType.metadata.name);
-    const title = componentType.metadata.displayName || this.formatTitle(componentType.metadata.name);
-    const description = componentType.metadata.description || `Create a ${title} component`;
+    const title =
+      componentType.metadata.displayName ||
+      this.formatTitle(componentType.metadata.name);
+    const description =
+      componentType.metadata.description || `Create a ${title} component`;
 
     // Infer tags from component type name and workloadType
     const inferredTags = this.inferTagsFromCtd(componentType);
@@ -72,8 +78,9 @@ export class CtdToTemplateConverter {
 
     // Add displayName annotation if provided
     if (componentType.metadata.displayName) {
-      templateEntity.metadata.annotations![CHOREO_ANNOTATIONS.CTD_DISPLAY_NAME] =
-        componentType.metadata.displayName;
+      templateEntity.metadata.annotations![
+        CHOREO_ANNOTATIONS.CTD_DISPLAY_NAME
+      ] = componentType.metadata.displayName;
     }
 
     return templateEntity;
@@ -123,7 +130,10 @@ export class CtdToTemplateConverter {
    * Generate template parameters from component type schema
    * Includes standard fields + component type-specific fields
    */
-  private generateParameters(componentType: ComponentType, organizationName: string): any[] {
+  private generateParameters(
+    componentType: ComponentType,
+    organizationName: string,
+  ): any[] {
     const parameters: any[] = [];
 
     // Section 1: Component Metadata (standard fields)
@@ -153,7 +163,8 @@ export class CtdToTemplateConverter {
           description: 'The organization where this component will be created',
           default: organizationName,
           'ui:disabled': true,
-          'ui:help': 'Organization is determined by the CTD and cannot be changed',
+          'ui:help':
+            'Organization is determined by the CTD and cannot be changed',
         },
         project_name: {
           title: 'Project',
@@ -169,8 +180,14 @@ export class CtdToTemplateConverter {
 
     // Section 2: Component type-specific configuration
     const componentTypeSchema = componentType.spec.inputParametersSchema;
-    if (componentTypeSchema && componentTypeSchema.properties && Object.keys(componentTypeSchema.properties).length > 0) {
-      const title = componentType.metadata.displayName || this.formatTitle(componentType.metadata.name);
+    if (
+      componentTypeSchema &&
+      componentTypeSchema.properties &&
+      Object.keys(componentTypeSchema.properties).length > 0
+    ) {
+      const title =
+        componentType.metadata.displayName ||
+        this.formatTitle(componentType.metadata.name);
 
       parameters.push({
         title: `${title} Configuration`,
@@ -181,7 +198,9 @@ export class CtdToTemplateConverter {
     }
 
     // Section 3: CI Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
-    parameters.push(this.generateCISetupSection(componentType, organizationName));
+    parameters.push(
+      this.generateCISetupSection(componentType, organizationName),
+    );
 
     // Section 4: Traits
     parameters.push(this.generateTraitsSection(organizationName));
@@ -194,7 +213,10 @@ export class CtdToTemplateConverter {
    * Always shows CI Setup section. If allowedWorkflows is provided, uses them for the dropdown.
    * Otherwise, BuildWorkflowPicker will fetch all workflows from the API.
    */
-  private generateCISetupSection(componentType: ComponentType, organizationName: string): any {
+  private generateCISetupSection(
+    componentType: ComponentType,
+    organizationName: string,
+  ): any {
     const hasAllowedWorkflows =
       componentType.metadata.allowedWorkflows &&
       componentType.metadata.allowedWorkflows.length > 0;
@@ -222,7 +244,8 @@ export class CtdToTemplateConverter {
       properties: {
         useBuiltInCI: {
           title: 'Use Built-in CI in OpenChoreo',
-          description: 'OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.',
+          description:
+            'OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.',
           type: 'boolean',
           'ui:widget': 'radio',
         },
@@ -263,7 +286,8 @@ export class CtdToTemplateConverter {
                   external_ci_note: {
                     type: 'null',
                     'ui:widget': 'markdown',
-                    description: '## Configure your CI\n\nThis section contains details for configuring your CI pipeline to notify OpenChoreo for each build.',
+                    description:
+                      '## Configure your CI\n\nThis section contains details for configuring your CI pipeline to notify OpenChoreo for each build.',
                   },
                 },
               },
@@ -281,12 +305,14 @@ export class CtdToTemplateConverter {
   private generateTraitsSection(organizationName: string): any {
     return {
       title: 'Traits',
-      description: 'Add optional traits to enhance your component functionality',
+      description:
+        'Add optional traits to enhance your component functionality',
       properties: {
         traits: {
           title: 'Component Traits',
           type: 'array',
-          description: 'Select and configure traits for your component. You can add multiple traits.',
+          description:
+            'Select and configure traits for your component. You can add multiple traits.',
           'ui:field': 'TraitsField',
           'ui:options': {
             organizationName: organizationName,
@@ -346,7 +372,8 @@ export class CtdToTemplateConverter {
     } else if (schema.type === 'number' || schema.type === 'integer') {
       if (schema.minimum !== undefined) converted.minimum = schema.minimum;
       if (schema.maximum !== undefined) converted.maximum = schema.maximum;
-      if (schema.multipleOf !== undefined) converted.multipleOf = schema.multipleOf;
+      if (schema.multipleOf !== undefined)
+        converted.multipleOf = schema.multipleOf;
     } else if (schema.type === 'array') {
       if (schema.items) {
         // Handle both single schema and array of schemas (tuple validation)
@@ -360,7 +387,8 @@ export class CtdToTemplateConverter {
       }
       if (schema.minItems !== undefined) converted.minItems = schema.minItems;
       if (schema.maxItems !== undefined) converted.maxItems = schema.maxItems;
-      if (schema.uniqueItems !== undefined) converted.uniqueItems = schema.uniqueItems;
+      if (schema.uniqueItems !== undefined)
+        converted.uniqueItems = schema.uniqueItems;
     } else if (schema.type === 'object') {
       if (schema.properties) {
         converted.properties = this.convertJsonSchemaProperties(schema);
@@ -455,7 +483,7 @@ export class CtdToTemplateConverter {
         // This is required for proper conditional field show/hide behavior in Backstage/RJSF
         if (!convertedSchema.allOf) {
           converted[key] = {
-            allOf: [convertedSchema]
+            allOf: [convertedSchema],
           };
         } else {
           // Already has allOf, don't double-wrap
@@ -489,20 +517,22 @@ export class CtdToTemplateConverter {
       converted.if = schema.if; // Keep if condition as-is (used for evaluation)
     }
     if (schema.then) {
-      converted.then = typeof schema.then === 'boolean'
-        ? schema.then
-        : this.convertSchemaObject(schema.then);
+      converted.then =
+        typeof schema.then === 'boolean'
+          ? schema.then
+          : this.convertSchemaObject(schema.then);
     }
     if (schema.else) {
-      converted.else = typeof schema.else === 'boolean'
-        ? schema.else
-        : this.convertSchemaObject(schema.else);
+      converted.else =
+        typeof schema.else === 'boolean'
+          ? schema.else
+          : this.convertSchemaObject(schema.else);
     }
 
     // Handle allOf (combine multiple schemas)
     if (schema.allOf) {
       converted.allOf = schema.allOf.map(s =>
-        typeof s === 'boolean' ? s : this.convertSchemaObject(s)
+        typeof s === 'boolean' ? s : this.convertSchemaObject(s),
       );
     }
 

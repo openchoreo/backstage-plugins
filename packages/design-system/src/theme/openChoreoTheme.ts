@@ -183,7 +183,8 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         root: {
           backgroundColor: colors.primary.main,
-          backgroundImage: 'linear-gradient(135deg, #6c7fd8 0%, #7c8ee0 100%)!important',
+          backgroundImage:
+            'linear-gradient(135deg, #6c7fd8 0%, #7c8ee0 100%)!important',
         },
       },
     },

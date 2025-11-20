@@ -33,7 +33,10 @@ import type {
   ModelsBuild,
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
-import { getRepositoryUrl, getRepositoryInfo } from '@openchoreo/backstage-plugin-common';
+import {
+  getRepositoryUrl,
+  getRepositoryInfo,
+} from '@openchoreo/backstage-plugin-common';
 import { formatRelativeTime } from '../../utils/timeUtils';
 
 const BuildStatusComponent = ({ status }: { status?: string }) => {

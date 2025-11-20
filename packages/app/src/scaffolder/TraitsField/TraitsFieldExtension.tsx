@@ -110,7 +110,9 @@ export const TraitsField = ({
         const orgName = extractOrgName(organizationName);
 
         const response = await fetch(
-          `${baseUrl}/traits?organizationName=${encodeURIComponent(orgName)}&page=1&pageSize=100`,
+          `${baseUrl}/traits?organizationName=${encodeURIComponent(
+            orgName,
+          )}&page=1&pageSize=100`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -167,7 +169,9 @@ export const TraitsField = ({
       const orgName = extractOrgName(organizationName);
 
       const response = await fetch(
-        `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(orgName)}&traitName=${encodeURIComponent(selectedTrait)}`,
+        `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(
+          orgName,
+        )}&traitName=${encodeURIComponent(selectedTrait)}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -229,7 +233,6 @@ export const TraitsField = ({
 
   return (
     <Box mt={2} mb={2}>
-
       {error && (
         <Typography variant="body2" color="error" gutterBottom>
           {error}
@@ -244,44 +247,50 @@ export const TraitsField = ({
       {/* Trait Selection - Only show when traits are available or loading */}
       {(loadingTraits || availableTraits.length > 0) && (
         <Box display="flex" alignItems="center" mt={2} mb={3}>
-        <FormControl fullWidth disabled={loadingTraits || loadingSchema} style={{ marginRight: 16 }}>
-          <InputLabel>Select an Trait</InputLabel>
-          <Select
-            value={selectedTrait}
-            onChange={e => setSelectedTrait(e.target.value as string)}
+          <FormControl
+            fullWidth
+            disabled={loadingTraits || loadingSchema}
+            style={{ marginRight: 16 }}
           >
-            {loadingTraits && (
-              <MenuItem disabled>
-                <CircularProgress size={20} style={{ marginRight: 8 }} />
-                Loading traits...
-              </MenuItem>
-            )}
-            {!loadingTraits && availableTraits.length === 0 && (
-              <MenuItem disabled>
-                {organizationName
-                  ? 'No traits available'
-                  : 'Select an organization first'}
-              </MenuItem>
-            )}
-            {!loadingTraits &&
-              availableTraits.map(trait => (
-                <MenuItem key={trait.name} value={trait.name}>
-                  {trait.name}
+            <InputLabel>Select an Trait</InputLabel>
+            <Select
+              value={selectedTrait}
+              onChange={e => setSelectedTrait(e.target.value as string)}
+            >
+              {loadingTraits && (
+                <MenuItem disabled>
+                  <CircularProgress size={20} style={{ marginRight: 8 }} />
+                  Loading traits...
                 </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={loadingSchema ? <CircularProgress size={20} /> : <AddIcon />}
-          onClick={handleAddTrait}
-          disabled={!selectedTrait || loadingSchema || loadingTraits}
-          style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-        >
-          {loadingSchema ? 'Adding...' : 'Add Trait'}
-        </Button>
-      </Box>
+              )}
+              {!loadingTraits && availableTraits.length === 0 && (
+                <MenuItem disabled>
+                  {organizationName
+                    ? 'No traits available'
+                    : 'Select an organization first'}
+                </MenuItem>
+              )}
+              {!loadingTraits &&
+                availableTraits.map(trait => (
+                  <MenuItem key={trait.name} value={trait.name}>
+                    {trait.name}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={
+              loadingSchema ? <CircularProgress size={20} /> : <AddIcon />
+            }
+            onClick={handleAddTrait}
+            disabled={!selectedTrait || loadingSchema || loadingTraits}
+            style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+          >
+            {loadingSchema ? 'Adding...' : 'Add Trait'}
+          </Button>
+        </Box>
       )}
 
       {/* Display Added Traits */}
@@ -291,7 +300,11 @@ export const TraitsField = ({
             Configured Traits ({addedTraits.length})
           </Typography>
           {addedTraits.map((trait, index) => (
-            <Card key={trait.id} variant="outlined" style={{ marginBottom: 16 }}>
+            <Card
+              key={trait.id}
+              variant="outlined"
+              style={{ marginBottom: 16 }}
+            >
               <CardHeader
                 title={trait.instanceName || `${trait.name} #${index + 1}`}
                 action={
@@ -323,7 +336,9 @@ export const TraitsField = ({
                   <Form
                     schema={trait.schema}
                     formData={trait.config}
-                    onChange={data => handleTraitConfigChange(trait.id, data.formData)}
+                    onChange={data =>
+                      handleTraitConfigChange(trait.id, data.formData)
+                    }
                     validator={validator}
                     showErrorList={false}
                     children={<div />} // Hide submit button
@@ -345,10 +360,7 @@ export const TraitsField = ({
 /**
  * Validation function for traits
  */
-export const traitsFieldValidation = (
-  value: AddedTrait[],
-  validation: any,
-) => {
+export const traitsFieldValidation = (value: AddedTrait[], validation: any) => {
   if (!value || value.length === 0) {
     // Traits are optional, no error if empty
     return;
@@ -372,7 +384,9 @@ export const traitsFieldValidation = (
     // Check for duplicate instance names
     if (instanceNames.has(trait.instanceName)) {
       validation.addError(
-        `Trait #${index + 1}: Instance name "${trait.instanceName}" is already used. Each trait instance must have a unique name.`,
+        `Trait #${index + 1}: Instance name "${
+          trait.instanceName
+        }" is already used. Each trait instance must have a unique name.`,
       );
     } else {
       instanceNames.add(trait.instanceName);
@@ -392,7 +406,9 @@ export const traitsFieldValidation = (
 
       if (validationResult.errors && validationResult.errors.length > 0) {
         validationResult.errors.forEach((error: any) => {
-          const fieldPath = error.property ? error.property.replace(/^\./, '') : 'field';
+          const fieldPath = error.property
+            ? error.property.replace(/^\./, '')
+            : 'field';
           validation.addError(
             `${trait.instanceName}: ${fieldPath} ${error.message}`,
           );

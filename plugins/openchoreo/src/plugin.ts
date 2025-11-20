@@ -46,8 +46,7 @@ export const RuntimeLogs = choreoPlugin.provide(
 export const Workflows = choreoPlugin.provide(
   createRoutableExtension({
     name: 'ChoreoWorkflows',
-    component: () =>
-      import('./components/Workflows').then(m => m.Workflows),
+    component: () => import('./components/Workflows').then(m => m.Workflows),
     mountPoint: rootCatalogWorkflowsRouteRef,
   }),
 );

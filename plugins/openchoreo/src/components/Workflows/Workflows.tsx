@@ -375,10 +375,16 @@ export const Workflows = () => {
               </Typography>
               <IconButton
                 size="small"
-                onClick={() => setWorkflowDetailsExpanded(!workflowDetailsExpanded)}
+                onClick={() =>
+                  setWorkflowDetailsExpanded(!workflowDetailsExpanded)
+                }
                 title={workflowDetailsExpanded ? 'Collapse' : 'Expand'}
               >
-                {workflowDetailsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                {workflowDetailsExpanded ? (
+                  <ExpandLessIcon />
+                ) : (
+                  <ExpandMoreIcon />
+                )}
               </IconButton>
             </Box>
             <Button
@@ -386,7 +392,9 @@ export const Workflows = () => {
               color="primary"
               onClick={triggerWorkflow}
               disabled={triggeringWorkflow || !componentDetails.workflow}
-              startIcon={triggeringWorkflow ? <CircularProgress size={16} /> : undefined}
+              startIcon={
+                triggeringWorkflow ? <CircularProgress size={16} /> : undefined
+              }
             >
               Trigger Workflow
             </Button>
@@ -400,7 +408,10 @@ export const Workflows = () => {
                 borderTop="1px solid"
                 borderColor="divider"
               >
-                <Box className={classes.propertyRow} style={{ marginBottom: '16px' }}>
+                <Box
+                  className={classes.propertyRow}
+                  style={{ marginBottom: '16px' }}
+                >
                   <Typography className={classes.propertyKey}>
                     Workflow Name:
                   </Typography>
@@ -410,7 +421,9 @@ export const Workflows = () => {
                 </Box>
                 {componentDetails.workflow.schema &&
                   Object.keys(componentDetails.workflow.schema).length > 0 && (
-                    <WorkflowDetailsRenderer data={componentDetails.workflow.schema} />
+                    <WorkflowDetailsRenderer
+                      data={componentDetails.workflow.schema}
+                    />
                   )}
               </Box>
             ) : (

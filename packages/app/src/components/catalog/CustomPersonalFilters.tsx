@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Box, Checkbox, Tooltip } from '@material-ui/core';
 import PersonIcon from '@material-ui/icons/PersonOutline';
 import StarIcon from '@material-ui/icons/StarOutline';
@@ -10,7 +10,7 @@ import {
 } from '@backstage/plugin-catalog-react';
 import { usePersonalFilterStyles } from './styles';
 
-export const CustomPersonalFilters: React.FC = () => {
+export const CustomPersonalFilters = () => {
   const classes = usePersonalFilterStyles();
   const { filters, updateFilters, backendEntities } = useEntityList();
 
@@ -21,9 +21,9 @@ export const CustomPersonalFilters: React.FC = () => {
   const { starredEntities } = useStarredEntities();
 
   // Get ownership entity refs from identity
-  const [ownershipRefs, setOwnershipRefs] = React.useState<string[]>([]);
+  const [ownershipRefs, setOwnershipRefs] = useState<string[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Get ownership entity refs from the identity API
     identityApi.getBackstageIdentity().then(identity => {
       if (identity?.ownershipEntityRefs) {
@@ -38,14 +38,14 @@ export const CustomPersonalFilters: React.FC = () => {
   const isStarred = userFilterValue === 'starred';
 
   // Calculate counts by filtering backendEntities
-  const ownedCount = React.useMemo(() => {
+  const ownedCount = useMemo(() => {
     if (ownershipRefs.length === 0) return 0;
     const ownedFilter = EntityUserFilter.owned(ownershipRefs);
     return backendEntities.filter(entity => ownedFilter.filterEntity(entity))
       .length;
   }, [backendEntities, ownershipRefs]);
 
-  const starredCount = React.useMemo(() => {
+  const starredCount = useMemo(() => {
     if (starredEntities.size === 0) return 0;
     const starredRefs = Array.from(starredEntities);
     const starredFilter = EntityUserFilter.starred(starredRefs);

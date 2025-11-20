@@ -10,12 +10,13 @@ import type { components } from './types';
  * Component Type metadata
  * Extends ComponentTypeResponse to include optional tags field
  */
-export type ComponentTypeMetadata = components['schemas']['ComponentTypeResponse'] & {
-  /**
-   * Tags for categorization and filtering (optional)
-   */
-  tags?: string[];
-};
+export type ComponentTypeMetadata =
+  components['schemas']['ComponentTypeResponse'] & {
+    /**
+     * Tags for categorization and filtering (optional)
+     */
+    tags?: string[];
+  };
 
 /**
  * Component Type specification
@@ -49,4 +50,3 @@ export interface ComponentType {
    */
   spec: ComponentTypeSpec;
 }
-

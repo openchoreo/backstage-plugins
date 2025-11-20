@@ -1,4 +1,7 @@
-import { ComponentResource, ComponentTrait } from './componentResourceInterface';
+import {
+  ComponentResource,
+  ComponentTrait,
+} from './componentResourceInterface';
 
 /**
  * Input data for building a component resource
@@ -36,7 +39,9 @@ export interface ComponentResourceInput {
  *
  * This converts the form data into the structure required by the OpenChoreo API /apply endpoint
  */
-export function buildComponentResource(input: ComponentResourceInput): ComponentResource {
+export function buildComponentResource(
+  input: ComponentResourceInput,
+): ComponentResource {
   // Build the component resource
   const resource: ComponentResource = {
     apiVersion: 'openchoreo.dev/v1alpha1',
@@ -57,12 +62,14 @@ export function buildComponentResource(input: ComponentResourceInput): Component
 
   // Add display name annotation if provided
   if (input.displayName) {
-    resource.metadata.annotations!['openchoreo.dev/display-name'] = input.displayName;
+    resource.metadata.annotations!['openchoreo.dev/display-name'] =
+      input.displayName;
   }
 
   // Add description annotation if provided
   if (input.description) {
-    resource.metadata.annotations!['openchoreo.dev/description'] = input.description;
+    resource.metadata.annotations!['openchoreo.dev/description'] =
+      input.description;
   }
 
   // Add workflow configuration if Choreo CI is enabled
@@ -80,11 +87,13 @@ export function buildComponentResource(input: ComponentResourceInput): Component
 
   // Add traits (traits) if provided
   if (input.traits && input.traits.length > 0) {
-    resource.spec.traits = input.traits.map((trait): ComponentTrait => ({
-      name: trait.name,
-      instanceName: trait.instanceName,
-      config: trait.config,
-    }));
+    resource.spec.traits = input.traits.map(
+      (trait): ComponentTrait => ({
+        name: trait.name,
+        instanceName: trait.instanceName,
+        config: trait.config,
+      }),
+    );
   }
 
   return resource;

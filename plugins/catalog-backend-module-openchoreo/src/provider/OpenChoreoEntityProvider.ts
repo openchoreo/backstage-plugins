@@ -383,14 +383,20 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             },
           });
 
-          if (listError || !listResponse.ok || !listData.success || !listData.data?.items) {
+          if (
+            listError ||
+            !listResponse.ok ||
+            !listData.success ||
+            !listData.data?.items
+          ) {
             this.logger.warn(
               `Failed to fetch component types for org ${org.name}: ${listResponse.status}`,
             );
             continue;
           }
 
-          const componentTypeItems = listData.data.items as OpenChoreoComponents['schemas']['ComponentTypeResponse'][];
+          const componentTypeItems = listData.data
+            .items as OpenChoreoComponents['schemas']['ComponentTypeResponse'][];
           this.logger.debug(
             `Found ${componentTypeItems.length} CTDs in organization: ${org.name} (total: ${listData.data.totalCount})`,
           );
@@ -403,13 +409,21 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   data: schemaData,
                   error: schemaError,
                   response: schemaResponse,
-                } = await client.GET('/orgs/{orgName}/component-types/{ctName}/schema', {
-                  params: {
-                    path: { orgName: org.name!, ctName: listItem.name! },
+                } = await client.GET(
+                  '/orgs/{orgName}/component-types/{ctName}/schema',
+                  {
+                    params: {
+                      path: { orgName: org.name!, ctName: listItem.name! },
+                    },
                   },
-                });
+                );
 
-                if (schemaError || !schemaResponse.ok || !schemaData?.success || !schemaData?.data) {
+                if (
+                  schemaError ||
+                  !schemaResponse.ok ||
+                  !schemaData?.success ||
+                  !schemaData?.data
+                ) {
                   this.logger.warn(
                     `Failed to fetch schema for CTD ${listItem.name} in org ${org.name}: ${schemaResponse.status}`,
                   );
@@ -447,25 +461,30 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
 
           // Step 3: Convert CTDs to template entities
-          const templateEntities: Entity[] = validCTDs.map(ctd => {
-            try {
-              const templateEntity = this.ctdConverter.convertCtdToTemplateEntity(ctd, org.name!);
-              // Add the required Backstage catalog annotations
-              if (!templateEntity.metadata.annotations) {
-                templateEntity.metadata.annotations = {};
+          const templateEntities: Entity[] = validCTDs
+            .map(ctd => {
+              try {
+                const templateEntity =
+                  this.ctdConverter.convertCtdToTemplateEntity(ctd, org.name!);
+                // Add the required Backstage catalog annotations
+                if (!templateEntity.metadata.annotations) {
+                  templateEntity.metadata.annotations = {};
+                }
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-location'
+                ] = `provider:${this.getProviderName()}`;
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-origin-location'
+                ] = `provider:${this.getProviderName()}`;
+                return templateEntity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
+                );
+                return null;
               }
-              templateEntity.metadata.annotations['backstage.io/managed-by-location'] =
-                `provider:${this.getProviderName()}`;
-              templateEntity.metadata.annotations['backstage.io/managed-by-origin-location'] =
-                `provider:${this.getProviderName()}`;
-              return templateEntity;
-            } catch (error) {
-              this.logger.warn(
-                `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
-              );
-              return null;
-            }
-          }).filter((entity): entity is Entity => entity !== null);
+            })
+            .filter((entity): entity is Entity => entity !== null);
 
           allEntities.push(...templateEntities);
           this.logger.info(
