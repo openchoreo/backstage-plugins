@@ -124,6 +124,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/metrics/component/http': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get component HTTP metrics
+     * @description Retrieve HTTP request metrics (request counts, latency percentiles) for a component as time series data
+     */
+    post: operations['getComponentHTTPMetrics'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/metrics/component/usage': {
     parameters: {
       query?: never;
@@ -350,7 +370,7 @@ export interface components {
        * @description Component identifier
        * @example comp-123
        */
-      componentId?: string;
+      componentId: string;
       /**
        * @description Environment identifier
        * @example env-dev
@@ -506,6 +526,96 @@ export interface components {
       memoryRequests?: components['schemas']['TimeValuePoint'][];
       /** @description Memory limits time series (in bytes) */
       memoryLimits?: components['schemas']['TimeValuePoint'][];
+    };
+    /**
+     * @example {
+     *       "requestCount": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 125.5
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 143.2
+     *         }
+     *       ],
+     *       "successfulRequestCount": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 120
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 138.5
+     *         }
+     *       ],
+     *       "unsuccessfulRequestCount": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 5.5
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 4.7
+     *         }
+     *       ],
+     *       "meanLatency": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 0.125
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 0.132
+     *         }
+     *       ],
+     *       "latencyPercentile50th": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 0.095
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 0.102
+     *         }
+     *       ],
+     *       "latencyPercentile90th": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 0.25
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 0.265
+     *         }
+     *       ],
+     *       "latencyPercentile99th": [
+     *         {
+     *           "time": "2025-01-10T12:00:00Z",
+     *           "value": 0.5
+     *         },
+     *         {
+     *           "time": "2025-01-10T12:05:00Z",
+     *           "value": 0.52
+     *         }
+     *       ]
+     *     }
+     */
+    HTTPMetricsTimeSeries: {
+      /** @description Total HTTP request count time series (requests per second) */
+      requestCount?: components['schemas']['TimeValuePoint'][];
+      /** @description Successful HTTP request count time series (status 200, requests per second) */
+      successfulRequestCount?: components['schemas']['TimeValuePoint'][];
+      /** @description Unsuccessful HTTP request count time series (status != 200, requests per second) */
+      unsuccessfulRequestCount?: components['schemas']['TimeValuePoint'][];
+      /** @description Mean HTTP request latency time series (in seconds) */
+      meanLatency?: components['schemas']['TimeValuePoint'][];
+      /** @description 50th percentile (median) HTTP request latency time series (in seconds) */
+      latencyPercentile50th?: components['schemas']['TimeValuePoint'][];
+      /** @description 90th percentile HTTP request latency time series (in seconds) */
+      latencyPercentile90th?: components['schemas']['TimeValuePoint'][];
+      /** @description 99th percentile HTTP request latency time series (in seconds) */
+      latencyPercentile99th?: components['schemas']['TimeValuePoint'][];
     };
     ErrorResponse: {
       /**
@@ -768,6 +878,48 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['LogResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getComponentHTTPMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MetricsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved HTTP metrics */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPMetricsTimeSeries'];
         };
       };
       /** @description Bad request - invalid parameters */
