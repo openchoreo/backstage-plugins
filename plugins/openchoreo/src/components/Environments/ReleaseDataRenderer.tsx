@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import {
   Typography,
   Box,
@@ -177,7 +177,7 @@ interface ReleaseDataRendererProps {
   };
 }
 
-export const ReleaseDataRenderer: React.FC<ReleaseDataRendererProps> = ({
+export const ReleaseDataRenderer: FC<ReleaseDataRendererProps> = ({
   releaseData,
 }) => {
   const classes = useStyles();

@@ -80,6 +80,7 @@ interface ReleaseBinding {
   name: string;
   environment: string;
   componentTypeEnvOverrides?: any;
+  traitOverrides?: any;
   workloadOverrides?: any;
 }
 
@@ -93,21 +94,33 @@ export const EnvironmentOverridesDialog: React.FC<
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<'all' | 'component' | string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<
+    'all' | 'component' | string | null
+  >(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Separate state for component-type and trait overrides
-  const [componentTypeSchema, setComponentTypeSchema] = useState<JSONSchema7 | null>(null);
-  const [traitSchemasMap, setTraitSchemasMap] = useState<Record<string, JSONSchema7>>({});
+  const [componentTypeSchema, setComponentTypeSchema] =
+    useState<JSONSchema7 | null>(null);
+  const [traitSchemasMap, setTraitSchemasMap] = useState<
+    Record<string, JSONSchema7>
+  >({});
   const [componentTypeFormData, setComponentTypeFormData] = useState<any>({});
-  const [traitFormDataMap, setTraitFormDataMap] = useState<Record<string, any>>({});
-  const [initialComponentTypeFormData, setInitialComponentTypeFormData] = useState<any>({});
-  const [initialTraitFormDataMap, setInitialTraitFormDataMap] = useState<Record<string, any>>({});
+  const [traitFormDataMap, setTraitFormDataMap] = useState<Record<string, any>>(
+    {},
+  );
+  const [initialComponentTypeFormData, setInitialComponentTypeFormData] =
+    useState<any>({});
+  const [initialTraitFormDataMap, setInitialTraitFormDataMap] = useState<
+    Record<string, any>
+  >({});
 
   // Accordion state
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+  const [expandedSections, setExpandedSections] = useState<
+    Record<string, boolean>
+  >({
     component: true,
   });
 
@@ -131,10 +144,11 @@ export const EnvironmentOverridesDialog: React.FC<
 
       if (schemaResponse.success && schemaResponse.data) {
         // The API returns a wrapped schema with properties
-        // Extract componentTypeEnvOverrides and traitEnvOverrides from properties
+        // Extract componentTypeEnvOverrides and traitOverrides from properties
         const wrappedSchema = schemaResponse.data as any;
-        const componentTypeEnvOverrides = wrappedSchema.properties?.componentTypeEnvOverrides;
-        const traitEnvOverrides = wrappedSchema.properties?.traitEnvOverrides;
+        const componentTypeEnvOverrides =
+          wrappedSchema.properties?.componentTypeEnvOverrides;
+        const traitOverrides = wrappedSchema.properties?.traitOverrides;
 
         // Set component-type schema
         if (componentTypeEnvOverrides) {
@@ -142,15 +156,19 @@ export const EnvironmentOverridesDialog: React.FC<
         }
 
         // Set trait schemas
-        if (traitEnvOverrides && traitEnvOverrides.properties) {
+        if (traitOverrides && traitOverrides.properties) {
           const traitSchemas: Record<string, JSONSchema7> = {};
-          Object.entries(traitEnvOverrides.properties).forEach(([traitName, schema]) => {
-            traitSchemas[traitName] = schema as JSONSchema7;
-          });
+          Object.entries(traitOverrides.properties).forEach(
+            ([traitName, schema]) => {
+              traitSchemas[traitName] = schema as JSONSchema7;
+            },
+          );
           setTraitSchemasMap(traitSchemas);
 
           // Initialize expanded state for each trait
-          const newExpandedSections: Record<string, boolean> = { component: true };
+          const newExpandedSections: Record<string, boolean> = {
+            component: true,
+          };
           Object.keys(traitSchemas).forEach(traitName => {
             newExpandedSections[`trait-${traitName}`] = false;
           });
@@ -175,14 +193,13 @@ export const EnvironmentOverridesDialog: React.FC<
 
         if (currentBinding) {
           // Load component-type overrides
-          const componentOverrides = currentBinding.componentTypeEnvOverrides || {};
+          const componentOverrides =
+            currentBinding.componentTypeEnvOverrides || {};
           setComponentTypeFormData(componentOverrides);
           setInitialComponentTypeFormData(componentOverrides);
 
-          // Load trait overrides (if they exist in workloadOverrides)
-          // Note: Backend may store trait overrides in workloadOverrides or separately
-          // For now, assume they're empty and will be populated when backend is ready
-          const traitOverrides: Record<string, any> = {};
+          // Load trait overrides
+          const traitOverrides = currentBinding.traitOverrides || {};
           setTraitFormDataMap(traitOverrides);
           setInitialTraitFormDataMap(traitOverrides);
         } else {
@@ -214,8 +231,12 @@ export const EnvironmentOverridesDialog: React.FC<
   );
 
   const handleSaveClick = () => {
-    const totalChanges = changes.component.length +
-      Object.values(changes.traits).reduce((sum, traitChanges) => sum + traitChanges.length, 0);
+    const totalChanges =
+      changes.component.length +
+      Object.values(changes.traits).reduce(
+        (sum, traitChanges) => sum + traitChanges.length,
+        0,
+      );
 
     if (totalChanges === 0) {
       setError('No changes to save');
@@ -236,20 +257,13 @@ export const EnvironmentOverridesDialog: React.FC<
     setError(null);
 
     try {
-      // Merge component-type and trait overrides
-      // TODO: Update when backend supports trait overrides separately
-      // For now, only save component-type overrides
-      const mergedOverrides = {
-        ...componentTypeFormData,
-        // Traits will be added here when backend supports them
-      };
-
       await patchReleaseBindingOverrides(
         entity,
         discovery,
         identityApi,
         environment.name.toLowerCase(),
-        mergedOverrides,
+        componentTypeFormData,
+        traitFormDataMap,
       );
 
       // Overrides saved successfully, backend will automatically redeploy
@@ -289,6 +303,7 @@ export const EnvironmentOverridesDialog: React.FC<
           identityApi,
           environment.name.toLowerCase(),
           {},
+          {},
         );
 
         setShowDeleteConfirm(false);
@@ -320,14 +335,17 @@ export const EnvironmentOverridesDialog: React.FC<
 
   const hasComponentTypeOverrides =
     componentTypeFormData && Object.keys(componentTypeFormData).length > 0;
-  const hasAnyTraitOverrides =
-    Object.values(traitFormDataMap).some(data => Object.keys(data).length > 0);
+  const hasAnyTraitOverrides = Object.values(traitFormDataMap).some(
+    data => Object.keys(data).length > 0,
+  );
   const hasAnyOverrides = hasComponentTypeOverrides || hasAnyTraitOverrides;
 
   const hasInitialComponentTypeOverrides =
-    initialComponentTypeFormData && Object.keys(initialComponentTypeFormData).length > 0;
-  const hasInitialAnyTraitOverrides =
-    Object.values(initialTraitFormDataMap).some(data => Object.keys(data).length > 0);
+    initialComponentTypeFormData &&
+    Object.keys(initialComponentTypeFormData).length > 0;
+  const hasInitialAnyTraitOverrides = Object.values(
+    initialTraitFormDataMap,
+  ).some(data => Object.keys(data).length > 0);
   const hasInitialAnyOverrides =
     hasInitialComponentTypeOverrides || hasInitialAnyTraitOverrides;
 
@@ -350,80 +368,96 @@ export const EnvironmentOverridesDialog: React.FC<
           </div>
         )}
 
-        {!loading && !error && (componentTypeSchema || Object.keys(traitSchemasMap).length > 0) && (
-          <>
-            {!hasAnyOverrides && (
-              <Box className={classes.helpText}>
-                <Typography variant="body2" gutterBottom>
-                  <strong>Environment Overrides</strong>
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  Configure environment-specific settings for your component's
-                  containers, such as environment variables and file mounts.
-                  These overrides apply only to the{' '}
-                  <strong>{environment?.name}</strong> environment.
-                </Typography>
-              </Box>
-            )}
-
-            <Box>
-              {/* Component Overrides Section */}
-              {componentTypeSchema && (
-                <OverrideSection
-                  title="Component Overrides"
-                  subtitle="Base component configuration"
-                  schema={componentTypeSchema}
-                  formData={componentTypeFormData}
-                  onChange={setComponentTypeFormData}
-                  onDelete={() => handleDeleteClick('component')}
-                  hasInitialData={hasInitialComponentTypeOverrides}
-                  expanded={expandedSections.component ?? false}
-                  onToggle={() =>
-                    setExpandedSections(prev => ({
-                      ...prev,
-                      component: !prev.component,
-                    }))
-                  }
-                />
-              )}
-
-              {/* Trait Overrides Sections */}
-              {Object.entries(traitSchemasMap).map(([traitName, traitSchema]) => (
-                <OverrideSection
-                  key={traitName}
-                  title={`Trait: ${traitName}`}
-                  subtitle={`${traitName} trait configuration`}
-                  schema={traitSchema}
-                  formData={traitFormDataMap[traitName] || {}}
-                  onChange={newData =>
-                    setTraitFormDataMap(prev => ({ ...prev, [traitName]: newData }))
-                  }
-                  onDelete={() => handleDeleteClick(traitName)}
-                  hasInitialData={
-                    initialTraitFormDataMap[traitName] &&
-                    Object.keys(initialTraitFormDataMap[traitName]).length > 0
-                  }
-                  expanded={expandedSections[`trait-${traitName}`] ?? false}
-                  onToggle={() =>
-                    setExpandedSections(prev => ({
-                      ...prev,
-                      [`trait-${traitName}`]: !prev[`trait-${traitName}`],
-                    }))
-                  }
-                />
-              ))}
-
-              {/* Empty State - No Traits */}
-              {Object.keys(traitSchemasMap).length === 0 && componentTypeSchema && (
-                <Box mt={2} p={2} style={{ backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+        {!loading &&
+          !error &&
+          (componentTypeSchema || Object.keys(traitSchemasMap).length > 0) && (
+            <>
+              {!hasAnyOverrides && (
+                <Box className={classes.helpText}>
+                  <Typography variant="body2" gutterBottom>
+                    <strong>Environment Overrides</strong>
+                  </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    No traits configured for this component.
+                    Configure environment-specific settings for your component's
+                    containers, such as environment variables and file mounts.
+                    These overrides apply only to the{' '}
+                    <strong>{environment?.name}</strong> environment.
                   </Typography>
                 </Box>
               )}
-            </Box>
-          </>
-        )}
+
+              <Box>
+                {/* Component Overrides Section */}
+                {componentTypeSchema && (
+                  <OverrideSection
+                    title="Component Overrides"
+                    subtitle="Base component configuration"
+                    schema={componentTypeSchema}
+                    formData={componentTypeFormData}
+                    onChange={setComponentTypeFormData}
+                    onDelete={() => handleDeleteClick('component')}
+                    hasInitialData={hasInitialComponentTypeOverrides}
+                    expanded={expandedSections.component ?? false}
+                    onToggle={() =>
+                      setExpandedSections(prev => ({
+                        ...prev,
+                        component: !prev.component,
+                      }))
+                    }
+                  />
+                )}
+
+                {/* Trait Overrides Sections */}
+                {Object.entries(traitSchemasMap).map(
+                  ([traitName, traitSchema]) => (
+                    <OverrideSection
+                      key={traitName}
+                      title={`Trait: ${traitName}`}
+                      subtitle={`${traitName} trait configuration`}
+                      schema={traitSchema}
+                      formData={traitFormDataMap[traitName] || {}}
+                      onChange={newData =>
+                        setTraitFormDataMap(prev => ({
+                          ...prev,
+                          [traitName]: newData,
+                        }))
+                      }
+                      onDelete={() => handleDeleteClick(traitName)}
+                      hasInitialData={
+                        initialTraitFormDataMap[traitName] &&
+                        Object.keys(initialTraitFormDataMap[traitName]).length >
+                          0
+                      }
+                      expanded={expandedSections[`trait-${traitName}`] ?? false}
+                      onToggle={() =>
+                        setExpandedSections(prev => ({
+                          ...prev,
+                          [`trait-${traitName}`]: !prev[`trait-${traitName}`],
+                        }))
+                      }
+                    />
+                  ),
+                )}
+
+                {/* Empty State - No Traits */}
+                {Object.keys(traitSchemasMap).length === 0 &&
+                  componentTypeSchema && (
+                    <Box
+                      mt={2}
+                      p={2}
+                      style={{
+                        backgroundColor: '#f5f5f5',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      <Typography variant="body2" color="textSecondary">
+                        No traits configured for this component.
+                      </Typography>
+                    </Box>
+                  )}
+              </Box>
+            </>
+          )}
       </>
     );
   };
@@ -470,7 +504,11 @@ export const EnvironmentOverridesDialog: React.FC<
         fullWidth
       >
         <DialogTitle>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <Typography variant="h6">
               Configure Overrides - {environment?.name}
             </Typography>

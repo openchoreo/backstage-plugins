@@ -2,7 +2,20 @@ import { Entity } from '@backstage/catalog-model';
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { API_ENDPOINTS } from '../constants';
-import type { components } from '@backstage/openchoreo-client-node';
+
+/** Schema response containing component-type and trait environment override schemas */
+interface ComponentSchemaResponse {
+  /** JSON Schema for component-type environment overrides */
+  componentTypeEnvOverrides?: {
+    [key: string]: unknown;
+  };
+  /** Object mapping trait instance names to their JSON Schemas for environment overrides */
+  traitOverrides?: {
+    [key: string]: {
+      [key: string]: unknown;
+    };
+  };
+}
 
 export async function fetchEnvironmentInfo(
   entity: Entity,
@@ -279,7 +292,7 @@ export async function fetchComponentReleaseSchema(
 ): Promise<{
   success: boolean;
   message: string;
-  data?: components['schemas']['ComponentSchemaResponse'];
+  data?: ComponentSchemaResponse;
 }> {
   const { token } = await identity.getCredentials();
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -368,7 +381,8 @@ export async function patchReleaseBindingOverrides(
   discovery: DiscoveryApi,
   identity: IdentityApi,
   environment: string,
-  overrides: any,
+  componentTypeEnvOverrides?: any,
+  traitOverrides?: any,
 ) {
   const { token } = await identity.getCredentials();
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -386,13 +400,20 @@ export async function patchReleaseBindingOverrides(
     }`,
   );
 
-  const patchReq = {
+  const patchReq: any = {
     orgName: organization,
     projectName: project,
     componentName: component,
     environment: environment,
-    componentTypeEnvOverrides: overrides,
   };
+
+  // Only include overrides if they are provided
+  if (componentTypeEnvOverrides !== undefined) {
+    patchReq.componentTypeEnvOverrides = componentTypeEnvOverrides;
+  }
+  if (traitOverrides !== undefined) {
+    patchReq.traitOverrides = traitOverrides;
+  }
 
   const res = await fetch(backendUrl, {
     method: 'PATCH',

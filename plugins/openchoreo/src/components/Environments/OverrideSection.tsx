@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import {
   Accordion,
   AccordionSummary,
@@ -56,7 +56,7 @@ interface OverrideSectionProps {
   disabled?: boolean;
 }
 
-export const OverrideSection: React.FC<OverrideSectionProps> = ({
+export const OverrideSection: FC<OverrideSectionProps> = ({
   title,
   subtitle,
   schema,

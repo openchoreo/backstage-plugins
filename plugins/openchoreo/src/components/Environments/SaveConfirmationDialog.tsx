@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -20,7 +20,7 @@ interface SaveConfirmationDialogProps {
   saving: boolean;
 }
 
-export const SaveConfirmationDialog: React.FC<SaveConfirmationDialogProps> = ({
+export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
   open,
   onCancel,
   onConfirm,
@@ -71,7 +71,8 @@ export const SaveConfirmationDialog: React.FC<SaveConfirmationDialogProps> = ({
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
       <DialogTitle>
-        Confirm Save Changes ({totalChanges} {totalChanges === 1 ? 'change' : 'changes'})
+        Confirm Save Changes ({totalChanges}{' '}
+        {totalChanges === 1 ? 'change' : 'changes'})
       </DialogTitle>
 
       <DialogContent dividers>
@@ -109,18 +110,24 @@ export const SaveConfirmationDialog: React.FC<SaveConfirmationDialogProps> = ({
               >
                 Trait Overrides:
               </Typography>
-              {Object.entries(changes.traits).map(([traitName, traitChanges]) => (
-                <Box key={traitName} mb={1.5} ml={2}>
-                  <Typography
-                    variant="caption"
-                    style={{ fontWeight: 'bold', display: 'block', marginBottom: 4 }}
-                  >
-                    {traitName} ({traitChanges.length}{' '}
-                    {traitChanges.length === 1 ? 'change' : 'changes'}):
-                  </Typography>
-                  <Box ml={2}>{renderChangesList(traitChanges)}</Box>
-                </Box>
-              ))}
+              {Object.entries(changes.traits).map(
+                ([traitName, traitChanges]) => (
+                  <Box key={traitName} mb={1.5} ml={2}>
+                    <Typography
+                      variant="caption"
+                      style={{
+                        fontWeight: 'bold',
+                        display: 'block',
+                        marginBottom: 4,
+                      }}
+                    >
+                      {traitName} ({traitChanges.length}{' '}
+                      {traitChanges.length === 1 ? 'change' : 'changes'}):
+                    </Typography>
+                    <Box ml={2}>{renderChangesList(traitChanges)}</Box>
+                  </Box>
+                ),
+              )}
             </Box>
           )}
 
@@ -133,8 +140,8 @@ export const SaveConfirmationDialog: React.FC<SaveConfirmationDialogProps> = ({
         </Box>
 
         <Typography variant="body2" color="textSecondary">
-          This will trigger a redeployment of the <strong>{environmentName}</strong>{' '}
-          environment.
+          This will trigger a redeployment of the{' '}
+          <strong>{environmentName}</strong> environment.
         </Typography>
       </DialogContent>
 

@@ -56,9 +56,9 @@ components:
           type: object
           description: JSON Schema for component-type environment overrides
           additionalProperties: true
-        traitEnvOverrides:
+        traitOverrides:
           type: object
-          description: Object mapping trait names to their JSON Schemas for environment overrides
+          description: Object mapping trait instance names to their JSON Schemas for environment overrides
           additionalProperties:
             type: object
             description: JSON Schema for a specific trait's environment overrides
