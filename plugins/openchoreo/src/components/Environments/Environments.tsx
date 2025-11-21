@@ -211,7 +211,7 @@ export const Environments = () => {
     staleEnvironments.length > 0 ? staleEnvironments : environments;
 
   const isPending = displayEnvironments.some(
-    env => env.deployment.status === 'pending',
+    env => env.deployment.status === 'NotReady',
   );
 
   // Polling for pending deployments
@@ -344,10 +344,7 @@ export const Environments = () => {
                         View and manage deployment environments
                       </Typography>
                       {isWorkloadEditorSupported && (
-                        <Workload
-                          onDeployed={refetchAsync}
-                          isWorking={isPending}
-                        />
+                        <Workload onDeployed={refetchAsync} />
                       )}
                     </>
                   )}
@@ -456,13 +453,11 @@ export const Environments = () => {
                       )}
                       <Box
                         className={`${classes.deploymentStatusBox} ${
-                          env.deployment.status === 'success'
+                          env.deployment.status === 'Ready'
                             ? classes.successStatus
-                            : env.deployment.status === 'failed'
+                            : env.deployment.status === 'Failed'
                             ? classes.errorStatus
-                            : env.deployment.status === 'pending'
-                            ? classes.warningStatus
-                            : env.deployment.status === 'suspended'
+                            : env.deployment.status === 'NotReady'
                             ? classes.warningStatus
                             : classes.defaultStatus
                         }`}
@@ -474,20 +469,16 @@ export const Environments = () => {
                           variant="body2"
                           style={{
                             fontWeight:
-                              env.deployment.status === 'success'
-                                ? 'bold'
-                                : 500,
+                              env.deployment.status === 'Ready' ? 'bold' : 500,
                           }}
                         >
-                          {env.deployment.status === 'success'
+                          {env.deployment.status === 'Ready'
                             ? 'Active'
-                            : env.deployment.status === 'pending'
+                            : env.deployment.status === 'NotReady'
                             ? 'Pending'
-                            : env.deployment.status === 'not-deployed'
-                            ? 'Not Deployed'
-                            : env.deployment.status === 'suspended'
-                            ? 'Suspended'
-                            : 'Failed'}
+                            : env.deployment.status === 'Failed'
+                            ? 'Failed'
+                            : 'Not Deployed'}
                         </Typography>
                         {env.deployment.releaseName && (
                           <IconButton
@@ -521,7 +512,7 @@ export const Environments = () => {
                         </Box>
                       )}
 
-                      {env.deployment.status === 'success' &&
+                      {env.deployment.status === 'Ready' &&
                         env.endpoints.length > 0 && (
                           <Box mt={2}>
                             <Typography className={classes.sectionLabel}>
@@ -563,16 +554,14 @@ export const Environments = () => {
                           </Box>
                         )}
 
-                      {/* Actions section - show if deployment is successful or suspended */}
-                      {((env.deployment.status === 'success' &&
+                      {/* Actions section - show if there are promotion targets or a binding to suspend */}
+                      {((env.deployment.status === 'Ready' &&
                         env.promotionTargets &&
                         env.promotionTargets.length > 0) ||
-                        ((env.deployment.status === 'success' ||
-                          env.deployment.status === 'suspended') &&
-                          env.bindingName)) && (
+                        env.bindingName) && (
                         <Box mt="auto" mb={2}>
                           {/* Multiple promotion targets - stack vertically */}
-                          {env.deployment.status === 'success' &&
+                          {env.deployment.status === 'Ready' &&
                             env.promotionTargets &&
                             env.promotionTargets.length > 1 &&
                             env.promotionTargets.map((target, index) => (
@@ -583,10 +572,7 @@ export const Environments = () => {
                                 mb={
                                   index < env.promotionTargets!.length - 1
                                     ? 2
-                                    : (env.deployment.status === 'success' ||
-                                        env.deployment.status ===
-                                          'suspended') &&
-                                      env.bindingName
+                                    : env.bindingName
                                     ? 2
                                     : 0
                                 }
@@ -653,19 +639,17 @@ export const Environments = () => {
                             ))}
 
                           {/* Single promotion target and suspend button - show in same row */}
-                          {((env.deployment.status === 'success' &&
+                          {((env.deployment.status === 'Ready' &&
                             env.promotionTargets &&
                             env.promotionTargets.length === 1) ||
-                            ((env.deployment.status === 'success' ||
-                              env.deployment.status === 'suspended') &&
-                              env.bindingName)) && (
+                            env.bindingName) && (
                             <Box
                               display="flex"
                               flexWrap="wrap"
                               justifyContent="flex-end"
                             >
                               {/* Single promotion button */}
-                              {env.deployment.status === 'success' &&
+                              {env.deployment.status === 'Ready' &&
                                 env.promotionTargets &&
                                 env.promotionTargets.length === 1 && (
                                   <Button
@@ -747,58 +731,57 @@ export const Environments = () => {
                                   </Button>
                                 )}
 
-                              {/* Suspend button */}
-                              {env.deployment.status === 'success' &&
-                                env.bindingName && (
-                                  <Button
-                                    variant="outlined"
-                                    color="secondary"
-                                    size="small"
-                                    disabled={updatingBinding === env.name}
-                                    onClick={async () => {
-                                      try {
-                                        setUpdatingBinding(env.name);
-                                        await deleteReleaseBinding(
-                                          entity,
-                                          discovery,
-                                          identityApi,
-                                          env.name.toLowerCase(),
-                                        );
+                              {/* Suspend button - show whenever there's a binding */}
+                              {env.bindingName && (
+                                <Button
+                                  variant="outlined"
+                                  color="secondary"
+                                  size="small"
+                                  disabled={updatingBinding === env.name}
+                                  onClick={async () => {
+                                    try {
+                                      setUpdatingBinding(env.name);
+                                      await deleteReleaseBinding(
+                                        entity,
+                                        discovery,
+                                        identityApi,
+                                        env.name.toLowerCase(),
+                                      );
 
-                                        // Refresh the environments data
-                                        await refetch();
+                                      // Refresh the environments data
+                                      await refetch();
 
-                                        setNotification({
-                                          message: `Component suspended from ${env.name} successfully`,
-                                          type: 'success',
-                                        });
+                                      setNotification({
+                                        message: `Component suspended from ${env.name} successfully`,
+                                        type: 'success',
+                                      });
 
-                                        // Clear notification after 5 seconds
-                                        setTimeout(
-                                          () => setNotification(null),
-                                          5000,
-                                        );
-                                      } catch (err) {
-                                        setNotification({
-                                          message: `Error suspending: ${err}`,
-                                          type: 'error',
-                                        });
+                                      // Clear notification after 5 seconds
+                                      setTimeout(
+                                        () => setNotification(null),
+                                        5000,
+                                      );
+                                    } catch (err) {
+                                      setNotification({
+                                        message: `Error suspending: ${err}`,
+                                        type: 'error',
+                                      });
 
-                                        // Clear notification after 7 seconds for errors
-                                        setTimeout(
-                                          () => setNotification(null),
-                                          7000,
-                                        );
-                                      } finally {
-                                        setUpdatingBinding(null);
-                                      }
-                                    }}
-                                  >
-                                    {updatingBinding === env.name
-                                      ? 'Suspending...'
-                                      : 'Suspend'}
-                                  </Button>
-                                )}
+                                      // Clear notification after 7 seconds for errors
+                                      setTimeout(
+                                        () => setNotification(null),
+                                        7000,
+                                      );
+                                    } finally {
+                                      setUpdatingBinding(null);
+                                    }
+                                  }}
+                                >
+                                  {updatingBinding === env.name
+                                    ? 'Suspending...'
+                                    : 'Suspend'}
+                                </Button>
+                              )}
                             </Box>
                           )}
                         </Box>

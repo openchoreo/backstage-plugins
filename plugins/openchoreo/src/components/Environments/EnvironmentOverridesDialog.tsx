@@ -60,10 +60,9 @@ interface Environment {
   name: string;
   bindingName?: string;
   deployment: {
-    status: 'success' | 'failed' | 'pending' | 'not-deployed' | 'suspended';
+    status?: 'Ready' | 'NotReady' | 'Failed';
     lastDeployed?: string;
     image?: string;
-    statusMessage?: string;
     releaseName?: string;
   };
 }

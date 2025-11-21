@@ -316,35 +316,18 @@ export class EnvironmentInfoService implements EnvironmentService {
     // Those would need to come from querying the actual deployed resources
     const endpoints: EndpointInfo[] = [];
     let image: string | undefined;
-    let deploymentStatus:
-      | 'success'
-      | 'failed'
-      | 'pending'
-      | 'not-deployed'
-      | 'suspended' = 'not-deployed';
-    let statusMessage: string | undefined;
+    let deploymentStatus: 'Ready' | 'NotReady' | 'Failed' | undefined;
     let lastDeployed: string | undefined;
     let releaseName: string | undefined;
 
     if (binding) {
-      // Map the ReleaseBinding status string to our deployment status
-      // The status field is a simple string from the ReleaseBinding CRD status
-      if (binding.status) {
-        const status = binding.status.toLowerCase();
-        if (status.includes('ready') || status.includes('active')) {
-          deploymentStatus = 'success';
-        } else if (status.includes('failed') || status.includes('error')) {
-          deploymentStatus = 'failed';
-        } else if (status.includes('suspend')) {
-          deploymentStatus = 'suspended';
-        } else if (status.includes('notready') || status.includes('pending')) {
-          deploymentStatus = 'pending';
-        } else {
-          deploymentStatus = 'pending';
-        }
-      }
-
-      statusMessage = binding.status;
+      // Use OpenChoreo status directly without mapping
+      // OpenChoreo returns: "Ready", "NotReady", or "Failed"
+      deploymentStatus = binding.status as
+        | 'Ready'
+        | 'NotReady'
+        | 'Failed'
+        | undefined;
       lastDeployed = binding.createdAt;
       releaseName = binding.releaseName;
 
@@ -364,7 +347,6 @@ export class EnvironmentInfoService implements EnvironmentService {
         status: deploymentStatus,
         lastDeployed,
         image,
-        statusMessage,
         releaseName,
       },
       endpoints,
