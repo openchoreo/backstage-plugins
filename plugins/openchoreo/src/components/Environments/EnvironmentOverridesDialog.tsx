@@ -11,8 +11,6 @@ import {
   CircularProgress,
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
-import Form from '@rjsf/material-ui';
-import validator from '@rjsf/validator-ajv8';
 import { JSONSchema7 } from 'json-schema';
 import { Entity } from '@backstage/catalog-model';
 import {
@@ -26,6 +24,10 @@ import {
   patchReleaseBindingOverrides,
 } from '../../api/environments';
 import { makeStyles } from '@material-ui/core/styles';
+import { OverrideSection } from './OverrideSection';
+import { useOverrideChanges } from './hooks/useOverrideChanges';
+import { SaveConfirmationDialog } from './SaveConfirmationDialog';
+import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 
 const useStyles = makeStyles(theme => ({
   dialogContent: {
@@ -91,12 +93,23 @@ export const EnvironmentOverridesDialog: React.FC<
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<'all' | 'component' | string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [schema, setSchema] = useState<JSONSchema7 | null>(null);
-  const [formData, setFormData] = useState<any>({});
-  const [initialFormData, setInitialFormData] = useState<any>({});
+
+  // Separate state for component-type and trait overrides
+  const [componentTypeSchema, setComponentTypeSchema] = useState<JSONSchema7 | null>(null);
+  const [traitSchemasMap, setTraitSchemasMap] = useState<Record<string, JSONSchema7>>({});
+  const [componentTypeFormData, setComponentTypeFormData] = useState<any>({});
+  const [traitFormDataMap, setTraitFormDataMap] = useState<Record<string, any>>({});
+  const [initialComponentTypeFormData, setInitialComponentTypeFormData] = useState<any>({});
+  const [initialTraitFormDataMap, setInitialTraitFormDataMap] = useState<Record<string, any>>({});
+
+  // Accordion state
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    component: true,
+  });
 
   const loadSchemaAndBinding = useCallback(async () => {
     if (!environment?.deployment.releaseName) {
@@ -117,17 +130,31 @@ export const EnvironmentOverridesDialog: React.FC<
       );
 
       if (schemaResponse.success && schemaResponse.data) {
-        // Extract the componentTypeEnvOverrides schema from the response
-        const fullSchema = schemaResponse.data as any;
-        const componentTypeSchema =
-          fullSchema.properties?.componentTypeEnvOverrides;
+        // The API returns a wrapped schema with properties
+        // Extract componentTypeEnvOverrides and traitEnvOverrides from properties
+        const wrappedSchema = schemaResponse.data as any;
+        const componentTypeEnvOverrides = wrappedSchema.properties?.componentTypeEnvOverrides;
+        const traitEnvOverrides = wrappedSchema.properties?.traitEnvOverrides;
 
-        if (componentTypeSchema) {
-          setSchema(componentTypeSchema as JSONSchema7);
-        } else {
-          throw new Error(
-            'componentTypeEnvOverrides schema not found in response',
-          );
+        // Set component-type schema
+        if (componentTypeEnvOverrides) {
+          setComponentTypeSchema(componentTypeEnvOverrides as JSONSchema7);
+        }
+
+        // Set trait schemas
+        if (traitEnvOverrides && traitEnvOverrides.properties) {
+          const traitSchemas: Record<string, JSONSchema7> = {};
+          Object.entries(traitEnvOverrides.properties).forEach(([traitName, schema]) => {
+            traitSchemas[traitName] = schema as JSONSchema7;
+          });
+          setTraitSchemasMap(traitSchemas);
+
+          // Initialize expanded state for each trait
+          const newExpandedSections: Record<string, boolean> = { component: true };
+          Object.keys(traitSchemas).forEach(traitName => {
+            newExpandedSections[`trait-${traitName}`] = false;
+          });
+          setExpandedSections(newExpandedSections);
         }
       } else {
         throw new Error('Failed to fetch schema');
@@ -146,12 +173,23 @@ export const EnvironmentOverridesDialog: React.FC<
           b => b.environment.toLowerCase() === environment.name.toLowerCase(),
         );
 
-        if (currentBinding?.componentTypeEnvOverrides) {
-          setFormData(currentBinding.componentTypeEnvOverrides);
-          setInitialFormData(currentBinding.componentTypeEnvOverrides);
+        if (currentBinding) {
+          // Load component-type overrides
+          const componentOverrides = currentBinding.componentTypeEnvOverrides || {};
+          setComponentTypeFormData(componentOverrides);
+          setInitialComponentTypeFormData(componentOverrides);
+
+          // Load trait overrides (if they exist in workloadOverrides)
+          // Note: Backend may store trait overrides in workloadOverrides or separately
+          // For now, assume they're empty and will be populated when backend is ready
+          const traitOverrides: Record<string, any> = {};
+          setTraitFormDataMap(traitOverrides);
+          setInitialTraitFormDataMap(traitOverrides);
         } else {
-          setFormData({});
-          setInitialFormData({});
+          setComponentTypeFormData({});
+          setInitialComponentTypeFormData({});
+          setTraitFormDataMap({});
+          setInitialTraitFormDataMap({});
         }
       }
     } catch (err) {
@@ -167,68 +205,19 @@ export const EnvironmentOverridesDialog: React.FC<
     }
   }, [open, environment, loadSchemaAndBinding]);
 
-  const calculateChanges = () => {
-    const changes: Array<{
-      path: string;
-      type: 'new' | 'modified' | 'removed';
-      oldValue?: any;
-      newValue?: any;
-    }> = [];
-
-    const traverse = (obj1: any, obj2: any, path: string = '') => {
-      const allKeys = new Set([
-        ...Object.keys(obj1 || {}),
-        ...Object.keys(obj2 || {}),
-      ]);
-
-      allKeys.forEach(key => {
-        const currentPath = path ? `${path}.${key}` : key;
-        const val1 = obj1?.[key];
-        const val2 = obj2?.[key];
-
-        if (val1 === undefined && val2 !== undefined) {
-          // New field
-          changes.push({
-            path: currentPath,
-            type: 'new',
-            newValue: val2,
-          });
-        } else if (val1 !== undefined && val2 === undefined) {
-          // Removed field
-          changes.push({
-            path: currentPath,
-            type: 'removed',
-            oldValue: val1,
-          });
-        } else if (
-          typeof val1 === 'object' &&
-          val1 !== null &&
-          typeof val2 === 'object' &&
-          val2 !== null &&
-          !Array.isArray(val1) &&
-          !Array.isArray(val2)
-        ) {
-          // Recurse for nested objects
-          traverse(val1, val2, currentPath);
-        } else if (JSON.stringify(val1) !== JSON.stringify(val2)) {
-          // Modified field
-          changes.push({
-            path: currentPath,
-            type: 'modified',
-            oldValue: val1,
-            newValue: val2,
-          });
-        }
-      });
-    };
-
-    traverse(initialFormData, formData);
-    return changes;
-  };
+  // Use the custom hook to calculate changes
+  const changes = useOverrideChanges(
+    initialComponentTypeFormData,
+    componentTypeFormData,
+    initialTraitFormDataMap,
+    traitFormDataMap,
+  );
 
   const handleSaveClick = () => {
-    const changes = calculateChanges();
-    if (changes.length === 0) {
+    const totalChanges = changes.component.length +
+      Object.values(changes.traits).reduce((sum, traitChanges) => sum + traitChanges.length, 0);
+
+    if (totalChanges === 0) {
       setError('No changes to save');
       setTimeout(() => setError(null), 3000);
       return;
@@ -247,12 +236,20 @@ export const EnvironmentOverridesDialog: React.FC<
     setError(null);
 
     try {
+      // Merge component-type and trait overrides
+      // TODO: Update when backend supports trait overrides separately
+      // For now, only save component-type overrides
+      const mergedOverrides = {
+        ...componentTypeFormData,
+        // Traits will be added here when backend supports them
+      };
+
       await patchReleaseBindingOverrides(
         entity,
         discovery,
         identityApi,
         environment.name.toLowerCase(),
-        formData,
+        mergedOverrides,
       );
 
       // Overrides saved successfully, backend will automatically redeploy
@@ -267,137 +264,75 @@ export const EnvironmentOverridesDialog: React.FC<
     }
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (target: 'all' | 'component' | string) => {
+    setDeleteTarget(target);
     setShowDeleteConfirm(true);
   };
 
   const handleCancelDelete = () => {
     setShowDeleteConfirm(false);
+    setDeleteTarget(null);
   };
 
   const handleConfirmDelete = async () => {
-    if (!environment) return;
+    if (!environment || !deleteTarget) return;
 
     setDeleting(true);
     setError(null);
 
     try {
-      // Patch with empty overrides to delete them
-      await patchReleaseBindingOverrides(
-        entity,
-        discovery,
-        identityApi,
-        environment.name.toLowerCase(),
-        {},
-      );
+      if (deleteTarget === 'all') {
+        // Delete all overrides (component + traits)
+        await patchReleaseBindingOverrides(
+          entity,
+          discovery,
+          identityApi,
+          environment.name.toLowerCase(),
+          {},
+        );
 
-      // Overrides deleted successfully, backend will automatically redeploy
-      setShowDeleteConfirm(false);
-      onSaved();
-      onClose();
+        setShowDeleteConfirm(false);
+        onSaved();
+        onClose();
+      } else if (deleteTarget === 'component') {
+        // Delete only component-type overrides
+        setComponentTypeFormData({});
+        setShowDeleteConfirm(false);
+        setDeleteTarget(null);
+      } else {
+        // Delete specific trait overrides
+        const newTraitFormDataMap = { ...traitFormDataMap };
+        delete newTraitFormDataMap[deleteTarget];
+        setTraitFormDataMap(newTraitFormDataMap);
+        setShowDeleteConfirm(false);
+        setDeleteTarget(null);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to delete overrides',
       );
       setShowDeleteConfirm(false);
+      setDeleteTarget(null);
     } finally {
       setDeleting(false);
     }
   };
 
-  const handleFormChange = (e: any) => {
-    setFormData(e.formData);
-  };
+  const hasComponentTypeOverrides =
+    componentTypeFormData && Object.keys(componentTypeFormData).length > 0;
+  const hasAnyTraitOverrides =
+    Object.values(traitFormDataMap).some(data => Object.keys(data).length > 0);
+  const hasAnyOverrides = hasComponentTypeOverrides || hasAnyTraitOverrides;
 
-  const hasOverrides = formData && Object.keys(formData).length > 0;
-  const hasInitialOverrides =
-    initialFormData && Object.keys(initialFormData).length > 0;
-
-  const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return 'null';
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
-  };
-
-  const renderChangesPreview = () => {
-    const changes = calculateChanges();
-
-    return (
-      <Box>
-        <Typography variant="h6" gutterBottom>
-          Confirm Save Changes ({changes.length}{' '}
-          {changes.length === 1 ? 'change' : 'changes'})
-        </Typography>
-        <Box
-          mt={2}
-          mb={2}
-          p={2}
-          style={{
-            backgroundColor: '#f5f5f5',
-            borderRadius: '4px',
-            maxHeight: '300px',
-            overflow: 'auto',
-          }}
-        >
-          {changes.map((change, index) => (
-            <Box
-              key={index}
-              mb={index < changes.length - 1 ? 1.5 : 0}
-              style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
-            >
-              {change.type === 'new' && (
-                <Typography style={{ color: '#2e7d32' }}>
-                  <strong>{change.path}:</strong>{' '}
-                  <span style={{ color: '#666' }}>[New]</span>{' '}
-                  {formatValue(change.newValue)}
-                </Typography>
-              )}
-              {change.type === 'modified' && (
-                <Typography style={{ color: '#ed6c02' }}>
-                  <strong>{change.path}:</strong> {formatValue(change.oldValue)}{' '}
-                  → {formatValue(change.newValue)}
-                </Typography>
-              )}
-              {change.type === 'removed' && (
-                <Typography style={{ color: '#d32f2f' }}>
-                  <strong>{change.path}:</strong>{' '}
-                  <span style={{ color: '#666' }}>[Removed]</span>{' '}
-                  {formatValue(change.oldValue)}
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Box>
-        <Typography variant="body2" color="textSecondary">
-          This will trigger a redeployment of the{' '}
-          <strong>{environment?.name}</strong> environment.
-        </Typography>
-      </Box>
-    );
-  };
+  const hasInitialComponentTypeOverrides =
+    initialComponentTypeFormData && Object.keys(initialComponentTypeFormData).length > 0;
+  const hasInitialAnyTraitOverrides =
+    Object.values(initialTraitFormDataMap).some(data => Object.keys(data).length > 0);
+  const hasInitialAnyOverrides =
+    hasInitialComponentTypeOverrides || hasInitialAnyTraitOverrides;
 
   const renderDialogContent = () => {
-    if (showDeleteConfirm) {
-      return (
-        <Box className={classes.errorContainer}>
-          <Typography variant="h6" gutterBottom>
-            Delete Overrides?
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Are you sure you want to delete all environment overrides for{' '}
-            <strong>{environment?.name}</strong>? This will revert to default
-            settings and trigger a redeployment.
-          </Typography>
-        </Box>
-      );
-    }
-
-    if (showSaveConfirm) {
-      return (
-        <Box className={classes.errorContainer}>{renderChangesPreview()}</Box>
-      );
-    }
-
+    // Confirmation dialogs are now separate components, not rendered here
     return (
       <>
         {loading && (
@@ -415,9 +350,9 @@ export const EnvironmentOverridesDialog: React.FC<
           </div>
         )}
 
-        {!loading && !error && schema && (
+        {!loading && !error && (componentTypeSchema || Object.keys(traitSchemasMap).length > 0) && (
           <>
-            {!hasOverrides && (
+            {!hasAnyOverrides && (
               <Box className={classes.helpText}>
                 <Typography variant="body2" gutterBottom>
                   <strong>Environment Overrides</strong>
@@ -431,17 +366,62 @@ export const EnvironmentOverridesDialog: React.FC<
               </Box>
             )}
 
-            <Form
-              schema={schema}
-              formData={formData}
-              onChange={handleFormChange}
-              validator={validator}
-              liveValidate={false}
-              showErrorList={false}
-              noHtml5Validate
-            >
-              <div />
-            </Form>
+            <Box>
+              {/* Component Overrides Section */}
+              {componentTypeSchema && (
+                <OverrideSection
+                  title="Component Overrides"
+                  subtitle="Base component configuration"
+                  schema={componentTypeSchema}
+                  formData={componentTypeFormData}
+                  onChange={setComponentTypeFormData}
+                  onDelete={() => handleDeleteClick('component')}
+                  hasInitialData={hasInitialComponentTypeOverrides}
+                  expanded={expandedSections.component ?? false}
+                  onToggle={() =>
+                    setExpandedSections(prev => ({
+                      ...prev,
+                      component: !prev.component,
+                    }))
+                  }
+                />
+              )}
+
+              {/* Trait Overrides Sections */}
+              {Object.entries(traitSchemasMap).map(([traitName, traitSchema]) => (
+                <OverrideSection
+                  key={traitName}
+                  title={`Trait: ${traitName}`}
+                  subtitle={`${traitName} trait configuration`}
+                  schema={traitSchema}
+                  formData={traitFormDataMap[traitName] || {}}
+                  onChange={newData =>
+                    setTraitFormDataMap(prev => ({ ...prev, [traitName]: newData }))
+                  }
+                  onDelete={() => handleDeleteClick(traitName)}
+                  hasInitialData={
+                    initialTraitFormDataMap[traitName] &&
+                    Object.keys(initialTraitFormDataMap[traitName]).length > 0
+                  }
+                  expanded={expandedSections[`trait-${traitName}`] ?? false}
+                  onToggle={() =>
+                    setExpandedSections(prev => ({
+                      ...prev,
+                      [`trait-${traitName}`]: !prev[`trait-${traitName}`],
+                    }))
+                  }
+                />
+              ))}
+
+              {/* Empty State - No Traits */}
+              {Object.keys(traitSchemasMap).length === 0 && componentTypeSchema && (
+                <Box mt={2} p={2} style={{ backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                  <Typography variant="body2" color="textSecondary">
+                    No traits configured for this component.
+                  </Typography>
+                </Box>
+              )}
+            </Box>
           </>
         )}
       </>
@@ -449,52 +429,19 @@ export const EnvironmentOverridesDialog: React.FC<
   };
 
   const renderDialogActions = () => {
-    if (showDeleteConfirm) {
-      return (
-        <Box display="flex" justifyContent="flex-end" width="100%">
-          <Button onClick={handleCancelDelete} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmDelete}
-            color="secondary"
-            variant="contained"
-            disabled={deleting}
-            style={{ marginLeft: 8 }}
-          >
-            {deleting ? 'Deleting...' : 'Confirm Delete'}
-          </Button>
-        </Box>
-      );
-    }
-
-    if (showSaveConfirm) {
-      return (
-        <Box display="flex" justifyContent="flex-end" width="100%">
-          <Button onClick={handleCancelSave} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmSave}
-            color="primary"
-            variant="contained"
-            disabled={saving}
-            style={{ marginLeft: 8 }}
-          >
-            {saving ? 'Saving...' : 'Confirm Save'}
-          </Button>
-        </Box>
-      );
+    // Show actions only when not in confirmation mode
+    if (showDeleteConfirm || showSaveConfirm) {
+      return null;
     }
 
     return (
       <Box display="flex" justifyContent="space-between" width="100%">
         <Button
-          onClick={handleDeleteClick}
+          onClick={() => handleDeleteClick('all')}
           color="secondary"
-          disabled={deleting || saving || loading || !hasInitialOverrides}
+          disabled={deleting || saving || loading || !hasInitialAnyOverrides}
         >
-          Delete Overrides
+          Delete All Overrides
         </Button>
         <Box>
           <Button onClick={onClose} disabled={saving || deleting}>
@@ -515,23 +462,51 @@ export const EnvironmentOverridesDialog: React.FC<
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">
-            Configure Overrides - {environment?.name}
-          </Typography>
-          <IconButton onClick={onClose} size="small">
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </DialogTitle>
+    <>
+      <Dialog
+        open={open && !showSaveConfirm && !showDeleteConfirm}
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">
+              Configure Overrides - {environment?.name}
+            </Typography>
+            <IconButton onClick={onClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
 
-      <DialogContent dividers className={classes.dialogContent}>
-        {renderDialogContent()}
-      </DialogContent>
+        <DialogContent dividers className={classes.dialogContent}>
+          {renderDialogContent()}
+        </DialogContent>
 
-      <DialogActions>{renderDialogActions()}</DialogActions>
-    </Dialog>
+        <DialogActions>{renderDialogActions()}</DialogActions>
+      </Dialog>
+
+      {/* Save Confirmation Dialog */}
+      <SaveConfirmationDialog
+        open={showSaveConfirm}
+        onCancel={handleCancelSave}
+        onConfirm={handleConfirmSave}
+        changes={changes}
+        environmentName={environment?.name || ''}
+        saving={saving}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmationDialog
+        open={showDeleteConfirm}
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        deleteTarget={deleteTarget}
+        initialComponentTypeFormData={initialComponentTypeFormData}
+        initialTraitFormDataMap={initialTraitFormDataMap}
+        deleting={deleting}
+      />
+    </>
   );
 };
