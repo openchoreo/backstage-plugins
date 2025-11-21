@@ -56,7 +56,11 @@ function addTitlesToSchema(schema: JSONSchema7): JSONSchema7 {
     result.properties = newProperties;
   }
 
-  if (result.items && typeof result.items === 'object' && !Array.isArray(result.items)) {
+  if (
+    result.items &&
+    typeof result.items === 'object' &&
+    !Array.isArray(result.items)
+  ) {
     result.items = addTitlesToSchema(result.items as JSONSchema7);
   }
 

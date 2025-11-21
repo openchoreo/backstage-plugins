@@ -15,7 +15,9 @@ export async function fetchWorkflowSchema(
 ) {
   const { token } = await identity.getCredentials();
   const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}${API_ENDPOINTS.WORKFLOW_SCHEMA}`,
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.WORKFLOW_SCHEMA
+    }`,
   );
 
   const params = new URLSearchParams({
@@ -56,7 +58,9 @@ export async function updateComponentWorkflowSchema(
   }
 
   const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}${API_ENDPOINTS.COMPONENT_WORKFLOW_SCHEMA}`,
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.COMPONENT_WORKFLOW_SCHEMA
+    }`,
   );
 
   const params = new URLSearchParams({
