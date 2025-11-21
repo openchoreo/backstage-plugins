@@ -1,5 +1,7 @@
 import { StructuredMetadataTable } from '@backstage/core-components';
-import { Box, Button, makeStyles } from '@material-ui/core';
+import { Box, Button, makeStyles, Typography } from '@material-ui/core';
+import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
+import React from 'react';
 
 const useStyles = makeStyles(theme => ({
   footer: {
@@ -10,7 +12,137 @@ const useStyles = makeStyles(theme => ({
     gridGap: theme.spacing(1),
     marginTop: theme.spacing(2),
   },
+  nestedContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(0.5),
+  },
+  nestedItem: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing(1),
+  },
+  nestedLabel: {
+    fontWeight: 500,
+    color: theme.palette.text.secondary,
+    minWidth: 'fit-content',
+    '&::after': {
+      content: '":"',
+    },
+  },
+  nestedValue: {
+    color: theme.palette.text.primary,
+    wordBreak: 'break-word',
+  },
+  arrayItemContainer: {
+    padding: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+    borderLeft: `2px solid ${theme.palette.divider}`,
+    paddingLeft: theme.spacing(2),
+  },
+  arrayItemHeader: {
+    fontWeight: 600,
+    marginBottom: theme.spacing(0.5),
+    color: theme.palette.text.secondary,
+  },
 }));
+
+// Render a nested object as formatted key-value pairs
+const NestedObjectRenderer = ({
+  obj,
+  classes,
+}: {
+  obj: Record<string, any>;
+  classes: ReturnType<typeof useStyles>;
+}): JSX.Element => {
+  return (
+    <div className={classes.nestedContainer}>
+      {Object.entries(obj).map(([key, value]) => {
+        if (value === null || value === undefined || value === '') {
+          return null;
+        }
+
+        let displayValue: React.ReactNode;
+
+        if (typeof value === 'boolean') {
+          displayValue = value ? '✓ Yes' : '✗ No';
+        } else if (typeof value === 'object' && !Array.isArray(value)) {
+          displayValue = (
+            <NestedObjectRenderer obj={value} classes={classes} />
+          );
+        } else if (Array.isArray(value)) {
+          displayValue = value.join(', ');
+        } else {
+          displayValue = String(value);
+        }
+
+        return (
+          <div key={key} className={classes.nestedItem}>
+            <Typography
+              variant="body2"
+              component="span"
+              className={classes.nestedLabel}
+            >
+              {sanitizeLabel(key)}
+            </Typography>
+            <Typography
+              variant="body1"
+              component="span"
+              className={classes.nestedValue}
+            >
+              {displayValue}
+            </Typography>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// Render an array of objects (like traits)
+const ArrayRenderer = ({
+  items,
+  itemLabelKey,
+  classes,
+}: {
+  items: any[];
+  itemLabelKey?: string;
+  classes: ReturnType<typeof useStyles>;
+}): JSX.Element => {
+  return (
+    <div className={classes.nestedContainer}>
+      {items.map((item, index) => {
+        const label =
+          itemLabelKey && item[itemLabelKey]
+            ? item[itemLabelKey]
+            : `Item ${index + 1}`;
+
+        if (typeof item === 'object' && item !== null) {
+          const displayItem = itemLabelKey
+            ? Object.fromEntries(
+                Object.entries(item).filter(([key]) => key !== itemLabelKey),
+              )
+            : item;
+
+          return (
+            <div key={index} className={classes.arrayItemContainer}>
+              <Typography variant="body1" className={classes.arrayItemHeader}>
+                {sanitizeLabel(String(label))}
+              </Typography>
+              <NestedObjectRenderer obj={displayItem} classes={classes} />
+            </div>
+          );
+        }
+        return (
+          <Typography key={index} variant="body1">
+            {String(item)}
+          </Typography>
+        );
+      })}
+    </div>
+  );
+};
 
 /**
  * Custom Review Step Component
@@ -53,9 +185,38 @@ export const CustomReviewStep = ({
     filteredFormData.workflow_parameters = rest.parameters || rest;
   }
 
+  // Transform nested objects and arrays into React components for proper display
+  const formattedMetadata: Record<string, any> = {};
+
+  Object.entries(filteredFormData).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '') {
+      return;
+    }
+
+    if (Array.isArray(value) && value.length > 0) {
+      // Handle arrays (like traits)
+      if (typeof value[0] === 'object') {
+        formattedMetadata[key] = (
+          <ArrayRenderer items={value} itemLabelKey="name" classes={classes} />
+        );
+      } else {
+        formattedMetadata[key] = value.join(', ');
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      // Handle nested objects (like workflow_parameters)
+      formattedMetadata[key] = (
+        <NestedObjectRenderer obj={value} classes={classes} />
+      );
+    } else if (typeof value === 'boolean') {
+      formattedMetadata[key] = value ? '✓ Yes' : '✗ No';
+    } else {
+      formattedMetadata[key] = value;
+    }
+  });
+
   return (
     <>
-      <StructuredMetadataTable metadata={filteredFormData} dense />
+      <StructuredMetadataTable metadata={formattedMetadata} dense />
       <Box className={classes.footer}>
         <Button onClick={handleBack} disabled={disableButtons}>
           Back
