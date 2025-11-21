@@ -163,8 +163,7 @@ export class CtdToTemplateConverter {
         organization_name: {
           title: 'Organization',
           type: 'string',
-          description:
-            'Auto selected based on Component Type',
+          description: 'Auto selected based on Component Type',
           default: organizationName,
           'ui:disabled': true,
         },
