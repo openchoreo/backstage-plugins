@@ -7,7 +7,8 @@ import {
 // Use generated types from OpenAPI spec
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
-type ReleaseBindingResponse = OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
+type ReleaseBindingResponse =
+  OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
 
 import {
   PlatformEnvironmentService,
