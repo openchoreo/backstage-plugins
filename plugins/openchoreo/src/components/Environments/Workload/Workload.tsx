@@ -28,10 +28,10 @@ import { isFromSourceComponent } from '../../../utils/componentUtils';
 
 export function Workload({
   onDeployed,
-  isWorking,
+  isWorking = false,
 }: {
   onDeployed: () => Promise<void>;
-  isWorking: boolean;
+  isWorking?: boolean;
 }) {
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);

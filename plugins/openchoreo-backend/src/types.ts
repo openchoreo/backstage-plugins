@@ -44,10 +44,9 @@ export interface Environment {
   bindingName?: string;
   hasComponentTypeOverrides?: boolean;
   deployment: {
-    status: 'success' | 'failed' | 'pending' | 'not-deployed' | 'suspended';
+    status?: 'Ready' | 'NotReady' | 'Failed' | undefined;
     lastDeployed?: string;
     image?: string;
-    statusMessage?: string;
     releaseName?: string;
   };
   endpoints: EndpointInfo[];
