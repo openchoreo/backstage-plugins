@@ -8,7 +8,7 @@ import {
 import { observabilityApiRef } from '../api/ObservabilityApi';
 import { Filters } from '../types';
 import { Entity } from '@backstage/catalog-model';
-import { UsageMetrics } from '../types';
+import { Metrics } from '../types';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 async function getComponentDetails(
@@ -111,7 +111,7 @@ export function useMetrics(
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const [metrics, setMetrics] = useState<UsageMetrics | null>(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [componentId, setComponentId] = useState<string | null>(null);

@@ -14,7 +14,7 @@ export const useMetricsActionsStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-export const useMetricGraphStyles = makeStyles(() => ({
+export const useMetricGraphStyles = makeStyles((theme: Theme) => ({
   chartContainer: {
     width: '100%',
   },
@@ -23,6 +23,25 @@ export const useMetricGraphStyles = makeStyles(() => ({
     maxWidth: '100%',
     maxHeight: '70vh',
     aspectRatio: 1.618,
+  },
+  emptyChart: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    fontSize: '1.2rem',
+    color: theme.palette.text.secondary,
+  },
+  emptyChartText: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',
+    textAlign: 'center',
+    fontSize: '0.875rem',
+    color: theme.palette.text.secondary,
+    marginTop: theme.spacing(1),
   },
 }));
 

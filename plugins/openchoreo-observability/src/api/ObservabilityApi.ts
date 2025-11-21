@@ -3,7 +3,7 @@ import {
   DiscoveryApi,
   FetchApi,
 } from '@backstage/core-plugin-api';
-import { UsageMetrics } from '../types';
+import { Metrics } from '../types';
 
 export interface ObservabilityApi {
   getMetrics(
@@ -20,7 +20,7 @@ export interface ObservabilityApi {
       startTime?: string;
       endTime?: string;
     },
-  ): Promise<UsageMetrics>;
+  ): Promise<Metrics>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -50,7 +50,7 @@ export class ObservabilityClient implements ObservabilityApi {
       startTime?: string;
       endTime?: string;
     },
-  ): Promise<UsageMetrics> {
+  ): Promise<Metrics> {
     const baseUrl = await this.discoveryApi.getBaseUrl(
       'openchoreo-observability-backend',
     );
@@ -92,6 +92,17 @@ export class ObservabilityClient implements ObservabilityApi {
         memoryUsage: data.memory,
         memoryRequests: data.memoryRequests,
         memoryLimits: data.memoryLimits,
+      },
+      networkThroughput: {
+        requestCount: data.requestCount,
+        successfulRequestCount: data.successfulRequestCount,
+        unsuccessfulRequestCount: data.unsuccessfulRequestCount,
+      },
+      networkLatency: {
+        meanLatency: data.meanLatency,
+        latencyPercentile50th: data.latencyPercentile50th,
+        latencyPercentile90th: data.latencyPercentile90th,
+        latencyPercentile99th: data.latencyPercentile99th,
       },
     };
   }
