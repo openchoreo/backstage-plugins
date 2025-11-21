@@ -1014,6 +1014,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} request.organizationName - Name of the organization
    * @param {string} request.environment - Environment to patch binding for
    * @param {any} request.componentTypeEnvOverrides - Component type environment overrides to apply
+   * @param {any} request.traitOverrides - Trait-specific overrides to apply
    * @returns {Promise<any>} Updated binding response
    */
   async patchReleaseBindingOverrides(request: {
@@ -1022,6 +1023,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     organizationName: string;
     environment: string;
     componentTypeEnvOverrides: any;
+    traitOverrides?: any;
   }) {
     const startTime = Date.now();
     this.logger.debug(
@@ -1051,6 +1053,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           },
           body: {
             componentTypeEnvOverrides: request.componentTypeEnvOverrides,
+            traitOverrides: request.traitOverrides,
           },
         },
       );
