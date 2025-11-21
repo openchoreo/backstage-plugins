@@ -163,11 +163,10 @@ export class CtdToTemplateConverter {
         organization_name: {
           title: 'Organization',
           type: 'string',
-          description: 'The organization where this component will be created',
+          description:
+            'Auto selected based on Component Type',
           default: organizationName,
           'ui:disabled': true,
-          'ui:help':
-            'Organization is determined by the CTD and cannot be changed',
         },
         project_name: {
           title: 'Project',
