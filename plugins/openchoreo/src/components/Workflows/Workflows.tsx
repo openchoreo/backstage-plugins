@@ -407,7 +407,9 @@ export const Workflows = () => {
                 onClick={triggerWorkflow}
                 disabled={triggeringWorkflow || !componentDetails.workflow}
                 startIcon={
-                  triggeringWorkflow ? <CircularProgress size={16} /> : undefined
+                  triggeringWorkflow ? (
+                    <CircularProgress size={16} />
+                  ) : undefined
                 }
               >
                 Trigger Workflow
