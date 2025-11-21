@@ -31,7 +31,7 @@ import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
 import { BuildLogs } from './BuildLogs';
 import { WorkflowDetailsRenderer } from './WorkflowDetailsRenderer';
-import { EditWorkflowDialog } from './EditWorkflowDialog';
+import { EditWorkflowDialog } from './EditWorkflowConfigs';
 import { useWorkflowStyles } from './styles';
 import type {
   ModelsBuild,
