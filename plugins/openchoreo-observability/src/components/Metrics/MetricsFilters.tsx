@@ -54,10 +54,12 @@ export const MetricsFilters = ({
 
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled}>
-          <InputLabel>Environment</InputLabel>
+          <InputLabel id="environment-label">Environment</InputLabel>
           <Select
             value={filters.environment?.uid || ''}
             onChange={handleEnvironmentChange}
+            labelId="environment-label"
+            label="Environment"
           >
             {environments.map((environment: Environment) => (
               <MenuItem key={environment.uid} value={environment.uid}>
@@ -70,8 +72,13 @@ export const MetricsFilters = ({
 
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled}>
-          <InputLabel>Time Range</InputLabel>
-          <Select value={filters.timeRange} onChange={handleTimeRangeChange}>
+          <InputLabel id="time-range-label">Time Range</InputLabel>
+          <Select
+            value={filters.timeRange}
+            onChange={handleTimeRangeChange}
+            labelId="time-range-label"
+            label="Time Range"
+          >
             {TIME_RANGE_OPTIONS.map((option: TimeRangeOption) => (
               <MenuItem key={option.value} value={option.value}>
                 {option.label}

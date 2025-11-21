@@ -67,11 +67,13 @@ export const LogsFilter: FC<LogsFilterProps> = ({
     <Grid container spacing={3}>
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled}>
-          <InputLabel>Log Levels</InputLabel>
+          <InputLabel id="log-levels-label">Log Levels</InputLabel>
           <Select
             multiple
             value={filters.logLevel}
             onChange={handleLogLevelSelectChange}
+            labelId="log-levels-label"
+            label="Log Levels"
             renderValue={selected => (selected as string[]).join(', ')}
           >
             {LOG_LEVELS.map(level => (
@@ -86,11 +88,13 @@ export const LogsFilter: FC<LogsFilterProps> = ({
 
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled}>
-          <InputLabel>Selected Fields</InputLabel>
+          <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
           <Select
             multiple
             value={filters.selectedFields}
             onChange={handleSelectedFieldsChange}
+            labelId="selected-fields-label"
+            label="Selected Fields"
             renderValue={selected => (selected as LogEntryField[]).join(', ')}
           >
             {SELECTED_FIELDS.map((field: LogEntryField) => (
@@ -112,13 +116,15 @@ export const LogsFilter: FC<LogsFilterProps> = ({
 
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled || environmentsLoading}>
-          <InputLabel>Environment</InputLabel>
+          <InputLabel id="environment-label">Environment</InputLabel>
           {environmentsLoading ? (
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
               value={filters.environmentId}
               onChange={handleEnvironmentChange}
+              labelId="environment-label"
+              label="Environment"
             >
               {environments.map(env => (
                 <MenuItem key={env.id} value={env.id}>
@@ -132,8 +138,13 @@ export const LogsFilter: FC<LogsFilterProps> = ({
 
       <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled}>
-          <InputLabel>Time Range</InputLabel>
-          <Select value={filters.timeRange} onChange={handleTimeRangeChange}>
+          <InputLabel id="time-range-label">Time Range</InputLabel>
+          <Select
+            value={filters.timeRange}
+            onChange={handleTimeRangeChange}
+            labelId="time-range-label"
+            label="Time Range"
+          >
             {TIME_RANGE_OPTIONS.map(option => (
               <MenuItem key={option.value} value={option.value}>
                 {option.label}
