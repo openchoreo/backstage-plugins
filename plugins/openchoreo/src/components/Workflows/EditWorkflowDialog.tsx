@@ -279,6 +279,13 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
     setError(null);
   };
 
+  const handleClose = () => {
+    setShowSaveConfirm(false);
+    setError(null);
+    setFormErrors([]);
+    onClose();
+  };
+
   const handleConfirmSave = async () => {
     setSaving(true);
     setError(null);
@@ -447,17 +454,18 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
     }
 
     const hasValidationErrors = formErrors.length > 0;
+    const hasChanges = calculateChanges().length > 0;
 
     return (
       <Box display="flex" justifyContent="flex-end" width="100%">
-        <Button onClick={onClose} disabled={saving}>
+        <Button onClick={handleClose} disabled={saving}>
           Cancel
         </Button>
         <Button
           onClick={handleUpdateClick}
           variant="contained"
           color="primary"
-          disabled={saving || loading || hasValidationErrors}
+          disabled={saving || loading || hasValidationErrors || !hasChanges}
           style={{ marginLeft: 8 }}
         >
           Update
@@ -469,7 +477,7 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       aria-labelledby="edit-workflow-dialog-title"
@@ -479,7 +487,7 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
           <Typography variant="h5">Edit Workflow - {workflowName}</Typography>
           <IconButton
             aria-label="close"
-            onClick={onClose}
+            onClick={handleClose}
             className={classes.closeButton}
             size="small"
           >
