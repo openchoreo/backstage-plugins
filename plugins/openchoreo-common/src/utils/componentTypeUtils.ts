@@ -126,13 +126,8 @@ export class ComponentTypeUtils {
    * // Returns: ["openchoreo", "component", "deployment", "service", "deployment-service"]
    */
   generateTags(componentType: string): string[] {
-    const { workloadType, typeName } = this.parseComponentType(componentType);
-    return [
-      'openchoreo',
-      'component',
-      workloadType !== 'unknown' ? workloadType : undefined,
-      typeName !== componentType ? typeName : undefined,
-      componentType.replace('/', '-'),
-    ].filter(Boolean) as string[];
+    return ['openchoreo', 'component', componentType.replace('/', '-')].filter(
+      Boolean,
+    ) as string[];
   }
 }
