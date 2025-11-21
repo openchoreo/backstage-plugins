@@ -121,4 +121,55 @@ export class WorkflowSchemaService {
       throw error;
     }
   }
+
+  /**
+   * Update component workflow schema (PATCH)
+   */
+  async updateComponentWorkflowSchema(
+    orgName: string,
+    projectName: string,
+    componentName: string,
+    schema: { [key: string]: unknown },
+  ): Promise<OpenChoreoComponents['schemas']['APIResponse']> {
+    this.logger.debug(
+      `Updating workflow schema for component: ${componentName} in project: ${projectName}, org: ${orgName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.PATCH(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-schema',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+          },
+          body: { schema },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to update workflow schema: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data?.success) {
+        throw new Error('Failed to update workflow schema');
+      }
+
+      this.logger.debug(
+        `Successfully updated workflow schema for component: ${componentName}`,
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update workflow schema for component ${componentName}: ${error}`,
+      );
+      throw error;
+    }
+  }
 }

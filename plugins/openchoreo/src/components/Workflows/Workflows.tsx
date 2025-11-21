@@ -28,8 +28,10 @@ import ErrorIcon from '@material-ui/icons/Error';
 import ScheduleIcon from '@material-ui/icons/Schedule';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
+import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
 import { BuildLogs } from './BuildLogs';
 import { WorkflowDetailsRenderer } from './WorkflowDetailsRenderer';
+import { EditWorkflowDialog } from './EditWorkflowDialog';
 import { useWorkflowStyles } from './styles';
 import type {
   ModelsBuild,
@@ -106,6 +108,7 @@ export const Workflows = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedBuild, setSelectedBuild] = useState<ModelsBuild | null>(null);
   const [workflowDetailsExpanded, setWorkflowDetailsExpanded] = useState(true);
+  const [editWorkflowDialogOpen, setEditWorkflowDialogOpen] = useState(false);
 
   const getEntityDetails = useCallback(async () => {
     if (!entity.metadata.name) {
@@ -387,17 +390,29 @@ export const Workflows = () => {
                 )}
               </IconButton>
             </Box>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={triggerWorkflow}
-              disabled={triggeringWorkflow || !componentDetails.workflow}
-              startIcon={
-                triggeringWorkflow ? <CircularProgress size={16} /> : undefined
-              }
-            >
-              Trigger Workflow
-            </Button>
+            <Box display="flex" gridGap={8}>
+              {componentDetails.workflow && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => setEditWorkflowDialogOpen(true)}
+                  startIcon={<EditOutlinedIcon />}
+                >
+                  Edit Workflow
+                </Button>
+              )}
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={triggerWorkflow}
+                disabled={triggeringWorkflow || !componentDetails.workflow}
+                startIcon={
+                  triggeringWorkflow ? <CircularProgress size={16} /> : undefined
+                }
+              >
+                Trigger Workflow
+              </Button>
+            </Box>
           </Box>
 
           <Collapse in={workflowDetailsExpanded}>
@@ -496,6 +511,18 @@ export const Workflows = () => {
         onClose={() => setDrawerOpen(false)}
         build={selectedBuild}
       />
+      {componentDetails?.workflow && (
+        <EditWorkflowDialog
+          open={editWorkflowDialogOpen}
+          onClose={() => setEditWorkflowDialogOpen(false)}
+          entity={entity}
+          workflowName={componentDetails.workflow.name || ''}
+          currentWorkflowSchema={componentDetails.workflow.schema || null}
+          onSaved={() => {
+            fetchComponentDetails();
+          }}
+        />
+      )}
     </Box>
   );
 };

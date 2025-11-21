@@ -246,6 +246,31 @@ export async function createRouter({
     );
   });
 
+  // Endpoint for updating component workflow schema
+  router.patch('/component-workflow-schema', async (req, res) => {
+    const { organizationName, projectName, componentName } = req.query;
+    const { schema } = req.body;
+
+    if (!organizationName || !projectName || !componentName) {
+      throw new InputError(
+        'organizationName, projectName and componentName are required query parameters',
+      );
+    }
+
+    if (!schema) {
+      throw new InputError('schema is required in request body');
+    }
+
+    res.json(
+      await workflowSchemaService.updateComponentWorkflowSchema(
+        organizationName as string,
+        projectName as string,
+        componentName as string,
+        schema,
+      ),
+    );
+  });
+
   router.get('/builds', async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
 
