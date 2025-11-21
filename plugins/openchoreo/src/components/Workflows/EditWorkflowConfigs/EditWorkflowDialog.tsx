@@ -10,7 +10,6 @@ import {
   Typography,
   CircularProgress,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import CloseIcon from '@material-ui/icons/Close';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
@@ -25,95 +24,11 @@ import {
 import {
   fetchWorkflowSchema,
   updateComponentWorkflowSchema,
-} from '../../api/workflows';
-import {
-  CHOREO_ANNOTATIONS,
-  sanitizeLabel,
-} from '@openchoreo/backstage-plugin-common';
-
-/**
- * Recursively adds title fields to schema properties if not already defined.
- * Honors existing title fields, otherwise generates from property key.
- */
-function addTitlesToSchema(schema: JSONSchema7): JSONSchema7 {
-  if (!schema || typeof schema !== 'object') return schema;
-
-  const result = { ...schema };
-
-  if (result.properties) {
-    const newProperties: { [key: string]: JSONSchema7 | boolean } = {};
-    for (const [key, value] of Object.entries(result.properties)) {
-      if (typeof value === 'boolean') {
-        newProperties[key] = value;
-      } else if (typeof value === 'object' && value !== null) {
-        const prop = { ...value } as JSONSchema7;
-        if (!prop.title) {
-          prop.title = sanitizeLabel(key);
-        }
-        newProperties[key] = addTitlesToSchema(prop);
-      }
-    }
-    result.properties = newProperties;
-  }
-
-  if (
-    result.items &&
-    typeof result.items === 'object' &&
-    !Array.isArray(result.items)
-  ) {
-    result.items = addTitlesToSchema(result.items as JSONSchema7);
-  }
-
-  return result;
-}
-
-const useStyles = makeStyles(theme => ({
-  dialogTitle: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingRight: theme.spacing(1),
-  },
-  closeButton: {
-    marginLeft: theme.spacing(2),
-  },
-  dialogContent: {
-    minHeight: '400px',
-    paddingTop: theme.spacing(2),
-  },
-  loadingContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: theme.spacing(4),
-    gap: theme.spacing(2),
-    minHeight: '400px',
-  },
-  errorContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '400px',
-    gap: theme.spacing(2),
-  },
-  helpText: {
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.background.default,
-    borderRadius: theme.shape.borderRadius,
-    marginBottom: theme.spacing(2),
-  },
-  changesPreview: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: '4px',
-    maxHeight: '300px',
-    overflow: 'auto',
-    padding: theme.spacing(2),
-    marginTop: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
-}));
+} from '../../../api/workflows';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { useEditWorkflowStyles } from './styles';
+import { ChangesPreview } from './ChangesPreview';
+import { addTitlesToSchema, calculateChanges } from './utils';
 
 interface EditWorkflowDialogProps {
   open: boolean;
@@ -132,7 +47,7 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
   currentWorkflowSchema,
   onSaved,
 }) => {
-  const classes = useStyles();
+  const classes = useEditWorkflowStyles();
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 
@@ -162,7 +77,6 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
         throw new Error('Organization not found in entity');
       }
 
-      // Fetch the workflow schema (defines the structure of the form)
       const schemaResponse = await fetchWorkflowSchema(
         discovery,
         identityApi,
@@ -177,7 +91,6 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
         throw new Error('Failed to fetch workflow schema');
       }
 
-      // Set the current values from the component's workflow schema
       if (currentWorkflowSchema) {
         setFormData(currentWorkflowSchema);
         setInitialFormData(currentWorkflowSchema);
@@ -198,63 +111,9 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
     }
   }, [open, workflowName, loadWorkflowSchema]);
 
-  const calculateChanges = () => {
-    const changes: Array<{
-      path: string;
-      type: 'new' | 'modified' | 'removed';
-      oldValue?: any;
-      newValue?: any;
-    }> = [];
-
-    const traverse = (obj1: any, obj2: any, path: string = '') => {
-      const allKeys = new Set([
-        ...Object.keys(obj1 || {}),
-        ...Object.keys(obj2 || {}),
-      ]);
-
-      allKeys.forEach(key => {
-        const currentPath = path ? `${path}.${key}` : key;
-        const val1 = obj1?.[key];
-        const val2 = obj2?.[key];
-
-        if (val1 === undefined && val2 !== undefined) {
-          changes.push({
-            path: currentPath,
-            type: 'new',
-            newValue: val2,
-          });
-        } else if (val1 !== undefined && val2 === undefined) {
-          changes.push({
-            path: currentPath,
-            type: 'removed',
-            oldValue: val1,
-          });
-        } else if (
-          typeof val1 === 'object' &&
-          val1 !== null &&
-          typeof val2 === 'object' &&
-          val2 !== null &&
-          !Array.isArray(val1) &&
-          !Array.isArray(val2)
-        ) {
-          traverse(val1, val2, currentPath);
-        } else if (JSON.stringify(val1) !== JSON.stringify(val2)) {
-          changes.push({
-            path: currentPath,
-            type: 'modified',
-            oldValue: val1,
-            newValue: val2,
-          });
-        }
-      });
-    };
-
-    traverse(initialFormData, formData);
-    return changes;
-  };
+  const getChanges = () => calculateChanges(initialFormData, formData);
 
   const handleUpdateClick = () => {
-    // Validate form before proceeding
     if (schema) {
       const validationResult = validator.validateFormData(formData, schema);
       if (validationResult.errors && validationResult.errors.length > 0) {
@@ -265,7 +124,7 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
       }
     }
 
-    const changes = calculateChanges();
+    const changes = getChanges();
     if (changes.length === 0) {
       setError('No changes to save');
       setTimeout(() => setError(null), 3000);
@@ -305,7 +164,6 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
       setError(
         err instanceof Error ? err.message : 'Failed to update workflow schema',
       );
-      // Stay on confirmation screen to show error
     } finally {
       setSaving(false);
     }
@@ -316,63 +174,11 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
     setFormErrors(e.errors || []);
   };
 
-  const formatValue = (value: any): string => {
-    if (value === null || value === undefined) return 'null';
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
-  };
-
-  const renderChangesPreview = () => {
-    const changes = calculateChanges();
-
-    return (
-      <Box>
-        <Typography variant="h6" gutterBottom>
-          Confirm Changes ({changes.length}{' '}
-          {changes.length === 1 ? 'change' : 'changes'})
-        </Typography>
-        <Box className={classes.changesPreview}>
-          {changes.map((change, index) => (
-            <Box
-              key={index}
-              mb={index < changes.length - 1 ? 1.5 : 0}
-              style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
-            >
-              {change.type === 'new' && (
-                <Typography style={{ color: '#2e7d32' }}>
-                  <strong>{change.path}:</strong>{' '}
-                  <span style={{ color: '#666' }}>[New]</span>{' '}
-                  {formatValue(change.newValue)}
-                </Typography>
-              )}
-              {change.type === 'modified' && (
-                <Typography style={{ color: '#ed6c02' }}>
-                  <strong>{change.path}:</strong> {formatValue(change.oldValue)}{' '}
-                  → {formatValue(change.newValue)}
-                </Typography>
-              )}
-              {change.type === 'removed' && (
-                <Typography style={{ color: '#d32f2f' }}>
-                  <strong>{change.path}:</strong>{' '}
-                  <span style={{ color: '#666' }}>[Removed]</span>{' '}
-                  {formatValue(change.oldValue)}
-                </Typography>
-              )}
-            </Box>
-          ))}
-        </Box>
-        <Typography variant="body2" color="textSecondary">
-          This will update the workflow configuration for the component.
-        </Typography>
-      </Box>
-    );
-  };
-
   const renderDialogContent = () => {
     if (showSaveConfirm) {
       return (
         <Box>
-          {renderChangesPreview()}
+          <ChangesPreview changes={getChanges()} />
           {error && (
             <Box mt={2} p={2} bgcolor="error.light" borderRadius={1}>
               <Typography color="error" variant="body2">
@@ -454,7 +260,7 @@ export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
     }
 
     const hasValidationErrors = formErrors.length > 0;
-    const hasChanges = calculateChanges().length > 0;
+    const hasChanges = getChanges().length > 0;
 
     return (
       <Box display="flex" justifyContent="flex-end" width="100%">
