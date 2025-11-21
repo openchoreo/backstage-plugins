@@ -8,3 +8,7 @@ export type Environment =
   OpenChoreoComponents['schemas']['EnvironmentResponse'];
 export type ResourceMetricsTimeSeries =
   ObservabilityComponents['schemas']['ResourceMetricsTimeSeries'];
+
+export type ComponentMetricsTimeSeries =
+  ObservabilityComponents['schemas']['ResourceMetricsTimeSeries'] &
+    ObservabilityComponents['schemas']['HTTPMetricsTimeSeries'];

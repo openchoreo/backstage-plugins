@@ -9,7 +9,7 @@ import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
-import { Environment, ResourceMetricsTimeSeries } from '../types';
+import { ComponentMetricsTimeSeries, Environment } from '../types';
 
 /**
  * Error thrown when observability is not configured for a component
@@ -132,7 +132,7 @@ export class ObservabilityService {
       startTime?: string;
       endTime?: string;
     },
-  ): Promise<ResourceMetricsTimeSeries> {
+  ): Promise<ComponentMetricsTimeSeries> {
     const startTime = Date.now();
     try {
       this.logger.debug(
@@ -203,6 +203,22 @@ export class ObservabilityService {
         },
       );
 
+      const {
+        data: httpData,
+        error: httpError,
+        response: httpResponse,
+      } = await obsClient.POST('/api/metrics/component/http', {
+        body: {
+          componentId,
+          environmentId,
+          projectId,
+          limit: options?.limit || 100,
+          offset: options?.offset || 0,
+          startTime: options?.startTime,
+          endTime: options?.endTime,
+        },
+      });
+
       if (error || !response.ok) {
         const errorText = await response.text();
         this.logger.error(
@@ -211,6 +227,17 @@ export class ObservabilityService {
         );
         throw new Error(
           `Failed to fetch metrics: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (httpError || !httpResponse.ok) {
+        const errorText = await httpResponse.text();
+        this.logger.error(
+          `Failed to fetch HTTP metrics for component ${componentId}: ${httpResponse.status} ${httpResponse.statusText}`,
+          { error: errorText },
+        );
+        throw new Error(
+          `Failed to fetch HTTP metrics: ${httpResponse.status} ${httpResponse.statusText}`,
         );
       }
 
@@ -234,6 +261,13 @@ export class ObservabilityService {
         memory: data.memory ?? [],
         memoryRequests: data.memoryRequests ?? [],
         memoryLimits: data.memoryLimits ?? [],
+        requestCount: httpData.requestCount ?? [],
+        successfulRequestCount: httpData.successfulRequestCount ?? [],
+        unsuccessfulRequestCount: httpData.unsuccessfulRequestCount ?? [],
+        meanLatency: httpData.meanLatency ?? [],
+        latencyPercentile50th: httpData.latencyPercentile50th ?? [],
+        latencyPercentile90th: httpData.latencyPercentile90th ?? [],
+        latencyPercentile99th: httpData.latencyPercentile99th ?? [],
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {

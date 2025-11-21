@@ -15,9 +15,24 @@ export type MemoryUsageMetrics = {
   memoryLimits: TimeValuePoint[];
 };
 
-export type UsageMetrics = {
+export type NetworkThroughputMetrics = {
+  requestCount: TimeValuePoint[];
+  successfulRequestCount: TimeValuePoint[];
+  unsuccessfulRequestCount: TimeValuePoint[];
+};
+
+export type NetworkLatencyMetrics = {
+  meanLatency: TimeValuePoint[];
+  latencyPercentile50th: TimeValuePoint[];
+  latencyPercentile90th: TimeValuePoint[];
+  latencyPercentile99th: TimeValuePoint[];
+};
+
+export type Metrics = {
   cpuUsage: CpuUsageMetrics;
   memoryUsage: MemoryUsageMetrics;
+  networkThroughput: NetworkThroughputMetrics;
+  networkLatency: NetworkLatencyMetrics;
 };
 
 export interface TimeRangeOption {

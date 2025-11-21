@@ -10,7 +10,12 @@ import {
   LegendPayload,
 } from 'recharts';
 import { DataKey } from 'recharts/types/util/types';
-import { CpuUsageMetrics, MemoryUsageMetrics } from '../../types';
+import {
+  CpuUsageMetrics,
+  MemoryUsageMetrics,
+  NetworkLatencyMetrics,
+  NetworkThroughputMetrics,
+} from '../../types';
 import {
   formatAxisTime,
   formatTooltipTime,
@@ -28,8 +33,12 @@ export const MetricGraphByComponent = ({
   usageType,
   timeRange,
 }: {
-  usageData: CpuUsageMetrics | MemoryUsageMetrics;
-  usageType: 'cpu' | 'memory';
+  usageData:
+    | CpuUsageMetrics
+    | MemoryUsageMetrics
+    | NetworkThroughputMetrics
+    | NetworkLatencyMetrics;
+  usageType: 'cpu' | 'memory' | 'networkThroughput' | 'networkLatency';
   timeRange?: string;
 }) => {
   const classes = useMetricGraphStyles();
@@ -53,6 +62,20 @@ export const MetricGraphByComponent = ({
     setHoveringDataKey(payload.dataKey);
 
   const handleMouseLeave = () => setHoveringDataKey(undefined);
+
+  if (transformedData.length === 0) {
+    return (
+      <div className={classes.chartContainer}>
+        <div className={classes.emptyChart}>No data available</div>
+        {(usageType === 'networkThroughput' ||
+          usageType === 'networkLatency') && (
+          <p className={classes.emptyChartText}>
+            Network metrics are available in OpenChoreo Cilium Edition only.
+          </p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={classes.chartContainer}>

@@ -1,5 +1,10 @@
 import { DataKey } from 'recharts/types/util/types';
-import { CpuUsageMetrics, MemoryUsageMetrics } from '../../types';
+import {
+  CpuUsageMetrics,
+  MemoryUsageMetrics,
+  NetworkLatencyMetrics,
+  NetworkThroughputMetrics,
+} from '../../types';
 
 /**
  * Format timestamp for axis display based on the time range
@@ -45,7 +50,7 @@ export const formatTooltipTime = (timestamp: number): string => {
  */
 export const formatMetricValue = (
   value: number,
-  usageType: 'cpu' | 'memory',
+  usageType: 'cpu' | 'memory' | 'networkThroughput' | 'networkLatency',
 ): string => {
   if (value === 0) return '0';
 
@@ -55,11 +60,22 @@ export const formatMetricValue = (
     if (value > 0.001) return `${(value * 1000).toFixed(2)} mCPU`;
     return `${(value * 1000000).toFixed(2)} uCPU`;
   }
-
-  // value is in Bytes
-  if (value > 1000000) return `${(value / 1000000).toFixed(2)} MB`;
-  if (value > 1000) return `${(value / 1000).toFixed(2)} KB`;
-  return `${value.toFixed(2)} B`;
+  if (usageType === 'memory') {
+    // value is in Bytes
+    if (value > 1000000) return `${(value / 1000000).toFixed(2)} MB`;
+    if (value > 1000) return `${(value / 1000).toFixed(2)} KB`;
+    return `${value.toFixed(2)} B`;
+  }
+  if (usageType === 'networkThroughput') {
+    return `${value.toFixed(2)} req/s`;
+  }
+  if (usageType === 'networkLatency') {
+    // value is in seconds
+    if (value > 1) return `${value.toFixed(2)} s`;
+    if (value > 0.001) return `${(value * 1000).toFixed(2)} ms`;
+    return `${(value * 1000000).toFixed(2)} us`;
+  }
+  return value.toFixed(2);
 };
 
 /**
@@ -129,7 +145,11 @@ export const calculateTimeDomain = (
  * Transform metrics data structure to be compatible with Recharts
  */
 export const transformMetricsData = (
-  usageData: CpuUsageMetrics | MemoryUsageMetrics,
+  usageData:
+    | CpuUsageMetrics
+    | MemoryUsageMetrics
+    | NetworkThroughputMetrics
+    | NetworkLatencyMetrics,
 ) => {
   const timeMap = new Map<string, any>();
 
@@ -158,21 +178,78 @@ export interface MetricConfig {
 }
 
 export const getMetricConfigs = (
-  usageType: 'cpu' | 'memory',
-): Record<string, MetricConfig> => ({
-  usage: {
-    key: usageType === 'cpu' ? 'cpuUsage' : 'memoryUsage',
-    color: '#8884d8',
-  },
-  requests: {
-    key: usageType === 'cpu' ? 'cpuRequests' : 'memoryRequests',
-    color: '#82ca9d',
-  },
-  limits: {
-    key: usageType === 'cpu' ? 'cpuLimits' : 'memoryLimits',
-    color: '#ffc658',
-  },
-});
+  usageType: 'cpu' | 'memory' | 'networkThroughput' | 'networkLatency',
+): Record<string, MetricConfig> => {
+  if (usageType === 'networkThroughput') {
+    return {
+      totalRequests: {
+        key: 'requestCount',
+        color: '#8884d8',
+      },
+      successfulRequests: {
+        key: 'successfulRequestCount',
+        color: '#82ca9d',
+      },
+      unsuccessfulRequests: {
+        key: 'unsuccessfulRequestCount',
+        color: '#ff7f7f',
+      },
+    };
+  }
+
+  if (usageType === 'networkLatency') {
+    return {
+      meanLatency: {
+        key: 'meanLatency',
+        color: '#8884d8',
+      },
+      p50Latency: {
+        key: 'latencyPercentile50th',
+        color: '#82ca9d',
+      },
+      p90Latency: {
+        key: 'latencyPercentile90th',
+        color: '#ffc658',
+      },
+      p99Latency: {
+        key: 'latencyPercentile99th',
+        color: '#ff7300',
+      },
+    };
+  }
+
+  if (usageType === 'cpu') {
+    return {
+      usage: {
+        key: 'cpuUsage',
+        color: '#8884d8',
+      },
+      requests: {
+        key: 'cpuRequests',
+        color: '#82ca9d',
+      },
+      limits: {
+        key: 'cpuLimits',
+        color: '#ffc658',
+      },
+    };
+  }
+
+  return {
+    usage: {
+      key: 'memoryUsage',
+      color: '#8884d8',
+    },
+    requests: {
+      key: 'memoryRequests',
+      color: '#82ca9d',
+    },
+    limits: {
+      key: 'memoryLimits',
+      color: '#ffc658',
+    },
+  };
+};
 
 /**
  * Calculate opacity for metric lines based on hover state
@@ -185,8 +262,15 @@ export const getLineOpacity = (
 };
 
 /**
- * Format metric key to display name (e.g., 'cpuUsage' -> 'Cpu Usage')
+ * Format metric key to display name (e.g., 'cpuUsage' -> 'CPU Usage')
  */
 export const formatMetricName = (key: string): string => {
-  return key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  const name = key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase());
+  if (name.includes('Cpu')) {
+    // Capitalize to CPU
+    return name.replace('Cpu', 'CPU');
+  }
+  return name;
 };

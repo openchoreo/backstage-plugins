@@ -19,7 +19,13 @@ import {
   useMetrics,
 } from '../../hooks';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { CpuUsageMetrics, Environment, MemoryUsageMetrics } from '../../types';
+import {
+  CpuUsageMetrics,
+  Environment,
+  MemoryUsageMetrics,
+  NetworkLatencyMetrics,
+  NetworkThroughputMetrics,
+} from '../../types';
 import { useObservabilityMetricsPageStyles } from './styles';
 import { Alert } from '@material-ui/lab';
 
@@ -128,7 +134,7 @@ export const ObservabilityMetricsPage = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this component. Please enable observability to view metrics.'
+            ? 'Observability is not enabled for this component. Please enable observability to view runtime logs.'
             : error}
         </Typography>
         {!isObservabilityDisabled && (
@@ -141,7 +147,7 @@ export const ObservabilityMetricsPage = () => {
   };
 
   return (
-    <Content className={classes.metricsContentContainer}>
+    <Content>
       {isLoading && <Progress />}
 
       {!isLoading && (
@@ -178,6 +184,37 @@ export const ObservabilityMetricsPage = () => {
                       metrics?.memoryUsage || ({} as MemoryUsageMetrics)
                     }
                     usageType="memory"
+                    timeRange={filters.timeRange}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardHeader title="Network Throughput" />
+                <Divider />
+                <CardContent>
+                  <MetricGraphByComponent
+                    usageData={
+                      metrics?.networkThroughput ||
+                      ({} as NetworkThroughputMetrics)
+                    }
+                    usageType="networkThroughput"
+                    timeRange={filters.timeRange}
+                  />
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card>
+                <CardHeader title="Network Latency" />
+                <Divider />
+                <CardContent>
+                  <MetricGraphByComponent
+                    usageData={
+                      metrics?.networkLatency || ({} as NetworkLatencyMetrics)
+                    }
+                    usageType="networkLatency"
                     timeRange={filters.timeRange}
                   />
                 </CardContent>
