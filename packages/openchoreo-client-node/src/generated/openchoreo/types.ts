@@ -694,6 +694,19 @@ export interface components {
       page?: number;
       pageSize?: number;
     };
+    /** @description Wrapped schema containing component-type and trait environment override schemas */
+    ComponentSchemaResponse: {
+      /** @description JSON Schema for component-type environment overrides */
+      componentTypeEnvOverrides?: {
+        [key: string]: unknown;
+      };
+      /** @description Object mapping trait names to their JSON Schemas for environment overrides */
+      traitEnvOverrides?: {
+        [key: string]: {
+          [key: string]: unknown;
+        };
+      };
+    };
     OrganizationResponse: {
       name: string;
       displayName?: string;
@@ -1925,10 +1938,7 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['APIResponse'] & {
-            /** @description JSON Schema for the component */
-            data?: {
-              [key: string]: unknown;
-            };
+            data?: components['schemas']['ComponentSchemaResponse'];
           };
         };
       };
@@ -2134,10 +2144,7 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['APIResponse'] & {
-            /** @description JSON Schema for the component release */
-            data?: {
-              [key: string]: unknown;
-            };
+            data?: components['schemas']['ComponentSchemaResponse'];
           };
         };
       };

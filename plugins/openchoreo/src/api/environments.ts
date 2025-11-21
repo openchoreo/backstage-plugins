@@ -2,6 +2,7 @@ import { Entity } from '@backstage/catalog-model';
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { API_ENDPOINTS } from '../constants';
+import type { components } from '@backstage/openchoreo-client-node';
 
 export async function fetchEnvironmentInfo(
   entity: Entity,
@@ -275,7 +276,11 @@ export async function fetchComponentReleaseSchema(
   discovery: DiscoveryApi,
   identity: IdentityApi,
   releaseName: string,
-) {
+): Promise<{
+  success: boolean;
+  message: string;
+  data?: components['schemas']['ComponentSchemaResponse'];
+}> {
   const { token } = await identity.getCredentials();
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];

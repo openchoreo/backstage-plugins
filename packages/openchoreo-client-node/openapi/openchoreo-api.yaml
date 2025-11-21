@@ -48,6 +48,22 @@ components:
         pageSize:
           type: integer
 
+    ComponentSchemaResponse:
+      type: object
+      description: Wrapped schema containing component-type and trait environment override schemas
+      properties:
+        componentTypeEnvOverrides:
+          type: object
+          description: JSON Schema for component-type environment overrides
+          additionalProperties: true
+        traitEnvOverrides:
+          type: object
+          description: Object mapping trait names to their JSON Schemas for environment overrides
+          additionalProperties:
+            type: object
+            description: JSON Schema for a specific trait's environment overrides
+            additionalProperties: true
+
     # Organization
     OrganizationResponse:
       type: object
@@ -1980,9 +1996,7 @@ paths:
                   - type: object
                     properties:
                       data:
-                        type: object
-                        description: JSON Schema for the component
-                        additionalProperties: true
+                        $ref: '#/components/schemas/ComponentSchemaResponse'
         '404':
           description: Component not found
 
@@ -2272,9 +2286,7 @@ paths:
                   - type: object
                     properties:
                       data:
-                        type: object
-                        description: JSON Schema for the component release
-                        additionalProperties: true
+                        $ref: '#/components/schemas/ComponentSchemaResponse'
         '404':
           description: Component release not found
 
