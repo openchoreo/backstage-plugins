@@ -24,6 +24,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/logs/build/{buildId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get build logs
+     * @description Retrieve logs for a specific build
+     */
+    post: operations['getBuildLogs'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/logs/component/{componentId}': {
     parameters: {
       query?: never;
@@ -168,6 +188,33 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    BuildLogsRequest: {
+      /**
+       * Format: date-time
+       * @description Start time for log query in RFC3339 format
+       * @example 2025-01-10T00:00:00Z
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description End time for log query in RFC3339 format
+       * @example 2025-01-10T23:59:59Z
+       */
+      endTime: string;
+      /**
+       * @description Maximum number of log entries to return
+       * @default 100
+       * @example 100
+       */
+      limit: number;
+      /**
+       * @description Sort order for logs (build logs are sorted in ascending order by default)
+       * @default asc
+       * @example asc
+       * @enum {string}
+       */
+      sortOrder: 'asc' | 'desc';
+    };
     ComponentLogsRequest: {
       /**
        * Format: date-time
@@ -677,6 +724,51 @@ export interface operations {
             /** @example opensearch: connection failed */
             error?: string;
           };
+        };
+      };
+    };
+  };
+  getBuildLogs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The unique identifier of the build */
+        buildId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BuildLogsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved build logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LogResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
         };
       };
     };

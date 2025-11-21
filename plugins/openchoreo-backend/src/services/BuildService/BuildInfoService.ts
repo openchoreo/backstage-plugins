@@ -129,8 +129,6 @@ export class BuildInfoService {
     projectName: string,
     componentName: string,
     buildId: string,
-    buildUuid: string,
-    searchPhrase?: string,
     limit?: number,
     sortOrder?: 'asc' | 'desc',
   ): Promise<RuntimeLogsResponse> {
@@ -192,24 +190,18 @@ export class BuildInfoService {
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/component/{componentId}',
+        '/api/logs/build/{buildId}',
         {
           params: {
-            path: { componentId: componentName },
+            path: { buildId },
           },
           body: {
             startTime: new Date(
               Date.now() - 30 * 24 * 60 * 60 * 1000,
             ).toISOString(), // 30 days ago
             endTime: new Date().toISOString(),
-            environmentId: 'default',
-            namespace: 'default',
-            limit: limit || 100,
-            sortOrder: sortOrder || 'desc',
-            logType: 'build',
-            buildId,
-            buildUuid,
-            ...(searchPhrase && { searchPhrase }),
+            limit: limit || 1000, // Default to 1000 until pagination is implemented
+            sortOrder: sortOrder || 'asc',
           },
         },
       );
