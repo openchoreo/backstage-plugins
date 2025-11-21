@@ -358,7 +358,6 @@ export async function createRouter({
         projectName as string,
         componentName as string,
         buildId as string,
-        buildUuid as string,
       );
       return res.json(result);
     } catch (error: unknown) {
