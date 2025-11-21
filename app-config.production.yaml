@@ -67,10 +67,6 @@ auth:
 catalog:
   locations:
     - type: file
-      target: /app/templates/create-openchoreo-component/template.yaml
-      rules:
-        - allow: [Template]
-    - type: file
       target: /app/templates/create-openchoreo-project/template.yaml
       rules:
         - allow: [Template]
