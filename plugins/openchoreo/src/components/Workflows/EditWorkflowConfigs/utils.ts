@@ -41,10 +41,7 @@ export function addTitlesToSchema(schema: JSONSchema7): JSONSchema7 {
 /**
  * Calculates the differences between two objects.
  */
-export function calculateChanges(
-  initialData: any,
-  currentData: any,
-): Change[] {
+export function calculateChanges(initialData: any, currentData: any): Change[] {
   const changes: Change[] = [];
 
   const traverse = (obj1: any, obj2: any, path: string = '') => {
