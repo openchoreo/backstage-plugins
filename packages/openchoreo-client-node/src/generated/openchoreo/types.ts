@@ -700,8 +700,8 @@ export interface components {
       componentTypeEnvOverrides?: {
         [key: string]: unknown;
       };
-      /** @description Object mapping trait names to their JSON Schemas for environment overrides */
-      traitEnvOverrides?: {
+      /** @description Object mapping trait instance names to their JSON Schemas for environment overrides */
+      traitOverrides?: {
         [key: string]: {
           [key: string]: unknown;
         };

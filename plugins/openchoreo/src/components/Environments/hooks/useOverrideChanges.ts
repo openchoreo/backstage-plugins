@@ -81,7 +81,10 @@ export const useOverrideChanges = (
     };
 
     // Calculate component-type changes
-    grouped.component = traverse(initialComponentTypeFormData, componentTypeFormData);
+    grouped.component = traverse(
+      initialComponentTypeFormData,
+      componentTypeFormData,
+    );
 
     // Calculate trait changes for each trait
     const allTraitNames = new Set([

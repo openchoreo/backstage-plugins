@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import type { FC } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -62,7 +63,7 @@ interface ReleaseDetailsDialogProps {
   entity: Entity;
 }
 
-export const ReleaseDetailsDialog: React.FC<ReleaseDetailsDialogProps> = ({
+export const ReleaseDetailsDialog: FC<ReleaseDetailsDialogProps> = ({
   open,
   onClose,
   environmentName,

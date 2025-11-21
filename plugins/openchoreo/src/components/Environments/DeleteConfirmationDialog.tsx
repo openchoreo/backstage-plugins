@@ -1,4 +1,4 @@
-import React from 'react';
+import type { FC } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -19,7 +19,7 @@ interface DeleteConfirmationDialogProps {
   deleting: boolean;
 }
 
-export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
+export const DeleteConfirmationDialog: FC<DeleteConfirmationDialogProps> = ({
   open,
   onCancel,
   onConfirm,
@@ -29,19 +29,26 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
   deleting,
 }) => {
   const hasInitialComponentTypeOverrides =
-    initialComponentTypeFormData && Object.keys(initialComponentTypeFormData).length > 0;
+    initialComponentTypeFormData &&
+    Object.keys(initialComponentTypeFormData).length > 0;
 
   const getDeleteMessage = () => {
     if (deleteTarget === 'all') {
       const items: string[] = [];
       if (hasInitialComponentTypeOverrides) {
         items.push(
-          `Component overrides (${Object.keys(initialComponentTypeFormData).length} fields)`,
+          `Component overrides (${
+            Object.keys(initialComponentTypeFormData).length
+          } fields)`,
         );
       }
       Object.entries(initialTraitFormDataMap).forEach(([traitName, data]) => {
         if (Object.keys(data).length > 0) {
-          items.push(`Trait[${traitName}] overrides (${Object.keys(data).length} fields)`);
+          items.push(
+            `Trait[${traitName}] overrides (${
+              Object.keys(data).length
+            } fields)`,
+          );
         }
       });
 
@@ -65,26 +72,25 @@ export const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> =
     } else if (deleteTarget === 'component') {
       return (
         <Typography variant="body2" color="textSecondary">
-          Delete component-type overrides? This will revert these settings to defaults.
-        </Typography>
-      );
-    } else {
-      return (
-        <Typography variant="body2" color="textSecondary">
-          Delete trait <strong>{deleteTarget}</strong> overrides? This will revert these
-          settings to defaults.
+          Delete component-type overrides? This will revert these settings to
+          defaults.
         </Typography>
       );
     }
+
+    return (
+      <Typography variant="body2" color="textSecondary">
+        Delete trait <strong>{deleteTarget}</strong> overrides? This will revert
+        these settings to defaults.
+      </Typography>
+    );
   };
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
       <DialogTitle>Delete Overrides?</DialogTitle>
 
-      <DialogContent dividers>
-        {getDeleteMessage()}
-      </DialogContent>
+      <DialogContent dividers>{getDeleteMessage()}</DialogContent>
 
       <DialogActions>
         <Button onClick={onCancel} disabled={deleting}>
