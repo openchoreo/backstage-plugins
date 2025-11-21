@@ -5,12 +5,10 @@ import {
   CardContent,
   CardHeader,
   Divider,
+  Button,
+  Typography,
 } from '@material-ui/core';
-import {
-  Content,
-  Progress,
-  ResponseErrorPanel,
-} from '@backstage/core-components';
+import { Content, Progress } from '@backstage/core-components';
 import { MetricsFilters } from './MetricsFilters';
 import { MetricGraphByComponent } from './MetricGraphByComponent';
 import { MetricsActions } from './MetricsActions';
@@ -23,6 +21,7 @@ import {
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CpuUsageMetrics, Environment, MemoryUsageMetrics } from '../../types';
 import { useObservabilityMetricsPageStyles } from './styles';
+import { Alert } from '@material-ui/lab';
 
 export const ObservabilityMetricsPage = () => {
   const classes = useObservabilityMetricsPageStyles();
@@ -117,10 +116,33 @@ export const ObservabilityMetricsPage = () => {
 
   const isLoading = environmentsLoading || metricsLoading;
 
+  const renderError = (error: string) => {
+    const isObservabilityDisabled = error.includes(
+      'Observability is not enabled',
+    );
+
+    return (
+      <Alert
+        severity={isObservabilityDisabled ? 'info' : 'error'}
+        className={classes.errorContainer}
+      >
+        <Typography variant="body1">
+          {isObservabilityDisabled
+            ? 'Observability is not enabled for this component. Please enable observability to view metrics.'
+            : error}
+        </Typography>
+        {!isObservabilityDisabled && (
+          <Button onClick={handleRefresh} color="inherit" size="small">
+            Retry
+          </Button>
+        )}
+      </Alert>
+    );
+  };
+
   return (
-    <Content>
+    <Content className={classes.metricsContentContainer}>
       {isLoading && <Progress />}
-      {metricsError && <ResponseErrorPanel error={new Error(metricsError)} />}
 
       {!isLoading && (
         <>
@@ -130,6 +152,7 @@ export const ObservabilityMetricsPage = () => {
             environments={environments as Environment[]}
             disabled={isLoading}
           />
+          {metricsError && renderError(metricsError)}
           <MetricsActions onRefresh={handleRefresh} disabled={metricsLoading} />
           <Grid container spacing={4} className={classes.metricsGridContainer}>
             <Grid item xs={12} md={6}>
