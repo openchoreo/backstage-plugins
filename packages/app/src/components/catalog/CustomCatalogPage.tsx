@@ -92,7 +92,7 @@ export const CustomCatalogPage = ({
                 <Grid item sm={12} md={4} lg={2}>
                   <EntityOwnerPicker mode={ownerPickerMode} />
                 </Grid>
-                <Grid item sm={12} md={6} lg={4} alignContent="center">
+                <Grid item sm={12} md={7} lg={5} alignContent="center">
                   <CustomPersonalFilters />
                 </Grid>
               </Grid>
