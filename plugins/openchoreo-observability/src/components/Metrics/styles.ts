@@ -30,4 +30,11 @@ export const useObservabilityMetricsPageStyles = makeStyles((theme: Theme) => ({
   metricsGridContainer: {
     marginTop: theme.spacing(0),
   },
+  errorContainer: {
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+  },
+  metricsContentContainer: {
+    padding: theme.spacing(0),
+  },
 }));
