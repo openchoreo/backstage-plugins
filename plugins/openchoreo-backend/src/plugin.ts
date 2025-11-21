@@ -52,6 +52,7 @@ export const choreoPlugin = createBackendPlugin({
         const cellDiagramInfoService = new CellDiagramInfoService(
           logger,
           openchoreoConfig.get('baseUrl'),
+          config,
         );
 
         const buildTemplateInfoService = new BuildTemplateInfoService(

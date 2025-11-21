@@ -9191,6 +9191,7 @@ __metadata:
     "@backstage/plugin-kubernetes-backend": "npm:^0.20.2"
     "@backstage/plugin-kubernetes-node": "npm:^0.3.4"
     "@backstage/plugin-permission-common": "npm:^0.9.1"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/openchoreo-client-node": "workspace:^"
     "@types/express": "npm:^4.17.6"
     "@types/supertest": "npm:^2.0.12"

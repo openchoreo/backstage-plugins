@@ -1,4 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
+import { Config } from '@backstage/config';
 
 import {
   Project,
@@ -10,6 +11,7 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 
 // Use generated type from OpenAPI spec
 type ModelsCompleteComponent =
@@ -44,17 +46,20 @@ enum ConnectionType {
 export class CellDiagramInfoService implements CellDiagramService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
+  private readonly componentTypeUtils: ComponentTypeUtils;
 
   /**
    * Private constructor for CellDiagramInfoService.
    * Use the static create method to instantiate.
    * @param {LoggerService} logger - Logger service instance
    * @param {string} baseUrl - Base url of openchoreo api
+   * @param {Config} config - Backstage config for component type mappings
    * @private
    */
-  public constructor(logger: LoggerService, baseUrl: string) {
+  public constructor(logger: LoggerService, baseUrl: string, config: Config) {
     this.baseUrl = baseUrl;
     this.logger = logger;
+    this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
   }
 
   /**
@@ -143,10 +148,17 @@ export class CellDiagramInfoService implements CellDiagramService {
 
       const components: Component[] = completeComponents
         .filter(component => {
-          this.logger.info(JSON.stringify(component, null, 2));
-          return (
-            component.type === 'Service' || component.type === 'WebApplication'
+          if (!component.type) return false;
+
+          const pageVariant = this.componentTypeUtils.getPageVariant(
+            component.type,
           );
+          this.logger.debug(
+            `Component ${component.name} has type ${component.type} mapped to variant ${pageVariant}`,
+          );
+
+          // Include service and website components in cell diagram
+          return pageVariant === 'service' || pageVariant === 'website';
         })
         .map(component => {
           // Get connections from workload data included in component response
@@ -159,7 +171,12 @@ export class CellDiagramInfoService implements CellDiagramService {
             completeComponents,
           );
 
-          if (component.type === 'Service') {
+          const pageVariant = this.componentTypeUtils.getPageVariant(
+            component.type!,
+          );
+
+          // Map based on page variant instead of hardcoded type names
+          if (pageVariant === 'service') {
             // Extract API information from the Service.apis object
             const apis = component.service?.apis || {};
             const services: { [key: string]: any } = {};
@@ -196,7 +213,7 @@ export class CellDiagramInfoService implements CellDiagramService {
               connections: connections,
             } as Component;
           }
-          if (component.type === 'WebApplication') {
+          if (pageVariant === 'website') {
             return {
               id: component.name || '',
               label: component.name || '',
