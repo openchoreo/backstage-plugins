@@ -1,52 +1,8 @@
 import { StructuredMetadataTable } from '@backstage/core-components';
-import { Box, Button, makeStyles, Typography } from '@material-ui/core';
+import { Box, Button, Typography } from '@material-ui/core';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 import React from 'react';
-
-const useStyles = makeStyles(theme => ({
-  footer: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gridGap: theme.spacing(1),
-    marginTop: theme.spacing(2),
-  },
-  nestedContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(0.5),
-  },
-  nestedItem: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: theme.spacing(1),
-  },
-  nestedLabel: {
-    fontWeight: 500,
-    color: theme.palette.text.secondary,
-    minWidth: 'fit-content',
-    '&::after': {
-      content: '":"',
-    },
-  },
-  nestedValue: {
-    color: theme.palette.text.primary,
-    wordBreak: 'break-word',
-  },
-  arrayItemContainer: {
-    padding: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-    borderLeft: `2px solid ${theme.palette.divider}`,
-    paddingLeft: theme.spacing(2),
-  },
-  arrayItemHeader: {
-    fontWeight: 600,
-    marginBottom: theme.spacing(0.5),
-    color: theme.palette.text.secondary,
-  },
-}));
+import { useStyles } from './styles';
 
 // Render a nested object as formatted key-value pairs
 const NestedObjectRenderer = ({
@@ -68,9 +24,7 @@ const NestedObjectRenderer = ({
         if (typeof value === 'boolean') {
           displayValue = value ? '✓ Yes' : '✗ No';
         } else if (typeof value === 'object' && !Array.isArray(value)) {
-          displayValue = (
-            <NestedObjectRenderer obj={value} classes={classes} />
-          );
+          displayValue = <NestedObjectRenderer obj={value} classes={classes} />;
         } else if (Array.isArray(value)) {
           displayValue = value.join(', ');
         } else {
