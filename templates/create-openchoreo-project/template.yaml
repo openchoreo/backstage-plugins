@@ -31,7 +31,7 @@ spec:
         organization_name:
           title: Organization Name
           type: string
-          description: This is the organization where the project will be created
+          description: Organization where the project will be created
           ui:field: EntityPicker
           ui:options:
             catalogFilter:
