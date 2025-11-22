@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import { Typography, Box } from '@material-ui/core';
 import {
@@ -45,6 +45,10 @@ export const BuildWorkflowParameters = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Track workflow changes to force Form remount only when workflow actually changes
+  const [resetKey, setResetKey] = useState(0);
+  const prevWorkflowRef = useRef<string | undefined>(undefined);
+
   const discoveryApi = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 
@@ -52,6 +56,18 @@ export const BuildWorkflowParameters = ({
   // The workflow_name is a sibling field in the same section
   const selectedWorkflowName = formContext?.formData?.workflow_name;
   const organizationName = formContext?.formData?.organization_name;
+
+  // Increment resetKey only when workflow actually changes
+  // This forces Form remount only on workflow change, not on every render
+  useEffect(() => {
+    if (
+      prevWorkflowRef.current !== undefined &&
+      prevWorkflowRef.current !== selectedWorkflowName
+    ) {
+      setResetKey(prev => prev + 1);
+    }
+    prevWorkflowRef.current = selectedWorkflowName;
+  }, [selectedWorkflowName]);
 
   // Fetch workflow schema when workflow selection changes
   useEffect(() => {
@@ -124,20 +140,27 @@ export const BuildWorkflowParameters = ({
     };
   }, [selectedWorkflowName, organizationName, discoveryApi, identityApi]);
 
-  // Sync schema to formData when workflow schema changes
+  // Sync schema to formData when workflow changes (not just when schema loads)
   useEffect(() => {
-    if (workflowSchema) {
-      // Update formData to include the schema for validation
+    if (workflowSchema && resetKey > 0) {
+      // Clear old parameters only when workflow actually changes (resetKey increments)
+      // This prevents clearing when user navigates back to this step
+      onChange({
+        parameters: {},
+        schema: workflowSchema,
+      });
+    } else if (workflowSchema && resetKey === 0 && !formData?.schema) {
+      // First time loading: initialize with existing or empty parameters
       onChange({
         parameters: formData?.parameters || {},
         schema: workflowSchema,
       });
     }
-    // We intentionally only depend on workflowSchema to avoid infinite loop.
+    // We intentionally only depend on workflowSchema and resetKey.
     // Adding onChange or formData would cause infinite re-renders:
     // onChange -> formData changes -> useEffect triggers -> onChange -> loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workflowSchema]);
+  }, [workflowSchema, resetKey]);
 
   // Handle form data changes from RJSF
   const handleFormChange = (changeEvent: any) => {
@@ -190,6 +213,7 @@ export const BuildWorkflowParameters = ({
           Workflow Parameters
         </Typography>
         <Form
+          key={resetKey}
           schema={workflowSchema}
           uiSchema={uiSchema}
           formData={formData?.parameters || {}}
