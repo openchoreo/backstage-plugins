@@ -71,18 +71,14 @@ export const useStyles = makeStyles(theme => ({
     borderRadius: 8,
     border: '1px solid #e5e7eb',
     background: 'white',
-    transition: 'all 0.2s ease',
+    transition: 'all 0.2s ease-in-out',
     height: '100%',
+    boxShadow: theme.shadows[1],
     '&:hover': {
       borderColor: '#d1d5db',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+      boxShadow: theme.shadows[3],
+      transform: 'translateY(-2px)',
     },
-  },
-  environmentCardProduction: {
-    borderColor: theme.palette.success.main,
-  },
-  environmentCardNonProduction: {
-    borderColor: theme.palette.info.main,
   },
   environmentHeader: {
     padding: theme.spacing(2),
