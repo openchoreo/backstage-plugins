@@ -34,6 +34,7 @@ import { useEnvironmentData, Environment } from './hooks/useEnvironmentData';
 import { Workload } from './Workload/Workload';
 import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';
 import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
+import { StatusBadge } from '../StatusBadge';
 
 const useStyles = makeStyles(theme => ({
   '@global': {
@@ -71,6 +72,13 @@ const useStyles = makeStyles(theme => ({
     minHeight: '300px',
     display: 'flex',
     flexDirection: 'column',
+    borderRadius: theme.shape.borderRadius,
+    boxShadow: theme.shadows[2],
+    transition: 'all 0.2s ease-in-out',
+    '&:hover': {
+      boxShadow: theme.shadows[4],
+      transform: 'translateY(-2px)',
+    },
   },
   cardContent: {
     flex: 1,
@@ -451,35 +459,24 @@ export const Environments = () => {
                           </Typography>
                         </Box>
                       )}
-                      <Box
-                        className={`${classes.deploymentStatusBox} ${
-                          env.deployment.status === 'Ready'
-                            ? classes.successStatus
-                            : env.deployment.status === 'Failed'
-                            ? classes.errorStatus
-                            : env.deployment.status === 'NotReady'
-                            ? classes.warningStatus
-                            : classes.defaultStatus
-                        }`}
-                      >
-                        <Typography variant="body2" style={{ fontWeight: 500 }}>
-                          Deployment Status:
-                        </Typography>
+                      <Box display="flex" alignItems="center" mt={2}>
                         <Typography
                           variant="body2"
-                          style={{
-                            fontWeight:
-                              env.deployment.status === 'Ready' ? 'bold' : 500,
-                          }}
+                          style={{ fontWeight: 500, marginRight: 8 }}
                         >
-                          {env.deployment.status === 'Ready'
-                            ? 'Active'
-                            : env.deployment.status === 'NotReady'
-                            ? 'Pending'
-                            : env.deployment.status === 'Failed'
-                            ? 'Failed'
-                            : 'Not Deployed'}
+                          Deployment Status:
                         </Typography>
+                        <StatusBadge
+                          status={
+                            env.deployment.status === 'Ready'
+                              ? 'active'
+                              : env.deployment.status === 'NotReady'
+                              ? 'pending'
+                              : env.deployment.status === 'Failed'
+                              ? 'failed'
+                              : 'not-deployed'
+                          }
+                        />
                         {env.deployment.releaseName && (
                           <IconButton
                             onClick={() => handleOpenReleaseDialog(env)}

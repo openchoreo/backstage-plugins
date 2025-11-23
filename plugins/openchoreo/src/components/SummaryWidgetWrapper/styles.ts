@@ -6,8 +6,13 @@ export const useStyles = makeStyles(theme => ({
     border: `1px solid ${theme.palette.divider}`,
     backgroundColor: theme.palette.background.paper,
     padding: theme.spacing(3),
-    boxShadow: theme.shadows[1],
+    boxShadow: theme.shadows[2],
     height: theme.spacing(27),
+    transition: 'all 0.2s ease-in-out',
+    '&:hover': {
+      boxShadow: theme.shadows[4],
+      transform: 'translateY(-2px)',
+    },
   },
   widgetHeader: {
     display: 'flex',

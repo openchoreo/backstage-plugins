@@ -1,6 +1,7 @@
 import { Box, Typography, Card, Chip } from '@material-ui/core';
 import AppsIcon from '@material-ui/icons/Apps';
 import { useStyles } from './styles';
+import { StatusBadge } from '../StatusBadge';
 
 interface Environment {
   organization: string;
@@ -19,16 +20,11 @@ interface EnvironmentCardProps {
 export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
   const classes = useStyles();
   const isProduction = environment.isProduction;
-  const cardClass = `${classes.environmentCard} ${
-    isProduction
-      ? classes.environmentCardProduction
-      : classes.environmentCardNonProduction
-  }`;
 
   return (
     <Card
       key={`${environment.organization}-${environment.name}`}
-      className={cardClass}
+      className={classes.environmentCard}
       elevation={0}
     >
       {/* Environment Header */}
@@ -69,9 +65,7 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
 
         <Box className={classes.environmentDetail}>
           <Typography className={classes.environmentLabel}>Status</Typography>
-          <Typography className={classes.environmentValue}>
-            {environment.status}
-          </Typography>
+          <StatusBadge status="unknown" label={environment.status} />
         </Box>
       </Box>
     </Card>
