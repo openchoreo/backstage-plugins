@@ -5,8 +5,6 @@ export const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(4),
   },
   dataplaneDetailTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 600,
     color: '#374151',
     marginBottom: theme.spacing(3),
     display: 'flex',
@@ -88,8 +86,6 @@ export const useStyles = makeStyles(theme => ({
     alignItems: 'flex-start',
   },
   environmentName: {
-    fontSize: '1rem',
-    fontWeight: 600,
     color: '#111827',
     marginBottom: theme.spacing(0.5),
   },
@@ -128,7 +124,6 @@ export const useStyles = makeStyles(theme => ({
   environmentValue: {
     fontSize: '0.875rem',
     color: '#374151',
-    fontWeight: 600,
   },
   componentCount: {
     display: 'flex',
