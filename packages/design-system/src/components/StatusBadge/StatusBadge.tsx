@@ -1,4 +1,3 @@
-import React from 'react';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import { Box, Typography } from '@material-ui/core';
 
@@ -20,38 +19,38 @@ const useStyles = makeStyles((theme: Theme) => ({
     flexShrink: 0,
   },
   success: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    color: '#2E7D32',
+    backgroundColor: theme.palette.success.light,
+    color: theme.palette.success.dark,
     '& $dot': {
-      backgroundColor: '#4CAF50',
+      backgroundColor: theme.palette.success.main,
     },
   },
   warning: {
-    backgroundColor: 'rgba(255, 152, 0, 0.1)',
-    color: '#E65100',
+    backgroundColor: theme.palette.warning.light,
+    color: theme.palette.warning.dark,
     '& $dot': {
-      backgroundColor: '#FF9800',
+      backgroundColor: theme.palette.warning.main,
     },
   },
   error: {
-    backgroundColor: 'rgba(244, 67, 54, 0.1)',
-    color: '#C62828',
+    backgroundColor: theme.palette.error.light,
+    color: theme.palette.error.dark,
     '& $dot': {
-      backgroundColor: '#F44336',
+      backgroundColor: theme.palette.error.main,
     },
   },
   info: {
-    backgroundColor: 'rgba(33, 150, 243, 0.1)',
-    color: '#1565C0',
+    backgroundColor: `${theme.palette.primary.light}15`,
+    color: theme.palette.primary.dark,
     '& $dot': {
-      backgroundColor: '#2196F3',
+      backgroundColor: theme.palette.primary.main,
     },
   },
   default: {
-    backgroundColor: 'rgba(117, 117, 117, 0.1)',
-    color: '#616161',
+    backgroundColor: theme.palette.secondary.light,
+    color: theme.palette.secondary.main,
     '& $dot': {
-      backgroundColor: '#757575',
+      backgroundColor: theme.palette.secondary.main,
     },
   },
 }));

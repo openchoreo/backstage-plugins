@@ -34,7 +34,7 @@ import { useEnvironmentData, Environment } from './hooks/useEnvironmentData';
 import { Workload } from './Workload/Workload';
 import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';
 import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
-import { StatusBadge } from '../StatusBadge';
+import { StatusBadge } from '@openchoreo/backstage-design-system';
 
 const useStyles = makeStyles(theme => ({
   '@global': {

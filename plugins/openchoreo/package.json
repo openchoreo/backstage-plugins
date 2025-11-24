@@ -41,6 +41,7 @@
     "@material-ui/core": "^4.9.13",
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.61",
+    "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@rjsf/core": "^5.24.0",
     "@rjsf/material-ui": "^5.24.13",
