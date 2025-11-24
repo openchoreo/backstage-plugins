@@ -1,7 +1,7 @@
 import { Box, Typography, Card, Chip } from '@material-ui/core';
 import AppsIcon from '@material-ui/icons/Apps';
 import { useStyles } from './styles';
-import { StatusBadge } from '../StatusBadge';
+import { StatusBadge } from '@openchoreo/backstage-design-system';
 
 interface Environment {
   organization: string;

@@ -15,7 +15,7 @@ export const useStyles = makeStyles(theme => ({
   },
   dataplaneCard: {
     borderRadius: 12,
-    border: '1px solid #e2e8f0',
+    border: `1px solid ${theme.palette.grey[200]}`,
     boxShadow:
       '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
     background: 'white',
@@ -134,8 +134,8 @@ export const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(0.5),
-    backgroundColor: '#eff6ff',
-    color: '#1e40af',
+    backgroundColor: theme.palette.infoBackground,
+    color: theme.palette.primary.dark,
     padding: '2px 8px',
     borderRadius: 8,
     fontSize: '0.75rem',
