@@ -210,10 +210,8 @@ export const openChoreoTheme = createUnifiedTheme({
     },
     MuiCssBaseline: {
       styleOverrides: {
-        '@font-face': [UbuntuFont],
         'body, html': {
-          fontFamily:
-            'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
+          fontFamily: 'sans-serif !important',
         },
         // Sidebar divider opacity - use aria-label selector to work in both dev and production
         'nav[aria-label="sidebar nav"] hr': {
@@ -352,6 +350,11 @@ export const openChoreoTheme = createUnifiedTheme({
       defaultProps: {
         variant: 'outlined',
       },
+      styleOverrides: {
+        select: {
+          fontSize: 14,
+        },
+      },
     },
     MuiInput: {
       styleOverrides: {
@@ -362,7 +365,7 @@ export const openChoreoTheme = createUnifiedTheme({
           borderRadius: 4,
           padding: '2px 4px',
           color: 'inherit',
-          fontSize: 13,
+          fontSize: 14,
           '&:before': {
             display: 'none',
           },
@@ -385,6 +388,7 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         root: {
           backgroundColor: '#ffffff',
+          fontSize: 14,
           '&:hover .MuiOutlinedInput-notchedOutline': {
             borderColor: colors.grey[300],
           },
@@ -397,6 +401,9 @@ export const openChoreoTheme = createUnifiedTheme({
           borderColor: colors.grey[200],
           borderRadius: 8,
           transition: 'border-color 0.2s ease-in-out',
+        },
+        input: {
+          fontSize: 14,
         },
       },
     },
@@ -428,6 +435,37 @@ export const openChoreoTheme = createUnifiedTheme({
           '&:hover': {
             backgroundColor: colors.grey[50],
           },
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          fontSize: 14,
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        root: {
+          fontSize: 14,
+        },
+        input: {
+          fontSize: 14,
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: 14,
+        },
+      },
+    },
+    MuiFormLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: 14,
         },
       },
     },

@@ -29,7 +29,7 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
     >
       {/* Environment Header */}
       <Box className={classes.environmentHeader}>
-        <Typography className={classes.environmentName}>
+        <Typography className={classes.environmentName} variant="h5">
           {environment.displayName || environment.name}
         </Typography>
         <Chip
@@ -48,7 +48,7 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
           <Typography className={classes.environmentLabel}>
             DNS Prefix
           </Typography>
-          <Typography className={classes.environmentValue}>
+          <Typography className={classes.environmentValue} variant="h5">
             {environment.dnsPrefix}
           </Typography>
         </Box>

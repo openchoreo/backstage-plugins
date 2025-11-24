@@ -24,7 +24,7 @@ export const PlatformDetailsCard = ({
 
   return (
     <Box className={classes.dataplaneDetailsSection}>
-      <Typography className={classes.dataplaneDetailTitle}>
+      <Typography className={classes.dataplaneDetailTitle} variant="h3">
         <AccountTreeIcon />
         Platform Details
       </Typography>
