@@ -21,7 +21,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import AddIcon from '@material-ui/icons/Add';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Container, EnvVar } from '@openchoreo/backstage-plugin-common';
-import { formatRelativeTime } from '../../../../utils/timeUtils';
+import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useBuilds } from '../WorkloadContext';
 
 interface ContainerSectionProps {

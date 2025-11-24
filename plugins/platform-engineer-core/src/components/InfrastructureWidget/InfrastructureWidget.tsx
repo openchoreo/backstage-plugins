@@ -6,7 +6,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { fetchPlatformOverview } from '../../api/platformOverview';
-import { SummaryWidgetWrapper } from '../SummaryWidgetWrapper';
+import { SummaryWidgetWrapper } from '@openchoreo/backstage-plugin-react';
 import InfrastructureIcon from '@material-ui/icons/Storage';
 
 /**

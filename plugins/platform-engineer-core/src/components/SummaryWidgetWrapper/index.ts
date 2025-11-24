@@ -1,1 +1,0 @@
-export { SummaryWidgetWrapper } from './SummaryWidgetWrapper';
