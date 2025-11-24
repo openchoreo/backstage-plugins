@@ -7,9 +7,9 @@ import { LogsActions } from './LogsActions';
 import {
   useEnvironments,
   useRuntimeLogs,
-  useInfiniteScroll,
   useFilters,
 } from './hooks';
+import { useInfiniteScroll } from '@openchoreo/backstage-plugin-react';
 import { RuntimeLogsPagination } from './types';
 import { useRuntimeLogsStyles } from './styles';
 

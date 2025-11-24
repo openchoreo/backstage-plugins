@@ -44,6 +44,7 @@
     "@material-ui/icons": "^4.11.3",
     "@material-ui/lab": "^4.0.0-alpha.61",
     "@openchoreo/backstage-design-system": "workspace:^",
+    "@openchoreo/backstage-plugin-react": "workspace:^",
     "react-router-dom": "^6.3.0",
     "react-use": "^17.2.4"
   },

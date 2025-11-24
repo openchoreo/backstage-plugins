@@ -1,13 +1,14 @@
 {
-  "name": "@openchoreo/backstage-plugin",
-  "version": "0.2.0",
+  "name": "@openchoreo/backstage-plugin-react",
+  "version": "0.1.0",
   "license": "Apache-2.0",
+  "description": "Shared React components, hooks, and utilities for OpenChoreo Backstage plugins",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/openchoreo/backstage-plugins.git",
-    "directory": "plugins/openchoreo"
+    "directory": "plugins/openchoreo-react"
   },
   "publishConfig": {
     "access": "public",
@@ -16,11 +17,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "backstage": {
-    "role": "frontend-plugin",
-    "pluginId": "plugin-openchoreo",
-    "pluginPackages": [
-      "@openchoreo/backstage-plugin"
-    ]
+    "role": "web-library"
   },
   "sideEffects": false,
   "scripts": {
@@ -43,38 +40,17 @@
     "@material-ui/lab": "^4.0.0-alpha.61",
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
-    "@openchoreo/backstage-plugin-react": "workspace:^",
-    "@rjsf/core": "^5.24.0",
-    "@rjsf/material-ui": "^5.24.13",
-    "@rjsf/utils": "^5.24.0",
-    "@rjsf/validator-ajv8": "^5.24.0",
-    "@wso2/cell-diagram": "0.2.0",
-    "json-schema": "^0.4.0",
-    "pathfinding": "^0.4.18",
-    "paths-js": "^0.4.11",
-    "react-use": "^17.2.4"
+    "@openchoreo/openchoreo-client-node": "workspace:^"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "react-router-dom": "^6.3.0"
-  },
-  "resolutions": {
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   },
   "devDependencies": {
     "@backstage/cli": "^0.34.3",
-    "@backstage/core-app-api": "^1.19.0",
-    "@backstage/dev-utils": "^1.1.14",
-    "@backstage/test-utils": "^1.7.11",
-    "@testing-library/dom": "^9.0.0",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
-    "@testing-library/user-event": "^14.0.0",
-    "@types/pathfinding": "^0",
-    "@types/react": "^18.0.0",
-    "msw": "^1.0.0"
+    "@types/react": "^18.0.0"
   },
   "files": [
     "dist"

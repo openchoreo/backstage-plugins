@@ -5,7 +5,7 @@ import {
   identityApiRef,
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { SummaryWidgetWrapper } from '../../SummaryWidgetWrapper';
+import { SummaryWidgetWrapper } from '@openchoreo/backstage-plugin-react';
 import FolderIcon from '@material-ui/icons/Folder';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { fetchTotalBindingsCount } from '../../../api/dashboard';

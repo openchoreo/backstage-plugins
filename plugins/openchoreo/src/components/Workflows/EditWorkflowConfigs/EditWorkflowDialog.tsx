@@ -15,12 +15,12 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { RJSFValidationError } from '@rjsf/utils';
 import { JSONSchema7 } from 'json-schema';
-import { Entity } from '@backstage/catalog-model';
 import {
   useApi,
   discoveryApiRef,
   identityApiRef,
 } from '@backstage/core-plugin-api';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   fetchWorkflowSchema,
   updateComponentWorkflowSchema,
@@ -33,7 +33,6 @@ import { addTitlesToSchema, calculateChanges } from './utils';
 interface EditWorkflowDialogProps {
   open: boolean;
   onClose: () => void;
-  entity: Entity;
   workflowName: string;
   currentWorkflowSchema: { [key: string]: unknown } | null;
   onSaved: () => void;
@@ -42,12 +41,12 @@ interface EditWorkflowDialogProps {
 export const EditWorkflowDialog: React.FC<EditWorkflowDialogProps> = ({
   open,
   onClose,
-  entity,
   workflowName,
   currentWorkflowSchema,
   onSaved,
 }) => {
   const classes = useEditWorkflowStyles();
+  const { entity } = useEntity();
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 

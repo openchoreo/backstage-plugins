@@ -29,7 +29,7 @@ import {
   promoteToEnvironment,
   deleteReleaseBinding,
 } from '../../api/environments';
-import { formatRelativeTime } from '../../utils/timeUtils';
+import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentData, Environment } from './hooks/useEnvironmentData';
 import { Workload } from './Workload/Workload';
 import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';

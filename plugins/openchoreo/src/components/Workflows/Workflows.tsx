@@ -4,8 +4,6 @@ import {
   discoveryApiRef,
   identityApiRef,
 } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
-import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   Progress,
   ResponseErrorPanel,
@@ -37,7 +35,10 @@ import type {
   ModelsBuild,
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
-import { formatRelativeTime } from '../../utils/timeUtils';
+import {
+  formatRelativeTime,
+  useComponentEntityDetails,
+} from '@openchoreo/backstage-plugin-react';
 
 const BuildStatusComponent = ({ status }: { status?: string }) => {
   const classes = useWorkflowStyles();
@@ -94,10 +95,9 @@ const BuildStatusComponent = ({ status }: { status?: string }) => {
 
 export const Workflows = () => {
   const classes = useWorkflowStyles();
-  const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
-  const catalogApi = useApi(catalogApiRef);
   const identityApi = useApi(identityApiRef);
+  const { getEntityDetails } = useComponentEntityDetails();
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
   const [componentDetails, setComponentDetails] =
     useState<ModelsCompleteComponent | null>(null);
@@ -109,53 +109,6 @@ export const Workflows = () => {
   const [selectedBuild, setSelectedBuild] = useState<ModelsBuild | null>(null);
   const [workflowDetailsExpanded, setWorkflowDetailsExpanded] = useState(true);
   const [editWorkflowDialogOpen, setEditWorkflowDialogOpen] = useState(false);
-
-  const getEntityDetails = useCallback(async () => {
-    if (!entity.metadata.name) {
-      throw new Error('Component name not found');
-    }
-
-    const componentName = entity.metadata.name;
-
-    // Get project name from spec.system
-    const systemValue = entity.spec?.system;
-    if (!systemValue) {
-      throw new Error('Project name not found in spec.system');
-    }
-
-    // Convert system value to string (it could be string or object)
-    const projectName =
-      typeof systemValue === 'string' ? systemValue : String(systemValue);
-
-    // Fetch the project entity to get the organization
-    const projectEntityRef = `system:default/${projectName}`;
-    const projectEntity = await catalogApi.getEntityByRef(projectEntityRef);
-
-    if (!projectEntity) {
-      throw new Error(`Project entity not found: ${projectEntityRef}`);
-    }
-
-    // Get organization from the project entity's spec.domain or annotations
-    let organizationValue = projectEntity.spec?.domain;
-    if (!organizationValue) {
-      organizationValue =
-        projectEntity.metadata.annotations?.['openchoreo.io/organization'];
-    }
-
-    if (!organizationValue) {
-      throw new Error(
-        `Organization name not found in project entity: ${projectEntityRef}`,
-      );
-    }
-
-    // Convert organization value to string (it could be string or object)
-    const organizationName =
-      typeof organizationValue === 'string'
-        ? organizationValue
-        : String(organizationValue);
-
-    return { componentName, projectName, organizationName };
-  }, [entity, catalogApi]);
 
   const fetchComponentDetails = useCallback(async () => {
     try {
@@ -287,14 +240,7 @@ export const Workflows = () => {
     return () => {
       ignore = true;
     };
-  }, [
-    entity,
-    discoveryApi,
-    catalogApi,
-    identityApi,
-    fetchComponentDetails,
-    fetchBuilds,
-  ]);
+  }, [discoveryApi, identityApi, fetchComponentDetails, fetchBuilds]);
 
   // Poll builds every 5 seconds if any build is in pending/running state
   useEffect(() => {
@@ -517,7 +463,6 @@ export const Workflows = () => {
         <EditWorkflowDialog
           open={editWorkflowDialogOpen}
           onClose={() => setEditWorkflowDialogOpen(false)}
-          entity={entity}
           workflowName={componentDetails.workflow.name || ''}
           currentWorkflowSchema={componentDetails.workflow.schema || null}
           onSaved={() => {

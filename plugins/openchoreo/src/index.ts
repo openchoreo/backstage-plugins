@@ -4,5 +4,4 @@ export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export { Builds } from './components/Builds/Builds';
 export { RuntimeLogs, Workflows } from './plugin';
 export * from './components/HomePage/MyProjectsWidget';
-export { SummaryWidgetWrapper } from './components/SummaryWidgetWrapper';
 export * from './components/HomePage/QuickActionsSection';

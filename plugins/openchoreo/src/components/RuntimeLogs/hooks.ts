@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { useApi } from '@backstage/core-plugin-api';
@@ -176,57 +176,6 @@ export function useRuntimeLogs(
     loadMore,
     refresh,
   };
-}
-
-export function useInfiniteScroll(
-  callback: () => void,
-  hasMore: boolean,
-  loading: boolean,
-) {
-  const [isFetching, setIsFetching] = useState(false);
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadingRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (loading || !hasMore) {
-      return () => {};
-    }
-
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-
-    observerRef.current = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && !isFetching) {
-          setIsFetching(true);
-          callback();
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '200px',
-      },
-    );
-
-    if (loadingRef.current) {
-      observerRef.current.observe(loadingRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [callback, hasMore, loading, isFetching]);
-
-  useEffect(() => {
-    if (!loading) {
-      setIsFetching(false);
-    }
-  }, [loading]);
-
-  return { loadingRef };
 }
 
 export function useFilters() {
