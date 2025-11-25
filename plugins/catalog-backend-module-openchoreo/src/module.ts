@@ -91,9 +91,9 @@ export const immediateCatalogServiceFactory = createServiceFactory({
     }
 
     return {
-      insertEntity: async (entity) =>
+      insertEntity: async entity =>
         scaffolderProviderInstance!.insertEntity(entity),
-      removeEntity: async (entityRef) =>
+      removeEntity: async entityRef =>
         scaffolderProviderInstance!.removeEntity(entityRef),
     };
   },

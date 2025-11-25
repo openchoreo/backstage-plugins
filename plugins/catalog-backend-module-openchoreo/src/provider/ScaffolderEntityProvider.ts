@@ -19,7 +19,10 @@ export class ScaffolderEntityProvider implements EntityProvider {
   private readonly logger: LoggerService;
   private readonly mainProviderName: string;
 
-  constructor(logger: LoggerService, mainProviderName: string = 'OpenChoreoEntityProvider') {
+  constructor(
+    logger: LoggerService,
+    mainProviderName: string = 'OpenChoreoEntityProvider',
+  ) {
     this.logger = logger;
     this.mainProviderName = mainProviderName;
   }
@@ -50,7 +53,9 @@ export class ScaffolderEntityProvider implements EntityProvider {
     }
 
     this.logger.info(
-      `Inserting entity immediately: ${entity.kind}:${entity.metadata.namespace || 'default'}/${entity.metadata.name}`,
+      `Inserting entity immediately: ${entity.kind}:${
+        entity.metadata.namespace || 'default'
+      }/${entity.metadata.name}`,
     );
 
     try {

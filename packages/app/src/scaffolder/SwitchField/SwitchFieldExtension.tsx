@@ -23,11 +23,7 @@ export const SwitchField = ({
     <Box mt={2}>
       <Box display="flex" alignItems="center">
         <Box style={{ marginRight: 16 }}>
-          <Typography
-            variant="body1"
-          >
-            {title}
-          </Typography>
+          <Typography variant="body1">{title}</Typography>
         </Box>
         <Switch
           checked={formData || false}
