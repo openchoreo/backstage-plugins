@@ -212,7 +212,8 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         '@font-face': [UbuntuFont],
         'body, html': {
-          fontFamily: 'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
+          fontFamily:
+            'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
         },
         // Sidebar divider opacity - use aria-label selector to work in both dev and production
         'nav[aria-label="sidebar nav"] hr': {
