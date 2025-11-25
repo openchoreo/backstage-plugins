@@ -81,7 +81,8 @@ export class CtdToTemplateConverter {
             {
               title: 'View Component',
               icon: 'kind:component',
-              entityRef: "component:default/${{ steps['create-component'].output.componentName }}",
+              entityRef:
+                "component:default/${{ steps['create-component'].output.componentName }}",
             },
           ],
         },
