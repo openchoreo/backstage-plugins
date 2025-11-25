@@ -42,52 +42,53 @@ export function useComponentEntityDetails() {
   const { entity } = useEntity();
   const catalogApi = useApi(catalogApiRef);
 
-  const getEntityDetails = useCallback(async (): Promise<ComponentEntityDetails> => {
-    if (!entity.metadata.name) {
-      throw new Error('Component name not found');
-    }
+  const getEntityDetails =
+    useCallback(async (): Promise<ComponentEntityDetails> => {
+      if (!entity.metadata.name) {
+        throw new Error('Component name not found');
+      }
 
-    const componentName = entity.metadata.name;
+      const componentName = entity.metadata.name;
 
-    // Get project name from spec.system
-    const systemValue = entity.spec?.system;
-    if (!systemValue) {
-      throw new Error('Project name not found in spec.system');
-    }
+      // Get project name from spec.system
+      const systemValue = entity.spec?.system;
+      if (!systemValue) {
+        throw new Error('Project name not found in spec.system');
+      }
 
-    // Convert system value to string (it could be string or object)
-    const projectName =
-      typeof systemValue === 'string' ? systemValue : String(systemValue);
+      // Convert system value to string (it could be string or object)
+      const projectName =
+        typeof systemValue === 'string' ? systemValue : String(systemValue);
 
-    // Fetch the project entity to get the organization
-    const projectEntityRef = `system:default/${projectName}`;
-    const projectEntity = await catalogApi.getEntityByRef(projectEntityRef);
+      // Fetch the project entity to get the organization
+      const projectEntityRef = `system:default/${projectName}`;
+      const projectEntity = await catalogApi.getEntityByRef(projectEntityRef);
 
-    if (!projectEntity) {
-      throw new Error(`Project entity not found: ${projectEntityRef}`);
-    }
+      if (!projectEntity) {
+        throw new Error(`Project entity not found: ${projectEntityRef}`);
+      }
 
-    // Get organization from the project entity's spec.domain or annotations
-    let organizationValue = projectEntity.spec?.domain;
-    if (!organizationValue) {
-      organizationValue =
-        projectEntity.metadata.annotations?.['openchoreo.io/organization'];
-    }
+      // Get organization from the project entity's spec.domain or annotations
+      let organizationValue = projectEntity.spec?.domain;
+      if (!organizationValue) {
+        organizationValue =
+          projectEntity.metadata.annotations?.['openchoreo.io/organization'];
+      }
 
-    if (!organizationValue) {
-      throw new Error(
-        `Organization name not found in project entity: ${projectEntityRef}`,
-      );
-    }
+      if (!organizationValue) {
+        throw new Error(
+          `Organization name not found in project entity: ${projectEntityRef}`,
+        );
+      }
 
-    // Convert organization value to string (it could be string or object)
-    const organizationName =
-      typeof organizationValue === 'string'
-        ? organizationValue
-        : String(organizationValue);
+      // Convert organization value to string (it could be string or object)
+      const organizationName =
+        typeof organizationValue === 'string'
+          ? organizationValue
+          : String(organizationValue);
 
-    return { componentName, projectName, organizationName };
-  }, [entity, catalogApi]);
+      return { componentName, projectName, organizationName };
+    }, [entity, catalogApi]);
 
   return { getEntityDetails };
 }

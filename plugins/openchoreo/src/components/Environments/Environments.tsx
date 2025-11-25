@@ -4,7 +4,6 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { Content, Page } from '@backstage/core-components';
 import {
   Grid,
-  Card,
   CardContent,
   Typography,
   Box,
@@ -12,6 +11,7 @@ import {
   IconButton,
   Badge,
 } from '@material-ui/core';
+import { Card } from '@openchoreo/backstage-design-system';
 import { Skeleton } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
@@ -67,18 +67,6 @@ const useStyles = makeStyles(theme => ({
     minHeight: '300px',
     display: 'flex',
     flexDirection: 'column',
-  },
-  environmentCard: {
-    minHeight: '300px',
-    display: 'flex',
-    flexDirection: 'column',
-    borderRadius: theme.shape.borderRadius,
-    boxShadow: theme.shadows[2],
-    transition: 'all 0.2s ease-in-out',
-    '&:hover': {
-      boxShadow: theme.shadows[4],
-      transform: 'translateY(-2px)',
-    },
   },
   cardContent: {
     flex: 1,
@@ -322,7 +310,7 @@ export const Environments = () => {
         )}
         <Grid container spacing={3}>
           <Grid item xs={12} md={3}>
-            <Card className={classes.environmentCard}>
+            <Card interactive style={{ minHeight: '300px' }}>
               {/* Make this card color different from the others */}
               <Box className={classes.setupCard}>
                 <CardContent className={classes.cardContent}>
@@ -362,7 +350,7 @@ export const Environments = () => {
           </Grid>
           {displayEnvironments.map(env => (
             <Grid key={env.name} item xs={12} md={3}>
-              <Card className={classes.environmentCard}>
+              <Card interactive style={{ minHeight: '300px' }}>
                 <CardContent className={classes.cardContent}>
                   <Box
                     display="flex"

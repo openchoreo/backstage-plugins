@@ -14,14 +14,8 @@ import {
   StatusPending,
   StatusRunning,
 } from '@backstage/core-components';
-import {
-  Typography,
-  Button,
-  Box,
-  Paper,
-  Link,
-  IconButton,
-} from '@material-ui/core';
+import { Typography, Button, Box, Link, IconButton } from '@material-ui/core';
+import { Card } from '@openchoreo/backstage-design-system';
 import GitHub from '@material-ui/icons/GitHub';
 import CallSplit from '@material-ui/icons/CallSplit';
 import FileCopy from '@material-ui/icons/FileCopy';
@@ -212,12 +206,7 @@ export const Builds = () => {
     return () => {
       ignore = true;
     };
-  }, [
-    discoveryApi,
-    identityApi,
-    fetchComponentDetails,
-    fetchBuilds,
-  ]);
+  }, [discoveryApi, identityApi, fetchComponentDetails, fetchBuilds]);
 
   if (loading) {
     return <Progress />;
@@ -279,7 +268,7 @@ export const Builds = () => {
   return (
     <Box>
       {componentDetails && (
-        <Paper style={{ padding: '16px', marginBottom: '16px' }}>
+        <Card padding={16} style={{ marginBottom: 16 }}>
           <Box>
             <Typography variant="body2" color="textSecondary" gutterBottom>
               {componentDetails.type}
@@ -352,7 +341,7 @@ export const Builds = () => {
               </Box>
             </Box>
           </Box>
-        </Paper>
+        </Card>
       )}
       <Table
         title={
