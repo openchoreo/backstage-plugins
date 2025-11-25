@@ -235,6 +235,10 @@ export const openChoreoTheme = createUnifiedTheme({
           fill: `${colors.common.white} !important`,
         },
         // Force 14px font size for Recently Visited and Starred Entities widget links
+        // Target the dynamically generated makeStyles-name class that sets font-size: 1.06666666666667rem
+        'a[class*="makeStyles-name"]': {
+          fontSize: '14px !important',
+        },
         '.MuiListItemText-root a': {
           fontSize: '14px !important',
         },
@@ -303,6 +307,13 @@ export const openChoreoTheme = createUnifiedTheme({
           borderTop: 'none',
           paddingTop: '12px',
           paddingBottom: '12px',
+        },
+      },
+    },
+    BackstageInfoCard: {
+      styleOverrides: {
+        headerTitle: {
+          fontWeight: 600,
         },
       },
     },
