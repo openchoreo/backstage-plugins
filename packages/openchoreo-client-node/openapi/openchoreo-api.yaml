@@ -64,6 +64,80 @@ components:
             description: JSON Schema for a specific trait's environment overrides
             additionalProperties: true
 
+    # SecretReference
+    SecretReferenceResponse:
+      type: object
+      required:
+        - name
+        - namespace
+        - createdAt
+        - status
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        secretStores:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecretStoreReference'
+        refreshInterval:
+          type: string
+          description: Duration string for refresh interval (e.g., "5m", "1h")
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecretDataSourceInfo'
+        createdAt:
+          type: string
+          format: date-time
+        lastRefreshTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    SecretStoreReference:
+      type: object
+      required:
+        - name
+        - namespace
+        - kind
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        kind:
+          type: string
+
+    SecretDataSourceInfo:
+      type: object
+      required:
+        - secretKey
+        - remoteRef
+      properties:
+        secretKey:
+          type: string
+        remoteRef:
+          $ref: '#/components/schemas/RemoteReferenceInfo'
+
+    RemoteReferenceInfo:
+      type: object
+      required:
+        - key
+      properties:
+        key:
+          type: string
+        property:
+          type: string
+        version:
+          type: string
+
     # Organization
     OrganizationResponse:
       type: object
@@ -1271,6 +1345,40 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/OrganizationResponse'
+
+  /orgs/{orgName}/secret-references:
+    get:
+      summary: List secret references for an organization
+      operationId: listSecretReferences
+      tags:
+        - Organizations
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/SecretReferenceResponse'
+        '404':
+          description: Organization not found
 
   # DataPlanes
   /orgs/{orgName}/dataplanes:

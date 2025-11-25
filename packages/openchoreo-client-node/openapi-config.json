@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "509e0caa13a16ba7c0aa64407c182dfdce5145f5",
-  "lastSyncDate": "2025-11-20T19:07:19Z",
-  "lastSyncDescription": "Synced with openchoreo API changes: added GET environment release endpoint, added PATCH workflow schema endpoint, added immutability constraints to ComponentRelease"
+  "lastSyncCommit": "85a8037c8596f3d5be1821795d8761522f8ed68d",
+  "lastSyncDate": "2025-11-25T13:35:00Z",
+  "lastSyncDescription": "Synced with openchoreo API changes: added GET /orgs/{orgName}/secret-references endpoint for listing organization secret references"
 }
