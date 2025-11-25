@@ -15,12 +15,19 @@ import {
   Select,
   MenuItem,
   InputLabel,
+  Collapse,
+  Paper,
+  Tooltip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AddIcon from '@material-ui/icons/Add';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import { Container, EnvVar } from '@openchoreo/backstage-plugin-common';
+import AttachFileIcon from '@material-ui/icons/AttachFile';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
+import { useState } from 'react';
+import { Container, EnvVar, FileVar } from '@openchoreo/backstage-plugin-common';
 import { formatRelativeTime } from '../../../../utils/timeUtils';
 import { useBuilds } from '../WorkloadContext';
 
@@ -37,10 +44,18 @@ interface ContainerSectionProps {
     field: keyof EnvVar,
     value: string,
   ) => void;
+  onFileVarChange: (
+    containerName: string,
+    fileIndex: number,
+    field: keyof FileVar,
+    value: string,
+  ) => void;
   onAddContainer: () => void;
   onRemoveContainer: (containerName: string) => void;
   onAddEnvVar: (containerName: string) => void;
   onRemoveEnvVar: (containerName: string, envIndex: number) => void;
+  onAddFileVar: (containerName: string) => void;
+  onRemoveFileVar: (containerName: string, fileIndex: number) => void;
   onArrayFieldChange: (
     containerName: string,
     field: 'command' | 'args',
@@ -79,22 +94,70 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
   },
+  fileMountContainer: {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
+    marginBottom: theme.spacing(1),
+    backgroundColor: theme.palette.background.default,
+    overflow: 'hidden',
+  },
+  fileMountHeader: {
+    padding: theme.spacing(1.5),
+    backgroundColor: theme.palette.grey[50],
+    borderBottom: `1px solid ${theme.palette.divider}`,
+  },
+  fileMountContent: {
+    padding: theme.spacing(1.5),
+  },
+  contentPreview: {
+    backgroundColor: theme.palette.grey[100],
+    border: `1px solid ${theme.palette.grey[300]}`,
+    borderRadius: 4,
+    padding: theme.spacing(1),
+    fontFamily: 'monospace',
+    fontSize: '0.875rem',
+    color: theme.palette.text.secondary,
+    whiteSpace: 'pre',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  uploadActions: {
+    display: 'flex',
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(1),
+  },
 }));
+
+const getContentPreview = (content: string, maxLines: number = 2): string => {
+  const lines = content.split('\n');
+  if (lines.length <= maxLines) return content;
+  return lines.slice(0, maxLines).join('\n') + '...';
+};
 
 export function ContainerSection({
   containers,
   onContainerChange,
   onEnvVarChange,
+  onFileVarChange,
   onAddContainer,
   onRemoveContainer,
   onAddEnvVar,
   onRemoveEnvVar,
+  onAddFileVar,
+  onRemoveFileVar,
   onArrayFieldChange,
   disabled,
   singleContainerMode,
 }: ContainerSectionProps) {
   const classes = useStyles();
   const { builds } = useBuilds();
+  
+  const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
+  
+  const toggleFileExpanded = (containerName: string, fileIndex: number) => {
+    const key = `${containerName}-${fileIndex}`;
+    setExpandedFiles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <Accordion className={classes.accordion} defaultExpanded>
@@ -228,7 +291,6 @@ export function ContainerSection({
                   </Grid>
                 </Grid>
 
-                {/* Environment Variables */}
                 <Box mt={3}>
                   <Typography
                     variant="subtitle2"
@@ -288,7 +350,7 @@ export function ContainerSection({
                           </Grid>
                         )}
 
-                        <Grid item xs={2}>
+                        <Grid item xs={2} style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <IconButton
                             onClick={() => onRemoveEnvVar(containerName, index)}
                             color="secondary"
@@ -311,6 +373,205 @@ export function ContainerSection({
                     color="primary"
                   >
                     Add Environment Variable
+                  </Button>
+                </Box>
+
+                <Box mt={3}>
+                  <Typography
+                    variant="subtitle2"
+                    gutterBottom
+                    style={{ fontWeight: 600 }}
+                  >
+                    File Mounts
+                  </Typography>
+                  {(container as any).files?.map((fileVar: FileVar, index: number) => {
+                    const isExpanded = expandedFiles[`${containerName}-${index}`] || false;
+                    const hasContent = fileVar.value && fileVar.value.length > 0;
+                    const isSecret = !!fileVar.valueFrom?.secretRef;
+                    
+                    return (
+                      <Paper 
+                        key={index} 
+                        className={classes.fileMountContainer}
+                      >
+                        <Box className={classes.fileMountHeader}>
+                          <Grid container spacing={2} alignItems="center">
+                            <Grid item xs={4}>
+                              <TextField
+                                label="File Name"
+                                value={fileVar.key || ''}
+                                onChange={e =>
+                                  onFileVarChange(
+                                    containerName,
+                                    index,
+                                    'key',
+                                    e.target.value,
+                                  )
+                                }
+                                fullWidth
+                                variant="outlined"
+                                size="small"
+                                disabled={isSecret || disabled}
+                              />
+                            </Grid>
+                            
+                            <Grid item xs={4}>
+                              <TextField
+                                label="Mount Path"
+                                value={fileVar.mountPath || ''}
+                                onChange={e =>
+                                  onFileVarChange(
+                                    containerName,
+                                    index,
+                                    'mountPath',
+                                    e.target.value,
+                                  )
+                                }
+                                fullWidth
+                                variant="outlined"
+                                size="small"
+                                disabled={isSecret || disabled}
+                              />
+                            </Grid>
+                            
+                            <Grid item xs={3}>
+                            </Grid>
+                            <Grid item xs={1}>
+                              <Box display="flex" justifyContent="flex-end">
+                                <Tooltip title="Delete file mount">
+                                  <IconButton
+                                    onClick={() => onRemoveFileVar(containerName, index)}
+                                    color="secondary"
+                                    size="small"
+                                    disabled={disabled}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </Box>
+                        
+                        <Box className={classes.fileMountContent}>
+                          {isSecret ? (
+                            <Typography variant="body2" color="primary">
+                              🔐 Secret: {fileVar.valueFrom?.secretRef?.name}:{fileVar.valueFrom?.secretRef?.key}
+                            </Typography>
+                          ) : (
+                            <>
+                              {hasContent && (
+                                <Box mb={1}>
+                                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Content Preview
+                                    </Typography>
+                                    <Button
+                                      size="small"
+                                      startIcon={isExpanded ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                      onClick={() => toggleFileExpanded(containerName, index)}
+                                      disabled={disabled}
+                                    >
+                                      {isExpanded ? 'Collapse' : 'Expand'} Content
+                                    </Button>
+                                  </Box>
+                                  
+                                  {!isExpanded && (
+                                    <Box className={classes.contentPreview}>
+                                      {getContentPreview(fileVar.value!)}
+                                    </Box>
+                                  )}
+                                </Box>
+                              )}
+                              
+                              <Collapse in={isExpanded || !hasContent}>
+                                <TextField
+                                  disabled={disabled}
+                                  label={hasContent ? 'Edit Content' : 'Content'}
+                                  value={fileVar.value || ''}
+                                  onChange={e =>
+                                    onFileVarChange(
+                                      containerName,
+                                      index,
+                                      'value',
+                                      e.target.value,
+                                    )
+                                  }
+                                  fullWidth
+                                  variant="outlined"
+                                  size="small"
+                                  multiline
+                                  minRows={hasContent ? 6 : 3}
+                                  placeholder="Enter file content or upload a file"
+                                  InputProps={{
+                                    style: { fontFamily: 'monospace', fontSize: '0.875rem' }
+                                  }}
+                                />
+                              </Collapse>
+                              
+                              <Box className={classes.uploadActions}>
+                                <input
+                                  accept="*/*"
+                                  style={{ display: 'none' }}
+                                  id={`file-upload-${containerName}-${index}`}
+                                  type="file"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+        
+
+                                      const reader = new FileReader();
+                                      reader.onload = (event) => {
+                                        try {
+                                          const content = event.target?.result as string;
+                                          onFileVarChange(containerName, index, 'value', content);
+                                          if (!fileVar.key) {
+                                            onFileVarChange(containerName, index, 'key', file.name);
+                                          }
+                                          e.target.value = '';
+                                        } catch (error) {
+                                          console.error('Error reading file:', error);
+                                          e.target.value = '';
+                                        }
+                                      };
+                                      reader.onerror = () => {
+                                        console.error('Error reading file');
+                                        e.target.value = '';
+                                      };
+                                      reader.readAsText(file);
+                                    }
+                                  }}
+                                  disabled={disabled}
+                                />
+                                <label htmlFor={`file-upload-${containerName}-${index}`}>
+                                  <Button
+                                    variant="outlined"
+                                    component="span"
+                                    size="small"
+                                    startIcon={<AttachFileIcon />}
+                                    disabled={disabled}
+                                  >
+                                    Upload File
+                                  </Button>
+                                </label>
+                                
+                              </Box>
+                            </>
+                          )}
+                        </Box>
+                      </Paper>
+                    );
+                  })}
+                  <Button
+                    startIcon={<AddIcon />}
+                    onClick={() => onAddFileVar(containerName)}
+                    variant="outlined"
+                    size="small"
+                    className={classes.addButton}
+                    disabled={disabled}
+                    color="primary"
+                  >
+                    Add File Mount
                   </Button>
                 </Box>
               </CardContent>
