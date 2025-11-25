@@ -33,11 +33,11 @@ interface WorkloadEndpoint {
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
-  getRepositoryInfo,
   ComponentTypeUtils,
 } from '@openchoreo/backstage-plugin-common';
 import { EnvironmentEntityV1alpha1, DataplaneEntityV1alpha1 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
+import { translateComponentToEntity as translateComponent } from '../utils/entityTranslation';
 
 /**
  * Provides entities from OpenChoreo API
@@ -721,7 +721,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   /**
-   * Translates a ModelsComponent from OpenChoreo API to a Backstage Component entity
+   * Translates a ModelsComponent from OpenChoreo API to a Backstage Component entity.
+   * Uses the shared translation utility to ensure consistency with other modules.
    */
   private translateComponentToEntity(
     component: ModelsComponent,
@@ -729,56 +730,17 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     projectName: string,
     providesApis?: string[],
   ): Entity {
-    const componentEntity: Entity = {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Component',
-      metadata: {
-        name: component.name,
-        title: component.name,
-        description: component.description || component.name,
-        // namespace: orgName,
-        tags: this.componentTypeUtils.generateTags(component.type || 'unknown'),
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.COMPONENT]: component.name,
-          ...(component.type && {
-            [CHOREO_ANNOTATIONS.COMPONENT_TYPE]: component.type,
-          }),
-          [CHOREO_ANNOTATIONS.PROJECT]: projectName,
-          [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
-          ...(component.createdAt && {
-            [CHOREO_ANNOTATIONS.CREATED_AT]: component.createdAt,
-          }),
-          ...(component.status && {
-            [CHOREO_ANNOTATIONS.STATUS]: component.status,
-          }),
-          ...(() => {
-            const repoInfo = getRepositoryInfo(component);
-            return {
-              ...(repoInfo.url && {
-                'backstage.io/source-location': `url:${repoInfo.url}`,
-              }),
-              ...(repoInfo.branch && {
-                [CHOREO_ANNOTATIONS.BRANCH]: repoInfo.branch,
-              }),
-            };
-          })(),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-        },
+    return translateComponent(
+      component,
+      orgName,
+      projectName,
+      {
+        defaultOwner: this.defaultOwner,
+        componentTypeUtils: this.componentTypeUtils,
+        locationKey: `provider:${this.getProviderName()}`,
       },
-      spec: {
-        type: component.type || 'unknown',
-        lifecycle: component.status?.toLowerCase() || 'unknown', // Map status to lifecycle
-        owner: this.defaultOwner,
-        system: projectName, // Link to the parent system (project)
-        ...(providesApis && providesApis.length > 0 && { providesApis }),
-      },
-    };
-
-    return componentEntity;
+      providesApis,
+    );
   }
 
   /**

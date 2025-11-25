@@ -9,10 +9,12 @@
 import { createBackend } from '@backstage/backend-defaults';
 import { OpenChoreoDefaultAuthModule } from '@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default';
 import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHttpRouter';
+import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 const backend = createBackend();
 
 backend.add(rootHttpRouterServiceFactory());
+backend.add(immediateCatalogServiceFactory);
 
 backend.add(import('@backstage/plugin-app-backend'));
 backend.add(import('@backstage/plugin-proxy-backend'));

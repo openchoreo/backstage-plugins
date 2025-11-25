@@ -1,17 +1,32 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  type OpenChoreoComponents,
+} from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import { buildComponentResource } from './componentResourceBuilder';
 import { CatalogClient } from '@backstage/catalog-client';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  ComponentTypeUtils,
+} from '@openchoreo/backstage-plugin-common';
+import {
+  type ImmediateCatalogService,
+  translateComponentToEntity,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
+
+type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 
 // Kubernetes DNS subdomain name validation
 const K8S_NAME_PATTERN =
   /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 const MAX_NAME_LENGTH = 253;
 
-export const createComponentAction = (config: Config) => {
+export const createComponentAction = (
+  config: Config,
+  immediateCatalog: ImmediateCatalogService,
+) => {
   return createTemplateAction({
     id: 'openchoreo:component:create',
     description: 'Create OpenChoreo Component',
@@ -246,6 +261,83 @@ export const createComponentAction = (config: Config) => {
             applyData,
           )}`,
         );
+
+        // Immediately insert the component into the catalog
+        try {
+          ctx.logger.info(
+            `Inserting component '${ctx.input.componentName}' into catalog immediately...`,
+          );
+
+          // Build the full component type in OpenChoreo format: {workloadType}/{componentType}
+          const workloadType =
+            (ctx.input as any).component_type_workload_type || 'deployment';
+          const fullComponentType = `${workloadType}/${ctx.input.componentType}`;
+
+          ctx.logger.debug(
+            `Component type for catalog: ${fullComponentType} (workloadType: ${workloadType}, componentType: ${ctx.input.componentType})`,
+          );
+
+          // Build ModelsComponent object matching OpenChoreo API response structure
+          const component: ModelsComponent = {
+            uid: `temp-${ctx.input.componentName}`, // Temporary UID
+            name: ctx.input.componentName,
+            displayName: ctx.input.displayName,
+            description: ctx.input.description,
+            type: fullComponentType, // Use full type format: deployment/service
+            projectName: projectName,
+            orgName: orgName,
+            status: 'Active', // New components are active by default
+            createdAt: new Date().toISOString(),
+            // Repository info is stored in workflow.schema.repository
+            workflow: (ctx.input as any).repo_url
+              ? {
+                  name: (ctx.input as any).workflow_name || 'default',
+                  schema: {
+                    repository: {
+                      url: (ctx.input as any).repo_url,
+                      branch: (ctx.input as any).branch,
+                      path: (ctx.input as any).component_path,
+                    },
+                  },
+                }
+              : undefined,
+          };
+
+          // Get configuration values
+          const defaultOwner =
+            config.getOptionalString('openchoreo.defaultOwner') || 'developers';
+          const componentTypeUtils = ComponentTypeUtils.fromConfig(config);
+
+          // Use the shared translation utility for consistency with scheduled sync
+          const entity = translateComponentToEntity(
+            component,
+            orgName,
+            projectName,
+            {
+              defaultOwner,
+              componentTypeUtils,
+              locationKey: 'provider:OpenChoreoEntityProvider',
+            },
+          );
+
+          ctx.logger.debug(
+            `Entity to insert: ${JSON.stringify(entity, null, 2)}`,
+          );
+
+          // Insert into catalog immediately
+          await immediateCatalog.insertEntity(entity);
+
+          ctx.logger.info(
+            `Component '${ctx.input.componentName}' successfully added to catalog`,
+          );
+        } catch (catalogError) {
+          // Log error but don't fail the scaffolder action
+          // The component was created successfully, catalog sync will pick it up eventually
+          ctx.logger.error(
+            `Failed to immediately add component to catalog: ${catalogError}. ` +
+              `Component will be visible after the next scheduled catalog sync.`,
+          );
+        }
 
         // Set outputs for the scaffolder
         ctx.output('componentName', ctx.input.componentName);

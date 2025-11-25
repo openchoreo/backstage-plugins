@@ -76,6 +76,15 @@ export class CtdToTemplateConverter {
         type: 'Component Type', // All component type templates use 'Component Type' type
         parameters: this.generateParameters(componentType, organizationName),
         steps: this.generateSteps(componentType),
+        output: {
+          links: [
+            {
+              title: 'View Component',
+              icon: 'kind:component',
+              entityRef: "component:default/${{ steps['create-component'].output.componentName }}",
+            },
+          ],
+        },
       },
     };
 
