@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   useApi,
   discoveryApiRef,
@@ -16,183 +16,50 @@ import {
   Box,
   IconButton,
   CircularProgress,
-  Chip,
   Collapse,
 } from '@material-ui/core';
 import { Card } from '@openchoreo/backstage-design-system';
 import Refresh from '@material-ui/icons/Refresh';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import ErrorIcon from '@material-ui/icons/Error';
-import ScheduleIcon from '@material-ui/icons/Schedule';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
 import { BuildLogs } from './BuildLogs';
+import { BuildStatusChip } from './BuildStatusChip';
 import { WorkflowDetailsRenderer } from './WorkflowDetailsRenderer';
 import { EditWorkflowDialog } from './EditWorkflowConfigs';
 import { useWorkflowStyles } from './styles';
-import type {
-  ModelsBuild,
-  ModelsCompleteComponent,
-} from '@openchoreo/backstage-plugin-common';
+import { useWorkflowData } from './hooks';
+import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import {
   formatRelativeTime,
   useComponentEntityDetails,
 } from '@openchoreo/backstage-plugin-react';
-
-const BuildStatusComponent = ({ status }: { status?: string }) => {
-  const classes = useWorkflowStyles();
-  const statusType = status?.toLowerCase();
-
-  switch (statusType) {
-    case 'completed':
-      return (
-        <Chip
-          icon={<CheckCircleIcon style={{ color: '#2e7d32' }} />}
-          label={status}
-          size="small"
-          className={`${classes.statusChip} ${classes.successChip}`}
-        />
-      );
-    case 'failed':
-      return (
-        <Chip
-          icon={<ErrorIcon style={{ color: '#c62828' }} />}
-          label={status}
-          size="small"
-          className={`${classes.statusChip} ${classes.errorChip}`}
-        />
-      );
-    case 'running':
-      return (
-        <Chip
-          icon={<CircularProgress size={14} style={{ color: '#01579b' }} />}
-          label={status}
-          size="small"
-          className={`${classes.statusChip} ${classes.runningChip}`}
-        />
-      );
-    case 'pending':
-      return (
-        <Chip
-          icon={<ScheduleIcon style={{ color: '#e65100' }} />}
-          label={status}
-          size="small"
-          className={`${classes.statusChip} ${classes.pendingChip}`}
-        />
-      );
-    default:
-      return (
-        <Chip
-          icon={<ScheduleIcon style={{ color: '#e65100' }} />}
-          label={status || 'Unknown'}
-          size="small"
-          className={`${classes.statusChip} ${classes.pendingChip}`}
-        />
-      );
-  }
-};
+import { useDialogWithSelection, useAsyncOperation } from '../../hooks';
 
 export const Workflows = () => {
   const classes = useWorkflowStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
-  const [builds, setBuilds] = useState<ModelsBuild[]>([]);
-  const [componentDetails, setComponentDetails] =
-    useState<ModelsCompleteComponent | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [triggeringWorkflow, setTriggeringWorkflow] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedBuild, setSelectedBuild] = useState<ModelsBuild | null>(null);
+
+  // Data fetching hook (replaces builds, componentDetails, loading, error state + fetch callbacks + polling)
+  const workflowData = useWorkflowData();
+
+  // UI state
   const [workflowDetailsExpanded, setWorkflowDetailsExpanded] = useState(true);
   const [editWorkflowDialogOpen, setEditWorkflowDialogOpen] = useState(false);
 
-  const fetchComponentDetails = useCallback(async () => {
-    try {
+  // Build logs drawer with selection
+  const buildLogsDrawer = useDialogWithSelection<ModelsBuild>();
+
+  // Async operations for trigger and refresh
+  const triggerWorkflowOp = useAsyncOperation(
+    useCallback(async () => {
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
-
-      // Get authentication token
       const { token } = await identityApi.getCredentials();
-
-      // Fetch component details
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
-      const componentResponse = await fetch(
-        `${baseUrl}/component?componentName=${encodeURIComponent(
-          componentName,
-        )}&projectName=${encodeURIComponent(
-          projectName,
-        )}&organizationName=${encodeURIComponent(organizationName)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
 
-      if (!componentResponse.ok) {
-        throw new Error(
-          `HTTP ${componentResponse.status}: ${componentResponse.statusText}`,
-        );
-      }
-
-      const componentData = await componentResponse.json();
-      setComponentDetails(componentData);
-    } catch (err) {
-      setError(err as Error);
-    }
-  }, [discoveryApi, identityApi, getEntityDetails]);
-
-  const fetchBuilds = useCallback(async () => {
-    try {
-      const { componentName, projectName, organizationName } =
-        await getEntityDetails();
-
-      // Get authentication token
-      const { token } = await identityApi.getCredentials();
-
-      // Now fetch the builds
-      const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
-      const response = await fetch(
-        `${baseUrl}/builds?componentName=${encodeURIComponent(
-          componentName,
-        )}&projectName=${encodeURIComponent(
-          projectName,
-        )}&organizationName=${encodeURIComponent(organizationName)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const buildsData = await response.json();
-      setBuilds(buildsData);
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [discoveryApi, identityApi, getEntityDetails]);
-
-  const triggerWorkflow = async () => {
-    setTriggeringWorkflow(true);
-    try {
-      const { componentName, projectName, organizationName } =
-        await getEntityDetails();
-
-      // Get authentication token
-      const { token } = await identityApi.getCredentials();
-
-      // Trigger the build (same as Build Latest functionality)
-      const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
       const response = await fetch(`${baseUrl}/builds`, {
         method: 'POST',
         headers: {
@@ -210,68 +77,18 @@ export const Workflows = () => {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      // Refresh the builds list
-      await fetchBuilds();
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setTriggeringWorkflow(false);
-    }
-  };
+      await workflowData.fetchBuilds();
+    }, [discoveryApi, identityApi, getEntityDetails, workflowData]),
+  );
 
-  const refreshBuilds = async () => {
-    setRefreshing(true);
-    try {
-      await fetchBuilds();
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const refreshOp = useAsyncOperation(workflowData.fetchBuilds);
 
-  useEffect(() => {
-    let ignore = false;
-    const fetchData = async () => {
-      await Promise.all([fetchComponentDetails(), fetchBuilds()]);
-    };
-    if (!ignore) fetchData();
-
-    return () => {
-      ignore = true;
-    };
-  }, [discoveryApi, identityApi, fetchComponentDetails, fetchBuilds]);
-
-  // Poll builds every 5 seconds if any build is in pending/running state
-  useEffect(() => {
-    const hasActiveBuilds = builds.some(build => {
-      const status = build.status?.toLowerCase() || '';
-      return (
-        status.includes('pending') ||
-        status.includes('running') ||
-        status.includes('progress')
-      );
-    });
-
-    if (!hasActiveBuilds) {
-      return undefined;
-    }
-
-    const intervalId = setInterval(() => {
-      fetchBuilds();
-    }, 5000);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [builds, fetchBuilds]);
-
-  if (loading) {
+  if (workflowData.loading) {
     return <Progress />;
   }
 
-  if (error) {
-    return <ResponseErrorPanel error={error} />;
+  if (workflowData.error) {
+    return <ResponseErrorPanel error={workflowData.error} />;
   }
 
   const columns: TableColumn[] = [
@@ -284,7 +101,7 @@ export const Workflows = () => {
       title: 'Status',
       field: 'status',
       render: (row: any) => (
-        <BuildStatusComponent status={(row as ModelsBuild).status} />
+        <BuildStatusChip status={(row as ModelsBuild).status} />
       ),
     },
     {
@@ -308,6 +125,8 @@ export const Workflows = () => {
         formatRelativeTime((row as ModelsBuild).createdAt || ''),
     },
   ];
+
+  const { componentDetails, builds } = workflowData;
 
   return (
     <Box>
@@ -350,10 +169,12 @@ export const Workflows = () => {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={triggerWorkflow}
-                disabled={triggeringWorkflow || !componentDetails.workflow}
+                onClick={() => triggerWorkflowOp.execute()}
+                disabled={
+                  triggerWorkflowOp.isLoading || !componentDetails.workflow
+                }
                 startIcon={
-                  triggeringWorkflow ? (
+                  triggerWorkflowOp.isLoading ? (
                     <CircularProgress size={16} />
                   ) : undefined
                 }
@@ -413,10 +234,10 @@ export const Workflows = () => {
             </Typography>
             <IconButton
               size="small"
-              onClick={refreshBuilds}
-              disabled={refreshing || loading}
+              onClick={() => refreshOp.execute()}
+              disabled={refreshOp.isLoading || workflowData.loading}
               style={{ marginLeft: '8px' }}
-              title={refreshing ? 'Refreshing...' : 'Refresh builds'}
+              title={refreshOp.isLoading ? 'Refreshing...' : 'Refresh builds'}
             >
               <Refresh style={{ fontSize: '18px' }} />
             </IconButton>
@@ -434,8 +255,7 @@ export const Workflows = () => {
             new Date(a.createdAt || 0).getTime(),
         )}
         onRowClick={(_, rowData) => {
-          setSelectedBuild(rowData as ModelsBuild);
-          setDrawerOpen(true);
+          buildLogsDrawer.open(rowData as ModelsBuild);
         }}
         emptyContent={
           <Box
@@ -455,9 +275,9 @@ export const Workflows = () => {
         }
       />
       <BuildLogs
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        build={selectedBuild}
+        open={buildLogsDrawer.isOpen}
+        onClose={buildLogsDrawer.close}
+        build={buildLogsDrawer.selected}
       />
       {componentDetails?.workflow && (
         <EditWorkflowDialog
@@ -466,7 +286,7 @@ export const Workflows = () => {
           workflowName={componentDetails.workflow.name || ''}
           currentWorkflowSchema={componentDetails.workflow.schema || null}
           onSaved={() => {
-            fetchComponentDetails();
+            workflowData.fetchComponentDetails();
           }}
         />
       )}
