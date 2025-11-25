@@ -11,25 +11,22 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  FormControl,
-  Select,
-  MenuItem,
-  InputLabel,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AddIcon from '@material-ui/icons/Add';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { Container, EnvVar } from '@openchoreo/backstage-plugin-common';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useBuilds } from '../WorkloadContext';
+import { ImageSelector } from './ImageSelector';
+import { EnvVarRow } from './EnvVarRow';
 
 interface ContainerSectionProps {
   containers: { [key: string]: Container };
   onContainerChange: (
     containerName: string,
     field: keyof Container,
-    value: any,
+    value: string | string[],
   ) => void;
   onEnvVarChange: (
     containerName: string,
@@ -57,11 +54,9 @@ const useStyles = makeStyles(theme => ({
     borderRadius: 8,
     boxShadow: 'none',
     backgroundColor: 'transparent',
-    '&:before': {
-      backgroundColor: 'transparent',
-    },
+    '&:before': { backgroundColor: 'transparent' },
   },
-  dynamicFieldContainer: {
+  containerCard: {
     padding: theme.spacing(0),
     marginBottom: theme.spacing(2),
     border: `1px solid ${theme.palette.divider}`,
@@ -96,17 +91,20 @@ export function ContainerSection({
   const classes = useStyles();
   const { builds } = useBuilds();
 
+  const containerEntries = Object.entries(containers);
+  const showAddButton = !singleContainerMode || containerEntries.length === 0;
+
   return (
     <Accordion className={classes.accordion} defaultExpanded>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography variant="h6">
-          Containers ({Object.keys(containers).length})
+          Containers ({containerEntries.length})
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
         <Box width="100%">
-          {Object.entries(containers).map(([containerName, container]) => (
-            <Card key={containerName} className={classes.dynamicFieldContainer}>
+          {containerEntries.map(([containerName, container]) => (
+            <Card key={containerName} className={classes.containerCard}>
               <CardHeader
                 style={{ paddingBottom: 8 }}
                 title={
@@ -133,61 +131,14 @@ export function ContainerSection({
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <Box mb={2}>
-                      {builds.length === 0 && container.image ? (
-                        <TextField
-                          label="Image"
-                          value={container.image}
-                          onChange={e =>
-                            onContainerChange(
-                              containerName,
-                              'image',
-                              e.target.value as string,
-                            )
-                          }
-                          fullWidth
-                          variant="outlined"
-                          disabled={disabled}
-                        />
-                      ) : (
-                        <FormControl fullWidth variant="outlined">
-                          <InputLabel>Select Image from Builds</InputLabel>
-                          <Select
-                            value={container.image || ''}
-                            onChange={e =>
-                              onContainerChange(
-                                containerName,
-                                'image',
-                                e.target.value as string,
-                              )
-                            }
-                            label="Select Image from Builds"
-                            variant="outlined"
-                            fullWidth
-                            disabled={disabled}
-                          >
-                            <MenuItem value="">
-                              <em>None</em>
-                            </MenuItem>
-                            {builds
-                              .filter(build => build.image)
-                              .map(
-                                build =>
-                                  build.image && (
-                                    <MenuItem
-                                      key={build.image}
-                                      value={build.image}
-                                    >
-                                      {build.name} (
-                                      {formatRelativeTime(
-                                        build.createdAt || '',
-                                      )}
-                                      )
-                                    </MenuItem>
-                                  ),
-                              )}
-                          </Select>
-                        </FormControl>
-                      )}
+                      <ImageSelector
+                        image={container.image}
+                        builds={builds}
+                        disabled={disabled}
+                        onChange={value =>
+                          onContainerChange(containerName, 'image', value)
+                        }
+                      />
                     </Box>
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -238,68 +189,16 @@ export function ContainerSection({
                     Environment Variables
                   </Typography>
                   {container.env?.map((envVar, index) => (
-                    <Box key={index} className={classes.envVarContainer}>
-                      <Grid container spacing={2} alignItems="center">
-                        <Grid item xs={5}>
-                          <TextField
-                            label="Name"
-                            value={envVar.key || ''}
-                            onChange={e =>
-                              onEnvVarChange(
-                                containerName,
-                                index,
-                                'key',
-                                e.target.value,
-                              )
-                            }
-                            fullWidth
-                            variant="outlined"
-                            size="small"
-                            disabled={!!envVar.valueFrom || disabled}
-                          />
-                        </Grid>
-                        {envVar.valueFrom?.secretRef ? (
-                          <>
-                            <Grid item xs={5}>
-                              <Typography variant="body2">
-                                Secret: {envVar.valueFrom.secretRef.name}:
-                                {envVar.valueFrom.secretRef.key}
-                              </Typography>
-                            </Grid>
-                          </>
-                        ) : (
-                          <Grid item xs={5}>
-                            <TextField
-                              disabled={disabled}
-                              label="Value"
-                              value={envVar.value || ''}
-                              onChange={e =>
-                                onEnvVarChange(
-                                  containerName,
-                                  index,
-                                  'value',
-                                  e.target.value,
-                                )
-                              }
-                              fullWidth
-                              variant="outlined"
-                              size="small"
-                            />
-                          </Grid>
-                        )}
-
-                        <Grid item xs={2}>
-                          <IconButton
-                            onClick={() => onRemoveEnvVar(containerName, index)}
-                            color="secondary"
-                            size="small"
-                            disabled={disabled}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Grid>
-                      </Grid>
-                    </Box>
+                    <EnvVarRow
+                      key={index}
+                      envVar={envVar}
+                      index={index}
+                      containerName={containerName}
+                      disabled={disabled}
+                      className={classes.envVarContainer}
+                      onEnvVarChange={onEnvVarChange}
+                      onRemoveEnvVar={onRemoveEnvVar}
+                    />
                   ))}
                   <Button
                     startIcon={<AddIcon />}
@@ -316,7 +215,8 @@ export function ContainerSection({
               </CardContent>
             </Card>
           ))}
-          {(!singleContainerMode || Object.keys(containers).length === 0) && (
+
+          {showAddButton && (
             <Button
               startIcon={<AddIcon />}
               onClick={onAddContainer}

@@ -1,5 +1,6 @@
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import { API_ENDPOINTS } from '../constants';
+import { apiFetch } from './client';
 
 export interface ComponentInfo {
   orgName: string;
@@ -12,24 +13,13 @@ export async function fetchTotalBindingsCount(
   discovery: DiscoveryApi,
   identity: IdentityApi,
 ): Promise<number> {
-  const { token } = await identity.getCredentials();
-  const backendUrl = `${await discovery.getBaseUrl('openchoreo')}${
-    API_ENDPOINTS.DASHBOARD_BINDINGS_COUNT
-  }`;
-
-  const res = await fetch(backendUrl, {
+  const data = await apiFetch<{ totalBindings: number }>({
+    endpoint: API_ENDPOINTS.DASHBOARD_BINDINGS_COUNT,
+    discovery,
+    identity,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ components }),
+    body: { components },
   });
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch bindings count');
-  }
-
-  const data = await res.json();
   return data.totalBindings;
 }

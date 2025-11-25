@@ -2,6 +2,12 @@ import { Entity } from '@backstage/catalog-model';
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { API_ENDPOINTS } from '../constants/api';
+import { apiFetch, apiFetchRaw } from './client';
+import {
+  extractEntityMetadata,
+  tryExtractEntityMetadata,
+  entityMetadataToParams,
+} from '../utils/entityUtils';
 import {
   LogsResponse,
   RuntimeLogsParams,
@@ -13,44 +19,14 @@ export async function getComponentDetails(
   discovery: DiscoveryApi,
   identity: IdentityApi,
 ): Promise<{ uid?: string }> {
-  const { token } = await identity.getCredentials();
-  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
-  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const metadata = extractEntityMetadata(entity);
 
-  if (!component || !project || !organization) {
-    throw new Error(
-      'Component name, project name, or organization name not found in entity annotations',
-    );
-  }
-
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}/component`,
-  );
-
-  const params = new URLSearchParams({
-    componentName: component,
-    projectName: project,
-    organizationName: organization,
+  return apiFetch({
+    endpoint: '/component',
+    discovery,
+    identity,
+    params: entityMetadataToParams(metadata),
   });
-
-  backendUrl.search = params.toString();
-
-  const response = await fetch(backendUrl.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch component details: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const componentData = await response.json();
-  return componentData;
 }
 
 export async function getRuntimeLogs(
@@ -59,46 +35,34 @@ export async function getRuntimeLogs(
   identity: IdentityApi,
   params: RuntimeLogsParams,
 ): Promise<LogsResponse> {
-  const { token } = await identity.getCredentials();
-  const componentName = params.componentName;
-
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}${
-      API_ENDPOINTS.RUNTIME_LOGS
-    }/${componentName}`,
-  );
-
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
   const organization =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
 
+  const queryParams: Record<string, string> = {};
   if (project && organization) {
-    const queryParams = new URLSearchParams({
-      orgName: organization,
-      projectName: project,
-    });
-    backendUrl.search = queryParams.toString();
+    queryParams.orgName = organization;
+    queryParams.projectName = project;
   }
 
-  const requestBody = {
-    componentId: params.componentId,
-    componentName: params.componentName,
-    environmentId: params.environmentId,
-    environmentName: params.environmentName,
-    logLevels: params.logLevels,
-    startTime: params.startTime,
-    endTime: params.endTime,
-    limit: params.limit,
-    offset: params.offset,
-  };
-
-  const response = await fetch(backendUrl.toString(), {
+  // Use apiFetchRaw because we need custom error handling
+  const response = await apiFetchRaw({
+    endpoint: `${API_ENDPOINTS.RUNTIME_LOGS}/${params.componentName}`,
+    discovery,
+    identity,
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+    params: queryParams,
+    body: {
+      componentId: params.componentId,
+      componentName: params.componentName,
+      environmentId: params.environmentId,
+      environmentName: params.environmentName,
+      logLevels: params.logLevels,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      limit: params.limit,
+      offset: params.offset,
     },
-    body: JSON.stringify(requestBody),
   });
 
   const data = await response.json();
@@ -122,43 +86,17 @@ export async function getEnvironments(
   discovery: DiscoveryApi,
   identity: IdentityApi,
 ): Promise<Environment[]> {
-  const { token } = await identity.getCredentials();
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}${
-      API_ENDPOINTS.ENVIRONMENT_INFO
-    }`,
-  );
-
-  const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
-  const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
-
-  if (!project || !component || !organization) {
+  const metadata = tryExtractEntityMetadata(entity);
+  if (!metadata) {
     return [];
   }
 
-  const params = new URLSearchParams({
-    componentName: component,
-    projectName: project,
-    organizationName: organization,
+  const envData = await apiFetch<any[]>({
+    endpoint: API_ENDPOINTS.ENVIRONMENT_INFO,
+    discovery,
+    identity,
+    params: entityMetadataToParams(metadata),
   });
-
-  backendUrl.search = params.toString();
-
-  const response = await fetch(backendUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch environments: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const envData = await response.json();
 
   // Transform the environment data to match our interface
   return envData.map((env: any) => ({
@@ -174,30 +112,17 @@ export function calculateTimeRange(timeRange: string): {
   const now = new Date();
   const endTime = now.toISOString();
 
-  let startTime: Date;
+  const timeRangeMs: Record<string, number> = {
+    '10m': 10 * 60 * 1000,
+    '30m': 30 * 60 * 1000,
+    '1h': 60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+    '7d': 7 * 24 * 60 * 60 * 1000,
+    '14d': 14 * 24 * 60 * 60 * 1000,
+  };
 
-  switch (timeRange) {
-    case '10m':
-      startTime = new Date(now.getTime() - 10 * 60 * 1000);
-      break;
-    case '30m':
-      startTime = new Date(now.getTime() - 30 * 60 * 1000);
-      break;
-    case '1h':
-      startTime = new Date(now.getTime() - 60 * 60 * 1000);
-      break;
-    case '24h':
-      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      break;
-    case '7d':
-      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      break;
-    case '14d':
-      startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-      break;
-    default:
-      startTime = new Date(now.getTime() - 60 * 60 * 1000); // Default to 1 hour
-  }
+  const msAgo = timeRangeMs[timeRange] || timeRangeMs['1h'];
+  const startTime = new Date(now.getTime() - msAgo);
 
   return {
     startTime: startTime.toISOString(),
