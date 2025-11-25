@@ -2,10 +2,6 @@ import { makeStyles } from '@material-ui/core/styles';
 import { alpha } from '@material-ui/core/styles/colorManipulator';
 
 export const useWorkflowStyles = makeStyles(theme => ({
-  workflowCard: {
-    padding: theme.spacing(2),
-    marginBottom: theme.spacing(2),
-  },
   headerTitle: {
     fontWeight: 600,
     fontSize: theme.typography.h5.fontSize,

@@ -4,11 +4,7 @@ import { Alert } from '@material-ui/lab';
 import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
 import { LogsActions } from './LogsActions';
-import {
-  useEnvironments,
-  useRuntimeLogs,
-  useFilters,
-} from './hooks';
+import { useEnvironments, useRuntimeLogs, useFilters } from './hooks';
 import { useInfiniteScroll } from '@openchoreo/backstage-plugin-react';
 import { RuntimeLogsPagination } from './types';
 import { useRuntimeLogsStyles } from './styles';

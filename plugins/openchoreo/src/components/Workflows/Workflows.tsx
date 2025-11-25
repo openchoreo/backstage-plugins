@@ -14,12 +14,12 @@ import {
   Typography,
   Button,
   Box,
-  Paper,
   IconButton,
   CircularProgress,
   Chip,
   Collapse,
 } from '@material-ui/core';
+import { Card } from '@openchoreo/backstage-design-system';
 import Refresh from '@material-ui/icons/Refresh';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import ErrorIcon from '@material-ui/icons/Error';
@@ -312,7 +312,7 @@ export const Workflows = () => {
   return (
     <Box>
       {componentDetails && (
-        <Paper className={classes.workflowCard}>
+        <Card padding={16} style={{ marginBottom: 16 }}>
           <Box
             display="flex"
             justifyContent="space-between"
@@ -403,7 +403,7 @@ export const Workflows = () => {
               </Box>
             )}
           </Collapse>
-        </Paper>
+        </Card>
       )}
       <Table
         title={
