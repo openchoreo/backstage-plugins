@@ -125,6 +125,10 @@ export function Workload({
         identity,
       );
 
+      if (!releaseResponse.data?.name) {
+        throw new Error('Failed to create release: no release name returned');
+      }
+
       // Step 3: Deploy release to lowest environment
       await deployRelease(
         entity,

@@ -1,43 +1,26 @@
 import { Entity } from '@backstage/catalog-model';
-import { API_ENDPOINTS } from '../constants';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 import { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
+import { API_ENDPOINTS } from '../constants';
+import { apiFetch } from './client';
+import {
+  extractEntityMetadata,
+  entityMetadataToParams,
+} from '../utils/entityUtils';
 
 export async function fetchWorkloadInfo(
   entity: Entity,
   discovery: DiscoveryApi,
   identity: IdentityApi,
-) {
-  const { token } = await identity.getCredentials();
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}${
-      API_ENDPOINTS.DEPLOYEMNT_WORKLOAD
-    }`,
-  );
-  const componentName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
-  const projectName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organizationName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
-  if (!componentName || !projectName || !organizationName) {
-    throw new Error('Missing required labels');
-  }
-  const params = new URLSearchParams({
-    componentName,
-    projectName,
-    organizationName,
+): Promise<ModelsWorkload> {
+  const metadata = extractEntityMetadata(entity);
+
+  return apiFetch<ModelsWorkload>({
+    endpoint: API_ENDPOINTS.DEPLOYEMNT_WORKLOAD,
+    discovery,
+    identity,
+    params: entityMetadataToParams(metadata),
   });
-  backendUrl.search = params.toString();
-  const res = await fetch(backendUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!res.ok) {
-    throw new Error('Failed to fetch workload info');
-  }
-  return res.json();
 }
 
 export async function applyWorkload(
@@ -46,36 +29,14 @@ export async function applyWorkload(
   identity: IdentityApi,
   workloadSpec: ModelsWorkload,
 ) {
-  const { token } = await identity.getCredentials();
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}${
-      API_ENDPOINTS.DEPLOYEMNT_WORKLOAD
-    }`,
-  );
-  const componentName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
-  const projectName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organizationName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
-  if (!componentName || !projectName || !organizationName) {
-    throw new Error('Missing required labels');
-  }
-  const params = new URLSearchParams({
-    componentName,
-    projectName,
-    organizationName,
-  });
-  backendUrl.search = params.toString();
-  const res = await fetch(backendUrl, {
+  const metadata = extractEntityMetadata(entity);
+
+  return apiFetch({
+    endpoint: API_ENDPOINTS.DEPLOYEMNT_WORKLOAD,
+    discovery,
+    identity,
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(workloadSpec),
+    params: entityMetadataToParams(metadata),
+    body: workloadSpec,
   });
-  if (!res.ok) {
-    throw new Error('Failed to apply workload');
-  }
-  return res.json();
 }

@@ -13,13 +13,14 @@ import {
   useItemActionTracker,
   useNotification,
 } from '../../hooks';
-import { useEnvironmentData, Environment } from './hooks/useEnvironmentData';
 import {
+  useEnvironmentData,
   useStaleEnvironments,
   useEnvironmentPolling,
   useEnvironmentActions,
   isAlreadyPromoted,
-} from './localHooks';
+} from './hooks';
+import type { Environment } from './hooks';
 import { useEnvironmentsStyles } from './styles';
 import { NotificationBanner, SetupCard, EnvironmentCard } from './components';
 import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';

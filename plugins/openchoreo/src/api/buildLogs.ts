@@ -3,6 +3,7 @@ import type {
   ModelsBuild,
   RuntimeLogsResponse,
 } from '@openchoreo/backstage-plugin-common';
+import { apiFetch } from './client';
 
 export interface BuildLogsParams {
   componentName: string;
@@ -14,34 +15,35 @@ export interface BuildLogsParams {
   sortOrder?: 'asc' | 'desc';
 }
 
+interface BuildLogsApiResponse {
+  success?: boolean;
+  data?: {
+    message?: string;
+  };
+  logs?: RuntimeLogsResponse['logs'];
+  totalCount?: number;
+  tookMs?: number;
+}
+
 export async function getBuildLogs(
   discovery: DiscoveryApi,
   identity: IdentityApi,
   params: BuildLogsParams,
 ): Promise<RuntimeLogsResponse> {
-  const { token } = await identity.getCredentials();
-  const baseUrl = await discovery.getBaseUrl('openchoreo');
-
-  const url = new URL(`${baseUrl}/build-logs`);
-  url.searchParams.set('componentName', params.componentName);
-  url.searchParams.set('buildId', params.buildId);
-  url.searchParams.set('buildUuid', params.buildUuid);
-  url.searchParams.set('limit', (params.limit || 100).toString());
-  url.searchParams.set('sortOrder', params.sortOrder || 'desc');
-  url.searchParams.set('projectName', params.projectName);
-  url.searchParams.set('orgName', params.orgName);
-
-  const response = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
+  const data = await apiFetch<BuildLogsApiResponse>({
+    endpoint: '/build-logs',
+    discovery,
+    identity,
+    params: {
+      componentName: params.componentName,
+      buildId: params.buildId,
+      buildUuid: params.buildUuid,
+      limit: (params.limit || 100).toString(),
+      sortOrder: params.sortOrder || 'desc',
+      projectName: params.projectName,
+      orgName: params.orgName,
     },
   });
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-
-  const data = await response.json();
 
   if (
     data.success &&
@@ -52,7 +54,7 @@ export async function getBuildLogs(
     );
   }
 
-  return data;
+  return data as RuntimeLogsResponse;
 }
 
 export async function fetchBuildLogsForBuild(
@@ -72,7 +74,7 @@ export async function fetchBuildLogsForBuild(
     );
   }
 
-  const params: BuildLogsParams = {
+  return getBuildLogs(discovery, identity, {
     componentName: build.componentName,
     buildId: build.name,
     buildUuid: build.uuid,
@@ -80,7 +82,5 @@ export async function fetchBuildLogsForBuild(
     orgName: build.orgName,
     limit: 100,
     sortOrder: 'desc',
-  };
-
-  return getBuildLogs(discovery, identity, params);
+  });
 }
