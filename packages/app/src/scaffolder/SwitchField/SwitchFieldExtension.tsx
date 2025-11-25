@@ -20,12 +20,11 @@ export const SwitchField = ({
   const description = schema.description;
 
   return (
-    <Box mt={2} mb={2}>
+    <Box mt={2}>
       <Box display="flex" alignItems="center">
         <Box style={{ marginRight: 16 }}>
           <Typography
             variant="body1"
-            style={{ fontSize: '1.125rem', marginBottom: 4 }}
           >
             {title}
           </Typography>
