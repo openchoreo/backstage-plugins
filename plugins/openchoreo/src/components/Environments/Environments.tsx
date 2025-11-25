@@ -1,5 +1,5 @@
 /* eslint-disable no-nested-ternary */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Content, Page } from '@backstage/core-components';
 import {
@@ -35,6 +35,11 @@ import { Workload } from './Workload/Workload';
 import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';
 import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
+import {
+  useDialogWithSelection,
+  useItemActionTracker,
+  useNotification,
+} from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
   '@global': {
@@ -141,25 +146,21 @@ export const Environments = () => {
   // Use the new hook for data fetching
   const { environments, loading, refetch } = useEnvironmentData(entity);
 
-  // Per-environment refresh state
-  const [refreshingEnvironments, setRefreshingEnvironments] = useState<
-    Set<string>
-  >(new Set());
+  // Cache for showing stale data during refresh
   const [staleEnvironments, setStaleEnvironments] = useState<Environment[]>([]);
 
-  // Other state
-  const [promotingTo, setPromotingTo] = useState<string | null>(null);
-  const [updatingBinding, setUpdatingBinding] = useState<string | null>(null);
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: 'success' | 'error';
-  } | null>(null);
-  const [overridesDialogOpen, setOverridesDialogOpen] = useState(false);
-  const [selectedEnvironment, setSelectedEnvironment] =
-    useState<Environment | null>(null);
-  const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
-  const [selectedReleaseEnvironment, setSelectedReleaseEnvironment] =
-    useState<Environment | null>(null);
+  // Per-item action tracking (replaces multiple useState + Set manipulation)
+  const refreshTracker = useItemActionTracker<string>();
+  const promotionTracker = useItemActionTracker<string>();
+  const suspendTracker = useItemActionTracker<string>();
+
+  // Notifications with auto-cleanup (replaces notification useState + setTimeout)
+  const notification = useNotification();
+
+  // Dialog state management (replaces paired open/selected useState calls)
+  const overridesDialog = useDialogWithSelection<Environment>();
+  const releaseDialog = useDialogWithSelection<Environment>();
+
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
 
@@ -170,26 +171,17 @@ export const Environments = () => {
     }
   }, [environments]);
 
-  // Handle per-environment refresh
+  // Handle per-environment refresh using the tracker hook
   const handleRefreshEnvironment = useCallback(
-    async (envName: string) => {
-      setRefreshingEnvironments(prev => new Set(prev).add(envName));
-      try {
+    (envName: string) =>
+      refreshTracker.withTracking(envName, async () => {
         // Add minimum delay to ensure loading state is visible
-        const [result] = await Promise.all([
+        await Promise.all([
           refetch(),
           new Promise(resolve => setTimeout(resolve, 300)),
         ]);
-        return result;
-      } finally {
-        setRefreshingEnvironments(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(envName);
-          return newSet;
-        });
-      }
-    },
-    [refetch],
+      }),
+    [refetch, refreshTracker],
   );
 
   const isWorkloadEditorSupported =
@@ -245,25 +237,9 @@ export const Environments = () => {
     );
   };
 
-  const handleOpenOverridesDialog = (env: Environment) => {
-    setSelectedEnvironment(env);
-    setOverridesDialogOpen(true);
-  };
-
-  const handleCloseOverridesDialog = () => {
-    setOverridesDialogOpen(false);
-    setSelectedEnvironment(null);
-  };
-
-  const handleOpenReleaseDialog = (env: Environment) => {
-    setSelectedReleaseEnvironment(env);
-    setReleaseDialogOpen(true);
-  };
-
-  const handleCloseReleaseDialog = () => {
-    setReleaseDialogOpen(false);
-    setSelectedReleaseEnvironment(null);
-  };
+  // Dialog handlers now use the hook's built-in methods:
+  // - overridesDialog.open(env) / overridesDialog.close()
+  // - releaseDialog.open(env) / releaseDialog.close()
 
   const handleOverridesSaved = () => {
     refetch();
@@ -289,7 +265,7 @@ export const Environments = () => {
   return (
     <Page themeId="tool">
       <Content>
-        {notification && (
+        {notification.notification && (
           <Box
             position="fixed"
             top={80}
@@ -297,14 +273,14 @@ export const Environments = () => {
             zIndex={1300}
             maxWidth={400}
             className={`${classes.notificationBox} ${
-              notification.type === 'success'
+              notification.notification.type === 'success'
                 ? classes.successNotification
                 : classes.errorNotification
             }`}
           >
             <Typography variant="body2" style={{ fontWeight: 'bold' }}>
-              {notification.type === 'success' ? '✓ ' : '✗ '}
-              {notification.message}
+              {notification.notification.type === 'success' ? '✓ ' : '✗ '}
+              {notification.notification.message}
             </Typography>
           </Box>
         )}
@@ -363,7 +339,7 @@ export const Environments = () => {
                     <Box display="flex" alignItems="center">
                       {env.deployment.releaseName && (
                         <IconButton
-                          onClick={() => handleOpenOverridesDialog(env)}
+                          onClick={() => overridesDialog.open(env)}
                           size="small"
                           title="Configure environment overrides"
                           style={{ marginLeft: 8 }}
@@ -383,9 +359,9 @@ export const Environments = () => {
                       <IconButton
                         onClick={() => handleRefreshEnvironment(env.name)}
                         size="small"
-                        disabled={refreshingEnvironments.has(env.name)}
+                        disabled={refreshTracker.isActive(env.name)}
                         title={
-                          refreshingEnvironments.has(env.name)
+                          refreshTracker.isActive(env.name)
                             ? 'Refreshing...'
                             : 'Refresh'
                         }
@@ -394,7 +370,7 @@ export const Environments = () => {
                           fontSize="inherit"
                           style={{
                             fontSize: '18px',
-                            animation: refreshingEnvironments.has(env.name)
+                            animation: refreshTracker.isActive(env.name)
                               ? 'spin 1s linear infinite'
                               : 'none',
                           }}
@@ -409,7 +385,7 @@ export const Environments = () => {
                     marginBottom={2}
                     marginTop={1}
                   />
-                  {refreshingEnvironments.has(env.name) ? (
+                  {refreshTracker.isActive(env.name) ? (
                     <Box className={classes.skeletonContainer}>
                       <Skeleton variant="text" width="60%" height={24} />
                       <Skeleton
@@ -467,7 +443,7 @@ export const Environments = () => {
                         />
                         {env.deployment.releaseName && (
                           <IconButton
-                            onClick={() => handleOpenReleaseDialog(env)}
+                            onClick={() => releaseDialog.open(env)}
                             size="small"
                             title="View release details"
                             style={{ marginLeft: 'auto' }}
@@ -567,57 +543,39 @@ export const Environments = () => {
                                   color="primary"
                                   size="small"
                                   disabled={
-                                    promotingTo === target.name ||
+                                    promotionTracker.isActive(target.name) ||
                                     isAlreadyPromoted(env, target.name)
                                   }
-                                  onClick={async () => {
-                                    try {
-                                      setPromotingTo(target.name);
-                                      await promoteToEnvironment(
-                                        entity,
-                                        discovery,
-                                        identityApi,
-                                        env.name.toLowerCase(), // source environment
-                                        target.name.toLowerCase(), // target environment
-                                      );
-
-                                      // Refetch environments to get updated data
-                                      await refetch();
-
-                                      setNotification({
-                                        message: `Component promoted from ${env.name} to ${target.name}`,
-                                        type: 'success',
-                                      });
-
-                                      // Clear notification after 5 seconds
-                                      setTimeout(
-                                        () => setNotification(null),
-                                        5000,
-                                      );
-                                    } catch (err) {
-                                      setNotification({
-                                        message: `Error promoting: ${err}`,
-                                        type: 'error',
-                                      });
-
-                                      // Clear notification after 7 seconds for errors
-                                      setTimeout(
-                                        () => setNotification(null),
-                                        7000,
-                                      );
-                                    } finally {
-                                      setPromotingTo(null);
-                                    }
-                                  }}
+                                  onClick={() =>
+                                    promotionTracker
+                                      .withTracking(target.name, async () => {
+                                        await promoteToEnvironment(
+                                          entity,
+                                          discovery,
+                                          identityApi,
+                                          env.name.toLowerCase(),
+                                          target.name.toLowerCase(),
+                                        );
+                                        await refetch();
+                                        notification.showSuccess(
+                                          `Component promoted from ${env.name} to ${target.name}`,
+                                        );
+                                      })
+                                      .catch(err =>
+                                        notification.showError(
+                                          `Error promoting: ${err}`,
+                                        ),
+                                      )
+                                  }
                                 >
                                   {isAlreadyPromoted(env, target.name)
                                     ? `Promoted to ${target.name}`
-                                    : promotingTo === target.name
+                                    : promotionTracker.isActive(target.name)
                                     ? 'Promoting...'
                                     : `Promote to ${target.name}`}
                                   {!isAlreadyPromoted(env, target.name) &&
                                     target.requiresApproval &&
-                                    !promotingTo &&
+                                    !promotionTracker.isActive(target.name) &&
                                     ' (Approval Required)'}
                                 </Button>
                               </Box>
@@ -643,57 +601,36 @@ export const Environments = () => {
                                     color="primary"
                                     size="small"
                                     disabled={
-                                      promotingTo ===
-                                        env.promotionTargets[0].name ||
+                                      promotionTracker.isActive(
+                                        env.promotionTargets[0].name,
+                                      ) ||
                                       isAlreadyPromoted(
                                         env,
                                         env.promotionTargets[0].name,
                                       )
                                     }
-                                    onClick={async () => {
-                                      try {
-                                        setPromotingTo(
-                                          env.promotionTargets![0].name,
+                                    onClick={() => {
+                                      const targetName =
+                                        env.promotionTargets![0].name;
+                                      promotionTracker
+                                        .withTracking(targetName, async () => {
+                                          await promoteToEnvironment(
+                                            entity,
+                                            discovery,
+                                            identityApi,
+                                            env.name.toLowerCase(),
+                                            targetName.toLowerCase(),
+                                          );
+                                          await refetch();
+                                          notification.showSuccess(
+                                            `Component promoted from ${env.name} to ${targetName}`,
+                                          );
+                                        })
+                                        .catch(err =>
+                                          notification.showError(
+                                            `Error promoting: ${err}`,
+                                          ),
                                         );
-                                        await promoteToEnvironment(
-                                          entity,
-                                          discovery,
-                                          identityApi,
-                                          env.name.toLowerCase(), // source environment
-                                          env.promotionTargets![0].name.toLowerCase(), // target environment
-                                        );
-
-                                        // Refetch environments to get updated data
-                                        await refetch();
-
-                                        setNotification({
-                                          message: `Component promoted from ${
-                                            env.name
-                                          } to ${
-                                            env.promotionTargets![0].name
-                                          }`,
-                                          type: 'success',
-                                        });
-
-                                        // Clear notification after 5 seconds
-                                        setTimeout(
-                                          () => setNotification(null),
-                                          5000,
-                                        );
-                                      } catch (err) {
-                                        setNotification({
-                                          message: `Error promoting: ${err}`,
-                                          type: 'error',
-                                        });
-
-                                        // Clear notification after 7 seconds for errors
-                                        setTimeout(
-                                          () => setNotification(null),
-                                          7000,
-                                        );
-                                      } finally {
-                                        setPromotingTo(null);
-                                      }
                                     }}
                                   >
                                     {isAlreadyPromoted(
@@ -701,8 +638,9 @@ export const Environments = () => {
                                       env.promotionTargets[0].name,
                                     )
                                       ? `Promoted`
-                                      : promotingTo ===
-                                        env.promotionTargets[0].name
+                                      : promotionTracker.isActive(
+                                          env.promotionTargets[0].name,
+                                        )
                                       ? 'Promoting...'
                                       : 'Promote'}
                                     {!isAlreadyPromoted(
@@ -711,7 +649,9 @@ export const Environments = () => {
                                     ) &&
                                       env.promotionTargets[0]
                                         .requiresApproval &&
-                                      !promotingTo &&
+                                      !promotionTracker.isActive(
+                                        env.promotionTargets[0].name,
+                                      ) &&
                                       ' (Approval Required)'}
                                   </Button>
                                 )}
@@ -722,47 +662,29 @@ export const Environments = () => {
                                   variant="outlined"
                                   color="secondary"
                                   size="small"
-                                  disabled={updatingBinding === env.name}
-                                  onClick={async () => {
-                                    try {
-                                      setUpdatingBinding(env.name);
-                                      await deleteReleaseBinding(
-                                        entity,
-                                        discovery,
-                                        identityApi,
-                                        env.name.toLowerCase(),
-                                      );
-
-                                      // Refresh the environments data
-                                      await refetch();
-
-                                      setNotification({
-                                        message: `Component suspended from ${env.name} successfully`,
-                                        type: 'success',
-                                      });
-
-                                      // Clear notification after 5 seconds
-                                      setTimeout(
-                                        () => setNotification(null),
-                                        5000,
-                                      );
-                                    } catch (err) {
-                                      setNotification({
-                                        message: `Error suspending: ${err}`,
-                                        type: 'error',
-                                      });
-
-                                      // Clear notification after 7 seconds for errors
-                                      setTimeout(
-                                        () => setNotification(null),
-                                        7000,
-                                      );
-                                    } finally {
-                                      setUpdatingBinding(null);
-                                    }
-                                  }}
+                                  disabled={suspendTracker.isActive(env.name)}
+                                  onClick={() =>
+                                    suspendTracker
+                                      .withTracking(env.name, async () => {
+                                        await deleteReleaseBinding(
+                                          entity,
+                                          discovery,
+                                          identityApi,
+                                          env.name.toLowerCase(),
+                                        );
+                                        await refetch();
+                                        notification.showSuccess(
+                                          `Component suspended from ${env.name} successfully`,
+                                        );
+                                      })
+                                      .catch(err =>
+                                        notification.showError(
+                                          `Error suspending: ${err}`,
+                                        ),
+                                      )
+                                  }
                                 >
-                                  {updatingBinding === env.name
+                                  {suspendTracker.isActive(env.name)
                                     ? 'Suspending...'
                                     : 'Suspend'}
                                 </Button>
@@ -780,22 +702,22 @@ export const Environments = () => {
         </Grid>
 
         <EnvironmentOverridesDialog
-          open={overridesDialogOpen}
-          onClose={handleCloseOverridesDialog}
-          environment={selectedEnvironment}
+          open={overridesDialog.isOpen}
+          onClose={overridesDialog.close}
+          environment={overridesDialog.selected}
           entity={entity}
           onSaved={handleOverridesSaved}
         />
 
         <ReleaseDetailsDialog
-          open={releaseDialogOpen}
-          onClose={handleCloseReleaseDialog}
+          open={releaseDialog.isOpen}
+          onClose={releaseDialog.close}
           environmentName={
-            selectedReleaseEnvironment?.resourceName ||
-            selectedReleaseEnvironment?.name ||
+            releaseDialog.selected?.resourceName ||
+            releaseDialog.selected?.name ||
             ''
           }
-          environmentDisplayName={selectedReleaseEnvironment?.name}
+          environmentDisplayName={releaseDialog.selected?.name}
           entity={entity}
         />
       </Content>
