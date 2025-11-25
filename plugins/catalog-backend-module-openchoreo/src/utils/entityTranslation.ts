@@ -52,7 +52,7 @@ export function translateComponentToEntity(
     metadata: {
       name: component.name,
       title: component.name,
-      description: component.description || component.name,
+      ...(component.description && { description: component.description }),
       // namespace: orgName,
       tags: config.componentTypeUtils.generateTags(component.type || 'unknown'),
       annotations: {
