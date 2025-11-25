@@ -3,6 +3,7 @@ import { scaffolderActionsExtensionPoint } from '@backstage/plugin-scaffolder-no
 import { coreServices } from '@backstage/backend-plugin-api';
 import { createProjectAction } from './actions/project';
 import { createComponentAction } from './actions/component';
+import { immediateCatalogServiceRef } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 /**
  * A backend module that registers the actions into the scaffolder
@@ -15,11 +16,12 @@ export const scaffolderModule = createBackendModule({
       deps: {
         scaffolderActions: scaffolderActionsExtensionPoint,
         config: coreServices.rootConfig,
+        immediateCatalog: immediateCatalogServiceRef,
       },
-      async init({ scaffolderActions, config }) {
+      async init({ scaffolderActions, config, immediateCatalog }) {
         scaffolderActions.addActions(
           createProjectAction(config),
-          createComponentAction(config),
+          createComponentAction(config, immediateCatalog),
         );
       },
     });

@@ -210,8 +210,9 @@ export const openChoreoTheme = createUnifiedTheme({
     },
     MuiCssBaseline: {
       styleOverrides: {
+        '@font-face': [UbuntuFont],
         'body, html': {
-          fontFamily: 'sans-serif !important',
+          fontFamily: 'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
         },
         // Sidebar divider opacity - use aria-label selector to work in both dev and production
         'nav[aria-label="sidebar nav"] hr': {
@@ -232,6 +233,17 @@ export const openChoreoTheme = createUnifiedTheme({
         },
         'g[data-testid="node"] text': {
           fill: `${colors.common.white} !important`,
+        },
+        // Force 14px font size for Recently Visited and Starred Entities widget links
+        '.MuiListItemText-root a': {
+          fontSize: '14px !important',
+        },
+        // Override Backstage HomePageRecentlyVisited component styles
+        '.MuiListItem-root a[class*="makeStyles-name"]': {
+          fontSize: '14px !important',
+        },
+        '.MuiListItemText-root .MuiLink-root': {
+          fontSize: '14px !important',
         },
       },
     },
@@ -326,6 +338,10 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         root: {
           padding: '20px 24px', // Consistent with card content
+        },
+        title: {
+          fontSize: 16,
+          fontWeight: 600,
         },
       },
     },
@@ -463,6 +479,23 @@ export const openChoreoTheme = createUnifiedTheme({
       },
     },
     MuiFormLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: 14,
+        },
+      },
+    },
+    MuiListItemText: {
+      styleOverrides: {
+        primary: {
+          fontSize: 14,
+        },
+        secondary: {
+          fontSize: 14,
+        },
+      },
+    },
+    MuiLink: {
       styleOverrides: {
         root: {
           fontSize: 14,
