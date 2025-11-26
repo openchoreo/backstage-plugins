@@ -8,7 +8,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { fetchEnvironmentRelease } from '../../api/environments';
-import { ReleaseDataRenderer } from './ReleaseDataRenderer';
+import { ReleaseInfoTabbedView } from './ReleaseDataRenderer/ReleaseInfoTabbedView';
 import { DetailPageLayout } from './components/DetailPageLayout';
 import type { Environment } from './hooks/useEnvironmentData';
 
@@ -124,7 +124,7 @@ export const ReleaseDetailsPage = ({
       )}
 
       {!loading && !error && releaseData && (
-        <ReleaseDataRenderer releaseData={releaseData} />
+        <ReleaseInfoTabbedView releaseData={releaseData} />
       )}
 
       {!loading && !error && !releaseData && (
