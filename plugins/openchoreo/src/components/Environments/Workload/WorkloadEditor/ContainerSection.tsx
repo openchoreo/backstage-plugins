@@ -34,9 +34,10 @@ import {
   EnvVar,
   FileVar,
 } from '@openchoreo/backstage-plugin-common';
-import { useBuilds, useSecretReferences } from '../WorkloadContext';
+import { useBuilds } from '../WorkloadContext';
 import { ImageSelector } from './ImageSelector';
 import { EnvVarRow } from './EnvVarRow';
+import { useSecretReferences } from '../../../../hooks/useSecretReferences';
 
 interface ContainerSectionProps {
   containers: { [key: string]: Container };

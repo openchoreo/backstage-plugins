@@ -547,7 +547,6 @@ export const EnvironmentOverridesDialog: React.FC<
                         workloadSpec={null}
                         setWorkloadSpec={() => {}}
                         isDeploying={false}
-                        secretReferences={[]}
                       >
                         <ContainerSection
                           containers={formState.workloadFormData.containers || {}}

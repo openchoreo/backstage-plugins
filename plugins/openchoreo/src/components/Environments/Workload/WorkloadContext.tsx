@@ -3,14 +3,12 @@ import {
   ModelsBuild,
   ModelsWorkload,
 } from '@openchoreo/backstage-plugin-common';
-import { SecretReference } from '../../../api/secretReferences';
 
 interface WorkloadContextType {
   builds: ModelsBuild[];
   workloadSpec: ModelsWorkload | null;
   setWorkloadSpec: (spec: ModelsWorkload | null) => void;
   isDeploying: boolean;
-  secretReferences: SecretReference[];
 }
 
 const WorkloadContext = createContext<WorkloadContextType | undefined>(
@@ -23,11 +21,10 @@ export const WorkloadProvider: FC<{
   setWorkloadSpec: (spec: ModelsWorkload | null) => void;
   children: ReactNode;
   isDeploying: boolean;
-  secretReferences: SecretReference[];
-}> = ({ builds, workloadSpec, setWorkloadSpec, children, isDeploying, secretReferences }) => {
+}> = ({ builds, workloadSpec, setWorkloadSpec, children, isDeploying }) => {
   return (
     <WorkloadContext.Provider
-      value={{ builds, workloadSpec, setWorkloadSpec, isDeploying, secretReferences }}
+      value={{ builds, workloadSpec, setWorkloadSpec, isDeploying }}
     >
       {children}
     </WorkloadContext.Provider>
@@ -53,9 +50,4 @@ export const useIsDeploying = () => {
 export const useBuilds = () => {
   const { builds } = useWorkloadContext();
   return { builds };
-};
-
-export const useSecretReferences = () => {
-  const { secretReferences } = useWorkloadContext();
-  return { secretReferences };
 };
