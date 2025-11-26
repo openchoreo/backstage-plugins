@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { Entity } from '@backstage/catalog-model';
 import {
@@ -8,7 +8,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { patchReleaseBindingOverrides } from '../../api/environments';
 import { makeStyles } from '@material-ui/core/styles';
-import { OverrideSection } from './OverrideSection';
+import { OverrideContent } from './OverrideContent';
 import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
@@ -16,6 +16,12 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { calculateHasOverrides } from './overridesUtils';
 import { DetailPageLayout } from './components/DetailPageLayout';
 import type { Environment } from './hooks/useEnvironmentData';
+import {
+  VerticalTabNav,
+  TabItemData,
+} from '@openchoreo/backstage-design-system';
+import SettingsIcon from '@material-ui/icons/Settings';
+import ExtensionIcon from '@material-ui/icons/Extension';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -37,6 +43,10 @@ const useStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.background.default,
     borderRadius: theme.shape.borderRadius,
     marginBottom: theme.spacing(2),
+  },
+  tabNav: {
+    height: '100%',
+    minHeight: 400,
   },
 }));
 
@@ -72,10 +82,8 @@ export const EnvironmentOverridesPage = ({
     error: loadError,
     schemas,
     formState,
-    expandedSections,
     setComponentTypeFormData,
     setTraitFormDataMap,
-    setExpandedSections,
     reload,
   } = useOverridesData(
     entity,
@@ -105,6 +113,49 @@ export const EnvironmentOverridesPage = ({
     formState.initialComponentTypeFormData,
     formState.initialTraitFormDataMap,
   );
+
+  // Build tabs from available schemas
+  const tabs = useMemo<TabItemData[]>(() => {
+    const tabList: TabItemData[] = [];
+
+    // Add Component Overrides tab if schema exists
+    if (schemas.componentTypeSchema) {
+      const hasComponentData =
+        formState.componentTypeFormData &&
+        Object.keys(formState.componentTypeFormData).length > 0;
+      tabList.push({
+        id: 'component',
+        label: 'Component',
+        icon: <SettingsIcon />,
+        status: hasComponentData ? 'success' : undefined,
+      });
+    }
+
+    // Add trait tabs
+    Object.keys(schemas.traitSchemasMap).forEach(traitName => {
+      const hasTraitData =
+        formState.traitFormDataMap[traitName] &&
+        Object.keys(formState.traitFormDataMap[traitName]).length > 0;
+      tabList.push({
+        id: `trait-${traitName}`,
+        label: traitName,
+        icon: <ExtensionIcon />,
+        status: hasTraitData ? 'success' : undefined,
+      });
+    });
+
+    return tabList;
+  }, [schemas, formState.componentTypeFormData, formState.traitFormDataMap]);
+
+  // Set initial active tab
+  const [activeTab, setActiveTab] = useState<string>('');
+
+  // Set default active tab when tabs are loaded
+  useMemo(() => {
+    if (tabs.length > 0 && !activeTab) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
 
   const handleSaveClick = () => {
     const totalChanges =
@@ -224,6 +275,53 @@ export const EnvironmentOverridesPage = ({
       </>
     ) : null;
 
+  // Render content for active tab
+  const renderTabContent = () => {
+    if (activeTab === 'component' && schemas.componentTypeSchema) {
+      return (
+        <OverrideContent
+          title="Component Overrides"
+          schema={schemas.componentTypeSchema}
+          formData={formState.componentTypeFormData}
+          onChange={setComponentTypeFormData}
+          onDelete={() => handleDeleteClick('component')}
+          hasInitialData={initialOverrides.hasComponentOverrides}
+          disabled={saving || deleting}
+        />
+      );
+    }
+
+    // Check for trait tabs
+    if (activeTab.startsWith('trait-')) {
+      const traitName = activeTab.replace('trait-', '');
+      const traitSchema = schemas.traitSchemasMap[traitName];
+      if (traitSchema) {
+        return (
+          <OverrideContent
+            title={`${traitName} Trait`}
+            schema={traitSchema}
+            formData={formState.traitFormDataMap[traitName] || {}}
+            onChange={newData =>
+              setTraitFormDataMap(prev => ({
+                ...prev,
+                [traitName]: newData,
+              }))
+            }
+            onDelete={() => handleDeleteClick(traitName)}
+            hasInitialData={
+              !!formState.initialTraitFormDataMap[traitName] &&
+              Object.keys(formState.initialTraitFormDataMap[traitName]).length >
+                0
+            }
+            disabled={saving || deleting}
+          />
+        );
+      }
+    }
+
+    return null;
+  };
+
   return (
     <>
       <DetailPageLayout
@@ -263,73 +361,30 @@ export const EnvironmentOverridesPage = ({
               </Box>
             )}
 
-            <Box>
-              {schemas.componentTypeSchema && (
-                <OverrideSection
-                  title="Component Overrides"
-                  subtitle="Base component configuration"
-                  schema={schemas.componentTypeSchema}
-                  formData={formState.componentTypeFormData}
-                  onChange={setComponentTypeFormData}
-                  onDelete={() => handleDeleteClick('component')}
-                  hasInitialData={initialOverrides.hasComponentOverrides}
-                  expanded={expandedSections.component ?? false}
-                  onToggle={() =>
-                    setExpandedSections(prev => ({
-                      ...prev,
-                      component: !prev.component,
-                    }))
-                  }
-                />
-              )}
+            {tabs.length > 0 && (
+              <VerticalTabNav
+                tabs={tabs}
+                activeTabId={activeTab}
+                onChange={setActiveTab}
+                className={classes.tabNav}
+              >
+                {renderTabContent()}
+              </VerticalTabNav>
+            )}
 
-              {Object.entries(schemas.traitSchemasMap).map(
-                ([traitName, traitSchema]) => (
-                  <OverrideSection
-                    key={traitName}
-                    title={`Trait: ${traitName}`}
-                    subtitle={`${traitName} trait configuration`}
-                    schema={traitSchema}
-                    formData={formState.traitFormDataMap[traitName] || {}}
-                    onChange={newData =>
-                      setTraitFormDataMap(prev => ({
-                        ...prev,
-                        [traitName]: newData,
-                      }))
-                    }
-                    onDelete={() => handleDeleteClick(traitName)}
-                    hasInitialData={
-                      !!formState.initialTraitFormDataMap[traitName] &&
-                      Object.keys(formState.initialTraitFormDataMap[traitName])
-                        .length > 0
-                    }
-                    expanded={expandedSections[`trait-${traitName}`] ?? false}
-                    onToggle={() =>
-                      setExpandedSections(prev => ({
-                        ...prev,
-                        [`trait-${traitName}`]: !prev[`trait-${traitName}`],
-                      }))
-                    }
-                  />
-                ),
-              )}
-
-              {Object.keys(schemas.traitSchemasMap).length === 0 &&
-                schemas.componentTypeSchema && (
-                  <Box
-                    mt={2}
-                    p={2}
-                    style={{
-                      backgroundColor: '#f5f5f5',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    <Typography variant="body2" color="textSecondary">
-                      No traits configured for this component.
-                    </Typography>
-                  </Box>
-                )}
-            </Box>
+            {tabs.length === 0 && (
+              <Box
+                p={2}
+                style={{
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '4px',
+                }}
+              >
+                <Typography variant="body2" color="textSecondary">
+                  No configuration options available for this component.
+                </Typography>
+              </Box>
+            )}
           </>
         )}
       </DetailPageLayout>
