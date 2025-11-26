@@ -1,4 +1,5 @@
-export { Workload } from './Workload';
+export { WorkloadButton } from './WorkloadButton';
+export { WorkloadConfigPage } from './WorkloadConfigPage';
 export {
   WorkloadProvider,
   useWorkloadContext,

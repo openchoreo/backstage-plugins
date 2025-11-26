@@ -1,16 +1,5 @@
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  IconButton,
-  Box,
-  Typography,
-  CircularProgress,
-} from '@material-ui/core';
-import CloseIcon from '@material-ui/icons/Close';
+import { useState, useMemo } from 'react';
+import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { Entity } from '@backstage/catalog-model';
 import {
   useApi,
@@ -19,32 +8,36 @@ import {
 } from '@backstage/core-plugin-api';
 import { patchReleaseBindingOverrides } from '../../api/environments';
 import { makeStyles } from '@material-ui/core/styles';
-import { OverrideSection } from './OverrideSection';
+import { OverrideContent } from './OverrideContent';
 import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { calculateHasOverrides } from './overridesUtils';
+import { DetailPageLayout } from './components/DetailPageLayout';
+import type { Environment } from './hooks/useEnvironmentData';
+import {
+  VerticalTabNav,
+  TabItemData,
+} from '@openchoreo/backstage-design-system';
+import SettingsIcon from '@material-ui/icons/Settings';
+import ExtensionIcon from '@material-ui/icons/Extension';
 import { ContainerSection } from './Workload/WorkloadEditor/ContainerSection';
 import { WorkloadProvider } from './Workload/WorkloadContext';
 
 const useStyles = makeStyles(theme => ({
-  dialogContent: {
-    minHeight: '400px',
-    paddingTop: theme.spacing(2),
-  },
   loadingContainer: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: '400px',
+    minHeight: '300px',
   },
   errorContainer: {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: '400px',
+    minHeight: '300px',
     gap: theme.spacing(2),
   },
   helpText: {
@@ -53,30 +46,25 @@ const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     marginBottom: theme.spacing(2),
   },
+  tabNav: {
+    height: '100%',
+    minHeight: 400,
+  },
 }));
 
-interface Environment {
-  name: string;
-  bindingName?: string;
-  deployment: {
-    status?: 'Ready' | 'NotReady' | 'Failed';
-    lastDeployed?: string;
-    image?: string;
-    releaseName?: string;
-  };
-}
-
-interface EnvironmentOverridesDialogProps {
-  open: boolean;
-  onClose: () => void;
-  environment: Environment | null;
+interface EnvironmentOverridesPageProps {
+  environment: Environment;
   entity: Entity;
+  onBack: () => void;
   onSaved: () => void;
 }
 
-export const EnvironmentOverridesDialog: React.FC<
-  EnvironmentOverridesDialogProps
-> = ({ open, onClose, environment, entity, onSaved }) => {
+export const EnvironmentOverridesPage = ({
+  environment,
+  entity,
+  onBack,
+  onSaved,
+}: EnvironmentOverridesPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
@@ -96,19 +84,17 @@ export const EnvironmentOverridesDialog: React.FC<
     error: loadError,
     schemas,
     formState,
-    expandedSections,
     setComponentTypeFormData,
     setTraitFormDataMap,
-    setExpandedSections,
     setWorkloadFormData,
     reload,
   } = useOverridesData(
     entity,
     discovery,
     identityApi,
-    environment?.name,
-    environment?.deployment.releaseName,
-    open,
+    environment.name,
+    environment.deployment.releaseName,
+    true, // always open
   );
 
   const error = loadError || saveError;
@@ -134,6 +120,60 @@ export const EnvironmentOverridesDialog: React.FC<
     formState.initialTraitFormDataMap,
     formState.initialWorkloadFormData,
   );
+
+  // Build tabs from available schemas
+  const tabs = useMemo<TabItemData[]>(() => {
+    const tabList: TabItemData[] = [];
+
+    // Add Component Overrides tab if schema exists
+    if (schemas.componentTypeSchema) {
+      const hasComponentData =
+        formState.componentTypeFormData &&
+        Object.keys(formState.componentTypeFormData).length > 0;
+      tabList.push({
+        id: 'component',
+        label: 'Component',
+        icon: <SettingsIcon />,
+        status: hasComponentData ? 'success' : undefined,
+      });
+    }
+
+    // Add trait tabs
+    Object.keys(schemas.traitSchemasMap).forEach(traitName => {
+      const hasTraitData =
+        formState.traitFormDataMap[traitName] &&
+        Object.keys(formState.traitFormDataMap[traitName]).length > 0;
+      tabList.push({
+        id: `trait-${traitName}`,
+        label: traitName,
+        icon: <ExtensionIcon />,
+        status: hasTraitData ? 'success' : undefined,
+      });
+    });
+
+    // Add Workload tab
+    const hasWorkloadData =
+      formState.workloadFormData &&
+      Object.keys(formState.workloadFormData).length > 0;
+    tabList.push({
+      id: 'workload',
+      label: 'Workload',
+      icon: <ExtensionIcon />,
+      status: hasWorkloadData ? 'success' : undefined,
+    });
+
+    return tabList;
+  }, [schemas, formState.componentTypeFormData, formState.traitFormDataMap, formState.workloadFormData]);
+
+  // Set initial active tab
+  const [activeTab, setActiveTab] = useState<string>('');
+
+  // Set default active tab when tabs are loaded
+  useMemo(() => {
+    if (tabs.length > 0 && !activeTab) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
 
   // Workload container management functions
   const handleContainerChange = (
@@ -364,8 +404,6 @@ export const EnvironmentOverridesDialog: React.FC<
   };
 
   const handleConfirmSave = async () => {
-    if (!environment) return;
-
     setSaving(true);
     setSaveError(null);
 
@@ -382,7 +420,7 @@ export const EnvironmentOverridesDialog: React.FC<
 
       setShowSaveConfirm(false);
       onSaved();
-      onClose();
+      onBack();
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : 'Failed to save overrides',
@@ -399,7 +437,7 @@ export const EnvironmentOverridesDialog: React.FC<
   };
 
   const handleConfirmDelete = async () => {
-    if (!environment || !deleteTarget) return;
+    if (!deleteTarget) return;
 
     setDeleting(true);
     setSaveError(null);
@@ -417,7 +455,7 @@ export const EnvironmentOverridesDialog: React.FC<
         );
         setShowDeleteConfirm(false);
         onSaved();
-        onClose();
+        onBack();
       } else if (deleteTarget === 'component') {
         setComponentTypeFormData({});
         setShowDeleteConfirm(false);
@@ -451,216 +489,187 @@ export const EnvironmentOverridesDialog: React.FC<
     schemas.componentTypeSchema ||
     Object.keys(schemas.traitSchemasMap).length > 0;
 
+  // Header actions - moved from footer
+  const headerActions =
+    !loading && !error && hasSchemas ? (
+      <>
+        <Button
+          onClick={() => handleDeleteClick('all')}
+          color="secondary"
+          disabled={deleting || saving || loading || !initialOverrides.hasAny}
+        >
+          Delete All
+        </Button>
+        <Button
+          onClick={handleSaveClick}
+          variant="contained"
+          color="primary"
+          disabled={saving || deleting || loading || !!error}
+        >
+          {saving ? 'Saving...' : 'Save Overrides'}
+        </Button>
+      </>
+    ) : null;
+
+  // Render content for active tab
+  const renderTabContent = () => {
+    if (activeTab === 'component' && schemas.componentTypeSchema) {
+      return (
+        <OverrideContent
+          title="Component Overrides"
+          schema={schemas.componentTypeSchema}
+          formData={formState.componentTypeFormData}
+          onChange={setComponentTypeFormData}
+          onDelete={() => handleDeleteClick('component')}
+          hasInitialData={initialOverrides.hasComponentOverrides}
+          disabled={saving || deleting}
+        />
+      );
+    }
+
+    // Check for trait tabs
+    if (activeTab.startsWith('trait-')) {
+      const traitName = activeTab.replace('trait-', '');
+      const traitSchema = schemas.traitSchemasMap[traitName];
+      if (traitSchema) {
+        return (
+          <OverrideContent
+            title={`${traitName} Trait`}
+            schema={traitSchema}
+            formData={formState.traitFormDataMap[traitName] || {}}
+            onChange={newData =>
+              setTraitFormDataMap(prev => ({
+                ...prev,
+                [traitName]: newData,
+              }))
+            }
+            onDelete={() => handleDeleteClick(traitName)}
+            hasInitialData={
+              !!formState.initialTraitFormDataMap[traitName] &&
+              Object.keys(formState.initialTraitFormDataMap[traitName]).length >
+                0
+            }
+            disabled={saving || deleting}
+          />
+        );
+      }
+
+    }
+
+    if (activeTab === 'workload') {
+      return (
+        <OverrideContent
+          title="Workload Overrides"
+          schema={null} // No JSON schema for workload overrides
+          formData={formState.workloadFormData}
+          onChange={setWorkloadFormData}
+          onDelete={() => handleDeleteClick('workload')}
+          hasInitialData={initialOverrides.hasWorkloadOverrides}
+          customContent={
+            <WorkloadProvider
+              builds={[]}
+              workloadSpec={null}
+              setWorkloadSpec={() => {}}
+              isDeploying={false}
+            >
+              <ContainerSection
+                containers={formState.workloadFormData.containers || {}}
+                onContainerChange={handleContainerChange}
+                onEnvVarChange={handleEnvVarChange}
+                onFileVarChange={handleFileVarChange}
+                onAddContainer={handleAddContainer}
+                onRemoveContainer={handleRemoveContainer}
+                onAddEnvVar={handleAddEnvVar}
+                onRemoveEnvVar={handleRemoveEnvVar}
+                onAddFileVar={handleAddFileVar}
+                onRemoveFileVar={handleRemoveFileVar}
+                onArrayFieldChange={handleArrayFieldChange}
+                disabled={saving || deleting || loading}
+                singleContainerMode
+                hideContainerFields
+              />
+            </WorkloadProvider>
+          }
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
     <>
-      <Dialog
-        open={open && !showSaveConfirm && !showDeleteConfirm}
-        onClose={onClose}
-        maxWidth="md"
-        fullWidth
+      <DetailPageLayout
+        title="Configure Overrides"
+        subtitle={environment.name}
+        onBack={onBack}
+        actions={headerActions}
       >
-        <DialogTitle>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography variant="h6">
-              Configure Overrides - {environment?.name}
-            </Typography>
-            <IconButton onClick={onClose} size="small">
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </DialogTitle>
+        {loading && (
+          <div className={classes.loadingContainer}>
+            <CircularProgress />
+          </div>
+        )}
 
-        <DialogContent dividers className={classes.dialogContent}>
-          {loading && (
-            <div className={classes.loadingContainer}>
-              <CircularProgress />
-            </div>
-          )}
+        {error && !loading && (
+          <div className={classes.errorContainer}>
+            <Typography color="error">{error}</Typography>
+            <Button onClick={reload} variant="outlined">
+              Retry
+            </Button>
+          </div>
+        )}
 
-          {error && !loading && (
-            <div className={classes.errorContainer}>
-              <Typography color="error">{error}</Typography>
-              <Button onClick={reload} variant="outlined">
-                Retry
-              </Button>
-            </div>
-          )}
-
-          {!loading && !error && hasSchemas && (
-            <>
-              {!currentOverrides.hasAny && (
-                <Box className={classes.helpText}>
-                  <Typography variant="body2" gutterBottom>
-                    <strong>Environment Overrides</strong>
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    Configure environment-specific settings for your component's
-                    containers, such as environment variables and file mounts.
-                    These overrides apply only to the{' '}
-                    <strong>{environment?.name}</strong> environment.
-                  </Typography>
-                </Box>
-              )}
-
-              <Box>
-                {schemas.componentTypeSchema && (
-                  <OverrideSection
-                    title="Component Overrides"
-                    subtitle="Base component configuration"
-                    schema={schemas.componentTypeSchema}
-                    formData={formState.componentTypeFormData}
-                    onChange={setComponentTypeFormData}
-                    onDelete={() => handleDeleteClick('component')}
-                    hasInitialData={initialOverrides.hasComponentOverrides}
-                    expanded={expandedSections.component ?? false}
-                    onToggle={() =>
-                      setExpandedSections(prev => ({
-                        ...prev,
-                        component: !prev.component,
-                      }))
-                    }
-                  />
-                )}
-
-                {
-                  <OverrideSection
-                    title="Workload Overrides"
-                    subtitle="Container overrides"
-                    schema={null} // No JSON schema for workload overrides
-                    formData={formState.workloadFormData}
-                    onChange={setWorkloadFormData}
-                    onDelete={() => handleDeleteClick('workload')}
-                    hasInitialData={initialOverrides.hasWorkloadOverrides}
-                    expanded={expandedSections.workload ?? false}
-                    onToggle={() =>
-                      setExpandedSections(prev => ({
-                        ...prev,
-                        workload: !prev.workload,
-                      }))
-                    }
-                    customContent={
-                      <WorkloadProvider
-                        builds={[]}
-                        workloadSpec={null}
-                        setWorkloadSpec={() => {}}
-                        isDeploying={false}
-                      >
-                        <ContainerSection
-                          containers={
-                            formState.workloadFormData.containers || {}
-                          }
-                          onContainerChange={handleContainerChange}
-                          onEnvVarChange={handleEnvVarChange}
-                          onFileVarChange={handleFileVarChange}
-                          onAddContainer={handleAddContainer}
-                          onRemoveContainer={handleRemoveContainer}
-                          onAddEnvVar={handleAddEnvVar}
-                          onRemoveEnvVar={handleRemoveEnvVar}
-                          onAddFileVar={handleAddFileVar}
-                          onRemoveFileVar={handleRemoveFileVar}
-                          onArrayFieldChange={handleArrayFieldChange}
-                          disabled={saving || deleting || loading}
-                          singleContainerMode
-                          hideContainerFields
-                        />
-                      </WorkloadProvider>
-                    }
-                  />
-                }
-
-                {Object.entries(schemas.traitSchemasMap).map(
-                  ([traitName, traitSchema]) => (
-                    <OverrideSection
-                      key={traitName}
-                      title={`Trait: ${traitName}`}
-                      subtitle={`${traitName} trait configuration`}
-                      schema={traitSchema}
-                      formData={formState.traitFormDataMap[traitName] || {}}
-                      onChange={newData =>
-                        setTraitFormDataMap(prev => ({
-                          ...prev,
-                          [traitName]: newData,
-                        }))
-                      }
-                      onDelete={() => handleDeleteClick(traitName)}
-                      hasInitialData={
-                        !!formState.initialTraitFormDataMap[traitName] &&
-                        Object.keys(
-                          formState.initialTraitFormDataMap[traitName],
-                        ).length > 0
-                      }
-                      expanded={expandedSections[`trait-${traitName}`] ?? false}
-                      onToggle={() =>
-                        setExpandedSections(prev => ({
-                          ...prev,
-                          [`trait-${traitName}`]: !prev[`trait-${traitName}`],
-                        }))
-                      }
-                    />
-                  ),
-                )}
-
-                {Object.keys(schemas.traitSchemasMap).length === 0 &&
-                  schemas.componentTypeSchema && (
-                    <Box
-                      mt={2}
-                      p={2}
-                      style={{
-                        backgroundColor: '#f5f5f5',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      <Typography variant="body2" color="textSecondary">
-                        No traits configured for this component.
-                      </Typography>
-                    </Box>
-                  )}
+        {!loading && !error && hasSchemas && (
+          <>
+            {!currentOverrides.hasAny && (
+              <Box className={classes.helpText}>
+                <Typography variant="body2" gutterBottom>
+                  <strong>Environment Overrides</strong>
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Configure environment-specific settings for your component's
+                  containers, such as environment variables and file mounts.
+                  These overrides apply only to the{' '}
+                  <strong>{environment.name}</strong> environment.
+                </Typography>
               </Box>
-            </>
-          )}
-        </DialogContent>
+            )}
 
-        <DialogActions>
-          {!showDeleteConfirm && !showSaveConfirm && (
-            <Box display="flex" justifyContent="space-between" width="100%">
-              <Button
-                onClick={() => handleDeleteClick('all')}
-                color="secondary"
-                disabled={
-                  deleting || saving || loading || !initialOverrides.hasAny
-                }
+            {tabs.length > 0 && (
+              <VerticalTabNav
+                tabs={tabs}
+                activeTabId={activeTab}
+                onChange={setActiveTab}
+                className={classes.tabNav}
               >
-                Delete All Overrides
-              </Button>
-              <Box>
-                <Button onClick={onClose} disabled={saving || deleting}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSaveClick}
-                  variant="contained"
-                  color="primary"
-                  disabled={saving || deleting || loading || !!error}
-                  style={{ marginLeft: 8 }}
-                >
-                  Save Overrides
-                </Button>
+                {renderTabContent()}
+              </VerticalTabNav>
+            )}
+
+            {tabs.length === 0 && (
+              <Box
+                p={2}
+                style={{
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '4px',
+                }}
+              >
+                <Typography variant="body2" color="textSecondary">
+                  No configuration options available for this component.
+                </Typography>
               </Box>
-            </Box>
-          )}
-        </DialogActions>
-      </Dialog>
+            )}
+          </>
+        )}
+      </DetailPageLayout>
 
       <SaveConfirmationDialog
         open={showSaveConfirm}
         onCancel={() => setShowSaveConfirm(false)}
         onConfirm={handleConfirmSave}
         changes={changes}
-        environmentName={environment?.name || ''}
+        environmentName={environment.name}
         saving={saving}
       />
 

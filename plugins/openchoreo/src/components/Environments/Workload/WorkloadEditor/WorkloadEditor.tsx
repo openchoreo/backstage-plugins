@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, CircularProgress } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import {
   ModelsWorkload,
   Container,
@@ -9,20 +9,33 @@ import {
   Connection,
   WorkloadType,
 } from '@openchoreo/backstage-plugin-common';
-import { ContainerSection } from './ContainerSection';
-import { EndpointSection } from './EndpointSection';
-import { ConnectionSection } from './ConnectionSection';
-import { Alert } from '@material-ui/lab';
+import { ContainerContent } from './ContainerContent';
+import { EndpointContent } from './EndpointContent';
+import { ConnectionContent } from './ConnectionContent';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
+import {
+  VerticalTabNav,
+  TabItemData,
+} from '@openchoreo/backstage-design-system';
+import ViewModuleIcon from '@material-ui/icons/ViewModule';
+import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
+import LinkIcon from '@material-ui/icons/Link';
 
 interface WorkloadEditorProps {
-  onDeploy: () => Promise<void>;
   entity: Entity;
 }
 
-export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
+const useStyles = makeStyles(() => ({
+  tabNav: {
+    height: '100%',
+    minHeight: 400,
+  },
+}));
+
+export function WorkloadEditor({ entity }: WorkloadEditorProps) {
+  const classes = useStyles();
   const { workloadSpec, setWorkloadSpec, isDeploying } = useWorkloadContext();
 
   const componentName =
@@ -41,7 +54,7 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   });
 
   const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
-  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('containers');
 
   useEffect(() => {
     if (workloadSpec) {
@@ -73,21 +86,6 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
     const updatedData = { ...formData, containers: updatedContainers };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
-  };
-
-  const containerCount = Object.keys(formData.containers || {}).length;
-
-  const handleDeploy = async () => {
-    if (containerCount === 0) {
-      setError('Please add a container');
-      return;
-    }
-    setError(null);
-    try {
-      await onDeploy();
-    } catch (e: any) {
-      setError(e.message);
-    }
   };
 
   const handleEnvVarChange = (
@@ -293,10 +291,40 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
     handleContainerChange(containerName, field, arrayValue);
   };
 
+  const containerCount = Object.keys(formData.containers || {}).length;
+  const endpointCount = Object.keys(formData.endpoints || {}).length;
+  const connectionCount = Object.keys(formData.connections || {}).length;
+
+  const tabs: TabItemData[] = [
+    {
+      id: 'containers',
+      label: 'Containers',
+      icon: <ViewModuleIcon />,
+      count: containerCount,
+    },
+    {
+      id: 'endpoints',
+      label: 'Endpoints',
+      icon: <SettingsInputComponentIcon />,
+      count: endpointCount,
+    },
+    {
+      id: 'connections',
+      label: 'Connections',
+      icon: <LinkIcon />,
+      count: connectionCount,
+    },
+  ];
+
   return (
-    <Box overflow="hidden">
-      <Box mb={2}>
-        <ContainerSection
+    <VerticalTabNav
+      tabs={tabs}
+      activeTabId={activeTab}
+      onChange={setActiveTab}
+      className={classes.tabNav}
+    >
+      {activeTab === 'containers' && (
+        <ContainerContent
           disabled={isDeploying}
           containers={formData.containers || {}}
           onContainerChange={handleContainerChange}
@@ -311,42 +339,25 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
           onArrayFieldChange={handleArrayFieldChange}
           singleContainerMode
         />
-      </Box>
-      <Box mb={2}>
-        <EndpointSection
+      )}
+      {activeTab === 'endpoints' && (
+        <EndpointContent
           disabled={isDeploying}
           endpoints={formData.endpoints || {}}
           onEndpointChange={handleEndpointChange}
           onAddEndpoint={addEndpoint}
           onRemoveEndpoint={removeEndpoint}
         />
-      </Box>
-      <Box mb={2}>
-        <ConnectionSection
+      )}
+      {activeTab === 'connections' && (
+        <ConnectionContent
           disabled={isDeploying}
           connections={formData.connections || {}}
           onConnectionChange={handleConnectionChange}
           onAddConnection={addConnection}
           onRemoveConnection={removeConnection}
         />
-      </Box>
-      {error && (
-        <Box mb={2}>
-          <Alert severity="error">{error}</Alert>
-        </Box>
       )}
-      <Box display="flex" justifyContent="flex-end" pt={3} pb={2} px={2}>
-        <Button
-          disabled={isDeploying}
-          variant="contained"
-          color="primary"
-          onClick={handleDeploy}
-          size="large"
-          startIcon={isDeploying ? <CircularProgress size={20} /> : undefined}
-        >
-          {isDeploying ? 'Deploying...' : 'Submit & Deploy'}
-        </Button>
-      </Box>
-    </Box>
+    </VerticalTabNav>
   );
 }

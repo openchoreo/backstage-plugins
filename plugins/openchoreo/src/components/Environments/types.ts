@@ -1,9 +1,20 @@
 import { useItemActionTracker } from '../../hooks';
 import { Notification } from '../../hooks/useNotification';
+import type { Environment } from './hooks/useEnvironmentData';
 
 // Re-export Environment type from the data hook
 export type { Environment } from './hooks/useEnvironmentData';
 export type { Environment as EnvironmentType } from './hooks/useEnvironmentData';
+
+/**
+ * View mode for the Environments component
+ * Controls which view is displayed (list or detail pages)
+ */
+export type EnvironmentViewMode =
+  | { type: 'list' }
+  | { type: 'workload-config' }
+  | { type: 'overrides'; environment: Environment }
+  | { type: 'release-details'; environment: Environment };
 
 // Type alias for the action tracker return type
 export type ItemActionTracker = ReturnType<typeof useItemActionTracker<string>>;
@@ -37,7 +48,7 @@ export interface SetupCardProps {
   loading: boolean;
   environmentsExist: boolean;
   isWorkloadEditorSupported: boolean;
-  onDeployed: () => Promise<void>;
+  onConfigureWorkload: () => void;
 }
 
 /**
