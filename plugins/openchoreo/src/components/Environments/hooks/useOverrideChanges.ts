@@ -10,6 +10,7 @@ export interface Change {
 export interface GroupedChanges {
   component: Change[];
   traits: Record<string, Change[]>;
+  workload?: Change[];
 }
 
 /**
@@ -18,13 +19,17 @@ export interface GroupedChanges {
  * @param componentTypeFormData - Current component-type override data
  * @param initialTraitFormDataMap - Initial trait overrides data (trait name -> data)
  * @param traitFormDataMap - Current trait overrides data (trait name -> data)
- * @returns Grouped changes organized by component and traits
+ * @param initialWorkloadFormData - Initial workload override data (optional)
+ * @param workloadFormData - Current workload override data (optional)
+ * @returns Grouped changes organized by component, traits, and workload
  */
 export const useOverrideChanges = (
   initialComponentTypeFormData: any,
   componentTypeFormData: any,
   initialTraitFormDataMap: Record<string, any>,
   traitFormDataMap: Record<string, any>,
+  initialWorkloadFormData?: any,
+  workloadFormData?: any,
 ): GroupedChanges => {
   return useMemo(() => {
     const grouped: GroupedChanges = {
@@ -102,11 +107,21 @@ export const useOverrideChanges = (
       }
     });
 
+    // Calculate workload changes if workload data is provided
+    if (initialWorkloadFormData !== undefined || workloadFormData !== undefined) {
+      grouped.workload = traverse(
+        initialWorkloadFormData || {},
+        workloadFormData || {},
+      );
+    }
+
     return grouped;
   }, [
     initialComponentTypeFormData,
     componentTypeFormData,
     initialTraitFormDataMap,
     traitFormDataMap,
+    initialWorkloadFormData,
+    workloadFormData,
   ]);
 };

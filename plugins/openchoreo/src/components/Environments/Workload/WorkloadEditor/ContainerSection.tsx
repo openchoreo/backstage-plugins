@@ -65,6 +65,7 @@ interface ContainerSectionProps {
   ) => void;
   disabled: boolean;
   singleContainerMode: boolean;
+  hideContainerFields?: boolean;
 }
 
 const useStyles = makeStyles(theme => ({
@@ -150,6 +151,7 @@ export function ContainerSection({
   onArrayFieldChange,
   disabled,
   singleContainerMode,
+  hideContainerFields = false,
 }: ContainerSectionProps) {
   const classes = useStyles();
   const { builds } = useBuilds();
@@ -377,101 +379,105 @@ export function ContainerSection({
               />
               <CardContent style={{ paddingTop: 8 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Box mb={2}>
-                      {builds.length === 0 && container.image ? (
+                  {!hideContainerFields && (
+                    <>
+                      <Grid item xs={12}>
+                        <Box mb={2}>
+                          {builds.length === 0 && container.image ? (
+                            <TextField
+                              label="Image"
+                              value={container.image}
+                              onChange={e =>
+                                onContainerChange(
+                                  containerName,
+                                  'image',
+                                  e.target.value as string,
+                                )
+                              }
+                              fullWidth
+                              variant="outlined"
+                              disabled={disabled}
+                            />
+                          ) : (
+                            <FormControl fullWidth variant="outlined">
+                              <InputLabel>Select Image from Builds</InputLabel>
+                              <Select
+                                value={container.image || ''}
+                                onChange={e =>
+                                  onContainerChange(
+                                    containerName,
+                                    'image',
+                                    e.target.value as string,
+                                  )
+                                }
+                                label="Select Image from Builds"
+                                variant="outlined"
+                                fullWidth
+                                disabled={disabled}
+                              >
+                                <MenuItem value="">
+                                  <em>None</em>
+                                </MenuItem>
+                                {builds
+                                  .filter(build => build.image)
+                                  .map(
+                                    build =>
+                                      build.image && (
+                                        <MenuItem
+                                          key={build.image}
+                                          value={build.image}
+                                        >
+                                          {build.name} (
+                                          {formatRelativeTime(
+                                            build.createdAt || '',
+                                          )}
+                                          )
+                                        </MenuItem>
+                                      ),
+                                  )}
+                              </Select>
+                            </FormControl>
+                          )}
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
                         <TextField
-                          label="Image"
-                          value={container.image}
+                          label="Command"
+                          value={container.command?.join(', ') || ''}
                           onChange={e =>
-                            onContainerChange(
+                            onArrayFieldChange(
                               containerName,
-                              'image',
-                              e.target.value as string,
+                              'command',
+                              e.target.value,
                             )
                           }
                           fullWidth
                           variant="outlined"
+                          placeholder="Comma-separated commands"
+                          helperText="Separate multiple commands with commas"
                           disabled={disabled}
                         />
-                      ) : (
-                        <FormControl fullWidth variant="outlined">
-                          <InputLabel>Select Image from Builds</InputLabel>
-                          <Select
-                            value={container.image || ''}
-                            onChange={e =>
-                              onContainerChange(
-                                containerName,
-                                'image',
-                                e.target.value as string,
-                              )
-                            }
-                            label="Select Image from Builds"
-                            variant="outlined"
-                            fullWidth
-                            disabled={disabled}
-                          >
-                            <MenuItem value="">
-                              <em>None</em>
-                            </MenuItem>
-                            {builds
-                              .filter(build => build.image)
-                              .map(
-                                build =>
-                                  build.image && (
-                                    <MenuItem
-                                      key={build.image}
-                                      value={build.image}
-                                    >
-                                      {build.name} (
-                                      {formatRelativeTime(
-                                        build.createdAt || '',
-                                      )}
-                                      )
-                                    </MenuItem>
-                                  ),
-                              )}
-                          </Select>
-                        </FormControl>
-                      )}
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Command"
-                      value={container.command?.join(', ') || ''}
-                      onChange={e =>
-                        onArrayFieldChange(
-                          containerName,
-                          'command',
-                          e.target.value,
-                        )
-                      }
-                      fullWidth
-                      variant="outlined"
-                      placeholder="Comma-separated commands"
-                      helperText="Separate multiple commands with commas"
-                      disabled={disabled}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Arguments"
-                      value={container.args?.join(', ') || ''}
-                      onChange={e =>
-                        onArrayFieldChange(
-                          containerName,
-                          'args',
-                          e.target.value,
-                        )
-                      }
-                      fullWidth
-                      variant="outlined"
-                      placeholder="Comma-separated arguments"
-                      helperText="Separate multiple arguments with commas"
-                      disabled={disabled}
-                    />
-                  </Grid>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="Arguments"
+                          value={container.args?.join(', ') || ''}
+                          onChange={e =>
+                            onArrayFieldChange(
+                              containerName,
+                              'args',
+                              e.target.value,
+                            )
+                          }
+                          fullWidth
+                          variant="outlined"
+                          placeholder="Comma-separated arguments"
+                          helperText="Separate multiple arguments with commas"
+                          disabled={disabled}
+                        />
+                      </Grid>
+                    </>
+                  )}
                 </Grid>
 
                 <Box mt={3}>

@@ -383,6 +383,7 @@ export async function patchReleaseBindingOverrides(
   environment: string,
   componentTypeEnvOverrides?: any,
   traitOverrides?: any,
+  workloadOverrides?: any,
 ) {
   const { token } = await identity.getCredentials();
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -413,6 +414,9 @@ export async function patchReleaseBindingOverrides(
   }
   if (traitOverrides !== undefined) {
     patchReq.traitOverrides = traitOverrides;
+  }
+  if (workloadOverrides !== undefined) {
+    patchReq.workloadOverrides = workloadOverrides;
   }
 
   const res = await fetch(backendUrl, {
