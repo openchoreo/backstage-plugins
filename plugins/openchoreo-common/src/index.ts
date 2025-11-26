@@ -28,6 +28,7 @@ export type ModelsCompleteComponent =
 // Workload-related types
 export type Container = OpenChoreoComponents['schemas']['Container'];
 export type EnvVar = OpenChoreoComponents['schemas']['EnvVar'];
+export type FileVar = OpenChoreoComponents['schemas']['FileVar'];
 export type WorkloadEndpoint =
   OpenChoreoComponents['schemas']['WorkloadEndpoint'];
 export type Connection = OpenChoreoComponents['schemas']['Connection'];

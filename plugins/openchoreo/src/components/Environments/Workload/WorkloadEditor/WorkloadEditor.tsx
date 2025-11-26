@@ -5,6 +5,7 @@ import {
   Container,
   WorkloadEndpoint,
   EnvVar,
+  FileVar,
   Connection,
   WorkloadType,
 } from '@openchoreo/backstage-plugin-common';
@@ -122,6 +123,39 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
     handleContainerChange(containerName, 'env', updatedEnvVars);
   };
 
+  const handleFileVarChange = (
+    containerName: string,
+    fileIndex: number,
+    field: keyof FileVar,
+    value: string,
+  ) => {
+    const container = formData.containers?.[containerName];
+    if (!container) return;
+
+    const updatedFileVars = [...((container as any).files || [])];
+    updatedFileVars[fileIndex] = { ...updatedFileVars[fileIndex], [field]: value };
+
+    handleContainerChange(containerName, 'files' as any, updatedFileVars);
+  };
+
+  const addFileVar = (containerName: string) => {
+    const container = formData.containers?.[containerName];
+    if (!container) return;
+
+    const newFileVar: FileVar = { key: '', mountPath: '', value: '' };
+    const updatedFileVars = [...((container as any).files || []), newFileVar];
+    handleContainerChange(containerName, 'files' as any, updatedFileVars);
+  };
+
+  const removeFileVar = (containerName: string, fileIndex: number) => {
+    const container = formData.containers?.[containerName];
+    if (!container) return;
+
+    const updatedFileVars =
+      (container as any).files?.filter((_: any, index: number) => index !== fileIndex) || [];
+    handleContainerChange(containerName, 'files' as any, updatedFileVars);
+  };
+
   const addContainer = () => {
     const containerName = `container-${
       Object.keys(formData.containers || {}).length
@@ -138,6 +172,7 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
         image: '',
         resources: {},
         env: [],
+        files: [],
         command: [],
         args: [],
       } as Container,
@@ -261,10 +296,13 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
           containers={formData.containers || {}}
           onContainerChange={handleContainerChange}
           onEnvVarChange={handleEnvVarChange}
+          onFileVarChange={handleFileVarChange}
           onAddContainer={addContainer}
           onRemoveContainer={removeContainer}
           onAddEnvVar={addEnvVar}
           onRemoveEnvVar={removeEnvVar}
+          onAddFileVar={addFileVar}
+          onRemoveFileVar={removeFileVar}
           onArrayFieldChange={handleArrayFieldChange}
           singleContainerMode
         />
