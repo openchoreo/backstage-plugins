@@ -54,6 +54,7 @@ interface OverrideSectionProps {
   expanded: boolean;
   onToggle: () => void;
   disabled?: boolean;
+  customContent?: React.ReactNode;
 }
 
 export const OverrideSection: FC<OverrideSectionProps> = ({
@@ -67,6 +68,7 @@ export const OverrideSection: FC<OverrideSectionProps> = ({
   expanded,
   onToggle,
   disabled = false,
+  customContent,
 }) => {
   const classes = useStyles();
 
@@ -102,7 +104,21 @@ export const OverrideSection: FC<OverrideSectionProps> = ({
         )}
       </AccordionSummary>
       <AccordionDetails className={classes.accordionDetails}>
-        {schema ? (
+        {customContent ? (
+          <>
+            {customContent}
+            <Button
+              onClick={onDelete}
+              color="secondary"
+              startIcon={<DeleteIcon />}
+              disabled={!hasInitialData}
+              className={classes.deleteButton}
+              size="small"
+            >
+              Delete {title}
+            </Button>
+          </>
+        ) : schema ? (
           <>
             <Form
               schema={schema}

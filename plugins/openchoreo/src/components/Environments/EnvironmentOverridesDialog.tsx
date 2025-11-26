@@ -25,6 +25,9 @@ import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { calculateHasOverrides } from './overridesUtils';
+import { fetchWorkloadInfo } from '../../api/workloadInfo';
+import { ContainerSection } from './Workload/WorkloadEditor/ContainerSection';
+import { WorkloadProvider } from './Workload/WorkloadContext';
 
 const useStyles = makeStyles(theme => ({
   dialogContent: {
@@ -98,6 +101,7 @@ export const EnvironmentOverridesDialog: React.FC<
     setComponentTypeFormData,
     setTraitFormDataMap,
     setExpandedSections,
+    setWorkloadFormData,
     reload,
   } = useOverridesData(
     entity,
@@ -116,17 +120,230 @@ export const EnvironmentOverridesDialog: React.FC<
     formState.componentTypeFormData,
     formState.initialTraitFormDataMap,
     formState.traitFormDataMap,
+    formState.initialWorkloadFormData,
+    formState.workloadFormData,
   );
 
   // Calculate override states
   const currentOverrides = calculateHasOverrides(
     formState.componentTypeFormData,
     formState.traitFormDataMap,
+    formState.workloadFormData,
   );
   const initialOverrides = calculateHasOverrides(
     formState.initialComponentTypeFormData,
     formState.initialTraitFormDataMap,
+    formState.initialWorkloadFormData,
   );
+
+  // Workload container management functions
+  const handleContainerChange = (
+    containerName: string,
+    field: string,
+    value: any,
+  ) => {
+    setWorkloadFormData((prev: any) => ({
+      ...prev,
+      containers: {
+        ...prev.containers,
+        [containerName]: {
+          ...(prev.containers?.[containerName] || {}),
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const handleEnvVarChange = (
+    containerName: string,
+    envIndex: number,
+    field: string,
+    value: string,
+  ) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const env = container.env || [];
+      const updatedEnv = [...env];
+      if (!updatedEnv[envIndex]) {
+        updatedEnv[envIndex] = {};
+      }
+      updatedEnv[envIndex] = {
+        ...updatedEnv[envIndex],
+        [field]: value,
+      };
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            env: updatedEnv,
+          },
+        },
+      };
+    });
+  };
+
+  const handleFileVarChange = (
+    containerName: string,
+    fileIndex: number,
+    field: string,
+    value: string,
+  ) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const files = (container as any).files || [];
+      const updatedFiles = [...files];
+      if (!updatedFiles[fileIndex]) {
+        updatedFiles[fileIndex] = {};
+      }
+      updatedFiles[fileIndex] = {
+        ...updatedFiles[fileIndex],
+        [field]: value,
+      };
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            files: updatedFiles,
+          },
+        },
+      };
+    });
+  };
+
+  const handleAddContainer = () => {
+    const containerNames = Object.keys(formState.workloadFormData.containers || {});
+    const newName =
+      containerNames.length === 0
+        ? 'main'
+        : `container-${containerNames.length}`;
+    setWorkloadFormData((prev: any) => ({
+      ...prev,
+      containers: {
+        ...prev.containers,
+        [newName]: {
+          image: '',
+          env: [],
+          files: [],
+        },
+      },
+    }));
+  };
+
+  const handleRemoveContainer = (containerName: string) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = { ...prev.containers };
+      delete containers[containerName];
+      return {
+        ...prev,
+        containers,
+      };
+    });
+  };
+
+  const handleAddEnvVar = (containerName: string) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const env = container.env || [];
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            env: [...env, { key: '', value: '' }],
+          },
+        },
+      };
+    });
+  };
+
+  const handleRemoveEnvVar = (containerName: string, envIndex: number) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const env = container.env || [];
+      const updatedEnv = env.filter(
+        (_: any, index: number) => index !== envIndex,
+      );
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            env: updatedEnv,
+          },
+        },
+      };
+    });
+  };
+
+  const handleAddFileVar = (containerName: string) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const files = (container as any).files || [];
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            files: [...files, { key: '', mountPath: '', value: '' }],
+          },
+        },
+      };
+    });
+  };
+
+  const handleRemoveFileVar = (containerName: string, fileIndex: number) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const files = (container as any).files || [];
+      const updatedFiles = files.filter(
+        (_: any, index: number) => index !== fileIndex,
+      );
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            files: updatedFiles,
+          },
+        },
+      };
+    });
+  };
+
+  const handleArrayFieldChange = (
+    containerName: string,
+    field: string,
+    value: string,
+  ) => {
+    const arrayValue = value
+      .split(',')
+      .map((item: string) => item.trim())
+      .filter((item: string) => item);
+    setWorkloadFormData((prev: any) => ({
+      ...prev,
+      containers: {
+        ...prev.containers,
+        [containerName]: {
+          ...(prev.containers?.[containerName] || {}),
+          [field]: arrayValue,
+        },
+      },
+    }));
+  };
 
   const handleSaveClick = () => {
     const totalChanges =
@@ -134,7 +351,8 @@ export const EnvironmentOverridesDialog: React.FC<
       Object.values(changes.traits).reduce(
         (sum, traitChanges) => sum + traitChanges.length,
         0,
-      );
+      ) +
+      (changes.workload?.length || 0);
 
     if (totalChanges === 0) {
       setSaveError('No changes to save');
@@ -158,6 +376,7 @@ export const EnvironmentOverridesDialog: React.FC<
         environment.name.toLowerCase(),
         formState.componentTypeFormData,
         formState.traitFormDataMap,
+        formState.workloadFormData,
       );
 
       setShowSaveConfirm(false);
@@ -193,12 +412,17 @@ export const EnvironmentOverridesDialog: React.FC<
           environment.name.toLowerCase(),
           {},
           {},
+          {},
         );
         setShowDeleteConfirm(false);
         onSaved();
         onClose();
       } else if (deleteTarget === 'component') {
         setComponentTypeFormData({});
+        setShowDeleteConfirm(false);
+        setDeleteTarget(null);
+      } else if (deleteTarget === 'workload') {
+        setWorkloadFormData({});
         setShowDeleteConfirm(false);
         setDeleteTarget(null);
       } else {
@@ -300,6 +524,51 @@ export const EnvironmentOverridesDialog: React.FC<
                     }
                   />
                 )}
+
+                {
+                  <OverrideSection
+                    title="Workload Overrides"
+                    subtitle="Container overrides"
+                    schema={null} // No JSON schema for workload overrides
+                    formData={formState.workloadFormData}
+                    onChange={setWorkloadFormData}
+                    onDelete={() => handleDeleteClick('workload')}
+                    hasInitialData={initialOverrides.hasWorkloadOverrides}
+                    expanded={expandedSections.workload ?? false}
+                    onToggle={() =>
+                      setExpandedSections(prev => ({
+                        ...prev,
+                        workload: !prev.workload,
+                      }))
+                    }
+                    customContent={
+                      <WorkloadProvider
+                        builds={[]}
+                        workloadSpec={null}
+                        setWorkloadSpec={() => {}}
+                        isDeploying={false}
+                        secretReferences={[]}
+                      >
+                        <ContainerSection
+                          containers={formState.workloadFormData.containers || {}}
+                          onContainerChange={handleContainerChange}
+                          onEnvVarChange={handleEnvVarChange}
+                          onFileVarChange={handleFileVarChange}
+                          onAddContainer={handleAddContainer}
+                          onRemoveContainer={handleRemoveContainer}
+                          onAddEnvVar={handleAddEnvVar}
+                          onRemoveEnvVar={handleRemoveEnvVar}
+                          onAddFileVar={handleAddFileVar}
+                          onRemoveFileVar={handleRemoveFileVar}
+                          onArrayFieldChange={handleArrayFieldChange}
+                          disabled={saving || deleting || loading}
+                          singleContainerMode={true}
+                          hideContainerFields={true}
+                        />
+                      </WorkloadProvider>
+                    }
+                  />
+                }
 
                 {Object.entries(schemas.traitSchemasMap).map(
                   ([traitName, traitSchema]) => (

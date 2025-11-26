@@ -629,6 +629,7 @@ export async function createRouter({
       environment,
       componentTypeEnvOverrides,
       traitOverrides,
+      workloadOverrides,
     } = req.body;
 
     if (!componentName || !projectName || !orgName || !environment) {
@@ -645,6 +646,7 @@ export async function createRouter({
         environment: environment as string,
         componentTypeEnvOverrides: componentTypeEnvOverrides,
         traitOverrides: traitOverrides,
+        workloadOverrides: workloadOverrides,
       }),
     );
   });

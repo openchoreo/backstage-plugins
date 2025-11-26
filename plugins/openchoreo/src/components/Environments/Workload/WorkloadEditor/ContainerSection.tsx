@@ -70,6 +70,7 @@ interface ContainerSectionProps {
   ) => void;
   disabled: boolean;
   singleContainerMode: boolean;
+  hideContainerFields?: boolean;
 }
 
 const useStyles = makeStyles(theme => ({
@@ -147,6 +148,7 @@ export function ContainerSection({
   onRemoveFileVar,
   disabled,
   singleContainerMode,
+  hideContainerFields = false,
 }: ContainerSectionProps) {
   const classes = useStyles();
   const { builds } = useBuilds();
@@ -412,54 +414,58 @@ export function ContainerSection({
               />
               <CardContent style={{ paddingTop: 8 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Box mb={2}>
-                      <ImageSelector
-                        image={container.image}
-                        builds={builds}
-                        disabled={disabled}
-                        onChange={value =>
-                          onContainerChange(containerName, 'image', value)
-                        }
-                      />
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Command"
-                      value={container.command?.join(', ') || ''}
-                      onChange={e =>
-                        onArrayFieldChange(
-                          containerName,
-                          'command',
-                          e.target.value,
-                        )
-                      }
-                      fullWidth
-                      variant="outlined"
-                      placeholder="Comma-separated commands"
-                      helperText="Separate multiple commands with commas"
-                      disabled={disabled}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      label="Arguments"
-                      value={container.args?.join(', ') || ''}
-                      onChange={e =>
-                        onArrayFieldChange(
-                          containerName,
-                          'args',
-                          e.target.value,
-                        )
-                      }
-                      fullWidth
-                      variant="outlined"
-                      placeholder="Comma-separated arguments"
-                      helperText="Separate multiple arguments with commas"
-                      disabled={disabled}
-                    />
-                  </Grid>
+                  {!hideContainerFields && (
+                    <>
+                      <Grid item xs={12}>
+                        <Box mb={2}>
+                          <ImageSelector
+                            image={container.image}
+                            builds={builds}
+                            disabled={disabled}
+                            onChange={value =>
+                              onContainerChange(containerName, 'image', value)
+                            }
+                          />
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="Command"
+                          value={container.command?.join(', ') || ''}
+                          onChange={e =>
+                            onArrayFieldChange(
+                              containerName,
+                              'command',
+                              e.target.value,
+                            )
+                          }
+                          fullWidth
+                          variant="outlined"
+                          placeholder="Comma-separated commands"
+                          helperText="Separate multiple commands with commas"
+                          disabled={disabled}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          label="Arguments"
+                          value={container.args?.join(', ') || ''}
+                          onChange={e =>
+                            onArrayFieldChange(
+                              containerName,
+                              'args',
+                              e.target.value,
+                            )
+                          }
+                          fullWidth
+                          variant="outlined"
+                          placeholder="Comma-separated arguments"
+                          helperText="Separate multiple arguments with commas"
+                          disabled={disabled}
+                        />
+                      </Grid>
+                    </>
+                  )}
                 </Grid>
 
                 {/* Environment Variables */}
