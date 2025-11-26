@@ -57,107 +57,108 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
   
   return (
     <Box className={className}>
-      <Grid container spacing={1} alignItems="center">
-        <Grid item style={{ display: 'flex', alignItems: 'center', paddingRight: '8px' }}>
-          <Tooltip title={isSecret ? 'Switch to plain value' : 'Switch to secret reference'}>
-            <IconButton
-              onClick={() => onModeChange(containerName, index, isSecret ? 'plain' : 'secret')}
-              size="small"
-              disabled={disabled}
-              color={isSecret ? 'primary' : 'default'}
-              style={{ marginLeft: '4px' }}
-            >
-              {isSecret ? <LockIcon /> : <LockOpenIcon />}
-            </IconButton>
-          </Tooltip>
-        </Grid>
+      <Box display="flex" alignItems="center">
+        <Grid container spacing={1} alignItems="center" style={{ flex: 1 }}>
+          <Grid item style={{ display: 'flex', alignItems: 'center', paddingRight: '8px' }}>
+            <Tooltip title={isSecret ? 'Switch to plain value' : 'Switch to secret reference'}>
+              <IconButton
+                onClick={() => onModeChange(containerName, index, isSecret ? 'plain' : 'secret')}
+                size="small"
+                disabled={disabled}
+                color={isSecret ? 'primary' : 'default'}
+                style={{ marginLeft: '4px' }}
+              >
+                {isSecret ? <LockIcon /> : <LockOpenIcon />}
+              </IconButton>
+            </Tooltip>
+          </Grid>
 
-        <Grid item xs={3}>
-          <TextField
-            label="Name"
-            value={envVar.key || ''}
-            onChange={e =>
-              onEnvVarChange(containerName, index, 'key', e.target.value)
-            }
-            fullWidth
-            variant="outlined"
-            size="small"
-            disabled={disabled}
-          />
-        </Grid>
-        
-        {isSecret ? (
-          <>
-            <Grid item xs={3}>
-              <FormControl fullWidth variant="outlined" size="small">
-                <InputLabel>Secret Name</InputLabel>
-                <Select
-                  value={envVar.valueFrom?.secretRef?.name || ''}
-                  onChange={e => {
-                    const secretName = e.target.value as string;
-                    onEnvVarChange(containerName, index, 'valueFrom', { 
-                      secretRef: { name: secretName, key: '' } 
-                    } as any);
-                  }}
-                  label="Secret Name"
-                  disabled={disabled}
-                >
-                  <MenuItem value="">
-                    <em>Select a secret</em>
-                  </MenuItem>
-                  {secretReferences.map(secret => (
-                    <MenuItem key={secret.name} value={secret.name}>
-                      {secret.displayName || secret.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={3}>
-              <FormControl fullWidth variant="outlined" size="small">
-                <InputLabel>Secret Key</InputLabel>
-                <Select
-                  value={envVar.valueFrom?.secretRef?.key || ''}
-                  onChange={e => {
-                    const secretKey = e.target.value as string;
-                    const currentSecret = envVar.valueFrom?.secretRef?.name || '';
-                    onEnvVarChange(containerName, index, 'valueFrom', { 
-                      secretRef: { name: currentSecret, key: secretKey } 
-                    } as any);
-                  }}
-                  label="Secret Key"
-                  disabled={disabled || !envVar.valueFrom?.secretRef?.name}
-                >
-                  <MenuItem value="">
-                    <em>Select a key</em>
-                  </MenuItem>
-                  {getSecretKeys(envVar.valueFrom?.secretRef?.name || '').map(key => (
-                    <MenuItem key={key} value={key}>
-                      {key}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </>
-        ) : (
-          <Grid item xs={6}>
+          <Grid item xs={3}>
             <TextField
-              disabled={disabled}
-              label="Value"
-              value={envVar.value || ''}
+              label="Name"
+              value={envVar.key || ''}
               onChange={e =>
-                onEnvVarChange(containerName, index, 'value', e.target.value)
+                onEnvVarChange(containerName, index, 'key', e.target.value)
               }
               fullWidth
               variant="outlined"
               size="small"
+              disabled={disabled}
             />
           </Grid>
-        )}
-        
-        <Grid item xs={2} style={{ display: 'flex', justifyContent: 'flex-end', paddingLeft: '16px' }}>
+          
+          {isSecret ? (
+            <>
+              <Grid item xs={3}>
+                <FormControl fullWidth variant="outlined" size="small">
+                  <InputLabel>Secret Name</InputLabel>
+                  <Select
+                    value={envVar.valueFrom?.secretRef?.name || ''}
+                    onChange={e => {
+                      const secretName = e.target.value as string;
+                      onEnvVarChange(containerName, index, 'valueFrom', { 
+                        secretRef: { name: secretName, key: '' } 
+                      } as any);
+                    }}
+                    label="Secret Name"
+                    disabled={disabled}
+                  >
+                    <MenuItem value="">
+                      <em>Select a secret</em>
+                    </MenuItem>
+                    {secretReferences.map(secret => (
+                      <MenuItem key={secret.name} value={secret.name}>
+                        {secret.displayName || secret.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={3}>
+                <FormControl fullWidth variant="outlined" size="small">
+                  <InputLabel>Secret Key</InputLabel>
+                  <Select
+                    value={envVar.valueFrom?.secretRef?.key || ''}
+                    onChange={e => {
+                      const secretKey = e.target.value as string;
+                      const currentSecret = envVar.valueFrom?.secretRef?.name || '';
+                      onEnvVarChange(containerName, index, 'valueFrom', { 
+                        secretRef: { name: currentSecret, key: secretKey } 
+                      } as any);
+                    }}
+                    label="Secret Key"
+                    disabled={disabled || !envVar.valueFrom?.secretRef?.name}
+                  >
+                    <MenuItem value="">
+                      <em>Select a key</em>
+                    </MenuItem>
+                    {getSecretKeys(envVar.valueFrom?.secretRef?.name || '').map(key => (
+                      <MenuItem key={key} value={key}>
+                        {key}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </>
+          ) : (
+            <Grid item xs={6}>
+              <TextField
+                disabled={disabled}
+                label="Value"
+                value={envVar.value || ''}
+                onChange={e =>
+                  onEnvVarChange(containerName, index, 'value', e.target.value)
+                }
+                fullWidth
+                variant="outlined"
+                size="small"
+              />
+            </Grid>
+          )}
+        </Grid>
+        <Box ml={2} display="flex" alignItems="center">
           <IconButton
             onClick={() => {
               onCleanupModes(containerName, index);
@@ -169,8 +170,8 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
           >
             <DeleteIcon />
           </IconButton>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Box>
   );
 };

@@ -169,7 +169,7 @@ export function Workload({
         gridGap={16}
         mt="auto"
       >
-        {(isLoading ) && !error ? (
+        {isLoading && !error ? (
           <Box p={2}>
             <Skeleton variant="rect" width="100%" height={40} />
           </Box>
@@ -233,7 +233,7 @@ export function Workload({
               builds={builds}
               workloadSpec={workloadSpec}
               setWorkloadSpec={setWorkloadSpec}
-              isDeploying={isDeploying || isLoading || isWorking }
+              isDeploying={isDeploying || isLoading || isWorking}
             >
               <WorkloadEditor entity={entity} onDeploy={handleDeploy} />
             </WorkloadProvider>

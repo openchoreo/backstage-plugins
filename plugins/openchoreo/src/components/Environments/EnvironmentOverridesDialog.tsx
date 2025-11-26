@@ -25,7 +25,6 @@ import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { calculateHasOverrides } from './overridesUtils';
-import { fetchWorkloadInfo } from '../../api/workloadInfo';
 import { ContainerSection } from './Workload/WorkloadEditor/ContainerSection';
 import { WorkloadProvider } from './Workload/WorkloadContext';
 
