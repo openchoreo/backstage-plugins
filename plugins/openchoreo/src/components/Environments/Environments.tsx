@@ -1,18 +1,14 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Content, Page } from '@backstage/core-components';
-import { Grid, Box, Typography } from '@material-ui/core';
+import { Progress } from '@backstage/core-components';
+import { Grid, Box } from '@material-ui/core';
 import {
   discoveryApiRef,
   identityApiRef,
   useApi,
 } from '@backstage/core-plugin-api';
 
-import {
-  useDialogWithSelection,
-  useItemActionTracker,
-  useNotification,
-} from '../../hooks';
+import { useItemActionTracker, useNotification } from '../../hooks';
 import {
   useEnvironmentData,
   useStaleEnvironments,
@@ -21,10 +17,12 @@ import {
   isAlreadyPromoted,
 } from './hooks';
 import type { Environment } from './hooks';
+import type { EnvironmentViewMode } from './types';
 import { useEnvironmentsStyles } from './styles';
 import { NotificationBanner, SetupCard, EnvironmentCard } from './components';
-import { EnvironmentOverridesDialog } from './EnvironmentOverridesDialog';
-import { ReleaseDetailsDialog } from './ReleaseDetailsDialog';
+import { EnvironmentOverridesPage } from './EnvironmentOverridesPage';
+import { ReleaseDetailsPage } from './ReleaseDetailsPage';
+import { WorkloadConfigPage } from './Workload/WorkloadConfigPage';
 
 export const Environments = () => {
   // Initialize global styles (includes keyframe animation)
@@ -33,6 +31,11 @@ export const Environments = () => {
   const { entity } = useEntity();
   const discovery = useApi(discoveryApiRef);
   const identityApi = useApi(identityApiRef);
+
+  // View state management
+  const [viewMode, setViewMode] = useState<EnvironmentViewMode>({
+    type: 'list',
+  });
 
   // Data fetching
   const { environments, loading, refetch } = useEnvironmentData(entity);
@@ -45,10 +48,6 @@ export const Environments = () => {
 
   // Notifications
   const notification = useNotification();
-
-  // Dialog state
-  const overridesDialog = useDialogWithSelection<Environment>();
-  const releaseDialog = useDialogWithSelection<Environment>();
 
   // Polling for pending deployments
   useEnvironmentPolling(isPending, refetch);
@@ -82,29 +81,44 @@ export const Environments = () => {
     [displayEnvironments],
   );
 
+  // Navigation handlers
+  const handleBack = useCallback(() => {
+    setViewMode({ type: 'list' });
+  }, []);
+
+  const handleOpenWorkloadConfig = useCallback(() => {
+    setViewMode({ type: 'workload-config' });
+  }, []);
+
+  const handleOpenOverrides = useCallback((env: Environment) => {
+    setViewMode({ type: 'overrides', environment: env });
+  }, []);
+
+  const handleOpenReleaseDetails = useCallback((env: Environment) => {
+    setViewMode({ type: 'release-details', environment: env });
+  }, []);
+
   // Loading state
   if (loading && environments.length === 0) {
     return (
-      <Page themeId="tool">
-        <Content>
-          <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="400px"
-          >
-            <Typography variant="h6">Loading environments...</Typography>
-          </Box>
-        </Content>
-      </Page>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
+        <Progress />
+      </Box>
     );
   }
 
+  // Render based on view mode
   return (
-    <Page themeId="tool">
-      <Content>
-        <NotificationBanner notification={notification.notification} />
+    <>
+      <NotificationBanner notification={notification.notification} />
 
+      {/* List View */}
+      {viewMode.type === 'list' && (
         <Grid container spacing={3}>
           {/* Setup Card */}
           <Grid item xs={12} md={3}>
@@ -112,7 +126,7 @@ export const Environments = () => {
               loading={loading}
               environmentsExist={environments.length > 0}
               isWorkloadEditorSupported={!!isWorkloadEditorSupported}
-              onDeployed={refetchAsync}
+              onConfigureWorkload={handleOpenWorkloadConfig}
             />
           </Grid>
 
@@ -131,8 +145,8 @@ export const Environments = () => {
                 isAlreadyPromoted={createPromotionChecker(env)}
                 actionTrackers={{ promotionTracker, suspendTracker }}
                 onRefresh={() => handleRefreshEnvironment(env.name)}
-                onOpenOverrides={() => overridesDialog.open(env)}
-                onOpenReleaseDetails={() => releaseDialog.open(env)}
+                onOpenOverrides={() => handleOpenOverrides(env)}
+                onOpenReleaseDetails={() => handleOpenReleaseDetails(env)}
                 onPromote={targetName =>
                   promotionTracker
                     .withTracking(targetName, () =>
@@ -153,28 +167,31 @@ export const Environments = () => {
             </Grid>
           ))}
         </Grid>
+      )}
 
-        {/* Dialogs */}
-        <EnvironmentOverridesDialog
-          open={overridesDialog.isOpen}
-          onClose={overridesDialog.close}
-          environment={overridesDialog.selected}
+      {/* Workload Config Page */}
+      {viewMode.type === 'workload-config' && (
+        <WorkloadConfigPage onBack={handleBack} onDeployed={refetchAsync} />
+      )}
+
+      {/* Environment Overrides Page */}
+      {viewMode.type === 'overrides' && (
+        <EnvironmentOverridesPage
+          environment={viewMode.environment}
           entity={entity}
+          onBack={handleBack}
           onSaved={refetch}
         />
+      )}
 
-        <ReleaseDetailsDialog
-          open={releaseDialog.isOpen}
-          onClose={releaseDialog.close}
-          environmentName={
-            releaseDialog.selected?.resourceName ||
-            releaseDialog.selected?.name ||
-            ''
-          }
-          environmentDisplayName={releaseDialog.selected?.name}
+      {/* Release Details Page */}
+      {viewMode.type === 'release-details' && (
+        <ReleaseDetailsPage
+          environment={viewMode.environment}
           entity={entity}
+          onBack={handleBack}
         />
-      </Content>
-    </Page>
+      )}
+    </>
   );
 };
