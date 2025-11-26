@@ -133,18 +133,22 @@ export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
           )}
 
           {/* Workload Overrides */}
-          {(changes as any).workload && (changes as any).workload.length > 0 && (
-            <Box mb={2}>
-              <Typography
-                variant="subtitle2"
-                style={{ fontWeight: 'bold', marginBottom: 8 }}
-              >
-                Workload Overrides ({(changes as any).workload.length}{' '}
-                {(changes as any).workload.length === 1 ? 'change' : 'changes'}):
-              </Typography>
-              {renderChangesList((changes as any).workload)}
-            </Box>
-          )}
+          {(changes as any).workload &&
+            (changes as any).workload.length > 0 && (
+              <Box mb={2}>
+                <Typography
+                  variant="subtitle2"
+                  style={{ fontWeight: 'bold', marginBottom: 8 }}
+                >
+                  Workload Overrides ({(changes as any).workload.length}{' '}
+                  {(changes as any).workload.length === 1
+                    ? 'change'
+                    : 'changes'}
+                  ):
+                </Typography>
+                {renderChangesList((changes as any).workload)}
+              </Box>
+            )}
 
           {/* No changes */}
           {totalChanges === 0 && (

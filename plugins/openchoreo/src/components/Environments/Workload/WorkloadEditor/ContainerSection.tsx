@@ -172,24 +172,24 @@ export function ContainerSection({
   const cleanupEnvVarModes = (containerName: string, removedIndex: number) => {
     setEnvValueMode(prev => {
       const newState = { ...prev };
-      
+
       // Remove the mode for the deleted env var
       delete newState[`${containerName}-${removedIndex}`];
-      
+
       // Shift modes for env vars that came after the removed one
       const container = containers[containerName];
       const envCount = container?.env?.length || 0;
-      
+
       for (let i = removedIndex + 1; i <= envCount; i++) {
         const oldKey = `${containerName}-${i}`;
         const newKey = `${containerName}-${i - 1}`;
-        
+
         if (newState[oldKey]) {
           newState[newKey] = newState[oldKey];
           delete newState[oldKey];
         }
       }
-      
+
       return newState;
     });
   };
@@ -246,24 +246,24 @@ export function ContainerSection({
   const cleanupFileModes = (containerName: string, removedIndex: number) => {
     setFileValueMode(prev => {
       const newState = { ...prev };
-      
+
       // Remove the mode for the deleted file
       delete newState[`${containerName}-${removedIndex}`];
-      
+
       // Shift modes for files that came after the removed one
       const container = containers[containerName];
       const fileCount = (container as any).files?.length || 0;
-      
+
       for (let i = removedIndex + 1; i <= fileCount; i++) {
         const oldKey = `${containerName}-${i}`;
         const newKey = `${containerName}-${i - 1}`;
-        
+
         if (newState[oldKey]) {
           newState[newKey] = newState[oldKey];
           delete newState[oldKey];
         }
       }
-      
+
       return newState;
     });
   };

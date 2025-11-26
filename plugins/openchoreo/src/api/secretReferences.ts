@@ -36,15 +36,17 @@ export async function fetchSecretReferences(
   const { token } = await identity.getCredentials();
   const organizationName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
-  
+
   if (!organizationName) {
     throw new Error('Missing organization annotation');
   }
 
   const backendUrl = new URL(
-    `${await discovery.getBaseUrl('openchoreo')}${API_ENDPOINTS.SECRET_REFERENCES}`,
+    `${await discovery.getBaseUrl('openchoreo')}${
+      API_ENDPOINTS.SECRET_REFERENCES
+    }`,
   );
-  
+
   const params = new URLSearchParams({
     organizationName,
   });

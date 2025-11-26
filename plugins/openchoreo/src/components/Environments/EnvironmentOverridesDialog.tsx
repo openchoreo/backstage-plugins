@@ -216,7 +216,9 @@ export const EnvironmentOverridesDialog: React.FC<
   };
 
   const handleAddContainer = () => {
-    const containerNames = Object.keys(formState.workloadFormData.containers || {});
+    const containerNames = Object.keys(
+      formState.workloadFormData.containers || {},
+    );
     const newName =
       containerNames.length === 0
         ? 'main'
@@ -548,7 +550,9 @@ export const EnvironmentOverridesDialog: React.FC<
                         isDeploying={false}
                       >
                         <ContainerSection
-                          containers={formState.workloadFormData.containers || {}}
+                          containers={
+                            formState.workloadFormData.containers || {}
+                          }
                           onContainerChange={handleContainerChange}
                           onEnvVarChange={handleEnvVarChange}
                           onFileVarChange={handleFileVarChange}
@@ -560,8 +564,8 @@ export const EnvironmentOverridesDialog: React.FC<
                           onRemoveFileVar={handleRemoveFileVar}
                           onArrayFieldChange={handleArrayFieldChange}
                           disabled={saving || deleting || loading}
-                          singleContainerMode={true}
-                          hideContainerFields={true}
+                          singleContainerMode
+                          hideContainerFields
                         />
                       </WorkloadProvider>
                     }

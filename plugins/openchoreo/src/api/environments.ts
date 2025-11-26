@@ -231,7 +231,7 @@ export async function patchReleaseBindingOverrides(
   if (traitOverrides !== undefined) {
     patchReq.traitOverrides = traitOverrides;
   }
-   if (workloadOverrides !== undefined) {
+  if (workloadOverrides !== undefined) {
     patchReq.workloadOverrides = workloadOverrides;
   }
 

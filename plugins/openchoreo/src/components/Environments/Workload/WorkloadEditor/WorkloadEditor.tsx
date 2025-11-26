@@ -133,7 +133,10 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
     if (!container) return;
 
     const updatedFileVars = [...((container as any).files || [])];
-    updatedFileVars[fileIndex] = { ...updatedFileVars[fileIndex], [field]: value };
+    updatedFileVars[fileIndex] = {
+      ...updatedFileVars[fileIndex],
+      [field]: value,
+    };
 
     handleContainerChange(containerName, 'files' as any, updatedFileVars);
   };
@@ -152,7 +155,9 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
     if (!container) return;
 
     const updatedFileVars =
-      (container as any).files?.filter((_: any, index: number) => index !== fileIndex) || [];
+      (container as any).files?.filter(
+        (_: any, index: number) => index !== fileIndex,
+      ) || [];
     handleContainerChange(containerName, 'files' as any, updatedFileVars);
   };
 

@@ -12,6 +12,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Snackbar,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -20,6 +21,8 @@ import VisibilityIcon from '@material-ui/icons/Visibility';
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
+import { Alert } from '@material-ui/lab';
+import { useState } from 'react';
 import { FileVar } from '@openchoreo/backstage-plugin-common';
 
 interface SecretReference {
@@ -107,19 +110,17 @@ export function FileVarRow({
   const classes = useStyles();
   const isSecret = mode === 'secret';
   const hasContent = fileVar.value && fileVar.value.length > 0;
+  const [error, setError] = useState<string | null>(null);
 
   const getContentPreview = (content: string, maxLines: number = 2): string => {
     const lines = content.split('\n');
     if (lines.length <= maxLines) return content;
-    return lines.slice(0, maxLines).join('\n') + '...';
+    return `${lines.slice(0, maxLines).join('\n')}...`;
   };
 
-  const handleFileUpload = (
-    file: File,
-    inputElement: HTMLInputElement
-  ) => {
+  const handleFileUpload = (file: File, inputElement: HTMLInputElement) => {
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = event => {
       try {
         const content = event.target?.result as string;
         onFileVarChange(containerName, index, 'value', content);
@@ -127,259 +128,277 @@ export function FileVarRow({
           onFileVarChange(containerName, index, 'key', file.name);
         }
         inputElement.value = '';
-      } catch (error) {
-        console.error('Error reading file:', error);
+      } catch (err) {
+        setError('Error reading file. Please try again.');
         inputElement.value = '';
       }
     };
     reader.onerror = () => {
-      console.error('Error reading file');
+      setError('Failed to read file. Please check the file and try again.');
       inputElement.value = '';
     };
     reader.readAsText(file);
   };
 
   return (
-    <Paper className={classes.fileMountContainer}>
-      <Box className={classes.fileMountHeader}>
-        <Grid container spacing={1} alignItems="center">
-          <Grid item style={{ display: 'flex', alignItems: 'center', paddingRight: '8px' }}>
-            <Tooltip title={isSecret ? 'Switch to file content' : 'Switch to secret reference'}>
-              <IconButton
-                onClick={() => onModeChange(containerName, index, isSecret ? 'plain' : 'secret')}
-                size="small"
-                disabled={disabled}
-                color={isSecret ? 'primary' : 'default'}
-                style={{ marginLeft: '4px' }}
+    <>
+      <Paper className={classes.fileMountContainer}>
+        <Box className={classes.fileMountHeader}>
+          <Grid container spacing={1} alignItems="center">
+            <Grid
+              item
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                paddingRight: '8px',
+              }}
+            >
+              <Tooltip
+                title={
+                  isSecret
+                    ? 'Switch to file content'
+                    : 'Switch to secret reference'
+                }
               >
-                {isSecret ? <LockIcon /> : <LockOpenIcon />}
-              </IconButton>
-            </Tooltip>
-          </Grid>
-
-          <Grid item xs>
-            <Grid container spacing={1}>
-              <Grid item xs={5}>
-                <TextField
-                  label="File Name"
-                  value={fileVar.key || ''}
-                  onChange={e =>
-                    onFileVarChange(
+                <IconButton
+                  onClick={() =>
+                    onModeChange(
                       containerName,
                       index,
-                      'key',
-                      e.target.value,
+                      isSecret ? 'plain' : 'secret',
                     )
                   }
-                  fullWidth
-                  variant="outlined"
                   size="small"
                   disabled={disabled}
-                />
-              </Grid>
-
-              <Grid item xs={5}>
-                <TextField
-                  label="Mount Path"
-                  value={fileVar.mountPath || ''}
-                  onChange={e =>
-                    onFileVarChange(
-                      containerName,
-                      index,
-                      'mountPath',
-                      e.target.value,
-                    )
-                  }
-                  fullWidth
-                  variant="outlined"
-                  size="small"
-                  disabled={disabled}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-
-          <Grid item style={{ display: 'flex', alignItems: 'center' }}>
-            <Tooltip title="Delete file mount">
-              <IconButton
-                onClick={() => {
-                  onCleanupModes(containerName, index);
-                  onRemoveFileVar(containerName, index);
-                }}
-                color="secondary"
-                size="small"
-                disabled={disabled}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
-          </Grid>
-        </Grid>
-      </Box>
-
-      <Box className={classes.fileMountContent}>
-        {isSecret ? (
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <FormControl fullWidth variant="outlined" size="small">
-                <InputLabel>Secret Name</InputLabel>
-                <Select
-                  value={fileVar.valueFrom?.secretRef?.name || ''}
-                  onChange={e => {
-                    const secretName = e.target.value as string;
-                    onFileVarChange(containerName, index, 'valueFrom', { 
-                      secretRef: { name: secretName, key: '' } 
-                    } as any);
-                  }}
-                  label="Secret Name"
-                  disabled={disabled}
+                  color={isSecret ? 'primary' : 'default'}
+                  style={{ marginLeft: '4px' }}
                 >
-                  <MenuItem value="">
-                    <em>Select a secret</em>
-                  </MenuItem>
-                  {secretReferences.map(secret => (
-                    <MenuItem key={secret.name} value={secret.name}>
-                      {secret.displayName || secret.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  {isSecret ? <LockIcon /> : <LockOpenIcon />}
+                </IconButton>
+              </Tooltip>
             </Grid>
-            
-            <Grid item xs={6}>
-              <FormControl fullWidth variant="outlined" size="small">
-                <InputLabel>Secret Key</InputLabel>
-                <Select
-                  value={fileVar.valueFrom?.secretRef?.key || ''}
-                  onChange={e => {
-                    const secretKey = e.target.value as string;
-                    const currentSecret = fileVar.valueFrom?.secretRef?.name || '';
-                    onFileVarChange(containerName, index, 'valueFrom', { 
-                      secretRef: { name: currentSecret, key: secretKey } 
-                    } as any);
-                  }}
-                  label="Secret Key"
-                  disabled={disabled || !fileVar.valueFrom?.secretRef?.name}
-                >
-                  <MenuItem value="">
-                    <em>Select a key</em>
-                  </MenuItem>
-                  {getSecretKeys(fileVar.valueFrom?.secretRef?.name || '').map(key => (
-                    <MenuItem key={key} value={key}>
-                      {key}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        ) : (
-          <>
-            {hasContent && (
-              <Box mb={1}>
-                <Box
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  mb={1}
-                >
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                  >
-                    Content Preview
-                  </Typography>
-                  <Button
-                    size="small"
-                    startIcon={
-                      isExpanded ? (
-                        <VisibilityOffIcon />
-                      ) : (
-                        <VisibilityIcon />
-                      )
-                    }
-                    onClick={() =>
-                      onToggleExpanded(
+
+            <Grid item xs>
+              <Grid container spacing={1}>
+                <Grid item xs={5}>
+                  <TextField
+                    label="File Name"
+                    value={fileVar.key || ''}
+                    onChange={e =>
+                      onFileVarChange(
                         containerName,
                         index,
+                        'key',
+                        e.target.value,
                       )
                     }
+                    fullWidth
+                    variant="outlined"
+                    size="small"
                     disabled={disabled}
-                  >
-                    {isExpanded ? 'Collapse' : 'Expand'}{' '}
-                    Content
-                  </Button>
-                </Box>
+                  />
+                </Grid>
 
-                {!isExpanded && (
-                  <Box className={classes.contentPreview}>
-                    {getContentPreview(fileVar.value!)}
-                  </Box>
-                )}
-              </Box>
-            )}
+                <Grid item xs={5}>
+                  <TextField
+                    label="Mount Path"
+                    value={fileVar.mountPath || ''}
+                    onChange={e =>
+                      onFileVarChange(
+                        containerName,
+                        index,
+                        'mountPath',
+                        e.target.value,
+                      )
+                    }
+                    fullWidth
+                    variant="outlined"
+                    size="small"
+                    disabled={disabled}
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
 
-            <Collapse in={isExpanded || !hasContent}>
-              <TextField
-                disabled={disabled}
-                label={
-                  hasContent ? 'Edit Content' : 'Content'
-                }
-                value={fileVar.value || ''}
-                onChange={e =>
-                  onFileVarChange(
-                    containerName,
-                    index,
-                    'value',
-                    e.target.value,
-                  )
-                }
-                fullWidth
-                variant="outlined"
-                size="small"
-                multiline
-                minRows={hasContent ? 6 : 3}
-                placeholder="Enter file content or upload a file"
-                InputProps={{
-                  style: {
-                    fontFamily: 'monospace',
-                    fontSize: '0.875rem',
-                  },
-                }}
-              />
-            </Collapse>
-
-            <Box className={classes.uploadActions}>
-              <input
-                accept="*/*"
-                style={{ display: 'none' }}
-                id={`file-upload-${containerName}-${index}`}
-                type="file"
-                onChange={e => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    handleFileUpload(file, e.target);
-                  }
-                }}
-                disabled={disabled}
-              />
-              <label
-                htmlFor={`file-upload-${containerName}-${index}`}
-              >
-                <Button
-                  variant="outlined"
-                  component="span"
+            <Grid item style={{ display: 'flex', alignItems: 'center' }}>
+              <Tooltip title="Delete file mount">
+                <IconButton
+                  onClick={() => {
+                    onCleanupModes(containerName, index);
+                    onRemoveFileVar(containerName, index);
+                  }}
+                  color="secondary"
                   size="small"
-                  startIcon={<AttachFileIcon />}
                   disabled={disabled}
                 >
-                  Upload File
-                </Button>
-              </label>
-            </Box>
-          </>
-        )}
-      </Box>
-    </Paper>
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Box className={classes.fileMountContent}>
+          {isSecret ? (
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <FormControl fullWidth variant="outlined" size="small">
+                  <InputLabel>Secret Name</InputLabel>
+                  <Select
+                    value={fileVar.valueFrom?.secretRef?.name || ''}
+                    onChange={e => {
+                      const secretName = e.target.value as string;
+                      onFileVarChange(containerName, index, 'valueFrom', {
+                        secretRef: { name: secretName, key: '' },
+                      } as any);
+                    }}
+                    label="Secret Name"
+                    disabled={disabled}
+                  >
+                    <MenuItem value="">
+                      <em>Select a secret</em>
+                    </MenuItem>
+                    {secretReferences.map(secret => (
+                      <MenuItem key={secret.name} value={secret.name}>
+                        {secret.displayName || secret.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={6}>
+                <FormControl fullWidth variant="outlined" size="small">
+                  <InputLabel>Secret Key</InputLabel>
+                  <Select
+                    value={fileVar.valueFrom?.secretRef?.key || ''}
+                    onChange={e => {
+                      const secretKey = e.target.value as string;
+                      const currentSecret =
+                        fileVar.valueFrom?.secretRef?.name || '';
+                      onFileVarChange(containerName, index, 'valueFrom', {
+                        secretRef: { name: currentSecret, key: secretKey },
+                      } as any);
+                    }}
+                    label="Secret Key"
+                    disabled={disabled || !fileVar.valueFrom?.secretRef?.name}
+                  >
+                    <MenuItem value="">
+                      <em>Select a key</em>
+                    </MenuItem>
+                    {getSecretKeys(
+                      fileVar.valueFrom?.secretRef?.name || '',
+                    ).map(key => (
+                      <MenuItem key={key} value={key}>
+                        {key}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          ) : (
+            <>
+              {hasContent && (
+                <Box mb={1}>
+                  <Box
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    mb={1}
+                  >
+                    <Typography variant="caption" color="textSecondary">
+                      Content Preview
+                    </Typography>
+                    <Button
+                      size="small"
+                      startIcon={
+                        isExpanded ? <VisibilityOffIcon /> : <VisibilityIcon />
+                      }
+                      onClick={() => onToggleExpanded(containerName, index)}
+                      disabled={disabled}
+                    >
+                      {isExpanded ? 'Collapse Content' : 'Expand Content'}
+                    </Button>
+                  </Box>
+
+                  {!isExpanded && (
+                    <Box className={classes.contentPreview}>
+                      {getContentPreview(fileVar.value!)}
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              <Collapse in={isExpanded || !hasContent}>
+                <TextField
+                  disabled={disabled}
+                  label={hasContent ? 'Edit Content' : 'Content'}
+                  value={fileVar.value || ''}
+                  onChange={e =>
+                    onFileVarChange(
+                      containerName,
+                      index,
+                      'value',
+                      e.target.value,
+                    )
+                  }
+                  fullWidth
+                  variant="outlined"
+                  size="small"
+                  multiline
+                  minRows={hasContent ? 6 : 3}
+                  placeholder="Enter file content or upload a file"
+                  InputProps={{
+                    style: {
+                      fontFamily: 'monospace',
+                      fontSize: '0.875rem',
+                    },
+                  }}
+                />
+              </Collapse>
+
+              <Box className={classes.uploadActions}>
+                <input
+                  accept="*/*"
+                  style={{ display: 'none' }}
+                  id={`file-upload-${containerName}-${index}`}
+                  type="file"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileUpload(file, e.target);
+                    }
+                  }}
+                  disabled={disabled}
+                />
+                <label htmlFor={`file-upload-${containerName}-${index}`}>
+                  <Button
+                    variant="outlined"
+                    component="span"
+                    size="small"
+                    startIcon={<AttachFileIcon />}
+                    disabled={disabled}
+                  >
+                    Upload File
+                  </Button>
+                </label>
+              </Box>
+            </>
+          )}
+        </Box>
+      </Paper>
+
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError(null)} severity="error">
+          {error}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }

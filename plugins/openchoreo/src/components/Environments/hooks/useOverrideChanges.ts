@@ -108,7 +108,10 @@ export const useOverrideChanges = (
     });
 
     // Calculate workload changes if workload data is provided
-    if (initialWorkloadFormData !== undefined || workloadFormData !== undefined) {
+    if (
+      initialWorkloadFormData !== undefined ||
+      workloadFormData !== undefined
+    ) {
       grouped.workload = traverse(
         initialWorkloadFormData || {},
         workloadFormData || {},

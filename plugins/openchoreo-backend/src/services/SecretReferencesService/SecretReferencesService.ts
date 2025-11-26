@@ -5,7 +5,8 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Use the generated type from OpenAPI spec
-export type ModelsSecretReferences = OpenChoreoComponents['schemas']['SecretReferenceResponse'];
+export type ModelsSecretReferences =
+  OpenChoreoComponents['schemas']['SecretReferenceResponse'];
 
 export class SecretReferencesService {
   private logger: LoggerService;
@@ -53,7 +54,8 @@ export class SecretReferencesService {
         );
       }
 
-      const secretReferences: ModelsSecretReferences = data as ModelsSecretReferences;
+      const secretReferences: ModelsSecretReferences =
+        data as ModelsSecretReferences;
       this.logger.debug(
         `Successfully fetched secret references for organization: ${orgName}`,
       );

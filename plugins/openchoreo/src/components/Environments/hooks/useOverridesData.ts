@@ -93,6 +93,21 @@ export function useOverridesData(
     Record<string, boolean>
   >({ component: true, workload: false });
 
+  // Helper function to create empty containers structure from workload info
+  const createContainersFromWorkload = (workloadInfo: any) => {
+    if (workloadInfo?.containers) {
+      const containers: any = {};
+      Object.keys(workloadInfo.containers).forEach(containerName => {
+        containers[containerName] = {
+          env: [],
+          files: [],
+        };
+      });
+      return { containers };
+    }
+    return null;
+  };
+
   const loadSchemaAndBinding = useCallback(async () => {
     if (!releaseName) {
       setError('No release deployed to this environment');
@@ -241,18 +256,3 @@ export function useOverridesData(
     reload: loadSchemaAndBinding,
   };
 }
-
-// Helper function to create empty containers structure from workload info
-const createContainersFromWorkload = (workloadInfo: any) => {
-  if (workloadInfo?.containers) {
-    const containers: any = {};
-    Object.keys(workloadInfo.containers).forEach(containerName => {
-      containers[containerName] = {
-        env: [],
-        files: [],
-      };
-    });
-    return { containers };
-  }
-  return null;
-};

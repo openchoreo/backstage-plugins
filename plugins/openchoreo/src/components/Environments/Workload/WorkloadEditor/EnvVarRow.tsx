@@ -31,7 +31,11 @@ interface EnvVarRowProps {
     value: string,
   ) => void;
   onRemoveEnvVar: (containerName: string, envIndex: number) => void;
-  onModeChange: (containerName: string, envIndex: number, mode: 'plain' | 'secret') => void;
+  onModeChange: (
+    containerName: string,
+    envIndex: number,
+    mode: 'plain' | 'secret',
+  ) => void;
   onCleanupModes: (containerName: string, removedIndex: number) => void;
   getSecretKeys: (secretName: string) => string[];
 }
@@ -54,15 +58,34 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
   getSecretKeys,
 }) => {
   const isSecret = mode === 'secret';
-  
+
   return (
     <Box className={className}>
       <Box display="flex" alignItems="center">
         <Grid container spacing={1} alignItems="center" style={{ flex: 1 }}>
-          <Grid item style={{ display: 'flex', alignItems: 'center', paddingRight: '8px' }}>
-            <Tooltip title={isSecret ? 'Switch to plain value' : 'Switch to secret reference'}>
+          <Grid
+            item
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              paddingRight: '8px',
+            }}
+          >
+            <Tooltip
+              title={
+                isSecret
+                  ? 'Switch to plain value'
+                  : 'Switch to secret reference'
+              }
+            >
               <IconButton
-                onClick={() => onModeChange(containerName, index, isSecret ? 'plain' : 'secret')}
+                onClick={() =>
+                  onModeChange(
+                    containerName,
+                    index,
+                    isSecret ? 'plain' : 'secret',
+                  )
+                }
                 size="small"
                 disabled={disabled}
                 color={isSecret ? 'primary' : 'default'}
@@ -86,7 +109,7 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
               disabled={disabled}
             />
           </Grid>
-          
+
           {isSecret ? (
             <>
               <Grid item xs={3}>
@@ -96,8 +119,8 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                     value={envVar.valueFrom?.secretRef?.name || ''}
                     onChange={e => {
                       const secretName = e.target.value as string;
-                      onEnvVarChange(containerName, index, 'valueFrom', { 
-                        secretRef: { name: secretName, key: '' } 
+                      onEnvVarChange(containerName, index, 'valueFrom', {
+                        secretRef: { name: secretName, key: '' },
                       } as any);
                     }}
                     label="Secret Name"
@@ -114,7 +137,7 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                   </Select>
                 </FormControl>
               </Grid>
-              
+
               <Grid item xs={3}>
                 <FormControl fullWidth variant="outlined" size="small">
                   <InputLabel>Secret Key</InputLabel>
@@ -122,9 +145,10 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                     value={envVar.valueFrom?.secretRef?.key || ''}
                     onChange={e => {
                       const secretKey = e.target.value as string;
-                      const currentSecret = envVar.valueFrom?.secretRef?.name || '';
-                      onEnvVarChange(containerName, index, 'valueFrom', { 
-                        secretRef: { name: currentSecret, key: secretKey } 
+                      const currentSecret =
+                        envVar.valueFrom?.secretRef?.name || '';
+                      onEnvVarChange(containerName, index, 'valueFrom', {
+                        secretRef: { name: currentSecret, key: secretKey },
                       } as any);
                     }}
                     label="Secret Key"
@@ -133,11 +157,13 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                     <MenuItem value="">
                       <em>Select a key</em>
                     </MenuItem>
-                    {getSecretKeys(envVar.valueFrom?.secretRef?.name || '').map(key => (
-                      <MenuItem key={key} value={key}>
-                        {key}
-                      </MenuItem>
-                    ))}
+                    {getSecretKeys(envVar.valueFrom?.secretRef?.name || '').map(
+                      key => (
+                        <MenuItem key={key} value={key}>
+                          {key}
+                        </MenuItem>
+                      ),
+                    )}
                   </Select>
                 </FormControl>
               </Grid>

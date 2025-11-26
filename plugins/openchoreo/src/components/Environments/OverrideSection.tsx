@@ -78,6 +78,61 @@ export const OverrideSection: FC<OverrideSectionProps> = ({
     onChange(e.formData);
   };
 
+  const renderContent = () => {
+    if (customContent) {
+      return (
+        <>
+          {customContent}
+          <Button
+            onClick={onDelete}
+            color="secondary"
+            startIcon={<DeleteIcon />}
+            disabled={!hasInitialData}
+            className={classes.deleteButton}
+            size="small"
+          >
+            Delete {title}
+          </Button>
+        </>
+      );
+    }
+
+    if (schema) {
+      return (
+        <>
+          <Form
+            schema={schema}
+            formData={formData}
+            onChange={handleFormChange}
+            validator={validator}
+            liveValidate={false}
+            showErrorList={false}
+            noHtml5Validate
+          >
+            <div />
+          </Form>
+
+          <Button
+            onClick={onDelete}
+            color="secondary"
+            startIcon={<DeleteIcon />}
+            disabled={!hasInitialData}
+            className={classes.deleteButton}
+            size="small"
+          >
+            Delete {title}
+          </Button>
+        </>
+      );
+    }
+
+    return (
+      <Typography variant="body2" color="textSecondary">
+        No override schema available for this section.
+      </Typography>
+    );
+  };
+
   return (
     <Accordion expanded={expanded} onChange={onToggle} disabled={disabled}>
       <AccordionSummary
@@ -104,50 +159,7 @@ export const OverrideSection: FC<OverrideSectionProps> = ({
         )}
       </AccordionSummary>
       <AccordionDetails className={classes.accordionDetails}>
-        {customContent ? (
-          <>
-            {customContent}
-            <Button
-              onClick={onDelete}
-              color="secondary"
-              startIcon={<DeleteIcon />}
-              disabled={!hasInitialData}
-              className={classes.deleteButton}
-              size="small"
-            >
-              Delete {title}
-            </Button>
-          </>
-        ) : schema ? (
-          <>
-            <Form
-              schema={schema}
-              formData={formData}
-              onChange={handleFormChange}
-              validator={validator}
-              liveValidate={false}
-              showErrorList={false}
-              noHtml5Validate
-            >
-              <div />
-            </Form>
-
-            <Button
-              onClick={onDelete}
-              color="secondary"
-              startIcon={<DeleteIcon />}
-              disabled={!hasInitialData}
-              className={classes.deleteButton}
-              size="small"
-            >
-              Delete {title}
-            </Button>
-          </>
-        ) : (
-          <Typography variant="body2" color="textSecondary">
-            No override schema available for this section.
-          </Typography>
-        )}
+        {renderContent()}
       </AccordionDetails>
     </Accordion>
   );

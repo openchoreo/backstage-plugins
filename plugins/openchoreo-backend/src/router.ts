@@ -7,7 +7,11 @@ import {
   BuildInfoService,
   ObservabilityNotConfiguredError as BuildObservabilityNotConfiguredError,
 } from './services/BuildService/BuildInfoService';
-import { CellDiagramService, WorkloadService, SecretReferencesService } from './types';
+import {
+  CellDiagramService,
+  WorkloadService,
+  SecretReferencesService,
+} from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
 import {

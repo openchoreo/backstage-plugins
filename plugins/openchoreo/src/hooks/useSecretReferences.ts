@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { fetchSecretReferences, SecretReference } from '../api/secretReferences';
+import {
+  fetchSecretReferences,
+  SecretReference,
+} from '../api/secretReferences';
 
 export interface UseSecretReferencesResult {
   secretReferences: SecretReference[];
@@ -14,7 +17,9 @@ export function useSecretReferences(): UseSecretReferencesResult {
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);
   const { entity } = useEntity();
-  const [secretReferences, setSecretReferences] = useState<SecretReference[]>([]);
+  const [secretReferences, setSecretReferences] = useState<SecretReference[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +28,11 @@ export function useSecretReferences(): UseSecretReferencesResult {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchSecretReferences(entity, discovery, identity);
+        const response = await fetchSecretReferences(
+          entity,
+          discovery,
+          identity,
+        );
         if (response.success && response.data.items) {
           setSecretReferences(response.data.items);
         }
@@ -36,7 +45,7 @@ export function useSecretReferences(): UseSecretReferencesResult {
     };
 
     fetchSecrets();
-    
+
     return () => {
       setSecretReferences([]);
       setError(null);
