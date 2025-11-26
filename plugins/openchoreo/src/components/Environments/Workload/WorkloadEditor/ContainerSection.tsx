@@ -215,6 +215,31 @@ export function ContainerSection({
     }
   };
 
+  const cleanupEnvVarModes = (containerName: string, removedIndex: number) => {
+    setEnvValueMode(prev => {
+      const newState = { ...prev };
+      
+      // Remove the mode for the deleted env var
+      delete newState[`${containerName}-${removedIndex}`];
+      
+      // Shift modes for env vars that came after the removed one
+      const container = containers[containerName];
+      const envCount = container?.env?.length || 0;
+      
+      for (let i = removedIndex + 1; i <= envCount; i++) {
+        const oldKey = `${containerName}-${i}`;
+        const newKey = `${containerName}-${i - 1}`;
+        
+        if (newState[oldKey]) {
+          newState[newKey] = newState[oldKey];
+          delete newState[oldKey];
+        }
+      }
+      
+      return newState;
+    });
+  };
+
   const getSecretKeys = (secretName: string): string[] => {
     const secret = secretReferences.find(ref => ref.name === secretName);
     return secret?.data?.map(item => item.secretKey) || [];
@@ -264,6 +289,91 @@ export function ContainerSection({
     }
   };
 
+  const cleanupFileModes = (containerName: string, removedIndex: number) => {
+    setFileValueMode(prev => {
+      const newState = { ...prev };
+      
+      // Remove the mode for the deleted file
+      delete newState[`${containerName}-${removedIndex}`];
+      
+      // Shift modes for files that came after the removed one
+      const container = containers[containerName];
+      const fileCount = (container as any).files?.length || 0;
+      
+      for (let i = removedIndex + 1; i <= fileCount; i++) {
+        const oldKey = `${containerName}-${i}`;
+        const newKey = `${containerName}-${i - 1}`;
+        
+        if (newState[oldKey]) {
+          newState[newKey] = newState[oldKey];
+          delete newState[oldKey];
+        }
+      }
+      
+      return newState;
+    });
+  };
+
+  const cleanupContainerModes = (containerName: string) => {
+    setEnvValueMode(prev => {
+      const newState = { ...prev };
+      Object.keys(newState).forEach(key => {
+        if (key.startsWith(`${containerName}-`)) {
+          delete newState[key];
+        }
+      });
+      return newState;
+    });
+
+    setFileValueMode(prev => {
+      const newState = { ...prev };
+      Object.keys(newState).forEach(key => {
+        if (key.startsWith(`${containerName}-`)) {
+          delete newState[key];
+        }
+      });
+      return newState;
+    });
+
+    setExpandedFiles(prev => {
+      const newState = { ...prev };
+      Object.keys(newState).forEach(key => {
+        if (key.startsWith(`${containerName}-`)) {
+          delete newState[key];
+        }
+      });
+      return newState;
+    });
+  };
+
+  const handleFileUpload = (
+    file: File,
+    containerName: string,
+    index: number,
+    fileVar: FileVar,
+    inputElement: HTMLInputElement
+  ) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        onFileVarChange(containerName, index, 'value', content);
+        if (!fileVar.key) {
+          onFileVarChange(containerName, index, 'key', file.name);
+        }
+        inputElement.value = '';
+      } catch (error) {
+        console.error('Error reading file:', error);
+        inputElement.value = '';
+      }
+    };
+    reader.onerror = () => {
+      console.error('Error reading file');
+      inputElement.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <Accordion className={classes.accordion} defaultExpanded>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -287,7 +397,10 @@ export function ContainerSection({
                       {containerName === 'main' ? 'app' : containerName}
                     </Typography>
                     <IconButton
-                      onClick={() => onRemoveContainer(containerName)}
+                      onClick={() => {
+                        cleanupContainerModes(containerName);
+                        onRemoveContainer(containerName);
+                      }}
                       color="secondary"
                       size="small"
                       disabled={disabled}
@@ -371,6 +484,7 @@ export function ContainerSection({
                       onEnvVarChange={onEnvVarChange}
                       onRemoveEnvVar={onRemoveEnvVar}
                       onModeChange={setEnvVarMode}
+                      onCleanupModes={cleanupEnvVarModes}
                       getSecretKeys={getSecretKeys}
                     />
                   ))}
@@ -439,7 +553,7 @@ export function ContainerSection({
                                   fullWidth
                                   variant="outlined"
                                   size="small"
-                                  disabled={isSecret || disabled}
+                                  disabled={disabled}
                                 />
                               </Grid>
 
@@ -458,16 +572,17 @@ export function ContainerSection({
                                   fullWidth
                                   variant="outlined"
                                   size="small"
-                                  disabled={isSecret || disabled}
+                                  disabled={disabled}
                                 />
                               </Grid>
 
                               <Grid item xs={2} style={{ display: 'flex', justifyContent: 'flex-end', paddingLeft: '16px' }}>
                                 <Tooltip title="Delete file mount">
                                   <IconButton
-                                    onClick={() =>
-                                      onRemoveFileVar(containerName, index)
-                                    }
+                                    onClick={() => {
+                                      cleanupFileModes(containerName, index);
+                                      onRemoveFileVar(containerName, index);
+                                    }}
                                     color="secondary"
                                     size="small"
                                     disabled={disabled}
@@ -620,39 +735,7 @@ export function ContainerSection({
                                     onChange={e => {
                                       const file = e.target.files?.[0];
                                       if (file) {
-                                        const reader = new FileReader();
-                                        reader.onload = event => {
-                                          try {
-                                            const content = event.target
-                                              ?.result as string;
-                                            onFileVarChange(
-                                              containerName,
-                                              index,
-                                              'value',
-                                              content,
-                                            );
-                                            if (!fileVar.key) {
-                                              onFileVarChange(
-                                                containerName,
-                                                index,
-                                                'key',
-                                                file.name,
-                                              );
-                                            }
-                                            e.target.value = '';
-                                          } catch (error) {
-                                            console.error(
-                                              'Error reading file:',
-                                              error,
-                                            );
-                                            e.target.value = '';
-                                          }
-                                        };
-                                        reader.onerror = () => {
-                                          console.error('Error reading file');
-                                          e.target.value = '';
-                                        };
-                                        reader.readAsText(file);
+                                        handleFileUpload(file, containerName, index, fileVar, e.target);
                                       }
                                     }}
                                     disabled={disabled}

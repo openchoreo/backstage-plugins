@@ -32,6 +32,7 @@ interface EnvVarRowProps {
   ) => void;
   onRemoveEnvVar: (containerName: string, envIndex: number) => void;
   onModeChange: (containerName: string, envIndex: number, mode: 'plain' | 'secret') => void;
+  onCleanupModes: (containerName: string, removedIndex: number) => void;
   getSecretKeys: (secretName: string) => string[];
 }
 
@@ -49,6 +50,7 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
   onEnvVarChange,
   onRemoveEnvVar,
   onModeChange,
+  onCleanupModes,
   getSecretKeys,
 }) => {
   const isSecret = mode === 'secret';
@@ -157,7 +159,10 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
         
         <Grid item xs={2} style={{ display: 'flex', justifyContent: 'flex-end', paddingLeft: '16px' }}>
           <IconButton
-            onClick={() => onRemoveEnvVar(containerName, index)}
+            onClick={() => {
+              onCleanupModes(containerName, index);
+              onRemoveEnvVar(containerName, index);
+            }}
             color="secondary"
             size="small"
             disabled={disabled}
