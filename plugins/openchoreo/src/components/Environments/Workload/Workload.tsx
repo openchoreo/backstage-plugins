@@ -14,7 +14,6 @@ import {
   ModelsBuild,
 } from '@openchoreo/backstage-plugin-common';
 import { applyWorkload, fetchWorkloadInfo } from '../../../api/workloadInfo';
-import { fetchSecretReferences, SecretReference } from '../../../api/secretReferences';
 import {
   createComponentRelease,
   deployRelease,
@@ -44,8 +43,6 @@ export function Workload({
   const [isDeploying, setIsDeploying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
-  const [secretReferences, setSecretReferences] = useState<SecretReference[]>([]);
-  const [isLoadingSecrets, setIsLoadingSecrets] = useState(false);
 
   useEffect(() => {
     const fetchWorkload = async () => {
@@ -108,27 +105,6 @@ export function Workload({
     fetchBuilds();
   }, [entity.metadata.name, entity.metadata.annotations, identity, discovery]);
 
-  useEffect(() => {
-    const fetchSecrets = async () => {
-      try {
-        setIsLoadingSecrets(true);
-        const response = await fetchSecretReferences(entity, discovery, identity);
-        if (response.success && response.data.items) {
-          setSecretReferences(response.data.items);
-        }
-      } catch (err) {
-        setError('Failed to fetch secret references');
-        setSecretReferences([]);
-      } finally {
-        setIsLoadingSecrets(false);
-      }
-    };
-    fetchSecrets();
-    return () => {
-      setSecretReferences([]);
-      setError(null);
-    };
-  }, [entity, discovery, identity]);
 
   const toggleDrawer = () => {
     setOpen(!open);
@@ -190,7 +166,7 @@ export function Workload({
         gridGap={16}
         mt="auto"
       >
-        {(isLoading || isLoadingSecrets) && !error ? (
+        {isLoading && !error ? (
           <Box p={2}>
             <Skeleton variant="rect" width="100%" height={40} />
           </Box>
@@ -254,8 +230,7 @@ export function Workload({
               builds={builds}
               workloadSpec={workloadSpec}
               setWorkloadSpec={setWorkloadSpec}
-              isDeploying={isDeploying || isLoading || isWorking || isLoadingSecrets}
-              secretReferences={secretReferences}
+              isDeploying={isDeploying || isLoading || isWorking}
             >
               <WorkloadEditor entity={entity} onDeploy={handleDeploy} />
             </WorkloadProvider>

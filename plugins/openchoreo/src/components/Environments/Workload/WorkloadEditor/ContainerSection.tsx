@@ -31,7 +31,8 @@ import LockOpenIcon from '@material-ui/icons/LockOpen';
 import { useState } from 'react';
 import { Container, EnvVar, FileVar } from '@openchoreo/backstage-plugin-common';
 import { formatRelativeTime } from '../../../../utils/timeUtils';
-import { useBuilds, useSecretReferences } from '../WorkloadContext';
+import { useBuilds } from '../WorkloadContext';
+import { useSecretReferences } from '../../../../hooks/useSecretReferences';
 
 interface ContainerSectionProps {
   containers: { [key: string]: Container };
