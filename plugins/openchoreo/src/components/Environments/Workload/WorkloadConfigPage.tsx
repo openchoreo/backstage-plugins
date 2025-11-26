@@ -1,14 +1,13 @@
-import {
-  Drawer,
-  Button,
-  Typography,
-  Box,
-  useTheme,
-  IconButton,
-} from '@material-ui/core';
 import { useEffect, useState } from 'react';
-import { WorkloadEditor } from './WorkloadEditor';
-import CloseIcon from '@material-ui/icons/Close';
+import { Box, Button, CircularProgress, Typography } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import { Alert, Skeleton } from '@material-ui/lab';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import {
+  useApi,
+  discoveryApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
 import {
   ModelsWorkload,
   ModelsBuild,
@@ -18,32 +17,51 @@ import {
   createComponentRelease,
   deployRelease,
 } from '../../../api/environments';
-import { useEntity } from '@backstage/plugin-catalog-react';
-import { useApi } from '@backstage/core-plugin-api';
-import { discoveryApiRef } from '@backstage/core-plugin-api';
-import { identityApiRef } from '@backstage/core-plugin-api';
-import { Alert, Skeleton } from '@material-ui/lab';
 import { WorkloadProvider } from './WorkloadContext';
+import { WorkloadEditor } from './WorkloadEditor';
+import { DetailPageLayout } from '../components/DetailPageLayout';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
-export function Workload({
-  onDeployed,
-  isWorking = false,
-}: {
+const useStyles = makeStyles(theme => ({
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing(4),
+    gap: theme.spacing(2),
+    minHeight: '300px',
+  },
+  errorContainer: {
+    padding: theme.spacing(3),
+    backgroundColor: theme.palette.error.light,
+    borderRadius: theme.shape.borderRadius,
+    color: theme.palette.error.dark,
+    marginBottom: theme.spacing(2),
+  },
+}));
+
+interface WorkloadConfigPageProps {
+  onBack: () => void;
   onDeployed: () => Promise<void>;
-  isWorking?: boolean;
-}) {
+}
+
+export const WorkloadConfigPage = ({
+  onBack,
+  onDeployed,
+}: WorkloadConfigPageProps) => {
+  const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);
   const { entity } = useEntity();
-  const theme = useTheme();
-  const [open, setOpen] = useState(false);
+
   const [workloadSpec, setWorkloadSpec] = useState<ModelsWorkload | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDeploying, setIsDeploying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
 
+  // Fetch workload info
   useEffect(() => {
     const fetchWorkload = async () => {
       try {
@@ -62,6 +80,7 @@ export function Workload({
     };
   }, [entity, discovery, identity]);
 
+  // Fetch builds
   useEffect(() => {
     const fetchBuilds = async () => {
       try {
@@ -71,11 +90,9 @@ export function Workload({
         const organizationName =
           entity.metadata.annotations?.['openchoreo.io/organization'];
 
-        // Get authentication token
         const { token } = await identity.getCredentials();
-
-        // Now fetch the builds
         const baseUrl = await discovery.getBaseUrl('openchoreo');
+
         if (projectName && organizationName && componentName) {
           const response = await fetch(
             `${baseUrl}/builds?componentName=${encodeURIComponent(
@@ -98,22 +115,18 @@ export function Workload({
           setBuilds(buildsData);
         }
       } catch (err) {
-        // Handle error silently or set an error state if needed
         setBuilds([]);
       }
     };
     fetchBuilds();
   }, [entity.metadata.name, entity.metadata.annotations, identity, discovery]);
 
-  const toggleDrawer = () => {
-    setOpen(!open);
-  };
-
   const handleDeploy = async () => {
     if (!workloadSpec) {
       return;
     }
     setIsDeploying(true);
+    setError(null);
     try {
       // Step 1: Apply workload
       await applyWorkload(entity, discovery, identity, workloadSpec);
@@ -137,21 +150,21 @@ export function Workload({
         releaseResponse.data.name,
       );
 
-      // Step 4: Close drawer and refresh environment data immediately
-      setOpen(false);
+      // Step 4: Navigate back and refresh
       setIsDeploying(false);
       await onDeployed();
-    } catch (e) {
+      onBack();
+    } catch (e: any) {
       setIsDeploying(false);
-      throw new Error(`Failed to deploy workload: ${e}`);
+      setError(e.message || 'Failed to deploy workload');
     }
   };
 
   const isFromSource = isFromSourceComponent(entity);
+  const hasBuilds = builds.length > 0;
   const enableDeploy = isFromSource
     ? builds.some(build => build.image) && !isLoading
     : !isLoading;
-  const hasBuilds = builds.length > 0;
 
   const getAlertMessage = () => {
     if (isFromSource && !hasBuilds) {
@@ -160,86 +173,60 @@ export function Workload({
     return 'Configure your workload to enable deployment.';
   };
 
-  return (
-    <>
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        flexDirection="column"
-        gridGap={16}
-        mt="auto"
-      >
-        {isLoading && !error ? (
-          <Box p={2}>
-            <Skeleton variant="rect" width="100%" height={40} />
-          </Box>
-        ) : (
-          <>
-            {!enableDeploy && (
-              <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
-                {getAlertMessage()}
-              </Alert>
-            )}
-            <Button
-              onClick={toggleDrawer}
-              disabled={!enableDeploy || isDeploying || isLoading || isWorking}
-              variant="contained"
-              color="primary"
-              size="small"
-              style={{ alignSelf: 'flex-end' }}
-            >
-              Configure & Deploy
-            </Button>
-          </>
-        )}
-      </Box>
+  // Header actions - deploy button moved from WorkloadEditor
+  const headerActions = !isLoading ? (
+    <Button
+      variant="contained"
+      color="primary"
+      onClick={handleDeploy}
+      disabled={isDeploying || isLoading || !enableDeploy}
+      startIcon={
+        isDeploying ? <CircularProgress size={20} color="inherit" /> : undefined
+      }
+    >
+      {isDeploying ? 'Deploying...' : 'Submit & Deploy'}
+    </Button>
+  ) : null;
 
-      <Drawer open={open} onClose={toggleDrawer} anchor="right">
-        <Box
-          bgcolor={theme.palette.background.default}
-          minWidth={theme.spacing(80)}
-          display="flex"
-          flexDirection="column"
-          height="100%"
-          overflow="hidden"
-        >
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            px={3}
-            py={2.5}
-            bgcolor={theme.palette.background.paper}
-            borderBottom={`1px solid ${theme.palette.divider}`}
-            boxShadow="0 1px 3px rgba(0,0,0,0.06)"
-          >
-            <Typography
-              variant="h5"
-              component="h2"
-              style={{ fontWeight: 600, fontSize: '1.25rem' }}
-            >
-              Configure Workload
-            </Typography>
-            <IconButton
-              onClick={toggleDrawer}
-              size="small"
-              style={{ color: theme.palette.text.secondary }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Box flex={1} overflow="auto" p={2}>
-            <WorkloadProvider
-              builds={builds}
-              workloadSpec={workloadSpec}
-              setWorkloadSpec={setWorkloadSpec}
-              isDeploying={isDeploying || isLoading || isWorking}
-            >
-              <WorkloadEditor entity={entity} onDeploy={handleDeploy} />
-            </WorkloadProvider>
-          </Box>
+  return (
+    <DetailPageLayout
+      title="Configure Workload"
+      subtitle="Configure containers, endpoints, and connections for deployment"
+      onBack={onBack}
+      actions={headerActions}
+    >
+      {isLoading && (
+        <Box className={classes.loadingContainer}>
+          <Skeleton variant="rect" width="100%" height={200} />
+          <Skeleton variant="rect" width="100%" height={100} />
+          <Skeleton variant="rect" width="100%" height={100} />
         </Box>
-      </Drawer>
-    </>
+      )}
+
+      {error && !isLoading && (
+        <Box className={classes.errorContainer}>
+          <Typography variant="body1">{error}</Typography>
+        </Box>
+      )}
+
+      {!isLoading && !error && !enableDeploy && (
+        <Box mb={2}>
+          <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
+            {getAlertMessage()}
+          </Alert>
+        </Box>
+      )}
+
+      {!isLoading && (
+        <WorkloadProvider
+          builds={builds}
+          workloadSpec={workloadSpec}
+          setWorkloadSpec={setWorkloadSpec}
+          isDeploying={isDeploying || isLoading}
+        >
+          <WorkloadEditor entity={entity} />
+        </WorkloadProvider>
+      )}
+    </DetailPageLayout>
   );
-}
+};

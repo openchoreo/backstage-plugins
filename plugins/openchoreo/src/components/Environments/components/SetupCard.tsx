@@ -3,7 +3,7 @@ import { Card } from '@openchoreo/backstage-design-system';
 import { useSetupCardStyles } from '../styles';
 import { SetupCardProps } from '../types';
 import { LoadingSkeleton } from './LoadingSkeleton';
-import { Workload } from '../Workload/Workload';
+import { WorkloadButton } from '../Workload/WorkloadButton';
 
 /**
  * Setup card showing workload deployment options
@@ -12,7 +12,7 @@ export const SetupCard = ({
   loading,
   environmentsExist,
   isWorkloadEditorSupported,
-  onDeployed,
+  onConfigureWorkload,
 }: SetupCardProps) => {
   const classes = useSetupCardStyles();
 
@@ -39,7 +39,7 @@ export const SetupCard = ({
                 View and manage deployment environments
               </Typography>
               {isWorkloadEditorSupported && (
-                <Workload onDeployed={onDeployed} />
+                <WorkloadButton onConfigureWorkload={onConfigureWorkload} />
               )}
             </>
           )}

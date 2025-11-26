@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Button, CircularProgress } from '@material-ui/core';
+import { Box } from '@material-ui/core';
 import {
   ModelsWorkload,
   Container,
@@ -11,17 +11,15 @@ import {
 import { ContainerSection } from './ContainerSection';
 import { EndpointSection } from './EndpointSection';
 import { ConnectionSection } from './ConnectionSection';
-import { Alert } from '@material-ui/lab';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
 
 interface WorkloadEditorProps {
-  onDeploy: () => Promise<void>;
   entity: Entity;
 }
 
-export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
+export function WorkloadEditor({ entity }: WorkloadEditorProps) {
   const { workloadSpec, setWorkloadSpec, isDeploying } = useWorkloadContext();
 
   const componentName =
@@ -40,7 +38,6 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
   });
 
   const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (workloadSpec) {
@@ -72,21 +69,6 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
     const updatedData = { ...formData, containers: updatedContainers };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
-  };
-
-  const containerCount = Object.keys(formData.containers || {}).length;
-
-  const handleDeploy = async () => {
-    if (containerCount === 0) {
-      setError('Please add a container');
-      return;
-    }
-    setError(null);
-    try {
-      await onDeploy();
-    } catch (e: any) {
-      setError(e.message);
-    }
   };
 
   const handleEnvVarChange = (
@@ -286,23 +268,6 @@ export function WorkloadEditor({ onDeploy, entity }: WorkloadEditorProps) {
           onAddConnection={addConnection}
           onRemoveConnection={removeConnection}
         />
-      </Box>
-      {error && (
-        <Box mb={2}>
-          <Alert severity="error">{error}</Alert>
-        </Box>
-      )}
-      <Box display="flex" justifyContent="flex-end" pt={3} pb={2} px={2}>
-        <Button
-          disabled={isDeploying}
-          variant="contained"
-          color="primary"
-          onClick={handleDeploy}
-          size="large"
-          startIcon={isDeploying ? <CircularProgress size={20} /> : undefined}
-        >
-          {isDeploying ? 'Deploying...' : 'Submit & Deploy'}
-        </Button>
       </Box>
     </Box>
   );
