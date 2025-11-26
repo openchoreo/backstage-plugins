@@ -15,4 +15,5 @@ export const API_ENDPOINTS = {
   ENVIRONMENT_RELEASE: '/environment-release',
   WORKFLOW_SCHEMA: '/workflow-schema',
   COMPONENT_WORKFLOW_SCHEMA: '/component-workflow-schema',
+  SECRET_REFERENCES: '/secret-references',
 } as const;
