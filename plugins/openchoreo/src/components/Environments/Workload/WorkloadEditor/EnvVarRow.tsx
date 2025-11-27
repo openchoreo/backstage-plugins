@@ -15,6 +15,7 @@ import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
 import { EnvVar } from '@openchoreo/backstage-plugin-common';
 import { SecretReference } from '../../../../api/secretReferences';
+import { makeStyles } from '@material-ui/core/styles';
 
 interface EnvVarRowProps {
   envVar: EnvVar;
@@ -40,6 +41,39 @@ interface EnvVarRowProps {
   getSecretKeys: (secretName: string) => string[];
 }
 
+const useStyles = makeStyles(theme => ({
+  lockButton: {
+    marginLeft: '4px',
+    backgroundColor: 'transparent',
+    border: '1px solid transparent',
+    borderRadius: '8px',
+    padding: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      borderColor: '#000000',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      transform: 'translateY(-1px)',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: '2px',
+    },
+  },
+  lockButtonSecret: {
+    backgroundColor: 'transparent',
+    border: '1px solid transparent',
+    color: theme.palette.primary.main,
+    '&:hover': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
+}));
+
 /**
  * Renders a single environment variable row with edit/delete capabilities.
  */
@@ -57,6 +91,7 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
   onCleanupModes,
   getSecretKeys,
 }) => {
+  const classes = useStyles();
   const isSecret = mode === 'secret';
 
   return (
@@ -74,8 +109,8 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
             <Tooltip
               title={
                 isSecret
-                  ? 'Switch to plain value'
-                  : 'Switch to secret reference'
+                  ? 'Click to switch to plain value'
+                  : 'Click to switch to secret reference'
               }
             >
               <IconButton
@@ -88,8 +123,10 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                 }
                 size="small"
                 disabled={disabled}
+                className={`${classes.lockButton} ${
+                  isSecret ? classes.lockButtonSecret : ''
+                }`}
                 color={isSecret ? 'primary' : 'default'}
-                style={{ marginLeft: '4px' }}
               >
                 {isSecret ? <LockIcon /> : <LockOpenIcon />}
               </IconButton>

@@ -90,6 +90,36 @@ const useStyles = makeStyles(theme => ({
     gap: theme.spacing(1),
     marginTop: theme.spacing(1),
   },
+  lockButton: {
+    marginLeft: '4px',
+    backgroundColor: 'transparent',
+    border: '1px solid transparent',
+    borderRadius: '8px',
+    padding: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      borderColor: '#000000',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      transform: 'translateY(-1px)',
+    },
+    '&:active': {
+      transform: 'translateY(0)',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+    },
+    '&:focus-visible': {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: '2px',
+    },
+  },
+  lockButtonSecret: {
+    backgroundColor: 'transparent',
+    border: '1px solid transparent',
+    color: theme.palette.primary.main,
+    '&:hover': {
+      borderColor: theme.palette.primary.main,
+    },
+  },
 }));
 
 export function FileVarRow({
@@ -156,8 +186,8 @@ export function FileVarRow({
               <Tooltip
                 title={
                   isSecret
-                    ? 'Switch to file content'
-                    : 'Switch to secret reference'
+                    ? 'Click to switch to file content'
+                    : 'Click to switch to secret reference'
                 }
               >
                 <IconButton
@@ -170,8 +200,10 @@ export function FileVarRow({
                   }
                   size="small"
                   disabled={disabled}
+                  className={`${classes.lockButton} ${
+                    isSecret ? classes.lockButtonSecret : ''
+                  }`}
                   color={isSecret ? 'primary' : 'default'}
-                  style={{ marginLeft: '4px' }}
                 >
                   {isSecret ? <LockIcon /> : <LockOpenIcon />}
                 </IconButton>
