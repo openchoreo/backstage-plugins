@@ -6,13 +6,16 @@ import {
   fetchComponentReleaseSchema,
   fetchReleaseBindings,
 } from '../../../api/environments';
+import { fetchWorkloadInfo } from '../../../api/workloadInfo';
 
 interface ReleaseBinding {
   name: string;
   environment: string;
   componentTypeEnvOverrides?: Record<string, unknown>;
   traitOverrides?: Record<string, Record<string, unknown>>;
-  workloadOverrides?: Record<string, unknown>;
+  workloadOverrides?: {
+    containers?: { [key: string]: any };
+  };
 }
 
 export interface OverridesFormState {
@@ -20,6 +23,8 @@ export interface OverridesFormState {
   traitFormDataMap: Record<string, Record<string, unknown>>;
   initialComponentTypeFormData: Record<string, unknown>;
   initialTraitFormDataMap: Record<string, Record<string, unknown>>;
+  initialWorkloadFormData: Record<string, unknown>;
+  workloadFormData: any;
 }
 
 export interface OverridesSchemaState {
@@ -40,6 +45,7 @@ interface UseOverridesDataReturn {
   setExpandedSections: React.Dispatch<
     React.SetStateAction<Record<string, boolean>>
   >;
+  setWorkloadFormData: (data: any) => void;
   reload: () => void;
 }
 
@@ -77,11 +83,30 @@ export function useOverridesData(
   const [initialTraitFormDataMap, setInitialTraitFormDataMap] = useState<
     Record<string, Record<string, unknown>>
   >({});
+  const [workloadFormData, setWorkloadFormData] = useState<any>({});
+  const [initialWorkloadFormData, setInitialWorkloadFormData] = useState<any>(
+    {},
+  );
 
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
-  >({ component: true });
+  >({ component: true, workload: false });
+
+  // Helper function to create empty containers structure from workload info
+  const createContainersFromWorkload = (workloadInfo: any) => {
+    if (workloadInfo?.containers) {
+      const containers: any = {};
+      Object.keys(workloadInfo.containers).forEach(containerName => {
+        containers[containerName] = {
+          env: [],
+          files: [],
+        };
+      });
+      return { containers };
+    }
+    return null;
+  };
 
   const loadSchemaAndBinding = useCallback(async () => {
     if (!releaseName) {
@@ -128,6 +153,7 @@ export function useOverridesData(
           // Initialize expanded state for each trait
           const newExpandedSections: Record<string, boolean> = {
             component: true,
+            workload: false,
           };
           Object.keys(traitSchemas).forEach(traitName => {
             newExpandedSections[`trait-${traitName}`] = false;
@@ -160,11 +186,38 @@ export function useOverridesData(
           const existingTraitOverrides = currentBinding.traitOverrides || {};
           setTraitFormDataMap(existingTraitOverrides);
           setInitialTraitFormDataMap(existingTraitOverrides);
+
+          const workloadOverrides = currentBinding.workloadOverrides || {};
+          // If no workload overrides exist, fetch workload info to populate container structure
+          if (
+            !workloadOverrides.containers ||
+            Object.keys(workloadOverrides.containers).length === 0
+          ) {
+            const workloadInfo = await fetchWorkloadInfo(
+              entity,
+              discovery,
+              identityApi,
+            );
+            const populatedWorkloadOverrides =
+              createContainersFromWorkload(workloadInfo);
+            if (populatedWorkloadOverrides) {
+              setWorkloadFormData(populatedWorkloadOverrides);
+              setInitialWorkloadFormData({}); // Keep initial as empty since this is auto-populated
+            } else {
+              setWorkloadFormData(workloadOverrides);
+              setInitialWorkloadFormData(workloadOverrides);
+            }
+          } else {
+            setWorkloadFormData(workloadOverrides);
+            setInitialWorkloadFormData(workloadOverrides);
+          }
         } else {
           setComponentTypeFormData({});
           setInitialComponentTypeFormData({});
           setTraitFormDataMap({});
           setInitialTraitFormDataMap({});
+          setWorkloadFormData({});
+          setInitialWorkloadFormData({});
         }
       }
     } catch (err) {
@@ -192,11 +245,14 @@ export function useOverridesData(
       traitFormDataMap,
       initialComponentTypeFormData,
       initialTraitFormDataMap,
+      initialWorkloadFormData,
+      workloadFormData,
     },
     expandedSections,
     setComponentTypeFormData,
     setTraitFormDataMap,
     setExpandedSections,
+    setWorkloadFormData,
     reload: loadSchemaAndBinding,
   };
 }

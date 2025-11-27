@@ -19,21 +19,34 @@ export function hasAnyTraitOverrides(
 }
 
 /**
- * Calculate if there are any overrides (component or trait)
+ * Check if workload has overrides
+ */
+export function hasWorkloadOverridesData(
+  workloadData: Record<string, unknown> | undefined,
+): boolean {
+  return workloadData !== undefined && Object.keys(workloadData).length > 0;
+}
+
+/**
+ * Calculate if there are any overrides (component, trait, or workload)
  */
 export function calculateHasOverrides(
   componentData: Record<string, unknown>,
   traitMap: Record<string, Record<string, unknown>>,
+  workloadData: Record<string, unknown>,
 ): {
   hasComponentOverrides: boolean;
   hasTraitOverrides: boolean;
+  hasWorkloadOverrides: boolean;
   hasAny: boolean;
 } {
   const hasComponentOverrides = hasData(componentData);
   const hasTraitOverrides = hasAnyTraitOverrides(traitMap);
+  const hasWorkloadOverrides = hasWorkloadOverridesData(workloadData);
   return {
     hasComponentOverrides,
     hasTraitOverrides,
-    hasAny: hasComponentOverrides || hasTraitOverrides,
+    hasWorkloadOverrides: hasWorkloadOverrides,
+    hasAny: hasComponentOverrides || hasTraitOverrides || hasWorkloadOverrides,
   };
 }

@@ -214,6 +214,7 @@ export async function patchReleaseBindingOverrides(
   environment: string,
   componentTypeEnvOverrides?: unknown,
   traitOverrides?: unknown,
+  workloadOverrides?: any,
 ) {
   const { component, project, organization } = extractEntityMetadata(entity);
 
@@ -229,6 +230,9 @@ export async function patchReleaseBindingOverrides(
   }
   if (traitOverrides !== undefined) {
     patchReq.traitOverrides = traitOverrides;
+  }
+  if (workloadOverrides !== undefined) {
+    patchReq.workloadOverrides = workloadOverrides;
   }
 
   return apiFetch({
