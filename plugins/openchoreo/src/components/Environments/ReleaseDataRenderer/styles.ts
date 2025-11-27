@@ -1,12 +1,16 @@
 import { makeStyles } from '@material-ui/core/styles';
 import { alpha } from '@material-ui/core/styles/colorManipulator';
 
-export const useStyles = makeStyles(theme => ({
+export const useReleaseInfoStyles = makeStyles(theme => ({
+  tabNav: {
+    height: '100%',
+    minHeight: 400,
+  },
   section: {
     marginBottom: theme.spacing(3),
   },
   sectionTitle: {
-    fontSize: theme.typography.h5.fontSize,
+    fontSize: theme.typography.h6.fontSize,
     fontWeight: 600,
     marginBottom: theme.spacing(2),
     color: theme.palette.text.primary,
@@ -55,7 +59,7 @@ export const useStyles = makeStyles(theme => ({
     gap: theme.spacing(1),
     marginBottom: theme.spacing(1.5),
   },
-  resourceKind: {
+  resourceName: {
     fontWeight: 600,
     fontSize: theme.typography.body1.fontSize,
   },
@@ -89,22 +93,6 @@ export const useStyles = makeStyles(theme => ({
     fontWeight: 500,
     fontSize: '0.75rem',
   },
-  conditionRow: {
-    padding: theme.spacing(1.5),
-    backgroundColor: alpha(
-      theme.palette.type === 'dark'
-        ? theme.palette.common.white
-        : theme.palette.common.black,
-      0.02,
-    ),
-    borderRadius: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-  },
-  emptyValue: {
-    color: theme.palette.text.disabled,
-    fontStyle: 'italic',
-    fontSize: theme.typography.body2.fontSize,
-  },
   accordion: {
     backgroundColor: alpha(
       theme.palette.type === 'dark'
@@ -119,6 +107,11 @@ export const useStyles = makeStyles(theme => ({
     border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
     marginBottom: theme.spacing(1),
   },
+  emptyValue: {
+    color: theme.palette.text.disabled,
+    fontStyle: 'italic',
+    fontSize: theme.typography.body2.fontSize,
+  },
 }));
 
-export type StyleClasses = ReturnType<typeof useStyles>;
+export type ReleaseInfoStyleClasses = ReturnType<typeof useReleaseInfoStyles>;

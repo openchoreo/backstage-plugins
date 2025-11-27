@@ -22,8 +22,8 @@ import {
 } from '@openchoreo/backstage-design-system';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ExtensionIcon from '@material-ui/icons/Extension';
-import { ContainerSection } from './Workload/WorkloadEditor/ContainerSection';
 import { WorkloadProvider } from './Workload/WorkloadContext';
+import { ContainerContent } from './Workload/WorkloadEditor';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -572,7 +572,7 @@ export const EnvironmentOverridesPage = ({
               setWorkloadSpec={() => {}}
               isDeploying={false}
             >
-              <ContainerSection
+              <ContainerContent
                 containers={formState.workloadFormData.containers || {}}
                 onContainerChange={handleContainerChange}
                 onEnvVarChange={handleEnvVarChange}
