@@ -7,7 +7,11 @@ import {
   BuildInfoService,
   ObservabilityNotConfiguredError as BuildObservabilityNotConfiguredError,
 } from './services/BuildService/BuildInfoService';
-import { CellDiagramService, WorkloadService } from './types';
+import {
+  CellDiagramService,
+  WorkloadService,
+  SecretReferencesService,
+} from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
 import {
@@ -30,6 +34,7 @@ export async function createRouter({
   dashboardInfoService,
   traitInfoService,
   workflowSchemaService,
+  secretReferencesInfoService,
 }: {
   environmentInfoService: EnvironmentInfoService;
   cellDiagramInfoService: CellDiagramService;
@@ -42,6 +47,7 @@ export async function createRouter({
   dashboardInfoService: DashboardInfoService;
   traitInfoService: TraitInfoService;
   workflowSchemaService: WorkflowSchemaService;
+  secretReferencesInfoService: SecretReferencesService;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
@@ -627,6 +633,7 @@ export async function createRouter({
       environment,
       componentTypeEnvOverrides,
       traitOverrides,
+      workloadOverrides,
     } = req.body;
 
     if (!componentName || !projectName || !orgName || !environment) {
@@ -643,6 +650,7 @@ export async function createRouter({
         environment: environment as string,
         componentTypeEnvOverrides: componentTypeEnvOverrides,
         traitOverrides: traitOverrides,
+        workloadOverrides: workloadOverrides,
       }),
     );
   });
@@ -669,6 +677,21 @@ export async function createRouter({
         organizationName: organizationName as string,
         environmentName: environmentName as string,
       }),
+    );
+  });
+
+  // Endpoint for listing secret references
+  router.get('/secret-references', async (req, res) => {
+    const { organizationName } = req.query;
+
+    if (!organizationName) {
+      throw new InputError('organizationName is a required query parameter');
+    }
+
+    res.json(
+      await secretReferencesInfoService.fetchSecretReferences(
+        organizationName as string,
+      ),
     );
   });
 

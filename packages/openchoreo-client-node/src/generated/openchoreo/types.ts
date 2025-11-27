@@ -106,6 +106,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/orgs/{orgName}/secret-references': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List secret references for an organization */
+    get: operations['listSecretReferences'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/orgs/{orgName}/dataplanes': {
     parameters: {
       query?: never;
@@ -706,6 +723,35 @@ export interface components {
           [key: string]: unknown;
         };
       };
+    };
+    SecretReferenceResponse: {
+      name: string;
+      namespace: string;
+      displayName?: string;
+      description?: string;
+      secretStores?: components['schemas']['SecretStoreReference'][];
+      /** @description Duration string for refresh interval (e.g., "5m", "1h") */
+      refreshInterval?: string;
+      data?: components['schemas']['SecretDataSourceInfo'][];
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      lastRefreshTime?: string;
+      status: string;
+    };
+    SecretStoreReference: {
+      name: string;
+      namespace: string;
+      kind: string;
+    };
+    SecretDataSourceInfo: {
+      secretKey: string;
+      remoteRef: components['schemas']['RemoteReferenceInfo'];
+    };
+    RemoteReferenceInfo: {
+      key: string;
+      property?: string;
+      version?: string;
     };
     OrganizationResponse: {
       name: string;
@@ -1333,6 +1379,39 @@ export interface operations {
             data?: components['schemas']['OrganizationResponse'];
           };
         };
+      };
+    };
+  };
+  listSecretReferences: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['SecretReferenceResponse'][];
+            };
+          };
+        };
+      };
+      /** @description Organization not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

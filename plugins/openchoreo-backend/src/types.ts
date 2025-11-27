@@ -1,5 +1,6 @@
 import { Project } from '@wso2/cell-diagram';
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 
 // Import generated types from observability client
 export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
@@ -144,6 +145,10 @@ export interface RuntimeLogsService {
     orgName: string,
     projectName: string,
   ): Promise<RuntimeLogsResponse>;
+}
+
+export interface SecretReferencesService {
+  fetchSecretReferences(orgName: string): Promise<ModelsSecretReferences>;
 }
 
 // LogEntry and RuntimeLogsResponse are now imported from the generated observability client
