@@ -13,7 +13,6 @@ import {
   EntityDependsOnResourcesCard,
   EntityHasComponentsCard,
   EntityHasResourcesCard,
-  EntityHasSubcomponentsCard,
   EntityHasSystemsCard,
   EntityLayout,
   EntityLinksCard,
@@ -66,6 +65,9 @@ import {
   CellDiagram,
   RuntimeLogs,
   Workflows,
+  WorkflowsOverviewCard,
+  ProductionOverviewCard,
+  RuntimeHealthCard,
 } from '@openchoreo/backstage-plugin';
 
 import { ObservabilityMetrics } from '@openchoreo/backstage-plugin-openchoreo-observability';
@@ -140,18 +142,23 @@ const entityWarningContent = (
 const overviewContent = (
   <Grid container spacing={3} alignItems="stretch">
     {entityWarningContent}
+
+    {/* OpenChoreo Summary Cards */}
+    <Grid item md={4} xs={12}>
+      <WorkflowsOverviewCard />
+    </Grid>
+    <Grid item md={4} xs={12}>
+      <ProductionOverviewCard />
+    </Grid>
+    <Grid item md={4} xs={12}>
+      <RuntimeHealthCard />
+    </Grid>
+
     <Grid item md={6}>
       <EntityAboutCard variant="gridItem" />
     </Grid>
     <Grid item md={6} xs={12}>
       <EntityCatalogGraphCard variant="gridItem" height={400} />
-    </Grid>
-
-    <Grid item md={4} xs={12}>
-      <EntityLinksCard />
-    </Grid>
-    <Grid item md={8} xs={12}>
-      <EntityHasSubcomponentsCard variant="gridItem" />
     </Grid>
   </Grid>
 );

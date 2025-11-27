@@ -1,6 +1,7 @@
 import {
   createPlugin,
   createRoutableExtension,
+  createComponentExtension,
 } from '@backstage/core-plugin-api';
 import {
   rootCatalogEnvironmentRouteRef,
@@ -48,5 +49,36 @@ export const Workflows = choreoPlugin.provide(
     name: 'ChoreoWorkflows',
     component: () => import('./components/Workflows').then(m => m.Workflows),
     mountPoint: rootCatalogWorkflowsRouteRef,
+  }),
+);
+
+// Overview cards (non-routable components for entity overview page)
+export const WorkflowsOverviewCard = choreoPlugin.provide(
+  createComponentExtension({
+    name: 'WorkflowsOverviewCard',
+    component: {
+      lazy: () =>
+        import('./components/Workflows').then(m => m.WorkflowsOverviewCard),
+    },
+  }),
+);
+
+export const ProductionOverviewCard = choreoPlugin.provide(
+  createComponentExtension({
+    name: 'ProductionOverviewCard',
+    component: {
+      lazy: () =>
+        import('./components/Environments').then(m => m.ProductionOverviewCard),
+    },
+  }),
+);
+
+export const RuntimeHealthCard = choreoPlugin.provide(
+  createComponentExtension({
+    name: 'RuntimeHealthCard',
+    component: {
+      lazy: () =>
+        import('./components/RuntimeLogs').then(m => m.RuntimeHealthCard),
+    },
   }),
 );
