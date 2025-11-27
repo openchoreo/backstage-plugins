@@ -39,6 +39,9 @@ const useStyles = makeStyles(theme => ({
   },
   subtitle: {
     color: theme.palette.text.secondary,
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
   },
   actions: {
     display: 'flex',
@@ -54,7 +57,7 @@ const useStyles = makeStyles(theme => ({
 
 interface DetailPageLayoutProps {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   onBack: () => void;
   actions?: ReactNode;
   children: ReactNode;
@@ -90,9 +93,15 @@ export const DetailPageLayout = ({
               {title}
             </Typography>
             {subtitle && (
-              <Typography variant="body2" className={classes.subtitle}>
-                {subtitle}
-              </Typography>
+              <Box className={classes.subtitle}>
+                {typeof subtitle === 'string' ? (
+                  <Typography variant="body2" color="textSecondary">
+                    {subtitle}
+                  </Typography>
+                ) : (
+                  subtitle
+                )}
+              </Box>
             )}
           </Box>
         </Box>

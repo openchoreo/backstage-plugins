@@ -1,0 +1,371 @@
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+  Button,
+  Box,
+  Typography,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+import Form from '@rjsf/material-ui';
+import validator from '@rjsf/validator-ajv8';
+import { RJSFValidationError } from '@rjsf/utils';
+import { JSONSchema7 } from 'json-schema';
+import {
+  useApi,
+  discoveryApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import {
+  fetchWorkflowSchema,
+  updateComponentWorkflowSchema,
+} from '../../api/workflows';
+import {
+  CHOREO_ANNOTATIONS,
+  sanitizeLabel,
+} from '@openchoreo/backstage-plugin-common';
+import {
+  VerticalTabNav,
+  TabItemData,
+} from '@openchoreo/backstage-design-system';
+import { DetailPageLayout } from '../Environments/components/DetailPageLayout';
+import { ChangesPreview } from './EditWorkflowConfigs/ChangesPreview';
+import {
+  addTitlesToSchema,
+  calculateChanges,
+} from './EditWorkflowConfigs/utils';
+
+const useStyles = makeStyles(theme => ({
+  tabNav: {
+    height: '100%',
+    minHeight: 400,
+  },
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing(4),
+    gap: theme.spacing(2),
+    minHeight: '400px',
+  },
+  errorContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '400px',
+    gap: theme.spacing(2),
+  },
+  errorBanner: {
+    padding: theme.spacing(2),
+    backgroundColor: theme.palette.error.light,
+    borderRadius: theme.shape.borderRadius,
+    marginBottom: theme.spacing(2),
+  },
+}));
+
+interface WorkflowConfigPageProps {
+  workflowName: string;
+  currentWorkflowSchema: { [key: string]: unknown } | null;
+  onBack: () => void;
+  onSaved: () => void;
+}
+
+export const WorkflowConfigPage = ({
+  workflowName,
+  currentWorkflowSchema,
+  onBack,
+  onSaved,
+}: WorkflowConfigPageProps) => {
+  const classes = useStyles();
+  const { entity } = useEntity();
+  const discovery = useApi(discoveryApiRef);
+  const identityApi = useApi(identityApiRef);
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [schema, setSchema] = useState<JSONSchema7 | null>(null);
+  const [formData, setFormData] = useState<any>({});
+  const [initialFormData, setInitialFormData] = useState<any>({});
+  const [formErrors, setFormErrors] = useState<RJSFValidationError[]>([]);
+  const [activeTab, setActiveTab] = useState<string>('');
+
+  const loadWorkflowSchema = useCallback(async () => {
+    if (!workflowName) {
+      setError('No workflow name provided');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const organization =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+      if (!organization) {
+        throw new Error('Organization not found in entity');
+      }
+
+      const schemaResponse = await fetchWorkflowSchema(
+        discovery,
+        identityApi,
+        organization,
+        workflowName,
+      );
+
+      if (schemaResponse.success && schemaResponse.data) {
+        const rawSchema = schemaResponse.data as JSONSchema7;
+        setSchema(addTitlesToSchema(rawSchema));
+      } else {
+        throw new Error('Failed to fetch workflow schema');
+      }
+
+      if (currentWorkflowSchema) {
+        setFormData(currentWorkflowSchema);
+        setInitialFormData(currentWorkflowSchema);
+      } else {
+        setFormData({});
+        setInitialFormData({});
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }, [entity, discovery, identityApi, workflowName, currentWorkflowSchema]);
+
+  useEffect(() => {
+    if (workflowName) {
+      loadWorkflowSchema();
+    }
+  }, [workflowName, loadWorkflowSchema]);
+
+  // Build tabs from schema properties
+  const tabs = useMemo<TabItemData[]>(() => {
+    if (!schema?.properties) return [];
+
+    return Object.entries(schema.properties)
+      .filter(([_, value]) => typeof value === 'object')
+      .map(([key, value]) => {
+        const propSchema = value as JSONSchema7;
+
+        return {
+          id: key,
+          label: propSchema.title || sanitizeLabel(key),
+        };
+      });
+  }, [schema]);
+
+  // Set default active tab when tabs are loaded
+  useEffect(() => {
+    if (tabs.length > 0 && !activeTab) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
+
+  // Create sub-schema for active tab
+  const activePropertySchema = useMemo<JSONSchema7 | null>(() => {
+    if (!schema?.properties || !activeTab) return null;
+
+    const propSchema = schema.properties[activeTab];
+    if (!propSchema || typeof propSchema !== 'object') return null;
+
+    return {
+      type: 'object',
+      properties: {
+        [activeTab]: propSchema as JSONSchema7,
+      },
+    };
+  }, [schema, activeTab]);
+
+  const getChanges = () => calculateChanges(initialFormData, formData);
+
+  const handleSaveClick = () => {
+    if (schema) {
+      const validationResult = validator.validateFormData(formData, schema);
+      if (validationResult.errors && validationResult.errors.length > 0) {
+        setFormErrors(validationResult.errors);
+        setError('Please fix the validation errors before saving');
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+    }
+
+    const changes = getChanges();
+    if (changes.length === 0) {
+      setError('No changes to save');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+    setShowSaveConfirm(true);
+  };
+
+  const handleCancelSave = () => {
+    setShowSaveConfirm(false);
+    setError(null);
+  };
+
+  const handleConfirmSave = async () => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      await updateComponentWorkflowSchema(
+        entity,
+        discovery,
+        identityApi,
+        formData,
+      );
+
+      setShowSaveConfirm(false);
+      onSaved();
+      onBack();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to update workflow schema',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleFormChange = (e: any) => {
+    // Merge the changed property into the main formData
+    setFormData((prev: any) => ({
+      ...prev,
+      [activeTab]: e.formData[activeTab],
+    }));
+    setFormErrors(e.errors || []);
+  };
+
+  const hasValidationErrors = formErrors.length > 0;
+  const hasChanges = getChanges().length > 0;
+
+  const headerActions = (
+    <Button
+      variant="contained"
+      color="primary"
+      onClick={handleSaveClick}
+      disabled={saving || loading || hasValidationErrors || !hasChanges}
+    >
+      {saving ? 'Saving...' : 'Save Changes'}
+    </Button>
+  );
+
+  // Render tab content with individual form
+  const renderTabContent = () => {
+    if (!activePropertySchema || !activeTab || !schema?.properties) return null;
+
+    return (
+      <Box>
+        {error && (
+          <Box className={classes.errorBanner}>
+            <Typography color="error" variant="body2">
+              {error}
+            </Typography>
+          </Box>
+        )}
+
+        <Form
+          schema={activePropertySchema}
+          formData={{ [activeTab]: formData[activeTab] }}
+          onChange={handleFormChange}
+          validator={validator}
+          liveValidate
+          showErrorList={false}
+          noHtml5Validate
+        >
+          <div />
+        </Form>
+      </Box>
+    );
+  };
+
+  return (
+    <>
+      <DetailPageLayout
+        title="Configure Workflow"
+        subtitle={workflowName}
+        onBack={onBack}
+        actions={headerActions}
+      >
+        {loading && (
+          <Box className={classes.loadingContainer}>
+            <CircularProgress />
+            <Typography variant="body2" color="textSecondary">
+              Loading workflow schema...
+            </Typography>
+          </Box>
+        )}
+
+        {error && !schema && !loading && (
+          <Box className={classes.errorContainer}>
+            <Typography color="error">{error}</Typography>
+            <Button onClick={loadWorkflowSchema} variant="outlined">
+              Retry
+            </Button>
+          </Box>
+        )}
+
+        {!loading && !error && schema && tabs.length === 0 && (
+          <Box className={classes.errorContainer}>
+            <Typography color="textSecondary">
+              No configuration options available for this workflow
+            </Typography>
+          </Box>
+        )}
+
+        {!loading && schema && tabs.length > 0 && (
+          <VerticalTabNav
+            tabs={tabs}
+            activeTabId={activeTab}
+            onChange={setActiveTab}
+            className={classes.tabNav}
+          >
+            {renderTabContent()}
+          </VerticalTabNav>
+        )}
+      </DetailPageLayout>
+
+      <Dialog
+        open={showSaveConfirm}
+        onClose={handleCancelSave}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Changes</DialogTitle>
+        <DialogContent>
+          <ChangesPreview changes={getChanges()} />
+          {error && (
+            <Box mt={2} p={2} bgcolor="error.light" borderRadius={1}>
+              <Typography color="error" variant="body2">
+                <strong>Error:</strong> {error}
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelSave} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmSave}
+            color="primary"
+            variant="contained"
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
