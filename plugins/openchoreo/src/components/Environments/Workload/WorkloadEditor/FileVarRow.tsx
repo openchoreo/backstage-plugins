@@ -154,6 +154,10 @@ export function FileVarRow({
       try {
         const content = event.target?.result as string;
         onFileVarChange(containerName, index, 'value', content);
+        // Clear valueFrom when setting value from file upload
+        if (content && fileVar.valueFrom) {
+          onFileVarChange(containerName, index, 'valueFrom', undefined as any);
+        }
         if (!fileVar.key) {
           onFileVarChange(containerName, index, 'key', file.name);
         }
@@ -280,9 +284,24 @@ export function FileVarRow({
                     value={fileVar.valueFrom?.secretRef?.name || ''}
                     onChange={e => {
                       const secretName = e.target.value as string;
-                      onFileVarChange(containerName, index, 'valueFrom', {
+                      const valueFrom = {
                         secretRef: { name: secretName, key: '' },
-                      } as any);
+                      } as any;
+                      onFileVarChange(
+                        containerName,
+                        index,
+                        'valueFrom',
+                        valueFrom,
+                      );
+                      // Clear value when setting valueFrom
+                      if (secretName && fileVar.value) {
+                        onFileVarChange(
+                          containerName,
+                          index,
+                          'value',
+                          undefined as any,
+                        );
+                      }
                     }}
                     label="Secret Name"
                     disabled={disabled}
@@ -308,9 +327,24 @@ export function FileVarRow({
                       const secretKey = e.target.value as string;
                       const currentSecret =
                         fileVar.valueFrom?.secretRef?.name || '';
-                      onFileVarChange(containerName, index, 'valueFrom', {
+                      const valueFrom = {
                         secretRef: { name: currentSecret, key: secretKey },
-                      } as any);
+                      } as any;
+                      onFileVarChange(
+                        containerName,
+                        index,
+                        'valueFrom',
+                        valueFrom,
+                      );
+                      // Clear value when setting valueFrom
+                      if (secretKey && fileVar.value) {
+                        onFileVarChange(
+                          containerName,
+                          index,
+                          'value',
+                          undefined as any,
+                        );
+                      }
                     }}
                     label="Secret Key"
                     disabled={disabled || !fileVar.valueFrom?.secretRef?.name}
@@ -367,14 +401,19 @@ export function FileVarRow({
                   disabled={disabled}
                   label={hasContent ? 'Edit Content' : 'Content'}
                   value={fileVar.value || ''}
-                  onChange={e =>
-                    onFileVarChange(
-                      containerName,
-                      index,
-                      'value',
-                      e.target.value,
-                    )
-                  }
+                  onChange={e => {
+                    const newValue = e.target.value;
+                    onFileVarChange(containerName, index, 'value', newValue);
+                    // Clear valueFrom when setting value
+                    if (newValue && fileVar.valueFrom) {
+                      onFileVarChange(
+                        containerName,
+                        index,
+                        'valueFrom',
+                        undefined as any,
+                      );
+                    }
+                  }}
                   fullWidth
                   variant="outlined"
                   size="small"

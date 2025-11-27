@@ -156,9 +156,24 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                     value={envVar.valueFrom?.secretRef?.name || ''}
                     onChange={e => {
                       const secretName = e.target.value as string;
-                      onEnvVarChange(containerName, index, 'valueFrom', {
+                      const valueFrom = {
                         secretRef: { name: secretName, key: '' },
-                      } as any);
+                      } as any;
+                      onEnvVarChange(
+                        containerName,
+                        index,
+                        'valueFrom',
+                        valueFrom,
+                      );
+                      // Clear value when setting valueFrom
+                      if (secretName && envVar.value) {
+                        onEnvVarChange(
+                          containerName,
+                          index,
+                          'value',
+                          undefined as any,
+                        );
+                      }
                     }}
                     label="Secret Name"
                     disabled={disabled}
@@ -184,9 +199,24 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                       const secretKey = e.target.value as string;
                       const currentSecret =
                         envVar.valueFrom?.secretRef?.name || '';
-                      onEnvVarChange(containerName, index, 'valueFrom', {
+                      const valueFrom = {
                         secretRef: { name: currentSecret, key: secretKey },
-                      } as any);
+                      } as any;
+                      onEnvVarChange(
+                        containerName,
+                        index,
+                        'valueFrom',
+                        valueFrom,
+                      );
+                      // Clear value when setting valueFrom
+                      if (secretKey && envVar.value) {
+                        onEnvVarChange(
+                          containerName,
+                          index,
+                          'value',
+                          undefined as any,
+                        );
+                      }
                     }}
                     label="Secret Key"
                     disabled={disabled || !envVar.valueFrom?.secretRef?.name}
@@ -211,9 +241,19 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                 disabled={disabled}
                 label="Value"
                 value={envVar.value || ''}
-                onChange={e =>
-                  onEnvVarChange(containerName, index, 'value', e.target.value)
-                }
+                onChange={e => {
+                  const newValue = e.target.value;
+                  onEnvVarChange(containerName, index, 'value', newValue);
+                  // Clear valueFrom when setting value
+                  if (newValue && envVar.valueFrom) {
+                    onEnvVarChange(
+                      containerName,
+                      index,
+                      'valueFrom',
+                      undefined as any,
+                    );
+                  }
+                }}
                 fullWidth
                 variant="outlined"
                 size="small"
