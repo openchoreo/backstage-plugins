@@ -170,8 +170,8 @@ export const Environments = () => {
             entity,
             discovery,
             identityApi,
-            pendingAction.sourceEnvironment,
-            pendingAction.targetEnvironment,
+            pendingAction.sourceEnvironment.toLowerCase(),
+            pendingAction.targetEnvironment.toLowerCase(),
           );
           notification.showSuccess(
             `Successfully promoted to ${pendingAction.targetEnvironment}`,
