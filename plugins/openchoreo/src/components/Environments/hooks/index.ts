@@ -6,4 +6,6 @@ export { useEnvironmentPolling } from './useEnvironmentPolling';
 export { useEnvironmentActions } from './useEnvironmentActions';
 export { useOverrideChanges } from './useOverrideChanges';
 export { useOverridesData } from './useOverridesData';
+export { useRequiredOverridesCheck } from './useRequiredOverridesCheck';
+export type { RequiredOverridesCheckResult } from './useRequiredOverridesCheck';
 export { isAlreadyPromoted } from './promotionUtils';

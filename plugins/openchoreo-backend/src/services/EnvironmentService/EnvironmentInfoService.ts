@@ -1026,6 +1026,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     componentTypeEnvOverrides: any;
     traitOverrides?: any;
     workloadOverrides?: any;
+    releaseName?: string;
   }) {
     const startTime = Date.now();
     this.logger.debug(
@@ -1054,6 +1055,8 @@ export class EnvironmentInfoService implements EnvironmentService {
             },
           },
           body: {
+            environment: request.environment,
+            releaseName: request.releaseName,
             componentTypeEnvOverrides: request.componentTypeEnvOverrides,
             traitOverrides: request.traitOverrides,
             workloadOverrides: request.workloadOverrides,

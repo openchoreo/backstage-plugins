@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import { Entity } from '@backstage/catalog-model';
 import {
   useApi,
@@ -16,6 +17,7 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import { calculateHasOverrides } from './overridesUtils';
 import { DetailPageLayout } from './components/DetailPageLayout';
 import type { Environment } from './hooks/useEnvironmentData';
+import type { PendingAction } from './types';
 import {
   VerticalTabNav,
   TabItemData,
@@ -57,6 +59,10 @@ interface EnvironmentOverridesPageProps {
   entity: Entity;
   onBack: () => void;
   onSaved: () => void;
+  /** Pending action to execute after saving overrides */
+  pendingAction?: PendingAction;
+  /** Callback when overrides are saved and pending action should be executed */
+  onPendingActionComplete?: (action: PendingAction) => Promise<void>;
 }
 
 export const EnvironmentOverridesPage = ({
@@ -64,6 +70,8 @@ export const EnvironmentOverridesPage = ({
   entity,
   onBack,
   onSaved,
+  pendingAction,
+  onPendingActionComplete,
 }: EnvironmentOverridesPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
@@ -138,6 +146,12 @@ export const EnvironmentOverridesPage = ({
       });
     }
 
+    // When there's a pending action, only show the Component tab
+    // since required overrides are only in componentTypeEnvOverrides
+    if (pendingAction) {
+      return tabList;
+    }
+
     // Add trait tabs
     Object.keys(schemas.traitSchemasMap).forEach(traitName => {
       const hasTraitData =
@@ -168,6 +182,7 @@ export const EnvironmentOverridesPage = ({
     formState.componentTypeFormData,
     formState.traitFormDataMap,
     formState.workloadFormData,
+    pendingAction,
   ]);
 
   // Set initial active tab
@@ -421,11 +436,19 @@ export const EnvironmentOverridesPage = ({
         formState.componentTypeFormData,
         formState.traitFormDataMap,
         formState.workloadFormData,
+        pendingAction?.releaseName,
       );
 
       setShowSaveConfirm(false);
-      onSaved();
-      onBack();
+
+      // If there's a pending action, execute it after saving
+      if (pendingAction && onPendingActionComplete) {
+        await onPendingActionComplete(pendingAction);
+        // onPendingActionComplete handles navigation
+      } else {
+        onSaved();
+        onBack();
+      }
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : 'Failed to save overrides',
@@ -494,24 +517,34 @@ export const EnvironmentOverridesPage = ({
     schemas.componentTypeSchema ||
     Object.keys(schemas.traitSchemasMap).length > 0;
 
+  // Determine button text based on pending action
+  const getSaveButtonText = () => {
+    if (saving) return 'Saving...';
+    if (pendingAction?.type === 'deploy') return 'Save & Deploy';
+    if (pendingAction?.type === 'promote') return 'Save & Promote';
+    return 'Save Overrides';
+  };
+
   // Header actions - moved from footer
   const headerActions =
     !loading && !error && hasSchemas ? (
       <>
-        <Button
-          onClick={() => handleDeleteClick('all')}
-          color="secondary"
-          disabled={deleting || saving || loading || !initialOverrides.hasAny}
-        >
-          Delete All
-        </Button>
+        {!pendingAction && (
+          <Button
+            onClick={() => handleDeleteClick('all')}
+            color="secondary"
+            disabled={deleting || saving || loading || !initialOverrides.hasAny}
+          >
+            Delete All
+          </Button>
+        )}
         <Button
           onClick={handleSaveClick}
           variant="contained"
           color="primary"
           disabled={saving || deleting || loading || !!error}
         >
-          {saving ? 'Saving...' : 'Save Overrides'}
+          {getSaveButtonText()}
         </Button>
       </>
     ) : null;
@@ -528,6 +561,7 @@ export const EnvironmentOverridesPage = ({
           onDelete={() => handleDeleteClick('component')}
           hasInitialData={initialOverrides.hasComponentOverrides}
           disabled={saving || deleting}
+          showValidation={!!pendingAction}
         />
       );
     }
@@ -555,6 +589,7 @@ export const EnvironmentOverridesPage = ({
                 0
             }
             disabled={saving || deleting}
+            showValidation={!!pendingAction}
           />
         );
       }
@@ -604,7 +639,9 @@ export const EnvironmentOverridesPage = ({
   return (
     <>
       <DetailPageLayout
-        title="Configure Overrides"
+        title={
+          pendingAction ? 'Configure Required Overrides' : 'Configure Overrides'
+        }
         subtitle={environment.name}
         onBack={onBack}
         actions={headerActions}
@@ -626,7 +663,18 @@ export const EnvironmentOverridesPage = ({
 
         {!loading && !error && hasSchemas && (
           <>
-            {!currentOverrides.hasAny && (
+            {pendingAction && (
+              <Box mb={2}>
+                <Alert severity="warning">
+                  <strong>Required configuration needed.</strong>{' '}
+                  {pendingAction.type === 'deploy'
+                    ? `Please fill in the required fields below before deploying to ${pendingAction.targetEnvironment}.`
+                    : `Please fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`}
+                </Alert>
+              </Box>
+            )}
+
+            {!currentOverrides.hasAny && !pendingAction && (
               <Box className={classes.helpText}>
                 <Typography variant="body2" gutterBottom>
                   <strong>Environment Overrides</strong>
