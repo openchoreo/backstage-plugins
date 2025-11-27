@@ -33,7 +33,8 @@ export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
     Object.values(changes.traits).reduce(
       (sum, traitChanges) => sum + traitChanges.length,
       0,
-    );
+    ) +
+    (changes.workload?.length || 0);
 
   const renderChangesList = (changesList: Change[]) => (
     <>
@@ -103,7 +104,7 @@ export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
 
           {/* Trait Overrides */}
           {Object.keys(changes.traits).length > 0 && (
-            <Box>
+            <Box mb={2}>
               <Typography
                 variant="subtitle2"
                 style={{ fontWeight: 'bold', marginBottom: 8 }}
@@ -130,6 +131,24 @@ export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
               )}
             </Box>
           )}
+
+          {/* Workload Overrides */}
+          {(changes as any).workload &&
+            (changes as any).workload.length > 0 && (
+              <Box mb={2}>
+                <Typography
+                  variant="subtitle2"
+                  style={{ fontWeight: 'bold', marginBottom: 8 }}
+                >
+                  Workload Overrides ({(changes as any).workload.length}{' '}
+                  {(changes as any).workload.length === 1
+                    ? 'change'
+                    : 'changes'}
+                  ):
+                </Typography>
+                {renderChangesList((changes as any).workload)}
+              </Box>
+            )}
 
           {/* No changes */}
           {totalChanges === 0 && (

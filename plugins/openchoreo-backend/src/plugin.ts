@@ -15,6 +15,7 @@ import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoServ
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
+import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 
 /**
  * choreoPlugin backend plugin
@@ -105,6 +106,12 @@ export const choreoPlugin = createBackendPlugin({
           openchoreoConfig.get('baseUrl'),
         );
 
+        const secretReferencesInfoService = new SecretReferencesService(
+          logger,
+          openchoreoConfig.get('baseUrl'),
+          openchoreoConfig.getOptional('token'),
+        );
+
         httpRouter.use(
           await createRouter({
             environmentInfoService,
@@ -118,6 +125,7 @@ export const choreoPlugin = createBackendPlugin({
             dashboardInfoService,
             traitInfoService,
             workflowSchemaService,
+            secretReferencesInfoService,
           }),
         );
       },

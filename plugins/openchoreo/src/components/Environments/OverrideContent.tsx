@@ -23,6 +23,7 @@ interface OverrideContentProps {
   onDelete: () => void;
   hasInitialData: boolean;
   disabled?: boolean;
+  customContent?: React.ReactNode;
 }
 
 export const OverrideContent: FC<OverrideContentProps> = ({
@@ -32,6 +33,7 @@ export const OverrideContent: FC<OverrideContentProps> = ({
   onChange,
   onDelete,
   hasInitialData,
+  customContent,
   disabled = false,
 }) => {
   const classes = useStyles();
@@ -40,9 +42,27 @@ export const OverrideContent: FC<OverrideContentProps> = ({
     onChange(e.formData);
   };
 
-  return (
-    <Box className={classes.container}>
-      {schema ? (
+  const renderContent = () => {
+    if (customContent) {
+      return (
+        <>
+          {customContent}
+          <Button
+            onClick={onDelete}
+            color="secondary"
+            startIcon={<DeleteIcon />}
+            disabled={!hasInitialData || disabled}
+            className={classes.deleteButton}
+            size="small"
+          >
+            Delete {title}
+          </Button>
+        </>
+      );
+    }
+
+    if (schema) {
+      return (
         <>
           <Form
             schema={schema}
@@ -68,11 +88,15 @@ export const OverrideContent: FC<OverrideContentProps> = ({
             Delete {title}
           </Button>
         </>
-      ) : (
-        <Typography variant="body2" color="textSecondary">
-          No override schema available for this section.
-        </Typography>
-      )}
-    </Box>
-  );
+      );
+    }
+
+    return (
+      <Typography variant="body2" color="textSecondary">
+        No override schema available for this section.
+      </Typography>
+    );
+  };
+
+  return <Box className={classes.container}>{renderContent()}</Box>;
 };
