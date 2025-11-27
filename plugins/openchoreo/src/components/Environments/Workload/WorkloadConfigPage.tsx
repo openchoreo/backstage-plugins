@@ -12,15 +12,20 @@ import {
   ModelsWorkload,
   ModelsBuild,
 } from '@openchoreo/backstage-plugin-common';
+import { JSONSchema7 } from 'json-schema';
 import { applyWorkload, fetchWorkloadInfo } from '../../../api/workloadInfo';
 import {
   createComponentRelease,
   deployRelease,
+  fetchComponentReleaseSchema,
+  fetchReleaseBindings,
+  ReleaseBinding,
 } from '../../../api/environments';
 import { WorkloadProvider } from './WorkloadContext';
 import { WorkloadEditor } from './WorkloadEditor';
 import { DetailPageLayout } from '../components/DetailPageLayout';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
+import { getMissingRequiredFields } from '../overridesUtils';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -44,11 +49,17 @@ const useStyles = makeStyles(theme => ({
 interface WorkloadConfigPageProps {
   onBack: () => void;
   onDeployed: () => Promise<void>;
+  /** Called when required overrides are missing and user needs to configure them */
+  onRequiredOverridesMissing?: (
+    releaseName: string,
+    environmentName: string,
+  ) => void;
 }
 
 export const WorkloadConfigPage = ({
   onBack,
   onDeployed,
+  onRequiredOverridesMissing,
 }: WorkloadConfigPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
@@ -121,6 +132,80 @@ export const WorkloadConfigPage = ({
     fetchBuilds();
   }, [entity.metadata.name, entity.metadata.annotations, identity, discovery]);
 
+  /**
+   * Check if required overrides are missing for a release
+   */
+  const checkRequiredOverrides = async (
+    releaseName: string,
+    environmentName: string,
+  ): Promise<string[]> => {
+    try {
+      // Fetch schema for the release
+      const schemaResponse = await fetchComponentReleaseSchema(
+        entity,
+        discovery,
+        identity,
+        releaseName,
+      );
+
+      if (!schemaResponse.success || !schemaResponse.data) {
+        return []; // No schema = no required fields
+      }
+
+      // Extract componentTypeEnvOverrides schema
+      // The schema response can have different structures depending on the backend
+      const schemaData = schemaResponse.data as Record<string, unknown>;
+
+      // Try direct access first (componentTypeEnvOverrides at root)
+      let componentTypeSchema = schemaData.componentTypeEnvOverrides as
+        | JSONSchema7
+        | undefined;
+
+      // If not found, try nested under properties (for wrapped schema)
+      if (!componentTypeSchema && schemaData.properties) {
+        const propsData = schemaData.properties as Record<string, unknown>;
+        componentTypeSchema = propsData.componentTypeEnvOverrides as
+          | JSONSchema7
+          | undefined;
+      }
+
+      // Check if there are actually required fields
+      if (
+        !componentTypeSchema?.required ||
+        !Array.isArray(componentTypeSchema.required) ||
+        componentTypeSchema.required.length === 0
+      ) {
+        return []; // No required fields
+      }
+
+      // Fetch existing bindings to check current values
+      const bindingsResponse = await fetchReleaseBindings(
+        entity,
+        discovery,
+        identity,
+      );
+
+      let currentOverrides: Record<string, unknown> = {};
+      if (bindingsResponse.success && bindingsResponse.data?.items) {
+        const bindings = bindingsResponse.data.items as ReleaseBinding[];
+        const binding = bindings.find(
+          b => b.environment.toLowerCase() === environmentName.toLowerCase(),
+        );
+        if (binding?.componentTypeEnvOverrides) {
+          currentOverrides = binding.componentTypeEnvOverrides as Record<
+            string,
+            unknown
+          >;
+        }
+      }
+
+      return getMissingRequiredFields(componentTypeSchema, currentOverrides);
+    } catch {
+      // On error, don't block - allow deployment to proceed
+      return [];
+    }
+  };
+
   const handleDeploy = async () => {
     if (!workloadSpec) {
       return;
@@ -142,15 +227,26 @@ export const WorkloadConfigPage = ({
         throw new Error('Failed to create release: no release name returned');
       }
 
-      // Step 3: Deploy release to lowest environment
-      await deployRelease(
-        entity,
-        discovery,
-        identity,
-        releaseResponse.data.name,
+      const releaseName = releaseResponse.data.name;
+      const targetEnvironment = 'development'; // Initial deploy always goes to development
+
+      // Step 3: Check for required overrides
+      const missingFields = await checkRequiredOverrides(
+        releaseName,
+        targetEnvironment,
       );
 
-      // Step 4: Navigate back and refresh
+      if (missingFields.length > 0 && onRequiredOverridesMissing) {
+        // Required overrides are missing - redirect to configure overrides
+        setIsDeploying(false);
+        onRequiredOverridesMissing(releaseName, targetEnvironment);
+        return;
+      }
+
+      // Step 4: Deploy release to lowest environment
+      await deployRelease(entity, discovery, identity, releaseName);
+
+      // Step 5: Navigate back and refresh
       setIsDeploying(false);
       await onDeployed();
       onBack();

@@ -24,6 +24,8 @@ interface OverrideContentProps {
   hasInitialData: boolean;
   disabled?: boolean;
   customContent?: React.ReactNode;
+  /** Enable live validation to highlight required fields */
+  showValidation?: boolean;
 }
 
 export const OverrideContent: FC<OverrideContentProps> = ({
@@ -35,6 +37,7 @@ export const OverrideContent: FC<OverrideContentProps> = ({
   hasInitialData,
   customContent,
   disabled = false,
+  showValidation = false,
 }) => {
   const classes = useStyles();
 
@@ -69,7 +72,7 @@ export const OverrideContent: FC<OverrideContentProps> = ({
             formData={formData}
             onChange={handleFormChange}
             validator={validator}
-            liveValidate={false}
+            liveValidate={showValidation}
             showErrorList={false}
             noHtml5Validate
             disabled={disabled}

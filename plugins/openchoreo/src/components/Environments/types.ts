@@ -7,13 +7,35 @@ export type { Environment } from './hooks/useEnvironmentData';
 export type { Environment as EnvironmentType } from './hooks/useEnvironmentData';
 
 /**
+ * Pending action context when redirecting to overrides page
+ */
+export interface PendingDeployAction {
+  type: 'deploy';
+  releaseName: string;
+  targetEnvironment: string;
+}
+
+export interface PendingPromoteAction {
+  type: 'promote';
+  releaseName: string;
+  sourceEnvironment: string;
+  targetEnvironment: string;
+}
+
+export type PendingAction = PendingDeployAction | PendingPromoteAction;
+
+/**
  * View mode for the Environments component
  * Controls which view is displayed (list or detail pages)
  */
 export type EnvironmentViewMode =
   | { type: 'list' }
   | { type: 'workload-config' }
-  | { type: 'overrides'; environment: Environment }
+  | {
+      type: 'overrides';
+      environment: Environment;
+      pendingAction?: PendingAction;
+    }
   | { type: 'release-details'; environment: Environment };
 
 // Type alias for the action tracker return type
