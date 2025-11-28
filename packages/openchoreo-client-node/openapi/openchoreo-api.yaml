@@ -1599,39 +1599,6 @@ paths:
                                 items:
                                   $ref: '#/components/schemas/BuildPlaneResponse'
 
-  # Build Templates
-  /orgs/{orgName}/build-templates:
-    get:
-      summary: List build templates for an organization
-      operationId: listBuildTemplates
-      tags:
-        - Builds
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/ListResponse'
-                          - type: object
-                            properties:
-                              items:
-                                type: array
-                                items:
-                                  $ref: '#/components/schemas/BuildTemplateResponse'
-
   # ComponentTypes
   /orgs/{orgName}/component-types:
     get:
@@ -1699,7 +1666,7 @@ paths:
         '404':
           description: Component type not found
 
-  # Workflows
+  # Workflows (generic workflows)
   /orgs/{orgName}/workflows:
     get:
       summary: List all workflows for an organization
@@ -1765,6 +1732,73 @@ paths:
                         additionalProperties: true
         '404':
           description: Workflow not found
+
+  # ComponentWorkflows (component-specific workflows)
+  /orgs/{orgName}/component-workflows:
+    get:
+      summary: List all component workflows for an organization
+      operationId: listComponentWorkflows
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/WorkflowResponse'
+
+  /orgs/{orgName}/component-workflows/{cwName}/schema:
+    get:
+      summary: Get the JSON schema for a specific component workflow
+      operationId: getComponentWorkflowSchema
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cwName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: JSON Schema for the component workflow
+                        additionalProperties: true
+        '404':
+          description: Component workflow not found
 
   # Traits
   /orgs/{orgName}/traits:
@@ -2108,12 +2142,12 @@ paths:
         '404':
           description: Component not found
 
-  /orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-schema:
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema:
     patch:
       summary: Update component workflow schema
       operationId: updateComponentWorkflowSchema
       tags:
-        - Components
+        - ComponentWorkflows
       parameters:
         - name: orgName
           in: path
@@ -2148,6 +2182,87 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/ComponentResponse'
+
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows:
+    post:
+      summary: Trigger a component workflow
+      operationId: triggerComponentWorkflow
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Component workflow trigger request
+              additionalProperties: true
+      responses:
+        '201':
+          description: Component workflow triggered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+
+    get:
+      summary: List component workflow runs
+      operationId: listComponentWorkflowRuns
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  type: object
+                                  description: Component workflow run
+                                  additionalProperties: true
 
   # Component Bindings
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings:
@@ -2567,83 +2682,6 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/BindingResponse'
-
-  # Builds
-  /orgs/{orgName}/projects/{projectName}/components/{componentName}/builds:
-    post:
-      summary: Trigger a new build
-      operationId: triggerBuild
-      tags:
-        - Builds
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: componentName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '201':
-          description: Build triggered successfully
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/BuildResponse'
-
-    get:
-      summary: List builds for a component
-      operationId: listBuilds
-      tags:
-        - Builds
-      parameters:
-        - name: orgName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: componentName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        allOf:
-                          - $ref: '#/components/schemas/ListResponse'
-                          - type: object
-                            properties:
-                              items:
-                                type: array
-                                items:
-                                  $ref: '#/components/schemas/BuildResponse'
 
   # Observer URLs
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url:
