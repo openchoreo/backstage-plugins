@@ -5,6 +5,42 @@ import { JSONSchema7 } from 'json-schema';
  */
 
 /**
+ * Extract default values from a JSON schema recursively.
+ * Traverses the schema and builds an object with all default values.
+ *
+ * @param schema - JSON schema to extract defaults from
+ * @returns Object with default values, or empty object if no defaults
+ */
+export function getSchemaDefaults(
+  schema: JSONSchema7 | null | undefined,
+): Record<string, unknown> {
+  if (!schema) {
+    return {};
+  }
+
+  const defaults: Record<string, unknown> = {};
+  const schemaProperties = (schema.properties || {}) as Record<
+    string,
+    JSONSchema7
+  >;
+
+  for (const [fieldName, fieldSchema] of Object.entries(schemaProperties)) {
+    if (fieldSchema.default !== undefined) {
+      // Field has an explicit default
+      defaults[fieldName] = fieldSchema.default;
+    } else if (fieldSchema.properties) {
+      // Nested object - recurse to get nested defaults
+      const nestedDefaults = getSchemaDefaults(fieldSchema);
+      if (Object.keys(nestedDefaults).length > 0) {
+        defaults[fieldName] = nestedDefaults;
+      }
+    }
+  }
+
+  return defaults;
+}
+
+/**
  * Check if object has any keys/values
  */
 export function hasData(data: Record<string, unknown> | undefined): boolean {
