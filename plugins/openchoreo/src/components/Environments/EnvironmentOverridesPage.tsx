@@ -14,7 +14,10 @@ import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-import { calculateHasOverrides } from './overridesUtils';
+import {
+  calculateHasOverrides,
+  getMissingRequiredFields,
+} from './overridesUtils';
 import { DetailPageLayout } from './components/DetailPageLayout';
 import type { Environment } from './hooks/useEnvironmentData';
 import type { PendingAction } from './types';
@@ -63,6 +66,8 @@ interface EnvironmentOverridesPageProps {
   pendingAction?: PendingAction;
   /** Callback when overrides are saved and pending action should be executed */
   onPendingActionComplete?: (action: PendingAction) => Promise<void>;
+  /** Callback when Previous button is clicked (only shown when pendingAction exists) */
+  onPrevious?: () => void;
 }
 
 export const EnvironmentOverridesPage = ({
@@ -72,6 +77,7 @@ export const EnvironmentOverridesPage = ({
   onSaved,
   pendingAction,
   onPendingActionComplete,
+  onPrevious,
 }: EnvironmentOverridesPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
@@ -128,6 +134,17 @@ export const EnvironmentOverridesPage = ({
     formState.initialTraitFormDataMap,
     formState.initialWorkloadFormData,
   );
+
+  // Calculate missing required fields for validation
+  const missingRequiredFields = useMemo(() => {
+    if (!schemas.componentTypeSchema) {
+      return [];
+    }
+    return getMissingRequiredFields(
+      schemas.componentTypeSchema,
+      formState.componentTypeFormData,
+    );
+  }, [schemas.componentTypeSchema, formState.componentTypeFormData]);
 
   // Build tabs from available schemas
   const tabs = useMemo<TabItemData[]>(() => {
@@ -406,14 +423,28 @@ export const EnvironmentOverridesPage = ({
     }));
   };
 
-  const handleSaveClick = () => {
-    const totalChanges =
-      changes.component.length +
-      Object.values(changes.traits).reduce(
-        (sum, traitChanges) => sum + traitChanges.length,
-        0,
-      ) +
-      (changes.workload?.length || 0);
+  // Calculate if there are any changes
+  const totalChanges =
+    changes.component.length +
+    Object.values(changes.traits).reduce(
+      (sum, traitChanges) => sum + traitChanges.length,
+      0,
+    ) +
+    (changes.workload?.length || 0);
+
+  const handleSaveClick = async () => {
+    // Allow skip when pendingAction exists but no changes
+    if (totalChanges === 0 && pendingAction && onPendingActionComplete) {
+      setSaving(true);
+      try {
+        await onPendingActionComplete(pendingAction);
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to deploy');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
 
     if (totalChanges === 0) {
       setSaveError('No changes to save');
@@ -517,37 +548,73 @@ export const EnvironmentOverridesPage = ({
     schemas.componentTypeSchema ||
     Object.keys(schemas.traitSchemasMap).length > 0;
 
-  // Determine button text based on pending action
+  // Determine button text based on pending action and changes
   const getSaveButtonText = () => {
-    if (saving) return 'Saving...';
-    if (pendingAction?.type === 'deploy') return 'Save & Deploy';
-    if (pendingAction?.type === 'promote') return 'Save & Promote';
+    if (saving) return pendingAction ? 'Deploying...' : 'Saving...';
+
+    if (pendingAction) {
+      const hasChanges = totalChanges > 0;
+      if (pendingAction.type === 'deploy') {
+        return hasChanges ? 'Save & Deploy' : 'Skip & Deploy';
+      }
+      if (pendingAction.type === 'promote') {
+        return hasChanges ? 'Save & Promote' : 'Skip & Promote';
+      }
+    }
+
     return 'Save Overrides';
   };
 
-  // Header actions - moved from footer
-  const headerActions =
-    !loading && !error && hasSchemas ? (
-      <>
-        {!pendingAction && (
-          <Button
-            onClick={() => handleDeleteClick('all')}
-            color="secondary"
-            disabled={deleting || saving || loading || !initialOverrides.hasAny}
-          >
-            Delete All
-          </Button>
-        )}
+  // Get the warning message for missing required fields
+  const getRequiredFieldsWarningMessage = () => {
+    if (!pendingAction) {
+      return 'Please fill in the required fields below before saving.';
+    }
+    if (pendingAction.type === 'deploy') {
+      return `Please fill in the required fields below before deploying to ${pendingAction.targetEnvironment}.`;
+    }
+    return `Please fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`;
+  };
+
+  // Header actions - show when schemas exist OR when there's a pending action (for Skip & Deploy)
+  const showActions = !loading && !error && (hasSchemas || pendingAction);
+  const headerActions = showActions ? (
+    <>
+      {!pendingAction && (
         <Button
-          onClick={handleSaveClick}
-          variant="contained"
-          color="primary"
-          disabled={saving || deleting || loading || !!error}
+          onClick={() => handleDeleteClick('all')}
+          color="secondary"
+          disabled={deleting || saving || loading || !initialOverrides.hasAny}
         >
-          {getSaveButtonText()}
+          Delete All
         </Button>
-      </>
-    ) : null;
+      )}
+      {pendingAction && onPrevious && (
+        <Button
+          onClick={onPrevious}
+          variant="outlined"
+          disabled={saving || deleting}
+          style={{ marginRight: 8 }}
+        >
+          Previous
+        </Button>
+      )}
+      <Button
+        onClick={handleSaveClick}
+        variant="contained"
+        color="primary"
+        disabled={
+          saving ||
+          deleting ||
+          loading ||
+          !!error ||
+          missingRequiredFields.length > 0
+        }
+      >
+        {getSaveButtonText()}
+      </Button>
+    </>
+  ) : null;
 
   // Render content for active tab
   const renderTabContent = () => {
@@ -561,7 +628,7 @@ export const EnvironmentOverridesPage = ({
           onDelete={() => handleDeleteClick('component')}
           hasInitialData={initialOverrides.hasComponentOverrides}
           disabled={saving || deleting}
-          showValidation={!!pendingAction}
+          showValidation
         />
       );
     }
@@ -589,7 +656,7 @@ export const EnvironmentOverridesPage = ({
                 0
             }
             disabled={saving || deleting}
-            showValidation={!!pendingAction}
+            showValidation
           />
         );
       }
@@ -640,7 +707,9 @@ export const EnvironmentOverridesPage = ({
     <>
       <DetailPageLayout
         title={
-          pendingAction ? 'Configure Required Overrides' : 'Configure Overrides'
+          pendingAction && missingRequiredFields.length > 0
+            ? 'Configure Required Overrides'
+            : 'Configure Overrides'
         }
         subtitle={environment.name}
         onBack={onBack}
@@ -663,13 +732,11 @@ export const EnvironmentOverridesPage = ({
 
         {!loading && !error && hasSchemas && (
           <>
-            {pendingAction && (
+            {missingRequiredFields.length > 0 && (
               <Box mb={2}>
                 <Alert severity="warning">
                   <strong>Required configuration needed.</strong>{' '}
-                  {pendingAction.type === 'deploy'
-                    ? `Please fill in the required fields below before deploying to ${pendingAction.targetEnvironment}.`
-                    : `Please fill in the required fields below before promoting to ${pendingAction.targetEnvironment}.`}
+                  {getRequiredFieldsWarningMessage()}
                 </Alert>
               </Box>
             )}
