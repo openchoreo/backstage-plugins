@@ -7,6 +7,7 @@ import {
   fetchReleaseBindings,
 } from '../../../api/environments';
 import { fetchWorkloadInfo } from '../../../api/workloadInfo';
+import { getSchemaDefaults } from '../overridesUtils';
 
 interface ReleaseBinding {
   name: string;
@@ -126,6 +127,9 @@ export function useOverridesData(
         releaseName,
       );
 
+      // Store component type schema for later use
+      let compTypeOverridesSchema: JSONSchema7 | null = null;
+
       if (schemaResponse.success && schemaResponse.data) {
         const wrappedSchema = schemaResponse.data as {
           properties?: {
@@ -138,7 +142,8 @@ export function useOverridesData(
         const traitOverrides = wrappedSchema.properties?.traitOverrides;
 
         if (compTypeOverrides) {
-          setComponentTypeSchema(compTypeOverrides as JSONSchema7);
+          compTypeOverridesSchema = compTypeOverrides as JSONSchema7;
+          setComponentTypeSchema(compTypeOverridesSchema);
         }
 
         if (traitOverrides?.properties) {
@@ -180,8 +185,17 @@ export function useOverridesData(
         if (currentBinding) {
           const componentOverrides =
             currentBinding.componentTypeEnvOverrides || {};
-          setComponentTypeFormData(componentOverrides);
-          setInitialComponentTypeFormData(componentOverrides);
+
+          // If no component overrides exist, use schema defaults
+          // This ensures the form shows defaults and detects no changes
+          if (Object.keys(componentOverrides).length === 0) {
+            const schemaDefaults = getSchemaDefaults(compTypeOverridesSchema);
+            setComponentTypeFormData(schemaDefaults);
+            setInitialComponentTypeFormData(schemaDefaults);
+          } else {
+            setComponentTypeFormData(componentOverrides);
+            setInitialComponentTypeFormData(componentOverrides);
+          }
 
           const existingTraitOverrides = currentBinding.traitOverrides || {};
           setTraitFormDataMap(existingTraitOverrides);
@@ -212,8 +226,10 @@ export function useOverridesData(
             setInitialWorkloadFormData(workloadOverrides);
           }
         } else {
-          setComponentTypeFormData({});
-          setInitialComponentTypeFormData({});
+          // No binding exists - use schema defaults for initial form data
+          const schemaDefaults = getSchemaDefaults(compTypeOverridesSchema);
+          setComponentTypeFormData(schemaDefaults);
+          setInitialComponentTypeFormData(schemaDefaults);
           setTraitFormDataMap({});
           setInitialTraitFormDataMap({});
           setWorkloadFormData({});
