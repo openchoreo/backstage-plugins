@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "85a8037c8596f3d5be1821795d8761522f8ed68d",
-  "lastSyncDate": "2025-11-25T13:35:00Z",
-  "lastSyncDescription": "Synced with openchoreo API changes: added GET /orgs/{orgName}/secret-references endpoint for listing organization secret references"
+  "lastSyncCommit": "970e347fdc87abd1dbcfd004a567cce92f2fe0d1",
+  "lastSyncDate": "2025-11-28T12:20:54+05:30",
+  "lastSyncDescription": "Synced with openchoreo API changes: Added ComponentWorkflow endpoints (list, get schema, update schema, trigger, list runs). Removed build-templates and build trigger/list endpoints. Moved component-workflow-schema endpoint path."
 }

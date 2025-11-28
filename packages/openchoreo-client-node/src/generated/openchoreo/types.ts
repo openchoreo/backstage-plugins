@@ -210,23 +210,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/build-templates': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List build templates for an organization */
-    get: operations['listBuildTemplates'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/orgs/{orgName}/component-types': {
     parameters: {
       query?: never;
@@ -287,6 +270,40 @@ export interface paths {
     };
     /** Get the JSON schema for a specific workflow */
     get: operations['getWorkflowSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/component-workflows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all component workflows for an organization */
+    get: operations['listComponentWorkflows'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/component-workflows/{cwName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the JSON schema for a specific component workflow */
+    get: operations['getComponentWorkflowSchema'];
     put?: never;
     post?: never;
     delete?: never;
@@ -433,7 +450,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-schema': {
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -448,6 +465,24 @@ export interface paths {
     head?: never;
     /** Update component workflow schema */
     patch: operations['updateComponentWorkflowSchema'];
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List component workflow runs */
+    get: operations['listComponentWorkflowRuns'];
+    put?: never;
+    /** Trigger a component workflow */
+    post: operations['triggerComponentWorkflow'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings': {
@@ -598,24 +633,6 @@ export interface paths {
     put?: never;
     /** Promote component to environment */
     post: operations['promoteComponent'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List builds for a component */
-    get: operations['listBuilds'];
-    put?: never;
-    /** Trigger a new build */
-    post: operations['triggerBuild'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1599,32 +1616,6 @@ export interface operations {
       };
     };
   };
-  listBuildTemplates: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['BuildTemplateResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
   listComponentTypes: {
     parameters: {
       query?: never;
@@ -1739,6 +1730,67 @@ export interface operations {
         };
       };
       /** @description Workflow not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listComponentWorkflows: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['WorkflowResponse'][];
+            };
+          };
+        };
+      };
+    };
+  };
+  getComponentWorkflowSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        cwName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description JSON Schema for the component workflow */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Component workflow not found */
       404: {
         headers: {
           [name: string]: unknown;
@@ -2060,6 +2112,66 @@ export interface operations {
       };
     };
   };
+  listComponentWorkflowRuns: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: {
+                [key: string]: unknown;
+              }[];
+            };
+          };
+        };
+      };
+    };
+  };
+  triggerComponentWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Component workflow triggered successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+    };
+  };
   getComponentBinding: {
     parameters: {
       query?: never;
@@ -2348,60 +2460,6 @@ export interface operations {
             data?: components['schemas']['ListResponse'] & {
               items?: components['schemas']['BindingResponse'][];
             };
-          };
-        };
-      };
-    };
-  };
-  listBuilds: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['BuildResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  triggerBuild: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        orgName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Build triggered successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['BuildResponse'];
           };
         };
       };
