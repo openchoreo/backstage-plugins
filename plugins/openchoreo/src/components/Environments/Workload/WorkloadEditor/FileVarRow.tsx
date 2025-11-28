@@ -279,7 +279,7 @@ export function FileVarRow({
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <FormControl fullWidth variant="outlined" size="small">
-                  <InputLabel>Secret Name</InputLabel>
+                  <InputLabel>Secret Reference Name</InputLabel>
                   <Select
                     value={fileVar.valueFrom?.secretRef?.name || ''}
                     onChange={e => {
@@ -303,11 +303,11 @@ export function FileVarRow({
                         );
                       }
                     }}
-                    label="Secret Name"
+                    label="Secret Reference Name"
                     disabled={disabled}
                   >
                     <MenuItem value="">
-                      <em>Select a secret</em>
+                      <em>Select a secret reference</em>
                     </MenuItem>
                     {secretReferences.map(secret => (
                       <MenuItem key={secret.name} value={secret.name}>
@@ -320,7 +320,7 @@ export function FileVarRow({
 
               <Grid item xs={6}>
                 <FormControl fullWidth variant="outlined" size="small">
-                  <InputLabel>Secret Key</InputLabel>
+                  <InputLabel>Secret Reference Key</InputLabel>
                   <Select
                     value={fileVar.valueFrom?.secretRef?.key || ''}
                     onChange={e => {
@@ -346,7 +346,7 @@ export function FileVarRow({
                         );
                       }
                     }}
-                    label="Secret Key"
+                    label="Secret Reference Key"
                     disabled={disabled || !fileVar.valueFrom?.secretRef?.name}
                   >
                     <MenuItem value="">
