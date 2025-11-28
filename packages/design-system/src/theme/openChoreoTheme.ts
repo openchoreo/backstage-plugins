@@ -514,5 +514,18 @@ export const openChoreoTheme = createUnifiedTheme({
         },
       },
     },
+    MuiAutocomplete: {
+      styleOverrides: {
+        option: {
+          fontSize: 14,
+        },
+        input: {
+          fontSize: 14,
+        },
+        tag: {
+          fontSize: 14,
+        },
+      },
+    },
   },
 });
