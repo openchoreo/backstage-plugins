@@ -114,12 +114,61 @@ export const BuildWorkflowParameters = ({
           throw new Error('Invalid schema response');
         }
 
-        const schema: JSONSchema7 = schemaResponse.data;
+        let schema: JSONSchema7 = schemaResponse.data;
 
         if (!ignore) {
+          // Filter out empty object properties (objects with no properties defined)
+          // This prevents rendering empty sections in the RJSF form
+          if (schema.properties) {
+            const filteredProperties: any = {};
+            Object.keys(schema.properties).forEach(key => {
+              const prop = schema.properties![key];
+              // Keep the property if:
+              // 1. It's not an object type, OR
+              // 2. It's an object with defined properties/additionalProperties, OR
+              // 3. It has other schema constraints (required, enum, etc.)
+              if (
+                typeof prop === 'object' &&
+                prop.type === 'object' &&
+                !prop.properties &&
+                !prop.additionalProperties &&
+                !prop.enum &&
+                !prop.const
+              ) {
+                // Skip empty object properties
+                return;
+              }
+              filteredProperties[key] = prop;
+            });
+            schema = {
+              ...schema,
+              properties: filteredProperties,
+              // Update required array to exclude filtered properties
+              required: schema.required?.filter(req =>
+                filteredProperties.hasOwnProperty(req)
+              ),
+            };
+          }
+
           setWorkflowSchema(schema);
           // Generate UI schema with sanitized titles for fields without explicit titles
           const generatedUiSchema = generateUiSchemaWithTitles(schema);
+
+          // Hide systemParameters.repository.revision.commit field from the form
+          // This field is set dynamically when triggering the workflow
+          if (!generatedUiSchema.systemParameters) {
+            generatedUiSchema.systemParameters = {};
+          }
+          if (!generatedUiSchema.systemParameters.repository) {
+            generatedUiSchema.systemParameters.repository = {};
+          }
+          if (!generatedUiSchema.systemParameters.repository.revision) {
+            generatedUiSchema.systemParameters.repository.revision = {};
+          }
+          generatedUiSchema.systemParameters.repository.revision.commit = {
+            'ui:widget': 'hidden',
+          };
+
           setUiSchema(generatedUiSchema);
         }
       } catch (err) {

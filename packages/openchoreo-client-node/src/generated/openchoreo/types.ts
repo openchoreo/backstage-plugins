@@ -961,6 +961,18 @@ export interface components {
       /** Format: date-time */
       createdAt: string;
     };
+    ComponentWorkflowRunResponse: {
+      name: string;
+      uuid: string;
+      componentName: string;
+      projectName: string;
+      orgName: string;
+      commit?: string;
+      status?: string;
+      /** Format: date-time */
+      createdAt: string;
+      image?: string;
+    };
     TraitResponse: {
       name: string;
       displayName?: string;
@@ -1236,10 +1248,23 @@ export interface components {
       message?: string;
     };
     UpdateWorkflowSchemaRequest: {
-      /** @description Component workflow schema as arbitrary JSON */
-      schema: {
+      systemParameters?: components['schemas']['ComponentWorkflowSystemParams'];
+      /** @description Developer-defined workflow parameters as arbitrary JSON */
+      parameters?: {
         [key: string]: unknown;
       };
+    };
+    ComponentWorkflowSystemParams: {
+      repository: components['schemas']['ComponentWorkflowRepository'];
+    };
+    ComponentWorkflowRepository: {
+      url: string;
+      revision: components['schemas']['ComponentWorkflowRepositoryRevision'];
+      appPath?: string;
+    };
+    ComponentWorkflowRepositoryRevision: {
+      branch: string;
+      commit?: string;
     };
   };
   responses: never;
@@ -2133,9 +2158,7 @@ export interface operations {
         content: {
           'application/json': components['schemas']['APIResponse'] & {
             data?: components['schemas']['ListResponse'] & {
-              items?: {
-                [key: string]: unknown;
-              }[];
+              items?: components['schemas']['ComponentWorkflowRunResponse'][];
             };
           };
         };
@@ -2144,7 +2167,10 @@ export interface operations {
   };
   triggerComponentWorkflow: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Git commit SHA (7-40 hexadecimal characters) */
+        commit?: string;
+      };
       header?: never;
       path: {
         orgName: string;
@@ -2153,13 +2179,7 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
+    requestBody?: never;
     responses: {
       /** @description Component workflow triggered successfully */
       201: {
@@ -2167,8 +2187,17 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'];
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentWorkflowRunResponse'];
+          };
         };
+      };
+      /** @description Invalid commit SHA format */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

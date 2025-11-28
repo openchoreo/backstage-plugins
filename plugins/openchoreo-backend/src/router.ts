@@ -2,7 +2,6 @@ import { InputError } from '@backstage/errors';
 import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
-import { BuildTemplateInfoService } from './services/BuildTemplateService/BuildTemplateInfoService';
 import {
   BuildInfoService,
   ObservabilityNotConfiguredError as BuildObservabilityNotConfiguredError,
@@ -25,7 +24,6 @@ import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchema
 export async function createRouter({
   environmentInfoService,
   cellDiagramInfoService,
-  buildTemplateInfoService,
   buildInfoService,
   componentInfoService,
   projectInfoService,
@@ -38,7 +36,6 @@ export async function createRouter({
 }: {
   environmentInfoService: EnvironmentInfoService;
   cellDiagramInfoService: CellDiagramService;
-  buildTemplateInfoService: BuildTemplateInfoService;
   buildInfoService: BuildInfoService;
   componentInfoService: ComponentInfoService;
   projectInfoService: ProjectInfoService;
@@ -168,19 +165,14 @@ export async function createRouter({
     },
   );
 
-  router.get('/build-templates', async (req, res) => {
-    const { organizationName } = req.query;
-
-    if (!organizationName) {
-      throw new InputError('organizationName is a required query parameter');
-    }
-
-    res.json(
-      await buildTemplateInfoService.fetchBuildTemplates(
-        organizationName as string,
-      ),
-    );
-  });
+  // REMOVED: Build templates endpoint - replaced by component workflows
+  // router.get('/build-templates', async (req, res) => {
+  //   const { organizationName } = req.query;
+  //   if (!organizationName) {
+  //     throw new InputError('organizationName is a required query parameter');
+  //   }
+  //   res.json(await buildTemplateInfoService.fetchBuildTemplates(organizationName as string));
+  // });
 
   // Endpoint for listing traits
   router.get('/traits', async (req, res) => {
