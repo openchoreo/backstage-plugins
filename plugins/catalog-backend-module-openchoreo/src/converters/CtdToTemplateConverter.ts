@@ -256,7 +256,7 @@ export class CtdToTemplateConverter {
         autoDeploy: {
           title: 'Auto Deploy',
           description:
-            'Automatically deploy the component when a new build is successful.',
+            'Automatically deploy the component when component configurations change.',
           type: 'boolean',
           default: false,
           'ui:field': 'SwitchField',

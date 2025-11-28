@@ -90,7 +90,7 @@ export const SetupCard = ({
                       }
                     />
                     <Tooltip
-                      title="Automatically deploy to the default environment after each successful build"
+                      title="Automatically deploy the component to the default environment when component configurations change"
                       placement="top"
                       arrow
                     >
