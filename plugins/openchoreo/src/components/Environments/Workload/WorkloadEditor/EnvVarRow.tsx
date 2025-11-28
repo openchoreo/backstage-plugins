@@ -179,7 +179,11 @@ export const EnvVarRow: FC<EnvVarRowProps> = ({
                     disabled={disabled}
                   >
                     <MenuItem value="">
-                      <em>Select a secret reference</em>
+                      <em>
+                        {secretReferences.length === 0
+                          ? 'No secret references available'
+                          : 'Select a secret reference'}
+                      </em>
                     </MenuItem>
                     {secretReferences.map(secret => (
                       <MenuItem key={secret.name} value={secret.name}>
