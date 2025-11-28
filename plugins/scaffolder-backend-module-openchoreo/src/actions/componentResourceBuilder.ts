@@ -79,8 +79,6 @@ export function buildComponentResource(
     // Need to convert to nested structure
     const workflowSchema = convertFlatToNested(input.workflowParameters);
 
-    // The workflow structure should have parameters and systemParameters directly under workflow
-    // Remove the 'schema' wrapper
     resource.spec.workflow = {
       name: input.workflowName,
       ...workflowSchema, // Spread parameters and systemParameters directly

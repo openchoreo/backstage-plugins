@@ -159,7 +159,7 @@ export function useWorkflowsSummary() {
   }, [state.latestBuild, fetchData]);
 
   // Check if workflows are enabled for this component
-  const hasWorkflows = Boolean(state.componentDetails?.workflow?.name);
+  const hasWorkflows = Boolean(state.componentDetails?.componentWorkflow?.name);
 
   return {
     latestBuild: state.latestBuild,

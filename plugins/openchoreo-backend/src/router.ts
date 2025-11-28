@@ -165,15 +165,6 @@ export async function createRouter({
     },
   );
 
-  // REMOVED: Build templates endpoint - replaced by component workflows
-  // router.get('/build-templates', async (req, res) => {
-  //   const { organizationName } = req.query;
-  //   if (!organizationName) {
-  //     throw new InputError('organizationName is a required query parameter');
-  //   }
-  //   res.json(await buildTemplateInfoService.fetchBuildTemplates(organizationName as string));
-  // });
-
   // Endpoint for listing traits
   router.get('/traits', async (req, res) => {
     const { organizationName, page, pageSize } = req.query;

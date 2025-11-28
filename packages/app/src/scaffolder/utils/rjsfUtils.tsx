@@ -57,3 +57,76 @@ export function generateUiSchemaWithTitles(
 
   return uiSchema;
 }
+
+/**
+ * Filters out empty object properties from a JSON Schema.
+ *
+ * Empty object properties are defined as properties with:
+ * - type: 'object'
+ * - No 'properties' defined
+ * - No 'additionalProperties' defined
+ * - No 'enum' or 'const' constraints
+ *
+ * This is useful for cleaning up schemas before rendering forms, preventing
+ * empty sections from appearing in the UI.
+ *
+ * @param schema - The JSON Schema to filter
+ * @returns A new schema object with empty object properties removed
+ *
+ * @example
+ * ```typescript
+ * const schema = {
+ *   type: 'object',
+ *   properties: {
+ *     name: { type: 'string' },
+ *     emptyObj: { type: 'object' },  // Will be filtered out
+ *     settings: {
+ *       type: 'object',
+ *       properties: { enabled: { type: 'boolean' } }  // Will be kept
+ *     }
+ *   },
+ *   required: ['name', 'emptyObj', 'settings']
+ * };
+ *
+ * const filtered = filterEmptyObjectProperties(schema);
+ * // Returns schema without 'emptyObj' property and removes it from required array
+ * ```
+ */
+export function filterEmptyObjectProperties(schema: any): any {
+  if (!schema?.properties) {
+    return schema;
+  }
+
+  const filteredProperties: any = {};
+
+  Object.keys(schema.properties).forEach(key => {
+    const prop = schema.properties[key];
+
+    // Keep the property if:
+    // 1. It's not an object type, OR
+    // 2. It's an object with defined properties/additionalProperties, OR
+    // 3. It has other schema constraints (required, enum, etc.)
+    if (
+      typeof prop === 'object' &&
+      prop.type === 'object' &&
+      !prop.properties &&
+      !prop.additionalProperties &&
+      !prop.enum &&
+      !prop.const
+    ) {
+      // Skip empty object properties
+      return;
+    }
+
+    filteredProperties[key] = prop;
+  });
+
+  return {
+    ...schema,
+    properties: filteredProperties,
+    // Update required array to exclude filtered properties
+    required: schema.required?.filter((req: string) =>
+      filteredProperties.hasOwnProperty(req),
+    ),
+  };
+}
