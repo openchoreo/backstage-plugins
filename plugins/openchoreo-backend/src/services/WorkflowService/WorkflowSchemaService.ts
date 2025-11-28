@@ -27,10 +27,10 @@ export class WorkflowSchemaService {
   }
 
   /**
-   * Fetch list of workflows for an organization
+   * Fetch list of component workflows for an organization
    */
   async fetchWorkflows(orgName: string): Promise<WorkflowListResponse> {
-    this.logger.debug(`Fetching workflows for org: ${orgName}`);
+    this.logger.debug(`Fetching component workflows for org: ${orgName}`);
 
     try {
       const client = createOpenChoreoApiClient({
@@ -39,7 +39,7 @@ export class WorkflowSchemaService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/workflows',
+        '/orgs/{orgName}/component-workflows',
         {
           params: {
             path: { orgName },
@@ -49,37 +49,37 @@ export class WorkflowSchemaService {
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to fetch workflows: ${response.status} ${response.statusText}`,
+          `Failed to fetch component workflows: ${response.status} ${response.statusText}`,
         );
       }
 
       if (!data?.success) {
-        throw new Error('Failed to fetch workflows');
+        throw new Error('Failed to fetch component workflows');
       }
 
       const workflowList: WorkflowListResponse = data as WorkflowListResponse;
 
       this.logger.debug(
-        `Successfully fetched ${workflowList.data.items.length} workflows for org: ${orgName}`,
+        `Successfully fetched ${workflowList.data.items.length} component workflows for org: ${orgName}`,
       );
       return workflowList;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch workflows for org ${orgName}: ${error}`,
+        `Failed to fetch component workflows for org ${orgName}: ${error}`,
       );
       throw error;
     }
   }
 
   /**
-   * Fetch JSONSchema for a specific workflow
+   * Fetch JSONSchema for a specific component workflow
    */
   async fetchWorkflowSchema(
     orgName: string,
     workflowName: string,
   ): Promise<WorkflowSchemaResponse> {
     this.logger.debug(
-      `Fetching schema for workflow: ${workflowName} in org: ${orgName}`,
+      `Fetching schema for component workflow: ${workflowName} in org: ${orgName}`,
     );
 
     try {
@@ -89,34 +89,34 @@ export class WorkflowSchemaService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/workflows/{workflowName}/schema',
+        '/orgs/{orgName}/component-workflows/{cwName}/schema',
         {
           params: {
-            path: { orgName, workflowName },
+            path: { orgName, cwName: workflowName },
           },
         },
       );
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to fetch workflow schema: ${response.status} ${response.statusText}`,
+          `Failed to fetch component workflow schema: ${response.status} ${response.statusText}`,
         );
       }
 
       if (!data?.success) {
-        throw new Error('Failed to fetch workflow schema');
+        throw new Error('Failed to fetch component workflow schema');
       }
 
       const workflowSchema: WorkflowSchemaResponse =
         data as WorkflowSchemaResponse;
 
       this.logger.debug(
-        `Successfully fetched schema for workflow: ${workflowName}`,
+        `Successfully fetched schema for component workflow: ${workflowName}`,
       );
       return workflowSchema;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch schema for workflow ${workflowName} in org ${orgName}: ${error}`,
+        `Failed to fetch schema for component workflow ${workflowName} in org ${orgName}: ${error}`,
       );
       throw error;
     }
@@ -142,12 +142,15 @@ export class WorkflowSchemaService {
       });
 
       const { data, error, response } = await client.PATCH(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-schema',
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema',
         {
           params: {
             path: { orgName, projectName, componentName },
           },
-          body: { schema },
+          body: {
+            systemParameters: schema.systemParameters as any,
+            parameters: schema.parameters as any,
+          },
         },
       );
 

@@ -7,7 +7,7 @@ import {
 import { RuntimeLogsResponse } from '../../types';
 
 // Use generated type from OpenAPI spec
-type ModelsBuild = OpenChoreoComponents['schemas']['BuildResponse'];
+type ModelsBuild = OpenChoreoComponents['schemas']['ComponentWorkflowRunResponse'];
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -33,7 +33,7 @@ export class BuildInfoService {
     componentName: string,
   ): Promise<ModelsBuild[]> {
     this.logger.debug(
-      `Fetching builds for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching component workflow runs for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
     );
 
     try {
@@ -43,7 +43,7 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds',
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows',
         {
           params: {
             path: { orgName, projectName, componentName },
@@ -53,23 +53,23 @@ export class BuildInfoService {
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to fetch builds: ${response.status} ${response.statusText}`,
+          `Failed to fetch component workflow runs: ${response.status} ${response.statusText}`,
         );
       }
 
-      if (!data.success) {
+      if (!data?.success) {
         throw new Error('API request was not successful');
       }
 
-      const builds = data.data?.items || [];
+      const builds = (data.data?.items || []) as any;
 
       this.logger.debug(
-        `Successfully fetched ${builds.length} builds for component: ${componentName}`,
+        `Successfully fetched ${builds.length} component workflow runs for component: ${componentName}`,
       );
       return builds;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch builds for component ${componentName}: ${error}`,
+        `Failed to fetch component workflow runs for component ${componentName}: ${error}`,
       );
       throw error;
     }
@@ -82,7 +82,7 @@ export class BuildInfoService {
     commit?: string,
   ): Promise<ModelsBuild> {
     this.logger.info(
-      `Triggering build for component: ${componentName} in project: ${projectName}, organization: ${orgName}${
+      `Triggering component workflow for component: ${componentName} in project: ${projectName}, organization: ${orgName}${
         commit ? ` with commit: ${commit}` : ''
       }`,
     );
@@ -94,31 +94,32 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/builds',
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows',
         {
           params: {
             path: { orgName, projectName, componentName },
+            query: commit ? { commit } : undefined,
           },
         },
       );
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to trigger build: ${response.status} ${response.statusText}`,
+          `Failed to trigger component workflow: ${response.status} ${response.statusText}`,
         );
       }
 
-      if (!data.success || !data.data) {
-        throw new Error('No build data returned');
+      if (!data?.success || !data.data) {
+        throw new Error('No workflow run data returned');
       }
 
       this.logger.debug(
-        `Successfully triggered build for component: ${componentName}, build name: ${data.data.name}`,
+        `Successfully triggered component workflow for component: ${componentName}, workflow run name: ${data.data.name}`,
       );
-      return data.data;
+      return data.data as any;
     } catch (error) {
       this.logger.error(
-        `Failed to trigger build for component ${componentName}: ${error}`,
+        `Failed to trigger component workflow for component ${componentName}: ${error}`,
       );
       throw error;
     }

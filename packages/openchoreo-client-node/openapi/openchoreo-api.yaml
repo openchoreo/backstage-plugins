@@ -593,6 +593,37 @@ components:
           type: string
           format: date-time
 
+    # ComponentWorkflowRun
+    ComponentWorkflowRunResponse:
+      type: object
+      required:
+        - name
+        - uuid
+        - componentName
+        - projectName
+        - orgName
+        - createdAt
+      properties:
+        name:
+          type: string
+        uuid:
+          type: string
+        componentName:
+          type: string
+        projectName:
+          type: string
+        orgName:
+          type: string
+        commit:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        image:
+          type: string
+
     # Trait
     TraitResponse:
       type: object
@@ -1200,13 +1231,44 @@ components:
     # Request schemas
     UpdateWorkflowSchemaRequest:
       type: object
-      required:
-        - schema
       properties:
-        schema:
+        systemParameters:
+          $ref: '#/components/schemas/ComponentWorkflowSystemParams'
+        parameters:
           type: object
           additionalProperties: true
-          description: Component workflow schema as arbitrary JSON
+          description: Developer-defined workflow parameters as arbitrary JSON
+
+    ComponentWorkflowSystemParams:
+      type: object
+      required:
+        - repository
+      properties:
+        repository:
+          $ref: '#/components/schemas/ComponentWorkflowRepository'
+
+    ComponentWorkflowRepository:
+      type: object
+      required:
+        - url
+        - revision
+      properties:
+        url:
+          type: string
+        revision:
+          $ref: '#/components/schemas/ComponentWorkflowRepositoryRevision'
+        appPath:
+          type: string
+
+    ComponentWorkflowRepositoryRevision:
+      type: object
+      required:
+        - branch
+      properties:
+        branch:
+          type: string
+        commit:
+          type: string
 
 security:
   - BearerAuth: []
@@ -2205,21 +2267,26 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Component workflow trigger request
-              additionalProperties: true
+        - name: commit
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Git commit SHA (7-40 hexadecimal characters)
       responses:
         '201':
           description: Component workflow triggered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/APIResponse'
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentWorkflowRunResponse'
+        '400':
+          description: Invalid commit SHA format
 
     get:
       summary: List component workflow runs
@@ -2260,9 +2327,7 @@ paths:
                               items:
                                 type: array
                                 items:
-                                  type: object
-                                  description: Component workflow run
-                                  additionalProperties: true
+                                  $ref: '#/components/schemas/ComponentWorkflowRunResponse'
 
   # Component Bindings
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings:
