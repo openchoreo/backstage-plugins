@@ -9,10 +9,8 @@ import {
 import { JSONSchema7 } from 'json-schema';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
-import {
-  generateUiSchemaWithTitles,
-  filterEmptyObjectProperties,
-} from '../utils/rjsfUtils';
+import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
+import { filterEmptyObjectProperties } from '@openchoreo/backstage-plugin-common';
 
 /*
  Schema for the Build Workflow Parameters Field

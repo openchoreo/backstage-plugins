@@ -1,5 +1,10 @@
 export { CHOREO_ANNOTATIONS, CHOREO_LABELS } from './constants';
-export { getRepositoryInfo, getRepositoryUrl, sanitizeLabel } from './utils';
+export {
+  getRepositoryInfo,
+  getRepositoryUrl,
+  sanitizeLabel,
+  filterEmptyObjectProperties,
+} from './utils';
 export type { RepositoryInfo } from './utils';
 export {
   ComponentTypeUtils,
