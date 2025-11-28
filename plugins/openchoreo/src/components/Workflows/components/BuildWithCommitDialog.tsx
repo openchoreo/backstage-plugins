@@ -79,12 +79,6 @@ export const BuildWithCommitDialog = ({
     setError(validationError || '');
   };
 
-//   const handleBlur = () => {
-//     setTouched(true);
-//     const validationError = validateCommitSha(commitSha);
-//     setError(validationError || '');
-//   };
-
   const handleTrigger = async () => {
     const trimmedCommit = commitSha.trim();
 
