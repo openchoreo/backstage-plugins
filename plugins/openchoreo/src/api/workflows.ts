@@ -38,7 +38,8 @@ export async function updateComponentWorkflowSchema(
   entity: Entity,
   discovery: DiscoveryApi,
   identity: IdentityApi,
-  schema: { [key: string]: unknown },
+  systemParameters: { [key: string]: unknown } | null,
+  parameters: { [key: string]: unknown } | null,
 ) {
   const metadata = extractEntityMetadata(entity);
 
@@ -48,6 +49,6 @@ export async function updateComponentWorkflowSchema(
     identity,
     method: 'PATCH',
     params: entityMetadataToParams(metadata),
-    body: { schema },
+    body: { systemParameters, parameters },
   });
 }

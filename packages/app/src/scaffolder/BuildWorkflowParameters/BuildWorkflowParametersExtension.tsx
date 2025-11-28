@@ -145,7 +145,7 @@ export const BuildWorkflowParameters = ({
               properties: filteredProperties,
               // Update required array to exclude filtered properties
               required: schema.required?.filter(req =>
-                filteredProperties.hasOwnProperty(req)
+                filteredProperties.hasOwnProperty(req),
               ),
             };
           }

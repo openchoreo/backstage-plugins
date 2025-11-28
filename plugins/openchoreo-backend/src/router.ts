@@ -247,7 +247,7 @@ export async function createRouter({
   // Endpoint for updating component workflow schema
   router.patch('/component-workflow-schema', async (req, res) => {
     const { organizationName, projectName, componentName } = req.query;
-    const { schema } = req.body;
+    const { systemParameters, parameters } = req.body;
 
     if (!organizationName || !projectName || !componentName) {
       throw new InputError(
@@ -255,8 +255,8 @@ export async function createRouter({
       );
     }
 
-    if (!schema) {
-      throw new InputError('schema is required in request body');
+    if (!systemParameters) {
+      throw new InputError('systemParameters are required in request body');
     }
 
     res.json(
@@ -264,7 +264,8 @@ export async function createRouter({
         organizationName as string,
         projectName as string,
         componentName as string,
-        schema,
+        systemParameters,
+        parameters ? parameters : undefined,
       ),
     );
   });

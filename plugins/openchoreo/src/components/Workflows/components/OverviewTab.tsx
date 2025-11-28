@@ -4,7 +4,7 @@ import { useWorkflowStyles } from '../styles';
 import type { ModelsCompleteComponent } from '@openchoreo/backstage-plugin-common';
 
 interface OverviewTabProps {
-  workflow: ModelsCompleteComponent['workflow'] | null | undefined;
+  workflow: ModelsCompleteComponent['componentWorkflow'] | null | undefined;
 }
 
 export const OverviewTab = ({ workflow }: OverviewTabProps) => {
@@ -28,8 +28,12 @@ export const OverviewTab = ({ workflow }: OverviewTabProps) => {
           {workflow.name}
         </Typography>
       </Box>
-      {workflow.schema && Object.keys(workflow.schema).length > 0 && (
-        <WorkflowDetailsRenderer data={workflow.schema} />
+      {workflow.systemParameters &&
+        Object.keys(workflow.systemParameters).length > 0 && (
+          <WorkflowDetailsRenderer data={workflow.systemParameters} />
+        )}
+      {workflow.parameters && Object.keys(workflow.parameters).length > 0 && (
+        <WorkflowDetailsRenderer data={workflow.parameters} />
       )}
     </Box>
   );

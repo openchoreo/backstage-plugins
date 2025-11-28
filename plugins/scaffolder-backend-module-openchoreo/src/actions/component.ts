@@ -289,16 +289,19 @@ export const createComponentAction = (
             status: 'Active', // New components are active by default
             createdAt: new Date().toISOString(),
             // Repository info is stored in workflow.schema.repository
-            workflow: (ctx.input as any).repo_url
+            componentWorkflow: (ctx.input as any).repo_url
               ? {
                   name: (ctx.input as any).workflow_name || 'default',
-                  schema: {
+                  systemParameters: {
                     repository: {
                       url: (ctx.input as any).repo_url,
-                      branch: (ctx.input as any).branch,
-                      path: (ctx.input as any).component_path,
+                      revision: {
+                        branch: (ctx.input as any).branch,
+                      },
+                      appPath: (ctx.input as any).component_path,
                     },
                   },
+                  parameters: workflowParameters,
                 }
               : undefined,
           };

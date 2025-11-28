@@ -14,24 +14,20 @@ export interface ComponentOwner {
 }
 
 /**
- * Workflow schema configuration
- * Contains nested structure matching the Workflow's schema section
- * @public
- */
-export interface WorkflowSchema {
-  [key: string]: any; // Dynamic structure based on workflow schema
-}
-
-/**
  * Workflow configuration for a component
  * Only present if Choreo CI is selected as the workflow provider
+ * Contains parameters and systemParameters directly (no schema wrapper)
  * @public
  */
 export interface ComponentWorkflow {
   /** Reference to Workflow name */
   name: string;
-  /** Schema matching the Workflow's schema section */
-  schema: WorkflowSchema;
+  /** Developer-defined workflow parameters */
+  parameters?: Record<string, any>;
+  /** System-defined workflow parameters (e.g., repository configuration) */
+  systemParameters?: Record<string, any>;
+  /** Allow any additional workflow-specific fields */
+  [key: string]: any;
 }
 
 /**
