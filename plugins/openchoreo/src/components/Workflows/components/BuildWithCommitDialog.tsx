@@ -63,13 +63,11 @@ export const BuildWithCommitDialog = ({
   const classes = useStyles();
   const [commitSha, setCommitSha] = useState('');
   const [error, setError] = useState('');
-  const [touched, setTouched] = useState(false);
 
   const handleClose = () => {
     if (!isLoading) {
       setCommitSha('');
       setError('');
-      setTouched(false);
       onClose();
     }
   };
@@ -77,22 +75,18 @@ export const BuildWithCommitDialog = ({
   const handleChange = (value: string) => {
     setCommitSha(value);
 
-    // Real-time validation
-    if (touched) {
-      const validationError = validateCommitSha(value);
-      setError(validationError || '');
-    }
-  };
-
-  const handleBlur = () => {
-    setTouched(true);
-    const validationError = validateCommitSha(commitSha);
+    const validationError = validateCommitSha(value);
     setError(validationError || '');
   };
 
+//   const handleBlur = () => {
+//     setTouched(true);
+//     const validationError = validateCommitSha(commitSha);
+//     setError(validationError || '');
+//   };
+
   const handleTrigger = async () => {
     const trimmedCommit = commitSha.trim();
-    setTouched(true);
 
     if (!trimmedCommit) {
       setError('Commit SHA is required');
@@ -109,18 +103,11 @@ export const BuildWithCommitDialog = ({
       setError('');
       await onTrigger(trimmedCommit);
       setCommitSha('');
-      setTouched(false);
       onClose();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to trigger workflow',
       );
-    }
-  };
-
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !isLoading && !error) {
-      handleTrigger();
     }
   };
 
@@ -140,8 +127,6 @@ export const BuildWithCommitDialog = ({
           placeholder="e.g., abc123def456 or full 40-character SHA"
           value={commitSha}
           onChange={e => handleChange(e.target.value)}
-          onBlur={handleBlur}
-          onKeyPress={handleKeyPress}
           error={!!error}
           helperText={
             error ||

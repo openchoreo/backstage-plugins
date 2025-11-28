@@ -27,6 +27,7 @@ import {
 import {
   CHOREO_ANNOTATIONS,
   sanitizeLabel,
+  filterEmptyObjectProperties,
 } from '@openchoreo/backstage-plugin-common';
 import {
   VerticalTabNav,
@@ -149,7 +150,9 @@ export const WorkflowConfigPage = ({
           }
         }
 
-        setSchema(addTitlesToSchema(rawSchema));
+        // Filter out empty object properties before setting schema
+        const filteredSchema = filterEmptyObjectProperties(rawSchema);
+        setSchema(addTitlesToSchema(filteredSchema));
       } else {
         throw new Error('Failed to fetch workflow schema');
       }
