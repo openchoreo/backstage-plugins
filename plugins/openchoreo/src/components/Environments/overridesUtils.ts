@@ -12,80 +12,104 @@ export function hasData(data: Record<string, unknown> | undefined): boolean {
 }
 
 /**
- * Check if a schema field is a primitive type that truly requires user input.
- * Object types with nested properties can often be satisfied by nested defaults.
+ * Collect all required primitive fields from a schema recursively.
+ * Used when a parent object is completely empty/missing.
+ *
+ * @param schema - JSON schema to traverse
+ * @param basePath - Current path prefix for dot-notation
+ * @returns Array of dot-notation paths to required primitive fields
  */
-function isPrimitiveRequiredField(schema: JSONSchema7 | undefined): boolean {
-  if (!schema) return false;
+function collectAllRequiredPrimitives(
+  schema: JSONSchema7,
+  basePath: string,
+): string[] {
+  const result: string[] = [];
+  const schemaProperties = (schema.properties || {}) as Record<
+    string,
+    JSONSchema7
+  >;
 
-  // If it has a default, it's not truly required
-  if (schema.default !== undefined) {
-    return false;
+  for (const fieldName of (schema.required as string[]) || []) {
+    const fieldPath = `${basePath}.${fieldName}`;
+    const fieldSchema = schemaProperties[fieldName];
+
+    // Skip if field has a default
+    if (fieldSchema?.default !== undefined) continue;
+
+    if (fieldSchema?.properties) {
+      // Nested object - recurse
+      result.push(...collectAllRequiredPrimitives(fieldSchema, fieldPath));
+    } else {
+      // Primitive field
+      result.push(fieldPath);
+    }
   }
 
-  // If it has properties, it's an object - not a primitive
-  if (schema.properties) {
-    return false;
-  }
-
-  // Check explicit type
-  const schemaType = schema.type;
-  if (Array.isArray(schemaType)) {
-    // Union type - check if any are primitive without being object
-    return schemaType.some(t => t !== 'object' && t !== 'array');
-  }
-
-  // Primitive types that need user input
-  return (
-    schemaType === 'string' ||
-    schemaType === 'number' ||
-    schemaType === 'integer' ||
-    schemaType === 'boolean'
-  );
+  return result;
 }
 
 /**
- * Extract missing required fields from a JSON schema.
- * Only returns primitive fields (string, number, boolean) that are truly required
- * and have no default value. Object types with nested properties are skipped
- * as they can often be satisfied by nested defaults.
+ * Extract missing required fields from a JSON schema recursively.
+ * Traverses nested objects and returns dot-notation paths for all
+ * required primitive fields that have no value and no default.
  *
  * @param schema - JSON schema with required fields
  * @param data - Current override values
- * @returns Array of field names that are required primitives without defaults or values
+ * @param path - Current path prefix for dot-notation (internal use)
+ * @returns Array of dot-notation paths to missing required fields
  */
 export function getMissingRequiredFields(
   schema: JSONSchema7 | null | undefined,
   data: Record<string, unknown> | undefined,
+  path: string = '',
 ): string[] {
   if (!schema || !schema.required || !Array.isArray(schema.required)) {
     return [];
   }
 
-  const requiredFields = schema.required as string[];
+  const missing: string[] = [];
   const currentData = data || {};
   const schemaProperties = (schema.properties || {}) as Record<
     string,
     JSONSchema7
   >;
 
-  return requiredFields.filter(field => {
-    // Check if field has a value in the current data
-    const value = currentData[field];
-    if (value !== undefined && value !== null && value !== '') {
-      return false; // Field has a value, not missing
-    }
+  for (const fieldName of schema.required as string[]) {
+    const fieldPath = path ? `${path}.${fieldName}` : fieldName;
+    const fieldSchema = schemaProperties[fieldName];
+    const fieldValue = currentData[fieldName];
 
-    // Only consider primitive fields as truly requiring user input
-    // Object types with nested properties can usually satisfy themselves via nested defaults
-    const fieldSchema = schemaProperties[field];
-    if (!isPrimitiveRequiredField(fieldSchema)) {
-      return false; // Not a primitive field, skip
-    }
+    // Skip if field has a default
+    if (fieldSchema?.default !== undefined) continue;
 
-    // Field is a required primitive with no value and no default
-    return true;
-  });
+    // Check if field is missing/empty
+    const isMissing =
+      fieldValue === undefined || fieldValue === null || fieldValue === '';
+
+    if (fieldSchema?.properties) {
+      // Object type - recurse into nested schema
+      if (isMissing) {
+        // Entire object is missing - collect all nested required primitives
+        missing.push(...collectAllRequiredPrimitives(fieldSchema, fieldPath));
+      } else {
+        // Object has some data - recurse to check nested fields
+        missing.push(
+          ...getMissingRequiredFields(
+            fieldSchema,
+            fieldValue as Record<string, unknown>,
+            fieldPath,
+          ),
+        );
+      }
+    } else {
+      // Primitive type
+      if (isMissing) {
+        missing.push(fieldPath);
+      }
+    }
+  }
+
+  return missing;
 }
 
 /**
