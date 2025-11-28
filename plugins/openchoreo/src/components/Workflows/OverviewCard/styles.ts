@@ -62,6 +62,7 @@ export const useOverviewCardStyles = makeStyles(theme => ({
     flexWrap: 'wrap',
     color: theme.palette.text.secondary,
     fontSize: theme.typography.caption.fontSize,
+    marginBottom: theme.spacing(2),
   },
   metaItem: {
     display: 'flex',
