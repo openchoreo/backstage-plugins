@@ -16,5 +16,5 @@
   "versionFile": "src/version.ts",
   "lastSyncCommit": "970e347fdc87abd1dbcfd004a567cce92f2fe0d1",
   "lastSyncDate": "2025-11-28T12:20:54+05:30",
-  "lastSyncDescription": "Synced with openchoreo API changes: Added ComponentWorkflow endpoints with proper schemas (ComponentWorkflowRunResponse, UpdateWorkflowSchemaRequest with system/developer parameters). Removed build-templates and build trigger/list endpoints. Updated TriggerComponentWorkflow to use query parameter instead of request body."
+  "lastSyncDescription": "Synced with openchoreo API changes: Updated ComponentResponse and CreateComponentRequest to use ComponentWorkflow schema, and removed unused Workflow schema."
 }

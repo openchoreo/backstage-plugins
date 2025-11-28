@@ -71,14 +71,16 @@ const useStyles = makeStyles(theme => ({
 
 interface WorkflowConfigPageProps {
   workflowName: string;
-  currentWorkflowSchema: { [key: string]: unknown } | null;
+  systemParameters: { [key: string]: unknown } | null;
+  parameters?: { [key: string]: unknown } | null;
   onBack: () => void;
   onSaved: () => void;
 }
 
 export const WorkflowConfigPage = ({
   workflowName,
-  currentWorkflowSchema,
+  systemParameters,
+  parameters,
   onBack,
   onSaved,
 }: WorkflowConfigPageProps) => {
@@ -123,14 +125,41 @@ export const WorkflowConfigPage = ({
 
       if (schemaResponse.success && schemaResponse.data) {
         const rawSchema = schemaResponse.data as JSONSchema7;
+
+        // Remove commit property from systemParameters.repository.revision if it exists
+        const revisionProperties = (
+          rawSchema.properties?.systemParameters as JSONSchema7
+        )?.properties?.repository as JSONSchema7 | undefined;
+
+        if (
+          revisionProperties?.properties?.revision &&
+          typeof revisionProperties.properties.revision === 'object'
+        ) {
+          const revision = revisionProperties.properties
+            .revision as JSONSchema7;
+          if (revision.properties?.commit) {
+            delete revision.properties.commit;
+
+            // Also remove 'commit' from the required array if it exists
+            if (revision.required && Array.isArray(revision.required)) {
+              revision.required = revision.required.filter(
+                field => field !== 'commit',
+              );
+            }
+          }
+        }
+
         setSchema(addTitlesToSchema(rawSchema));
       } else {
         throw new Error('Failed to fetch workflow schema');
       }
 
-      if (currentWorkflowSchema) {
-        setFormData(currentWorkflowSchema);
-        setInitialFormData(currentWorkflowSchema);
+      if (systemParameters) {
+        setFormData({
+          systemParameters,
+          parameters: parameters ? parameters : undefined,
+        });
+        setInitialFormData({ systemParameters, parameters });
       } else {
         setFormData({});
         setInitialFormData({});
@@ -140,7 +169,14 @@ export const WorkflowConfigPage = ({
     } finally {
       setLoading(false);
     }
-  }, [entity, discovery, identityApi, workflowName, currentWorkflowSchema]);
+  }, [
+    entity,
+    discovery,
+    identityApi,
+    workflowName,
+    systemParameters,
+    parameters,
+  ]);
 
   useEffect(() => {
     if (workflowName) {
@@ -193,7 +229,7 @@ export const WorkflowConfigPage = ({
       const validationResult = validator.validateFormData(formData, schema);
       if (validationResult.errors && validationResult.errors.length > 0) {
         setFormErrors(validationResult.errors);
-        setError('Please fix the validation errors before saving');
+        setError(validationResult.errors.map(e => e.message).join(', '));
         setTimeout(() => setError(null), 3000);
         return;
       }
@@ -222,7 +258,8 @@ export const WorkflowConfigPage = ({
         entity,
         discovery,
         identityApi,
-        formData,
+        formData.systemParameters,
+        formData.parameters,
       );
 
       setShowSaveConfirm(false);

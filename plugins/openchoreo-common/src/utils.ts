@@ -36,18 +36,12 @@ export interface RepositoryInfo {
 export function getRepositoryInfo(
   component: ModelsCompleteComponent,
 ): RepositoryInfo {
-  const workflow = component.workflow;
-  if (!workflow?.schema) {
+  const componentWorkflow = component.componentWorkflow;
+  if (!componentWorkflow?.systemParameters?.repository) {
     return {};
   }
 
-  // Cast to any since schema is a dynamic object (additionalProperties: true in OpenAPI)
-  const schema = workflow.schema as any;
-  const repository = schema.repository;
-
-  if (!repository) {
-    return {};
-  }
+  const repository = componentWorkflow.systemParameters.repository;
 
   return {
     url: repository.url,

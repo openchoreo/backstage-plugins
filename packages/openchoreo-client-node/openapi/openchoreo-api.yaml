@@ -296,20 +296,8 @@ components:
         workload:
           type: object
           additionalProperties: true
-        workflow:
-          $ref: '#/components/schemas/Workflow'
-
-    Workflow:
-      type: object
-      required:
-        - name
-      properties:
-        name:
-          type: string
-        schema:
-          type: object
-          additionalProperties: true
-          description: Runtime extension for workflow schema
+        componentWorkflow:
+          $ref: '#/components/schemas/ComponentWorkflow'
 
     CreateComponentRequest:
       type: object
@@ -326,7 +314,7 @@ components:
         type:
           type: string
         workflow:
-          $ref: '#/components/schemas/Workflow'
+          $ref: '#/components/schemas/ComponentWorkflow'
 
     # Environment
     EnvironmentResponse:
@@ -815,6 +803,21 @@ components:
           additionalProperties:
             $ref: '#/components/schemas/Connection'
 
+    ComponentWorkflow:
+      type: object
+      required:
+        - name
+        - systemParameters
+      properties:
+        name:
+          type: string
+        systemParameters:
+          $ref: '#/components/schemas/ComponentWorkflowSystemParams'
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Developer-defined workflow parameters as arbitrary JSON
+
     # Observer URL
     ObserverUrlData:
       type: object
@@ -1229,7 +1232,7 @@ components:
           type: string
 
     # Request schemas
-    UpdateWorkflowSchemaRequest:
+    UpdateComponentWorkflowSchemaRequest:
       type: object
       properties:
         systemParameters:
@@ -2231,7 +2234,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateWorkflowSchemaRequest'
+              $ref: '#/components/schemas/UpdateComponentWorkflowSchemaRequest'
       responses:
         '200':
           description: Workflow schema updated successfully

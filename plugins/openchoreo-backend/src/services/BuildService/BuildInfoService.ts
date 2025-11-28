@@ -7,7 +7,8 @@ import {
 import { RuntimeLogsResponse } from '../../types';
 
 // Use generated type from OpenAPI spec
-type ModelsBuild = OpenChoreoComponents['schemas']['ComponentWorkflowRunResponse'];
+type ModelsBuild =
+  OpenChoreoComponents['schemas']['ComponentWorkflowRunResponse'];
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {

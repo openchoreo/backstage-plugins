@@ -841,21 +841,14 @@ export interface components {
       workload?: {
         [key: string]: unknown;
       };
-      workflow?: components['schemas']['Workflow'];
-    };
-    Workflow: {
-      name: string;
-      /** @description Runtime extension for workflow schema */
-      schema?: {
-        [key: string]: unknown;
-      };
+      componentWorkflow?: components['schemas']['ComponentWorkflow'];
     };
     CreateComponentRequest: {
       name: string;
       displayName?: string;
       description?: string;
       type: string;
-      workflow?: components['schemas']['Workflow'];
+      workflow?: components['schemas']['ComponentWorkflow'];
     };
     EnvironmentResponse: {
       uid: string;
@@ -1065,6 +1058,14 @@ export interface components {
         [key: string]: components['schemas']['Connection'];
       };
     };
+    ComponentWorkflow: {
+      name: string;
+      systemParameters: components['schemas']['ComponentWorkflowSystemParams'];
+      /** @description Developer-defined workflow parameters as arbitrary JSON */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
     ObserverUrlData: {
       observerUrl?: string;
     };
@@ -1247,7 +1248,7 @@ export interface components {
       reason?: string;
       message?: string;
     };
-    UpdateWorkflowSchemaRequest: {
+    UpdateComponentWorkflowSchemaRequest: {
       systemParameters?: components['schemas']['ComponentWorkflowSystemParams'];
       /** @description Developer-defined workflow parameters as arbitrary JSON */
       parameters?: {
@@ -2120,7 +2121,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateWorkflowSchemaRequest'];
+        'application/json': components['schemas']['UpdateComponentWorkflowSchemaRequest'];
       };
     };
     responses: {

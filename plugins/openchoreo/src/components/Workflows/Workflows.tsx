@@ -8,16 +8,17 @@ import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import SettingsOutlinedIcon from '@material-ui/icons/SettingsOutlined';
+import SettingsIcon from '@material-ui/icons/SettingsOutlined';
 import ListAltOutlinedIcon from '@material-ui/icons/ListAltOutlined';
-import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import EditIcon from '@material-ui/icons/Edit';
+import CodeIcon from '@material-ui/icons/CodeOutlined';
 import {
   VerticalTabNav,
   TabItemData,
 } from '@openchoreo/backstage-design-system';
 import { WorkflowConfigPage } from './WorkflowConfigPage';
 import { WorkflowRunDetailsPage } from './WorkflowRunDetailsPage';
-import { RunsTab, OverviewTab } from './components';
+import { RunsTab, OverviewTab, BuildWithCommitDialog } from './components';
 import { useWorkflowData } from './hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import { useComponentEntityDetails } from '@openchoreo/backstage-plugin-react';
@@ -32,6 +33,7 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(2),
     paddingBottom: theme.spacing(2),
     borderBottom: `1px solid ${theme.palette.divider}`,
+    minHeight: theme.spacing(7.5),
   },
   headerTitle: {
     fontWeight: 600,
@@ -56,37 +58,42 @@ export const Workflows = () => {
   // View mode state
   const [viewMode, setViewMode] = useState<WorkflowViewMode>({ type: 'list' });
   const [activeTab, setActiveTab] = useState('runs');
+  const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
 
   // Data fetching hook
   const workflowData = useWorkflowData();
 
   // Async operation for triggering workflow
   const triggerWorkflowOp = useAsyncOperation(
-    useCallback(async () => {
-      const { componentName, projectName, organizationName } =
-        await getEntityDetails();
-      const { token } = await identityApi.getCredentials();
-      const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+    useCallback(
+      async (commit?: string) => {
+        const { componentName, projectName, organizationName } =
+          await getEntityDetails();
+        const { token } = await identityApi.getCredentials();
+        const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const response = await fetch(`${baseUrl}/builds`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          componentName,
-          projectName,
-          organizationName,
-        }),
-      });
+        const response = await fetch(`${baseUrl}/builds`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            componentName,
+            projectName,
+            organizationName,
+            commit,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
-      await workflowData.fetchBuilds();
-    }, [discoveryApi, identityApi, getEntityDetails, workflowData]),
+        await workflowData.fetchBuilds();
+      },
+      [discoveryApi, identityApi, getEntityDetails, workflowData],
+    ),
   );
 
   const refreshOp = useAsyncOperation(workflowData.fetchBuilds);
@@ -104,6 +111,21 @@ export const Workflows = () => {
     setViewMode({ type: 'run-details', run });
   }, []);
 
+  const handleOpenCommitDialog = useCallback(() => {
+    setIsCommitDialogOpen(true);
+  }, []);
+
+  const handleCloseCommitDialog = useCallback(() => {
+    setIsCommitDialogOpen(false);
+  }, []);
+
+  const handleTriggerWithCommit = useCallback(
+    async (commit: string) => {
+      await triggerWorkflowOp.execute(commit);
+    },
+    [triggerWorkflowOp],
+  );
+
   // Tab configuration
   const tabs = useMemo<TabItemData[]>(
     () => [
@@ -114,9 +136,9 @@ export const Workflows = () => {
         count: workflowData.builds.length,
       },
       {
-        id: 'overview',
-        label: 'Overview',
-        icon: <InfoOutlinedIcon fontSize="small" />,
+        id: 'configurations',
+        label: 'Configurations',
+        icon: <SettingsIcon fontSize="small" />,
       },
     ],
     [workflowData.builds.length],
@@ -134,9 +156,11 @@ export const Workflows = () => {
             onRowClick={handleOpenRunDetails}
           />
         );
-      case 'overview':
+      case 'configurations':
         return (
-          <OverviewTab workflow={workflowData.componentDetails?.workflow} />
+          <OverviewTab
+            workflow={workflowData.componentDetails?.componentWorkflow}
+          />
         );
       default:
         return null;
@@ -154,12 +178,21 @@ export const Workflows = () => {
   }
 
   // Config page view
-  if (viewMode.type === 'config' && workflowData.componentDetails?.workflow) {
+  if (
+    viewMode.type === 'config' &&
+    workflowData.componentDetails?.componentWorkflow
+  ) {
     return (
       <WorkflowConfigPage
-        workflowName={workflowData.componentDetails.workflow.name || ''}
-        currentWorkflowSchema={
-          workflowData.componentDetails.workflow.schema || null
+        workflowName={
+          workflowData.componentDetails.componentWorkflow.name || ''
+        }
+        systemParameters={
+          workflowData.componentDetails.componentWorkflow.systemParameters ||
+          null
+        }
+        parameters={
+          workflowData.componentDetails.componentWorkflow.parameters || null
         }
         onBack={handleBack}
         onSaved={() => {
@@ -184,33 +217,50 @@ export const Workflows = () => {
           Workflows
         </Typography>
         <Box className={classes.headerActions}>
-          {componentDetails?.workflow && (
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={handleOpenConfig}
-              startIcon={<SettingsOutlinedIcon />}
-            >
-              Configure Workflow
-            </Button>
+          {activeTab === 'runs' ? (
+            <>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handleOpenCommitDialog}
+                startIcon={<CodeIcon />}
+                disabled={!componentDetails?.componentWorkflow}
+              >
+                Build With Commit
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => triggerWorkflowOp.execute()}
+                disabled={
+                  triggerWorkflowOp.isLoading ||
+                  !componentDetails?.componentWorkflow
+                }
+                startIcon={
+                  triggerWorkflowOp.isLoading ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <PlayArrowIcon />
+                  )
+                }
+              >
+                Build Latest
+              </Button>
+            </>
+          ) : (
+            <>
+              {componentDetails?.componentWorkflow && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleOpenConfig}
+                  startIcon={<EditIcon />}
+                >
+                  Edit Configurations
+                </Button>
+              )}
+            </>
           )}
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => triggerWorkflowOp.execute()}
-            disabled={
-              triggerWorkflowOp.isLoading || !componentDetails?.workflow
-            }
-            startIcon={
-              triggerWorkflowOp.isLoading ? (
-                <CircularProgress size={16} />
-              ) : (
-                <PlayArrowIcon />
-              )
-            }
-          >
-            Trigger Workflow
-          </Button>
         </Box>
       </Box>
 
@@ -221,6 +271,13 @@ export const Workflows = () => {
       >
         {renderTabContent()}
       </VerticalTabNav>
+
+      <BuildWithCommitDialog
+        open={isCommitDialogOpen}
+        onClose={handleCloseCommitDialog}
+        onTrigger={handleTriggerWithCommit}
+        isLoading={triggerWorkflowOp.isLoading}
+      />
     </Box>
   );
 };

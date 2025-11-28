@@ -129,7 +129,8 @@ export class WorkflowSchemaService {
     orgName: string,
     projectName: string,
     componentName: string,
-    schema: { [key: string]: unknown },
+    systemParameters: { [key: string]: unknown },
+    parameters?: { [key: string]: unknown },
   ): Promise<OpenChoreoComponents['schemas']['APIResponse']> {
     this.logger.debug(
       `Updating workflow schema for component: ${componentName} in project: ${projectName}, org: ${orgName}`,
@@ -148,8 +149,8 @@ export class WorkflowSchemaService {
             path: { orgName, projectName, componentName },
           },
           body: {
-            systemParameters: schema.systemParameters as any,
-            parameters: schema.parameters as any,
+            systemParameters: systemParameters as any,
+            parameters: parameters as any,
           },
         },
       );
