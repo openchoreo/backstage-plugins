@@ -281,6 +281,8 @@ components:
           format: date-time
         status:
           type: string
+        autoDeploy:
+          type: boolean
         service:
           type: object
           additionalProperties: true
@@ -315,6 +317,13 @@ components:
           type: string
         workflow:
           $ref: '#/components/schemas/ComponentWorkflow'
+
+    PatchComponentRequest:
+      type: object
+      properties:
+        autoDeploy:
+          type: boolean
+          description: Controls whether the component should automatically deploy to the default environment
 
     # Environment
     EnvironmentResponse:
@@ -2169,6 +2178,51 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/ComponentResponse'
+    patch:
+      summary: Patch a component
+      operationId: patchComponent
+      tags:
+        - Components
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchComponentRequest'
+      responses:
+        '200':
+          description: Component successfully patched
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentResponse'
+        '400':
+          description: Bad request - invalid input
+        '404':
+          description: Component or project not found
+        '500':
+          description: Internal server error
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/schema:
     get:

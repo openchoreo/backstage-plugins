@@ -54,6 +54,8 @@ export interface ComponentSpec {
   componentType: string;
   /** Parameters from the component type (user provided values) */
   parameters: Record<string, any>;
+  /** Auto deploy flag - automatically deploy when build succeeds */
+  autoDeploy?: boolean;
   /** Workflow configuration (optional - only if Choreo CI is selected) */
   workflow?: ComponentWorkflow;
   /** Traits configuration (optional - only if addons are added) */

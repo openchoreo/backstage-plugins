@@ -66,8 +66,9 @@ export const createComponentAction = (
               .describe('The description of the component'),
             componentType: zImpl.string().describe('The type of the component'),
 
-            // Optional field
+            // Optional fields
             useBuiltInCI: zImpl.boolean().optional(),
+            autoDeploy: zImpl.boolean().optional(),
           })
           .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
       output: (zImpl: typeof z) =>
@@ -169,8 +170,9 @@ export const createComponentAction = (
           config: trait.config,
         }));
 
-        // Extract CI setup data
+        // Extract CI/CD setup data
         const useBuiltInCI = ctx.input.useBuiltInCI ?? false;
+        const autoDeploy = ctx.input.autoDeploy ?? false;
         const workflowName = (ctx.input as any).workflow_name;
         const workflowParametersData = (ctx.input as any).workflow_parameters;
         // Extract parameters from the new structure (workflow_parameters.parameters)
@@ -186,6 +188,7 @@ export const createComponentAction = (
           'description',
           'componentType',
           'useBuiltInCI',
+          'autoDeploy',
           'workflow_name',
           'workflow_parameters',
           'traits',
@@ -218,6 +221,7 @@ export const createComponentAction = (
             (ctx.input as any).component_type_workload_type || 'deployment',
           ctdParameters: ctdParameters,
           useBuiltInCI: useBuiltInCI,
+          autoDeploy: autoDeploy,
           repoUrl: (ctx.input as any).repo_url,
           branch: (ctx.input as any).branch,
           componentPath: (ctx.input as any).component_path,
@@ -288,6 +292,7 @@ export const createComponentAction = (
             orgName: orgName,
             status: 'Active', // New components are active by default
             createdAt: new Date().toISOString(),
+            autoDeploy: autoDeploy,
             // Repository info is stored in workflow.schema.repository
             componentWorkflow: (ctx.input as any).repo_url
               ? {

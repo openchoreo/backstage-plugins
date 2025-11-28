@@ -430,7 +430,8 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /** Patch a component */
+    patch: operations['patchComponent'];
     trace?: never;
   };
   '/orgs/{orgName}/projects/{projectName}/components/{componentName}/schema': {
@@ -826,6 +827,7 @@ export interface components {
       /** Format: date-time */
       createdAt: string;
       status?: string;
+      autoDeploy?: boolean;
       service?: {
         [key: string]: unknown;
       };
@@ -849,6 +851,10 @@ export interface components {
       description?: string;
       type: string;
       workflow?: components['schemas']['ComponentWorkflow'];
+    };
+    PatchComponentRequest: {
+      /** @description Controls whether the component should automatically deploy to the default environment */
+      autoDeploy?: boolean;
     };
     EnvironmentResponse: {
       uid: string;
@@ -2072,6 +2078,57 @@ export interface operations {
             data?: components['schemas']['ComponentResponse'];
           };
         };
+      };
+    };
+  };
+  patchComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PatchComponentRequest'];
+      };
+    };
+    responses: {
+      /** @description Component successfully patched */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentResponse'];
+          };
+        };
+      };
+      /** @description Bad request - invalid input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Component or project not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

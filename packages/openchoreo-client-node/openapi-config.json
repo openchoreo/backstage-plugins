@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "970e347fdc87abd1dbcfd004a567cce92f2fe0d1",
-  "lastSyncDate": "2025-11-28T12:20:54+05:30",
-  "lastSyncDescription": "Synced with openchoreo API changes: Updated ComponentResponse and CreateComponentRequest to use ComponentWorkflow schema, and removed unused Workflow schema."
+  "lastSyncCommit": "8786ca6362e6509d753b99318e19b370311a5602",
+  "lastSyncDate": "2025-11-28T19:22:20+05:30",
+  "lastSyncDescription": "Added PATCH /orgs/{orgName}/projects/{projectName}/components/{componentName} endpoint with autoDeploy support and PatchComponentRequest schema."
 }

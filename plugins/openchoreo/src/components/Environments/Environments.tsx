@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Progress } from '@backstage/core-components';
 import { Grid, Box } from '@material-ui/core';
@@ -16,6 +16,7 @@ import {
   useEnvironmentActions,
   isAlreadyPromoted,
 } from './hooks';
+import { useAutoDeployUpdate } from './hooks/useAutoDeployUpdate';
 import type { Environment } from './hooks';
 import type { EnvironmentViewMode, PendingAction } from './types';
 import { useEnvironmentsStyles } from './styles';
@@ -30,6 +31,7 @@ import {
   fetchReleaseBindings,
   ReleaseBinding,
 } from '../../api/environments';
+import { getComponentDetails } from '../../api/runtimeLogs';
 import { getMissingRequiredFields } from './overridesUtils';
 import { JSONSchema7 } from 'json-schema';
 
@@ -50,6 +52,11 @@ export const Environments = () => {
   const { environments, loading, refetch } = useEnvironmentData(entity);
   const { displayEnvironments, isPending } = useStaleEnvironments(environments);
 
+  // Auto deploy state
+  const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
+  const { updateAutoDeploy, isUpdating: autoDeployUpdating } =
+    useAutoDeployUpdate(entity, discovery, identityApi);
+
   // Action trackers
   const refreshTracker = useItemActionTracker<string>();
   const promotionTracker = useItemActionTracker<string>();
@@ -57,6 +64,26 @@ export const Environments = () => {
 
   // Notifications
   const notification = useNotification();
+
+  // Fetch component details to get autoDeploy value
+  useEffect(() => {
+    const fetchComponentData = async () => {
+      try {
+        const componentData = await getComponentDetails(
+          entity,
+          discovery,
+          identityApi,
+        );
+        if (componentData && 'autoDeploy' in componentData) {
+          setAutoDeploy((componentData as any).autoDeploy);
+        }
+      } catch (err) {
+        // Silently fail - autoDeploy will remain undefined
+      }
+    };
+
+    fetchComponentData();
+  }, [entity, discovery, identityApi]);
 
   // Polling for pending deployments
   useEnvironmentPolling(isPending, refetch);
@@ -71,6 +98,22 @@ export const Environments = () => {
       notification,
       refreshTracker,
     );
+
+  // Handler for auto deploy toggle change
+  const handleAutoDeployChange = useCallback(
+    async (newAutoDeploy: boolean) => {
+      const success = await updateAutoDeploy(newAutoDeploy);
+      if (success) {
+        setAutoDeploy(newAutoDeploy);
+        notification.showSuccess(
+          `Auto deploy ${newAutoDeploy ? 'enabled' : 'disabled'} successfully`,
+        );
+      } else {
+        notification.showError('Failed to update auto deploy setting');
+      }
+    },
+    [updateAutoDeploy, notification],
+  );
 
   // Check if workload editor is supported
   const isWorkloadEditorSupported =
@@ -344,6 +387,9 @@ export const Environments = () => {
               environmentsExist={environments.length > 0}
               isWorkloadEditorSupported={!!isWorkloadEditorSupported}
               onConfigureWorkload={handleOpenWorkloadConfig}
+              autoDeploy={autoDeploy}
+              onAutoDeployChange={handleAutoDeployChange}
+              autoDeployUpdating={autoDeployUpdating}
             />
           </Grid>
 
