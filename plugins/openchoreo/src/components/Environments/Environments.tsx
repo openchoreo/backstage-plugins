@@ -78,11 +78,6 @@ export const Environments = () => {
       tag => tag === 'webapplication' || tag === 'service',
     ) || entity.metadata.annotations?.['openchoreo.io/component'] !== undefined;
 
-  // Wrapper to convert refetch to async for Workload component
-  const refetchAsync = useCallback(async () => {
-    refetch();
-  }, [refetch]);
-
   // Create isAlreadyPromoted checker for an environment
   const createPromotionChecker = useCallback(
     (env: Environment) => (targetEnvName: string) =>
@@ -107,8 +102,13 @@ export const Environments = () => {
     setViewMode({ type: 'release-details', environment: env });
   }, []);
 
-  // Handler for when required overrides are missing during deploy
-  const handleRequiredOverridesMissing = useCallback(
+  // Handler for Previous button in Overrides page (back to WorkloadConfig)
+  const handleOverridesPrevious = useCallback(() => {
+    setViewMode({ type: 'workload-config' });
+  }, []);
+
+  // Handler for WorkloadConfig → Overrides navigation
+  const handleWorkloadNext = useCallback(
     (releaseName: string, targetEnvironment: string) => {
       // Find the target environment from environments list (not displayEnvironments)
       // because on first deploy, the environment might not be in displayEnvironments yet
@@ -390,8 +390,7 @@ export const Environments = () => {
       {viewMode.type === 'workload-config' && (
         <WorkloadConfigPage
           onBack={handleBack}
-          onDeployed={refetchAsync}
-          onRequiredOverridesMissing={handleRequiredOverridesMissing}
+          onNext={handleWorkloadNext}
           lowestEnvironment={
             environments[0]?.name?.toLowerCase() || 'development'
           }
@@ -407,6 +406,11 @@ export const Environments = () => {
           onSaved={refetch}
           pendingAction={viewMode.pendingAction}
           onPendingActionComplete={handlePendingActionComplete}
+          onPrevious={
+            viewMode.pendingAction?.type === 'deploy'
+              ? handleOverridesPrevious
+              : undefined
+          }
         />
       )}
 

@@ -202,7 +202,7 @@ export function useOverridesData(
               createContainersFromWorkload(workloadInfo);
             if (populatedWorkloadOverrides) {
               setWorkloadFormData(populatedWorkloadOverrides);
-              setInitialWorkloadFormData({}); // Keep initial as empty since this is auto-populated
+              setInitialWorkloadFormData(populatedWorkloadOverrides);
             } else {
               setWorkloadFormData(workloadOverrides);
               setInitialWorkloadFormData(workloadOverrides);
