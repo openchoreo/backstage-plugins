@@ -392,6 +392,7 @@ export const Environments = () => {
           onBack={handleBack}
           onDeployed={refetchAsync}
           onRequiredOverridesMissing={handleRequiredOverridesMissing}
+          lowestEnvironment={environments[0]?.name?.toLowerCase() || 'development'}
         />
       )}
 

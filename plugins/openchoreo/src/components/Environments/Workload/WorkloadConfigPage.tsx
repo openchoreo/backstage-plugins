@@ -54,12 +54,15 @@ interface WorkloadConfigPageProps {
     releaseName: string,
     environmentName: string,
   ) => void;
+  /** The lowest environment name (first in deployment pipeline) */
+  lowestEnvironment: string;
 }
 
 export const WorkloadConfigPage = ({
   onBack,
   onDeployed,
   onRequiredOverridesMissing,
+  lowestEnvironment,
 }: WorkloadConfigPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
@@ -228,7 +231,7 @@ export const WorkloadConfigPage = ({
       }
 
       const releaseName = releaseResponse.data.name;
-      const targetEnvironment = 'development'; // Initial deploy always goes to development
+      const targetEnvironment = lowestEnvironment;
 
       // Step 3: Check for required overrides
       const missingFields = await checkRequiredOverrides(
