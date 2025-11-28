@@ -171,10 +171,10 @@ export function filterEmptyObjectProperties(schema: any): any {
   }
 
   const filteredProperties: any = {};
-  
+
   Object.keys(schema.properties).forEach(key => {
     const prop = schema.properties[key];
-    
+
     // Keep the property if:
     // 1. It's not an object type, OR
     // 2. It's an object with defined properties/additionalProperties, OR
@@ -190,7 +190,7 @@ export function filterEmptyObjectProperties(schema: any): any {
       // Skip empty object properties
       return;
     }
-    
+
     filteredProperties[key] = prop;
   });
 

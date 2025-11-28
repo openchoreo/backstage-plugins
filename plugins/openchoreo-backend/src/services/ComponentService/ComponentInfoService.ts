@@ -67,4 +67,53 @@ export class ComponentInfoService {
       throw error;
     }
   }
+
+  async patchComponent(
+    orgName: string,
+    projectName: string,
+    componentName: string,
+    autoDeploy: boolean,
+  ): Promise<ModelsCompleteComponent> {
+    this.logger.debug(
+      `Patching component: ${componentName} in project: ${projectName}, organization: ${orgName} with autoDeploy: ${autoDeploy}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.PATCH(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+          },
+          body: {
+            autoDeploy,
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to patch component: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data) {
+        throw new Error(
+          `API returned unsuccessful response: ${JSON.stringify(data)}`,
+        );
+      }
+
+      this.logger.debug(`Successfully patched component: ${componentName}`);
+      return data.data;
+    } catch (error) {
+      this.logger.error(`Failed to patch component ${componentName}: ${error}`);
+      throw error;
+    }
+  }
 }

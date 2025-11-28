@@ -133,6 +133,28 @@ export async function updateComponentBinding(
   });
 }
 
+export async function patchComponent(
+  entity: Entity,
+  discovery: DiscoveryApi,
+  identity: IdentityApi,
+  autoDeploy: boolean,
+) {
+  const { component, project, organization } = extractEntityMetadata(entity);
+
+  return apiFetch({
+    endpoint: '/component',
+    discovery,
+    identity,
+    method: 'PATCH',
+    body: {
+      organizationName: organization,
+      projectName: project,
+      componentName: component,
+      autoDeploy,
+    },
+  });
+}
+
 export async function createComponentRelease(
   entity: Entity,
   discovery: DiscoveryApi,

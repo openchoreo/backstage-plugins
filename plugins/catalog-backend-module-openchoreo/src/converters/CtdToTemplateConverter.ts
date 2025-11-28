@@ -208,7 +208,7 @@ export class CtdToTemplateConverter {
       });
     }
 
-    // Section 3: CI Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
+    // Section 3: CI/CD Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
     parameters.push(
       this.generateCISetupSection(componentType, organizationName),
     );
@@ -220,8 +220,8 @@ export class CtdToTemplateConverter {
   }
 
   /**
-   * Generate CI Setup section with workflow configuration
-   * Always shows CI Setup section. If allowedWorkflows is provided, uses them for the dropdown.
+   * Generate CI/CD Setup section with workflow configuration
+   * Always shows CI/CD Setup section. If allowedWorkflows is provided, uses them for the dropdown.
    * Otherwise, BuildWorkflowPicker will fetch all workflows from the API.
    */
   private generateCISetupSection(
@@ -248,11 +248,19 @@ export class CtdToTemplateConverter {
       workflowNameField.enum = componentType.metadata.allowedWorkflows;
     }
 
-    // Always show CI Setup section
+    // Always show CI/CD Setup section
     return {
-      title: 'CI Setup',
-      required: ['useBuiltInCI'],
+      title: 'CI/CD Setup',
+      required: ['autoDeploy', 'useBuiltInCI'],
       properties: {
+        autoDeploy: {
+          title: 'Auto Deploy',
+          description:
+            'Automatically deploy the component when a new build is successful.',
+          type: 'boolean',
+          default: false,
+          'ui:field': 'SwitchField',
+        },
         useBuiltInCI: {
           title: 'Use Built-in CI in OpenChoreo',
           description:
@@ -573,6 +581,7 @@ export class CtdToTemplateConverter {
           ...ctdParameterMappings,
 
           // Section 3: CI Setup
+          autoDeploy: '${{ parameters.autoDeploy }}',
           useBuiltInCI: '${{ parameters.useBuiltInCI }}',
           repo_url: '${{ parameters.repo_url }}',
           branch: '${{ parameters.branch }}',

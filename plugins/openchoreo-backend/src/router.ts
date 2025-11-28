@@ -316,6 +316,30 @@ export async function createRouter({
     );
   });
 
+  router.patch('/component', async (req, res) => {
+    const { componentName, projectName, organizationName, autoDeploy } =
+      req.body;
+
+    if (!componentName || !projectName || !organizationName) {
+      throw new InputError(
+        'componentName, projectName and organizationName are required in request body',
+      );
+    }
+
+    if (autoDeploy === undefined || typeof autoDeploy !== 'boolean') {
+      throw new InputError('autoDeploy must be a boolean value');
+    }
+
+    res.json(
+      await componentInfoService.patchComponent(
+        organizationName as string,
+        projectName as string,
+        componentName as string,
+        autoDeploy as boolean,
+      ),
+    );
+  });
+
   router.get('/project', async (req, res) => {
     const { projectName, organizationName } = req.query;
 
