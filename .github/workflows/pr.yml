@@ -39,6 +39,9 @@ jobs:
         id: install-dependencies
         run: yarn install --immutable
 
+      - name: Security Audit
+        run: yarn npm audit --environment production --severity high
+
       - name: Check Type Errors
         run: yarn tsc
 

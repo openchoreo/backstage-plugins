@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    # Security updates only - ignore version updates
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+          - "version-update:semver-patch"
+    groups:
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "security"
