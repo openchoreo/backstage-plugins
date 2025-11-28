@@ -19,8 +19,9 @@ export interface ComponentResourceInput {
   componentTypeWorkloadType: string; // The workload type (e.g., "deployment")
   ctdParameters?: Record<string, any>; // Parameters from component type schema
 
-  // Section 3: CI Setup (optional - only if useBuiltInCI is true)
+  // Section 3: CI/CD Setup
   useBuiltInCI?: boolean;
+  autoDeploy?: boolean;
   repoUrl?: string;
   branch?: string;
   componentPath?: string;
@@ -57,6 +58,7 @@ export function buildComponentResource(
       },
       componentType: `${input.componentTypeWorkloadType}/${input.componentType}`,
       parameters: input.ctdParameters || {},
+      autoDeploy: input.autoDeploy ?? false,
     },
   };
 
