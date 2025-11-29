@@ -54,6 +54,26 @@ interface UseOverridesDataReturn {
   reload: () => void;
 }
 
+// Check if a container has actual override data (not just empty arrays)
+const hasContainerOverrideData = (container: any): boolean => {
+  if (!container) return false;
+  const hasEnvVars = Array.isArray(container.env) && container.env.length > 0;
+  const hasFiles = Array.isArray(container.files) && container.files.length > 0;
+  const hasImage = !!container.image;
+  const hasCommand =
+    Array.isArray(container.command) && container.command.length > 0;
+  const hasArgs = Array.isArray(container.args) && container.args.length > 0;
+  return hasEnvVars || hasFiles || hasImage || hasCommand || hasArgs;
+};
+
+// Check if workload has any actual override data
+const hasActualWorkloadData = (workloadOverrides: any): boolean => {
+  if (!workloadOverrides?.containers) return false;
+  return Object.values(workloadOverrides.containers).some((container: any) =>
+    hasContainerOverrideData(container),
+  );
+};
+
 /**
  * Hook for loading and managing environment overrides data.
  * Fetches schema and existing bindings for an environment.
@@ -120,27 +140,6 @@ export function useOverridesData(
       return { containers };
     }
     return null;
-  };
-
-  // Check if a container has actual override data (not just empty arrays)
-  const hasContainerOverrideData = (container: any): boolean => {
-    if (!container) return false;
-    const hasEnvVars = Array.isArray(container.env) && container.env.length > 0;
-    const hasFiles =
-      Array.isArray(container.files) && container.files.length > 0;
-    const hasImage = !!container.image;
-    const hasCommand =
-      Array.isArray(container.command) && container.command.length > 0;
-    const hasArgs = Array.isArray(container.args) && container.args.length > 0;
-    return hasEnvVars || hasFiles || hasImage || hasCommand || hasArgs;
-  };
-
-  // Check if workload has any actual override data
-  const hasActualWorkloadData = (workloadOverrides: any): boolean => {
-    if (!workloadOverrides?.containers) return false;
-    return Object.values(workloadOverrides.containers).some((container: any) =>
-      hasContainerOverrideData(container),
-    );
   };
 
   const loadSchemaAndBinding = useCallback(async () => {
@@ -221,8 +220,7 @@ export function useOverridesData(
             currentBinding.componentTypeEnvOverrides || {};
 
           // Track whether actual component overrides exist from backend
-          const hasActualComponent =
-            Object.keys(componentOverrides).length > 0;
+          const hasActualComponent = Object.keys(componentOverrides).length > 0;
           setHasActualComponentOverrides(hasActualComponent);
 
           // If no component overrides exist, use schema defaults
