@@ -18,6 +18,8 @@ interface ImageSelectorProps {
 
 /**
  * Renders either a text field or dropdown for selecting container image.
+ * Shows dropdown when builds are available (from-source component).
+ * Shows text field when no builds available (from-image component or no builds yet).
  */
 export const ImageSelector: FC<ImageSelectorProps> = ({
   image,
@@ -25,21 +27,22 @@ export const ImageSelector: FC<ImageSelectorProps> = ({
   disabled,
   onChange,
 }) => {
-  // Show text field if no builds available but image exists
-  if (builds.length === 0 && image) {
+  // Show text field if no builds available
+  if (builds.length === 0) {
     return (
       <TextField
         label="Image"
-        value={image}
+        value={image || ''}
         onChange={e => onChange(e.target.value)}
         fullWidth
         variant="outlined"
         disabled={disabled}
+        placeholder="Enter container image (e.g., nginx:latest)"
       />
     );
   }
 
-  // Show dropdown to select from builds
+  // Show dropdown to select from builds (from-source component with builds)
   return (
     <FormControl fullWidth variant="outlined">
       <InputLabel>Select Image from Builds</InputLabel>
