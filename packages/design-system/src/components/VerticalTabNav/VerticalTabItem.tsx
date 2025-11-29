@@ -12,7 +12,7 @@ export interface TabItemData {
   /** Optional count to display as a badge */
   count?: number;
   /** Optional status indicator (colored dot) */
-  status?: 'success' | 'warning' | 'error' | 'default';
+  status?: 'success' | 'warning' | 'error' | 'info' | 'default';
   /** Whether the tab is disabled */
   disabled?: boolean;
 }
@@ -51,6 +51,8 @@ export const VerticalTabItem: React.FC<VerticalTabItemProps> = ({
         return classes.statusWarning;
       case 'error':
         return classes.statusError;
+      case 'info':
+        return classes.statusInfo;
       default:
         return classes.statusDefault;
     }

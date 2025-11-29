@@ -1,7 +1,14 @@
 import { Box, Typography, IconButton, Badge } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import SettingsIcon from '@material-ui/icons/Settings';
 import Refresh from '@material-ui/icons/Refresh';
 import { EnvironmentCardHeaderProps } from '../types';
+
+const useStyles = makeStyles(theme => ({
+  successBadge: {
+    backgroundColor: theme.palette.success.main,
+  },
+}));
 
 /**
  * Header section of an environment card with name and action icons
@@ -14,6 +21,8 @@ export const EnvironmentCardHeader = ({
   onOpenOverrides,
   onRefresh,
 }: EnvironmentCardHeaderProps) => {
+  const classes = useStyles();
+
   return (
     <>
       <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -28,7 +37,11 @@ export const EnvironmentCardHeader = ({
               title="Configure environment overrides"
               style={{ marginLeft: 8 }}
             >
-              <Badge color="primary" variant="dot" invisible={!hasOverrides}>
+              <Badge
+                variant="dot"
+                invisible={!hasOverrides}
+                classes={{ badge: classes.successBadge }}
+              >
                 <SettingsIcon fontSize="inherit" style={{ fontSize: '18px' }} />
               </Badge>
             </IconButton>

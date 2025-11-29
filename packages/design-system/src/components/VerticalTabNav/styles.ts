@@ -90,6 +90,9 @@ export const useStyles = makeStyles((theme: Theme) => ({
   statusError: {
     backgroundColor: theme.palette.error.main,
   },
+  statusInfo: {
+    backgroundColor: theme.palette.info.main,
+  },
   statusDefault: {
     backgroundColor: theme.palette.grey[400],
   },

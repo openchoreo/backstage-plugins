@@ -146,20 +146,38 @@ export const EnvironmentOverridesPage = ({
     );
   }, [schemas.componentTypeSchema, formState.componentTypeFormData]);
 
+  // Helper function to determine tab status with priority: error > info > success > undefined
+  const getTabStatus = (
+    hasInitialData: boolean,
+    hasChanges: boolean,
+    hasMissingRequired: boolean,
+  ): TabItemData['status'] => {
+    if (hasMissingRequired) return 'error';
+    if (hasChanges) return 'info';
+    if (hasInitialData) return 'success';
+    return undefined;
+  };
+
   // Build tabs from available schemas
   const tabs = useMemo<TabItemData[]>(() => {
     const tabList: TabItemData[] = [];
 
     // Add Component Overrides tab if schema exists
     if (schemas.componentTypeSchema) {
-      const hasComponentData =
-        formState.componentTypeFormData &&
-        Object.keys(formState.componentTypeFormData).length > 0;
+      // Use hasActualComponentOverrides to check if backend has real overrides (not just defaults)
+      const hasInitialComponentData = formState.hasActualComponentOverrides;
+      const hasComponentChanges = changes.component.length > 0;
+      const hasMissingComponentRequired = missingRequiredFields.length > 0;
+
       tabList.push({
         id: 'component',
         label: 'Component',
         icon: <SettingsIcon />,
-        status: hasComponentData ? 'success' : undefined,
+        status: getTabStatus(
+          hasInitialComponentData,
+          hasComponentChanges,
+          hasMissingComponentRequired,
+        ),
       });
     }
 
@@ -171,34 +189,49 @@ export const EnvironmentOverridesPage = ({
 
     // Add trait tabs
     Object.keys(schemas.traitSchemasMap).forEach(traitName => {
-      const hasTraitData =
-        formState.traitFormDataMap[traitName] &&
-        Object.keys(formState.traitFormDataMap[traitName]).length > 0;
+      const traitSchema = schemas.traitSchemasMap[traitName];
+      // Use hasActualTraitOverridesMap to check if backend has real overrides for this trait
+      const hasInitialTraitData =
+        formState.hasActualTraitOverridesMap[traitName] || false;
+      const hasTraitChanges = (changes.traits[traitName]?.length || 0) > 0;
+      const traitMissingRequired = getMissingRequiredFields(
+        traitSchema,
+        formState.traitFormDataMap[traitName],
+      );
+
       tabList.push({
         id: `trait-${traitName}`,
         label: traitName,
         icon: <ExtensionIcon />,
-        status: hasTraitData ? 'success' : undefined,
+        status: getTabStatus(
+          hasInitialTraitData,
+          hasTraitChanges,
+          traitMissingRequired.length > 0,
+        ),
       });
     });
 
     // Add Workload tab
-    const hasWorkloadData =
-      formState.workloadFormData &&
-      Object.keys(formState.workloadFormData).length > 0;
+    // Use hasActualWorkloadOverrides to check if backend has real overrides
+    const hasInitialWorkloadData = formState.hasActualWorkloadOverrides;
+    const hasWorkloadChanges = (changes.workload?.length || 0) > 0;
+    // Workload doesn't use JSON schema, so no required field validation
     tabList.push({
       id: 'workload',
       label: 'Workload',
       icon: <ExtensionIcon />,
-      status: hasWorkloadData ? 'success' : undefined,
+      status: getTabStatus(hasInitialWorkloadData, hasWorkloadChanges, false),
     });
 
     return tabList;
   }, [
     schemas,
-    formState.componentTypeFormData,
+    formState.hasActualComponentOverrides,
+    formState.hasActualTraitOverridesMap,
+    formState.hasActualWorkloadOverrides,
     formState.traitFormDataMap,
-    formState.workloadFormData,
+    changes,
+    missingRequiredFields,
     pendingAction,
   ]);
 
