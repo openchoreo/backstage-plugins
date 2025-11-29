@@ -117,7 +117,7 @@ echo -e "${YELLOW}🔨 Generating TypeScript types from OpenAPI specs...${NC}"
 
 # Generate User API types
 echo -e "   Generating User API types..."
-npx openapi-typescript "$OPENAPI_DIR/user.yaml" -o "$GENERATED_DIR/user/types.ts"
+npx openapi-typescript@7.4.4 "$OPENAPI_DIR/user.yaml" -o "$GENERATED_DIR/user/types.ts"
 
 if [ $? -eq 0 ]; then
   echo -e "${GREEN}✓ User API types generated successfully${NC}"
@@ -128,7 +128,7 @@ fi
 
 # Generate Group API types
 echo -e "   Generating Group API types..."
-npx openapi-typescript "$OPENAPI_DIR/group.yaml" -o "$GENERATED_DIR/group/types.ts"
+npx openapi-typescript@7.4.4 "$OPENAPI_DIR/group.yaml" -o "$GENERATED_DIR/group/types.ts"
 
 if [ $? -eq 0 ]; then
   echo -e "${GREEN}✓ Group API types generated successfully${NC}"
