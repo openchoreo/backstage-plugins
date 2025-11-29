@@ -26,6 +26,10 @@ export interface OverridesFormState {
   initialTraitFormDataMap: Record<string, Record<string, unknown>>;
   initialWorkloadFormData: Record<string, unknown>;
   workloadFormData: any;
+  // Track whether actual overrides exist from backend (not just defaults)
+  hasActualComponentOverrides: boolean;
+  hasActualTraitOverridesMap: Record<string, boolean>;
+  hasActualWorkloadOverrides: boolean;
 }
 
 export interface OverridesSchemaState {
@@ -89,6 +93,15 @@ export function useOverridesData(
     {},
   );
 
+  // Track whether actual overrides exist from backend (not just defaults)
+  const [hasActualComponentOverrides, setHasActualComponentOverrides] =
+    useState<boolean>(false);
+  const [hasActualTraitOverridesMap, setHasActualTraitOverridesMap] = useState<
+    Record<string, boolean>
+  >({});
+  const [hasActualWorkloadOverrides, setHasActualWorkloadOverrides] =
+    useState<boolean>(false);
+
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<
     Record<string, boolean>
@@ -107,6 +120,27 @@ export function useOverridesData(
       return { containers };
     }
     return null;
+  };
+
+  // Check if a container has actual override data (not just empty arrays)
+  const hasContainerOverrideData = (container: any): boolean => {
+    if (!container) return false;
+    const hasEnvVars = Array.isArray(container.env) && container.env.length > 0;
+    const hasFiles =
+      Array.isArray(container.files) && container.files.length > 0;
+    const hasImage = !!container.image;
+    const hasCommand =
+      Array.isArray(container.command) && container.command.length > 0;
+    const hasArgs = Array.isArray(container.args) && container.args.length > 0;
+    return hasEnvVars || hasFiles || hasImage || hasCommand || hasArgs;
+  };
+
+  // Check if workload has any actual override data
+  const hasActualWorkloadData = (workloadOverrides: any): boolean => {
+    if (!workloadOverrides?.containers) return false;
+    return Object.values(workloadOverrides.containers).some((container: any) =>
+      hasContainerOverrideData(container),
+    );
   };
 
   const loadSchemaAndBinding = useCallback(async () => {
@@ -186,9 +220,14 @@ export function useOverridesData(
           const componentOverrides =
             currentBinding.componentTypeEnvOverrides || {};
 
+          // Track whether actual component overrides exist from backend
+          const hasActualComponent =
+            Object.keys(componentOverrides).length > 0;
+          setHasActualComponentOverrides(hasActualComponent);
+
           // If no component overrides exist, use schema defaults
           // This ensures the form shows defaults and detects no changes
-          if (Object.keys(componentOverrides).length === 0) {
+          if (!hasActualComponent) {
             const schemaDefaults = getSchemaDefaults(compTypeOverridesSchema);
             setComponentTypeFormData(schemaDefaults);
             setInitialComponentTypeFormData(schemaDefaults);
@@ -201,12 +240,22 @@ export function useOverridesData(
           setTraitFormDataMap(existingTraitOverrides);
           setInitialTraitFormDataMap(existingTraitOverrides);
 
+          // Track which traits have actual overrides from backend
+          const traitOverridesMap: Record<string, boolean> = {};
+          Object.keys(existingTraitOverrides).forEach(traitName => {
+            traitOverridesMap[traitName] =
+              Object.keys(existingTraitOverrides[traitName] || {}).length > 0;
+          });
+          setHasActualTraitOverridesMap(traitOverridesMap);
+
           const workloadOverrides = currentBinding.workloadOverrides || {};
+          // Track whether actual workload overrides exist from backend
+          // (not just empty container structures)
+          const hasActualWorkload = hasActualWorkloadData(workloadOverrides);
+          setHasActualWorkloadOverrides(hasActualWorkload);
+
           // If no workload overrides exist, fetch workload info to populate container structure
-          if (
-            !workloadOverrides.containers ||
-            Object.keys(workloadOverrides.containers).length === 0
-          ) {
+          if (!hasActualWorkload) {
             const workloadInfo = await fetchWorkloadInfo(
               entity,
               discovery,
@@ -234,6 +283,10 @@ export function useOverridesData(
           setInitialTraitFormDataMap({});
           setWorkloadFormData({});
           setInitialWorkloadFormData({});
+          // No actual overrides exist
+          setHasActualComponentOverrides(false);
+          setHasActualTraitOverridesMap({});
+          setHasActualWorkloadOverrides(false);
         }
       }
     } catch (err) {
@@ -263,6 +316,9 @@ export function useOverridesData(
       initialTraitFormDataMap,
       initialWorkloadFormData,
       workloadFormData,
+      hasActualComponentOverrides,
+      hasActualTraitOverridesMap,
+      hasActualWorkloadOverrides,
     },
     expandedSections,
     setComponentTypeFormData,
