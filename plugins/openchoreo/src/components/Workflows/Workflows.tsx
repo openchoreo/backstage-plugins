@@ -4,7 +4,7 @@ import {
   discoveryApiRef,
   identityApiRef,
 } from '@backstage/core-plugin-api';
-import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { Progress, ResponseErrorPanel, EmptyState } from '@backstage/core-components';
 import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
@@ -62,6 +62,9 @@ export const Workflows = () => {
 
   // Data fetching hook
   const workflowData = useWorkflowData();
+
+  // Check if component has workflow from componentDetails
+  const hasWorkflow = !!workflowData.componentDetails?.componentWorkflow;
 
   // Async operation for triggering workflow
   const triggerWorkflowOp = useAsyncOperation(
@@ -175,6 +178,17 @@ export const Workflows = () => {
   // Error state
   if (workflowData.error) {
     return <ResponseErrorPanel error={workflowData.error} />;
+  }
+
+  // No workflow state (from-image component)
+  if (!hasWorkflow) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Workflows Not Available"
+        description="This component is configured to use pre-built container images. Workflows are only available for components that build from source code."
+      />
+    );
   }
 
   // Config page view
