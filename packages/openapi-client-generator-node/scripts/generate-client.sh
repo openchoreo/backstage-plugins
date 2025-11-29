@@ -181,14 +181,14 @@ for ((i=0; i<$SPECS_COUNT; i++)); do
 
   # Generate TypeScript types
   echo -e "   Generating types..."
-  npx openapi-typescript "$SPEC_INPUT" -o "$SPEC_OUTPUT_DIR/types.ts"
+  npx openapi-typescript@7.4.4 "$SPEC_INPUT" -o "$SPEC_OUTPUT_DIR/types.ts"
 
   if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Types generated successfully${NC}"
 
     # Format with Prettier
     echo -e "   Formatting with Prettier..."
-    npx prettier --write "$SPEC_OUTPUT_DIR/types.ts" > /dev/null 2>&1
+    npx prettier@2.3.2 --write "$SPEC_OUTPUT_DIR/types.ts" > /dev/null 2>&1
     if [ $? -eq 0 ]; then
       echo -e "${GREEN}✓ Types formatted with Prettier${NC}"
     else
