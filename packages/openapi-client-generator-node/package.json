@@ -24,12 +24,12 @@
     "postpack": "backstage-cli package postpack"
   },
   "dependencies": {
-    "openapi-fetch": "^0.13.3"
+    "openapi-fetch": "0.13.8"
   },
   "devDependencies": {
-    "@backstage/cli": "^0.34.3",
-    "openapi-typescript": "^7.4.4",
-    "rimraf": "^5.0.0"
+    "@backstage/cli": "0.34.3",
+    "openapi-typescript": "7.10.1",
+    "rimraf": "5.0.10"
   },
   "files": [
     "dist",
