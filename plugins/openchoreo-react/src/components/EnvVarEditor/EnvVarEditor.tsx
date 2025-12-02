@@ -259,7 +259,8 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
         {showBaseValue && baseValue && (
           <Box className={classes.baseValueInline}>
             <Typography className={classes.baseValueText}>
-              Base: {baseValue.key} = {formatDisplayValue(baseValue, baseValueMode)}
+              Base: {baseValue.key} ={' '}
+              {formatDisplayValue(baseValue, baseValueMode)}
             </Typography>
           </Box>
         )}
@@ -379,7 +380,8 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
       {showBaseValue && baseValue && (
         <Box className={classes.baseValueInline}>
           <Typography className={classes.baseValueText}>
-            Base: {baseValue.key} = {formatDisplayValue(baseValue, baseValueMode)}
+            Base: {baseValue.key} ={' '}
+            {formatDisplayValue(baseValue, baseValueMode)}
           </Typography>
         </Box>
       )}

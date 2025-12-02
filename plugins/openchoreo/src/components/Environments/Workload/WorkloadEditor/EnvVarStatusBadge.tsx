@@ -34,7 +34,11 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 const statusConfig: Record<
   EnvVarStatus,
-  { label: string; tooltip: string; className: 'inherited' | 'overridden' | 'new' }
+  {
+    label: string;
+    tooltip: string;
+    className: 'inherited' | 'overridden' | 'new';
+  }
 > = {
   inherited: {
     label: 'Base',
@@ -63,7 +67,10 @@ const statusConfig: Record<
  *
  * For overridden vars, shows the base value in a tooltip on hover.
  */
-export function EnvVarStatusBadge({ status, baseValue }: EnvVarStatusBadgeProps) {
+export function EnvVarStatusBadge({
+  status,
+  baseValue,
+}: EnvVarStatusBadgeProps) {
   const classes = useStyles();
   const config = statusConfig[status];
 
