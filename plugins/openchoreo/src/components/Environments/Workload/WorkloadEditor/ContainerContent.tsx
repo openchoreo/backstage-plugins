@@ -180,6 +180,9 @@ export function ContainerContent({
   // Track which row is currently being edited (only one at a time)
   const [editingRow, setEditingRow] = useState<EditingRowState | null>(null);
 
+  // Buffer for edits - changes are stored here until Apply is clicked
+  const [editBuffer, setEditBuffer] = useState<EnvVar | null>(null);
+
   // Track which overridden rows have base value expanded
   const [expandedBaseRows, setExpandedBaseRows] = useState<Set<string>>(
     new Set(),
@@ -219,14 +222,32 @@ export function ContainerContent({
     envModes.setMode(containerName, index, mode);
 
     // Clear conflicting values when switching modes
-    if (mode === 'plain') {
-      onEnvVarChange(containerName, index, 'value', '');
-      onEnvVarChange(containerName, index, 'valueFrom', undefined as any);
+    // If currently editing, update buffer; otherwise update parent state
+    const isEditing =
+      editingRow?.containerName === containerName && editingRow?.index === index;
+
+    if (isEditing && editBuffer) {
+      // Update buffer
+      if (mode === 'plain') {
+        setEditBuffer({ ...editBuffer, value: '', valueFrom: undefined });
+      } else {
+        setEditBuffer({
+          ...editBuffer,
+          value: undefined,
+          valueFrom: { secretRef: { name: '', key: '' } },
+        });
+      }
     } else {
-      onEnvVarChange(containerName, index, 'value', undefined as any);
-      onEnvVarChange(containerName, index, 'valueFrom', {
-        secretRef: { name: '', key: '' },
-      } as any);
+      // Update parent state directly (non-editing mode changes)
+      if (mode === 'plain') {
+        onEnvVarChange(containerName, index, 'value', '');
+        onEnvVarChange(containerName, index, 'valueFrom', undefined as any);
+      } else {
+        onEnvVarChange(containerName, index, 'value', undefined as any);
+        onEnvVarChange(containerName, index, 'valueFrom', {
+          secretRef: { name: '', key: '' },
+        } as any);
+      }
     }
   };
 
@@ -252,11 +273,12 @@ export function ContainerContent({
   const handleRemoveEnvVar = (containerName: string, index: number) => {
     envModes.cleanupIndex(containerName, index);
     onRemoveEnvVar(containerName, index);
-    // Clear editing state if this row was being edited
+    // Clear editing state and buffer if this row was being edited
     if (
       editingRow?.containerName === containerName &&
       editingRow?.index === index
     ) {
+      setEditBuffer(null);
       setEditingRow(null);
     }
   };
@@ -272,65 +294,72 @@ export function ContainerContent({
     return !envVar.key && !envVar.value && !envVar.valueFrom?.secretRef?.name;
   };
 
-  // Handle adding a new env var - starts in edit mode
+  // Handle adding a new env var - starts in edit mode with empty buffer
   const handleAddEnvVar = (containerName: string) => {
     onAddEnvVar(containerName);
     const newIndex = containers[containerName]?.env?.length || 0;
+    setEditBuffer({ key: '', value: '' });
     setEditingRow({ containerName, index: newIndex, isNew: true });
   };
 
-  // Handle starting edit on a row - capture original values for revert
+  // Handle buffered changes - updates local buffer only, not parent state
+  const handleBufferedChange = (field: keyof EnvVar, value: any) => {
+    if (!editBuffer) return;
+    setEditBuffer({ ...editBuffer, [field]: value });
+  };
+
+  // Handle starting edit on a row - initialize buffer with current values
   const handleStartEdit = (containerName: string, index: number) => {
     const envVar = containers[containerName]?.env?.[index];
+    // Deep copy to buffer for editing
+    setEditBuffer(
+      envVar ? JSON.parse(JSON.stringify(envVar)) : { key: '', value: '' },
+    );
     setEditingRow({
       containerName,
       index,
-      // Deep copy to preserve original values
-      originalEnvVar: envVar ? { ...envVar } : undefined,
+      isNew: false,
     });
   };
 
-  // Handle applying changes - removes empty rows
+  // Handle applying changes - commits buffer to parent state
   const handleApplyEdit = () => {
-    if (editingRow) {
-      const envVar =
-        containers[editingRow.containerName]?.env?.[editingRow.index];
-      // If both key and value are empty, remove the row
-      if (isEnvVarEmpty(envVar)) {
-        handleRemoveEnvVar(editingRow.containerName, editingRow.index);
+    if (editingRow && editBuffer) {
+      const { containerName, index } = editingRow;
+
+      // If buffer is empty, remove the row
+      if (isEnvVarEmpty(editBuffer)) {
+        handleRemoveEnvVar(containerName, index);
+        setEditBuffer(null);
         return;
       }
+
+      // Commit all buffered changes to parent state
+      onEnvVarChange(containerName, index, 'key', editBuffer.key || '');
+      onEnvVarChange(containerName, index, 'value', editBuffer.value as any);
+      onEnvVarChange(
+        containerName,
+        index,
+        'valueFrom',
+        editBuffer.valueFrom as any,
+      );
     }
+    setEditBuffer(null);
     setEditingRow(null);
   };
 
-  // Handle canceling edit
+  // Handle canceling edit - discards buffer, original values remain unchanged
   const handleCancelEdit = () => {
     if (!editingRow) return;
 
     if (editingRow.isNew) {
       // NEW row: Cancel = Delete the row entirely
       handleRemoveEnvVar(editingRow.containerName, editingRow.index);
-    } else if (editingRow.originalEnvVar) {
-      // EXISTING row: Cancel = Revert to original values
-      const { containerName, index, originalEnvVar } = editingRow;
-      onEnvVarChange(containerName, index, 'key', originalEnvVar.key || '');
-      onEnvVarChange(
-        containerName,
-        index,
-        'value',
-        originalEnvVar.value as any,
-      );
-      onEnvVarChange(
-        containerName,
-        index,
-        'valueFrom',
-        originalEnvVar.valueFrom as any,
-      );
-      setEditingRow(null);
-    } else {
-      setEditingRow(null);
     }
+    // For existing rows: just discard buffer, original values are still in containers prop
+
+    setEditBuffer(null);
+    setEditingRow(null);
   };
 
   // Toggle base value expansion for overridden rows
@@ -528,7 +557,11 @@ export function ContainerContent({
                             />
                           </Box>
                           <EnvVarEditor
-                            envVar={item.envVar}
+                            envVar={
+                              isCurrentlyEditing && editBuffer
+                                ? editBuffer
+                                : item.envVar
+                            }
                             secrets={secretOptions}
                             disabled={disabled}
                             mode={currentMode}
@@ -553,13 +586,16 @@ export function ContainerContent({
                                 ? () => toggleBaseExpanded(item.envVar.key)
                                 : undefined
                             }
-                            onChange={(field, value) =>
-                              onEnvVarChange(
-                                containerName,
-                                actualIndex,
-                                field,
-                                value,
-                              )
+                            onChange={
+                              isCurrentlyEditing
+                                ? handleBufferedChange
+                                : (field, value) =>
+                                    onEnvVarChange(
+                                      containerName,
+                                      actualIndex,
+                                      field,
+                                      value,
+                                    )
                             }
                             onRemove={() =>
                               handleRemoveEnvVar(containerName, actualIndex)
@@ -585,7 +621,11 @@ export function ContainerContent({
                     return (
                       <Box key={index} className={classes.envVarRowWrapper}>
                         <EnvVarEditor
-                          envVar={envVar}
+                          envVar={
+                            isCurrentlyEditing && editBuffer
+                              ? editBuffer
+                              : envVar
+                          }
                           secrets={secretOptions}
                           disabled={disabled}
                           mode={envModes.getMode(containerName, index)}
@@ -595,8 +635,16 @@ export function ContainerContent({
                           onCancel={handleCancelEdit}
                           editButtonLabel="Edit"
                           editDisabled={isAnyRowEditing && !isCurrentlyEditing}
-                          onChange={(field, value) =>
-                            onEnvVarChange(containerName, index, field, value)
+                          onChange={
+                            isCurrentlyEditing
+                              ? handleBufferedChange
+                              : (field, value) =>
+                                  onEnvVarChange(
+                                    containerName,
+                                    index,
+                                    field,
+                                    value,
+                                  )
                           }
                           onRemove={() =>
                             handleRemoveEnvVar(containerName, index)
