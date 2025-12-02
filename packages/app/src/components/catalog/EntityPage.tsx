@@ -142,18 +142,20 @@ const entityWarningContent = (
 const overviewContent = (
   <Grid container spacing={3} alignItems="stretch">
     {entityWarningContent}
-
-    {/* OpenChoreo Summary Cards */}
-    <Grid item md={4} xs={12}>
-      <WorkflowsOverviewCard />
-    </Grid>
-    <Grid item md={4} xs={12}>
-      <ProductionOverviewCard />
-    </Grid>
-    <Grid item md={4} xs={12}>
-      <RuntimeHealthCard />
-    </Grid>
-
+    <EntitySwitch>
+      <EntitySwitch.Case if={isKind('component')}>
+        {/* OpenChoreo Summary Cards */}
+        <Grid item md={4} xs={12}>
+          <WorkflowsOverviewCard />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <ProductionOverviewCard />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <RuntimeHealthCard />
+        </Grid>
+      </EntitySwitch.Case>
+    </EntitySwitch>
     <Grid item md={6}>
       <EntityAboutCard variant="gridItem" />
     </Grid>
