@@ -48,6 +48,15 @@ export {
   FileVarStatusBadge,
   type FileVarStatusBadgeProps,
 } from './components/FileVarStatusBadge';
+export {
+  StatusSummaryBar,
+  type StatusSummaryBarProps,
+} from './components/StatusSummaryBar';
+export {
+  GroupedSection,
+  type GroupedSectionProps,
+  type GroupedSectionStatus,
+} from './components/GroupedSection';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';
@@ -102,3 +111,11 @@ export {
   type FileVarStatus,
   type FileVarWithStatus,
 } from './utils/fileVarUtils';
+export {
+  groupByStatus,
+  getStatusCounts,
+  hasAnyItems,
+  getTotalCount,
+  type StatusCounts,
+  type GroupedItems,
+} from './utils/overrideGroupUtils';

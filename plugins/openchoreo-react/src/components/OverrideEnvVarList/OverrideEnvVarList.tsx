@@ -1,4 +1,4 @@
-import { useState, useMemo, type FC } from 'react';
+import { useMemo, type FC } from 'react';
 import { Box, Button, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -6,13 +6,16 @@ import EditIcon from '@material-ui/icons/Edit';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import { EnvVarEditor } from '../EnvVarEditor';
-import { EnvVarStatusBadge } from '../EnvVarStatusBadge';
+import { StatusSummaryBar } from '../StatusSummaryBar';
+import { GroupedSection } from '../GroupedSection';
 import type { UseModeStateResult } from '../../hooks/useModeState';
 import type { UseEnvVarEditBufferResult } from '../../hooks/useEnvVarEditBuffer';
 import {
   mergeEnvVarsWithStatus,
   formatEnvVarValue,
+  type EnvVarWithStatus,
 } from '../../utils/envVarUtils';
+import { groupByStatus, getStatusCounts } from '../../utils/overrideGroupUtils';
 
 const useStyles = makeStyles(theme => ({
   envVarRowWrapper: {
@@ -44,9 +47,6 @@ const useStyles = makeStyles(theme => ({
   },
   overrideButton: {
     marginLeft: 'auto',
-  },
-  statusBadgeWrapper: {
-    marginBottom: theme.spacing(0.5),
   },
   addButton: {
     marginTop: theme.spacing(1),
@@ -91,7 +91,7 @@ export interface OverrideEnvVarListProps {
 
 /**
  * Override-aware environment variable list.
- * Shows unified list with inherited (read-only) + overridden/new (editable) env vars.
+ * Shows grouped sections: Overrides, New, and Inherited (Base).
  * Displays status badges and supports inline override creation.
  */
 export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
@@ -110,16 +110,16 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
 }) => {
   const classes = useStyles();
 
-  // Track which overridden rows have base value expanded
-  const [expandedBaseRows, setExpandedBaseRows] = useState<Set<string>>(
-    new Set(),
-  );
-
   // Merge base and override env vars with status metadata
   const mergedEnvVars = useMemo(
     () => mergeEnvVarsWithStatus(baseEnvVars, envVars),
     [baseEnvVars, envVars],
   );
+
+  // Group items by status and get counts
+  const grouped = useMemo(() => groupByStatus(mergedEnvVars), [mergedEnvVars]);
+
+  const counts = useMemo(() => getStatusCounts(mergedEnvVars), [mergedEnvVars]);
 
   const handleAddEnvVar = () => {
     onAddEnvVar(containerName);
@@ -171,112 +171,128 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
     editBuffer.startNew(containerName, newIndex, envVar);
   };
 
-  // Toggle base value expansion for overridden rows
-  const toggleBaseExpanded = (key: string) => {
-    setExpandedBaseRows(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
+  // Render an editable env var row (overridden or new)
+  const renderEditableRow = (item: EnvVarWithStatus, displayIndex: number) => {
+    const actualIndex = item.actualIndex!;
+    const isCurrentlyEditing = editBuffer.isRowEditing(
+      containerName,
+      actualIndex,
+    );
+    const currentMode = envModes.getMode(containerName, actualIndex);
+
+    return (
+      <Box
+        key={`${item.status}-${item.envVar.key}-${displayIndex}`}
+        className={classes.envVarRowWrapper}
+      >
+        <EnvVarEditor
+          envVar={
+            isCurrentlyEditing && editBuffer.editBuffer
+              ? editBuffer.editBuffer
+              : item.envVar
+          }
+          secrets={secretOptions}
+          disabled={disabled}
+          mode={currentMode}
+          isEditing={isCurrentlyEditing}
+          onEdit={() => editBuffer.startEdit(containerName, actualIndex)}
+          onApply={editBuffer.applyEdit}
+          onCancel={editBuffer.cancelEdit}
+          editButtonLabel="Edit"
+          lockMode={item.status === 'overridden'}
+          lockKey={item.status === 'overridden'}
+          editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
+          deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
+          baseValue={item.baseValue}
+          onChange={
+            isCurrentlyEditing
+              ? editBuffer.updateBuffer
+              : (field, value) =>
+                  onEnvVarChange(containerName, actualIndex, field, value)
+          }
+          onRemove={() => handleRemoveEnvVar(actualIndex)}
+          onModeChange={mode => handleModeChange(actualIndex, mode)}
+        />
+      </Box>
+    );
   };
+
+  // Render an inherited (read-only) env var row
+  const renderInheritedRow = (item: EnvVarWithStatus) => (
+    <Box
+      key={`inherited-${item.envVar.key}`}
+      className={classes.envVarRowWrapper}
+    >
+      <Box className={classes.inheritedRow}>
+        <Box className={classes.inheritedContent}>
+          <Typography className={classes.inheritedKey}>
+            {item.envVar.key}
+          </Typography>
+          <Typography className={classes.inheritedValue}>
+            {formatEnvVarValue(item.envVar)}
+          </Typography>
+        </Box>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<EditIcon />}
+          className={classes.overrideButton}
+          disabled={disabled || editBuffer.isAnyRowEditing}
+          onClick={() => handleStartOverride(item.envVar)}
+        >
+          Override
+        </Button>
+      </Box>
+    </Box>
+  );
 
   return (
     <Box>
-      {mergedEnvVars.map((item, displayIndex) => {
-        if (item.status === 'inherited') {
-          // Inherited env var - show read-only row with override button
-          return (
-            <Box
-              key={`inherited-${item.envVar.key}`}
-              className={classes.envVarRowWrapper}
-            >
-              <Box className={classes.statusBadgeWrapper}>
-                <EnvVarStatusBadge status={item.status} />
-              </Box>
-              <Box className={classes.inheritedRow}>
-                <Box className={classes.inheritedContent}>
-                  <Typography className={classes.inheritedKey}>
-                    {item.envVar.key}
-                  </Typography>
-                  <Typography className={classes.inheritedValue}>
-                    {formatEnvVarValue(item.envVar)}
-                  </Typography>
-                </Box>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  className={classes.overrideButton}
-                  disabled={disabled || editBuffer.isAnyRowEditing}
-                  onClick={() => handleStartOverride(item.envVar)}
-                >
-                  Override
-                </Button>
-              </Box>
-            </Box>
-          );
-        }
+      {/* Status summary bar */}
+      <StatusSummaryBar counts={counts} />
 
-        // Overridden or new env var - use actualIndex from merged data
-        const actualIndex = item.actualIndex!;
-        const isCurrentlyEditing = editBuffer.isRowEditing(
-          containerName,
-          actualIndex,
-        );
-        const currentMode = envModes.getMode(containerName, actualIndex);
+      {/* Overrides section */}
+      {grouped.overridden.length > 0 && (
+        <GroupedSection
+          title="Overrides"
+          count={grouped.overridden.length}
+          status="overridden"
+          defaultExpanded
+        >
+          {grouped.overridden.map((item, index) =>
+            renderEditableRow(item as EnvVarWithStatus, index),
+          )}
+        </GroupedSection>
+      )}
 
-        return (
-          <Box
-            key={`${item.status}-${item.envVar.key}-${displayIndex}`}
-            className={classes.envVarRowWrapper}
-          >
-            <Box className={classes.statusBadgeWrapper}>
-              <EnvVarStatusBadge
-                status={item.status}
-                baseValue={item.baseValue}
-              />
-            </Box>
-            <EnvVarEditor
-              envVar={
-                isCurrentlyEditing && editBuffer.editBuffer
-                  ? editBuffer.editBuffer
-                  : item.envVar
-              }
-              secrets={secretOptions}
-              disabled={disabled}
-              mode={currentMode}
-              isEditing={isCurrentlyEditing}
-              onEdit={() => editBuffer.startEdit(containerName, actualIndex)}
-              onApply={editBuffer.applyEdit}
-              onCancel={editBuffer.cancelEdit}
-              editButtonLabel="Edit"
-              lockMode={item.status === 'overridden'}
-              lockKey={item.status === 'overridden'}
-              editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
-              deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
-              baseValue={item.baseValue}
-              showBaseValue={expandedBaseRows.has(item.envVar.key)}
-              onToggleBaseValue={
-                item.status === 'overridden' && item.baseValue
-                  ? () => toggleBaseExpanded(item.envVar.key)
-                  : undefined
-              }
-              onChange={
-                isCurrentlyEditing
-                  ? editBuffer.updateBuffer
-                  : (field, value) =>
-                      onEnvVarChange(containerName, actualIndex, field, value)
-              }
-              onRemove={() => handleRemoveEnvVar(actualIndex)}
-              onModeChange={mode => handleModeChange(actualIndex, mode)}
-            />
-          </Box>
-        );
-      })}
+      {/* New section */}
+      {grouped.new.length > 0 && (
+        <GroupedSection
+          title="New"
+          count={grouped.new.length}
+          status="new"
+          defaultExpanded
+        >
+          {grouped.new.map((item, index) =>
+            renderEditableRow(item as EnvVarWithStatus, index),
+          )}
+        </GroupedSection>
+      )}
+
+      {/* Inherited section */}
+      {grouped.inherited.length > 0 && (
+        <GroupedSection
+          title="Inherited"
+          count={grouped.inherited.length}
+          status="inherited"
+          defaultExpanded
+        >
+          {grouped.inherited.map(item =>
+            renderInheritedRow(item as EnvVarWithStatus),
+          )}
+        </GroupedSection>
+      )}
+
       <Button
         startIcon={<AddIcon />}
         onClick={handleAddEnvVar}
