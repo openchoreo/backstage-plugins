@@ -176,6 +176,20 @@ export function WorkloadEditor({ entity }: WorkloadEditorProps) {
     handleContainerChange(containerName, 'files' as any, updatedFileVars);
   };
 
+  const handleFileVarReplace = (
+    containerName: string,
+    fileIndex: number,
+    fileVar: FileVar,
+  ) => {
+    const container = formData.containers?.[containerName];
+    if (!container) return;
+
+    const updatedFileVars = [...((container as any).files || [])];
+    updatedFileVars[fileIndex] = fileVar;
+
+    handleContainerChange(containerName, 'files' as any, updatedFileVars);
+  };
+
   const addContainer = () => {
     const containerName = `container-${
       Object.keys(formData.containers || {}).length
@@ -348,6 +362,7 @@ export function WorkloadEditor({ entity }: WorkloadEditorProps) {
           onEnvVarChange={handleEnvVarChange}
           onEnvVarReplace={handleEnvVarReplace}
           onFileVarChange={handleFileVarChange}
+          onFileVarReplace={handleFileVarReplace}
           onAddContainer={addContainer}
           onRemoveContainer={removeContainer}
           onAddEnvVar={addEnvVar}

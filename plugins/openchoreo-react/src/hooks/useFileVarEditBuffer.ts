@@ -1,72 +1,77 @@
 import { useState, useCallback } from 'react';
-import type { EnvVar, Container } from '@openchoreo/backstage-plugin-common';
+import type { FileVar, Container } from '@openchoreo/backstage-plugin-common';
 
-/** Tracks which env var row is currently being edited */
+/** Tracks which file var row is currently being edited */
 export interface EditingRowState {
   containerName: string;
   index: number;
   isNew?: boolean;
 }
 
-export interface UseEnvVarEditBufferOptions {
+export interface UseFileVarEditBufferOptions {
   /** Container data to reference when starting edits */
   containers: { [key: string]: Container };
-  /** Callback to replace an entire env var at once (preferred to avoid race conditions) */
-  onEnvVarReplace?: (
+  /** Callback to replace an entire file var at once (preferred to avoid race conditions) */
+  onFileVarReplace?: (
     containerName: string,
-    envIndex: number,
-    envVar: EnvVar,
+    fileIndex: number,
+    fileVar: FileVar,
   ) => void;
   /** Fallback callback for individual field changes */
-  onEnvVarChange: (
+  onFileVarChange: (
     containerName: string,
-    envIndex: number,
-    field: keyof EnvVar,
+    fileIndex: number,
+    field: keyof FileVar,
     value: any,
   ) => void;
-  /** Callback to remove an env var */
-  onRemoveEnvVar: (containerName: string, envIndex: number) => void;
+  /** Callback to remove a file var */
+  onRemoveFileVar: (containerName: string, fileIndex: number) => void;
 }
 
-export interface UseEnvVarEditBufferResult {
+export interface UseFileVarEditBufferResult {
   /** Currently editing row info, or null if not editing */
   editingRow: EditingRowState | null;
   /** Buffer holding uncommitted changes */
-  editBuffer: EnvVar | null;
+  editBuffer: FileVar | null;
   /** Whether any row is currently being edited */
   isAnyRowEditing: boolean;
   /** Check if a specific row is being edited */
   isRowEditing: (containerName: string, index: number) => boolean;
-  /** Start editing an existing env var row */
+  /** Start editing an existing file var row */
   startEdit: (containerName: string, index: number) => void;
-  /** Start editing a new env var row (or one being overridden) */
+  /** Start editing a new file var row (or one being overridden) */
   startNew: (
     containerName: string,
     index: number,
-    initialEnvVar?: EnvVar,
+    initialFileVar?: FileVar,
   ) => void;
   /** Apply buffered changes to parent state */
   applyEdit: () => void;
   /** Cancel editing and discard buffer (removes new rows) */
   cancelEdit: () => void;
   /** Update a field in the edit buffer (does not commit to parent) */
-  updateBuffer: (field: keyof EnvVar, value: any) => void;
+  updateBuffer: (field: keyof FileVar, value: any) => void;
   /** Set the entire buffer (useful for mode changes) */
-  setBuffer: (envVar: EnvVar) => void;
+  setBuffer: (fileVar: FileVar) => void;
   /** Clear edit state without side effects (used when row is deleted externally) */
   clearEditState: () => void;
 }
 
 /**
- * Check if an env var is empty (no key, no value, no secret ref)
+ * Check if a file var is empty (no key, no mount path, no value, no secret ref)
  */
-function isEnvVarEmpty(envVar: EnvVar | undefined | null): boolean {
-  if (!envVar) return true;
-  return !envVar.key && !envVar.value && !envVar.valueFrom?.secretRef?.name;
+function isFileVarEmpty(fileVar: FileVar | undefined | null): boolean {
+  if (!fileVar) return true;
+  return (
+    !fileVar.key &&
+    !fileVar.mountPath &&
+    !fileVar.value &&
+    !fileVar.valueFrom?.secretRef?.name
+  );
 }
 
 /**
- * Hook for managing single-row editing with a local buffer.
+ * Hook for managing single-row file var editing with a local buffer.
  *
  * This hook implements a pattern where:
  * - Only one row can be edited at a time
@@ -76,17 +81,17 @@ function isEnvVarEmpty(envVar: EnvVar | undefined | null): boolean {
  *
  * @example
  * ```tsx
- * const editBuffer = useEnvVarEditBuffer({
+ * const editBuffer = useFileVarEditBuffer({
  *   containers,
- *   onEnvVarReplace,
- *   onEnvVarChange,
- *   onRemoveEnvVar,
+ *   onFileVarReplace,
+ *   onFileVarChange,
+ *   onRemoveFileVar,
  * });
  *
  * // In render
- * <EnvVarEditor
+ * <FileVarEditor
  *   isEditing={editBuffer.isRowEditing(containerName, index)}
- *   envVar={editBuffer.isRowEditing(containerName, index) ? editBuffer.editBuffer : envVar}
+ *   fileVar={editBuffer.isRowEditing(containerName, index) ? editBuffer.editBuffer : fileVar}
  *   onEdit={() => editBuffer.startEdit(containerName, index)}
  *   onApply={editBuffer.applyEdit}
  *   onCancel={editBuffer.cancelEdit}
@@ -94,17 +99,17 @@ function isEnvVarEmpty(envVar: EnvVar | undefined | null): boolean {
  * />
  * ```
  */
-export function useEnvVarEditBuffer(
-  options: UseEnvVarEditBufferOptions,
-): UseEnvVarEditBufferResult {
-  const { containers, onEnvVarReplace, onEnvVarChange, onRemoveEnvVar } =
+export function useFileVarEditBuffer(
+  options: UseFileVarEditBufferOptions,
+): UseFileVarEditBufferResult {
+  const { containers, onFileVarReplace, onFileVarChange, onRemoveFileVar } =
     options;
 
   // Track which row is currently being edited (only one at a time)
   const [editingRow, setEditingRow] = useState<EditingRowState | null>(null);
 
   // Buffer for edits - changes are stored here until Apply is clicked
-  const [editBuffer, setEditBuffer] = useState<EnvVar | null>(null);
+  const [editBuffer, setEditBuffer] = useState<FileVar | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
 
@@ -121,10 +126,12 @@ export function useEnvVarEditBuffer(
   // Start editing an existing row - initialize buffer with current values
   const startEdit = useCallback(
     (containerName: string, index: number) => {
-      const envVar = containers[containerName]?.env?.[index];
+      const fileVar = (containers[containerName] as any)?.files?.[index];
       // Deep copy to buffer for editing
       setEditBuffer(
-        envVar ? JSON.parse(JSON.stringify(envVar)) : { key: '', value: '' },
+        fileVar
+          ? JSON.parse(JSON.stringify(fileVar))
+          : { key: '', mountPath: '', value: '' },
       );
       setEditingRow({
         containerName,
@@ -137,11 +144,11 @@ export function useEnvVarEditBuffer(
 
   // Start editing a new row (or override) - optionally pre-fill with initial values
   const startNew = useCallback(
-    (containerName: string, index: number, initialEnvVar?: EnvVar) => {
+    (containerName: string, index: number, initialFileVar?: FileVar) => {
       setEditBuffer(
-        initialEnvVar
-          ? JSON.parse(JSON.stringify(initialEnvVar))
-          : { key: '', value: '' },
+        initialFileVar
+          ? JSON.parse(JSON.stringify(initialFileVar))
+          : { key: '', mountPath: '', value: '' },
       );
       setEditingRow({
         containerName,
@@ -159,21 +166,27 @@ export function useEnvVarEditBuffer(
     const { containerName, index } = editingRow;
 
     // If buffer is empty, remove the row
-    if (isEnvVarEmpty(editBuffer)) {
-      onRemoveEnvVar(containerName, index);
+    if (isFileVarEmpty(editBuffer)) {
+      onRemoveFileVar(containerName, index);
       setEditBuffer(null);
       setEditingRow(null);
       return;
     }
 
-    // Commit entire env var at once to avoid race conditions
-    if (onEnvVarReplace) {
-      onEnvVarReplace(containerName, index, editBuffer);
+    // Commit entire file var at once to avoid race conditions
+    if (onFileVarReplace) {
+      onFileVarReplace(containerName, index, editBuffer);
     } else {
       // Fallback to individual field updates (may have race condition issues)
-      onEnvVarChange(containerName, index, 'key', editBuffer.key || '');
-      onEnvVarChange(containerName, index, 'value', editBuffer.value as any);
-      onEnvVarChange(
+      onFileVarChange(containerName, index, 'key', editBuffer.key || '');
+      onFileVarChange(
+        containerName,
+        index,
+        'mountPath',
+        editBuffer.mountPath || '',
+      );
+      onFileVarChange(containerName, index, 'value', editBuffer.value as any);
+      onFileVarChange(
         containerName,
         index,
         'valueFrom',
@@ -183,7 +196,13 @@ export function useEnvVarEditBuffer(
 
     setEditBuffer(null);
     setEditingRow(null);
-  }, [editingRow, editBuffer, onEnvVarReplace, onEnvVarChange, onRemoveEnvVar]);
+  }, [
+    editingRow,
+    editBuffer,
+    onFileVarReplace,
+    onFileVarChange,
+    onRemoveFileVar,
+  ]);
 
   // Cancel editing - discards buffer, removes new rows
   const cancelEdit = useCallback(() => {
@@ -191,13 +210,13 @@ export function useEnvVarEditBuffer(
 
     if (editingRow.isNew) {
       // NEW row: Cancel = Delete the row entirely
-      onRemoveEnvVar(editingRow.containerName, editingRow.index);
+      onRemoveFileVar(editingRow.containerName, editingRow.index);
     }
     // For existing rows: just discard buffer, original values are still in containers prop
 
     setEditBuffer(null);
     setEditingRow(null);
-  }, [editingRow, onRemoveEnvVar]);
+  }, [editingRow, onRemoveFileVar]);
 
   // Clear edit state without any side effects (used when row is deleted externally)
   const clearEditState = useCallback(() => {
@@ -206,13 +225,13 @@ export function useEnvVarEditBuffer(
   }, []);
 
   // Update a single field in the buffer
-  const updateBuffer = useCallback((field: keyof EnvVar, value: any) => {
+  const updateBuffer = useCallback((field: keyof FileVar, value: any) => {
     setEditBuffer(prev => (prev ? { ...prev, [field]: value } : null));
   }, []);
 
   // Set the entire buffer (useful for mode changes that need to reset multiple fields)
-  const setBuffer = useCallback((envVar: EnvVar) => {
-    setEditBuffer(envVar);
+  const setBuffer = useCallback((fileVar: FileVar) => {
+    setEditBuffer(fileVar);
   }, []);
 
   return {
