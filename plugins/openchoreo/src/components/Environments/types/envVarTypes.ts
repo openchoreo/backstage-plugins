@@ -18,4 +18,6 @@ export interface EnvVarWithStatus {
   status: EnvVarStatus;
   /** Original base value if status is 'overridden' */
   baseValue?: EnvVar;
+  /** Actual index in the container.env array (only for overridden/new) */
+  actualIndex?: number;
 }

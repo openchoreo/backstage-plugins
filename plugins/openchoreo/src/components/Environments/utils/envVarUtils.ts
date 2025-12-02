@@ -18,16 +18,21 @@ export function mergeEnvVarsWithStatus(
 ): EnvVarWithStatus[] {
   const result: EnvVarWithStatus[] = [];
   const baseMap = new Map(baseEnvVars.map(e => [e.key, e]));
-  const overrideMap = new Map(overrideEnvVars.map(e => [e.key, e]));
+
+  // Create a map of override keys to their actual indices in the array
+  const overrideIndexMap = new Map(
+    overrideEnvVars.map((e, idx) => [e.key, idx]),
+  );
 
   // Add base env vars first (inherited or overridden)
   for (const baseEnv of baseEnvVars) {
-    const override = overrideMap.get(baseEnv.key);
-    if (override) {
+    const actualIndex = overrideIndexMap.get(baseEnv.key);
+    if (actualIndex !== undefined) {
       result.push({
-        envVar: override,
+        envVar: overrideEnvVars[actualIndex],
         status: 'overridden',
         baseValue: baseEnv,
+        actualIndex,
       });
     } else {
       result.push({
@@ -38,11 +43,13 @@ export function mergeEnvVarsWithStatus(
   }
 
   // Add new override env vars (not in base)
-  for (const overrideEnv of overrideEnvVars) {
+  for (let i = 0; i < overrideEnvVars.length; i++) {
+    const overrideEnv = overrideEnvVars[i];
     if (!baseMap.has(overrideEnv.key)) {
       result.push({
         envVar: overrideEnv,
         status: 'new',
+        actualIndex: i,
       });
     }
   }
