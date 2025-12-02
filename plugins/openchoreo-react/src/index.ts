@@ -36,6 +36,18 @@ export {
   EnvVarStatusBadge,
   type EnvVarStatusBadgeProps,
 } from './components/EnvVarStatusBadge';
+export {
+  StandardFileVarList,
+  type StandardFileVarListProps,
+} from './components/StandardFileVarList';
+export {
+  OverrideFileVarList,
+  type OverrideFileVarListProps,
+} from './components/OverrideFileVarList';
+export {
+  FileVarStatusBadge,
+  type FileVarStatusBadgeProps,
+} from './components/FileVarStatusBadge';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';
@@ -67,6 +79,11 @@ export {
   type UseEnvVarEditBufferResult,
   type EditingRowState,
 } from './hooks/useEnvVarEditBuffer';
+export {
+  useFileVarEditBuffer,
+  type UseFileVarEditBufferOptions,
+  type UseFileVarEditBufferResult,
+} from './hooks/useFileVarEditBuffer';
 
 // Utilities
 export { formatRelativeTime } from './utils/timeUtils';
@@ -77,3 +94,11 @@ export {
   type EnvVarStatus,
   type EnvVarWithStatus,
 } from './utils/envVarUtils';
+export {
+  mergeFileVarsWithStatus,
+  getBaseFileVarsForContainer,
+  formatFileVarValue,
+  getFileVarContentPreview,
+  type FileVarStatus,
+  type FileVarWithStatus,
+} from './utils/fileVarUtils';

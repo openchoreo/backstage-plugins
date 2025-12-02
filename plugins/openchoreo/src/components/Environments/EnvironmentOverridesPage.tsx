@@ -509,6 +509,64 @@ export const EnvironmentOverridesPage = ({
     });
   };
 
+  // Handle starting override of an inherited file var
+  const handleStartFileOverride = (
+    containerName: string,
+    fileVar: import('@openchoreo/backstage-plugin-common').FileVar,
+  ) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const existingFiles = (container as any).files || [];
+
+      // Check if already overridden
+      if (
+        existingFiles.some(
+          (f: import('@openchoreo/backstage-plugin-common').FileVar) =>
+            f.key === fileVar.key,
+        )
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            files: [...existingFiles, { ...fileVar }],
+          },
+        },
+      };
+    });
+  };
+
+  // Handle replacing an entire file var at once (atomic update)
+  const handleFileVarReplace = (
+    containerName: string,
+    fileIndex: number,
+    fileVar: import('@openchoreo/backstage-plugin-common').FileVar,
+  ) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const files = (container as any).files || [];
+      const updatedFiles = [...files];
+      updatedFiles[fileIndex] = fileVar;
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            files: updatedFiles,
+          },
+        },
+      };
+    });
+  };
+
   // Calculate if there are any changes
   const totalChanges =
     changes.component.length +
@@ -764,6 +822,7 @@ export const EnvironmentOverridesPage = ({
               onEnvVarChange={handleEnvVarChange}
               onEnvVarReplace={handleEnvVarReplace}
               onFileVarChange={handleFileVarChange}
+              onFileVarReplace={handleFileVarReplace}
               onAddContainer={handleAddContainer}
               onRemoveContainer={handleRemoveContainer}
               onAddEnvVar={handleAddEnvVar}
@@ -778,6 +837,7 @@ export const EnvironmentOverridesPage = ({
               baseWorkloadData={formState.baseWorkloadData}
               showEnvVarStatus
               onStartOverride={handleStartOverride}
+              onStartFileOverride={handleStartFileOverride}
             />
           }
         />

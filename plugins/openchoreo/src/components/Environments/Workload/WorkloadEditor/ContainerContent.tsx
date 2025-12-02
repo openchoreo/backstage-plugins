@@ -21,12 +21,15 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import {
   ImageSelector,
-  FileVarEditor,
   useModeState,
   useEnvVarEditBuffer,
+  useFileVarEditBuffer,
   StandardEnvVarList,
   OverrideEnvVarList,
+  StandardFileVarList,
+  OverrideFileVarList,
   getBaseEnvVarsForContainer,
+  getBaseFileVarsForContainer,
   type SecretReference,
 } from '@openchoreo/backstage-plugin-react';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
@@ -88,11 +91,19 @@ export interface ContainerContentProps {
   showEnvVarStatus?: boolean;
   /** Callback when user starts overriding an inherited env var (optional) */
   onStartOverride?: (containerName: string, envVar: EnvVar) => void;
+  /** Callback when user starts overriding an inherited file var (optional) */
+  onStartFileOverride?: (containerName: string, fileVar: FileVar) => void;
   /** Callback to replace an entire env var at once (avoids race conditions) */
   onEnvVarReplace?: (
     containerName: string,
     envIndex: number,
     envVar: EnvVar,
+  ) => void;
+  /** Callback to replace an entire file var at once (avoids race conditions) */
+  onFileVarReplace?: (
+    containerName: string,
+    fileIndex: number,
+    fileVar: FileVar,
   ) => void;
 }
 
@@ -114,8 +125,8 @@ const useStyles = makeStyles(theme => ({
  * Component for editing container configurations including image, command, args,
  * environment variables, and file mounts.
  *
- * Uses StandardEnvVarList for workload editing and OverrideEnvVarList for
- * environment-specific overrides.
+ * Uses StandardEnvVarList/StandardFileVarList for workload editing and
+ * OverrideEnvVarList/OverrideFileVarList for environment-specific overrides.
  */
 export function ContainerContent({
   containers,
@@ -137,7 +148,9 @@ export function ContainerContent({
   baseWorkloadData,
   showEnvVarStatus = false,
   onStartOverride,
+  onStartFileOverride,
   onEnvVarReplace,
+  onFileVarReplace,
 }: ContainerContentProps) {
   const classes = useStyles();
 
@@ -148,12 +161,19 @@ export function ContainerContent({
     initialContainers: containers,
   });
 
-  // Use edit buffer hook for managing single-row editing
-  const editBuffer = useEnvVarEditBuffer({
+  // Use edit buffer hooks for managing single-row editing
+  const envEditBuffer = useEnvVarEditBuffer({
     containers,
     onEnvVarReplace,
     onEnvVarChange,
     onRemoveEnvVar,
+  });
+
+  const fileEditBuffer = useFileVarEditBuffer({
+    containers,
+    onFileVarReplace,
+    onFileVarChange,
+    onRemoveFileVar,
   });
 
   const containerEntries = Object.entries(containers);
@@ -181,7 +201,7 @@ export function ContainerContent({
 
     // Clear conflicting values when switching modes (only in non-editing mode)
     // Editing mode changes are handled by the list components
-    if (!editBuffer.isRowEditing(containerName, index)) {
+    if (!envEditBuffer.isRowEditing(containerName, index)) {
       if (mode === 'plain') {
         onEnvVarChange(containerName, index, 'value', '');
         onEnvVarChange(containerName, index, 'valueFrom', undefined as any);
@@ -201,15 +221,18 @@ export function ContainerContent({
   ) => {
     fileModes.setMode(containerName, index, mode);
 
-    // Clear conflicting values when switching modes
-    if (mode === 'plain') {
-      onFileVarChange(containerName, index, 'value', '');
-      onFileVarChange(containerName, index, 'valueFrom', undefined as any);
-    } else {
-      onFileVarChange(containerName, index, 'value', undefined as any);
-      onFileVarChange(containerName, index, 'valueFrom', {
-        secretRef: { name: '', key: '' },
-      } as any);
+    // Clear conflicting values when switching modes (only in non-editing mode)
+    // Editing mode changes are handled by the list components
+    if (!fileEditBuffer.isRowEditing(containerName, index)) {
+      if (mode === 'plain') {
+        onFileVarChange(containerName, index, 'value', '');
+        onFileVarChange(containerName, index, 'valueFrom', undefined as any);
+      } else {
+        onFileVarChange(containerName, index, 'value', undefined as any);
+        onFileVarChange(containerName, index, 'valueFrom', {
+          secretRef: { name: '', key: '' },
+        } as any);
+      }
     }
   };
 
@@ -320,7 +343,7 @@ export function ContainerContent({
                   secretOptions={secretOptions}
                   envModes={envModes}
                   disabled={disabled}
-                  editBuffer={editBuffer}
+                  editBuffer={envEditBuffer}
                   onStartOverride={onStartOverride!}
                   onEnvVarChange={onEnvVarChange}
                   onRemoveEnvVar={onRemoveEnvVar}
@@ -334,7 +357,7 @@ export function ContainerContent({
                   secretOptions={secretOptions}
                   envModes={envModes}
                   disabled={disabled}
-                  editBuffer={editBuffer}
+                  editBuffer={envEditBuffer}
                   onEnvVarChange={onEnvVarChange}
                   onRemoveEnvVar={onRemoveEnvVar}
                   onEnvVarModeChange={handleEnvVarModeChange}
@@ -352,36 +375,38 @@ export function ContainerContent({
               >
                 File Mounts
               </Typography>
-              {(container as any).files?.map(
-                (fileVar: FileVar, index: number) => (
-                  <FileVarEditor
-                    key={index}
-                    fileVar={fileVar}
-                    id={`${containerName}-${index}`}
-                    secrets={secretOptions}
-                    disabled={disabled}
-                    mode={fileModes.getMode(containerName, index)}
-                    onChange={(field, value) =>
-                      onFileVarChange(containerName, index, field, value)
-                    }
-                    onRemove={() => handleRemoveFileVar(containerName, index)}
-                    onModeChange={mode =>
-                      handleFileVarModeChange(containerName, index, mode)
-                    }
-                  />
-                ),
+              {showEnvVarStatus && baseWorkloadData ? (
+                <OverrideFileVarList
+                  containerName={containerName}
+                  fileVars={(container as any).files || []}
+                  baseFileVars={getBaseFileVarsForContainer(
+                    baseWorkloadData,
+                    containerName,
+                  )}
+                  secretOptions={secretOptions}
+                  fileModes={fileModes}
+                  disabled={disabled}
+                  editBuffer={fileEditBuffer}
+                  onStartOverride={onStartFileOverride!}
+                  onFileVarChange={onFileVarChange}
+                  onRemoveFileVar={handleRemoveFileVar}
+                  onFileVarModeChange={handleFileVarModeChange}
+                  onAddFileVar={onAddFileVar}
+                />
+              ) : (
+                <StandardFileVarList
+                  containerName={containerName}
+                  fileVars={(container as any).files || []}
+                  secretOptions={secretOptions}
+                  fileModes={fileModes}
+                  disabled={disabled}
+                  editBuffer={fileEditBuffer}
+                  onFileVarChange={onFileVarChange}
+                  onRemoveFileVar={handleRemoveFileVar}
+                  onFileVarModeChange={handleFileVarModeChange}
+                  onAddFileVar={onAddFileVar}
+                />
               )}
-              <Button
-                startIcon={<AddIcon />}
-                onClick={() => onAddFileVar(containerName)}
-                variant="outlined"
-                size="small"
-                className={classes.addButton}
-                disabled={disabled}
-                color="primary"
-              >
-                Add File Mount
-              </Button>
             </Box>
           </CardContent>
         </Card>

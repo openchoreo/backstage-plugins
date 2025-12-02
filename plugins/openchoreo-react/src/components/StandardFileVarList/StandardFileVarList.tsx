@@ -2,14 +2,14 @@ import type { FC } from 'react';
 import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import type { EnvVar } from '@openchoreo/backstage-plugin-common';
+import type { FileVar } from '@openchoreo/backstage-plugin-common';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
-import { EnvVarEditor } from '../EnvVarEditor';
+import { FileVarEditor } from '../FileVarEditor';
 import type { UseModeStateResult } from '../../hooks/useModeState';
-import type { UseEnvVarEditBufferResult } from '../../hooks/useEnvVarEditBuffer';
+import type { UseFileVarEditBufferResult } from '../../hooks/useFileVarEditBuffer';
 
 const useStyles = makeStyles(theme => ({
-  envVarRowWrapper: {
+  fileVarRowWrapper: {
     marginBottom: theme.spacing(1),
   },
   addButton: {
@@ -17,74 +17,74 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export interface StandardEnvVarListProps {
+export interface StandardFileVarListProps {
   /** Container name for tracking edit state */
   containerName: string;
-  /** Environment variables to display */
-  envVars: EnvVar[];
+  /** File mounts to display */
+  fileVars: FileVar[];
   /** Available secrets for reference selection */
   secretOptions: SecretOption[];
   /** Plain/secret mode state manager */
-  envModes: UseModeStateResult;
+  fileModes: UseModeStateResult;
   /** Whether editing is disabled */
   disabled: boolean;
-  /** Edit buffer state and handlers from useEnvVarEditBuffer */
-  editBuffer: UseEnvVarEditBufferResult;
-  /** Callback when env var field changes (for non-editing mode) */
-  onEnvVarChange: (
+  /** Edit buffer state and handlers from useFileVarEditBuffer */
+  editBuffer: UseFileVarEditBufferResult;
+  /** Callback when file var field changes (for non-editing mode) */
+  onFileVarChange: (
     containerName: string,
     index: number,
-    field: keyof EnvVar,
+    field: keyof FileVar,
     value: any,
   ) => void;
-  /** Callback when env var should be removed */
-  onRemoveEnvVar: (containerName: string, index: number) => void;
-  /** Callback when env var mode changes */
-  onEnvVarModeChange: (
+  /** Callback when file var should be removed */
+  onRemoveFileVar: (containerName: string, index: number) => void;
+  /** Callback when file var mode changes */
+  onFileVarModeChange: (
     containerName: string,
     index: number,
     mode: 'plain' | 'secret',
   ) => void;
-  /** Callback to add new env var */
-  onAddEnvVar: (containerName: string) => void;
+  /** Callback to add new file var */
+  onAddFileVar: (containerName: string) => void;
 }
 
 /**
- * Standard environment variable list for workload editing.
+ * Standard file mount list for workload editing.
  * Simple list rendering with inline editing support.
  * No status badges, no base values, no merging.
  */
-export const StandardEnvVarList: FC<StandardEnvVarListProps> = ({
+export const StandardFileVarList: FC<StandardFileVarListProps> = ({
   containerName,
-  envVars,
+  fileVars,
   secretOptions,
-  envModes,
+  fileModes,
   disabled,
   editBuffer,
-  onEnvVarChange,
-  onRemoveEnvVar,
-  onEnvVarModeChange,
-  onAddEnvVar,
+  onFileVarChange,
+  onRemoveFileVar,
+  onFileVarModeChange,
+  onAddFileVar,
 }) => {
   const classes = useStyles();
 
-  const handleAddEnvVar = () => {
-    onAddEnvVar(containerName);
-    const newIndex = envVars.length;
+  const handleAddFileVar = () => {
+    onAddFileVar(containerName);
+    const newIndex = fileVars.length;
     editBuffer.startNew(containerName, newIndex);
   };
 
-  const handleRemoveEnvVar = (index: number) => {
+  const handleRemoveFileVar = (index: number) => {
     // If deleting the row being edited, clear edit state first
     if (editBuffer.isRowEditing(containerName, index)) {
       editBuffer.clearEditState();
     }
-    envModes.cleanupIndex(containerName, index);
-    onRemoveEnvVar(containerName, index);
+    fileModes.cleanupIndex(containerName, index);
+    onRemoveFileVar(containerName, index);
   };
 
   const handleModeChange = (index: number, mode: 'plain' | 'secret') => {
-    envModes.setMode(containerName, index, mode);
+    fileModes.setMode(containerName, index, mode);
 
     const isEditing = editBuffer.isRowEditing(containerName, index);
 
@@ -105,27 +105,28 @@ export const StandardEnvVarList: FC<StandardEnvVarListProps> = ({
       }
     } else {
       // Update parent state directly (non-editing mode changes)
-      onEnvVarModeChange(containerName, index, mode);
+      onFileVarModeChange(containerName, index, mode);
     }
   };
 
   return (
     <Box>
-      {envVars.map((envVar, index) => {
+      {fileVars.map((fileVar, index) => {
         const isCurrentlyEditing = editBuffer.isRowEditing(
           containerName,
           index,
         );
-        const currentMode = envModes.getMode(containerName, index);
+        const currentMode = fileModes.getMode(containerName, index);
 
         return (
-          <Box key={index} className={classes.envVarRowWrapper}>
-            <EnvVarEditor
-              envVar={
+          <Box key={index} className={classes.fileVarRowWrapper}>
+            <FileVarEditor
+              fileVar={
                 isCurrentlyEditing && editBuffer.editBuffer
                   ? editBuffer.editBuffer
-                  : envVar
+                  : fileVar
               }
+              id={`${containerName}-${index}`}
               secrets={secretOptions}
               disabled={disabled}
               mode={currentMode}
@@ -140,9 +141,9 @@ export const StandardEnvVarList: FC<StandardEnvVarListProps> = ({
                 isCurrentlyEditing
                   ? editBuffer.updateBuffer
                   : (field, value) =>
-                      onEnvVarChange(containerName, index, field, value)
+                      onFileVarChange(containerName, index, field, value)
               }
-              onRemove={() => handleRemoveEnvVar(index)}
+              onRemove={() => handleRemoveFileVar(index)}
               onModeChange={mode => handleModeChange(index, mode)}
             />
           </Box>
@@ -150,14 +151,14 @@ export const StandardEnvVarList: FC<StandardEnvVarListProps> = ({
       })}
       <Button
         startIcon={<AddIcon />}
-        onClick={handleAddEnvVar}
+        onClick={handleAddFileVar}
         variant="outlined"
         size="small"
         className={classes.addButton}
         disabled={disabled || editBuffer.isAnyRowEditing}
         color="primary"
       >
-        Add Environment Variable
+        Add File Mount
       </Button>
     </Box>
   );
