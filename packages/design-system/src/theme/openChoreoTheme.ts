@@ -235,21 +235,6 @@ export const openChoreoTheme = createUnifiedTheme({
         'g[data-testid="node"] text': {
           fill: `${colors.common.white} !important`,
         },
-        // Force 14px font size for Recently Visited and Starred Entities widget links
-        // Target the dynamically generated makeStyles-name class that sets font-size: 1.06666666666667rem
-        'a[class*="makeStyles-name"]': {
-          fontSize: '14px !important',
-        },
-        '.MuiListItemText-root a': {
-          fontSize: '14px !important',
-        },
-        // Override Backstage HomePageRecentlyVisited component styles
-        '.MuiListItem-root a[class*="makeStyles-name"]': {
-          fontSize: '14px !important',
-        },
-        '.MuiListItemText-root .MuiLink-root': {
-          fontSize: '14px !important',
-        },
       },
     },
     MuiButton: {
@@ -499,18 +484,38 @@ export const openChoreoTheme = createUnifiedTheme({
     },
     MuiListItemText: {
       styleOverrides: {
+        root: {
+          '& .MuiTypography-root': {
+            fontSize: '14px !important',
+          },
+          '& a': {
+            fontSize: '14px !important',
+          },
+          '& .MuiLink-root': {
+            fontSize: '14px !important',
+          },
+        },
         primary: {
-          fontSize: 14,
+          fontSize: '14px !important',
+          '& .MuiTypography-root': {
+            fontSize: '14px !important',
+          },
+          '& a': {
+            fontSize: '14px !important',
+          },
+          '& .MuiLink-root': {
+            fontSize: '14px !important',
+          },
         },
         secondary: {
-          fontSize: 14,
+          fontSize: '14px !important',
         },
       },
     },
     MuiLink: {
       styleOverrides: {
         root: {
-          fontSize: 14,
+          fontSize: '14px !important',
         },
       },
     },
