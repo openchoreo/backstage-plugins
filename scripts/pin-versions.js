@@ -43,7 +43,10 @@ function parseYarnLock() {
 
     // Match package spec lines
     // Can be quoted or unquoted, single or multiple packages
-    if (line.match(/^"?[^"\s]+@npm:[^:]+":?\s*$/) || line.match(/^"[^"]+":?\s*$/)) {
+    if (
+      line.match(/^"?[^"\s]+@npm:[^:]+":?\s*$/) ||
+      line.match(/^"[^"]+":?\s*$/)
+    ) {
       currentSpecs = [];
 
       // Extract all package@range patterns from the line
@@ -180,17 +183,29 @@ function main() {
     let fileUpdated = 0;
 
     // Pin dependencies
-    const depsResult = pinDependencies(pkg.dependencies, resolutions, 'dependencies');
+    const depsResult = pinDependencies(
+      pkg.dependencies,
+      resolutions,
+      'dependencies',
+    );
     fileUpdated += depsResult.updated;
     allSkipped.push(...depsResult.skipped);
 
     // Pin devDependencies
-    const devDepsResult = pinDependencies(pkg.devDependencies, resolutions, 'devDependencies');
+    const devDepsResult = pinDependencies(
+      pkg.devDependencies,
+      resolutions,
+      'devDependencies',
+    );
     fileUpdated += devDepsResult.updated;
     allSkipped.push(...devDepsResult.skipped);
 
     // Pin resolutions (if present)
-    const resolutionsResult = pinDependencies(pkg.resolutions, resolutions, 'resolutions');
+    const resolutionsResult = pinDependencies(
+      pkg.resolutions,
+      resolutions,
+      'resolutions',
+    );
     fileUpdated += resolutionsResult.updated;
     allSkipped.push(...resolutionsResult.skipped);
 

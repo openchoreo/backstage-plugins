@@ -27,8 +27,8 @@ import {
 } from '@openchoreo/backstage-design-system';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ExtensionIcon from '@material-ui/icons/Extension';
-import { WorkloadProvider } from './Workload/WorkloadContext';
 import { ContainerContent } from './Workload/WorkloadEditor';
+import { useSecretReferences } from '@openchoreo/backstage-plugin-react';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -91,6 +91,9 @@ export const EnvironmentOverridesPage = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Load secret references for workload overrides
+  const { secretReferences } = useSecretReferences();
 
   // Load data using custom hook
   const {
@@ -705,29 +708,23 @@ export const EnvironmentOverridesPage = ({
           onDelete={() => handleDeleteClick('workload')}
           hasInitialData={initialOverrides.hasWorkloadOverrides}
           customContent={
-            <WorkloadProvider
-              builds={[]}
-              workloadSpec={null}
-              setWorkloadSpec={() => {}}
-              isDeploying={false}
-            >
-              <ContainerContent
-                containers={formState.workloadFormData.containers || {}}
-                onContainerChange={handleContainerChange}
-                onEnvVarChange={handleEnvVarChange}
-                onFileVarChange={handleFileVarChange}
-                onAddContainer={handleAddContainer}
-                onRemoveContainer={handleRemoveContainer}
-                onAddEnvVar={handleAddEnvVar}
-                onRemoveEnvVar={handleRemoveEnvVar}
-                onAddFileVar={handleAddFileVar}
-                onRemoveFileVar={handleRemoveFileVar}
-                onArrayFieldChange={handleArrayFieldChange}
-                disabled={saving || deleting || loading}
-                singleContainerMode
-                hideContainerFields
-              />
-            </WorkloadProvider>
+            <ContainerContent
+              containers={formState.workloadFormData.containers || {}}
+              onContainerChange={handleContainerChange}
+              onEnvVarChange={handleEnvVarChange}
+              onFileVarChange={handleFileVarChange}
+              onAddContainer={handleAddContainer}
+              onRemoveContainer={handleRemoveContainer}
+              onAddEnvVar={handleAddEnvVar}
+              onRemoveEnvVar={handleRemoveEnvVar}
+              onAddFileVar={handleAddFileVar}
+              onRemoveFileVar={handleRemoveFileVar}
+              onArrayFieldChange={handleArrayFieldChange}
+              disabled={saving || deleting || loading}
+              singleContainerMode
+              hideContainerFields
+              secretReferences={secretReferences}
+            />
           }
         />
       );

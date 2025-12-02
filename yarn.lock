@@ -9156,6 +9156,7 @@ __metadata:
     "@backstage/cli": "npm:0.34.3"
     "@backstage/theme": "npm:0.6.8"
     "@material-ui/core": "npm:4.12.4"
+    "@material-ui/icons": "npm:^4.11.3"
     "@testing-library/jest-dom": "npm:6.9.1"
   peerDependencies:
     react: ^18.0.0
