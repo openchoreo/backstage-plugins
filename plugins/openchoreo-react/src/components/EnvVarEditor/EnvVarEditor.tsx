@@ -12,8 +12,6 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import {
   DualModeInput,
@@ -71,6 +69,22 @@ const useStyles = makeStyles((theme: Theme) => ({
     color: theme.palette.text.secondary,
     fontFamily: 'monospace',
   },
+  inlineDiff: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    marginLeft: theme.spacing(0.5),
+  },
+  diffArrow: {
+    color: theme.palette.text.disabled,
+    margin: '0 6px',
+    fontSize: '0.75rem',
+  },
+  baseValueStruck: {
+    color: theme.palette.text.disabled,
+    textDecoration: 'line-through',
+    fontSize: '0.8rem',
+    fontFamily: 'monospace',
+  },
 }));
 
 export interface EnvVarEditorProps {
@@ -102,12 +116,8 @@ export interface EnvVarEditorProps {
   editDisabled?: boolean;
   /** Separately disable the Delete button (when another row is editing) */
   deleteDisabled?: boolean;
-  /** The base env var value (for overrides, to show original value) */
+  /** The base env var value (for overrides, to show inline diff) */
   baseValue?: EnvVar;
-  /** Whether base value section is expanded */
-  showBaseValue?: boolean;
-  /** Toggle base value visibility */
-  onToggleBaseValue?: () => void;
   /** Callback when any field changes */
   onChange: (field: keyof EnvVar, value: any) => void;
   /** Callback when the env var should be removed */
@@ -137,8 +147,6 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   editDisabled = false,
   deleteDisabled = false,
   baseValue,
-  showBaseValue = false,
-  onToggleBaseValue,
   onChange,
   onRemove,
   onModeChange,
@@ -221,6 +229,20 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
             {mode === 'secret' && (
               <Typography className={classes.secretIndicator}>🔒</Typography>
             )}
+            {/* Inline diff for overridden values */}
+            {baseValue && (
+              <Box className={classes.inlineDiff}>
+                <Typography component="span" className={classes.diffArrow}>
+                  ←
+                </Typography>
+                <Typography
+                  component="span"
+                  className={classes.baseValueStruck}
+                >
+                  {formatDisplayValue(baseValue, baseValueMode)}
+                </Typography>
+              </Box>
+            )}
           </Box>
           <Button
             size="small"
@@ -232,21 +254,6 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
           >
             {editButtonLabel}
           </Button>
-          {baseValue && onToggleBaseValue && (
-            <IconButton
-              onClick={onToggleBaseValue}
-              size="small"
-              disabled={disabled}
-              className={classes.actionButton}
-              title={showBaseValue ? 'Hide base value' : 'View base value'}
-            >
-              {showBaseValue ? (
-                <VisibilityOffIcon fontSize="small" />
-              ) : (
-                <VisibilityIcon fontSize="small" />
-              )}
-            </IconButton>
-          )}
           <IconButton
             onClick={onRemove}
             color="secondary"
@@ -258,15 +265,6 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
             <DeleteIcon />
           </IconButton>
         </Box>
-        {/* Inline base value display */}
-        {showBaseValue && baseValue && (
-          <Box className={classes.baseValueInline}>
-            <Typography className={classes.baseValueText}>
-              Base: {baseValue.key} ={' '}
-              {formatDisplayValue(baseValue, baseValueMode)}
-            </Typography>
-          </Box>
-        )}
       </Box>
     );
   }
@@ -379,12 +377,11 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
           <DeleteIcon />
         </IconButton>
       </Box>
-      {/* Inline base value display (also shown in edit mode) */}
-      {showBaseValue && baseValue && (
+      {/* Show base value hint in edit mode for overridden items */}
+      {baseValue && (
         <Box className={classes.baseValueInline}>
           <Typography className={classes.baseValueText}>
-            Base: {baseValue.key} ={' '}
-            {formatDisplayValue(baseValue, baseValueMode)}
+            Base value: {formatDisplayValue(baseValue, baseValueMode)}
           </Typography>
         </Box>
       )}

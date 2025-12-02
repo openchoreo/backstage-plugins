@@ -1,4 +1,4 @@
-import { useState, useMemo, type FC } from 'react';
+import { useMemo, type FC } from 'react';
 import { Box, Button, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -6,13 +6,16 @@ import EditIcon from '@material-ui/icons/Edit';
 import type { FileVar } from '@openchoreo/backstage-plugin-common';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import { FileVarEditor } from '../FileVarEditor';
-import { FileVarStatusBadge } from '../FileVarStatusBadge';
+import { StatusSummaryBar } from '../StatusSummaryBar';
+import { GroupedSection } from '../GroupedSection';
 import type { UseModeStateResult } from '../../hooks/useModeState';
 import type { UseFileVarEditBufferResult } from '../../hooks/useFileVarEditBuffer';
 import {
   mergeFileVarsWithStatus,
   formatFileVarValue,
+  type FileVarWithStatus,
 } from '../../utils/fileVarUtils';
+import { groupByStatus, getStatusCounts } from '../../utils/overrideGroupUtils';
 
 const useStyles = makeStyles(theme => ({
   fileVarRowWrapper: {
@@ -50,9 +53,6 @@ const useStyles = makeStyles(theme => ({
   },
   overrideButton: {
     marginLeft: 'auto',
-  },
-  statusBadgeWrapper: {
-    marginBottom: theme.spacing(0.5),
   },
   addButton: {
     marginTop: theme.spacing(1),
@@ -97,7 +97,7 @@ export interface OverrideFileVarListProps {
 
 /**
  * Override-aware file mount list.
- * Shows unified list with inherited (read-only) + overridden/new (editable) file mounts.
+ * Shows grouped sections: Overrides, New, and Inherited (Base).
  * Displays status badges and supports inline override creation.
  */
 export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
@@ -116,15 +116,21 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
 }) => {
   const classes = useStyles();
 
-  // Track which overridden rows have base value expanded
-  const [expandedBaseRows, setExpandedBaseRows] = useState<Set<string>>(
-    new Set(),
-  );
-
   // Merge base and override file vars with status metadata
   const mergedFileVars = useMemo(
     () => mergeFileVarsWithStatus(baseFileVars, fileVars),
     [baseFileVars, fileVars],
+  );
+
+  // Group items by status and get counts
+  const grouped = useMemo(
+    () => groupByStatus(mergedFileVars),
+    [mergedFileVars],
+  );
+
+  const counts = useMemo(
+    () => getStatusCounts(mergedFileVars),
+    [mergedFileVars],
   );
 
   const handleAddFileVar = () => {
@@ -177,119 +183,137 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
     editBuffer.startNew(containerName, newIndex, fileVar);
   };
 
-  // Toggle base value expansion for overridden rows
-  const toggleBaseExpanded = (key: string) => {
-    setExpandedBaseRows(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
+  // Render an editable file var row (overridden or new)
+  const renderEditableRow = (item: FileVarWithStatus, displayIndex: number) => {
+    const actualIndex = item.actualIndex!;
+    const isCurrentlyEditing = editBuffer.isRowEditing(
+      containerName,
+      actualIndex,
+    );
+    const currentMode = fileModes.getMode(containerName, actualIndex);
+
+    return (
+      <Box
+        key={`${item.status}-${item.fileVar.key}-${displayIndex}`}
+        className={classes.fileVarRowWrapper}
+      >
+        <FileVarEditor
+          fileVar={
+            isCurrentlyEditing && editBuffer.editBuffer
+              ? editBuffer.editBuffer
+              : item.fileVar
+          }
+          id={`${containerName}-${actualIndex}`}
+          secrets={secretOptions}
+          disabled={disabled}
+          mode={currentMode}
+          isEditing={isCurrentlyEditing}
+          onEdit={() => editBuffer.startEdit(containerName, actualIndex)}
+          onApply={editBuffer.applyEdit}
+          onCancel={editBuffer.cancelEdit}
+          editButtonLabel="Edit"
+          lockMode={item.status === 'overridden'}
+          lockKey={item.status === 'overridden'}
+          editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
+          deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
+          baseValue={item.baseValue}
+          onChange={
+            isCurrentlyEditing
+              ? editBuffer.updateBuffer
+              : (field, value) =>
+                  onFileVarChange(containerName, actualIndex, field, value)
+          }
+          onRemove={() => handleRemoveFileVar(actualIndex)}
+          onModeChange={mode => handleModeChange(actualIndex, mode)}
+        />
+      </Box>
+    );
+  };
+
+  // Render an inherited (read-only) file var row
+  const renderInheritedRow = (item: FileVarWithStatus) => {
+    const valueDisplay = formatFileVarValue(item.fileVar);
+    return (
+      <Box
+        key={`inherited-${item.fileVar.key}`}
+        className={classes.fileVarRowWrapper}
+      >
+        <Box className={classes.inheritedRow}>
+          <Box className={classes.inheritedContent}>
+            <Typography className={classes.inheritedKey}>
+              {item.fileVar.key}
+            </Typography>
+            <Typography className={classes.inheritedMountPath}>
+              → {item.fileVar.mountPath}
+            </Typography>
+            {valueDisplay && (
+              <Typography className={classes.inheritedValue}>
+                {valueDisplay}
+              </Typography>
+            )}
+          </Box>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon />}
+            className={classes.overrideButton}
+            disabled={disabled || editBuffer.isAnyRowEditing}
+            onClick={() => handleStartOverride(item.fileVar)}
+          >
+            Override
+          </Button>
+        </Box>
+      </Box>
+    );
   };
 
   return (
     <Box>
-      {mergedFileVars.map((item, displayIndex) => {
-        if (item.status === 'inherited') {
-          // Inherited file var - show read-only row with override button
-          const valueDisplay = formatFileVarValue(item.fileVar);
-          return (
-            <Box
-              key={`inherited-${item.fileVar.key}`}
-              className={classes.fileVarRowWrapper}
-            >
-              <Box className={classes.statusBadgeWrapper}>
-                <FileVarStatusBadge status={item.status} />
-              </Box>
-              <Box className={classes.inheritedRow}>
-                <Box className={classes.inheritedContent}>
-                  <Typography className={classes.inheritedKey}>
-                    {item.fileVar.key}
-                  </Typography>
-                  <Typography className={classes.inheritedMountPath}>
-                    → {item.fileVar.mountPath}
-                  </Typography>
-                  {valueDisplay && (
-                    <Typography className={classes.inheritedValue}>
-                      {valueDisplay}
-                    </Typography>
-                  )}
-                </Box>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  startIcon={<EditIcon />}
-                  className={classes.overrideButton}
-                  disabled={disabled || editBuffer.isAnyRowEditing}
-                  onClick={() => handleStartOverride(item.fileVar)}
-                >
-                  Override
-                </Button>
-              </Box>
-            </Box>
-          );
-        }
+      {/* Status summary bar */}
+      <StatusSummaryBar counts={counts} />
 
-        // Overridden or new file var - use actualIndex from merged data
-        const actualIndex = item.actualIndex!;
-        const isCurrentlyEditing = editBuffer.isRowEditing(
-          containerName,
-          actualIndex,
-        );
-        const currentMode = fileModes.getMode(containerName, actualIndex);
+      {/* Overrides section */}
+      {grouped.overridden.length > 0 && (
+        <GroupedSection
+          title="Overrides"
+          count={grouped.overridden.length}
+          status="overridden"
+          defaultExpanded
+        >
+          {grouped.overridden.map((item, index) =>
+            renderEditableRow(item as FileVarWithStatus, index),
+          )}
+        </GroupedSection>
+      )}
 
-        return (
-          <Box
-            key={`${item.status}-${item.fileVar.key}-${displayIndex}`}
-            className={classes.fileVarRowWrapper}
-          >
-            <Box className={classes.statusBadgeWrapper}>
-              <FileVarStatusBadge
-                status={item.status}
-                baseValue={item.baseValue}
-              />
-            </Box>
-            <FileVarEditor
-              fileVar={
-                isCurrentlyEditing && editBuffer.editBuffer
-                  ? editBuffer.editBuffer
-                  : item.fileVar
-              }
-              id={`${containerName}-${actualIndex}`}
-              secrets={secretOptions}
-              disabled={disabled}
-              mode={currentMode}
-              isEditing={isCurrentlyEditing}
-              onEdit={() => editBuffer.startEdit(containerName, actualIndex)}
-              onApply={editBuffer.applyEdit}
-              onCancel={editBuffer.cancelEdit}
-              editButtonLabel="Edit"
-              lockMode={item.status === 'overridden'}
-              lockKey={item.status === 'overridden'}
-              editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
-              deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
-              baseValue={item.baseValue}
-              showBaseValue={expandedBaseRows.has(item.fileVar.key)}
-              onToggleBaseValue={
-                item.status === 'overridden' && item.baseValue
-                  ? () => toggleBaseExpanded(item.fileVar.key)
-                  : undefined
-              }
-              onChange={
-                isCurrentlyEditing
-                  ? editBuffer.updateBuffer
-                  : (field, value) =>
-                      onFileVarChange(containerName, actualIndex, field, value)
-              }
-              onRemove={() => handleRemoveFileVar(actualIndex)}
-              onModeChange={mode => handleModeChange(actualIndex, mode)}
-            />
-          </Box>
-        );
-      })}
+      {/* New section */}
+      {grouped.new.length > 0 && (
+        <GroupedSection
+          title="New"
+          count={grouped.new.length}
+          status="new"
+          defaultExpanded
+        >
+          {grouped.new.map((item, index) =>
+            renderEditableRow(item as FileVarWithStatus, index),
+          )}
+        </GroupedSection>
+      )}
+
+      {/* Inherited section */}
+      {grouped.inherited.length > 0 && (
+        <GroupedSection
+          title="Inherited"
+          count={grouped.inherited.length}
+          status="inherited"
+          defaultExpanded
+        >
+          {grouped.inherited.map(item =>
+            renderInheritedRow(item as FileVarWithStatus),
+          )}
+        </GroupedSection>
+      )}
+
       <Button
         startIcon={<AddIcon />}
         onClick={handleAddFileVar}

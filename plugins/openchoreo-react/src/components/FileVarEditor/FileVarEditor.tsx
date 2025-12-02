@@ -14,8 +14,7 @@ import {
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AttachFileIcon from '@material-ui/icons/AttachFile';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
 import EditIcon from '@material-ui/icons/Edit';
@@ -111,6 +110,23 @@ const useStyles = makeStyles((theme: Theme) => ({
     color: theme.palette.text.secondary,
     fontFamily: 'monospace',
   },
+  inlineDiff: {
+    display: 'flex',
+    alignItems: 'center',
+    marginTop: theme.spacing(0.5),
+    paddingLeft: theme.spacing(3.5),
+  },
+  diffArrow: {
+    color: theme.palette.text.disabled,
+    margin: '0 6px',
+    fontSize: '0.7rem',
+  },
+  baseValueStruck: {
+    color: theme.palette.text.disabled,
+    textDecoration: 'line-through',
+    fontSize: '0.75rem',
+    fontFamily: 'monospace',
+  },
   // Edit mode styles
   editHeader: {
     backgroundColor: theme.palette.grey[50],
@@ -198,12 +214,8 @@ export interface FileVarEditorProps {
   editDisabled?: boolean;
   /** Separately disable the Delete button (when another row is editing) */
   deleteDisabled?: boolean;
-  /** The base file var value (for overrides, to show original value) */
+  /** The base file var value (for overrides, to show inline diff) */
   baseValue?: FileVar;
-  /** Whether base value section is expanded */
-  showBaseValue?: boolean;
-  /** Toggle base value visibility */
-  onToggleBaseValue?: () => void;
   /** Callback when any field changes */
   onChange: (field: keyof FileVar, value: any) => void;
   /** Callback when the file var should be removed */
@@ -233,8 +245,6 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
   editDisabled = false,
   deleteDisabled = false,
   baseValue,
-  showBaseValue = false,
-  onToggleBaseValue,
   onChange,
   onRemove,
   onModeChange,
@@ -378,21 +388,6 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
             >
               {editButtonLabel}
             </Button>
-            {baseValue && onToggleBaseValue && (
-              <IconButton
-                onClick={onToggleBaseValue}
-                size="small"
-                disabled={disabled}
-                className={classes.actionButton}
-                title={showBaseValue ? 'Hide base value' : 'View base value'}
-              >
-                {showBaseValue ? (
-                  <VisibilityOffIcon fontSize="small" />
-                ) : (
-                  <VisibilityIcon fontSize="small" />
-                )}
-              </IconButton>
-            )}
             <IconButton
               onClick={onRemove}
               color="secondary"
@@ -404,19 +399,22 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
               <DeleteIcon />
             </IconButton>
           </Box>
+          {/* Inline diff for overridden values */}
+          {baseValue && (
+            <Box className={classes.inlineDiff}>
+              <Typography component="span" className={classes.diffArrow}>
+                ←
+              </Typography>
+              <Typography component="span" className={classes.baseValueStruck}>
+                {baseValue.key} → {baseValue.mountPath}:{' '}
+                {formatBaseValue(baseValue)}
+              </Typography>
+            </Box>
+          )}
           {/* Content preview for plain mode */}
           {!isSecret && hasContent && (
             <Box className={classes.contentPreview}>
               {getContentPreview(fileVar.value!)}
-            </Box>
-          )}
-          {/* Inline base value display */}
-          {showBaseValue && baseValue && (
-            <Box className={classes.baseValueInline}>
-              <Typography className={classes.baseValueText}>
-                Base: {baseValue.key} → {baseValue.mountPath}:{' '}
-                {formatBaseValue(baseValue)}
-              </Typography>
             </Box>
           )}
         </Paper>
@@ -561,11 +559,14 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
                     <Button
                       size="small"
                       startIcon={
-                        isContentExpanded ? (
-                          <VisibilityOffIcon />
-                        ) : (
-                          <VisibilityIcon />
-                        )
+                        <ExpandMoreIcon
+                          style={{
+                            transform: isContentExpanded
+                              ? 'rotate(180deg)'
+                              : 'rotate(0deg)',
+                            transition: 'transform 0.2s',
+                          }}
+                        />
                       }
                       onClick={() => setIsContentExpanded(!isContentExpanded)}
                       disabled={disabled}
@@ -635,11 +636,11 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
           )}
         </Box>
 
-        {/* Inline base value display (also shown in edit mode) */}
-        {showBaseValue && baseValue && (
+        {/* Show base value hint in edit mode for overridden items */}
+        {baseValue && (
           <Box className={classes.baseValueInline}>
             <Typography className={classes.baseValueText}>
-              Base: {baseValue.key} → {baseValue.mountPath}:{' '}
+              Base value: {baseValue.key} → {baseValue.mountPath}:{' '}
               {formatBaseValue(baseValue)}
             </Typography>
           </Box>

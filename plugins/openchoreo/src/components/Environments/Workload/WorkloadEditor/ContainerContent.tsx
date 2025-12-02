@@ -241,6 +241,12 @@ export function ContainerContent({
     onRemoveFileVar(containerName, index);
   };
 
+  // Helper to get display name for container
+  const getContainerDisplayName = (name: string) => {
+    const displayName = name === 'main' ? 'app' : name;
+    return hideContainerFields ? `${displayName} container` : displayName;
+  };
+
   return (
     <Box>
       {containerEntries.map(([containerName, container]) => (
@@ -254,11 +260,7 @@ export function ContainerContent({
                 justifyContent="space-between"
               >
                 <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
-                  {hideContainerFields
-                    ? `${containerName === 'main' ? 'app' : containerName} container`
-                    : containerName === 'main'
-                      ? 'app'
-                      : containerName}
+                  {getContainerDisplayName(containerName)}
                 </Typography>
                 {!hideContainerFields && (
                   <IconButton
