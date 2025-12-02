@@ -100,6 +100,8 @@ export interface EnvVarEditorProps {
   lockKey?: boolean;
   /** Separately disable the Edit button (when another row is editing) */
   editDisabled?: boolean;
+  /** Separately disable the Delete button (when another row is editing) */
+  deleteDisabled?: boolean;
   /** The base env var value (for overrides, to show original value) */
   baseValue?: EnvVar;
   /** Whether base value section is expanded */
@@ -133,6 +135,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   lockMode = false,
   lockKey = false,
   editDisabled = false,
+  deleteDisabled = false,
   baseValue,
   showBaseValue = false,
   onToggleBaseValue,
@@ -248,7 +251,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
             onClick={onRemove}
             color="secondary"
             size="small"
-            disabled={disabled}
+            disabled={disabled || deleteDisabled}
             className={classes.actionButton}
             aria-label="Remove environment variable"
           >

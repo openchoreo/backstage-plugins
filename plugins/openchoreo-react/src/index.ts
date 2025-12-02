@@ -24,6 +24,18 @@ export {
   FileVarEditor,
   type FileVarEditorProps,
 } from './components/FileVarEditor';
+export {
+  StandardEnvVarList,
+  type StandardEnvVarListProps,
+} from './components/StandardEnvVarList';
+export {
+  OverrideEnvVarList,
+  type OverrideEnvVarListProps,
+} from './components/OverrideEnvVarList';
+export {
+  EnvVarStatusBadge,
+  type EnvVarStatusBadgeProps,
+} from './components/EnvVarStatusBadge';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';
@@ -49,6 +61,19 @@ export {
   type UseModeStateResult,
   type ValueMode,
 } from './hooks/useModeState';
+export {
+  useEnvVarEditBuffer,
+  type UseEnvVarEditBufferOptions,
+  type UseEnvVarEditBufferResult,
+  type EditingRowState,
+} from './hooks/useEnvVarEditBuffer';
 
 // Utilities
 export { formatRelativeTime } from './utils/timeUtils';
+export {
+  mergeEnvVarsWithStatus,
+  getBaseEnvVarsForContainer,
+  formatEnvVarValue,
+  type EnvVarStatus,
+  type EnvVarWithStatus,
+} from './utils/envVarUtils';
