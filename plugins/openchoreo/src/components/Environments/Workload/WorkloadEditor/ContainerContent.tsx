@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   TextField,
   Button,
@@ -12,11 +13,13 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AddIcon from '@material-ui/icons/Add';
+import EditIcon from '@material-ui/icons/Edit';
 import {
   Container,
   EnvVar,
   FileVar,
   ModelsBuild,
+  ModelsWorkload,
 } from '@openchoreo/backstage-plugin-common';
 import {
   ImageSelector,
@@ -26,6 +29,12 @@ import {
   type SecretReference,
 } from '@openchoreo/backstage-plugin-react';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
+import { EnvVarStatusBadge } from './EnvVarStatusBadge';
+import {
+  mergeEnvVarsWithStatus,
+  getBaseEnvVarsForContainer,
+  formatEnvVarValue,
+} from '../../utils/envVarUtils';
 
 export interface ContainerContentProps {
   /** Map of container name to container configuration */
@@ -78,6 +87,20 @@ export interface ContainerContentProps {
   builds?: ModelsBuild[];
   /** Available secret references (optional) */
   secretReferences?: SecretReference[];
+  /** Base workload data for reference display (optional) */
+  baseWorkloadData?: ModelsWorkload | null;
+  /** Whether to show env var status badges and enable inline override (optional) */
+  showEnvVarStatus?: boolean;
+  /** Callback when user starts overriding an inherited env var (optional) */
+  onStartOverride?: (containerName: string, envVar: EnvVar) => void;
+}
+
+/** Tracks which env var row is currently being edited */
+interface EditingRowState {
+  containerName: string;
+  index: number;
+  isNew?: boolean;
+  originalEnvVar?: EnvVar; // Store original values for revert on cancel
 }
 
 const useStyles = makeStyles(theme => ({
@@ -92,31 +115,44 @@ const useStyles = makeStyles(theme => ({
   addButton: {
     marginTop: theme.spacing(1),
   },
+  envVarRowWrapper: {
+    marginBottom: theme.spacing(1),
+  },
+  inheritedRow: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(1, 1.5),
+    backgroundColor: theme.palette.grey[50],
+    borderRadius: 4,
+    border: `1px dashed ${theme.palette.grey[300]}`,
+  },
+  inheritedContent: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    marginLeft: theme.spacing(1),
+  },
+  inheritedKey: {
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    color: theme.palette.text.primary,
+  },
+  inheritedValue: {
+    fontSize: '0.8rem',
+    color: theme.palette.text.secondary,
+    fontFamily: 'monospace',
+  },
+  overrideButton: {
+    marginLeft: 'auto',
+  },
+  statusBadgeWrapper: {
+    marginBottom: theme.spacing(0.5),
+  },
 }));
 
 /**
  * Component for editing container configurations including image, command, args,
  * environment variables, and file mounts.
- *
- * This component is a composition layer that uses:
- * - ImageSelector for image selection
- * - EnvVarEditor for environment variable editing
- * - FileVarEditor for file mount editing
- *
- * @example
- * ```tsx
- * const { containers, ...handlers } = useContainerForm({ initialContainers });
- * const { secretReferences } = useSecretReferences();
- *
- * <ContainerContent
- *   containers={containers}
- *   {...handlers}
- *   builds={builds}
- *   secretReferences={secretReferences}
- *   disabled={false}
- *   singleContainerMode
- * />
- * ```
  */
 export function ContainerContent({
   containers,
@@ -135,8 +171,19 @@ export function ContainerContent({
   hideContainerFields = false,
   builds = [],
   secretReferences = [],
+  baseWorkloadData,
+  showEnvVarStatus = false,
+  onStartOverride,
 }: ContainerContentProps) {
   const classes = useStyles();
+
+  // Track which row is currently being edited (only one at a time)
+  const [editingRow, setEditingRow] = useState<EditingRowState | null>(null);
+
+  // Track which overridden rows have base value expanded
+  const [expandedBaseRows, setExpandedBaseRows] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Use mode state hooks for tracking plain/secret modes
   const envModes = useModeState({ type: 'env', initialContainers: containers });
@@ -147,6 +194,9 @@ export function ContainerContent({
 
   const containerEntries = Object.entries(containers);
   const showAddButton = !singleContainerMode || containerEntries.length === 0;
+
+  // Whether any row is currently being edited
+  const isAnyRowEditing = editingRow !== null;
 
   // Convert secret references to SecretOption format
   const secretOptions: SecretOption[] = secretReferences.map(ref => ({
@@ -202,11 +252,108 @@ export function ContainerContent({
   const handleRemoveEnvVar = (containerName: string, index: number) => {
     envModes.cleanupIndex(containerName, index);
     onRemoveEnvVar(containerName, index);
+    // Clear editing state if this row was being edited
+    if (
+      editingRow?.containerName === containerName &&
+      editingRow?.index === index
+    ) {
+      setEditingRow(null);
+    }
   };
 
   const handleRemoveFileVar = (containerName: string, index: number) => {
     fileModes.cleanupIndex(containerName, index);
     onRemoveFileVar(containerName, index);
+  };
+
+  // Check if an env var is empty (no key, no value, no secret ref)
+  const isEnvVarEmpty = (envVar: EnvVar | undefined) => {
+    if (!envVar) return true;
+    return (
+      !envVar.key &&
+      !envVar.value &&
+      !envVar.valueFrom?.secretRef?.name
+    );
+  };
+
+  // Handle adding a new env var - starts in edit mode
+  const handleAddEnvVar = (containerName: string) => {
+    onAddEnvVar(containerName);
+    const newIndex = containers[containerName]?.env?.length || 0;
+    setEditingRow({ containerName, index: newIndex, isNew: true });
+  };
+
+  // Handle starting edit on a row - capture original values for revert
+  const handleStartEdit = (containerName: string, index: number) => {
+    const envVar = containers[containerName]?.env?.[index];
+    setEditingRow({
+      containerName,
+      index,
+      // Deep copy to preserve original values
+      originalEnvVar: envVar ? { ...envVar } : undefined,
+    });
+  };
+
+  // Handle applying changes - removes empty rows
+  const handleApplyEdit = () => {
+    if (editingRow) {
+      const envVar = containers[editingRow.containerName]?.env?.[
+        editingRow.index
+      ];
+      // If both key and value are empty, remove the row
+      if (isEnvVarEmpty(envVar)) {
+        handleRemoveEnvVar(editingRow.containerName, editingRow.index);
+        return;
+      }
+    }
+    setEditingRow(null);
+  };
+
+  // Handle canceling edit
+  const handleCancelEdit = () => {
+    if (!editingRow) return;
+
+    if (editingRow.isNew) {
+      // NEW row: Cancel = Delete the row entirely
+      handleRemoveEnvVar(editingRow.containerName, editingRow.index);
+    } else if (editingRow.originalEnvVar) {
+      // EXISTING row: Cancel = Revert to original values
+      const { containerName, index, originalEnvVar } = editingRow;
+      onEnvVarChange(containerName, index, 'key', originalEnvVar.key || '');
+      onEnvVarChange(containerName, index, 'value', originalEnvVar.value as any);
+      onEnvVarChange(containerName, index, 'valueFrom', originalEnvVar.valueFrom as any);
+      setEditingRow(null);
+    } else {
+      setEditingRow(null);
+    }
+  };
+
+  // Toggle base value expansion for overridden rows
+  const toggleBaseExpanded = (key: string) => {
+    setExpandedBaseRows(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  // Handle starting override of an inherited env var
+  const handleStartOverride = (containerName: string, envVar: EnvVar) => {
+    onStartOverride?.(containerName, envVar);
+    // After override is added, set it to editing mode
+    const newIndex = containers[containerName]?.env?.length || 0;
+    setEditingRow({ containerName, index: newIndex });
+  };
+
+  // Check if a specific row is being edited
+  const isRowEditing = (containerName: string, index: number) => {
+    return (
+      editingRow?.containerName === containerName && editingRow?.index === index
+    );
   };
 
   return (
@@ -300,29 +447,166 @@ export function ContainerContent({
               >
                 Environment Variables
               </Typography>
-              {container.env?.map((envVar, index) => (
-                <EnvVarEditor
-                  key={index}
-                  envVar={envVar}
-                  secrets={secretOptions}
-                  disabled={disabled}
-                  mode={envModes.getMode(containerName, index)}
-                  onChange={(field, value) =>
-                    onEnvVarChange(containerName, index, field, value)
-                  }
-                  onRemove={() => handleRemoveEnvVar(containerName, index)}
-                  onModeChange={mode =>
-                    handleEnvVarModeChange(containerName, index, mode)
-                  }
-                />
-              ))}
+              {showEnvVarStatus && baseWorkloadData ? (
+                // Show unified list with status badges (overrides view)
+                (() => {
+                  const baseEnvVars = getBaseEnvVarsForContainer(
+                    baseWorkloadData,
+                    containerName,
+                  );
+                  const overrideEnvVars = container.env || [];
+                  const mergedEnvVars = mergeEnvVarsWithStatus(
+                    baseEnvVars,
+                    overrideEnvVars,
+                  );
+
+                  // Track override indices for mode management
+                  let overrideIndex = 0;
+
+                  return mergedEnvVars.map(item => {
+                    if (item.status === 'inherited') {
+                      // Inherited env var - show read-only row with override button
+                      return (
+                        <Box
+                          key={`inherited-${item.envVar.key}`}
+                          className={classes.envVarRowWrapper}
+                        >
+                          <Box className={classes.statusBadgeWrapper}>
+                            <EnvVarStatusBadge status={item.status} />
+                          </Box>
+                          <Box className={classes.inheritedRow}>
+                            <Box className={classes.inheritedContent}>
+                              <Typography className={classes.inheritedKey}>
+                                {item.envVar.key}
+                              </Typography>
+                              <Typography className={classes.inheritedValue}>
+                                {formatEnvVarValue(item.envVar)}
+                              </Typography>
+                            </Box>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<EditIcon />}
+                              className={classes.overrideButton}
+                              disabled={disabled || isAnyRowEditing}
+                              onClick={() =>
+                                handleStartOverride(containerName, item.envVar)
+                              }
+                            >
+                              Override
+                            </Button>
+                          </Box>
+                        </Box>
+                      );
+                    }
+
+                    // Overridden or new env var - show editable row with status badge
+                    const currentOverrideIndex = overrideIndex;
+                    overrideIndex++;
+                    const isCurrentlyEditing = isRowEditing(
+                      containerName,
+                      currentOverrideIndex,
+                    );
+                    const currentMode = envModes.getMode(
+                      containerName,
+                      currentOverrideIndex,
+                    );
+
+                    return (
+                      <Box
+                        key={`${item.status}-${item.envVar.key}-${currentOverrideIndex}`}
+                        className={classes.envVarRowWrapper}
+                      >
+                        <Box className={classes.statusBadgeWrapper}>
+                          <EnvVarStatusBadge
+                            status={item.status}
+                            baseValue={item.baseValue}
+                          />
+                        </Box>
+                        <EnvVarEditor
+                          envVar={item.envVar}
+                          secrets={secretOptions}
+                          disabled={disabled}
+                          mode={currentMode}
+                          isEditing={isCurrentlyEditing}
+                          onEdit={() =>
+                            handleStartEdit(containerName, currentOverrideIndex)
+                          }
+                          onApply={handleApplyEdit}
+                          onCancel={handleCancelEdit}
+                          editButtonLabel="Edit"
+                          lockMode={item.status === 'overridden'}
+                          lockKey={item.status === 'overridden'}
+                          editDisabled={isAnyRowEditing && !isCurrentlyEditing}
+                          baseValue={item.baseValue}
+                          showBaseValue={expandedBaseRows.has(item.envVar.key)}
+                          onToggleBaseValue={
+                            item.status === 'overridden' && item.baseValue
+                              ? () => toggleBaseExpanded(item.envVar.key)
+                              : undefined
+                          }
+                          onChange={(field, value) =>
+                            onEnvVarChange(
+                              containerName,
+                              currentOverrideIndex,
+                              field,
+                              value,
+                            )
+                          }
+                          onRemove={() =>
+                            handleRemoveEnvVar(
+                              containerName,
+                              currentOverrideIndex,
+                            )
+                          }
+                          onModeChange={mode =>
+                            handleEnvVarModeChange(
+                              containerName,
+                              currentOverrideIndex,
+                              mode,
+                            )
+                          }
+                        />
+                      </Box>
+                    );
+                  });
+                })()
+              ) : (
+                // Standard view without status badges (workload view)
+                container.env?.map((envVar, index) => {
+                  const isCurrentlyEditing = isRowEditing(containerName, index);
+                  return (
+                    <Box key={index} className={classes.envVarRowWrapper}>
+                      <EnvVarEditor
+                        envVar={envVar}
+                        secrets={secretOptions}
+                        disabled={disabled}
+                        mode={envModes.getMode(containerName, index)}
+                        isEditing={isCurrentlyEditing}
+                        onEdit={() => handleStartEdit(containerName, index)}
+                        onApply={handleApplyEdit}
+                        onCancel={handleCancelEdit}
+                        editButtonLabel="Edit"
+                        editDisabled={isAnyRowEditing && !isCurrentlyEditing}
+                        onChange={(field, value) =>
+                          onEnvVarChange(containerName, index, field, value)
+                        }
+                        onRemove={() => handleRemoveEnvVar(containerName, index)}
+                        onModeChange={mode =>
+                          handleEnvVarModeChange(containerName, index, mode)
+                        }
+                      />
+                    </Box>
+                  );
+                })
+              )}
               <Button
                 startIcon={<AddIcon />}
-                onClick={() => onAddEnvVar(containerName)}
+                onClick={() => handleAddEnvVar(containerName)}
                 variant="outlined"
                 size="small"
                 className={classes.addButton}
-                disabled={disabled}
+                disabled={disabled || isAnyRowEditing}
                 color="primary"
               >
                 Add Environment Variable
