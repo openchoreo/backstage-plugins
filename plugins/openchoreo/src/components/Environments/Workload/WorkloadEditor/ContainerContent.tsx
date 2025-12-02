@@ -254,16 +254,22 @@ export function ContainerContent({
                 justifyContent="space-between"
               >
                 <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
-                  {containerName === 'main' ? 'app' : containerName}
+                  {hideContainerFields
+                    ? `${containerName === 'main' ? 'app' : containerName} container`
+                    : containerName === 'main'
+                      ? 'app'
+                      : containerName}
                 </Typography>
-                <IconButton
-                  onClick={() => handleRemoveContainer(containerName)}
-                  color="secondary"
-                  size="small"
-                  disabled={disabled}
-                >
-                  <DeleteIcon />
-                </IconButton>
+                {!hideContainerFields && (
+                  <IconButton
+                    onClick={() => handleRemoveContainer(containerName)}
+                    color="secondary"
+                    size="small"
+                    disabled={disabled}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                )}
               </Box>
             }
           />
