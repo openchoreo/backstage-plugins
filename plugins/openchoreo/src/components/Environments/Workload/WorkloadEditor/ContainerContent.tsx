@@ -16,47 +16,68 @@ import {
   Container,
   EnvVar,
   FileVar,
+  ModelsBuild,
 } from '@openchoreo/backstage-plugin-common';
-import { useBuilds } from '../WorkloadContext';
-import { ImageSelector } from './ImageSelector';
-import { EnvVarRow } from './EnvVarRow';
-import { useState } from 'react';
-import { useSecretReferences } from '../../../../hooks/useSecretReferences';
-import { FileVarRow } from './FileVarRow';
+import {
+  ImageSelector,
+  EnvVarEditor,
+  FileVarEditor,
+  useModeState,
+  type SecretReference,
+} from '@openchoreo/backstage-plugin-react';
+import type { SecretOption } from '@openchoreo/backstage-design-system';
 
-interface ContainerContentProps {
+export interface ContainerContentProps {
+  /** Map of container name to container configuration */
   containers: { [key: string]: Container };
+  /** Callback when a container field changes */
   onContainerChange: (
     containerName: string,
     field: keyof Container,
     value: string | string[],
   ) => void;
+  /** Callback when an environment variable field changes */
   onEnvVarChange: (
     containerName: string,
     envIndex: number,
     field: keyof EnvVar,
     value: string,
   ) => void;
+  /** Callback when a file mount field changes */
   onFileVarChange: (
     containerName: string,
     fileIndex: number,
     field: keyof FileVar,
     value: string,
   ) => void;
+  /** Callback when a new container should be added */
   onAddContainer: () => void;
+  /** Callback when a container should be removed */
   onRemoveContainer: (containerName: string) => void;
+  /** Callback when a new environment variable should be added */
   onAddEnvVar: (containerName: string) => void;
+  /** Callback when an environment variable should be removed */
   onRemoveEnvVar: (containerName: string, envIndex: number) => void;
+  /** Callback when a new file mount should be added */
   onAddFileVar: (containerName: string) => void;
+  /** Callback when a file mount should be removed */
   onRemoveFileVar: (containerName: string, fileIndex: number) => void;
+  /** Callback when an array field (command, args) changes */
   onArrayFieldChange: (
     containerName: string,
     field: 'command' | 'args',
     value: string,
   ) => void;
+  /** Whether the editor is disabled */
   disabled: boolean;
+  /** Whether only a single container is allowed */
   singleContainerMode: boolean;
+  /** Whether to hide container fields (image, command, args) */
   hideContainerFields?: boolean;
+  /** Available builds for image selection (optional) */
+  builds?: ModelsBuild[];
+  /** Available secret references (optional) */
+  secretReferences?: SecretReference[];
 }
 
 const useStyles = makeStyles(theme => ({
@@ -71,15 +92,32 @@ const useStyles = makeStyles(theme => ({
   addButton: {
     marginTop: theme.spacing(1),
   },
-  envVarContainer: {
-    padding: theme.spacing(1.5),
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: 6,
-    marginBottom: theme.spacing(1),
-    backgroundColor: theme.palette.background.default,
-  },
 }));
 
+/**
+ * Component for editing container configurations including image, command, args,
+ * environment variables, and file mounts.
+ *
+ * This component is a composition layer that uses:
+ * - ImageSelector for image selection
+ * - EnvVarEditor for environment variable editing
+ * - FileVarEditor for file mount editing
+ *
+ * @example
+ * ```tsx
+ * const { containers, ...handlers } = useContainerForm({ initialContainers });
+ * const { secretReferences } = useSecretReferences();
+ *
+ * <ContainerContent
+ *   containers={containers}
+ *   {...handlers}
+ *   builds={builds}
+ *   secretReferences={secretReferences}
+ *   disabled={false}
+ *   singleContainerMode
+ * />
+ * ```
+ */
 export function ContainerContent({
   containers,
   onContainerChange,
@@ -95,197 +133,80 @@ export function ContainerContent({
   disabled,
   singleContainerMode,
   hideContainerFields = false,
+  builds = [],
+  secretReferences = [],
 }: ContainerContentProps) {
   const classes = useStyles();
-  const { builds } = useBuilds();
-  const { secretReferences } = useSecretReferences();
+
+  // Use mode state hooks for tracking plain/secret modes
+  const envModes = useModeState({ type: 'env', initialContainers: containers });
+  const fileModes = useModeState({
+    type: 'file',
+    initialContainers: containers,
+  });
 
   const containerEntries = Object.entries(containers);
   const showAddButton = !singleContainerMode || containerEntries.length === 0;
 
-  const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>(
-    {},
-  );
-  const [envValueMode, setEnvValueMode] = useState<
-    Record<string, 'plain' | 'secret'>
-  >({});
-  const [fileValueMode, setFileValueMode] = useState<
-    Record<string, 'plain' | 'secret'>
-  >({});
+  // Convert secret references to SecretOption format
+  const secretOptions: SecretOption[] = secretReferences.map(ref => ({
+    name: ref.name,
+    displayName: ref.displayName,
+    keys: ref.data?.map(item => item.secretKey) || [],
+  }));
 
-  const toggleFileExpanded = (containerName: string, fileIndex: number) => {
-    const key = `${containerName}-${fileIndex}`;
-    setExpandedFiles(prev => ({ ...prev, [key]: !prev[key] }));
+  const handleRemoveContainer = (containerName: string) => {
+    envModes.cleanupContainer(containerName);
+    fileModes.cleanupContainer(containerName);
+    onRemoveContainer(containerName);
   };
 
-  const getEnvVarMode = (
+  const handleEnvVarModeChange = (
     containerName: string,
-    envIndex: number,
-  ): 'plain' | 'secret' => {
-    const key = `${containerName}-${envIndex}`;
-    const container = containers[containerName];
-    const envVar = container?.env?.[envIndex];
-
-    if (envVar?.valueFrom?.secretRef) {
-      return 'secret';
-    }
-
-    return envValueMode[key] || 'plain';
-  };
-
-  const setEnvVarMode = (
-    containerName: string,
-    envIndex: number,
+    index: number,
     mode: 'plain' | 'secret',
   ) => {
-    const key = `${containerName}-${envIndex}`;
-    setEnvValueMode(prev => ({ ...prev, [key]: mode }));
+    envModes.setMode(containerName, index, mode);
 
-    // Clear the current value when switching modes
-    const container = containers[containerName];
-    const envVar = container?.env?.[envIndex];
-    if (envVar) {
-      if (mode === 'plain') {
-        onEnvVarChange(containerName, envIndex, 'value', '');
-        onEnvVarChange(containerName, envIndex, 'valueFrom', undefined as any);
-      } else {
-        onEnvVarChange(containerName, envIndex, 'value', undefined as any);
-        onEnvVarChange(containerName, envIndex, 'valueFrom', {
-          secretRef: { name: '', key: '' },
-        } as any);
-      }
+    // Clear conflicting values when switching modes
+    if (mode === 'plain') {
+      onEnvVarChange(containerName, index, 'value', '');
+      onEnvVarChange(containerName, index, 'valueFrom', undefined as any);
+    } else {
+      onEnvVarChange(containerName, index, 'value', undefined as any);
+      onEnvVarChange(containerName, index, 'valueFrom', {
+        secretRef: { name: '', key: '' },
+      } as any);
     }
   };
 
-  const cleanupEnvVarModes = (containerName: string, removedIndex: number) => {
-    setEnvValueMode(prev => {
-      const newState = { ...prev };
-
-      // Remove the mode for the deleted env var
-      delete newState[`${containerName}-${removedIndex}`];
-
-      // Shift modes for env vars that came after the removed one
-      const container = containers[containerName];
-      const envCount = container?.env?.length || 0;
-
-      for (let i = removedIndex + 1; i <= envCount; i++) {
-        const oldKey = `${containerName}-${i}`;
-        const newKey = `${containerName}-${i - 1}`;
-
-        if (newState[oldKey]) {
-          newState[newKey] = newState[oldKey];
-          delete newState[oldKey];
-        }
-      }
-
-      return newState;
-    });
-  };
-
-  const getSecretKeys = (secretName: string): string[] => {
-    const secret = secretReferences.find(ref => ref.name === secretName);
-    return secret?.data?.map(item => item.secretKey) || [];
-  };
-
-  const getFileMode = (
+  const handleFileVarModeChange = (
     containerName: string,
-    fileIndex: number,
-  ): 'plain' | 'secret' => {
-    const key = `${containerName}-${fileIndex}`;
-    const container = containers[containerName];
-    const fileVar = (container as any).files?.[fileIndex];
-
-    if (fileVar?.valueFrom?.secretRef) {
-      return 'secret';
-    }
-
-    return fileValueMode[key] || 'plain';
-  };
-
-  const setFileMode = (
-    containerName: string,
-    fileIndex: number,
+    index: number,
     mode: 'plain' | 'secret',
   ) => {
-    const key = `${containerName}-${fileIndex}`;
-    setFileValueMode(prev => ({ ...prev, [key]: mode }));
+    fileModes.setMode(containerName, index, mode);
 
-    // Clear the current value when switching modes
-    const container = containers[containerName];
-    const fileVar = (container as any).files?.[fileIndex];
-    if (fileVar) {
-      if (mode === 'plain') {
-        onFileVarChange(containerName, fileIndex, 'value', '');
-        onFileVarChange(
-          containerName,
-          fileIndex,
-          'valueFrom',
-          undefined as any,
-        );
-      } else {
-        onFileVarChange(containerName, fileIndex, 'value', undefined as any);
-        onFileVarChange(containerName, fileIndex, 'valueFrom', {
-          secretRef: { name: '', key: '' },
-        } as any);
-      }
+    // Clear conflicting values when switching modes
+    if (mode === 'plain') {
+      onFileVarChange(containerName, index, 'value', '');
+      onFileVarChange(containerName, index, 'valueFrom', undefined as any);
+    } else {
+      onFileVarChange(containerName, index, 'value', undefined as any);
+      onFileVarChange(containerName, index, 'valueFrom', {
+        secretRef: { name: '', key: '' },
+      } as any);
     }
   };
 
-  const cleanupFileModes = (containerName: string, removedIndex: number) => {
-    setFileValueMode(prev => {
-      const newState = { ...prev };
-
-      // Remove the mode for the deleted file
-      delete newState[`${containerName}-${removedIndex}`];
-
-      // Shift modes for files that came after the removed one
-      const container = containers[containerName];
-      const fileCount = (container as any).files?.length || 0;
-
-      for (let i = removedIndex + 1; i <= fileCount; i++) {
-        const oldKey = `${containerName}-${i}`;
-        const newKey = `${containerName}-${i - 1}`;
-
-        if (newState[oldKey]) {
-          newState[newKey] = newState[oldKey];
-          delete newState[oldKey];
-        }
-      }
-
-      return newState;
-    });
+  const handleRemoveEnvVar = (containerName: string, index: number) => {
+    envModes.cleanupIndex(containerName, index);
+    onRemoveEnvVar(containerName, index);
   };
 
-  const cleanupContainerModes = (containerName: string) => {
-    setEnvValueMode(prev => {
-      const newState = { ...prev };
-      Object.keys(newState).forEach(key => {
-        if (key.startsWith(`${containerName}-`)) {
-          delete newState[key];
-        }
-      });
-      return newState;
-    });
-
-    setFileValueMode(prev => {
-      const newState = { ...prev };
-      Object.keys(newState).forEach(key => {
-        if (key.startsWith(`${containerName}-`)) {
-          delete newState[key];
-        }
-      });
-      return newState;
-    });
-
-    setExpandedFiles(prev => {
-      const newState = { ...prev };
-      Object.keys(newState).forEach(key => {
-        if (key.startsWith(`${containerName}-`)) {
-          delete newState[key];
-        }
-      });
-      return newState;
-    });
+  const handleRemoveFileVar = (containerName: string, index: number) => {
+    fileModes.cleanupIndex(containerName, index);
+    onRemoveFileVar(containerName, index);
   };
 
   return (
@@ -304,10 +225,7 @@ export function ContainerContent({
                   {containerName === 'main' ? 'app' : containerName}
                 </Typography>
                 <IconButton
-                  onClick={() => {
-                    cleanupContainerModes(containerName);
-                    onRemoveContainer(containerName);
-                  }}
+                  onClick={() => handleRemoveContainer(containerName)}
                   color="secondary"
                   size="small"
                   disabled={disabled}
@@ -383,20 +301,19 @@ export function ContainerContent({
                 Environment Variables
               </Typography>
               {container.env?.map((envVar, index) => (
-                <EnvVarRow
+                <EnvVarEditor
                   key={index}
                   envVar={envVar}
-                  index={index}
-                  containerName={containerName}
+                  secrets={secretOptions}
                   disabled={disabled}
-                  className={classes.envVarContainer}
-                  onEnvVarChange={onEnvVarChange}
-                  onRemoveEnvVar={onRemoveEnvVar}
-                  secretReferences={secretReferences}
-                  mode={getEnvVarMode(containerName, index)}
-                  onModeChange={setEnvVarMode}
-                  onCleanupModes={cleanupEnvVarModes}
-                  getSecretKeys={getSecretKeys}
+                  mode={envModes.getMode(containerName, index)}
+                  onChange={(field, value) =>
+                    onEnvVarChange(containerName, index, field, value)
+                  }
+                  onRemove={() => handleRemoveEnvVar(containerName, index)}
+                  onModeChange={mode =>
+                    handleEnvVarModeChange(containerName, index, mode)
+                  }
                 />
               ))}
               <Button
@@ -411,6 +328,8 @@ export function ContainerContent({
                 Add Environment Variable
               </Button>
             </Box>
+
+            {/* File Mounts */}
             <Box mt={3}>
               <Typography
                 variant="subtitle2"
@@ -420,30 +339,23 @@ export function ContainerContent({
                 File Mounts
               </Typography>
               {(container as any).files?.map(
-                (fileVar: FileVar, index: number) => {
-                  const isExpanded =
-                    expandedFiles[`${containerName}-${index}`] || false;
-                  const currentFileMode = getFileMode(containerName, index);
-
-                  return (
-                    <FileVarRow
-                      key={index}
-                      fileVar={fileVar}
-                      index={index}
-                      containerName={containerName}
-                      disabled={disabled}
-                      secretReferences={secretReferences}
-                      mode={currentFileMode}
-                      isExpanded={isExpanded}
-                      onFileVarChange={onFileVarChange}
-                      onRemoveFileVar={onRemoveFileVar}
-                      onModeChange={setFileMode}
-                      onCleanupModes={cleanupFileModes}
-                      onToggleExpanded={toggleFileExpanded}
-                      getSecretKeys={getSecretKeys}
-                    />
-                  );
-                },
+                (fileVar: FileVar, index: number) => (
+                  <FileVarEditor
+                    key={index}
+                    fileVar={fileVar}
+                    id={`${containerName}-${index}`}
+                    secrets={secretOptions}
+                    disabled={disabled}
+                    mode={fileModes.getMode(containerName, index)}
+                    onChange={(field, value) =>
+                      onFileVarChange(containerName, index, field, value)
+                    }
+                    onRemove={() => handleRemoveFileVar(containerName, index)}
+                    onModeChange={mode =>
+                      handleFileVarModeChange(containerName, index, mode)
+                    }
+                  />
+                ),
               )}
               <Button
                 startIcon={<AddIcon />}

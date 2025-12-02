@@ -4,7 +4,11 @@ import {
   discoveryApiRef,
   identityApiRef,
 } from '@backstage/core-plugin-api';
-import { Progress, ResponseErrorPanel, EmptyState } from '@backstage/core-components';
+import {
+  Progress,
+  ResponseErrorPanel,
+  EmptyState,
+} from '@backstage/core-components';
 import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';

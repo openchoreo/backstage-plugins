@@ -9,3 +9,13 @@ export type {
   VerticalTabNavProps,
   TabItemData,
 } from './components/VerticalTabNav';
+export { DualModeInput } from './components/DualModeInput';
+export type {
+  DualModeInputProps,
+  DualModeType,
+} from './components/DualModeInput';
+export { SecretSelector } from './components/SecretSelector';
+export type {
+  SecretSelectorProps,
+  SecretOption,
+} from './components/SecretSelector';

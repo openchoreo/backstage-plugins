@@ -1,3 +1,4 @@
+import { useState, type FC } from 'react';
 import {
   TextField,
   Button,
@@ -8,13 +9,9 @@ import {
   Collapse,
   Paper,
   Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Snackbar,
 } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, Theme } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import AttachFileIcon from '@material-ui/icons/AttachFile';
 import VisibilityIcon from '@material-ui/icons/Visibility';
@@ -22,55 +19,26 @@ import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import LockIcon from '@material-ui/icons/Lock';
 import LockOpenIcon from '@material-ui/icons/LockOpen';
 import { Alert } from '@material-ui/lab';
-import { useState } from 'react';
-import { FileVar } from '@openchoreo/backstage-plugin-common';
+import type { FileVar } from '@openchoreo/backstage-plugin-common';
+import {
+  SecretSelector,
+  type SecretOption,
+} from '@openchoreo/backstage-design-system';
 
-interface SecretReference {
-  name: string;
-  displayName?: string;
-  data?: Array<{ secretKey: string }>;
-}
-
-interface FileVarRowProps {
-  fileVar: FileVar;
-  index: number;
-  containerName: string;
-  disabled: boolean;
-  className?: string;
-  secretReferences: SecretReference[];
-  mode: 'plain' | 'secret';
-  isExpanded: boolean;
-  onFileVarChange: (
-    containerName: string,
-    fileIndex: number,
-    field: keyof FileVar,
-    value: string,
-  ) => void;
-  onRemoveFileVar: (containerName: string, fileIndex: number) => void;
-  onModeChange: (
-    containerName: string,
-    fileIndex: number,
-    mode: 'plain' | 'secret',
-  ) => void;
-  onCleanupModes: (containerName: string, removedIndex: number) => void;
-  onToggleExpanded: (containerName: string, fileIndex: number) => void;
-  getSecretKeys: (secretName: string) => string[];
-}
-
-const useStyles = makeStyles(theme => ({
-  fileMountContainer: {
+const useStyles = makeStyles((theme: Theme) => ({
+  container: {
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: 8,
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
     overflow: 'hidden',
   },
-  fileMountHeader: {
+  header: {
     padding: theme.spacing(1.5),
     backgroundColor: theme.palette.grey[50],
     borderBottom: `1px solid ${theme.palette.divider}`,
   },
-  fileMountContent: {
+  content: {
     padding: theme.spacing(1.5),
   },
   contentPreview: {
@@ -91,15 +59,15 @@ const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(1),
   },
   lockButton: {
-    marginLeft: '4px',
+    marginLeft: 4,
     backgroundColor: 'transparent',
     border: '1px solid transparent',
-    borderRadius: '8px',
-    padding: '8px',
+    borderRadius: 8,
+    padding: 8,
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     '&:hover': {
-      borderColor: '#000000',
+      borderColor: theme.palette.text.primary,
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       transform: 'translateY(-1px)',
     },
@@ -109,12 +77,10 @@ const useStyles = makeStyles(theme => ({
     },
     '&:focus-visible': {
       outline: `2px solid ${theme.palette.primary.main}`,
-      outlineOffset: '2px',
+      outlineOffset: 2,
     },
   },
   lockButtonSecret: {
-    backgroundColor: 'transparent',
-    border: '1px solid transparent',
     color: theme.palette.primary.main,
     '&:hover': {
       borderColor: theme.palette.primary.main,
@@ -122,25 +88,59 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export function FileVarRow({
+export interface FileVarEditorProps {
+  /** The file variable to edit */
+  fileVar: FileVar;
+  /** Unique identifier for this editor (used for file input IDs) */
+  id: string;
+  /** Available secrets for reference selection */
+  secrets: SecretOption[];
+  /** Whether the editor is disabled */
+  disabled?: boolean;
+  /** Current mode - 'plain' for file content, 'secret' for secret reference */
+  mode: 'plain' | 'secret';
+  /** Callback when any field changes */
+  onChange: (field: keyof FileVar, value: any) => void;
+  /** Callback when the file var should be removed */
+  onRemove: () => void;
+  /** Callback when mode changes */
+  onModeChange: (mode: 'plain' | 'secret') => void;
+}
+
+/**
+ * Editor component for a single file mount.
+ * Supports both direct file content and secret references.
+ * Includes file upload capability and content preview.
+ *
+ * @example
+ * ```tsx
+ * <FileVarEditor
+ *   fileVar={{ key: 'config.json', mountPath: '/app/config', value: '{}' }}
+ *   id="main-0"
+ *   secrets={[{ name: 'my-secret', keys: ['config-data'] }]}
+ *   mode="plain"
+ *   onChange={(field, value) => handleChange(field, value)}
+ *   onRemove={() => handleRemove()}
+ *   onModeChange={(mode) => setMode(mode)}
+ * />
+ * ```
+ */
+export const FileVarEditor: FC<FileVarEditorProps> = ({
   fileVar,
-  index,
-  containerName,
-  disabled,
-  secretReferences,
+  id,
+  secrets,
+  disabled = false,
   mode,
-  isExpanded,
-  onFileVarChange,
-  onRemoveFileVar,
+  onChange,
+  onRemove,
   onModeChange,
-  onCleanupModes,
-  onToggleExpanded,
-  getSecretKeys,
-}: FileVarRowProps) {
+}) => {
   const classes = useStyles();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const isSecret = mode === 'secret';
   const hasContent = fileVar.value && fileVar.value.length > 0;
-  const [error, setError] = useState<string | null>(null);
 
   const getContentPreview = (content: string, maxLines: number = 2): string => {
     const lines = content.split('\n');
@@ -148,18 +148,52 @@ export function FileVarRow({
     return `${lines.slice(0, maxLines).join('\n')}...`;
   };
 
+  const handleModeChange = (newMode: 'plain' | 'secret') => {
+    onModeChange(newMode);
+
+    // Clear conflicting values when switching modes
+    if (newMode === 'plain') {
+      onChange('value', '');
+      onChange('valueFrom', undefined);
+    } else {
+      onChange('value', undefined);
+      onChange('valueFrom', { secretRef: { name: '', key: '' } });
+    }
+  };
+
+  const handleSecretNameChange = (name: string) => {
+    onChange('valueFrom', { secretRef: { name, key: '' } });
+    if (name && fileVar.value) {
+      onChange('value', undefined);
+    }
+  };
+
+  const handleSecretKeyChange = (key: string) => {
+    const currentName = fileVar.valueFrom?.secretRef?.name || '';
+    onChange('valueFrom', { secretRef: { name: currentName, key } });
+    if (key && fileVar.value) {
+      onChange('value', undefined);
+    }
+  };
+
+  const handleValueChange = (value: string) => {
+    onChange('value', value);
+    if (value && fileVar.valueFrom) {
+      onChange('valueFrom', undefined);
+    }
+  };
+
   const handleFileUpload = (file: File, inputElement: HTMLInputElement) => {
     const reader = new FileReader();
     reader.onload = event => {
       try {
         const content = event.target?.result as string;
-        onFileVarChange(containerName, index, 'value', content);
-        // Clear valueFrom when setting value from file upload
+        onChange('value', content);
         if (content && fileVar.valueFrom) {
-          onFileVarChange(containerName, index, 'valueFrom', undefined as any);
+          onChange('valueFrom', undefined);
         }
         if (!fileVar.key) {
-          onFileVarChange(containerName, index, 'key', file.name);
+          onChange('key', file.name);
         }
         inputElement.value = '';
       } catch (err) {
@@ -176,15 +210,15 @@ export function FileVarRow({
 
   return (
     <>
-      <Paper className={classes.fileMountContainer}>
-        <Box className={classes.fileMountHeader}>
+      <Paper className={classes.container}>
+        <Box className={classes.header}>
           <Grid container spacing={1} alignItems="center">
             <Grid
               item
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                paddingRight: '8px',
+                paddingRight: 8,
               }}
             >
               <Tooltip
@@ -196,11 +230,7 @@ export function FileVarRow({
               >
                 <IconButton
                   onClick={() =>
-                    onModeChange(
-                      containerName,
-                      index,
-                      isSecret ? 'plain' : 'secret',
-                    )
+                    handleModeChange(isSecret ? 'plain' : 'secret')
                   }
                   size="small"
                   disabled={disabled}
@@ -208,6 +238,11 @@ export function FileVarRow({
                     isSecret ? classes.lockButtonSecret : ''
                   }`}
                   color={isSecret ? 'primary' : 'default'}
+                  aria-label={
+                    isSecret
+                      ? 'Switch to file content'
+                      : 'Switch to secret reference'
+                  }
                 >
                   {isSecret ? <LockIcon /> : <LockOpenIcon />}
                 </IconButton>
@@ -220,33 +255,18 @@ export function FileVarRow({
                   <TextField
                     label="File Name"
                     value={fileVar.key || ''}
-                    onChange={e =>
-                      onFileVarChange(
-                        containerName,
-                        index,
-                        'key',
-                        e.target.value,
-                      )
-                    }
+                    onChange={e => onChange('key', e.target.value)}
                     fullWidth
                     variant="outlined"
                     size="small"
                     disabled={disabled}
                   />
                 </Grid>
-
                 <Grid item xs={5}>
                   <TextField
                     label="Mount Path"
                     value={fileVar.mountPath || ''}
-                    onChange={e =>
-                      onFileVarChange(
-                        containerName,
-                        index,
-                        'mountPath',
-                        e.target.value,
-                      )
-                    }
+                    onChange={e => onChange('mountPath', e.target.value)}
                     fullWidth
                     variant="outlined"
                     size="small"
@@ -259,13 +279,11 @@ export function FileVarRow({
             <Grid item style={{ display: 'flex', alignItems: 'center' }}>
               <Tooltip title="Delete file mount">
                 <IconButton
-                  onClick={() => {
-                    onCleanupModes(containerName, index);
-                    onRemoveFileVar(containerName, index);
-                  }}
+                  onClick={onRemove}
                   color="secondary"
                   size="small"
                   disabled={disabled}
+                  aria-label="Delete file mount"
                 >
                   <DeleteIcon />
                 </IconButton>
@@ -274,99 +292,16 @@ export function FileVarRow({
           </Grid>
         </Box>
 
-        <Box className={classes.fileMountContent}>
+        <Box className={classes.content}>
           {isSecret ? (
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <FormControl fullWidth variant="outlined" size="small">
-                  <InputLabel>Secret Reference Name</InputLabel>
-                  <Select
-                    value={fileVar.valueFrom?.secretRef?.name || ''}
-                    onChange={e => {
-                      const secretName = e.target.value as string;
-                      const valueFrom = {
-                        secretRef: { name: secretName, key: '' },
-                      } as any;
-                      onFileVarChange(
-                        containerName,
-                        index,
-                        'valueFrom',
-                        valueFrom,
-                      );
-                      // Clear value when setting valueFrom
-                      if (secretName && fileVar.value) {
-                        onFileVarChange(
-                          containerName,
-                          index,
-                          'value',
-                          undefined as any,
-                        );
-                      }
-                    }}
-                    label="Secret Reference Name"
-                    disabled={disabled}
-                  >
-                    <MenuItem value="">
-                      <em>
-                        {secretReferences.length === 0
-                          ? 'No secret references available'
-                          : 'Select a secret reference'}
-                      </em>
-                    </MenuItem>
-                    {secretReferences.map(secret => (
-                      <MenuItem key={secret.name} value={secret.name}>
-                        {secret.displayName || secret.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={6}>
-                <FormControl fullWidth variant="outlined" size="small">
-                  <InputLabel>Secret Reference Key</InputLabel>
-                  <Select
-                    value={fileVar.valueFrom?.secretRef?.key || ''}
-                    onChange={e => {
-                      const secretKey = e.target.value as string;
-                      const currentSecret =
-                        fileVar.valueFrom?.secretRef?.name || '';
-                      const valueFrom = {
-                        secretRef: { name: currentSecret, key: secretKey },
-                      } as any;
-                      onFileVarChange(
-                        containerName,
-                        index,
-                        'valueFrom',
-                        valueFrom,
-                      );
-                      // Clear value when setting valueFrom
-                      if (secretKey && fileVar.value) {
-                        onFileVarChange(
-                          containerName,
-                          index,
-                          'value',
-                          undefined as any,
-                        );
-                      }
-                    }}
-                    label="Secret Reference Key"
-                    disabled={disabled || !fileVar.valueFrom?.secretRef?.name}
-                  >
-                    <MenuItem value="">
-                      <em>Select a key</em>
-                    </MenuItem>
-                    {getSecretKeys(
-                      fileVar.valueFrom?.secretRef?.name || '',
-                    ).map(key => (
-                      <MenuItem key={key} value={key}>
-                        {key}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
+            <SecretSelector
+              secretName={fileVar.valueFrom?.secretRef?.name || ''}
+              secretKey={fileVar.valueFrom?.secretRef?.key || ''}
+              secrets={secrets}
+              onSecretNameChange={handleSecretNameChange}
+              onSecretKeyChange={handleSecretKeyChange}
+              disabled={disabled}
+            />
           ) : (
             <>
               {hasContent && (
@@ -385,7 +320,7 @@ export function FileVarRow({
                       startIcon={
                         isExpanded ? <VisibilityOffIcon /> : <VisibilityIcon />
                       }
-                      onClick={() => onToggleExpanded(containerName, index)}
+                      onClick={() => setIsExpanded(!isExpanded)}
                       disabled={disabled}
                     >
                       {isExpanded ? 'Collapse Content' : 'Expand Content'}
@@ -405,19 +340,7 @@ export function FileVarRow({
                   disabled={disabled}
                   label={hasContent ? 'Edit Content' : 'Content'}
                   value={fileVar.value || ''}
-                  onChange={e => {
-                    const newValue = e.target.value;
-                    onFileVarChange(containerName, index, 'value', newValue);
-                    // Clear valueFrom when setting value
-                    if (newValue && fileVar.valueFrom) {
-                      onFileVarChange(
-                        containerName,
-                        index,
-                        'valueFrom',
-                        undefined as any,
-                      );
-                    }
-                  }}
+                  onChange={e => handleValueChange(e.target.value)}
                   fullWidth
                   variant="outlined"
                   size="small"
@@ -437,7 +360,7 @@ export function FileVarRow({
                 <input
                   accept="*/*"
                   style={{ display: 'none' }}
-                  id={`file-upload-${containerName}-${index}`}
+                  id={`file-upload-${id}`}
                   type="file"
                   onChange={e => {
                     const file = e.target.files?.[0];
@@ -447,7 +370,7 @@ export function FileVarRow({
                   }}
                   disabled={disabled}
                 />
-                <label htmlFor={`file-upload-${containerName}-${index}`}>
+                <label htmlFor={`file-upload-${id}`}>
                   <Button
                     variant="outlined"
                     component="span"
@@ -476,4 +399,4 @@ export function FileVarRow({
       </Snackbar>
     </>
   );
-}
+};

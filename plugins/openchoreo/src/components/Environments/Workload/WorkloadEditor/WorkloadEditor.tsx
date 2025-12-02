@@ -15,6 +15,7 @@ import { ConnectionContent } from './ConnectionContent';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
+import { useSecretReferences } from '@openchoreo/backstage-plugin-react';
 import {
   VerticalTabNav,
   TabItemData,
@@ -36,7 +37,9 @@ const useStyles = makeStyles(() => ({
 
 export function WorkloadEditor({ entity }: WorkloadEditorProps) {
   const classes = useStyles();
-  const { workloadSpec, setWorkloadSpec, isDeploying } = useWorkloadContext();
+  const { workloadSpec, setWorkloadSpec, isDeploying, builds } =
+    useWorkloadContext();
+  const { secretReferences } = useSecretReferences();
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -338,6 +341,8 @@ export function WorkloadEditor({ entity }: WorkloadEditorProps) {
           onRemoveFileVar={removeFileVar}
           onArrayFieldChange={handleArrayFieldChange}
           singleContainerMode
+          builds={builds}
+          secretReferences={secretReferences}
         />
       )}
       {activeTab === 'endpoints' && (
