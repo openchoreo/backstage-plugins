@@ -1,7 +1,19 @@
 import type { FC } from 'react';
-import { TextField, IconButton, Grid, Box } from '@material-ui/core';
+import {
+  TextField,
+  IconButton,
+  Grid,
+  Box,
+  Typography,
+  Button,
+} from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
+import CheckIcon from '@material-ui/icons/Check';
+import CloseIcon from '@material-ui/icons/Close';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import {
   DualModeInput,
@@ -17,8 +29,47 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginBottom: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
   },
-  deleteButton: {
+  containerEditing: {
+    padding: theme.spacing(1.5),
+    border: `1px solid ${theme.palette.primary.main}`,
+    borderRadius: 6,
+    marginBottom: theme.spacing(1),
+    backgroundColor: theme.palette.background.default,
+    boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
+  },
+  actionButton: {
+    marginLeft: theme.spacing(0.5),
+  },
+  readOnlyKey: {
+    fontWeight: 600,
+    fontSize: '0.875rem',
+    color: theme.palette.text.primary,
+  },
+  readOnlyValue: {
+    fontSize: '0.875rem',
+    color: theme.palette.text.secondary,
+    fontFamily: 'monospace',
     marginLeft: theme.spacing(1),
+  },
+  readOnlyContent: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(0.5, 0),
+  },
+  secretIndicator: {
+    fontSize: '0.75rem',
+    color: theme.palette.info.main,
+    marginLeft: theme.spacing(1),
+  },
+  baseValueInline: {
+    marginTop: theme.spacing(1),
+    paddingTop: theme.spacing(0.5),
+    borderTop: `1px dashed ${theme.palette.grey[300]}`,
+  },
+  baseValueText: {
+    fontSize: '0.75rem',
+    color: theme.palette.text.secondary,
+    fontFamily: 'monospace',
   },
 }));
 
@@ -33,6 +84,28 @@ export interface EnvVarEditorProps {
   mode: 'plain' | 'secret';
   /** Optional CSS class name */
   className?: string;
+  /** Whether this row is in edit mode */
+  isEditing: boolean;
+  /** Called when Edit/Override button clicked */
+  onEdit: () => void;
+  /** Called when Apply button clicked */
+  onApply: () => void;
+  /** Called when Cancel button clicked */
+  onCancel?: () => void;
+  /** Label for the edit button - "Edit" or "Override" */
+  editButtonLabel?: string;
+  /** If true, cannot toggle plain/secret mode */
+  lockMode?: boolean;
+  /** If true, cannot edit the key/name field */
+  lockKey?: boolean;
+  /** Separately disable the Edit button (when another row is editing) */
+  editDisabled?: boolean;
+  /** The base env var value (for overrides, to show original value) */
+  baseValue?: EnvVar;
+  /** Whether base value section is expanded */
+  showBaseValue?: boolean;
+  /** Toggle base value visibility */
+  onToggleBaseValue?: () => void;
   /** Callback when any field changes */
   onChange: (field: keyof EnvVar, value: any) => void;
   /** Callback when the env var should be removed */
@@ -44,18 +117,7 @@ export interface EnvVarEditorProps {
 /**
  * Editor component for a single environment variable.
  * Supports both plain text values and secret references.
- *
- * @example
- * ```tsx
- * <EnvVarEditor
- *   envVar={{ key: 'API_KEY', value: 'secret123' }}
- *   secrets={[{ name: 'my-secret', keys: ['api-key'] }]}
- *   mode="plain"
- *   onChange={(field, value) => handleChange(field, value)}
- *   onRemove={() => handleRemove()}
- *   onModeChange={(mode) => setMode(mode)}
- * />
- * ```
+ * Has two visual states: read-only (displays values) and edit mode (input fields).
  */
 export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   envVar,
@@ -63,6 +125,17 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   disabled = false,
   mode,
   className,
+  isEditing,
+  onEdit,
+  onApply,
+  onCancel,
+  editButtonLabel = 'Edit',
+  lockMode = false,
+  lockKey = false,
+  editDisabled = false,
+  baseValue,
+  showBaseValue = false,
+  onToggleBaseValue,
   onChange,
   onRemove,
   onModeChange,
@@ -70,6 +143,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   const classes = useStyles();
 
   const handleModeChange = (newMode: 'plain' | 'secret') => {
+    if (lockMode) return;
     onModeChange(newMode);
 
     // Clear conflicting values when switching modes
@@ -84,7 +158,6 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
 
   const handleSecretNameChange = (name: string) => {
     onChange('valueFrom', { secretRef: { name, key: '' } });
-    // Clear value when setting valueFrom
     if (name && envVar.value) {
       onChange('value', undefined);
     }
@@ -93,7 +166,6 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   const handleSecretKeyChange = (key: string) => {
     const currentName = envVar.valueFrom?.secretRef?.name || '';
     onChange('valueFrom', { secretRef: { name: currentName, key } });
-    // Clear value when setting valueFrom
     if (key && envVar.value) {
       onChange('value', undefined);
     }
@@ -101,12 +173,101 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
 
   const handleValueChange = (value: string) => {
     onChange('value', value);
-    // Clear valueFrom when setting value
     if (value && envVar.valueFrom) {
       onChange('valueFrom', undefined);
     }
   };
 
+  // Format value for display (both current and base)
+  const formatDisplayValue = (ev: EnvVar, m: 'plain' | 'secret') => {
+    if (m === 'secret' && ev.valueFrom?.secretRef) {
+      const { name, key } = ev.valueFrom.secretRef;
+      return `Secret: ${name}/${key}`;
+    }
+    // Mask sensitive values
+    const isSensitive =
+      ev.key?.toLowerCase().includes('secret') ||
+      ev.key?.toLowerCase().includes('password') ||
+      ev.key?.toLowerCase().includes('token') ||
+      ev.key?.toLowerCase().includes('key');
+    if (isSensitive && ev.value && ev.value.length > 0) {
+      return '••••••••';
+    }
+    return ev.value || '';
+  };
+
+  const getDisplayValue = () => formatDisplayValue(envVar, mode);
+
+  // Determine base value mode
+  const baseValueMode: 'plain' | 'secret' = baseValue?.valueFrom?.secretRef
+    ? 'secret'
+    : 'plain';
+
+  // Read-only display
+  if (!isEditing) {
+    return (
+      <Box className={className || classes.container}>
+        <Box display="flex" alignItems="center">
+          <Box flex={1} className={classes.readOnlyContent}>
+            <Typography className={classes.readOnlyKey}>
+              {envVar.key || '(no name)'}
+            </Typography>
+            <Typography className={classes.readOnlyValue}>
+              = {getDisplayValue() || '(empty)'}
+            </Typography>
+            {mode === 'secret' && (
+              <Typography className={classes.secretIndicator}>🔒</Typography>
+            )}
+          </Box>
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={onEdit}
+            disabled={disabled || editDisabled}
+            className={classes.actionButton}
+          >
+            {editButtonLabel}
+          </Button>
+          {baseValue && onToggleBaseValue && (
+            <IconButton
+              onClick={onToggleBaseValue}
+              size="small"
+              disabled={disabled}
+              className={classes.actionButton}
+              title={showBaseValue ? 'Hide base value' : 'View base value'}
+            >
+              {showBaseValue ? (
+                <VisibilityOffIcon fontSize="small" />
+              ) : (
+                <VisibilityIcon fontSize="small" />
+              )}
+            </IconButton>
+          )}
+          <IconButton
+            onClick={onRemove}
+            color="secondary"
+            size="small"
+            disabled={disabled}
+            className={classes.actionButton}
+            aria-label="Remove environment variable"
+          >
+            <DeleteIcon />
+          </IconButton>
+        </Box>
+        {/* Inline base value display */}
+        {showBaseValue && baseValue && (
+          <Box className={classes.baseValueInline}>
+            <Typography className={classes.baseValueText}>
+              Base: {baseValue.key} = {formatDisplayValue(baseValue, baseValueMode)}
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
+  // Edit mode
   const plainContent = (
     <Grid container spacing={1} alignItems="center">
       <Grid item xs={4}>
@@ -117,7 +278,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
           fullWidth
           variant="outlined"
           size="small"
-          disabled={disabled}
+          disabled={disabled || lockKey}
         />
       </Grid>
       <Grid item xs={8}>
@@ -144,7 +305,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
           fullWidth
           variant="outlined"
           size="small"
-          disabled={disabled}
+          disabled={disabled || lockKey}
         />
       </Grid>
       <Grid item xs={8}>
@@ -161,32 +322,67 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   );
 
   return (
-    <Box
-      className={className || classes.container}
-      display="flex"
-      alignItems="center"
-    >
-      <Box flex={1}>
-        <DualModeInput
-          mode={mode}
-          onModeChange={handleModeChange}
-          plainContent={plainContent}
-          secretContent={secretContent}
+    <Box className={className || classes.containerEditing}>
+      <Box display="flex" alignItems="center">
+        <Box flex={1}>
+          <DualModeInput
+            mode={mode}
+            onModeChange={handleModeChange}
+            plainContent={plainContent}
+            secretContent={secretContent}
+            disabled={disabled || lockMode}
+            tooltipPlain={
+              lockMode
+                ? 'Mode cannot be changed for overrides'
+                : 'Click to switch to secret reference'
+            }
+            tooltipSecret={
+              lockMode
+                ? 'Mode cannot be changed for overrides'
+                : 'Click to switch to plain value'
+            }
+          />
+        </Box>
+        <IconButton
+          onClick={onApply}
+          color="primary"
+          size="small"
           disabled={disabled}
-          tooltipPlain="Click to switch to secret reference"
-          tooltipSecret="Click to switch to plain value"
-        />
+          className={classes.actionButton}
+          aria-label="Apply changes"
+        >
+          <CheckIcon />
+        </IconButton>
+        {onCancel && (
+          <IconButton
+            onClick={onCancel}
+            size="small"
+            disabled={disabled}
+            className={classes.actionButton}
+            aria-label="Cancel editing"
+          >
+            <CloseIcon />
+          </IconButton>
+        )}
+        <IconButton
+          onClick={onRemove}
+          color="secondary"
+          size="small"
+          disabled={disabled}
+          className={classes.actionButton}
+          aria-label="Remove environment variable"
+        >
+          <DeleteIcon />
+        </IconButton>
       </Box>
-      <IconButton
-        onClick={onRemove}
-        color="secondary"
-        size="small"
-        disabled={disabled}
-        className={classes.deleteButton}
-        aria-label="Remove environment variable"
-      >
-        <DeleteIcon />
-      </IconButton>
+      {/* Inline base value display (also shown in edit mode) */}
+      {showBaseValue && baseValue && (
+        <Box className={classes.baseValueInline}>
+          <Typography className={classes.baseValueText}>
+            Base: {baseValue.key} = {formatDisplayValue(baseValue, baseValueMode)}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

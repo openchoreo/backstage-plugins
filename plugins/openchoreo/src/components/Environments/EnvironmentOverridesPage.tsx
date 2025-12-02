@@ -29,6 +29,7 @@ import SettingsIcon from '@material-ui/icons/Settings';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import { ContainerContent } from './Workload/WorkloadEditor';
 import { useSecretReferences } from '@openchoreo/backstage-plugin-react';
+import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -459,6 +460,31 @@ export const EnvironmentOverridesPage = ({
     }));
   };
 
+  // Handle starting override of an inherited env var
+  const handleStartOverride = (containerName: string, envVar: EnvVar) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const existingEnv = container.env || [];
+
+      // Check if already overridden
+      if (existingEnv.some((e: EnvVar) => e.key === envVar.key)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            env: [...existingEnv, { ...envVar }],
+          },
+        },
+      };
+    });
+  };
+
   // Calculate if there are any changes
   const totalChanges =
     changes.component.length +
@@ -724,6 +750,9 @@ export const EnvironmentOverridesPage = ({
               singleContainerMode
               hideContainerFields
               secretReferences={secretReferences}
+              baseWorkloadData={formState.baseWorkloadData}
+              showEnvVarStatus
+              onStartOverride={handleStartOverride}
             />
           }
         />

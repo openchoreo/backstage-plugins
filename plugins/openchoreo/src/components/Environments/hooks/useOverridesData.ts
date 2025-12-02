@@ -8,6 +8,7 @@ import {
 } from '../../../api/environments';
 import { fetchWorkloadInfo } from '../../../api/workloadInfo';
 import { getSchemaDefaults } from '../overridesUtils';
+import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
 
 interface ReleaseBinding {
   name: string;
@@ -30,6 +31,8 @@ export interface OverridesFormState {
   hasActualComponentOverrides: boolean;
   hasActualTraitOverridesMap: Record<string, boolean>;
   hasActualWorkloadOverrides: boolean;
+  // Base workload data for reference (shows original env vars)
+  baseWorkloadData: ModelsWorkload | null;
 }
 
 export interface OverridesSchemaState {
@@ -121,6 +124,10 @@ export function useOverridesData(
   >({});
   const [hasActualWorkloadOverrides, setHasActualWorkloadOverrides] =
     useState<boolean>(false);
+
+  // Base workload data for reference (shows original env vars)
+  const [baseWorkloadData, setBaseWorkloadData] =
+    useState<ModelsWorkload | null>(null);
 
   // Accordion state
   const [expandedSections, setExpandedSections] = useState<
@@ -252,13 +259,16 @@ export function useOverridesData(
           const hasActualWorkload = hasActualWorkloadData(workloadOverrides);
           setHasActualWorkloadOverrides(hasActualWorkload);
 
-          // If no workload overrides exist, fetch workload info to populate container structure
+          // Always fetch base workload info for reference display
+          const workloadInfo = await fetchWorkloadInfo(
+            entity,
+            discovery,
+            identityApi,
+          );
+          setBaseWorkloadData(workloadInfo);
+
+          // If no workload overrides exist, populate container structure from base workload
           if (!hasActualWorkload) {
-            const workloadInfo = await fetchWorkloadInfo(
-              entity,
-              discovery,
-              identityApi,
-            );
             const populatedWorkloadOverrides =
               createContainersFromWorkload(workloadInfo);
             if (populatedWorkloadOverrides) {
@@ -279,8 +289,26 @@ export function useOverridesData(
           setInitialComponentTypeFormData(schemaDefaults);
           setTraitFormDataMap({});
           setInitialTraitFormDataMap({});
-          setWorkloadFormData({});
-          setInitialWorkloadFormData({});
+
+          // Always fetch base workload info for reference display
+          const workloadInfo = await fetchWorkloadInfo(
+            entity,
+            discovery,
+            identityApi,
+          );
+          setBaseWorkloadData(workloadInfo);
+
+          // Populate container structure from base workload
+          const populatedWorkloadOverrides =
+            createContainersFromWorkload(workloadInfo);
+          if (populatedWorkloadOverrides) {
+            setWorkloadFormData(populatedWorkloadOverrides);
+            setInitialWorkloadFormData(populatedWorkloadOverrides);
+          } else {
+            setWorkloadFormData({});
+            setInitialWorkloadFormData({});
+          }
+
           // No actual overrides exist
           setHasActualComponentOverrides(false);
           setHasActualTraitOverridesMap({});
@@ -317,6 +345,7 @@ export function useOverridesData(
       hasActualComponentOverrides,
       hasActualTraitOverridesMap,
       hasActualWorkloadOverrides,
+      baseWorkloadData,
     },
     expandedSections,
     setComponentTypeFormData,
