@@ -93,6 +93,12 @@ export interface ContainerContentProps {
   showEnvVarStatus?: boolean;
   /** Callback when user starts overriding an inherited env var (optional) */
   onStartOverride?: (containerName: string, envVar: EnvVar) => void;
+  /** Callback to replace an entire env var at once (avoids race conditions) */
+  onEnvVarReplace?: (
+    containerName: string,
+    envIndex: number,
+    envVar: EnvVar,
+  ) => void;
 }
 
 /** Tracks which env var row is currently being edited */
@@ -174,6 +180,7 @@ export function ContainerContent({
   baseWorkloadData,
   showEnvVarStatus = false,
   onStartOverride,
+  onEnvVarReplace,
 }: ContainerContentProps) {
   const classes = useStyles();
 
@@ -334,15 +341,20 @@ export function ContainerContent({
         return;
       }
 
-      // Commit all buffered changes to parent state
-      onEnvVarChange(containerName, index, 'key', editBuffer.key || '');
-      onEnvVarChange(containerName, index, 'value', editBuffer.value as any);
-      onEnvVarChange(
-        containerName,
-        index,
-        'valueFrom',
-        editBuffer.valueFrom as any,
-      );
+      // Commit entire env var at once to avoid race conditions
+      if (onEnvVarReplace) {
+        onEnvVarReplace(containerName, index, editBuffer);
+      } else {
+        // Fallback to individual field updates (may have race condition issues)
+        onEnvVarChange(containerName, index, 'key', editBuffer.key || '');
+        onEnvVarChange(containerName, index, 'value', editBuffer.value as any);
+        onEnvVarChange(
+          containerName,
+          index,
+          'valueFrom',
+          editBuffer.valueFrom as any,
+        );
+      }
     }
     setEditBuffer(null);
     setEditingRow(null);
@@ -378,9 +390,11 @@ export function ContainerContent({
   // Handle starting override of an inherited env var
   const handleStartOverride = (containerName: string, envVar: EnvVar) => {
     onStartOverride?.(containerName, envVar);
-    // After override is added, set it to editing mode
+    // After override is added, set it to editing mode with buffer initialized
     const newIndex = containers[containerName]?.env?.length || 0;
-    setEditingRow({ containerName, index: newIndex });
+    // Initialize buffer with a copy of the base env var
+    setEditBuffer(JSON.parse(JSON.stringify(envVar)));
+    setEditingRow({ containerName, index: newIndex, isNew: true });
   };
 
   // Check if a specific row is being edited

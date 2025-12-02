@@ -298,6 +298,30 @@ export const EnvironmentOverridesPage = ({
     });
   };
 
+  const handleEnvVarReplace = (
+    containerName: string,
+    envIndex: number,
+    envVar: EnvVar,
+  ) => {
+    setWorkloadFormData((prev: any) => {
+      const containers = prev.containers || {};
+      const container = containers[containerName] || {};
+      const env = container.env || [];
+      const updatedEnv = [...env];
+      updatedEnv[envIndex] = envVar;
+      return {
+        ...prev,
+        containers: {
+          ...containers,
+          [containerName]: {
+            ...container,
+            env: updatedEnv,
+          },
+        },
+      };
+    });
+  };
+
   const handleFileVarChange = (
     containerName: string,
     fileIndex: number,
@@ -738,6 +762,7 @@ export const EnvironmentOverridesPage = ({
               containers={formState.workloadFormData.containers || {}}
               onContainerChange={handleContainerChange}
               onEnvVarChange={handleEnvVarChange}
+              onEnvVarReplace={handleEnvVarReplace}
               onFileVarChange={handleFileVarChange}
               onAddContainer={handleAddContainer}
               onRemoveContainer={handleRemoveContainer}
