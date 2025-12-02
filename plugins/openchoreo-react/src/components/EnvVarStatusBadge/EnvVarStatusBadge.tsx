@@ -1,8 +1,8 @@
+import type { FC } from 'react';
 import { Chip, Tooltip } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
-import type { EnvVarStatus } from '../../types/envVarTypes';
-import { formatEnvVarValue } from '../../utils/envVarUtils';
+import { formatEnvVarValue, type EnvVarStatus } from '../../utils/envVarUtils';
 
 export interface EnvVarStatusBadgeProps {
   /** The status of the env var: inherited, overridden, or new */
@@ -67,10 +67,10 @@ const statusConfig: Record<
  *
  * For overridden vars, shows the base value in a tooltip on hover.
  */
-export function EnvVarStatusBadge({
+export const EnvVarStatusBadge: FC<EnvVarStatusBadgeProps> = ({
   status,
   baseValue,
-}: EnvVarStatusBadgeProps) {
+}) => {
   const classes = useStyles();
   const config = statusConfig[status];
 
@@ -90,4 +90,4 @@ export function EnvVarStatusBadge({
       />
     </Tooltip>
   );
-}
+};
