@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { Entity } from '@backstage/catalog-model';
@@ -239,11 +239,12 @@ export const EnvironmentOverridesPage = ({
   const [activeTab, setActiveTab] = useState<string>('');
 
   // Set default active tab when tabs are loaded
-  useMemo(() => {
-    if (tabs.length > 0 && !activeTab) {
+  useEffect(() => {
+    // baseWorkloadData is only set after initial load completes (null until then)
+    if (!loading && formState.baseWorkloadData && tabs.length > 0 && !activeTab) {
       setActiveTab(tabs[0].id);
     }
-  }, [tabs, activeTab]);
+  }, [loading, formState.baseWorkloadData, tabs, activeTab]);
 
   // Workload container management functions
   const handleContainerChange = (
