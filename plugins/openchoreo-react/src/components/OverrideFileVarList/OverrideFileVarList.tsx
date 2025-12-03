@@ -1,8 +1,7 @@
 import { useMemo, type FC } from 'react';
-import { Box, Button, Typography } from '@material-ui/core';
+import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import EditIcon from '@material-ui/icons/Edit';
 import type { FileVar } from '@openchoreo/backstage-plugin-common';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import { FileVarEditor } from '../FileVarEditor';
@@ -12,7 +11,6 @@ import type { UseModeStateResult } from '../../hooks/useModeState';
 import type { UseFileVarEditBufferResult } from '../../hooks/useFileVarEditBuffer';
 import {
   mergeFileVarsWithStatus,
-  formatFileVarValue,
   type FileVarWithStatus,
 } from '../../utils/fileVarUtils';
 import { groupByStatus, getStatusCounts } from '../../utils/overrideGroupUtils';
@@ -22,37 +20,10 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
   },
   inheritedRow: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(1, 1.5),
+    padding: theme.spacing(1.5),
     backgroundColor: theme.palette.grey[50],
-    borderRadius: 4,
+    borderRadius: 6,
     border: `1px dashed ${theme.palette.grey[300]}`,
-  },
-  inheritedContent: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    marginLeft: theme.spacing(1),
-  },
-  inheritedKey: {
-    fontWeight: 600,
-    fontSize: '0.875rem',
-    color: theme.palette.text.primary,
-  },
-  inheritedMountPath: {
-    fontSize: '0.8rem',
-    color: theme.palette.text.secondary,
-    fontFamily: 'monospace',
-  },
-  inheritedValue: {
-    fontSize: '0.75rem',
-    color: theme.palette.text.secondary,
-    fontFamily: 'monospace',
-    marginTop: theme.spacing(0.25),
-  },
-  overrideButton: {
-    marginLeft: 'auto',
   },
   addButton: {
     marginTop: theme.spacing(1),
@@ -230,39 +201,31 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
     );
   };
 
-  // Render an inherited (read-only) file var row
-  const renderInheritedRow = (item: FileVarWithStatus) => {
-    const valueDisplay = formatFileVarValue(item.fileVar);
+  // Render an inherited (read-only) file var row using FileVarEditor
+  const renderInheritedRow = (item: FileVarWithStatus, index: number) => {
+    const baseMode = item.fileVar.valueFrom?.secretRef ? 'secret' : 'plain';
     return (
       <Box
         key={`inherited-${item.fileVar.key}`}
         className={classes.fileVarRowWrapper}
       >
-        <Box className={classes.inheritedRow}>
-          <Box className={classes.inheritedContent}>
-            <Typography className={classes.inheritedKey}>
-              {item.fileVar.key}
-            </Typography>
-            <Typography className={classes.inheritedMountPath}>
-              → {item.fileVar.mountPath}
-            </Typography>
-            {valueDisplay && (
-              <Typography className={classes.inheritedValue}>
-                {valueDisplay}
-              </Typography>
-            )}
-          </Box>
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<EditIcon />}
-            className={classes.overrideButton}
-            disabled={disabled || editBuffer.isAnyRowEditing}
-            onClick={() => handleStartOverride(item.fileVar)}
-          >
-            Override
-          </Button>
-        </Box>
+        <FileVarEditor
+          fileVar={item.fileVar}
+          id={`inherited-${containerName}-${index}`}
+          secrets={secretOptions}
+          disabled={disabled}
+          mode={baseMode}
+          isEditing={false}
+          onEdit={() => handleStartOverride(item.fileVar)}
+          onApply={() => {}}
+          editButtonLabel="Override"
+          editDisabled={editBuffer.isAnyRowEditing}
+          hideDelete
+          className={classes.inheritedRow}
+          onChange={() => {}}
+          onRemove={() => {}}
+          onModeChange={() => {}}
+        />
       </Box>
     );
   };
@@ -308,8 +271,8 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
           status="inherited"
           defaultExpanded
         >
-          {grouped.inherited.map(item =>
-            renderInheritedRow(item as FileVarWithStatus),
+          {grouped.inherited.map((item, index) =>
+            renderInheritedRow(item as FileVarWithStatus, index),
           )}
         </GroupedSection>
       )}

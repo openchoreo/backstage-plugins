@@ -241,7 +241,12 @@ export const EnvironmentOverridesPage = ({
   // Set default active tab when tabs are loaded
   useEffect(() => {
     // baseWorkloadData is only set after initial load completes (null until then)
-    if (!loading && formState.baseWorkloadData && tabs.length > 0 && !activeTab) {
+    if (
+      !loading &&
+      formState.baseWorkloadData &&
+      tabs.length > 0 &&
+      !activeTab
+    ) {
       setActiveTab(tabs[0].id);
     }
   }, [loading, formState.baseWorkloadData, tabs, activeTab]);

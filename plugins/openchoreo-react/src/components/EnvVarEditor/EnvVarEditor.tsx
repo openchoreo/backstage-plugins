@@ -116,6 +116,8 @@ export interface EnvVarEditorProps {
   editDisabled?: boolean;
   /** Separately disable the Delete button (when another row is editing) */
   deleteDisabled?: boolean;
+  /** Hide the Delete button entirely (for inherited items that can't be deleted) */
+  hideDelete?: boolean;
   /** The base env var value (for overrides, to show inline diff) */
   baseValue?: EnvVar;
   /** Callback when any field changes */
@@ -146,6 +148,7 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
   lockKey = false,
   editDisabled = false,
   deleteDisabled = false,
+  hideDelete = false,
   baseValue,
   onChange,
   onRemove,
@@ -254,16 +257,18 @@ export const EnvVarEditor: FC<EnvVarEditorProps> = ({
           >
             {editButtonLabel}
           </Button>
-          <IconButton
-            onClick={onRemove}
-            color="secondary"
-            size="small"
-            disabled={disabled || deleteDisabled}
-            className={classes.actionButton}
-            aria-label="Remove environment variable"
-          >
-            <DeleteIcon />
-          </IconButton>
+          {!hideDelete && (
+            <IconButton
+              onClick={onRemove}
+              color="secondary"
+              size="small"
+              disabled={disabled || deleteDisabled}
+              className={classes.actionButton}
+              aria-label="Remove environment variable"
+            >
+              <DeleteIcon />
+            </IconButton>
+          )}
         </Box>
       </Box>
     );
