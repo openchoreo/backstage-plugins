@@ -1,8 +1,7 @@
 import { useMemo, type FC } from 'react';
-import { Box, Button, Typography } from '@material-ui/core';
+import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import EditIcon from '@material-ui/icons/Edit';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import { EnvVarEditor } from '../EnvVarEditor';
@@ -12,7 +11,6 @@ import type { UseModeStateResult } from '../../hooks/useModeState';
 import type { UseEnvVarEditBufferResult } from '../../hooks/useEnvVarEditBuffer';
 import {
   mergeEnvVarsWithStatus,
-  formatEnvVarValue,
   type EnvVarWithStatus,
 } from '../../utils/envVarUtils';
 import { groupByStatus, getStatusCounts } from '../../utils/overrideGroupUtils';
@@ -22,31 +20,10 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
   },
   inheritedRow: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(1, 1.5),
+    padding: theme.spacing(1.5),
     backgroundColor: theme.palette.grey[50],
-    borderRadius: 4,
+    borderRadius: 6,
     border: `1px dashed ${theme.palette.grey[300]}`,
-  },
-  inheritedContent: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    marginLeft: theme.spacing(1),
-  },
-  inheritedKey: {
-    fontWeight: 600,
-    fontSize: '0.875rem',
-    color: theme.palette.text.primary,
-  },
-  inheritedValue: {
-    fontSize: '0.8rem',
-    color: theme.palette.text.secondary,
-    fontFamily: 'monospace',
-  },
-  overrideButton: {
-    marginLeft: 'auto',
   },
   addButton: {
     marginTop: theme.spacing(1),
@@ -217,34 +194,33 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
     );
   };
 
-  // Render an inherited (read-only) env var row
-  const renderInheritedRow = (item: EnvVarWithStatus) => (
-    <Box
-      key={`inherited-${item.envVar.key}`}
-      className={classes.envVarRowWrapper}
-    >
-      <Box className={classes.inheritedRow}>
-        <Box className={classes.inheritedContent}>
-          <Typography className={classes.inheritedKey}>
-            {item.envVar.key}
-          </Typography>
-          <Typography className={classes.inheritedValue}>
-            {formatEnvVarValue(item.envVar)}
-          </Typography>
-        </Box>
-        <Button
-          size="small"
-          variant="outlined"
-          startIcon={<EditIcon />}
-          className={classes.overrideButton}
-          disabled={disabled || editBuffer.isAnyRowEditing}
-          onClick={() => handleStartOverride(item.envVar)}
-        >
-          Override
-        </Button>
+  // Render an inherited (read-only) env var row using EnvVarEditor
+  const renderInheritedRow = (item: EnvVarWithStatus) => {
+    const baseMode = item.envVar.valueFrom?.secretRef ? 'secret' : 'plain';
+    return (
+      <Box
+        key={`inherited-${item.envVar.key}`}
+        className={classes.envVarRowWrapper}
+      >
+        <EnvVarEditor
+          envVar={item.envVar}
+          secrets={secretOptions}
+          disabled={disabled}
+          mode={baseMode}
+          isEditing={false}
+          onEdit={() => handleStartOverride(item.envVar)}
+          onApply={() => {}}
+          editButtonLabel="Override"
+          editDisabled={editBuffer.isAnyRowEditing}
+          hideDelete
+          className={classes.inheritedRow}
+          onChange={() => {}}
+          onRemove={() => {}}
+          onModeChange={() => {}}
+        />
       </Box>
-    </Box>
-  );
+    );
+  };
 
   return (
     <Box>

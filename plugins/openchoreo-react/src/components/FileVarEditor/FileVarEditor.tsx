@@ -196,6 +196,8 @@ export interface FileVarEditorProps {
   disabled?: boolean;
   /** Current mode - 'plain' for file content, 'secret' for secret reference */
   mode: 'plain' | 'secret';
+  /** Optional CSS class name for custom container styling */
+  className?: string;
   /** Whether this row is in edit mode */
   isEditing: boolean;
   /** Called when Edit/Override button clicked */
@@ -214,6 +216,8 @@ export interface FileVarEditorProps {
   editDisabled?: boolean;
   /** Separately disable the Delete button (when another row is editing) */
   deleteDisabled?: boolean;
+  /** Hide the Delete button entirely (for inherited items that can't be deleted) */
+  hideDelete?: boolean;
   /** The base file var value (for overrides, to show inline diff) */
   baseValue?: FileVar;
   /** Callback when any field changes */
@@ -235,6 +239,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
   secrets,
   disabled = false,
   mode,
+  className,
   isEditing,
   onEdit,
   onApply,
@@ -244,6 +249,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
   lockKey = false,
   editDisabled = false,
   deleteDisabled = false,
+  hideDelete = false,
   baseValue,
   onChange,
   onRemove,
@@ -349,7 +355,7 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
   if (!isEditing) {
     return (
       <>
-        <Paper className={classes.container} elevation={0}>
+        <Paper className={className || classes.container} elevation={0}>
           <Box className={classes.readOnlyHeader}>
             <Box
               className={`${classes.modeIndicator} ${
@@ -388,16 +394,18 @@ export const FileVarEditor: FC<FileVarEditorProps> = ({
             >
               {editButtonLabel}
             </Button>
-            <IconButton
-              onClick={onRemove}
-              color="secondary"
-              size="small"
-              disabled={disabled || deleteDisabled}
-              className={classes.actionButton}
-              aria-label="Remove file mount"
-            >
-              <DeleteIcon />
-            </IconButton>
+            {!hideDelete && (
+              <IconButton
+                onClick={onRemove}
+                color="secondary"
+                size="small"
+                disabled={disabled || deleteDisabled}
+                className={classes.actionButton}
+                aria-label="Remove file mount"
+              >
+                <DeleteIcon />
+              </IconButton>
+            )}
           </Box>
           {/* Inline diff for overridden values */}
           {baseValue && (
