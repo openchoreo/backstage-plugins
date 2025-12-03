@@ -24,16 +24,8 @@ import { NotificationBanner, SetupCard, EnvironmentCard } from './components';
 import { EnvironmentOverridesPage } from './EnvironmentOverridesPage';
 import { ReleaseDetailsPage } from './ReleaseDetailsPage';
 import { WorkloadConfigPage } from './Workload/WorkloadConfigPage';
-import {
-  deployRelease,
-  promoteToEnvironment,
-  fetchComponentReleaseSchema,
-  fetchReleaseBindings,
-  ReleaseBinding,
-} from '../../api/environments';
+import { deployRelease, promoteToEnvironment } from '../../api/environments';
 import { getComponentDetails } from '../../api/runtimeLogs';
-import { getMissingRequiredFields } from './overridesUtils';
-import { JSONSchema7 } from 'json-schema';
 
 export const Environments = () => {
   // Initialize global styles (includes keyframe animation)
@@ -89,15 +81,14 @@ export const Environments = () => {
   useEnvironmentPolling(isPending, refetch);
 
   // Action handlers
-  const { handleRefreshEnvironment, handlePromote, handleSuspend } =
-    useEnvironmentActions(
-      entity,
-      discovery,
-      identityApi,
-      refetch,
-      notification,
-      refreshTracker,
-    );
+  const { handleRefreshEnvironment, handleSuspend } = useEnvironmentActions(
+    entity,
+    discovery,
+    identityApi,
+    refetch,
+    notification,
+    refreshTracker,
+  );
 
   // Handler for auto deploy toggle change
   const handleAutoDeployChange = useCallback(
@@ -232,130 +223,47 @@ export const Environments = () => {
     [entity, discovery, identityApi, notification, refetch],
   );
 
-  // Check if required overrides are missing for a release/environment
-  const checkRequiredOverrides = useCallback(
-    async (releaseName: string, environmentName: string): Promise<string[]> => {
-      try {
-        // Fetch schema for the release
-        const schemaResponse = await fetchComponentReleaseSchema(
-          entity,
-          discovery,
-          identityApi,
-          releaseName,
-        );
-
-        if (!schemaResponse.success || !schemaResponse.data) {
-          return []; // No schema = no required fields
-        }
-
-        // Extract componentTypeEnvOverrides schema
-        // The schema response can have different structures depending on the backend
-        const schemaData = schemaResponse.data as Record<string, unknown>;
-
-        // Try direct access first (componentTypeEnvOverrides at root)
-        let componentTypeSchema = schemaData.componentTypeEnvOverrides as
-          | JSONSchema7
-          | undefined;
-
-        // If not found, try nested under properties (for wrapped schema)
-        if (!componentTypeSchema && schemaData.properties) {
-          const propsData = schemaData.properties as Record<string, unknown>;
-          componentTypeSchema = propsData.componentTypeEnvOverrides as
-            | JSONSchema7
-            | undefined;
-        }
-
-        // Check if there are actually required fields
-        if (
-          !componentTypeSchema?.required ||
-          !Array.isArray(componentTypeSchema.required) ||
-          componentTypeSchema.required.length === 0
-        ) {
-          return []; // No required fields
-        }
-
-        // Fetch existing bindings to check current values
-        const bindingsResponse = await fetchReleaseBindings(
-          entity,
-          discovery,
-          identityApi,
-        );
-
-        let currentOverrides: Record<string, unknown> = {};
-        if (bindingsResponse.success && bindingsResponse.data?.items) {
-          const bindings = bindingsResponse.data.items as ReleaseBinding[];
-          const binding = bindings.find(
-            b => b.environment.toLowerCase() === environmentName.toLowerCase(),
-          );
-          if (binding?.componentTypeEnvOverrides) {
-            currentOverrides = binding.componentTypeEnvOverrides as Record<
-              string,
-              unknown
-            >;
-          }
-        }
-
-        return getMissingRequiredFields(componentTypeSchema, currentOverrides);
-      } catch {
-        // On error, don't block - allow action to proceed
-        return [];
-      }
-    },
-    [entity, discovery, identityApi],
-  );
-
-  // Handler for promotion with required overrides check
+  // Handler for promotion - always shows overrides page
   const handlePromoteWithOverridesCheck = useCallback(
-    async (sourceEnv: Environment, targetEnvName: string) => {
+    async (sourceEnv: Environment, targetEnvName: string): Promise<void> => {
       const releaseName = sourceEnv.deployment.releaseName;
       if (!releaseName) {
         throw new Error('No release to promote');
       }
 
-      // Check for required overrides in target environment
-      const missingFields = await checkRequiredOverrides(
-        releaseName,
-        targetEnvName,
+      // Find target environment
+      const targetEnv = displayEnvironments.find(
+        env => env.name.toLowerCase() === targetEnvName.toLowerCase(),
       );
 
-      if (missingFields.length > 0) {
-        // Find or create target environment object
-        const targetEnv = displayEnvironments.find(
-          env => env.name.toLowerCase() === targetEnvName.toLowerCase(),
-        );
-
-        if (!targetEnv) {
-          throw new Error(`Target environment '${targetEnvName}' not found`);
-        }
-
-        // Create environment object with the release name for overrides page
-        const envWithRelease: Environment = {
-          ...targetEnv,
-          deployment: {
-            ...targetEnv.deployment,
-            releaseName,
-          },
-        };
-
-        const pendingAction: PendingAction = {
-          type: 'promote',
-          releaseName,
-          sourceEnvironment: sourceEnv.name,
-          targetEnvironment: targetEnvName,
-        };
-
-        setViewMode({
-          type: 'overrides',
-          environment: envWithRelease,
-          pendingAction,
-        });
-        return; // Exit - user will be redirected to overrides page
+      if (!targetEnv) {
+        throw new Error(`Target environment '${targetEnvName}' not found`);
       }
 
-      // No missing required fields - proceed with promotion
-      await handlePromote(sourceEnv.name, targetEnvName);
+      // Create environment object with the release name for overrides page
+      const envWithRelease: Environment = {
+        ...targetEnv,
+        deployment: {
+          ...targetEnv.deployment,
+          releaseName,
+        },
+      };
+
+      const pendingAction: PendingAction = {
+        type: 'promote',
+        releaseName,
+        sourceEnvironment: sourceEnv.name,
+        targetEnvironment: targetEnvName,
+      };
+
+      // Always navigate to overrides page for promotion
+      setViewMode({
+        type: 'overrides',
+        environment: envWithRelease,
+        pendingAction,
+      });
     },
-    [checkRequiredOverrides, displayEnvironments, handlePromote],
+    [displayEnvironments],
   );
 
   // Loading state
