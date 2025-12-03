@@ -14,6 +14,7 @@ import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
+import { UnsavedChangesDialog } from './UnsavedChangesDialog';
 import {
   calculateHasOverrides,
   getMissingRequiredFields,
@@ -91,6 +92,8 @@ export const EnvironmentOverridesPage = ({
   >(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
+    useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Load secret references for workload overrides
@@ -185,12 +188,6 @@ export const EnvironmentOverridesPage = ({
       });
     }
 
-    // When there's a pending action, only show the Component tab
-    // since required overrides are only in componentTypeEnvOverrides
-    if (pendingAction) {
-      return tabList;
-    }
-
     // Add trait tabs
     Object.keys(schemas.traitSchemasMap).forEach(traitName => {
       const traitSchema = schemas.traitSchemasMap[traitName];
@@ -236,7 +233,6 @@ export const EnvironmentOverridesPage = ({
     formState.traitFormDataMap,
     changes,
     missingRequiredFields,
-    pendingAction,
   ]);
 
   // Set initial active tab
@@ -692,17 +688,30 @@ export const EnvironmentOverridesPage = ({
     schemas.componentTypeSchema ||
     Object.keys(schemas.traitSchemasMap).length > 0;
 
+  // Handle back button click with unsaved changes warning
+  const handleBackClick = () => {
+    if (totalChanges > 0) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      onBack();
+    }
+  };
+
   // Determine button text based on pending action and changes
   const getSaveButtonText = () => {
-    if (saving) return pendingAction ? 'Deploying...' : 'Saving...';
+    if (saving) {
+      if (pendingAction?.type === 'deploy') return 'Deploying...';
+      if (pendingAction?.type === 'promote') return 'Promoting...';
+      return 'Saving...';
+    }
 
     if (pendingAction) {
       const hasChanges = totalChanges > 0;
       if (pendingAction.type === 'deploy') {
-        return hasChanges ? 'Save & Deploy' : 'Skip & Deploy';
+        return hasChanges ? 'Save & Deploy' : 'Deploy';
       }
       if (pendingAction.type === 'promote') {
-        return hasChanges ? 'Save & Promote' : 'Skip & Promote';
+        return hasChanges ? 'Save & Promote' : 'Promote';
       }
     }
 
@@ -752,7 +761,8 @@ export const EnvironmentOverridesPage = ({
           deleting ||
           loading ||
           !!error ||
-          missingRequiredFields.length > 0
+          missingRequiredFields.length > 0 ||
+          (!pendingAction && totalChanges === 0)
         }
       >
         {getSaveButtonText()}
@@ -856,7 +866,7 @@ export const EnvironmentOverridesPage = ({
             : 'Configure Overrides'
         }
         subtitle={environment.name}
-        onBack={onBack}
+        onBack={handleBackClick}
         actions={headerActions}
       >
         {loading && (
@@ -872,6 +882,37 @@ export const EnvironmentOverridesPage = ({
               Retry
             </Button>
           </div>
+        )}
+
+        {!loading && !error && !hasSchemas && pendingAction && (
+          <Box
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            minHeight={300}
+            p={4}
+          >
+            <Typography variant="h6" gutterBottom>
+              No Configuration Required
+            </Typography>
+            <Typography
+              variant="body2"
+              color="textSecondary"
+              align="center"
+              style={{ marginBottom: 24 }}
+            >
+              This component has no environment-specific overrides to configure.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSaveClick}
+              disabled={saving}
+            >
+              {getSaveButtonText()}
+            </Button>
+          </Box>
         )}
 
         {!loading && !error && hasSchemas && (
@@ -947,6 +988,16 @@ export const EnvironmentOverridesPage = ({
         initialComponentTypeFormData={formState.initialComponentTypeFormData}
         initialTraitFormDataMap={formState.initialTraitFormDataMap}
         deleting={deleting}
+      />
+
+      <UnsavedChangesDialog
+        open={showUnsavedChangesDialog}
+        onDiscard={() => {
+          setShowUnsavedChangesDialog(false);
+          onBack();
+        }}
+        onStay={() => setShowUnsavedChangesDialog(false)}
+        changeCount={totalChanges}
       />
     </>
   );
