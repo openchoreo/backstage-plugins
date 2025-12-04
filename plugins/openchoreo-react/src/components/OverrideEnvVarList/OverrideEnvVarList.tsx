@@ -5,7 +5,6 @@ import AddIcon from '@material-ui/icons/Add';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import { EnvVarEditor } from '../EnvVarEditor';
-import { StatusSummaryBar } from '../StatusSummaryBar';
 import { GroupedSection } from '../GroupedSection';
 import type { UseModeStateResult } from '../../hooks/useModeState';
 import type { UseEnvVarEditBufferResult } from '../../hooks/useEnvVarEditBuffer';
@@ -13,7 +12,7 @@ import {
   mergeEnvVarsWithStatus,
   type EnvVarWithStatus,
 } from '../../utils/envVarUtils';
-import { groupByStatus, getStatusCounts } from '../../utils/overrideGroupUtils';
+import { groupByStatus } from '../../utils/overrideGroupUtils';
 
 const useStyles = makeStyles(theme => ({
   envVarRowWrapper: {
@@ -37,6 +36,8 @@ export interface OverrideEnvVarListProps {
   envVars: EnvVar[];
   /** Base workload environment variables (for comparison) */
   baseEnvVars: EnvVar[];
+  /** Environment name for display in section titles */
+  environmentName?: string;
   /** Available secrets for reference selection */
   secretOptions: SecretOption[];
   /** Plain/secret mode state manager */
@@ -75,6 +76,7 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
   containerName,
   envVars,
   baseEnvVars,
+  environmentName,
   secretOptions,
   envModes,
   disabled,
@@ -93,10 +95,8 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
     [baseEnvVars, envVars],
   );
 
-  // Group items by status and get counts
+  // Group items by status
   const grouped = useMemo(() => groupByStatus(mergedEnvVars), [mergedEnvVars]);
-
-  const counts = useMemo(() => getStatusCounts(mergedEnvVars), [mergedEnvVars]);
 
   const handleAddEnvVar = () => {
     onAddEnvVar(containerName);
@@ -224,8 +224,19 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
 
   return (
     <Box>
-      {/* Status summary bar */}
-      <StatusSummaryBar counts={counts} />
+      {/* Environment-specific section */}
+      {grouped.new.length > 0 && (
+        <GroupedSection
+          title={environmentName ? `${environmentName} Specific` : undefined}
+          count={grouped.new.length}
+          status="new"
+          defaultExpanded
+        >
+          {grouped.new.map((item, index) =>
+            renderEditableRow(item as EnvVarWithStatus, index),
+          )}
+        </GroupedSection>
+      )}
 
       {/* Overrides section */}
       {grouped.overridden.length > 0 && (
@@ -241,24 +252,10 @@ export const OverrideEnvVarList: FC<OverrideEnvVarListProps> = ({
         </GroupedSection>
       )}
 
-      {/* New section */}
-      {grouped.new.length > 0 && (
-        <GroupedSection
-          title="New"
-          count={grouped.new.length}
-          status="new"
-          defaultExpanded
-        >
-          {grouped.new.map((item, index) =>
-            renderEditableRow(item as EnvVarWithStatus, index),
-          )}
-        </GroupedSection>
-      )}
-
-      {/* Inherited section */}
+      {/* From Workload Config section */}
       {grouped.inherited.length > 0 && (
         <GroupedSection
-          title="Inherited"
+          title="From Workload Config"
           count={grouped.inherited.length}
           status="inherited"
           defaultExpanded
