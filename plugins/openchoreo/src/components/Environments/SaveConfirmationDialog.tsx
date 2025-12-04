@@ -1,15 +1,17 @@
-import type { FC } from 'react';
+import { useMemo, type FC } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-  Box,
   Typography,
 } from '@material-ui/core';
-import { GroupedChanges, Change } from './hooks/useOverrideChanges';
-import { formatValue } from './utils/overrideUtils';
+import {
+  ChangesList,
+  type ChangesSection,
+} from '@openchoreo/backstage-plugin-react';
+import { GroupedChanges } from './hooks/useOverrideChanges';
 
 interface SaveConfirmationDialogProps {
   open: boolean;
@@ -36,38 +38,36 @@ export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
     ) +
     (changes.workload?.length || 0);
 
-  const renderChangesList = (changesList: Change[]) => (
-    <>
-      {changesList.map((change, index) => (
-        <Box
-          key={index}
-          mb={index < changesList.length - 1 ? 1 : 0}
-          style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
-        >
-          {change.type === 'new' && (
-            <Typography style={{ color: '#2e7d32' }}>
-              <strong>{change.path}:</strong>{' '}
-              <span style={{ color: '#666' }}>[New]</span>{' '}
-              {formatValue(change.newValue)}
-            </Typography>
-          )}
-          {change.type === 'modified' && (
-            <Typography style={{ color: '#ed6c02' }}>
-              <strong>{change.path}:</strong> {formatValue(change.oldValue)} →{' '}
-              {formatValue(change.newValue)}
-            </Typography>
-          )}
-          {change.type === 'removed' && (
-            <Typography style={{ color: '#d32f2f' }}>
-              <strong>{change.path}:</strong>{' '}
-              <span style={{ color: '#666' }}>[Removed]</span>{' '}
-              {formatValue(change.oldValue)}
-            </Typography>
-          )}
-        </Box>
-      ))}
-    </>
-  );
+  // Convert GroupedChanges to ChangesSection array for ChangesList component
+  const sections: ChangesSection[] = useMemo(() => {
+    const result: ChangesSection[] = [];
+
+    if (changes.component.length > 0) {
+      result.push({
+        title: 'Component Overrides',
+        changes: changes.component,
+      });
+    }
+
+    // Add each trait as a separate section
+    Object.entries(changes.traits).forEach(([traitName, traitChanges]) => {
+      if (traitChanges.length > 0) {
+        result.push({
+          title: `Trait: ${traitName}`,
+          changes: traitChanges,
+        });
+      }
+    });
+
+    if (changes.workload && changes.workload.length > 0) {
+      result.push({
+        title: 'Workload Overrides',
+        changes: changes.workload,
+      });
+    }
+
+    return result;
+  }, [changes]);
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
@@ -77,88 +77,13 @@ export const SaveConfirmationDialog: FC<SaveConfirmationDialogProps> = ({
       </DialogTitle>
 
       <DialogContent dividers>
-        <Box
-          mt={2}
-          mb={2}
-          p={2}
-          style={{
-            backgroundColor: '#f5f5f5',
-            borderRadius: '4px',
-            maxHeight: '300px',
-            overflow: 'auto',
-          }}
+        <ChangesList sections={sections} emptyMessage="No changes to save" />
+
+        <Typography
+          variant="body2"
+          color="textSecondary"
+          style={{ marginTop: 16 }}
         >
-          {/* Component Overrides */}
-          {changes.component.length > 0 && (
-            <Box mb={2}>
-              <Typography
-                variant="subtitle2"
-                style={{ fontWeight: 'bold', marginBottom: 8 }}
-              >
-                Component Overrides ({changes.component.length}{' '}
-                {changes.component.length === 1 ? 'change' : 'changes'}):
-              </Typography>
-              {renderChangesList(changes.component)}
-            </Box>
-          )}
-
-          {/* Trait Overrides */}
-          {Object.keys(changes.traits).length > 0 && (
-            <Box mb={2}>
-              <Typography
-                variant="subtitle2"
-                style={{ fontWeight: 'bold', marginBottom: 8 }}
-              >
-                Trait Overrides:
-              </Typography>
-              {Object.entries(changes.traits).map(
-                ([traitName, traitChanges]) => (
-                  <Box key={traitName} mb={1.5} ml={2}>
-                    <Typography
-                      variant="caption"
-                      style={{
-                        fontWeight: 'bold',
-                        display: 'block',
-                        marginBottom: 4,
-                      }}
-                    >
-                      {traitName} ({traitChanges.length}{' '}
-                      {traitChanges.length === 1 ? 'change' : 'changes'}):
-                    </Typography>
-                    <Box ml={2}>{renderChangesList(traitChanges)}</Box>
-                  </Box>
-                ),
-              )}
-            </Box>
-          )}
-
-          {/* Workload Overrides */}
-          {(changes as any).workload &&
-            (changes as any).workload.length > 0 && (
-              <Box mb={2}>
-                <Typography
-                  variant="subtitle2"
-                  style={{ fontWeight: 'bold', marginBottom: 8 }}
-                >
-                  Workload Overrides ({(changes as any).workload.length}{' '}
-                  {(changes as any).workload.length === 1
-                    ? 'change'
-                    : 'changes'}
-                  ):
-                </Typography>
-                {renderChangesList((changes as any).workload)}
-              </Box>
-            )}
-
-          {/* No changes */}
-          {totalChanges === 0 && (
-            <Typography variant="body2" color="textSecondary">
-              No changes to save
-            </Typography>
-          )}
-        </Box>
-
-        <Typography variant="body2" color="textSecondary">
           This will trigger a redeployment of the{' '}
           <strong>{environmentName}</strong> environment.
         </Typography>

@@ -1,14 +1,22 @@
-import { ReactNode, FC, createContext, useContext } from 'react';
+import { ReactNode, FC, createContext, useContext, useMemo } from 'react';
 import {
   ModelsBuild,
   ModelsWorkload,
 } from '@openchoreo/backstage-plugin-common';
+import {
+  useWorkloadChanges,
+  type WorkloadChanges,
+} from './hooks/useWorkloadChanges';
 
 interface WorkloadContextType {
   builds: ModelsBuild[];
   workloadSpec: ModelsWorkload | null;
   setWorkloadSpec: (spec: ModelsWorkload | null) => void;
   isDeploying: boolean;
+  /** Initial workload data for change comparison */
+  initialWorkload: ModelsWorkload | null;
+  /** Detected changes between initial and current workload */
+  changes: WorkloadChanges;
 }
 
 const WorkloadContext = createContext<WorkloadContextType | undefined>(
@@ -21,11 +29,40 @@ export const WorkloadProvider: FC<{
   setWorkloadSpec: (spec: ModelsWorkload | null) => void;
   children: ReactNode;
   isDeploying: boolean;
-}> = ({ builds, workloadSpec, setWorkloadSpec, children, isDeploying }) => {
+  /** Initial workload data for change comparison */
+  initialWorkload?: ModelsWorkload | null;
+}> = ({
+  builds,
+  workloadSpec,
+  setWorkloadSpec,
+  children,
+  isDeploying,
+  initialWorkload = null,
+}) => {
+  // Calculate changes between initial and current workload
+  const changes = useWorkloadChanges(initialWorkload, workloadSpec);
+
+  const value = useMemo(
+    () => ({
+      builds,
+      workloadSpec,
+      setWorkloadSpec,
+      isDeploying,
+      initialWorkload,
+      changes,
+    }),
+    [
+      builds,
+      workloadSpec,
+      setWorkloadSpec,
+      isDeploying,
+      initialWorkload,
+      changes,
+    ],
+  );
+
   return (
-    <WorkloadContext.Provider
-      value={{ builds, workloadSpec, setWorkloadSpec, isDeploying }}
-    >
+    <WorkloadContext.Provider value={value}>
       {children}
     </WorkloadContext.Provider>
   );
@@ -50,4 +87,12 @@ export const useIsDeploying = () => {
 export const useBuilds = () => {
   const { builds } = useWorkloadContext();
   return { builds };
+};
+
+/**
+ * Hook to get workload changes from context
+ */
+export const useWorkloadChangesContext = (): WorkloadChanges => {
+  const { changes } = useWorkloadContext();
+  return changes;
 };

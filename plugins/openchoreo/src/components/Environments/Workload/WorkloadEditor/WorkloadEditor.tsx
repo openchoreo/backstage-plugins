@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   ModelsWorkload,
@@ -23,6 +23,7 @@ import {
 import ViewModuleIcon from '@material-ui/icons/ViewModule';
 import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 import LinkIcon from '@material-ui/icons/Link';
+import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
 
 interface WorkloadEditorProps {
   entity: Entity;
@@ -35,9 +36,23 @@ const useStyles = makeStyles(() => ({
   },
 }));
 
+/**
+ * Get tab status based on changes and data presence
+ */
+function getTabStatus(
+  changes: WorkloadChanges,
+  section: 'containers' | 'endpoints' | 'connections',
+  hasData: boolean,
+): TabItemData['status'] {
+  const sectionChanges = changes[section];
+  if (sectionChanges.length > 0) return 'info'; // Has modifications
+  if (hasData) return 'success'; // Has data but no changes
+  return undefined; // No data
+}
+
 export function WorkloadEditor({ entity }: WorkloadEditorProps) {
   const classes = useStyles();
-  const { workloadSpec, setWorkloadSpec, isDeploying, builds } =
+  const { workloadSpec, setWorkloadSpec, isDeploying, builds, changes } =
     useWorkloadContext();
   const { secretReferences } = useSecretReferences();
 
@@ -326,26 +341,33 @@ export function WorkloadEditor({ entity }: WorkloadEditorProps) {
   const endpointCount = Object.keys(formData.endpoints || {}).length;
   const connectionCount = Object.keys(formData.connections || {}).length;
 
-  const tabs: TabItemData[] = [
-    {
-      id: 'containers',
-      label: 'Containers',
-      icon: <ViewModuleIcon />,
-      count: containerCount,
-    },
-    {
-      id: 'endpoints',
-      label: 'Endpoints',
-      icon: <SettingsInputComponentIcon />,
-      count: endpointCount,
-    },
-    {
-      id: 'connections',
-      label: 'Connections',
-      icon: <LinkIcon />,
-      count: connectionCount,
-    },
-  ];
+  // Memoize tabs with status based on changes
+  const tabs: TabItemData[] = useMemo(
+    () => [
+      {
+        id: 'containers',
+        label: 'Containers',
+        icon: <ViewModuleIcon />,
+        count: containerCount,
+        status: getTabStatus(changes, 'containers', containerCount > 0),
+      },
+      {
+        id: 'endpoints',
+        label: 'Endpoints',
+        icon: <SettingsInputComponentIcon />,
+        count: endpointCount,
+        status: getTabStatus(changes, 'endpoints', endpointCount > 0),
+      },
+      {
+        id: 'connections',
+        label: 'Connections',
+        icon: <LinkIcon />,
+        count: connectionCount,
+        status: getTabStatus(changes, 'connections', connectionCount > 0),
+      },
+    ],
+    [containerCount, endpointCount, connectionCount, changes],
+  );
 
   return (
     <VerticalTabNav

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { JSONSchema7 } from 'json-schema';
 import { Entity } from '@backstage/catalog-model';
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
@@ -9,6 +9,18 @@ import {
 import { fetchWorkloadInfo } from '../../../api/workloadInfo';
 import { getSchemaDefaults } from '../overridesUtils';
 import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
+
+/**
+ * Tracks whether form sections have been initialized by RJSF.
+ * RJSF triggers onChange on initial render with normalized data,
+ * which can differ from our schema defaults. We capture the first
+ * onChange as the "true" initial state to avoid false change detection.
+ */
+interface FormInitFlags {
+  component: boolean;
+  traits: Record<string, boolean>;
+  workload: boolean;
+}
 
 interface ReleaseBinding {
   name: string;
@@ -134,6 +146,14 @@ export function useOverridesData(
     Record<string, boolean>
   >({ component: true, workload: false });
 
+  // Track form initialization to handle RJSF's first onChange event.
+  // RJSF normalizes data on initial render, so we capture that as the true initial state.
+  const formInitFlags = useRef<FormInitFlags>({
+    component: false,
+    traits: {},
+    workload: false,
+  });
+
   // Helper function to create empty containers structure from workload info
   const createContainersFromWorkload = (workloadInfo: any) => {
     if (workloadInfo?.containers) {
@@ -157,6 +177,13 @@ export function useOverridesData(
 
     setLoading(true);
     setError(null);
+
+    // Reset form initialization flags on reload
+    formInitFlags.current = {
+      component: false,
+      traits: {},
+      workload: false,
+    };
 
     try {
       // Fetch schema for the release
@@ -328,6 +355,42 @@ export function useOverridesData(
     }
   }, [isOpen, environmentName, loadSchemaAndBinding]);
 
+  /**
+   * Wrapper setter for component form data that handles RJSF initialization.
+   * On the first call (from RJSF's initial render), captures the normalized
+   * data as both initial and current state to prevent false change detection.
+   */
+  const handleSetComponentTypeFormData = useCallback(
+    (data: Record<string, unknown>) => {
+      // Only capture initial state if backend had no actual overrides
+      // and this is the first onChange (RJSF initialization)
+      if (!hasActualComponentOverrides && !formInitFlags.current.component) {
+        formInitFlags.current.component = true;
+        setInitialComponentTypeFormData(data);
+        setComponentTypeFormData(data);
+      } else {
+        setComponentTypeFormData(data);
+      }
+    },
+    [hasActualComponentOverrides],
+  );
+
+  /**
+   * Wrapper setter for workload form data that handles RJSF initialization.
+   */
+  const handleSetWorkloadFormData = useCallback(
+    (data: any) => {
+      if (!hasActualWorkloadOverrides && !formInitFlags.current.workload) {
+        formInitFlags.current.workload = true;
+        setInitialWorkloadFormData(data);
+        setWorkloadFormData(data);
+      } else {
+        setWorkloadFormData(data);
+      }
+    },
+    [hasActualWorkloadOverrides],
+  );
+
   return {
     loading,
     error,
@@ -348,10 +411,10 @@ export function useOverridesData(
       baseWorkloadData,
     },
     expandedSections,
-    setComponentTypeFormData,
+    setComponentTypeFormData: handleSetComponentTypeFormData,
     setTraitFormDataMap,
     setExpandedSections,
-    setWorkloadFormData,
+    setWorkloadFormData: handleSetWorkloadFormData,
     reload: loadSchemaAndBinding,
   };
 }
