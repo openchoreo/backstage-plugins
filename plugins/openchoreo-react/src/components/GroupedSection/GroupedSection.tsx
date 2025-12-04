@@ -7,8 +7,8 @@ import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 export type GroupedSectionStatus = 'overridden' | 'new' | 'inherited';
 
 export interface GroupedSectionProps {
-  /** Section title */
-  title: string;
+  /** Section title (falls back to default based on status if not provided) */
+  title?: string;
   /** Number of items in section */
   count: number;
   /** Status type for color accent */
@@ -21,7 +21,7 @@ export interface GroupedSectionProps {
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
-    marginBottom: theme.spacing(2),
+    marginBottom: theme.spacing(1.5),
   },
   header: {
     display: 'flex',
@@ -34,27 +34,27 @@ const useStyles = makeStyles((theme: Theme) => ({
     },
   },
   accentBar: {
-    width: 3,
-    height: 20,
-    borderRadius: 2,
+    width: 2,
+    height: 14,
+    borderRadius: 1,
   },
   overriddenAccent: {
     backgroundColor: theme.palette.info.main,
   },
   newAccent: {
-    backgroundColor: theme.palette.success.main,
+    backgroundColor: theme.palette.grey[500],
   },
   inheritedAccent: {
     backgroundColor: theme.palette.grey[400],
   },
   title: {
-    fontSize: '0.875rem',
-    fontWeight: 600,
-    color: theme.palette.text.primary,
+    fontSize: '0.75rem',
+    fontWeight: 500,
+    color: theme.palette.text.secondary,
   },
   countChip: {
-    height: 20,
-    fontSize: '0.7rem',
+    height: 16,
+    fontSize: '0.65rem',
     fontWeight: 500,
   },
   overriddenChip: {
@@ -62,8 +62,8 @@ const useStyles = makeStyles((theme: Theme) => ({
     color: theme.palette.info.contrastText,
   },
   newChip: {
-    backgroundColor: theme.palette.success.light,
-    color: theme.palette.success.contrastText,
+    backgroundColor: theme.palette.grey[200],
+    color: theme.palette.text.primary,
   },
   inheritedChip: {
     backgroundColor: theme.palette.grey[300],
@@ -74,8 +74,8 @@ const useStyles = makeStyles((theme: Theme) => ({
     marginLeft: 'auto',
   },
   expandIcon: {
-    fontSize: '1.2rem',
-    color: theme.palette.text.secondary,
+    fontSize: '1rem',
+    color: theme.palette.text.disabled,
   },
   content: {
     paddingLeft: theme.spacing(1.5),
@@ -85,8 +85,8 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 const statusTitles: Record<GroupedSectionStatus, string> = {
   overridden: 'Overrides',
-  new: 'New',
-  inherited: 'Inherited',
+  new: 'Environment Specific',
+  inherited: 'From Workload Config',
 };
 
 /**

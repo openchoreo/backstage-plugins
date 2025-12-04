@@ -5,7 +5,6 @@ import AddIcon from '@material-ui/icons/Add';
 import type { FileVar } from '@openchoreo/backstage-plugin-common';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import { FileVarEditor } from '../FileVarEditor';
-import { StatusSummaryBar } from '../StatusSummaryBar';
 import { GroupedSection } from '../GroupedSection';
 import type { UseModeStateResult } from '../../hooks/useModeState';
 import type { UseFileVarEditBufferResult } from '../../hooks/useFileVarEditBuffer';
@@ -13,7 +12,7 @@ import {
   mergeFileVarsWithStatus,
   type FileVarWithStatus,
 } from '../../utils/fileVarUtils';
-import { groupByStatus, getStatusCounts } from '../../utils/overrideGroupUtils';
+import { groupByStatus } from '../../utils/overrideGroupUtils';
 
 const useStyles = makeStyles(theme => ({
   fileVarRowWrapper: {
@@ -37,6 +36,8 @@ export interface OverrideFileVarListProps {
   fileVars: FileVar[];
   /** Base workload file mounts (for comparison) */
   baseFileVars: FileVar[];
+  /** Environment name for display in section titles */
+  environmentName?: string;
   /** Available secrets for reference selection */
   secretOptions: SecretOption[];
   /** Plain/secret mode state manager */
@@ -75,6 +76,7 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
   containerName,
   fileVars,
   baseFileVars,
+  environmentName,
   secretOptions,
   fileModes,
   disabled,
@@ -93,14 +95,9 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
     [baseFileVars, fileVars],
   );
 
-  // Group items by status and get counts
+  // Group items by status
   const grouped = useMemo(
     () => groupByStatus(mergedFileVars),
-    [mergedFileVars],
-  );
-
-  const counts = useMemo(
-    () => getStatusCounts(mergedFileVars),
     [mergedFileVars],
   );
 
@@ -232,8 +229,19 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
 
   return (
     <Box>
-      {/* Status summary bar */}
-      <StatusSummaryBar counts={counts} />
+      {/* Environment-specific section */}
+      {grouped.new.length > 0 && (
+        <GroupedSection
+          title={environmentName ? `${environmentName} Specific` : undefined}
+          count={grouped.new.length}
+          status="new"
+          defaultExpanded
+        >
+          {grouped.new.map((item, index) =>
+            renderEditableRow(item as FileVarWithStatus, index),
+          )}
+        </GroupedSection>
+      )}
 
       {/* Overrides section */}
       {grouped.overridden.length > 0 && (
@@ -249,24 +257,10 @@ export const OverrideFileVarList: FC<OverrideFileVarListProps> = ({
         </GroupedSection>
       )}
 
-      {/* New section */}
-      {grouped.new.length > 0 && (
-        <GroupedSection
-          title="New"
-          count={grouped.new.length}
-          status="new"
-          defaultExpanded
-        >
-          {grouped.new.map((item, index) =>
-            renderEditableRow(item as FileVarWithStatus, index),
-          )}
-        </GroupedSection>
-      )}
-
-      {/* Inherited section */}
+      {/* From Workload Config section */}
       {grouped.inherited.length > 0 && (
         <GroupedSection
-          title="Inherited"
+          title="From Workload Config"
           count={grouped.inherited.length}
           status="inherited"
           defaultExpanded

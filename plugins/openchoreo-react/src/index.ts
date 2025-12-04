@@ -49,10 +49,6 @@ export {
   type FileVarStatusBadgeProps,
 } from './components/FileVarStatusBadge';
 export {
-  StatusSummaryBar,
-  type StatusSummaryBarProps,
-} from './components/StatusSummaryBar';
-export {
   GroupedSection,
   type GroupedSectionProps,
   type GroupedSectionStatus,
@@ -113,7 +109,6 @@ export {
 } from './utils/fileVarUtils';
 export {
   groupByStatus,
-  getStatusCounts,
   hasAnyItems,
   getTotalCount,
   type StatusCounts,

@@ -854,6 +854,7 @@ export const EnvironmentOverridesPage = ({
               showEnvVarStatus
               onStartOverride={handleStartOverride}
               onStartFileOverride={handleStartFileOverride}
+              environmentName={environment.name}
             />
           }
         />

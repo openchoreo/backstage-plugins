@@ -105,6 +105,8 @@ export interface ContainerContentProps {
     fileIndex: number,
     fileVar: FileVar,
   ) => void;
+  /** Environment name for display in override section titles */
+  environmentName?: string;
 }
 
 const useStyles = makeStyles(theme => ({
@@ -151,6 +153,7 @@ export function ContainerContent({
   onStartFileOverride,
   onEnvVarReplace,
   onFileVarReplace,
+  environmentName,
 }: ContainerContentProps) {
   const classes = useStyles();
 
@@ -348,6 +351,7 @@ export function ContainerContent({
                     baseWorkloadData,
                     containerName,
                   )}
+                  environmentName={environmentName}
                   secretOptions={secretOptions}
                   envModes={envModes}
                   disabled={disabled}
@@ -391,6 +395,7 @@ export function ContainerContent({
                     baseWorkloadData,
                     containerName,
                   )}
+                  environmentName={environmentName}
                   secretOptions={secretOptions}
                   fileModes={fileModes}
                   disabled={disabled}
