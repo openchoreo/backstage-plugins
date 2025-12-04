@@ -18,6 +18,9 @@ import { WorkloadProvider } from './WorkloadContext';
 import { WorkloadEditor } from './WorkloadEditor';
 import { DetailPageLayout } from '../components/DetailPageLayout';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
+import { useWorkloadChanges } from './hooks/useWorkloadChanges';
+import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
+import { UnsavedChangesDialog } from '../UnsavedChangesDialog';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -57,10 +60,19 @@ export const WorkloadConfigPage = ({
   const { entity } = useEntity();
 
   const [workloadSpec, setWorkloadSpec] = useState<ModelsWorkload | null>(null);
+  const [initialWorkload, setInitialWorkload] = useState<ModelsWorkload | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
+    useState(false);
+
+  // Calculate changes between initial and current workload
+  const changes = useWorkloadChanges(initialWorkload, workloadSpec);
 
   // Fetch workload info
   useEffect(() => {
@@ -69,6 +81,10 @@ export const WorkloadConfigPage = ({
         setIsLoading(true);
         const response = await fetchWorkloadInfo(entity, discovery, identity);
         setWorkloadSpec(response);
+        // Store a deep copy as initial state for change comparison
+        setInitialWorkload(
+          response ? JSON.parse(JSON.stringify(response)) : null,
+        );
       } catch (e) {
         setError('Failed to fetch workload info');
       }
@@ -77,6 +93,7 @@ export const WorkloadConfigPage = ({
     fetchWorkload();
     return () => {
       setWorkloadSpec(null);
+      setInitialWorkload(null);
       setError(null);
     };
   }, [entity, discovery, identity]);
@@ -167,12 +184,43 @@ export const WorkloadConfigPage = ({
     return 'Configure your workload to enable deployment.';
   };
 
-  // Header actions - Next button
+  // Handle button click - show confirmation dialog if there are changes
+  const handleButtonClick = () => {
+    if (changes.hasChanges) {
+      setShowConfirmDialog(true);
+    } else {
+      handleNext();
+    }
+  };
+
+  // Handle confirmation dialog confirm
+  const handleConfirmSave = () => {
+    setShowConfirmDialog(false);
+    handleNext();
+  };
+
+  // Handle back button click - show warning if there are unsaved changes
+  const handleBackClick = () => {
+    if (changes.hasChanges) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      onBack();
+    }
+  };
+
+  // Determine button text based on changes
+  const getButtonText = () => {
+    if (isProcessing) return 'Processing...';
+    if (changes.hasChanges) return 'Save & Next';
+    return 'Next';
+  };
+
+  // Header actions - Next/Save & Next button
   const headerActions = !isLoading ? (
     <Button
       variant="contained"
       color="primary"
-      onClick={handleNext}
+      onClick={handleButtonClick}
       disabled={isProcessing || isLoading || !enableNext}
       startIcon={
         isProcessing ? (
@@ -180,7 +228,7 @@ export const WorkloadConfigPage = ({
         ) : undefined
       }
     >
-      {isProcessing ? 'Processing...' : 'Next'}
+      {getButtonText()}
     </Button>
   ) : null;
 
@@ -188,7 +236,7 @@ export const WorkloadConfigPage = ({
     <DetailPageLayout
       title="Configure Workload"
       subtitle="Configure containers, endpoints, and connections for deployment"
-      onBack={onBack}
+      onBack={handleBackClick}
       actions={headerActions}
     >
       {isLoading && (
@@ -219,10 +267,29 @@ export const WorkloadConfigPage = ({
           workloadSpec={workloadSpec}
           setWorkloadSpec={setWorkloadSpec}
           isDeploying={isProcessing || isLoading}
+          initialWorkload={initialWorkload}
         >
           <WorkloadEditor entity={entity} />
         </WorkloadProvider>
       )}
+
+      <WorkloadSaveConfirmationDialog
+        open={showConfirmDialog}
+        onCancel={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmSave}
+        changes={changes}
+        saving={isProcessing}
+      />
+
+      <UnsavedChangesDialog
+        open={showUnsavedChangesDialog}
+        onDiscard={() => {
+          setShowUnsavedChangesDialog(false);
+          onBack();
+        }}
+        onStay={() => setShowUnsavedChangesDialog(false)}
+        changeCount={changes.total}
+      />
     </DetailPageLayout>
   );
 };

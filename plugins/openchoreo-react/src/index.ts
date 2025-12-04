@@ -89,9 +89,29 @@ export {
   type UseFileVarEditBufferOptions,
   type UseFileVarEditBufferResult,
 } from './hooks/useFileVarEditBuffer';
+export {
+  useChangeDetection,
+  type UseChangeDetectionResult,
+} from './hooks/useChangeDetection';
+
+// Change Detection Components
+export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';
+export {
+  ChangesList,
+  type ChangesListProps,
+  type ChangesSection,
+} from './components/ChangesList';
 
 // Utilities
 export { formatRelativeTime } from './utils/timeUtils';
+export {
+  deepCompareObjects,
+  formatChangeValue,
+  getChangeStats,
+  type Change,
+  type ChangeStats,
+  type FormatValueOptions,
+} from './utils/changeDetection';
 export {
   mergeEnvVarsWithStatus,
   getBaseEnvVarsForContainer,
