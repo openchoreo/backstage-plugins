@@ -33,12 +33,13 @@ import {
   VerticalTabNav,
   TabItemData,
 } from '@openchoreo/backstage-design-system';
+import {
+  UnsavedChangesDialog,
+  useChangeDetection,
+} from '@openchoreo/backstage-plugin-react';
 import { DetailPageLayout } from '../Environments/components/DetailPageLayout';
 import { ChangesPreview } from './EditWorkflowConfigs/ChangesPreview';
-import {
-  addTitlesToSchema,
-  calculateChanges,
-} from './EditWorkflowConfigs/utils';
+import { addTitlesToSchema } from './EditWorkflowConfigs/utils';
 
 const useStyles = makeStyles(theme => ({
   tabNav: {
@@ -93,6 +94,8 @@ export const WorkflowConfigPage = ({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
+    useState(false);
   const [error, setError] = useState<string | null>(null);
   const [schema, setSchema] = useState<JSONSchema7 | null>(null);
   const [formData, setFormData] = useState<any>({});
@@ -225,7 +228,11 @@ export const WorkflowConfigPage = ({
     };
   }, [schema, activeTab]);
 
-  const getChanges = () => calculateChanges(initialFormData, formData);
+  // Use shared change detection hook
+  const { changes, hasChanges, changeCount } = useChangeDetection(
+    initialFormData,
+    formData,
+  );
 
   const handleSaveClick = () => {
     if (schema) {
@@ -238,13 +245,21 @@ export const WorkflowConfigPage = ({
       }
     }
 
-    const changes = getChanges();
-    if (changes.length === 0) {
+    if (!hasChanges) {
       setError('No changes to save');
       setTimeout(() => setError(null), 3000);
       return;
     }
     setShowSaveConfirm(true);
+  };
+
+  // Handle back button click - show warning if there are unsaved changes
+  const handleBackClick = () => {
+    if (hasChanges) {
+      setShowUnsavedChangesDialog(true);
+    } else {
+      onBack();
+    }
   };
 
   const handleCancelSave = () => {
@@ -287,7 +302,6 @@ export const WorkflowConfigPage = ({
   };
 
   const hasValidationErrors = formErrors.length > 0;
-  const hasChanges = getChanges().length > 0;
 
   const headerActions = (
     <Button
@@ -334,7 +348,7 @@ export const WorkflowConfigPage = ({
       <DetailPageLayout
         title="Configure Workflow"
         subtitle={workflowName}
-        onBack={onBack}
+        onBack={handleBackClick}
         actions={headerActions}
       >
         {loading && (
@@ -383,7 +397,7 @@ export const WorkflowConfigPage = ({
       >
         <DialogTitle>Confirm Changes</DialogTitle>
         <DialogContent>
-          <ChangesPreview changes={getChanges()} />
+          <ChangesPreview changes={changes} />
           {error && (
             <Box mt={2} p={2} bgcolor="error.light" borderRadius={1}>
               <Typography color="error" variant="body2">
@@ -406,6 +420,16 @@ export const WorkflowConfigPage = ({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <UnsavedChangesDialog
+        open={showUnsavedChangesDialog}
+        onDiscard={() => {
+          setShowUnsavedChangesDialog(false);
+          onBack();
+        }}
+        onStay={() => setShowUnsavedChangesDialog(false)}
+        changeCount={changeCount}
+      />
     </>
   );
 };

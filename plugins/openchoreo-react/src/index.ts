@@ -53,6 +53,10 @@ export {
   type GroupedSectionProps,
   type GroupedSectionStatus,
 } from './components/GroupedSection';
+export {
+  UnsavedChangesDialog,
+  type UnsavedChangesDialogProps,
+} from './components/UnsavedChangesDialog';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';

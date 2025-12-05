@@ -1,2 +1,2 @@
-export { ChangesPreview, type Change } from './ChangesPreview';
-export { addTitlesToSchema, calculateChanges } from './utils';
+export { ChangesPreview } from './ChangesPreview';
+export { addTitlesToSchema } from './utils';

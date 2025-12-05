@@ -14,7 +14,7 @@ import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-import { UnsavedChangesDialog } from './UnsavedChangesDialog';
+import { UnsavedChangesDialog } from '@openchoreo/backstage-plugin-react';
 import {
   calculateHasOverrides,
   getMissingRequiredFields,

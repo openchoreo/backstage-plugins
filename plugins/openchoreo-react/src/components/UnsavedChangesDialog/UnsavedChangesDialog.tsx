@@ -8,7 +8,7 @@ import {
   Typography,
 } from '@material-ui/core';
 
-interface UnsavedChangesDialogProps {
+export interface UnsavedChangesDialogProps {
   open: boolean;
   onDiscard: () => void;
   onStay: () => void;

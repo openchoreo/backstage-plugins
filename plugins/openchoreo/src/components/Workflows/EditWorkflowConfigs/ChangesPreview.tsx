@@ -1,12 +1,6 @@
 import { Box, Typography } from '@material-ui/core';
+import { Change } from '@openchoreo/backstage-plugin-react';
 import { useEditWorkflowStyles } from './styles';
-
-export interface Change {
-  path: string;
-  type: 'new' | 'modified' | 'removed';
-  oldValue?: any;
-  newValue?: any;
-}
 
 interface ChangesPreviewProps {
   changes: Change[];
