@@ -40,3 +40,14 @@ export const ObservabilityMetrics = openchoreoObservabilityPlugin.provide(
     mountPoint: rootRouteRef,
   }),
 );
+
+export const ObservabilityTraces = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityTraces',
+    component: () =>
+      import('./components/Traces/ObservabilityTracesPage').then(
+        m => m.ObservabilityTracesPage,
+      ),
+    mountPoint: rootRouteRef,
+  }),
+);

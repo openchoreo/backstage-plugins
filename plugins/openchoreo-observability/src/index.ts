@@ -1,1 +1,1 @@
-export { ObservabilityMetrics } from './plugin';
+export { ObservabilityMetrics, ObservabilityTraces } from './plugin';

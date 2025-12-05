@@ -70,7 +70,10 @@ import {
   ProjectComponentsCard,
 } from '@openchoreo/backstage-plugin';
 
-import { ObservabilityMetrics } from '@openchoreo/backstage-plugin-openchoreo-observability';
+import {
+  ObservabilityMetrics,
+  ObservabilityTraces,
+} from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -459,6 +462,9 @@ const systemPage = (
         ]}
         unidirectional={false}
       />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/traces" title="Traces">
+      <ObservabilityTraces />
     </EntityLayout.Route>
   </EntityLayout>
 );
