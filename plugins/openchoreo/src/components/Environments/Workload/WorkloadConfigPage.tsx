@@ -20,7 +20,7 @@ import { DetailPageLayout } from '../components/DetailPageLayout';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
-import { UnsavedChangesDialog } from '../UnsavedChangesDialog';
+import { UnsavedChangesDialog } from '@openchoreo/backstage-plugin-react';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
