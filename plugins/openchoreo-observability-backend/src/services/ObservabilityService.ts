@@ -9,7 +9,7 @@ import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
-import { ComponentMetricsTimeSeries, Environment } from '../types';
+import { Component, ComponentMetricsTimeSeries, Environment } from '../types';
 
 /**
  * Error thrown when observability is not configured for a component
@@ -280,6 +280,249 @@ export class ObservabilityService {
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error fetching metrics for component ${componentId} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches traces for a specific project.
+   * This method dynamically resolves the observability URL from the main API,
+   * then fetches traces from the observability service.
+   *
+   * @param projectId - The ID of the project
+   * @param environmentId - The ID of the environment
+   * @param orgName - The organization name
+   * @param projectName - The project name
+   * @param environmentName - The name of the environment
+   * @param componentUids - Array of component UIDs to filter traces (optional)
+   * @param options - Optional parameters for filtering traces
+   * @param options.limit - The maximum number of traces to return
+   * @param options.startTime - The start time of the traces
+   * @param options.endTime - The end time of the traces
+   * @param options.traceId - Trace ID to filter by (optional, supports wildcards)
+   * @param options.sortOrder - Sort order for traces (asc/desc)
+   * @returns Promise with traces data
+   */
+  async fetchTracesByProject(
+    projectId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    environmentName: string,
+    componentUids: string[],
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      traceId?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    traces: Array<{
+      traceId: string;
+      spans: Array<{
+        spanId: string;
+        name: string;
+        durationNanoseconds: number;
+        startTime: string;
+        endTime: string;
+        parentSpanId?: string;
+      }>;
+    }>;
+    tookMs: number;
+  }> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching traces for project ${projectName} in environment ${
+          environmentName || 'all'
+        }`,
+      );
+
+      let observerUrl: string | undefined;
+
+      if (environmentName) {
+        const mainClient = createOpenChoreoApiClient({
+          baseUrl: this.baseUrl,
+          token: this.token,
+          logger: this.logger,
+        });
+        // Get the list of components from the main API using the project
+        const {
+          data: componentsData,
+          error: componentsError,
+          response: componentsResponse,
+        } = await mainClient.GET(
+          '/orgs/{orgName}/projects/{projectName}/components',
+          {
+            params: { path: { orgName, projectName } },
+          },
+        );
+
+        if (componentsError || !componentsResponse.ok) {
+          throw new Error(
+            `Failed to get components: ${componentsResponse.status} ${componentsResponse.statusText}`,
+          );
+        }
+
+        if (!componentsData.success || !componentsData.data?.items) {
+          throw new Error(
+            `API returned unsuccessful response: ${JSON.stringify(
+              componentsData,
+            )}`,
+          );
+        }
+
+        const components = componentsData.data.items as Component[];
+
+        if (!components || components.length === 0) {
+          throw new Error(
+            `No components found in project ${projectName}. Cannot get observer URL.`,
+          );
+        }
+
+        const firstComponent = components[0];
+        if (!firstComponent.name) {
+          throw new Error(
+            `Component name not found for first component in project ${projectName}`,
+          );
+        }
+
+        this.logger.debug(
+          `Using component ${firstComponent.name} to get observer URL for project ${projectName}`,
+        );
+
+        // Get observer URL from the main API using a component
+        const {
+          data: urlData,
+          error: urlError,
+          response: urlResponse,
+        } = await mainClient.GET(
+          '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url' as any,
+          {
+            params: {
+              path: {
+                orgName,
+                projectName,
+                componentName: firstComponent.name,
+                environmentName,
+              },
+            },
+          },
+        );
+
+        if (urlError || !urlResponse.ok) {
+          throw new Error(
+            `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
+          );
+        }
+
+        if (!urlData.success || !urlData.data) {
+          throw new Error(
+            `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
+          );
+        }
+
+        observerUrl = urlData.data.observerUrl;
+        if (!observerUrl) {
+          throw new ObservabilityNotConfiguredError(projectName);
+        }
+
+        this.logger.debug(
+          `Resolved observer URL: ${observerUrl} for project ${projectName}, environment ${environmentName}`,
+        );
+      } else {
+        // If no environment is specified, we might need a different approach
+        // For now, throw an error as we need at least environment + component to get observer URL
+        throw new Error(
+          'Environment and components within the project are required to fetch traces',
+        );
+      }
+
+      // Use the observability client with the resolved URL
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        this.token,
+        this.logger,
+      );
+
+      this.logger.debug(
+        `Sending traces request to ${observerUrl}/api/traces for project ${projectId} with limit: ${
+          options?.limit || 100
+        }`,
+      );
+
+      if (!options?.startTime || !options?.endTime) {
+        throw new Error('startTime and endTime are required to fetch traces');
+      }
+
+      const requestBody = {
+        projectUid: projectId,
+        componentUids: componentUids.length > 0 ? componentUids : undefined,
+        environmentUid: environmentId,
+        traceId: options?.traceId,
+        startTime: options.startTime,
+        endTime: options.endTime,
+        limit: options?.limit || 100,
+        sortOrder: options?.sortOrder || 'desc',
+      };
+
+      this.logger.debug(
+        `Calling POST ${observerUrl}/api/traces with body: ${JSON.stringify(
+          requestBody,
+        )}`,
+      );
+
+      const { data, error, response } = await obsClient.POST('/api/traces', {
+        body: requestBody,
+      });
+
+      if (error || !response.ok) {
+        const errorMessage = error
+          ? JSON.stringify(error)
+          : `HTTP ${response.status} ${response.statusText}`;
+        const fullUrl = `${observerUrl}/api/traces`;
+        this.logger.error(
+          `Failed to fetch traces for project ${projectId} from ${fullUrl}: ${errorMessage}`,
+        );
+        throw new Error(
+          `Failed to fetch traces from ${fullUrl}: ${errorMessage}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully fetched traces for project ${projectId}: ${
+          data?.traces?.length || 0
+        } traces`,
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Traces fetch completed for project ${projectId} (${totalTime}ms)`,
+      );
+
+      return {
+        traces:
+          data?.traces?.map(trace => ({
+            traceId: trace.traceId!,
+            spans:
+              trace.spans?.map(span => ({
+                spanId: span.spanId!,
+                name: span.name!,
+                durationNanoseconds: span.durationNanoseconds!,
+                startTime: span.startTime!,
+                endTime: span.endTime!,
+                parentSpanId: span.parentSpanId ?? undefined,
+              })) || [],
+          })) || [],
+        tookMs: data?.tookMs || 0,
+      };
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching traces for project ${projectId} (${totalTime}ms):`,
         error as Error,
       );
       throw error;

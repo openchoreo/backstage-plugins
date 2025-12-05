@@ -142,15 +142,23 @@ export const useWaterfallStyles = makeStyles((theme: Theme) => ({
   },
   tooltipContent: {
     padding: theme.spacing(1),
+    minWidth: '280px',
+    maxWidth: '450px',
   },
   tooltipRow: {
     marginBottom: theme.spacing(0.5),
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: theme.spacing(1),
     '&:last-child': {
       marginBottom: 0,
     },
   },
   tooltipLabel: {
     fontWeight: 600,
-    marginRight: theme.spacing(1),
+    color: theme.palette.text.secondary,
+    fontSize: '0.75rem',
+    minWidth: '85px',
+    flexShrink: 0,
   },
 }));

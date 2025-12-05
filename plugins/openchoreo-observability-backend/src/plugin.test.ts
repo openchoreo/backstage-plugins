@@ -61,6 +61,10 @@ describe('plugin', () => {
               .fn()
               .mockResolvedValue(mockResourceMetricsTimeSeries),
             fetchEnvironmentsByOrganization: jest.fn().mockResolvedValue([]),
+            fetchTracesByProject: jest.fn().mockResolvedValue({
+              traces: [],
+              tookMs: 0,
+            }),
           }),
         }),
       ],
@@ -97,6 +101,9 @@ describe('plugin', () => {
             fetchEnvironmentsByOrganization: jest
               .fn()
               .mockRejectedValue(new Error('Failed to fetch environments')),
+            fetchTracesByProject: jest
+              .fn()
+              .mockRejectedValue(new Error('Failed to fetch traces')),
           }),
         }),
       ],
