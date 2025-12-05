@@ -82,3 +82,13 @@ export const RuntimeHealthCard = choreoPlugin.provide(
     },
   }),
 );
+
+export const DeploymentPipelineCard = choreoPlugin.provide(
+  createComponentExtension({
+    name: 'DeploymentPipelineCard',
+    component: {
+      lazy: () =>
+        import('./components/Projects/OverviewCards').then(m => m.DeploymentPipelineCard),
+    },
+  }),
+);

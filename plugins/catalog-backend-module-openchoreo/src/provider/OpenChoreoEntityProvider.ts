@@ -275,7 +275,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
               for (const component of components) {
                 // If the component is a Service, fetch complete details and create both component and API entities
-                if (component.type === 'Service') {
+                if (component.type === '') {
                   try {
                     const {
                       data: detailData,

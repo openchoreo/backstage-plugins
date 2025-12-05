@@ -356,6 +356,24 @@ export async function createRouter({
       ),
     );
   });
+
+  router.get('/deployment-pipeline', async (req, res) => {
+    const { projectName, organizationName } = req.query;
+
+    if (!projectName || !organizationName) {
+      throw new InputError(
+        'projectName and organizationName are required query parameters',
+      );
+    }
+
+    res.json(
+      await projectInfoService.fetchProjectDeploymentPipeline(
+        organizationName as string,
+        projectName as string,
+      ),
+    );
+  });
+
   router.get('/build-logs', async (req, res) => {
     const { componentName, buildId, buildUuid, projectName, orgName } =
       req.query;

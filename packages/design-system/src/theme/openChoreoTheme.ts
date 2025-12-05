@@ -4,7 +4,7 @@ import Ubuntu from '../assets/fonts/Ubuntu/UbuntuSans-VariableFont_wdth,wght.ttf
 // Color constants for reuse - Modern & Minimal palette
 const colors = {
   primary: {
-    light: '#a8b5ff',
+    light: '#f0f1fb',
     main: '#6c7fd8', // Softer, less saturated blue
     dark: '#5568c4',
   },
@@ -427,6 +427,9 @@ export const openChoreoTheme = createUnifiedTheme({
           fontWeight: 500,
           height: 'auto',
           padding: '4px 0',
+          marginRight: '8px', // Add spacing between chips
+          marginBottom: '4px', // Add spacing for wrapped chips
+          marginTop: '4px', // Add spacing for wrapped chips
         },
         colorPrimary: {
           backgroundColor: `${colors.primary.light}25`, // Translucent background

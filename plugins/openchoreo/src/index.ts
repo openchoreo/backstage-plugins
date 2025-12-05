@@ -8,6 +8,9 @@ export {
   WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,
+  DeploymentOverviewCard,
+  DeploymentPipelineCard,
 } from './plugin';
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
+export { ProjectComponentsCard } from './components/Projects/ProjectComponentsCard';

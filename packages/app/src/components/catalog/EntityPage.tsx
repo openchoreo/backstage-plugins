@@ -3,7 +3,6 @@ import {
   EntityApiDefinitionCard,
   EntityConsumedApisCard,
   EntityConsumingComponentsCard,
-  EntityHasApisCard,
   EntityProvidedApisCard,
   EntityProvidingComponentsCard,
 } from '@backstage/plugin-api-docs';
@@ -12,7 +11,6 @@ import {
   EntityDependsOnComponentsCard,
   EntityDependsOnResourcesCard,
   EntityHasComponentsCard,
-  EntityHasResourcesCard,
   EntityHasSystemsCard,
   EntityLayout,
   EntityLinksCard,
@@ -68,6 +66,8 @@ import {
   WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,
+  DeploymentPipelineCard,
+  ProjectComponentsCard,
 } from '@openchoreo/backstage-plugin';
 
 import { ObservabilityMetrics } from '@openchoreo/backstage-plugin-openchoreo-observability';
@@ -421,23 +421,20 @@ const systemPage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        <Grid item md={6}>
+        {/* Row 1: Has Components + Deployment Pipeline */}
+        <Grid item md={8} xs={12}>
+          <ProjectComponentsCard />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <DeploymentPipelineCard />
+        </Grid>
+
+        {/* Row 2: About + Catalog Relations */}
+        <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard variant="gridItem" height={400} />
-        </Grid>
-        <Grid item md={4} xs={12}>
-          <EntityLinksCard />
-        </Grid>
-        <Grid item md={8}>
-          <EntityHasComponentsCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityHasApisCard variant="gridItem" />
-        </Grid>
-        <Grid item md={6}>
-          <EntityHasResourcesCard variant="gridItem" />
         </Grid>
       </Grid>
     </EntityLayout.Route>
