@@ -124,7 +124,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/traces/component': {
+  '/api/traces': {
     parameters: {
       query?: never;
       header?: never;
@@ -134,10 +134,10 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get component traces
-     * @description Retrieve distributed traces for a component
+     * Get traces
+     * @description Retrieve distributed traces
      */
-    post: operations['getComponentTraces'];
+    post: operations['getTraces'];
     delete?: never;
     options?: never;
     head?: never;
@@ -380,24 +380,53 @@ export interface components {
         [key: string]: string;
       };
     };
-    ComponentTracesRequest: {
+    TracesRequest: {
+      /**
+       * Format: uuid
+       * @description Project UID (required)
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      projectUid: string;
+      /**
+       * @description Array of component UIDs to filter traces (optional)
+       * @example [
+       *       "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
+       *       "3f7b9e1a-4c6d-4e8f-a2b5-7d1c3e8f4a9b"
+       *     ]
+       */
+      componentUids?: string[];
+      /**
+       * Format: uuid
+       * @description Environment UID to filter traces (optional)
+       * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
+       */
+      environmentUid?: string;
+      /**
+       * @description Trace ID to filter by (optional). Supports wildcard characters:
+       *     - `*` matches zero or more characters
+       *     - `?` matches exactly one character
+       *
+       *     Examples:
+       *     - Exact match: `63d7c3065ab25375e6c5d6bb135a77db`
+       *     - Prefix match: `63d7c3065ab2537*`
+       *     - Suffix match: `*135a77db`
+       *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
+       *
+       * @example 63d7c3065ab25375*
+       */
+      traceId?: string;
       /**
        * Format: date-time
-       * @description Start time for trace query in RFC3339 format
+       * @description Start time for trace query in RFC3339 format (required)
        * @example 2025-01-10T00:00:00Z
        */
       startTime: string;
       /**
        * Format: date-time
-       * @description End time for trace query in RFC3339 format
+       * @description End time for trace query in RFC3339 format (required)
        * @example 2025-01-10T23:59:59Z
        */
       endTime: string;
-      /**
-       * @description Service name for trace filtering
-       * @example user-service
-       */
-      serviceName: string;
       /**
        * @description Maximum number of traces to return
        * @default 100
@@ -482,6 +511,91 @@ export interface components {
        */
       tookMs?: number;
     };
+    /** @example {
+     *       "traces": [
+     *         {
+     *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
+     *           "spans": [
+     *             {
+     *               "spanId": "ad3537e3f48207d0",
+     *               "name": "lets-go",
+     *               "durationNanoseconds": 12300000,
+     *               "startTime": "2025-12-03T09:16:56.84456548Z",
+     *               "endTime": "2025-12-03T09:16:56.84468848Z",
+     *               "parentSpanId": "",
+     *               "openchoreoComponentUid": "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
+     *               "openchoreoProjectUid": "1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b"
+     *             }
+     *           ]
+     *         }
+     *       ],
+     *       "tookMs": 15
+     *     } */
+    TraceResponse: {
+      /** @description Array of traces with their spans */
+      traces?: components['schemas']['Trace'][];
+      /**
+       * @description Query execution time in milliseconds
+       * @example 15
+       */
+      tookMs?: number;
+    };
+    Trace: {
+      /**
+       * @description Unique trace identifier (32 hexadecimal characters)
+       * @example f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8
+       */
+      traceId?: string;
+      /** @description Array of spans belonging to this trace */
+      spans?: components['schemas']['Span'][];
+    };
+    Span: {
+      /**
+       * @description Unique span identifier (16 hex characters)
+       * @example ad3537e3f48207d0
+       */
+      spanId?: string;
+      /**
+       * @description Span name/operation
+       * @example database-query
+       */
+      name?: string;
+      /**
+       * Format: int64
+       * @description Span duration in nanoseconds (calculated from endTime - startTime)
+       * @example 101018208
+       */
+      durationNanoseconds?: number;
+      /**
+       * Format: date-time
+       * @description Span start time in RFC3339Nano format
+       * @example 2025-10-28T11:13:56.484388Z
+       */
+      startTime?: string;
+      /**
+       * Format: date-time
+       * @description Span end time in RFC3339Nano format
+       * @example 2025-10-28T11:13:56.585406208Z
+       */
+      endTime?: string;
+      /**
+       * @description Parent span identifier (empty if root span)
+       * @example b72e731db5edfd1d
+       */
+      parentSpanId?: string;
+      /**
+       * Format: uuid
+       * @description OpenChoreo component UID from resource attributes
+       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
+       */
+      openchoreoComponentUid?: string;
+      /**
+       * Format: uuid
+       * @description OpenChoreo project UID from resource attributes
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      openchoreoProjectUid?: string;
+    };
     TimeValuePoint: {
       /**
        * Format: date-time
@@ -496,8 +610,7 @@ export interface components {
        */
       value?: number;
     };
-    /**
-     * @example {
+    /** @example {
      *       "cpuUsage": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -558,8 +671,7 @@ export interface components {
      *           "value": 2147483648
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     ResourceMetricsTimeSeries: {
       /** @description CPU usage time series (in cores) */
       cpuUsage?: components['schemas']['TimeValuePoint'][];
@@ -574,8 +686,7 @@ export interface components {
       /** @description Memory limits time series (in bytes) */
       memoryLimits?: components['schemas']['TimeValuePoint'][];
     };
-    /**
-     * @example {
+    /** @example {
      *       "requestCount": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -646,8 +757,7 @@ export interface components {
      *           "value": 0.52
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     HTTPMetricsTimeSeries: {
       /** @description Total HTTP request count time series (requests per second) */
       requestCount?: components['schemas']['TimeValuePoint'][];
@@ -950,7 +1060,7 @@ export interface operations {
       };
     };
   };
-  getComponentTraces: {
+  getTraces: {
     parameters: {
       query?: never;
       header?: never;
@@ -959,7 +1069,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['ComponentTracesRequest'];
+        'application/json': components['schemas']['TracesRequest'];
       };
     };
     responses: {
@@ -969,7 +1079,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LogResponse'];
+          'application/json': components['schemas']['TraceResponse'];
         };
       };
       /** @description Bad request - invalid parameters */
