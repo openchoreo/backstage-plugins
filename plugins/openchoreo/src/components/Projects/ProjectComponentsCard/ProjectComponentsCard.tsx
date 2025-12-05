@@ -1,9 +1,15 @@
-import React from 'react';
+import { useMemo } from 'react';
 import { Link, TableColumn } from '@backstage/core-components';
 import { Box, Typography } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { EntityTable } from '@backstage/plugin-catalog-react';
-import { useComponentsWithDeployment, useEnvironments, useDeploymentPipeline, ComponentWithDeployment, type Environment } from '../hooks';
+import {
+  useComponentsWithDeployment,
+  useEnvironments,
+  useDeploymentPipeline,
+  ComponentWithDeployment,
+  type Environment,
+} from '../hooks';
 import { DeploymentStatusCell } from './DeploymentStatusCell';
 import { BuildStatusCell } from './BuildStatusCell';
 import { useProjectComponentsCardStyles } from './styles';
@@ -13,10 +19,11 @@ export const ProjectComponentsCard = () => {
   const { entity } = useEntity();
   const { components, loading } = useComponentsWithDeployment(entity);
   const { environments, loading: envsLoading } = useEnvironments(entity);
-  const { data: pipelineData, loading: pipelineLoading } = useDeploymentPipeline();
+  const { data: pipelineData, loading: pipelineLoading } =
+    useDeploymentPipeline();
 
   // Filter and sort environments based on deployment pipeline
-  const pipelineEnvironments = React.useMemo(() => {
+  const pipelineEnvironments = useMemo(() => {
     if (!pipelineData?.environments || !environments.length) {
       return [];
     }
@@ -26,7 +33,11 @@ export const ProjectComponentsCard = () => {
 
     // Filter catalog environments to only those in pipeline, maintaining pipeline order
     return pipelineEnvNames
-      .map(envName => environments.find(env => env.name.toLowerCase() === envName.toLowerCase()))
+      .map(envName =>
+        environments.find(
+          env => env.name.toLowerCase() === envName.toLowerCase(),
+        ),
+      )
       .filter((env): env is Environment => env !== undefined);
   }, [pipelineData, environments]);
 
@@ -73,7 +84,10 @@ export const ProjectComponentsCard = () => {
       title: 'Deployment',
       width: '22%',
       render: (component: ComponentWithDeployment) => (
-        <DeploymentStatusCell component={component} environments={pipelineEnvironments} />
+        <DeploymentStatusCell
+          component={component}
+          environments={pipelineEnvironments}
+        />
       ),
     },
   ];

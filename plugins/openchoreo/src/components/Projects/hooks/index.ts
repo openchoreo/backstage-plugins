@@ -4,6 +4,6 @@ export { useEnvironments } from './useEnvironments';
 export type {
   ComponentWithDeployment,
   ComponentDeploymentStatus,
-  EnvironmentDeploymentStatus
+  EnvironmentDeploymentStatus,
 } from './useComponentsWithDeployment';
 export type { Environment } from './useEnvironments';

@@ -25,7 +25,8 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchEnvironments = useCallback(async () => {
-    const organization = systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    const organization =
+      systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
 
     if (!organization) {
       setEnvironments([]);
@@ -41,20 +42,24 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
       const { items } = await catalogApi.getEntities({
         filter: {
           kind: 'Environment',
-          [`metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`]: organization,
+          [`metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`]:
+            organization,
         },
       });
 
       const envList: Environment[] = items.map((entity: Entity) => ({
-        name: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] || entity.metadata.name,
+        name:
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
+          entity.metadata.name,
         displayName: entity.metadata.title || entity.metadata.name,
         dnsPrefix: entity.metadata.annotations?.['openchoreo.io/dns-prefix'],
-        isProduction: entity.metadata.annotations?.['openchoreo.io/is-production'] === 'true',
+        isProduction:
+          entity.metadata.annotations?.['openchoreo.io/is-production'] ===
+          'true',
       }));
 
       setEnvironments(envList);
     } catch (err) {
-      console.error('Failed to fetch environments:', err);
       setError(err as Error);
       setEnvironments([]);
     } finally {

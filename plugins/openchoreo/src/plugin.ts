@@ -88,7 +88,9 @@ export const DeploymentPipelineCard = choreoPlugin.provide(
     name: 'DeploymentPipelineCard',
     component: {
       lazy: () =>
-        import('./components/Projects/OverviewCards').then(m => m.DeploymentPipelineCard),
+        import('./components/Projects/OverviewCards').then(
+          m => m.DeploymentPipelineCard,
+        ),
     },
   }),
 );

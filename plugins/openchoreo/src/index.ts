@@ -8,7 +8,6 @@ export {
   WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,
-  DeploymentOverviewCard,
   DeploymentPipelineCard,
 } from './plugin';
 export * from './components/HomePage/MyProjectsWidget';

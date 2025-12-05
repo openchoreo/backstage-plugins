@@ -72,29 +72,27 @@ export const DeploymentPipelineCard = () => {
   return (
     <Card padding={24} className={classes.card}>
       <Box className={classes.cardHeader}>
-        <Typography variant="h5">
-          Deployment Pipeline
-        </Typography>
+        <Typography variant="h5">Deployment Pipeline</Typography>
       </Box>
 
       <Box className={classes.content}>
         <Box className={classes.pipelineInfo}>
           <Box className={classes.infoRow}>
-            <Typography className={classes.infoLabel}>
-              Pipeline:
-            </Typography>
-            <Typography className={classes.infoValue}>
-              {data.name}
-            </Typography>
+            <Typography className={classes.infoLabel}>Pipeline:</Typography>
+            <Typography className={classes.infoValue}>{data.name}</Typography>
           </Box>
 
           <Box>
-            <Typography className={classes.infoLabel}>
-              Environments
-            </Typography>
-            <Box className={classes.environmentFlow} style={{ marginTop: '8px' }}>
+            <Typography className={classes.infoLabel}>Environments</Typography>
+            <Box
+              className={classes.environmentFlow}
+              style={{ marginTop: '8px' }}
+            >
               {data.environments.map((env, index) => (
-                <Box key={env} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Box
+                  key={env}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                >
                   <Typography className={classes.environmentChip}>
                     {capitalizeFirst(env)}
                   </Typography>
@@ -108,9 +106,7 @@ export const DeploymentPipelineCard = () => {
 
           {data.dataPlane && (
             <Box className={classes.infoRow}>
-              <Typography className={classes.infoLabel}>
-                Data Plane:
-              </Typography>
+              <Typography className={classes.infoLabel}>Data Plane:</Typography>
               <Typography className={classes.infoValue}>
                 {data.dataPlane}
               </Typography>

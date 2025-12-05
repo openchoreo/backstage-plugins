@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { useApi, discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  useApi,
+  discoveryApiRef,
+  identityApiRef,
+} from '@backstage/core-plugin-api';
+import {
+  CHOREO_ANNOTATIONS,
+  type OpenChoreoComponents,
+} from '@openchoreo/backstage-plugin-common';
 import { apiFetch } from '../../../api/client';
 import { API_ENDPOINTS } from '../../../constants';
-import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
-type DeploymentPipelineResponse = OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
+type DeploymentPipelineResponse =
+  OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
 
 interface DeploymentPipelineData {
   name: string;
@@ -31,7 +38,8 @@ export const useDeploymentPipeline = () => {
 
         // Get project and organization from system entity
         const projectName = entity.metadata.name;
-        const organization = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+        const organization =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
 
         if (!projectName || !organization) {
           throw new Error('Missing project or organization information');
@@ -54,10 +62,16 @@ export const useDeploymentPipeline = () => {
         const environments: string[] = [];
         const addedEnvs = new Set<string>();
 
-        if (pipelineData.promotionPaths && pipelineData.promotionPaths.length > 0) {
+        if (
+          pipelineData.promotionPaths &&
+          pipelineData.promotionPaths.length > 0
+        ) {
           pipelineData.promotionPaths.forEach(path => {
             // Add source environment first
-            if (path.sourceEnvironmentRef && !addedEnvs.has(path.sourceEnvironmentRef)) {
+            if (
+              path.sourceEnvironmentRef &&
+              !addedEnvs.has(path.sourceEnvironmentRef)
+            ) {
               environments.push(path.sourceEnvironmentRef);
               addedEnvs.add(path.sourceEnvironmentRef);
             }
@@ -75,7 +89,10 @@ export const useDeploymentPipeline = () => {
 
         setData({
           name: pipelineData.displayName || pipelineData.name,
-          environments: environments.length > 0 ? environments : ['development', 'staging', 'production'],
+          environments:
+            environments.length > 0
+              ? environments
+              : ['development', 'staging', 'production'],
           dataPlane: undefined, // Not included in the response schema
         });
       } catch (err) {
