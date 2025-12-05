@@ -5,40 +5,42 @@ import {
   Select,
   MenuItem,
   Grid,
-  TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
-import { TIME_RANGE_OPTIONS } from '../../types';
+import { Filters, TIME_RANGE_OPTIONS } from '../../types';
 import { Environment } from '../../types';
+import { Component } from '../../hooks/useGetComponentsByProject';
 
-export interface TracesFilters {
-  searchQuery: string;
-  componentId?: string;
-  environmentId: string;
-  timeRange: string;
-}
-
-interface TracesFilterProps {
-  filters: TracesFilters;
-  onFiltersChange: (filters: Partial<TracesFilters>) => void;
+interface TracesFiltersProps {
+  filters: Filters;
+  onFiltersChange: (filters: Partial<Filters>) => void;
   environments: Environment[];
   environmentsLoading: boolean;
+  components: Component[];
+  componentsLoading: boolean;
   disabled?: boolean;
 }
 
-export const TracesFilter: FC<TracesFilterProps> = ({
+export const TracesFilters: FC<TracesFiltersProps> = ({
   filters,
   onFiltersChange,
   environments,
   environmentsLoading,
+  components,
+  componentsLoading,
   disabled = false,
 }) => {
-  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onFiltersChange({ searchQuery: event.target.value });
+  const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
+    const selectedEnvironment = environments.find(
+      env => env.uid === (event.target.value as string),
+    );
+    if (selectedEnvironment) {
+      onFiltersChange({ environment: selectedEnvironment });
+    }
   };
 
-  const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ environmentId: event.target.value as string });
+  const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
+    onFiltersChange({ componentIds: [event.target.value as string] });
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -48,6 +50,7 @@ export const TracesFilter: FC<TracesFilterProps> = ({
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} md={3}>
+        {/* TODO: Implement search trace ID filter
         <TextField
           fullWidth
           label="Search Trace ID"
@@ -56,20 +59,31 @@ export const TracesFilter: FC<TracesFilterProps> = ({
           onChange={handleSearchChange}
           placeholder="Enter Trace ID to search"
           disabled={disabled}
-        />
+        /> */}
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled || componentsLoading}>
           <InputLabel id="components-label">Components</InputLabel>
-          <Select
-            value={filters.componentId}
-            onChange={() => {}}
-            labelId="components-label"
-            label="Component"
-          >
-            <MenuItem value="">All Components</MenuItem>
-          </Select>
+          {componentsLoading ? (
+            <Skeleton variant="rect" height={56} />
+          ) : (
+            <Select
+              value={filters.componentIds?.[0] || ''}
+              onChange={handleComponentChange}
+              labelId="components-label"
+              label="Component"
+            >
+              {components.map(component => (
+                <MenuItem
+                  key={component.uid || component.name}
+                  value={component.uid || component.name}
+                >
+                  {component.displayName || component.name}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
         </FormControl>
       </Grid>
 
@@ -80,12 +94,12 @@ export const TracesFilter: FC<TracesFilterProps> = ({
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
-              value={filters.environmentId}
+              value={filters.environment?.uid || ''}
               onChange={handleEnvironmentChange}
               labelId="environment-label"
               label="Environment"
             >
-              {environments.map(env => (
+              {environments.map((env: Environment) => (
                 <MenuItem key={env.uid || env.name} value={env.uid || env.name}>
                   {env.displayName || env.name}
                 </MenuItem>

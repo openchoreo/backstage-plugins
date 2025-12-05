@@ -9,6 +9,7 @@ export function useFilters() {
   const [filters, setFilters] = useState<Filters>({
     environment: null as unknown as Environment,
     timeRange: '1h',
+    componentIds: [],
   });
 
   const updateFilters = useCallback((newFilters: Partial<Filters>) => {
@@ -22,6 +23,7 @@ export function useFilters() {
     setFilters({
       environment: null as unknown as Environment,
       timeRange: '1h',
+      componentIds: [],
     });
   }, []);
 

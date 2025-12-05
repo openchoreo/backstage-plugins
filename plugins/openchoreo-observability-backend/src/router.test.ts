@@ -58,6 +58,7 @@ describe('createRouter', () => {
     observabilityService = {
       fetchMetricsByComponent: jest.fn(),
       fetchEnvironmentsByOrganization: jest.fn(),
+      fetchTracesByProject: jest.fn(),
     };
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),

@@ -1,85 +1,135 @@
-import { useState, useMemo } from 'react';
-import { Box } from '@material-ui/core';
-import { Trace as TraceData } from './WaterfallView';
-import { dummyTracesData } from './dummyTraceData';
-import { TracesFilter, TracesFilters } from './TracesFilter';
+import { useMemo, useEffect } from 'react';
+import { Box, Button, Typography } from '@material-ui/core';
+import { TracesFilters } from './TracesFilters';
 import { TracesActions } from './TracesActions';
-import { TracesTable, Trace } from './TracesTable';
-import { Environment } from '../../types';
-
-// Convert to table format
-const convertToTableFormat = (traces: TraceData[]): Trace[] => {
-  return traces.map(trace => {
-    const times = trace.spans.flatMap(span => [
-      new Date(span.startTime).getTime(),
-      new Date(span.endTime).getTime(),
-    ]);
-    const minTime = Math.min(...times);
-    const maxTime = Math.max(...times);
-
-    return {
-      traceId: trace.traceId,
-      start_time: new Date(minTime).toISOString(),
-      end_time: new Date(maxTime).toISOString(),
-      duration: maxTime - minTime,
-      number_of_spans: trace.spans.length,
-      spans: trace.spans,
-    };
-  });
-};
+import { TracesTable } from './TracesTable';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { convertToTableFormat } from './utils';
+import {
+  useFilters,
+  useTraces,
+  useGetEnvironmentsByOrganization,
+  useGetComponentsByProject,
+} from '../../hooks';
+import { Trace } from '../../types';
+import { Progress } from '@backstage/core-components';
+import { Alert } from '@material-ui/lab';
 
 export const ObservabilityTracesPage = () => {
-  const [filters, setFilters] = useState<TracesFilters>({
-    searchQuery: '',
-    environmentId: '',
-    timeRange: '1h',
-  });
+  const { entity } = useEntity();
+  const organization =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const {
+    environments,
+    loading: environmentsLoading,
+    error: environmentsError,
+  } = useGetEnvironmentsByOrganization(organization);
+  const {
+    components,
+    loading: componentsLoading,
+    error: componentsError,
+  } = useGetComponentsByProject(entity);
+  const { filters, updateFilters } = useFilters();
 
-  // TODO: Replace with actual environments from API
-  const environments: Environment[] = [];
-  const environmentsLoading = false;
+  const {
+    traces,
+    loading: tracesLoading,
+    error: tracesError,
+    refresh,
+  } = useTraces(filters, entity);
 
-  const traces = useMemo(() => convertToTableFormat(dummyTracesData), []);
-  const tracesDataMap = useMemo(() => {
-    const map = new Map<string, TraceData>();
-    dummyTracesData.forEach(trace => {
-      map.set(trace.traceId, trace);
-    });
-    return map;
-  }, []);
+  // Auto-select first environment when environments are loaded
+  useEffect(() => {
+    if (environments.length > 0 && !filters.environment) {
+      updateFilters({ environment: environments[0] });
+    }
+  }, [environments, filters.environment, updateFilters]);
 
-  const handleFiltersChange = (newFilters: Partial<TracesFilters>) => {
-    setFilters((prev: TracesFilters) => ({ ...prev, ...newFilters }));
+  const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
+    updateFilters(newFilters);
   };
 
   const handleRefresh = () => {
-    // TODO: Implement refresh logic
+    refresh();
   };
 
-  const filteredTraces = traces.filter(trace =>
-    trace.traceId.toLowerCase().includes(filters.searchQuery.toLowerCase())
-  );
+  const tracesDataMap = useMemo(() => {
+    const map = new Map<string, Trace>();
+    traces.forEach(trace => {
+      map.set(trace.traceId, trace);
+    });
+    return map;
+  }, [traces]);
+
+  const tableTraces = useMemo(() => {
+    return convertToTableFormat(traces) as Trace[];
+  }, [traces]);
+
+  if (componentsError) {
+    // TODO: Add a toast notification here
+    return <></>;
+  }
+
+  if (environmentsError) {
+    // TODO: Add a toast notification here
+    return <></>;
+  }
+
+  const renderError = (error: string) => {
+    const isObservabilityDisabled = error.includes(
+      'Observability is not enabled',
+    );
+
+    return (
+      <Alert
+        severity={isObservabilityDisabled ? 'info' : 'error'}
+        // className={classes.errorContainer}
+      >
+        <Typography variant="body1">
+          {isObservabilityDisabled
+            ? 'Observability is not enabled for this component. Please enable observability to view runtime logs.'
+            : error}
+        </Typography>
+        {!isObservabilityDisabled && (
+          <Button onClick={handleRefresh} color="inherit" size="small">
+            Retry
+          </Button>
+        )}
+      </Alert>
+    );
+  };
 
   return (
     <Box>
-      <TracesFilter
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        environments={environments}
-        environmentsLoading={environmentsLoading}
-      />
+      {tracesLoading && <Progress />}
 
-      <TracesActions
-        totalCount={filteredTraces.length}
-        disabled={false}
-        onRefresh={handleRefresh}
-      />
+      {!tracesLoading && (
+        <>
+          <TracesFilters
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            environments={environments}
+            environmentsLoading={environmentsLoading}
+            components={components}
+            componentsLoading={componentsLoading}
+          />
 
-      <TracesTable
-        traces={filteredTraces}
-        tracesDataMap={tracesDataMap}
-        loading={false}
-      />
+          {tracesError && renderError(tracesError)}
+
+          <TracesActions
+            totalCount={traces.length}
+            disabled={tracesLoading}
+            onRefresh={handleRefresh}
+          />
+
+          <TracesTable
+            traces={tableTraces}
+            tracesDataMap={tracesDataMap}
+            loading={tracesLoading}
+          />
+        </>
+      )}
     </Box>
   );
 };

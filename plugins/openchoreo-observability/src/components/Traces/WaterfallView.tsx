@@ -1,22 +1,20 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, Tooltip, IconButton, Divider } from '@material-ui/core';
+import {
+  Box,
+  Typography,
+  Tooltip,
+  IconButton,
+  Divider,
+} from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import { useWaterfallStyles } from './styles';
-
-export interface Span {
-  durationInNanos: number;
-  endTime: string;
-  name: string;
-  spanId: string;
-  startTime: string;
-  parentSpanId?: string;
-}
-
-export interface Trace {
-  traceId: string;
-  spans: Span[];
-}
+import { Trace, Span } from '../../types';
+import {
+  parseRfc3339NanoToNanoseconds,
+  formatDuration,
+  formatTimeFromString,
+} from './utils';
 
 interface WaterfallViewProps {
   trace: Trace;
@@ -25,11 +23,11 @@ interface WaterfallViewProps {
 // Color palette for different span types
 const getSpanColor = (name: string, depth: number): string => {
   const colors = [
-    '#2196F3', // Light blue for root spans
-    '#9C27B0', // Purple for nested spans
-    '#E91E63', // Pink for deeper nested spans
-    '#FF9800', // Orange
-    '#4CAF50', // Green
+    '#6366F1', // Indigo
+    '#64748B', // Slate blue
+    '#8B5CF6', // Purple
+    '#10B981', // Emerald
+    '#06B6D4', // Cyan
   ];
 
   // Use depth to determine color, with fallback based on name
@@ -43,23 +41,6 @@ const getSpanColor = (name: string, depth: number): string => {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return colors[Math.abs(hash) % colors.length];
-};
-
-const formatDuration = (nanos: number): string => {
-  if (nanos === 0) return '0s';
-  const ms = nanos / 1000000;
-  if (ms < 1000) return `${ms.toFixed(0)}ms`;
-  const seconds = ms / 1000;
-  return `${seconds.toFixed(2)}s`;
-};
-
-const formatTime = (timeString: string): string => {
-  try {
-    const date = new Date(timeString);
-    return date.toISOString();
-  } catch {
-    return timeString;
-  }
 };
 
 interface SpanWithDepth extends Span {
@@ -76,10 +57,10 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
       return { spanTree: [], minTime: 0, timeRange: 0 };
     }
 
-    // Parse all timestamps and find min/max
+    // Parse all timestamps to nanoseconds and find min/max
     const times = trace.spans.flatMap(span => [
-      new Date(span.startTime).getTime(),
-      new Date(span.endTime).getTime(),
+      parseRfc3339NanoToNanoseconds(span.startTime),
+      parseRfc3339NanoToNanoseconds(span.endTime),
     ]);
 
     const min = Math.min(...times);
@@ -117,8 +98,8 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
     // use time-based approach to find root
     if (rootSpans.length === 0) {
       const sortedSpans = [...trace.spans].sort((a, b) => {
-        const aStart = new Date(a.startTime).getTime();
-        const bStart = new Date(b.startTime).getTime();
+        const aStart = parseRfc3339NanoToNanoseconds(a.startTime);
+        const bStart = parseRfc3339NanoToNanoseconds(b.startTime);
         return aStart - bStart;
       });
 
@@ -131,8 +112,8 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
         // Build hierarchy based on time nesting
         sortedSpans.slice(1).forEach(span => {
           const spanWithDepth = spanMap.get(span.spanId)!;
-          const spanStart = new Date(span.startTime).getTime();
-          const spanEnd = new Date(span.endTime).getTime();
+          const spanStart = parseRfc3339NanoToNanoseconds(span.startTime);
+          const spanEnd = parseRfc3339NanoToNanoseconds(span.endTime);
 
           // Find the deepest parent that contains this span
           let parent: SpanWithDepth | null = null;
@@ -142,10 +123,14 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
             const prevSpanWithDepth = spanMap.get(prevSpan.spanId);
             if (!prevSpanWithDepth) return;
 
-            const prevStart = new Date(prevSpan.startTime).getTime();
-            const prevEnd = new Date(prevSpan.endTime).getTime();
+            const prevStart = parseRfc3339NanoToNanoseconds(prevSpan.startTime);
+            const prevEnd = parseRfc3339NanoToNanoseconds(prevSpan.endTime);
 
-            if (spanStart >= prevStart && spanEnd <= prevEnd && prevSpanWithDepth.depth > maxDepth) {
+            if (
+              spanStart >= prevStart &&
+              spanEnd <= prevEnd &&
+              prevSpanWithDepth.depth > maxDepth
+            ) {
               parent = prevSpanWithDepth;
               maxDepth = prevSpanWithDepth.depth;
             }
@@ -181,18 +166,17 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
   }, [trace]);
 
   // Filter spans based on collapsed state
-  const getVisibleSpans = (nodes: SpanWithDepth[]): SpanWithDepth[] => {
-    const result: SpanWithDepth[] = [];
-    nodes.forEach((node: SpanWithDepth) => {
-      result.push(node);
-      if (!collapsedSpans.has(node.spanId)) {
-        result.push(...getVisibleSpans(node.children));
-      }
-    });
-    return result;
-  };
-
   const visibleSpans = useMemo(() => {
+    const getVisibleSpans = (nodes: SpanWithDepth[]): SpanWithDepth[] => {
+      const result: SpanWithDepth[] = [];
+      nodes.forEach((node: SpanWithDepth) => {
+        result.push(node);
+        if (!collapsedSpans.has(node.spanId)) {
+          result.push(...getVisibleSpans(node.children));
+        }
+      });
+      return result;
+    };
     return getVisibleSpans(spanTree);
   }, [spanTree, collapsedSpans]);
 
@@ -219,13 +203,13 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
   }
 
   const calculatePosition = (startTime: string): number => {
-    const time = new Date(startTime).getTime();
+    const time = parseRfc3339NanoToNanoseconds(startTime);
     return ((time - minTime) / timeRange) * 100;
   };
 
   const calculateWidth = (startTime: string, endTime: string): number => {
-    const start = new Date(startTime).getTime();
-    const end = new Date(endTime).getTime();
+    const start = parseRfc3339NanoToNanoseconds(startTime);
+    const end = parseRfc3339NanoToNanoseconds(endTime);
     const duration = end - start;
     return (duration / timeRange) * 100;
   };
@@ -236,9 +220,12 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
         Trace ID: {trace.traceId}
       </Typography>
       <Box className={classes.timeline}>
-        {visibleSpans.map((span) => {
+        {visibleSpans.map(span => {
           const left = calculatePosition(span.startTime);
-          const width = Math.max(calculateWidth(span.startTime, span.endTime), 0.5); // Minimum width
+          const width = Math.max(
+            calculateWidth(span.startTime, span.endTime),
+            0.5,
+          ); // Minimum width
           const color = getSpanColor(span.name, span.depth);
           const indent = span.depth * 20;
           const hasChildren = span.children.length > 0;
@@ -246,7 +233,10 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
 
           return (
             <Box key={span.spanId} className={classes.spanRow}>
-              <Box className={classes.spanLabel} style={{ paddingLeft: `${indent}px` }}>
+              <Box
+                className={classes.spanLabel}
+                style={{ paddingLeft: `${indent}px` }}
+              >
                 {hasChildren && (
                   <IconButton
                     size="small"
@@ -274,39 +264,105 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
                   title={
                     <Box className={classes.tooltipContent}>
                       <Box className={classes.tooltipRow}>
-                        <Typography variant="h6" component="span" className={classes.tooltipLabel}>
+                        <Typography
+                          variant="subtitle2"
+                          component="span"
+                          style={{
+                            fontWeight: 600,
+                            color: 'inherit',
+                            marginBottom: 8,
+                          }}
+                        >
                           {span.name}
                         </Typography>
-                        <Divider />
                       </Box>
+                      <Divider style={{ marginBottom: 8, marginTop: 4 }} />
                       <Box className={classes.tooltipRow}>
-                        <Typography variant="caption" component="span" className={classes.tooltipLabel}>
+                        <Typography
+                          variant="caption"
+                          component="span"
+                          className={classes.tooltipLabel}
+                        >
                           Span ID:
                         </Typography>
-                        <Typography variant="caption">{span.spanId}</Typography>
+                        <Typography
+                          variant="caption"
+                          style={{
+                            fontFamily: 'monospace',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          {span.spanId}
+                        </Typography>
                       </Box>
                       <Box className={classes.tooltipRow}>
-                        <Typography variant="caption" component="span" className={classes.tooltipLabel}>
+                        <Typography
+                          variant="caption"
+                          component="span"
+                          className={classes.tooltipLabel}
+                        >
                           Start Time:
                         </Typography>
-                        <Typography variant="caption">{formatTime(span.startTime)}</Typography>
+                        <Typography
+                          variant="caption"
+                          style={{
+                            fontFamily: 'monospace',
+                            fontSize: '0.7rem',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          {formatTimeFromString(span.startTime)}
+                        </Typography>
                       </Box>
                       <Box className={classes.tooltipRow}>
-                        <Typography variant="caption" component="span" className={classes.tooltipLabel}>
+                        <Typography
+                          variant="caption"
+                          component="span"
+                          className={classes.tooltipLabel}
+                        >
                           End Time:
                         </Typography>
-                        <Typography variant="caption">{formatTime(span.endTime)}</Typography>
+                        <Typography
+                          variant="caption"
+                          style={{
+                            fontFamily: 'monospace',
+                            fontSize: '0.7rem',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          {formatTimeFromString(span.endTime)}
+                        </Typography>
                       </Box>
                       <Box className={classes.tooltipRow}>
-                        <Typography variant="caption" component="span" className={classes.tooltipLabel}>
+                        <Typography
+                          variant="caption"
+                          component="span"
+                          className={classes.tooltipLabel}
+                        >
                           Duration:
                         </Typography>
-                        <Typography variant="caption">{formatDuration(span.durationInNanos)}</Typography>
+                        <Typography
+                          variant="caption"
+                          style={{ fontWeight: 500 }}
+                        >
+                          {formatDuration(span.durationNanoseconds)}
+                        </Typography>
                       </Box>
                     </Box>
                   }
                   arrow
                   placement="top"
+                  enterDelay={200}
+                  leaveDelay={100}
                 >
                   <Box
                     className={classes.spanBar}
@@ -316,7 +372,7 @@ export const WaterfallView = ({ trace }: WaterfallViewProps) => {
                       backgroundColor: color,
                     }}
                   >
-                    {width > 5 && formatDuration(span.durationInNanos)}
+                    {width > 5 && formatDuration(span.durationNanoseconds)}
                   </Box>
                 </Tooltip>
               </Box>

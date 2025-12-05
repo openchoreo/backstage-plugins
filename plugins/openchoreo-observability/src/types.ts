@@ -35,6 +35,24 @@ export type Metrics = {
   networkLatency: NetworkLatencyMetrics;
 };
 
+export interface Span {
+  durationNanoseconds: number;
+  endTime: string;
+  name: string;
+  spanId: string;
+  startTime: string;
+  parentSpanId?: string;
+}
+
+export interface Trace {
+  traceId: string;
+  startTime: string;
+  endTime: string;
+  durationNanoseconds: number;
+  numberOfSpans: number;
+  spans: Span[];
+}
+
 export interface TimeRangeOption {
   value: string;
   label: string;
@@ -52,6 +70,7 @@ export const TIME_RANGE_OPTIONS: TimeRangeOption[] = [
 export interface Filters {
   environment: Environment;
   timeRange: string;
+  componentIds?: string[];
 }
 
 export interface Environment {

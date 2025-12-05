@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useState, Fragment } from 'react';
 import {
   Table,
   TableHead,
@@ -13,21 +13,14 @@ import {
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
-import { WaterfallView, Trace as TraceData } from './WaterfallView';
+import { WaterfallView } from './WaterfallView';
 import { useTracesTableStyles } from './styles';
-
-export interface Trace {
-  traceId: string;
-  start_time: string;
-  end_time: string;
-  duration: number;
-  number_of_spans: number;
-  spans?: TraceData['spans'];
-}
+import { Trace } from '../../types';
+import { formatDuration } from './utils';
 
 interface TracesTableProps {
   traces: Trace[];
-  tracesDataMap: Map<string, TraceData>;
+  tracesDataMap: Map<string, Trace>;
   loading?: boolean;
 }
 
@@ -76,12 +69,26 @@ export const TracesTable: FC<TracesTableProps> = ({
         <Table className={classes.table} aria-label="traces table" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell className={classes.headerCell} width="12%">Trace ID</TableCell>
-              <TableCell className={classes.headerCell} width="20%">Start Time</TableCell>
-              <TableCell className={classes.headerCell} width="20%">End Time</TableCell>
-              <TableCell className={classes.headerCell} width="12%">Duration (ns)</TableCell>
-              <TableCell className={classes.headerCell} width="12%">Number of Spans</TableCell>
-              <TableCell className={classes.headerCell} width="12%" align="right">
+              <TableCell className={classes.headerCell} width="12%">
+                Trace ID
+              </TableCell>
+              <TableCell className={classes.headerCell} width="20%">
+                Start Time
+              </TableCell>
+              <TableCell className={classes.headerCell} width="20%">
+                End Time
+              </TableCell>
+              <TableCell className={classes.headerCell} width="12%">
+                Duration
+              </TableCell>
+              <TableCell className={classes.headerCell} width="12%">
+                Number of Spans
+              </TableCell>
+              <TableCell
+                className={classes.headerCell}
+                width="12%"
+                align="right"
+              >
                 Details
               </TableCell>
             </TableRow>
@@ -89,13 +96,12 @@ export const TracesTable: FC<TracesTableProps> = ({
           <TableBody>
             {traces.length === 0 && !loading && renderEmptyState()}
 
-            {traces.map((trace) => {
+            {traces.map(trace => {
               const traceData = tracesDataMap.get(trace.traceId);
               const isExpanded = expandedRows.has(trace.traceId);
               return (
-                <>
+                <Fragment key={trace.traceId}>
                   <TableRow
-                    key={trace.traceId}
                     className={`${classes.traceRow} ${
                       isExpanded ? classes.expandedRow : ''
                     }`}
@@ -112,16 +118,16 @@ export const TracesTable: FC<TracesTableProps> = ({
                       </Tooltip>
                     </TableCell>
                     <TableCell width="20%" className={classes.traceCell}>
-                      {trace.start_time}
+                      {trace.startTime}
                     </TableCell>
                     <TableCell width="20%" className={classes.traceCell}>
-                      {trace.end_time}
+                      {trace.endTime}
                     </TableCell>
                     <TableCell width="12%" className={classes.traceCell}>
-                      {trace.duration}
+                      {formatDuration(trace.durationNanoseconds)}
                     </TableCell>
                     <TableCell width="12%" className={classes.traceCell}>
-                      {trace.number_of_spans}
+                      {trace.numberOfSpans}
                     </TableCell>
                     <TableCell width="12%" align="right">
                       <IconButton
@@ -143,7 +149,7 @@ export const TracesTable: FC<TracesTableProps> = ({
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </TableBody>

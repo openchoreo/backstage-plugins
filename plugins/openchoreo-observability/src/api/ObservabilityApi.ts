@@ -3,7 +3,7 @@ import {
   DiscoveryApi,
   FetchApi,
 } from '@backstage/core-plugin-api';
-import { Metrics } from '../types';
+import { Metrics, Trace } from '../types';
 
 export interface ObservabilityApi {
   getMetrics(
@@ -21,6 +21,25 @@ export interface ObservabilityApi {
       endTime?: string;
     },
   ): Promise<Metrics>;
+
+  getTraces(
+    projectId: string,
+    environmentId: string,
+    environmentName: string,
+    orgName: string,
+    projectName: string,
+    componentUids: string[],
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      traceId?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    traces: Trace[];
+    tookMs: number;
+  }>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -104,6 +123,60 @@ export class ObservabilityClient implements ObservabilityApi {
         latencyPercentile90th: data.latencyPercentile90th,
         latencyPercentile99th: data.latencyPercentile99th,
       },
+    };
+  }
+
+  async getTraces(
+    projectId: string,
+    environmentId: string,
+    environmentName: string,
+    orgName: string,
+    projectName: string,
+    componentUids: string[],
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      traceId?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    traces: Trace[];
+    tookMs: number;
+  }> {
+    const baseUrl = await this.discoveryApi.getBaseUrl(
+      'openchoreo-observability-backend',
+    );
+    const response = await this.fetchApi.fetch(`${baseUrl}/traces`, {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId,
+        environmentId,
+        environmentName,
+        orgName,
+        projectName,
+        componentUids,
+        options,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (
+        error.error?.includes('Observability is not configured for component')
+      ) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(`Failed to fetch traces: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      traces: data.traces || [],
+      tookMs: data.tookMs || 0,
     };
   }
 }

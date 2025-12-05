@@ -57,5 +57,26 @@ export async function createRouter({
     }
   });
 
+  router.post('/traces', async (_req, res) => {
+    await httpAuth.credentials(_req, { allow: ['user'] });
+    try {
+      const traces = await observabilityService.fetchTracesByProject(
+        _req.body.projectId,
+        _req.body.environmentId,
+        _req.body.orgName,
+        _req.body.projectName,
+        _req.body.environmentName,
+        _req.body.componentUids || [],
+        _req.body.options,
+      );
+      return res.status(200).json(traces);
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch traces',
+      });
+    }
+  });
+
   return router;
 }
