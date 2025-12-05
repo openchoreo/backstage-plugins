@@ -17,7 +17,11 @@ export const BuildStatusCell = ({ component }: BuildStatusCellProps) => {
   const build = component.latestBuild;
 
   if (!build) {
-    return <Typography variant="body2" color="textSecondary">-</Typography>;
+    return (
+      <Typography variant="body2" color="textSecondary">
+        -
+      </Typography>
+    );
   }
 
   const status = build.status?.toLowerCase() || '';
@@ -38,9 +42,7 @@ export const BuildStatusCell = ({ component }: BuildStatusCellProps) => {
       <Typography variant="body2" className={classes.tooltipBuildName}>
         {build.name}
       </Typography>
-      <Typography variant="caption">
-        {build.status}
-      </Typography>
+      <Typography variant="caption">{build.status}</Typography>
     </Box>
   );
 

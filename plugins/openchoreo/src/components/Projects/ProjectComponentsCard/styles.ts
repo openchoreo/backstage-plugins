@@ -5,7 +5,8 @@ export const useProjectComponentsCardStyles = makeStyles(theme => ({
     '& [class*="MuiPaper-root"][class*="MuiPaper-elevation"]': {
       borderRadius: '12px !important',
       border: '1px solid rgb(243, 244, 246) !important',
-      boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px !important',
+      boxShadow:
+        'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.03) 0px 1px 2px 0px !important',
     },
     '& [class*="MuiTableFooter-root"]': {
       borderRadius: '0 0 12px 12px !important',

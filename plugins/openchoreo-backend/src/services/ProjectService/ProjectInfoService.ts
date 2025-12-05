@@ -6,7 +6,8 @@ import {
 
 // Use the generated types from OpenAPI spec
 export type ModelsProject = OpenChoreoComponents['schemas']['ProjectResponse'];
-export type ModelsDeploymentPipeline = OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
+export type ModelsDeploymentPipeline =
+  OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
 
 export class ProjectInfoService {
   private logger: LoggerService;

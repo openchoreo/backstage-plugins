@@ -13,14 +13,17 @@ interface DeploymentStatusCellProps {
 
 export const DeploymentStatusCell = ({
   component,
-  environments
+  environments,
 }: DeploymentStatusCellProps) => {
   const classes = useProjectComponentsCardStyles();
 
   return (
     <Box className={classes.deploymentStatus}>
       {environments.map(env => {
-        const deployment = component.deploymentStatus?.[env.name.toLowerCase() as keyof typeof component.deploymentStatus];
+        const deployment =
+          component.deploymentStatus?.[
+            env.name.toLowerCase() as keyof typeof component.deploymentStatus
+          ];
         const isDeployed = deployment?.isDeployed || false;
         const status = deployment?.status;
 
@@ -52,10 +55,7 @@ export const DeploymentStatusCell = ({
         const envDisplayName = env.displayName || env.name;
 
         return (
-          <Tooltip
-            key={env.name}
-            title={`${envDisplayName}: ${tooltipSuffix}`}
-          >
+          <Tooltip key={env.name} title={`${envDisplayName}: ${tooltipSuffix}`}>
             <Box className={classes.chipContainer}>
               <Chip
                 size="small"
