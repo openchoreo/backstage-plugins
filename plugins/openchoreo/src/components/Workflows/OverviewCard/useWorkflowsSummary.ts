@@ -74,8 +74,13 @@ export function useWorkflowsSummary() {
 
       if (buildsResponse.ok) {
         const buildsData: ModelsBuild[] = await buildsResponse.json();
+        const sortedBuilds = [...buildsData].sort(
+          (a, b) =>
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime(),
+        );
         // Get the latest build (first in array, sorted by createdAt desc)
-        latestBuild = buildsData.length > 0 ? buildsData[0] : null;
+        latestBuild = sortedBuilds.length > 0 ? sortedBuilds[0] : null;
       }
 
       setState(prev => ({
