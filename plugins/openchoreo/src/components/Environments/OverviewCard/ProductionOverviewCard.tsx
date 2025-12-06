@@ -220,7 +220,7 @@ export const ProductionOverviewCard = () => {
         {deploymentStatus === 'Ready' && invokeUrl && (
           <Box className={classes.invokeUrlContainer}>
             <Typography variant="h6" color="textSecondary">
-              Invoke URL:
+              Invoke URL
             </Typography>
             <Box className={classes.invokeUrlContent}>
               <a

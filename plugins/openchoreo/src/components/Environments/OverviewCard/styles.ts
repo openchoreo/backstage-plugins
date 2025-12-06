@@ -6,6 +6,7 @@ export const useOverviewCardStyles = makeStyles(theme => ({
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
+    borderRadius: '12px !important',
   },
   cardHeader: {
     display: 'flex',
