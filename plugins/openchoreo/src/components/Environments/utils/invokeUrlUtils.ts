@@ -9,7 +9,9 @@ import { ReleaseData } from '../ReleaseDataRenderer/types';
  * PATH_PREFIX=$(kubectl get httproute -A -l openchoreo.dev/component=greeting-service -o jsonpath='{.items[0].spec.rules[0].matches[0].path.value}')
  * curl "http://${HOSTNAME}:9080${PATH_PREFIX}/greeter/greet"
  */
-export function extractInvokeUrl(releaseData: ReleaseData | null): string | null {
+export function extractInvokeUrl(
+  releaseData: ReleaseData | null,
+): string | null {
   if (!releaseData?.data) {
     return null;
   }
