@@ -71,6 +71,7 @@ export interface Filters {
   environment: Environment;
   timeRange: string;
   componentIds?: string[];
+  searchQuery?: string;
 }
 
 export interface Environment {

@@ -1,10 +1,11 @@
-import { FC, ChangeEvent } from 'react';
+import { FC, ChangeEvent, useState, useEffect, useCallback } from 'react';
 import {
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Grid,
+  TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { Filters, TIME_RANGE_OPTIONS } from '../../types';
@@ -30,6 +31,24 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
   componentsLoading,
   disabled = false,
 }) => {
+  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
+
+  // Debounce the search query
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      onFiltersChange({ searchQuery: searchInput });
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput, onFiltersChange]);
+
+  const handleSearchChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setSearchInput(event.target.value);
+    },
+    [],
+  );
+
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedEnvironment = environments.find(
       env => env.uid === (event.target.value as string),
@@ -50,16 +69,15 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} md={3}>
-        {/* TODO: Implement search trace ID filter
         <TextField
           fullWidth
           label="Search Trace ID"
           variant="outlined"
-          value={filters.searchQuery}
+          value={searchInput}
           onChange={handleSearchChange}
           placeholder="Enter Trace ID to search"
           disabled={disabled}
-        /> */}
+        />
       </Grid>
 
       <Grid item xs={12} md={3}>
