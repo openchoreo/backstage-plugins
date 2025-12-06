@@ -427,9 +427,9 @@ export const openChoreoTheme = createUnifiedTheme({
           fontWeight: 500,
           height: 'auto',
           padding: '4px 0',
-          marginRight: '8px', // Add spacing between chips
-          marginBottom: '4px', // Add spacing for wrapped chips
-          marginTop: '4px', // Add spacing for wrapped chips
+          marginTop: '4px',
+          marginBottom: '4px',
+          marginRight: '4px',
         },
         colorPrimary: {
           backgroundColor: `${colors.primary.light}25`, // Translucent background
