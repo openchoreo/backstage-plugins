@@ -53,7 +53,6 @@ export const useOverviewCardStyles = makeStyles(theme => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: '150px',
   },
   metaRow: {
     display: 'flex',
