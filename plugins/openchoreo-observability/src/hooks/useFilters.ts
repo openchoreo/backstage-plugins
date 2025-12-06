@@ -10,6 +10,7 @@ export function useFilters() {
     environment: null as unknown as Environment,
     timeRange: '1h',
     componentIds: [],
+    searchQuery: '',
   });
 
   const updateFilters = useCallback((newFilters: Partial<Filters>) => {
@@ -24,6 +25,7 @@ export function useFilters() {
       environment: null as unknown as Environment,
       timeRange: '1h',
       componentIds: [],
+      searchQuery: '',
     });
   }, []);
 

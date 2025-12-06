@@ -73,6 +73,17 @@ export function useTraces(filters: Filters, entity: Entity) {
     [filters.componentIds],
   );
 
+  // Memoize filtered traces based on searchQuery
+  const filteredTraces = useMemo(() => {
+    if (!filters.searchQuery || filters.searchQuery.trim() === '') {
+      return traces;
+    }
+    const searchLower = filters.searchQuery.toLowerCase().trim();
+    return traces.filter(trace =>
+      trace.traceId.toLowerCase().includes(searchLower),
+    );
+  }, [traces, filters.searchQuery]);
+
   const fetchTraces = useCallback(
     async (reset: boolean = false) => {
       if (
@@ -165,7 +176,7 @@ export function useTraces(filters: Filters, entity: Entity) {
   }, [fetchTraces]);
 
   return {
-    traces,
+    traces: filteredTraces,
     loading,
     error,
     refresh,
