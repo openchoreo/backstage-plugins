@@ -12,6 +12,7 @@ import { LoadingSkeleton } from './LoadingSkeleton';
  */
 export const EnvironmentCard = ({
   environmentName,
+  resourceName,
   bindingName,
   hasComponentTypeOverrides,
   deployment,
@@ -45,6 +46,8 @@ export const EnvironmentCard = ({
         ) : (
           <>
             <EnvironmentCardContent
+              environmentName={environmentName}
+              resourceName={resourceName}
               status={deployment.status}
               lastDeployed={deployment.lastDeployed}
               image={deployment.image}

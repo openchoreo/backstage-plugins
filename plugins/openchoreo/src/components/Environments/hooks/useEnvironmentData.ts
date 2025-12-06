@@ -45,6 +45,7 @@ export function useEnvironmentData(entity: Entity) {
     retry,
   } = useAsyncRetry(async () => {
     const data = await fetchEnvironmentInfo(entity, discovery, identityApi);
+    console.log('[environments] data', data);
     return data as Environment[];
   }, [entity, discovery, identityApi]);
 
