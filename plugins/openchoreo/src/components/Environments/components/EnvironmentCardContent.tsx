@@ -94,8 +94,17 @@ export const EnvironmentCardContent = ({
       {/* Invoke URL */}
       {!loadingInvokeUrl && invokeUrl && (
         <Box mt={4} mb={3}>
-          <Typography variant="body2" style={{ fontWeight: 500, marginRight: 8 }}>
-            <LinkIcon style={{ fontSize: '1rem', verticalAlign: 'middle', marginRight: 4 }} />
+          <Typography
+            variant="body2"
+            style={{ fontWeight: 500, marginRight: 8 }}
+          >
+            <LinkIcon
+              style={{
+                fontSize: '1rem',
+                verticalAlign: 'middle',
+                marginRight: 4,
+              }}
+            />
             Invoke URL
           </Typography>
           <Box display="flex" alignItems="center" mt={0.5}>
@@ -115,10 +124,7 @@ export const EnvironmentCardContent = ({
                 open={copiedInvokeUrl ? true : undefined}
                 leaveDelay={copiedInvokeUrl ? 0 : 200}
               >
-                <IconButton
-                  size="small"
-                  onClick={handleCopyInvokeUrl}
-                >
+                <IconButton size="small" onClick={handleCopyInvokeUrl}>
                   <FileCopyOutlinedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
