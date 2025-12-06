@@ -93,8 +93,8 @@ export const EnvironmentCardContent = ({
 
       {/* Invoke URL */}
       {!loadingInvokeUrl && invokeUrl && (
-        <Box mt={2} mb={3}>
-          <Typography className={classes.sectionLabel}>
+        <Box mt={4} mb={3}>
+          <Typography variant="body2" style={{ fontWeight: 500, marginRight: 8 }}>
             <LinkIcon style={{ fontSize: '1rem', verticalAlign: 'middle', marginRight: 4 }} />
             Invoke URL
           </Typography>
