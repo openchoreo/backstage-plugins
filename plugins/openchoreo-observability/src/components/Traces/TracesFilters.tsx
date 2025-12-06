@@ -6,6 +6,7 @@ import {
   MenuItem,
   Grid,
   TextField,
+  Checkbox,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { Filters, TIME_RANGE_OPTIONS } from '../../types';
@@ -59,7 +60,8 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
   };
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ componentIds: [event.target.value as string] });
+    const value = event.target.value as string[];
+    onFiltersChange({ componentIds: value });
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
@@ -87,19 +89,35 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
             <Skeleton variant="rect" height={56} />
           ) : (
             <Select
-              value={filters.componentIds?.[0] || ''}
+              multiple
+              value={filters.componentIds || []}
               onChange={handleComponentChange}
               labelId="components-label"
               label="Component"
+              renderValue={selected => {
+                const selectedArray = selected as string[];
+                if (selectedArray.length === 0) return 'All';
+                return selectedArray
+                  .map(id => {
+                    const comp = components.find(c => (c.uid || c.name) === id);
+                    return comp?.displayName || comp?.name || id;
+                  })
+                  .join(', ');
+              }}
             >
-              {components.map(component => (
-                <MenuItem
-                  key={component.uid || component.name}
-                  value={component.uid || component.name}
-                >
-                  {component.displayName || component.name}
-                </MenuItem>
-              ))}
+              {components.map(component => {
+                const componentId = component.uid || component.name;
+                return (
+                  <MenuItem key={componentId} value={componentId}>
+                    <Checkbox
+                      checked={
+                        (filters.componentIds || []).indexOf(componentId) > -1
+                      }
+                    />
+                    {component.displayName || component.name}
+                  </MenuItem>
+                );
+              })}
             </Select>
           )}
         </FormControl>
