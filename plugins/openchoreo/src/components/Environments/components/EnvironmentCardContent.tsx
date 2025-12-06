@@ -94,7 +94,12 @@ export const EnvironmentCardContent = ({
       {/* Invoke URL */}
       {loadingInvokeUrl ? (
         <Box mt={4} mb={3}>
-          <Skeleton variant="text" width="30%" height={20} style={{ marginBottom: 8 }} />
+          <Skeleton
+            variant="text"
+            width="30%"
+            height={20}
+            style={{ marginBottom: 8 }}
+          />
           <Skeleton variant="text" width="80%" height={24} />
         </Box>
       ) : (
