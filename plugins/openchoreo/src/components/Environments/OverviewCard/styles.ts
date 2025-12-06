@@ -107,4 +107,33 @@ export const useOverviewCardStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     fontSize: theme.typography.caption.fontSize,
   },
+  invokeUrlContainer: {
+    marginTop: theme.spacing(1),
+  },
+  invokeUrlGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'auto 1fr',
+    alignItems: 'center',
+    gridGap: theme.spacing(1),
+  },
+  invokeUrlContent: {
+    display: 'flex',
+    alignItems: 'center',
+    minWidth: 0,
+  },
+  invokeUrlLink: {
+    fontSize: '14px',
+    textDecoration: 'none',
+    color: theme.palette.primary.main,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    '&:hover': {
+      textDecoration: 'underline',
+    },
+  },
+  invokeUrlCopyButton: {
+    marginLeft: theme.spacing(0.5),
+    padding: theme.spacing(0.5),
+  },
 }));
