@@ -144,6 +144,7 @@ export const useWaterfallStyles = makeStyles((theme: Theme) => ({
     padding: theme.spacing(1),
     minWidth: '280px',
     maxWidth: '450px',
+    color: '#fff',
   },
   tooltipRow: {
     marginBottom: theme.spacing(0.5),
@@ -156,7 +157,7 @@ export const useWaterfallStyles = makeStyles((theme: Theme) => ({
   },
   tooltipLabel: {
     fontWeight: 600,
-    color: theme.palette.text.secondary,
+    color: '#fff',
     fontSize: '0.75rem',
     minWidth: '85px',
     flexShrink: 0,

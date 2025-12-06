@@ -5,6 +5,7 @@ import {
   Tooltip,
   IconButton,
   Divider,
+  useTheme,
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
@@ -20,29 +21,6 @@ interface WaterfallViewProps {
   trace: Trace;
 }
 
-// Color palette for different span types
-const getSpanColor = (name: string, depth: number): string => {
-  const colors = [
-    '#6366F1', // Indigo
-    '#64748B', // Slate blue
-    '#8B5CF6', // Purple
-    '#10B981', // Emerald
-    '#06B6D4', // Cyan
-  ];
-
-  // Use depth to determine color, with fallback based on name
-  if (depth === 0) return colors[0];
-  if (depth === 1) return colors[1];
-  if (depth >= 2) return colors[2];
-
-  // Fallback: hash the name to get a consistent color
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-};
-
 interface SpanWithDepth extends Span {
   depth: number;
   children: SpanWithDepth[];
@@ -50,7 +28,31 @@ interface SpanWithDepth extends Span {
 
 export const WaterfallView = ({ trace }: WaterfallViewProps) => {
   const classes = useWaterfallStyles();
+  const theme = useTheme();
   const [collapsedSpans, setCollapsedSpans] = useState<Set<string>>(new Set());
+
+  // Color palette for different span types
+  const getSpanColor = (name: string, depth: number): string => {
+    const colors = [
+      theme.palette.info.light, // Theme info light color
+      '#64748B', // Slate blue
+      '#8B5CF6', // Purple
+      '#10B981', // Emerald
+      '#06B6D4', // Cyan
+    ];
+
+    // Use depth to determine color, with fallback based on name
+    if (depth === 0) return colors[0];
+    if (depth === 1) return colors[1];
+    if (depth >= 2) return colors[2];
+
+    // Fallback: hash the name to get a consistent color
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
 
   const { spanTree, minTime, timeRange } = useMemo(() => {
     if (!trace.spans || trace.spans.length === 0) {
