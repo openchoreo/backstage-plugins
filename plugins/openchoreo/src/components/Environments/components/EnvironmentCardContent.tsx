@@ -1,11 +1,11 @@
 /* eslint-disable no-nested-ternary */
 import { useState } from 'react';
 import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
+import { Skeleton } from '@material-ui/lab';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import DescriptionIcon from '@material-ui/icons/Description';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
-import LinkIcon from '@material-ui/icons/Link';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -92,45 +92,45 @@ export const EnvironmentCardContent = ({
       </Box>
 
       {/* Invoke URL */}
-      {!loadingInvokeUrl && invokeUrl && (
+      {loadingInvokeUrl ? (
         <Box mt={4} mb={3}>
-          <Typography
-            variant="body2"
-            style={{ fontWeight: 500, marginRight: 8 }}
-          >
-            <LinkIcon
-              style={{
-                fontSize: '1rem',
-                verticalAlign: 'middle',
-                marginRight: 4,
-              }}
-            />
-            Invoke URL
-          </Typography>
-          <Box display="flex" alignItems="center" mt={0.5}>
-            <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-              <a
-                href={invokeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={classes.endpointLink}
-              >
-                {invokeUrl}
-              </a>
-            </Box>
-            <Box sx={{ flexShrink: 0 }}>
-              <Tooltip
-                title={copiedInvokeUrl ? 'Copied' : 'Copy invoke URL'}
-                open={copiedInvokeUrl ? true : undefined}
-                leaveDelay={copiedInvokeUrl ? 0 : 200}
-              >
-                <IconButton size="small" onClick={handleCopyInvokeUrl}>
-                  <FileCopyOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+          <Skeleton variant="text" width="30%" height={20} style={{ marginBottom: 8 }} />
+          <Skeleton variant="text" width="80%" height={24} />
+        </Box>
+      ) : (
+        invokeUrl && (
+          <Box mt={4} mb={3}>
+            <Typography
+              variant="body2"
+              style={{ fontWeight: 500, marginRight: 8 }}
+            >
+              Invoke URL
+            </Typography>
+            <Box display="flex" alignItems="center" mt={0.5}>
+              <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
+                <a
+                  href={invokeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={classes.endpointLink}
+                >
+                  {invokeUrl}
+                </a>
+              </Box>
+              <Box sx={{ flexShrink: 0 }}>
+                <Tooltip
+                  title={copiedInvokeUrl ? 'Copied' : 'Copy invoke URL'}
+                  open={copiedInvokeUrl ? true : undefined}
+                  leaveDelay={copiedInvokeUrl ? 0 : 200}
+                >
+                  <IconButton size="small" onClick={handleCopyInvokeUrl}>
+                    <FileCopyOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
             </Box>
           </Box>
-        </Box>
+        )
       )}
 
       {image && (
