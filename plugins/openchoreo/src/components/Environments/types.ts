@@ -92,6 +92,8 @@ export interface EnvironmentCardHeaderProps {
  * Props for the EnvironmentCardContent component
  */
 export interface EnvironmentCardContentProps {
+  environmentName: string;
+  resourceName?: string;
   status?: 'Ready' | 'NotReady' | 'Failed';
   lastDeployed?: string;
   image?: string;
