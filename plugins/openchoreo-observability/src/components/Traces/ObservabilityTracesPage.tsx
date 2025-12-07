@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useCallback } from 'react';
 import { Box, Button, Typography } from '@material-ui/core';
 import { TracesFilters } from './TracesFilters';
 import { TracesActions } from './TracesActions';
@@ -46,13 +46,16 @@ export const ObservabilityTracesPage = () => {
     }
   }, [environments, filters.environment, updateFilters]);
 
-  const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
-    updateFilters(newFilters);
-  };
+  const handleFiltersChange = useCallback(
+    (newFilters: Partial<typeof filters>) => {
+      updateFilters(newFilters);
+    },
+    [updateFilters],
+  );
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     refresh();
-  };
+  }, [refresh]);
 
   const tracesDataMap = useMemo(() => {
     const map = new Map<string, Trace>();
