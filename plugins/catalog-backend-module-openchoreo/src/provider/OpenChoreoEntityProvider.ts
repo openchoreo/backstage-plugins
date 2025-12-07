@@ -586,6 +586,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.PROJECT_ID]: project.name,
+          ...(project.uid && {
+            [CHOREO_ANNOTATIONS.PROJECT_UID]: project.uid,
+          }),
           [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
         },
         labels: {
