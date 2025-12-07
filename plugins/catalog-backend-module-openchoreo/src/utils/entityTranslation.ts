@@ -59,6 +59,9 @@ export function translateComponentToEntity(
         'backstage.io/managed-by-location': config.locationKey,
         'backstage.io/managed-by-origin-location': config.locationKey,
         [CHOREO_ANNOTATIONS.COMPONENT]: component.name,
+        ...(component.uid && {
+          [CHOREO_ANNOTATIONS.COMPONENT_UID]: component.uid,
+        }),
         ...(component.type && {
           [CHOREO_ANNOTATIONS.COMPONENT_TYPE]: component.type,
         }),

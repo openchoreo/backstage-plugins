@@ -70,7 +70,10 @@ export const useGetComponentsByProject = (
             return compOrg === organization && compProject === project;
           })
           .map(component => ({
-            uid: component.metadata.uid,
+            uid:
+              component.metadata.annotations?.[
+                CHOREO_ANNOTATIONS.COMPONENT_UID
+              ] || component.metadata.uid,
             name: component.metadata.name,
             displayName: component.metadata.title || component.metadata.name,
             description: component.metadata.description,
