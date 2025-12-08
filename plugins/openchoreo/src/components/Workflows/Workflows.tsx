@@ -70,6 +70,7 @@ export const Workflows = () => {
   const {
     state: routingState,
     setTab,
+    setRunDetailsTab,
     navigateToList,
     navigateToConfig,
     navigateToRunDetails,
@@ -266,7 +267,14 @@ export const Workflows = () => {
       );
     }
 
-    return <WorkflowRunDetailsPage run={selectedRun} onBack={handleBack} />;
+    return (
+      <WorkflowRunDetailsPage
+        run={selectedRun}
+        onBack={handleBack}
+        initialTab={routingState.runDetailsTab}
+        onTabChange={setRunDetailsTab}
+      />
+    );
   }
 
   // Main list view with vertical tabs

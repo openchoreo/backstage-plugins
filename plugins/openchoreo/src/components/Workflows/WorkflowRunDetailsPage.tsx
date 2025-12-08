@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Typography } from '@material-ui/core';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
@@ -6,22 +6,37 @@ import {
   VerticalTabNav,
   TabItemData,
 } from '@openchoreo/backstage-design-system';
+import {
+  formatRelativeTime,
+  useUrlSyncedTab,
+} from '@openchoreo/backstage-plugin-react';
 import { DetailPageLayout } from '../Environments/components/DetailPageLayout';
 import { BuildStatusChip } from './BuildStatusChip';
 import { LogsContent, RunMetadataContent } from './components';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+
+type RunDetailsTab = 'logs' | 'details';
 
 interface WorkflowRunDetailsPageProps {
   run: ModelsBuild;
   onBack: () => void;
+  /** Initial tab to display (from URL) */
+  initialTab?: RunDetailsTab;
+  /** Callback when tab changes (to update URL) */
+  onTabChange?: (tab: RunDetailsTab) => void;
 }
 
 export const WorkflowRunDetailsPage = ({
   run,
   onBack,
+  initialTab,
+  onTabChange,
 }: WorkflowRunDetailsPageProps) => {
-  const [activeTab, setActiveTab] = useState('logs');
+  const [activeTab, setActiveTab] = useUrlSyncedTab<RunDetailsTab>({
+    initialTab,
+    defaultTab: 'logs',
+    onTabChange,
+  });
 
   const tabs = useMemo<TabItemData[]>(
     () => [
@@ -68,7 +83,7 @@ export const WorkflowRunDetailsPage = ({
       <VerticalTabNav
         tabs={tabs}
         activeTabId={activeTab}
-        onChange={setActiveTab}
+        onChange={tabId => setActiveTab(tabId as RunDetailsTab)}
       >
         {renderTabContent()}
       </VerticalTabNav>

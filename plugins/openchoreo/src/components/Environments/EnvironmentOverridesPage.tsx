@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { Entity } from '@backstage/catalog-model';
@@ -14,7 +14,10 @@ import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
 import { SaveConfirmationDialog } from './SaveConfirmationDialog';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-import { UnsavedChangesDialog } from '@openchoreo/backstage-plugin-react';
+import {
+  UnsavedChangesDialog,
+  useUrlSyncedTab,
+} from '@openchoreo/backstage-plugin-react';
 import {
   calculateHasOverrides,
   getMissingRequiredFields,
@@ -72,8 +75,8 @@ interface EnvironmentOverridesPageProps {
   onPrevious?: () => void;
   /** Initial tab to display (from URL) */
   initialTab?: string;
-  /** Callback when tab changes (to update URL) */
-  onTabChange?: (tabId: string) => void;
+  /** Callback when tab changes (to update URL). Second param is replace (default false). */
+  onTabChange?: (tabId: string, replace?: boolean) => void;
 }
 
 export const EnvironmentOverridesPage = ({
@@ -245,17 +248,12 @@ export const EnvironmentOverridesPage = ({
     missingRequiredFields,
   ]);
 
-  // Set initial active tab - prefer initialTab from URL, otherwise empty
-  const [activeTab, setActiveTabState] = useState<string>(initialTab || '');
-
-  // Wrapper to update both local state and URL
-  const setActiveTab = useCallback(
-    (tabId: string) => {
-      setActiveTabState(tabId);
-      onTabChange?.(tabId);
-    },
-    [onTabChange],
-  );
+  // Tab state with URL sync
+  const [activeTab, setActiveTab] = useUrlSyncedTab({
+    initialTab,
+    defaultTab: '',
+    onTabChange,
+  });
 
   // Set default active tab when tabs are loaded
   useEffect(() => {
@@ -267,10 +265,10 @@ export const EnvironmentOverridesPage = ({
       !activeTab
     ) {
       const defaultTab = tabs[0].id;
-      setActiveTabState(defaultTab);
-      onTabChange?.(defaultTab);
+      // Use replace: true to avoid adding to history when auto-setting default tab
+      setActiveTab(defaultTab, true);
     }
-  }, [loading, formState.baseWorkloadData, tabs, activeTab, onTabChange]);
+  }, [loading, formState.baseWorkloadData, tabs, activeTab, setActiveTab]);
 
   // Workload container management functions
   const handleContainerChange = (
