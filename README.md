@@ -228,6 +228,53 @@ yarn add @openchoreo/backstage-plugin-api
 
 Note: You'll need a GitHub personal access token with `packages:read` permission to install from GitHub Packages.
 
+## Feature Flags
+
+OpenChoreo includes configurable feature flags that allow you to enable or disable major functionality without code changes.
+
+### Available Feature Flags
+
+| Feature           | Environment Variable                        | Description                                                                                                            |
+| ----------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Workflows**     | `OPENCHOREO_FEATURES_WORKFLOWS_ENABLED`     | Build plane / CI pipeline features. When disabled, hides Workflows tab and WorkflowsOverviewCard from component pages. |
+| **Observability** | `OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED` | Metrics, Traces, and Runtime Logs. When disabled, hides these tabs and RuntimeHealthCard from component pages.         |
+| **Auth**          | `OPENCHOREO_FEATURES_AUTH_ENABLED`          | OAuth authentication. When disabled, users are automatically logged in as guests (demo/development mode).              |
+
+### Configuration
+
+**Local Development (`app-config.local.yaml`):**
+
+```yaml
+openchoreo:
+  features:
+    workflows:
+      enabled: true
+    observability:
+      enabled: true
+    auth:
+      enabled: false # Use guest mode for local development
+```
+
+**Production (Environment Variables):**
+
+The Helm chart automatically injects these environment variables. You can configure them via Helm values:
+
+```yaml
+backstage:
+  features:
+    workflowsEnabled: true
+    observabilityEnabled: true
+    authEnabled: true
+```
+
+### Behavior When Features Are Disabled
+
+When a feature is disabled:
+
+- **Tabs remain visible** but show an informative empty state explaining that the feature is disabled
+- **Overview cards** for the feature are hidden from the Overview tab
+- This approach ensures consistent navigation while clearly communicating feature availability
+
 ## Documentation
 
 - Check individual plugin README files in `plugins/` directory

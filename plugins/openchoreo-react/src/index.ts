@@ -7,6 +7,11 @@
 // Components
 export { SummaryWidgetWrapper } from './components/SummaryWidgetWrapper';
 export {
+  FeatureGate,
+  withFeatureGate,
+  type FeatureGateProps,
+} from './components/FeatureGate';
+export {
   LoadingState,
   type LoadingStateProps,
 } from './components/LoadingState';
@@ -60,6 +65,12 @@ export {
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';
+export {
+  useOpenChoreoFeatures,
+  useWorkflowsEnabled,
+  useObservabilityEnabled,
+  useAuthEnabled,
+} from './hooks/useOpenChoreoFeatures';
 export {
   useComponentEntityDetails,
   extractComponentEntityDetails,

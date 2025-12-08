@@ -100,6 +100,11 @@ auth:
         tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
         scope: 'openid profile email'
 
+    # Guest provider - used when openchoreo.features.auth.enabled is false
+    # Allows users to access the portal without authentication (demo/development mode)
+    guest:
+      dangerouslyAllowOutsideDevelopment: true
+
 scaffolder:
   # see https://backstage.io/docs/features/software-templates/configuration for software template options
 
@@ -113,6 +118,23 @@ openchoreo:
   schedule:
     frequency: 30 # seconds between runs (default: 30)
     timeout: 120 # seconds for timeout (default: 120)
+
+  # Feature flags for enabling/disabling OpenChoreo functionality
+  # These can be controlled via Helm values: backstage.features.*
+  # Environment variables: OPENCHOREO_FEATURES_WORKFLOWS_ENABLED, OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED, OPENCHOREO_FEATURES_AUTH_ENABLED
+  features:
+    # Build plane / Workflows functionality
+    # When disabled, hides Workflows tab and WorkflowsOverviewCard from entity pages
+    workflows:
+      enabled: ${OPENCHOREO_FEATURES_WORKFLOWS_ENABLED}
+    # Observability plane features (Metrics, Traces, Runtime Logs)
+    # When disabled, hides Metrics, Traces, Runtime Logs tabs and RuntimeHealthCard from entity pages
+    observability:
+      enabled: ${OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED}
+    # Authentication configuration
+    # When disabled (false), users are automatically logged in as guests (no OAuth required)
+    auth:
+      enabled: ${OPENCHOREO_FEATURES_AUTH_ENABLED}
 
   # Component Type Mappings (optional - defaults provided)
   # Maps OpenChoreo component types to Backstage page variants

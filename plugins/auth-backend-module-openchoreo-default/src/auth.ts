@@ -236,6 +236,9 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
 /**
  * Default IDP auth provider module for OpenChoreo
  * Custom OAuth provider without OIDC discovery endpoint
+ *
+ * This provider checks the openchoreo.features.auth.enabled config flag.
+ * When disabled (false), this provider skips registration to allow guest mode.
  */
 export const OpenChoreoDefaultAuthModule = createBackendModule({
   pluginId: 'auth',
@@ -245,8 +248,20 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
       deps: {
         providers: authProvidersExtensionPoint,
         logger: coreServices.logger,
+        config: coreServices.rootConfig,
       },
-      async init({ providers, logger }) {
+      async init({ providers, logger, config }) {
+        // Check if auth feature is enabled (defaults to true)
+        const authEnabled =
+          config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
+
+        if (!authEnabled) {
+          logger.info(
+            'OpenChoreo default-idp auth provider disabled via openchoreo.features.auth.enabled=false',
+          );
+          return;
+        }
+
         providers.registerProvider({
           providerId: 'default-idp',
           factory: createOAuthProviderFactory({

@@ -16283,6 +16283,7 @@ __metadata:
     "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-openchoreo-observability": "workspace:^"
     "@openchoreo/backstage-plugin-platform-engineer-core": "workspace:^"
+    "@openchoreo/backstage-plugin-react": "workspace:^"
     "@playwright/test": "npm:1.56.0"
     "@rjsf/core": "npm:5.24.13"
     "@rjsf/material-ui": "npm:5.24.13"

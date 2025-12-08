@@ -31,6 +31,16 @@ openchoreo:
   baseUrl: http://api.openchoreo.localhost:8080/api/v1
   # token: ""  # Optional: uncomment if you need API authentication
 
+  # Feature flags (optional overrides)
+  # All features are enabled by default. Uncomment to disable specific features:
+  features:
+    workflows:
+      enabled: true    # Set to false to hide Workflows tab and build-related UI
+    observability:
+      enabled: true    # Set to false to hide Metrics, Traces, Runtime Logs tabs
+    auth:
+      enabled: true    # Set to false for guest mode (no OAuth login required)
+
 # Thunder IDP configuration (Kind cluster)
 thunder:
   baseUrl: http://thunder.openchoreo.localhost:8080

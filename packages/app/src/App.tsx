@@ -29,7 +29,7 @@ import {
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { UserSettingsPage } from '@backstage/plugin-user-settings';
-import { apis, defaultIdpAuthApiRef } from './apis';
+import { apis, defaultIdpAuthApiRef, guestAuthApiRef } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { searchPage } from './components/search/SearchPage';
@@ -52,6 +52,52 @@ import {
 } from '@openchoreo/backstage-design-system';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
+import { configApiRef, useApi } from '@backstage/core-plugin-api';
+
+/**
+ * Dynamic SignInPage that switches between OAuth and Guest mode
+ * based on openchoreo.features.auth.enabled configuration.
+ *
+ * When auth is enabled (default): Uses OpenChoreo IDP OAuth flow
+ * When auth is disabled: Auto-signs in as guest user
+ */
+function DynamicSignInPage(props: any) {
+  const configApi = useApi(configApiRef);
+
+  // Check if auth feature is enabled (defaults to true)
+  const authEnabled =
+    configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
+
+  if (!authEnabled) {
+    // Guest mode: auto-login as guest
+    return (
+      <SignInPage
+        {...props}
+        auto
+        provider={{
+          id: 'guest',
+          title: 'Guest',
+          message: 'Continue as Guest',
+          apiRef: guestAuthApiRef,
+        }}
+      />
+    );
+  }
+
+  // Default: OpenChoreo IDP OAuth
+  return (
+    <SignInPage
+      {...props}
+      auto
+      provider={{
+        id: 'default-idp',
+        title: 'OpenChoreo IDP',
+        message: 'Sign in using OpenChoreo Identity Provider',
+        apiRef: defaultIdpAuthApiRef,
+      }}
+    />
+  );
+}
 
 const app = createApp({
   apis,
@@ -73,18 +119,7 @@ const app = createApp({
     });
   },
   components: {
-    SignInPage: props => (
-      <SignInPage
-        {...props}
-        auto
-        provider={{
-          id: 'default-idp',
-          title: 'OpenChoreo IDP',
-          message: 'Sign in using OpenChoreo Identity Provider',
-          apiRef: defaultIdpAuthApiRef,
-        }}
-      />
-    ),
+    SignInPage: DynamicSignInPage,
   },
   themes: [
     {
