@@ -25,6 +25,12 @@ export const defaultIdpAuthApiRef: ApiRef<any> = createApiRef({
   id: 'auth.default-idp',
 });
 
+// API reference for guest authentication
+// Used when openchoreo.features.auth.enabled is false
+export const guestAuthApiRef: ApiRef<any> = createApiRef({
+  id: 'auth.guest',
+});
+
 export const apis: AnyApiFactory[] = [
   createApiFactory({
     api: scmIntegrationsApiRef,

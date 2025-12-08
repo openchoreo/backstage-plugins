@@ -12,6 +12,9 @@ export {
   type ComponentTypeMapping,
 } from './utils/componentTypeUtils';
 
+// Feature flags types
+export type { OpenChoreoFeatures, FeatureName } from './types/features';
+
 // Re-export types from the generated OpenAPI client for use in frontend plugins
 export type {
   OpenChoreoComponents,

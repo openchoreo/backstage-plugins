@@ -75,6 +75,9 @@ import {
   ObservabilityTraces,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
+import { FeatureGate } from '@openchoreo/backstage-plugin-react';
+import { FeatureGatedContent } from './FeatureGatedContent';
+
 const techdocsContent = (
   <EntityTechdocsContent>
     <TechDocsAddons>
@@ -82,37 +85,6 @@ const techdocsContent = (
     </TechDocsAddons>
   </EntityTechdocsContent>
 );
-
-// const cicdContent = (
-//   // This is an example of how you can implement your company's logic in entity page.
-//   // You can for example enforce that all components of type 'service' should use GitHubActions
-//   <EntitySwitch>
-//     {/*
-//       Here you can add support for different CI/CD services, for example
-//       using @backstage-community/plugin-github-actions as follows:
-//       <EntitySwitch.Case if={isGithubActionsAvailable}>
-//         <EntityGithubActionsContent />
-//       </EntitySwitch.Case>
-//      */}
-//
-//     <EntitySwitch.Case>
-//       <EmptyState
-//         title="No CI/CD available for this entity"
-//         missing="info"
-//         description="You need to add an annotation to your component if you want to enable CI/CD for it. You can read more about annotations in Backstage by clicking the button below."
-//         action={
-//           <Button
-//             variant="contained"
-//             color="primary"
-//             href="https://backstage.io/docs/features/software-catalog/well-known-annotations"
-//           >
-//             Read more
-//           </Button>
-//         }
-//       />
-//     </EntitySwitch.Case>
-//   </EntitySwitch>
-// );
 
 const entityWarningContent = (
   <>
@@ -142,56 +114,76 @@ const entityWarningContent = (
   </>
 );
 
-const overviewContent = (
-  <Grid container spacing={3} alignItems="stretch">
-    {entityWarningContent}
-    <EntitySwitch>
-      <EntitySwitch.Case if={isKind('component')}>
-        {/* OpenChoreo Summary Cards */}
-        <Grid item md={4} xs={12}>
-          <WorkflowsOverviewCard />
-        </Grid>
-        <Grid item md={4} xs={12}>
-          <ProductionOverviewCard />
-        </Grid>
-        <Grid item md={4} xs={12}>
-          <RuntimeHealthCard />
-        </Grid>
-      </EntitySwitch.Case>
-    </EntitySwitch>
-    <Grid item md={6}>
-      <EntityAboutCard variant="gridItem" />
+/**
+ * Overview content component with feature-gated cards.
+ * WorkflowsOverviewCard is gated by workflows feature.
+ * RuntimeHealthCard is gated by observability feature.
+ */
+function OverviewContent() {
+  return (
+    <Grid container spacing={3} alignItems="stretch">
+      {entityWarningContent}
+      <EntitySwitch>
+        <EntitySwitch.Case if={isKind('component')}>
+          {/* OpenChoreo Summary Cards - feature gated */}
+          <FeatureGate feature="workflows">
+            <Grid item md={4} xs={12}>
+              <WorkflowsOverviewCard />
+            </Grid>
+          </FeatureGate>
+          <Grid item md={4} xs={12}>
+            <ProductionOverviewCard />
+          </Grid>
+          <FeatureGate feature="observability">
+            <Grid item md={4} xs={12}>
+              <RuntimeHealthCard />
+            </Grid>
+          </FeatureGate>
+        </EntitySwitch.Case>
+      </EntitySwitch>
+      <Grid item md={6}>
+        <EntityAboutCard variant="gridItem" />
+      </Grid>
+      <Grid item md={6} xs={12}>
+        <EntityCatalogGraphCard variant="gridItem" height={400} />
+      </Grid>
     </Grid>
-    <Grid item md={6} xs={12}>
-      <EntityCatalogGraphCard variant="gridItem" height={400} />
-    </Grid>
-  </Grid>
-);
+  );
+}
 
+/**
+ * Service entity page with feature-gated routes.
+ * - Workflows tab: shows empty state when workflows feature is disabled
+ * - Runtime Logs tab: shows empty state when observability feature is disabled
+ * - Metrics tab: shows empty state when observability feature is disabled
+ */
 const serviceEntityPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
-      {overviewContent}
+      <OverviewContent />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/workflows" title="Workflows">
-      <Workflows />
+      <FeatureGatedContent feature="workflows">
+        <Workflows />
+      </FeatureGatedContent>
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/environments" title="Deploy">
       <Environments />
     </EntityLayout.Route>
+
     <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
-      <RuntimeLogs />
+      <FeatureGatedContent feature="observability">
+        <RuntimeLogs />
+      </FeatureGatedContent>
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/metrics" title="Metrics">
-      <ObservabilityMetrics />
+      <FeatureGatedContent feature="observability">
+        <ObservabilityMetrics />
+      </FeatureGatedContent>
     </EntityLayout.Route>
-
-    {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
-      {cicdContent}
-    </EntityLayout.Route> */}
 
     <EntityLayout.Route
       path="/kubernetes"
@@ -229,14 +221,22 @@ const serviceEntityPage = (
   </EntityLayout>
 );
 
+/**
+ * Website entity page with feature-gated routes.
+ * - Workflows tab: shows empty state when workflows feature is disabled
+ * - Runtime Logs tab: shows empty state when observability feature is disabled
+ * - Metrics tab: shows empty state when observability feature is disabled
+ */
 const websiteEntityPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
-      {overviewContent}
+      <OverviewContent />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/workflows" title="Workflows">
-      <Workflows />
+      <FeatureGatedContent feature="workflows">
+        <Workflows />
+      </FeatureGatedContent>
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/environments" title="Deploy">
@@ -244,16 +244,16 @@ const websiteEntityPage = (
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
-      <RuntimeLogs />
+      <FeatureGatedContent feature="observability">
+        <RuntimeLogs />
+      </FeatureGatedContent>
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/metrics" title="Metrics">
-      <ObservabilityMetrics />
+      <FeatureGatedContent feature="observability">
+        <ObservabilityMetrics />
+      </FeatureGatedContent>
     </EntityLayout.Route>
-
-    {/* <EntityLayout.Route path="/ci-cd" title="CI/CD">
-      {cicdContent}
-    </EntityLayout.Route> */}
 
     <EntityLayout.Route
       path="/kubernetes"
@@ -290,7 +290,7 @@ const websiteEntityPage = (
 const defaultEntityPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
-      {overviewContent}
+      <OverviewContent />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/docs" title="Docs">
@@ -419,6 +419,10 @@ const groupPage = (
   </EntityLayout>
 );
 
+/**
+ * System page with feature-gated Traces route.
+ * - Traces tab: shows empty state when observability feature is disabled
+ */
 const systemPage = (
   <EntityLayout>
     <EntityLayout.Route path="/" title="Overview">
@@ -464,7 +468,9 @@ const systemPage = (
       />
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">
-      <ObservabilityTraces />
+      <FeatureGatedContent feature="observability">
+        <ObservabilityTraces />
+      </FeatureGatedContent>
     </EntityLayout.Route>
   </EntityLayout>
 );
