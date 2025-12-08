@@ -47,12 +47,18 @@ interface WorkloadConfigPageProps {
   onNext: (releaseName: string, targetEnvironment: string) => void;
   /** The lowest environment name (first in deployment pipeline) */
   lowestEnvironment: string;
+  /** Initial tab to display (from URL) */
+  initialTab?: string;
+  /** Callback when tab changes (to update URL) */
+  onTabChange?: (tab: string) => void;
 }
 
 export const WorkloadConfigPage = ({
   onBack,
   onNext,
   lowestEnvironment,
+  initialTab,
+  onTabChange,
 }: WorkloadConfigPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
@@ -269,7 +275,11 @@ export const WorkloadConfigPage = ({
           isDeploying={isProcessing || isLoading}
           initialWorkload={initialWorkload}
         >
-          <WorkloadEditor entity={entity} />
+          <WorkloadEditor
+            entity={entity}
+            initialTab={initialTab}
+            onTabChange={onTabChange}
+          />
         </WorkloadProvider>
       )}
 

@@ -10,3 +10,8 @@ export { useRequiredOverridesCheck } from './useRequiredOverridesCheck';
 export type { RequiredOverridesCheckResult } from './useRequiredOverridesCheck';
 export { isAlreadyPromoted } from './promotionUtils';
 export { useInvokeUrl } from './useInvokeUrl';
+export {
+  useEnvironmentRouting,
+  type EnvironmentView,
+  type EnvironmentRoutingState,
+} from './useEnvironmentRouting';

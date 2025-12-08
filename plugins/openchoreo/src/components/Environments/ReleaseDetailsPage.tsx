@@ -46,12 +46,18 @@ interface ReleaseDetailsPageProps {
   environment: Environment;
   entity: Entity;
   onBack: () => void;
+  /** Initial tab to display (from URL) */
+  initialTab?: string;
+  /** Callback when tab changes (to update URL) */
+  onTabChange?: (tabId: string) => void;
 }
 
 export const ReleaseDetailsPage = ({
   environment,
   entity,
   onBack,
+  initialTab,
+  onTabChange,
 }: ReleaseDetailsPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
@@ -124,7 +130,11 @@ export const ReleaseDetailsPage = ({
       )}
 
       {!loading && !error && releaseData && (
-        <ReleaseInfoTabbedView releaseData={releaseData} />
+        <ReleaseInfoTabbedView
+          releaseData={releaseData}
+          initialTab={initialTab}
+          onTabChange={onTabChange}
+        />
       )}
 
       {!loading && !error && !releaseData && (

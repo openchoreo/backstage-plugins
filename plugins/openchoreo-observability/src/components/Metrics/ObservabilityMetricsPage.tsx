@@ -15,7 +15,7 @@ import { MetricsActions } from './MetricsActions';
 import {
   useGetOrgAndProjectByEntity,
   useGetEnvironmentsByOrganization,
-  useFilters,
+  useUrlFilters,
   useMetrics,
 } from '../../hooks';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -32,7 +32,6 @@ import { Alert } from '@material-ui/lab';
 export const ObservabilityMetricsPage = () => {
   const classes = useObservabilityMetricsPageStyles();
   const { entity } = useEntity();
-  const { filters, updateFilters } = useFilters();
   const {
     organization,
     project,
@@ -43,6 +42,11 @@ export const ObservabilityMetricsPage = () => {
     loading: environmentsLoading,
     error: environmentsError,
   } = useGetEnvironmentsByOrganization(organization);
+
+  // URL-synced filters - must be after environments are available
+  const { filters, updateFilters } = useUrlFilters({
+    environments: environments as Environment[],
+  });
 
   // Fetch metrics using the custom hook
   const {
@@ -63,12 +67,7 @@ export const ObservabilityMetricsPage = () => {
     projectId: projectId,
   });
 
-  // Auto-select first environment when environments are loaded
-  useEffect(() => {
-    if (environments.length > 0 && !filters.environment) {
-      updateFilters({ environment: environments[0] });
-    }
-  }, [environments, filters.environment, updateFilters]);
+  // Note: Auto-selection of first environment is handled by useUrlFilters hook
 
   // Fetch metrics when filters change or when component/project IDs become available
   useEffect(() => {

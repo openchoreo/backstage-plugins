@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   ModelsWorkload,
@@ -27,6 +27,10 @@ import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
 
 interface WorkloadEditorProps {
   entity: Entity;
+  /** Initial tab to display (from URL) */
+  initialTab?: string;
+  /** Callback when tab changes (to update URL) */
+  onTabChange?: (tab: string) => void;
 }
 
 const useStyles = makeStyles(() => ({
@@ -50,7 +54,11 @@ function getTabStatus(
   return undefined; // No data
 }
 
-export function WorkloadEditor({ entity }: WorkloadEditorProps) {
+export function WorkloadEditor({
+  entity,
+  initialTab,
+  onTabChange,
+}: WorkloadEditorProps) {
   const classes = useStyles();
   const { workloadSpec, setWorkloadSpec, isDeploying, builds, changes } =
     useWorkloadContext();
@@ -72,7 +80,16 @@ export function WorkloadEditor({ entity }: WorkloadEditorProps) {
   });
 
   const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
-  const [activeTab, setActiveTab] = useState('containers');
+  const [activeTab, setActiveTabState] = useState(initialTab || 'containers');
+
+  // Wrapper to update both local state and URL
+  const setActiveTab = useCallback(
+    (tabId: string) => {
+      setActiveTabState(tabId);
+      onTabChange?.(tabId);
+    },
+    [onTabChange],
+  );
 
   useEffect(() => {
     if (workloadSpec) {

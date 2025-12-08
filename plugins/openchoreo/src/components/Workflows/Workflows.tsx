@@ -23,11 +23,10 @@ import {
 import { WorkflowConfigPage } from './WorkflowConfigPage';
 import { WorkflowRunDetailsPage } from './WorkflowRunDetailsPage';
 import { RunsTab, OverviewTab, BuildWithCommitDialog } from './components';
-import { useWorkflowData } from './hooks';
+import { useWorkflowData, useWorkflowRouting } from './hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import { useComponentEntityDetails } from '@openchoreo/backstage-plugin-react';
 import { useAsyncOperation } from '../../hooks';
-import type { WorkflowViewMode } from './types';
 
 const useStyles = makeStyles(theme => ({
   header: {
@@ -51,6 +50,14 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     flexDirection: 'column',
   },
+  notFoundContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 300,
+    padding: theme.spacing(4),
+  },
 }));
 
 export const Workflows = () => {
@@ -59,9 +66,16 @@ export const Workflows = () => {
   const identityApi = useApi(identityApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
-  // View mode state
-  const [viewMode, setViewMode] = useState<WorkflowViewMode>({ type: 'list' });
-  const [activeTab, setActiveTab] = useState('runs');
+  // URL-based routing
+  const {
+    state: routingState,
+    setTab,
+    navigateToList,
+    navigateToConfig,
+    navigateToRunDetails,
+  } = useWorkflowRouting();
+
+  // Dialog state
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
 
   // Data fetching hook
@@ -69,6 +83,16 @@ export const Workflows = () => {
 
   // Check if component has workflow from componentDetails
   const hasWorkflow = !!workflowData.componentDetails?.componentWorkflow;
+
+  // Find run by ID for run-details view
+  const selectedRun = useMemo(() => {
+    if (routingState.view !== 'run-details' || !routingState.runId) {
+      return undefined;
+    }
+    return workflowData.builds.find(
+      build => build.name === routingState.runId,
+    );
+  }, [routingState.view, routingState.runId, workflowData.builds]);
 
   // Async operation for triggering workflow
   const triggerWorkflowOp = useAsyncOperation(
@@ -107,16 +131,21 @@ export const Workflows = () => {
 
   // Navigation handlers
   const handleBack = useCallback(() => {
-    setViewMode({ type: 'list' });
-  }, []);
+    navigateToList();
+  }, [navigateToList]);
 
   const handleOpenConfig = useCallback(() => {
-    setViewMode({ type: 'config' });
-  }, []);
+    navigateToConfig();
+  }, [navigateToConfig]);
 
-  const handleOpenRunDetails = useCallback((run: ModelsBuild) => {
-    setViewMode({ type: 'run-details', run });
-  }, []);
+  const handleOpenRunDetails = useCallback(
+    (run: ModelsBuild) => {
+      if (run.name) {
+        navigateToRunDetails(run.name);
+      }
+    },
+    [navigateToRunDetails],
+  );
 
   const handleOpenCommitDialog = useCallback(() => {
     setIsCommitDialogOpen(true);
@@ -152,7 +181,7 @@ export const Workflows = () => {
   );
 
   const renderTabContent = () => {
-    switch (activeTab) {
+    switch (routingState.tab) {
       case 'runs':
         return (
           <RunsTab
@@ -197,7 +226,7 @@ export const Workflows = () => {
 
   // Config page view
   if (
-    viewMode.type === 'config' &&
+    routingState.view === 'config' &&
     workflowData.componentDetails?.componentWorkflow
   ) {
     return (
@@ -221,8 +250,25 @@ export const Workflows = () => {
   }
 
   // Run details page view
-  if (viewMode.type === 'run-details') {
-    return <WorkflowRunDetailsPage run={viewMode.run} onBack={handleBack} />;
+  if (routingState.view === 'run-details') {
+    // Run not found
+    if (!selectedRun) {
+      return (
+        <Box className={classes.notFoundContainer}>
+          <Typography variant="h6" gutterBottom>
+            Run Not Found
+          </Typography>
+          <Typography variant="body2" color="textSecondary" gutterBottom>
+            The workflow run "{routingState.runId}" could not be found.
+          </Typography>
+          <Button variant="outlined" onClick={handleBack}>
+            Back to Workflows
+          </Button>
+        </Box>
+      );
+    }
+
+    return <WorkflowRunDetailsPage run={selectedRun} onBack={handleBack} />;
   }
 
   // Main list view with vertical tabs
@@ -235,7 +281,7 @@ export const Workflows = () => {
           Workflows
         </Typography>
         <Box className={classes.headerActions}>
-          {activeTab === 'runs' ? (
+          {routingState.tab === 'runs' ? (
             <>
               <Button
                 variant="outlined"
@@ -284,8 +330,8 @@ export const Workflows = () => {
 
       <VerticalTabNav
         tabs={tabs}
-        activeTabId={activeTab}
-        onChange={setActiveTab}
+        activeTabId={routingState.tab}
+        onChange={tabId => setTab(tabId as 'runs' | 'configurations')}
       >
         {renderTabContent()}
       </VerticalTabNav>

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Box, Button, Typography } from '@material-ui/core';
 import { TracesFilters } from './TracesFilters';
 import { TracesActions } from './TracesActions';
@@ -7,12 +7,12 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { convertToTableFormat } from './utils';
 import {
-  useFilters,
+  useUrlFilters,
   useTraces,
   useGetEnvironmentsByOrganization,
   useGetComponentsByProject,
 } from '../../hooks';
-import { Trace } from '../../types';
+import { Trace, Environment } from '../../types';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 
@@ -30,7 +30,11 @@ export const ObservabilityTracesPage = () => {
     loading: componentsLoading,
     error: componentsError,
   } = useGetComponentsByProject(entity);
-  const { filters, updateFilters } = useFilters();
+
+  // URL-synced filters - must be after environments are available
+  const { filters, updateFilters } = useUrlFilters({
+    environments: environments as Environment[],
+  });
 
   const {
     traces,
@@ -39,12 +43,7 @@ export const ObservabilityTracesPage = () => {
     refresh,
   } = useTraces(filters, entity);
 
-  // Auto-select first environment when environments are loaded
-  useEffect(() => {
-    if (environments.length > 0 && !filters.environment) {
-      updateFilters({ environment: environments[0] });
-    }
-  }, [environments, filters.environment, updateFilters]);
+  // Note: Auto-selection of first environment is handled by useUrlFilters hook
 
   const handleFiltersChange = useCallback(
     (newFilters: Partial<typeof filters>) => {

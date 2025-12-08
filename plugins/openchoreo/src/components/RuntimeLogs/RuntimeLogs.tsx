@@ -4,19 +4,21 @@ import { Alert } from '@material-ui/lab';
 import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
 import { LogsActions } from './LogsActions';
-import { useEnvironments, useRuntimeLogs, useFilters } from './hooks';
+import { useEnvironments, useRuntimeLogs, useUrlFilters } from './hooks';
 import { useInfiniteScroll } from '@openchoreo/backstage-plugin-react';
 import { RuntimeLogsPagination } from './types';
 import { useRuntimeLogsStyles } from './styles';
 
 export const RuntimeLogs = () => {
   const classes = useRuntimeLogsStyles();
-  const { filters, updateFilters } = useFilters();
   const {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
   } = useEnvironments();
+
+  // URL-synced filters - must be after environments are available
+  const { filters, updateFilters } = useUrlFilters({ environments });
 
   // Pagination config
   // (offset pagination is not supported by the backend, using timestamp-based pagination instead)
@@ -46,12 +48,7 @@ export const RuntimeLogs = () => {
     timeRange: filters.timeRange,
   });
 
-  // Auto-select first environment when environments are loaded
-  useEffect(() => {
-    if (environments.length > 0 && !filters.environmentId) {
-      updateFilters({ environmentId: environments[0].id });
-    }
-  }, [environments, filters.environmentId, updateFilters]);
+  // Note: Auto-selection of first environment is handled by useUrlFilters hook
 
   // Fetch logs when backend-relevant filters change
   useEffect(() => {
