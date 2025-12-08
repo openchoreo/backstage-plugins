@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   ModelsWorkload,
@@ -15,7 +15,10 @@ import { ConnectionContent } from './ConnectionContent';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
-import { useSecretReferences } from '@openchoreo/backstage-plugin-react';
+import {
+  useSecretReferences,
+  useUrlSyncedTab,
+} from '@openchoreo/backstage-plugin-react';
 import {
   VerticalTabNav,
   TabItemData,
@@ -80,16 +83,12 @@ export function WorkloadEditor({
   });
 
   const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
-  const [activeTab, setActiveTabState] = useState(initialTab || 'containers');
 
-  // Wrapper to update both local state and URL
-  const setActiveTab = useCallback(
-    (tabId: string) => {
-      setActiveTabState(tabId);
-      onTabChange?.(tabId);
-    },
-    [onTabChange],
-  );
+  const [activeTab, setActiveTab] = useUrlSyncedTab({
+    initialTab,
+    defaultTab: 'containers',
+    onTabChange,
+  });
 
   useEffect(() => {
     if (workloadSpec) {

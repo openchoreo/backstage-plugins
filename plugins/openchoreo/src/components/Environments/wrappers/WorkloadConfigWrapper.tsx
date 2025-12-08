@@ -17,13 +17,15 @@ export const WorkloadConfigWrapper = () => {
   // Get active tab from URL (containers, endpoints, connections)
   const activeTab = searchParams.get('tab') || 'containers';
 
-  // Handle tab change - update URL without replace to allow back navigation
+  // Handle tab change - update URL
+  // When replace is true (default tab initialization), don't add to history
+  // When replace is false (user interaction), add to history for back button support
   const handleTabChange = useCallback(
-    (tab: string) => {
+    (tab: string, replace = false) => {
       const newParams = new URLSearchParams(searchParams);
       // Always set tab param for consistency (including first tab)
       newParams.set('tab', tab);
-      navigate(`?${newParams.toString()}`, { replace: false });
+      navigate(`?${newParams.toString()}`, { replace });
     },
     [searchParams, navigate],
   );

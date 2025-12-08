@@ -101,9 +101,10 @@ export function useWorkflowRouting() {
 
   /**
    * Set the active tab in list view
+   * @param replace - If true, replace current history entry instead of adding new one
    */
   const setTab = useCallback(
-    (tab: WorkflowTab) => {
+    (tab: WorkflowTab, replace = false) => {
       const newParams = new URLSearchParams(searchParams);
 
       if (tab === 'runs') {
@@ -113,16 +114,17 @@ export function useWorkflowRouting() {
         newParams.set('tab', tab);
       }
 
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(newParams, { replace });
     },
     [searchParams, setSearchParams],
   );
 
   /**
    * Set the active tab in run details view
+   * @param replace - If true, replace current history entry instead of adding new one
    */
   const setRunDetailsTab = useCallback(
-    (tab: RunDetailsTab) => {
+    (tab: RunDetailsTab, replace = false) => {
       const newParams = new URLSearchParams(searchParams);
 
       if (tab === 'logs') {
@@ -132,7 +134,7 @@ export function useWorkflowRouting() {
         newParams.set('tab', tab);
       }
 
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(newParams, { replace });
     },
     [searchParams, setSearchParams],
   );

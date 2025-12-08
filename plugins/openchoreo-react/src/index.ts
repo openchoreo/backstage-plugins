@@ -97,6 +97,11 @@ export {
   useChangeDetection,
   type UseChangeDetectionResult,
 } from './hooks/useChangeDetection';
+export {
+  useUrlSyncedTab,
+  type UseUrlSyncedTabOptions,
+  type UseUrlSyncedTabResult,
+} from './hooks/useUrlSyncedTab';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';

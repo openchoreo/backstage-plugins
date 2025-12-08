@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useEffect } from 'react';
 import type { FC } from 'react';
 import { Typography } from '@material-ui/core';
 import InfoIcon from '@material-ui/icons/Info';
@@ -6,6 +6,7 @@ import {
   VerticalTabNav,
   TabItemData,
 } from '@openchoreo/backstage-design-system';
+import { useUrlSyncedTab } from '@openchoreo/backstage-plugin-react';
 import { ReleaseData } from './types';
 import { useReleaseInfoStyles } from './styles';
 import { getHealthStatusForTab } from './utils';
@@ -32,18 +33,12 @@ export const ReleaseInfoTabbedView: FC<ReleaseInfoTabbedViewProps> = ({
 }) => {
   const classes = useReleaseInfoStyles();
   const data = releaseData?.data;
-  const [activeTab, setActiveTabState] = useState<string>(
-    initialTab || 'overview',
-  );
 
-  // Wrapper to update both local state and URL
-  const setActiveTab = useCallback(
-    (tabId: string) => {
-      setActiveTabState(tabId);
-      onTabChange?.(tabId);
-    },
-    [onTabChange],
-  );
+  const [activeTab, setActiveTab] = useUrlSyncedTab({
+    initialTab,
+    defaultTab: 'overview',
+    onTabChange,
+  });
 
   // Group resources by kind
   const resourceGroups = useResourceGroups(data);
@@ -75,10 +70,10 @@ export const ReleaseInfoTabbedView: FC<ReleaseInfoTabbedViewProps> = ({
   useEffect(() => {
     if (!activeTab && tabs.length > 0) {
       const defaultTab = tabs[0].id;
-      setActiveTabState(defaultTab);
-      onTabChange?.(defaultTab);
+      // Use replace: true to avoid adding to history when auto-setting default tab
+      setActiveTab(defaultTab, true);
     }
-  }, [tabs, activeTab, onTabChange]);
+  }, [tabs, activeTab, setActiveTab]);
 
   if (!data || (!data.spec && !data.status)) {
     return (

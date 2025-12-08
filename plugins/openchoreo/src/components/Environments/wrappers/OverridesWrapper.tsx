@@ -30,17 +30,18 @@ export const OverridesWrapper = () => {
   // Get active tab from URL
   const activeTab = searchParams.get('tab') || '';
 
-  // Handle tab change - update URL without replace to allow back navigation
+  // Handle tab change - update URL
+  // When replace is true (default tab initialization), don't add to history
+  // When replace is false (user interaction), add to history for back button support
   const handleTabChange = useCallback(
-    (tabId: string) => {
+    (tabId: string, replace = false) => {
       const newParams = new URLSearchParams(searchParams);
       if (tabId) {
         newParams.set('tab', tabId);
       } else {
         newParams.delete('tab');
       }
-      // Use navigate instead of setSearchParams to add to history
-      navigate(`?${newParams.toString()}`, { replace: false });
+      navigate(`?${newParams.toString()}`, { replace });
     },
     [searchParams, navigate],
   );
