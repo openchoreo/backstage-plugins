@@ -111,9 +111,10 @@ export const OverridesWrapper = () => {
     refetch();
   };
 
-  const handlePrevious = pendingAction?.type === 'deploy'
-    ? () => navigateToWorkloadConfig()
-    : undefined;
+  const handlePrevious =
+    pendingAction?.type === 'deploy'
+      ? () => navigateToWorkloadConfig()
+      : undefined;
 
   // Error state: environment not found
   if (!environment) {

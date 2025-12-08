@@ -38,8 +38,11 @@ export const EnvironmentsList = () => {
     onAutoDeployChange,
   } = useEnvironmentsContext();
 
-  const { navigateToWorkloadConfig, navigateToOverrides, navigateToReleaseDetails } =
-    useEnvironmentRouting();
+  const {
+    navigateToWorkloadConfig,
+    navigateToOverrides,
+    navigateToReleaseDetails,
+  } = useEnvironmentRouting();
 
   // Action trackers
   const refreshTracker = useItemActionTracker<string>();

@@ -89,9 +89,7 @@ export const Workflows = () => {
     if (routingState.view !== 'run-details' || !routingState.runId) {
       return undefined;
     }
-    return workflowData.builds.find(
-      build => build.name === routingState.runId,
-    );
+    return workflowData.builds.find(build => build.name === routingState.runId);
   }, [routingState.view, routingState.runId, workflowData.builds]);
 
   // Async operation for triggering workflow

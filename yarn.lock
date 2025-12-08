@@ -9296,6 +9296,7 @@ __metadata:
     recharts: "npm:3.4.1"
   peerDependencies:
     react: ^18.0.0
+    react-router-dom: ^6.0.0
   languageName: unknown
   linkType: soft
 
@@ -9448,7 +9449,7 @@ __metadata:
   peerDependencies:
     react: ^18.0.0
     react-dom: ^18.0.0
-    react-router-dom: ^6.3.0
+    react-router-dom: "*"
   languageName: unknown
   linkType: soft
 

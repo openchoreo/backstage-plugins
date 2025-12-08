@@ -105,6 +105,10 @@ export const EnvironmentOverridesPage = ({
   // Load secret references for workload overrides
   const { secretReferences } = useSecretReferences();
 
+  // Use pendingAction release name when promoting/deploying, otherwise use environment's release
+  const releaseNameForOverrides =
+    pendingAction?.releaseName || environment.deployment.releaseName;
+
   // Load data using custom hook
   const {
     loading,
@@ -120,7 +124,7 @@ export const EnvironmentOverridesPage = ({
     discovery,
     identityApi,
     environment.name,
-    environment.deployment.releaseName,
+    releaseNameForOverrides,
     true, // always open
   );
 
