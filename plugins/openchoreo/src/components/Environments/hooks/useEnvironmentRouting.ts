@@ -1,7 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import {
-  serializePendingAction,
+  buildEnvironmentsBasePath,
+  buildOverridesPath,
+  buildReleaseDetailsPath,
+  buildWorkloadConfigPath,
   deserializePendingAction,
   type PendingAction,
 } from '@openchoreo/backstage-plugin-react';
@@ -41,6 +45,10 @@ export function useEnvironmentRouting() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const { entity } = useEntity();
+
+  // Get absolute base path for environments
+  const basePath = useMemo(() => buildEnvironmentsBasePath(entity), [entity]);
 
   // Derive current state from URL
   const state = useMemo<EnvironmentRoutingState>(() => {
@@ -73,36 +81,27 @@ export function useEnvironmentRouting() {
     return { view: 'list' };
   }, [location.pathname, searchParams]);
 
-  // Navigation helpers
+  // Navigation helpers using absolute paths
   const navigateToList = useCallback(() => {
-    navigate('.');
-  }, [navigate]);
+    navigate(basePath);
+  }, [navigate, basePath]);
 
   const navigateToWorkloadConfig = useCallback(() => {
-    navigate('../workload-config');
-  }, [navigate]);
+    navigate(buildWorkloadConfigPath(basePath));
+  }, [navigate, basePath]);
 
   const navigateToOverrides = useCallback(
     (envName: string, pendingAction?: PendingAction) => {
-      const encodedEnvName = encodeURIComponent(envName.toLowerCase());
-      let url = `../overrides/${encodedEnvName}`;
-
-      if (pendingAction) {
-        const params = serializePendingAction(pendingAction);
-        url += `?${params.toString()}`;
-      }
-
-      navigate(url);
+      navigate(buildOverridesPath(basePath, envName, pendingAction));
     },
-    [navigate],
+    [navigate, basePath],
   );
 
   const navigateToReleaseDetails = useCallback(
     (envName: string) => {
-      const encodedEnvName = encodeURIComponent(envName.toLowerCase());
-      navigate(`../release/${encodedEnvName}`);
+      navigate(buildReleaseDetailsPath(basePath, envName));
     },
-    [navigate],
+    [navigate, basePath],
   );
 
   /**
