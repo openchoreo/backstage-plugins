@@ -1,9 +1,14 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import type {
-  WorkflowView,
-  WorkflowTab,
-  RunDetailsTab,
+import { useEntity } from '@backstage/plugin-catalog-react';
+import {
+  buildWorkflowsBasePath,
+  buildWorkflowRunPath,
+  buildWorkflowConfigPath,
+  buildWorkflowListPath,
+  type WorkflowView,
+  type WorkflowTab,
+  type RunDetailsTab,
 } from '@openchoreo/backstage-plugin-react';
 
 // Re-export types for backwards compatibility
@@ -51,6 +56,10 @@ export function useWorkflowRouting() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { entity } = useEntity();
+
+  // Get absolute base path for workflows
+  const basePath = useMemo(() => buildWorkflowsBasePath(entity), [entity]);
 
   // Derive current state from URL
   const state = useMemo<WorkflowRoutingState>(() => {
@@ -133,32 +142,26 @@ export function useWorkflowRouting() {
    */
   const navigateToList = useCallback(
     (tab?: WorkflowTab) => {
-      if (tab && tab !== 'runs') {
-        navigate(`.?tab=${tab}`);
-      } else {
-        navigate('.', { replace: true });
-      }
+      navigate(buildWorkflowListPath(basePath, tab));
     },
-    [navigate],
+    [navigate, basePath],
   );
 
   /**
    * Navigate to the config edit page
    */
   const navigateToConfig = useCallback(() => {
-    navigate('./config');
-  }, [navigate]);
+    navigate(buildWorkflowConfigPath(basePath));
+  }, [navigate, basePath]);
 
   /**
    * Navigate to run details page
    */
   const navigateToRunDetails = useCallback(
     (runId: string, tab?: RunDetailsTab) => {
-      const encodedRunId = encodeURIComponent(runId);
-      const query = tab && tab !== 'logs' ? `?tab=${tab}` : '';
-      navigate(`./run/${encodedRunId}${query}`);
+      navigate(buildWorkflowRunPath(basePath, runId, tab));
     },
-    [navigate],
+    [navigate, basePath],
   );
 
   /**
