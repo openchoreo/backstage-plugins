@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { Entity } from '@backstage/catalog-model';
@@ -70,6 +70,10 @@ interface EnvironmentOverridesPageProps {
   onPendingActionComplete?: (action: PendingAction) => Promise<void>;
   /** Callback when Previous button is clicked (only shown when pendingAction exists) */
   onPrevious?: () => void;
+  /** Initial tab to display (from URL) */
+  initialTab?: string;
+  /** Callback when tab changes (to update URL) */
+  onTabChange?: (tabId: string) => void;
 }
 
 export const EnvironmentOverridesPage = ({
@@ -80,6 +84,8 @@ export const EnvironmentOverridesPage = ({
   pendingAction,
   onPendingActionComplete,
   onPrevious,
+  initialTab,
+  onTabChange,
 }: EnvironmentOverridesPageProps) => {
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
@@ -235,8 +241,17 @@ export const EnvironmentOverridesPage = ({
     missingRequiredFields,
   ]);
 
-  // Set initial active tab
-  const [activeTab, setActiveTab] = useState<string>('');
+  // Set initial active tab - prefer initialTab from URL, otherwise empty
+  const [activeTab, setActiveTabState] = useState<string>(initialTab || '');
+
+  // Wrapper to update both local state and URL
+  const setActiveTab = useCallback(
+    (tabId: string) => {
+      setActiveTabState(tabId);
+      onTabChange?.(tabId);
+    },
+    [onTabChange],
+  );
 
   // Set default active tab when tabs are loaded
   useEffect(() => {
@@ -247,9 +262,11 @@ export const EnvironmentOverridesPage = ({
       tabs.length > 0 &&
       !activeTab
     ) {
-      setActiveTab(tabs[0].id);
+      const defaultTab = tabs[0].id;
+      setActiveTabState(defaultTab);
+      onTabChange?.(defaultTab);
     }
-  }, [loading, formState.baseWorkloadData, tabs, activeTab]);
+  }, [loading, formState.baseWorkloadData, tabs, activeTab, onTabChange]);
 
   // Workload container management functions
   const handleContainerChange = (

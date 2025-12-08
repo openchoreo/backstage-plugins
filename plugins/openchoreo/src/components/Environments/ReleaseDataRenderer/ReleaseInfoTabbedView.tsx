@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import type { FC } from 'react';
 import { Typography } from '@material-ui/core';
 import InfoIcon from '@material-ui/icons/Info';
@@ -15,6 +15,10 @@ import { ResourceGroupTab } from './ResourceGroupTab';
 
 interface ReleaseInfoTabbedViewProps {
   releaseData: ReleaseData;
+  /** Initial tab to display (from URL) */
+  initialTab?: string;
+  /** Callback when tab changes (to update URL) */
+  onTabChange?: (tabId: string) => void;
 }
 
 /**
@@ -23,10 +27,23 @@ interface ReleaseInfoTabbedViewProps {
  */
 export const ReleaseInfoTabbedView: FC<ReleaseInfoTabbedViewProps> = ({
   releaseData,
+  initialTab,
+  onTabChange,
 }) => {
   const classes = useReleaseInfoStyles();
   const data = releaseData?.data;
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTabState] = useState<string>(
+    initialTab || 'overview',
+  );
+
+  // Wrapper to update both local state and URL
+  const setActiveTab = useCallback(
+    (tabId: string) => {
+      setActiveTabState(tabId);
+      onTabChange?.(tabId);
+    },
+    [onTabChange],
+  );
 
   // Group resources by kind
   const resourceGroups = useResourceGroups(data);
@@ -54,12 +71,14 @@ export const ReleaseInfoTabbedView: FC<ReleaseInfoTabbedViewProps> = ({
     return tabList;
   }, [resourceGroups]);
 
-  // Set default tab if not set
-  useMemo(() => {
+  // Set default tab if not set and no initial tab provided
+  useEffect(() => {
     if (!activeTab && tabs.length > 0) {
-      setActiveTab(tabs[0].id);
+      const defaultTab = tabs[0].id;
+      setActiveTabState(defaultTab);
+      onTabChange?.(defaultTab);
     }
-  }, [tabs, activeTab]);
+  }, [tabs, activeTab, onTabChange]);
 
   if (!data || (!data.spec && !data.status)) {
     return (
