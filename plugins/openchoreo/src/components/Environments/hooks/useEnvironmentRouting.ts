@@ -1,9 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import {
-  useNavigate,
-  useSearchParams,
-  useLocation,
-} from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import type { PendingAction } from '../types';
 
 export type EnvironmentView =
@@ -123,7 +119,7 @@ export function useEnvironmentRouting() {
 
   // Navigation helpers
   const navigateToList = useCallback(() => {
-    navigate('..');
+    navigate('.');
   }, [navigate]);
 
   const navigateToWorkloadConfig = useCallback(() => {
@@ -132,7 +128,7 @@ export function useEnvironmentRouting() {
 
   const navigateToOverrides = useCallback(
     (envName: string, pendingAction?: PendingAction) => {
-      const encodedEnvName = encodeURIComponent(envName);
+      const encodedEnvName = encodeURIComponent(envName.toLowerCase());
       let url = `../overrides/${encodedEnvName}`;
 
       if (pendingAction) {
@@ -147,7 +143,7 @@ export function useEnvironmentRouting() {
 
   const navigateToReleaseDetails = useCallback(
     (envName: string) => {
-      const encodedEnvName = encodeURIComponent(envName);
+      const encodedEnvName = encodeURIComponent(envName.toLowerCase());
       navigate(`../release/${encodedEnvName}`);
     },
     [navigate],
