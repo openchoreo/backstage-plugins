@@ -2,43 +2,11 @@ import { useMemo, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Box, Typography, Button } from '@material-ui/core';
+import { deserializePendingAction } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
 import { useEnvironmentRouting } from '../hooks/useEnvironmentRouting';
 import { EnvironmentOverridesPage } from '../EnvironmentOverridesPage';
 import type { Environment } from '../hooks/useEnvironmentData';
-import type { PendingAction } from '../types';
-
-/**
- * Deserializes a PendingAction from URL search params
- */
-function deserializePendingAction(
-  params: URLSearchParams,
-): PendingAction | undefined {
-  const type = params.get('action');
-  const releaseName = params.get('release');
-  const targetEnvironment = params.get('target');
-
-  if (!type || !releaseName || !targetEnvironment) {
-    return undefined;
-  }
-
-  if (type === 'deploy') {
-    return { type: 'deploy', releaseName, targetEnvironment };
-  }
-
-  if (type === 'promote') {
-    const sourceEnvironment = params.get('source');
-    if (!sourceEnvironment) return undefined;
-    return {
-      type: 'promote',
-      releaseName,
-      sourceEnvironment,
-      targetEnvironment,
-    };
-  }
-
-  return undefined;
-}
 
 /**
  * Wrapper component for EnvironmentOverridesPage that handles URL-based navigation.
