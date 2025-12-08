@@ -1,10 +1,17 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import type {
+  WorkflowView,
+  WorkflowTab,
+  RunDetailsTab,
+} from '@openchoreo/backstage-plugin-react';
 
-export type WorkflowTab = 'runs' | 'configurations';
-export type RunDetailsTab = 'logs' | 'details';
-
-export type WorkflowView = 'list' | 'config' | 'run-details';
+// Re-export types for backwards compatibility
+export type {
+  WorkflowView,
+  WorkflowTab,
+  RunDetailsTab,
+} from '@openchoreo/backstage-plugin-react';
 
 export interface WorkflowRoutingState {
   view: WorkflowView;

@@ -1,3 +1,4 @@
+import type { PendingAction } from '@openchoreo/backstage-plugin-react';
 import { useItemActionTracker } from '../../hooks';
 import { Notification } from '../../hooks/useNotification';
 import type { Environment } from './hooks/useEnvironmentData';
@@ -6,23 +7,12 @@ import type { Environment } from './hooks/useEnvironmentData';
 export type { Environment } from './hooks/useEnvironmentData';
 export type { Environment as EnvironmentType } from './hooks/useEnvironmentData';
 
-/**
- * Pending action context when redirecting to overrides page
- */
-export interface PendingDeployAction {
-  type: 'deploy';
-  releaseName: string;
-  targetEnvironment: string;
-}
-
-export interface PendingPromoteAction {
-  type: 'promote';
-  releaseName: string;
-  sourceEnvironment: string;
-  targetEnvironment: string;
-}
-
-export type PendingAction = PendingDeployAction | PendingPromoteAction;
+// Re-export pending action types from shared library
+export type {
+  PendingDeployAction,
+  PendingPromoteAction,
+  PendingAction,
+} from '@openchoreo/backstage-plugin-react';
 
 /**
  * View mode for the Environments component

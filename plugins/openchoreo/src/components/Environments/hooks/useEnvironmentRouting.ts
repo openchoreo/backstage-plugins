@@ -1,6 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import type { PendingAction } from '../types';
+import {
+  serializePendingAction,
+  deserializePendingAction,
+  type PendingAction,
+} from '@openchoreo/backstage-plugin-react';
 
 export type EnvironmentView =
   | 'list'
@@ -12,54 +16,6 @@ export interface EnvironmentRoutingState {
   view: EnvironmentView;
   envName?: string;
   pendingAction?: PendingAction;
-}
-
-/**
- * Serializes a PendingAction to URL search params
- */
-function serializePendingAction(action: PendingAction): URLSearchParams {
-  const params = new URLSearchParams();
-  params.set('action', action.type);
-  params.set('release', action.releaseName);
-  params.set('target', action.targetEnvironment);
-
-  if (action.type === 'promote') {
-    params.set('source', action.sourceEnvironment);
-  }
-
-  return params;
-}
-
-/**
- * Deserializes a PendingAction from URL search params
- */
-function deserializePendingAction(
-  params: URLSearchParams,
-): PendingAction | undefined {
-  const type = params.get('action');
-  const releaseName = params.get('release');
-  const targetEnvironment = params.get('target');
-
-  if (!type || !releaseName || !targetEnvironment) {
-    return undefined;
-  }
-
-  if (type === 'deploy') {
-    return { type: 'deploy', releaseName, targetEnvironment };
-  }
-
-  if (type === 'promote') {
-    const sourceEnvironment = params.get('source');
-    if (!sourceEnvironment) return undefined;
-    return {
-      type: 'promote',
-      releaseName,
-      sourceEnvironment,
-      targetEnvironment,
-    };
-  }
-
-  return undefined;
 }
 
 /**
