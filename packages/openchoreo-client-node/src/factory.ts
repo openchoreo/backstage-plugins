@@ -9,6 +9,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import createClient, { type ClientOptions } from 'openapi-fetch';
 import type { paths as OpenChoreoPaths } from './generated/openchoreo/types';
 import type { paths as ObservabilityPaths } from './generated/observability/types';
+import { isTracingEnabled, createTracingMiddleware } from './tracing';
 
 /**
  * Configuration options for OpenChoreo API clients
@@ -100,7 +101,15 @@ export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
       : undefined,
   };
 
-  return createClient<OpenChoreoPaths>(clientOptions);
+  const client = createClient<OpenChoreoPaths>(clientOptions);
+
+  // Register tracing middleware if enabled via CHOREO_CLIENT_TRACE_ENABLED env var
+  if (isTracingEnabled()) {
+    client.use(createTracingMiddleware(logger));
+    logger?.info('OpenChoreo API client tracing enabled');
+  }
+
+  return client;
 }
 
 /**
@@ -144,7 +153,15 @@ export function createOpenChoreoObservabilityApiClient(
       : undefined,
   };
 
-  return createClient<ObservabilityPaths>(clientOptions);
+  const client = createClient<ObservabilityPaths>(clientOptions);
+
+  // Register tracing middleware if enabled via CHOREO_CLIENT_TRACE_ENABLED env var
+  if (isTracingEnabled()) {
+    client.use(createTracingMiddleware(logger));
+    logger?.info('OpenChoreo Observability API client tracing enabled');
+  }
+
+  return client;
 }
 
 /**
