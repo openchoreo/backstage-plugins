@@ -8,6 +8,7 @@ import request from 'supertest';
 
 import { createRouter } from './router';
 import { observabilityServiceRef } from './services/ObservabilityService';
+import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 const mockResourceMetricsTimeSeries = {
   cpuUsage: [
@@ -53,6 +54,7 @@ const mockResourceMetricsTimeSeries = {
 describe('createRouter', () => {
   let app: express.Express;
   let observabilityService: jest.Mocked<typeof observabilityServiceRef.T>;
+  let tokenService: jest.Mocked<OpenChoreoTokenService>;
 
   beforeEach(async () => {
     observabilityService = {
@@ -60,9 +62,18 @@ describe('createRouter', () => {
       fetchEnvironmentsByOrganization: jest.fn(),
       fetchTracesByProject: jest.fn(),
     };
+    tokenService = {
+      getUserToken: jest.fn().mockReturnValue(undefined),
+      getUserTokenRequired: jest.fn().mockImplementation(() => {
+        throw new Error('No token');
+      }),
+      getServiceToken: jest.fn().mockResolvedValue('mock-service-token'),
+      hasServiceCredentials: jest.fn().mockReturnValue(false),
+    };
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),
       observabilityService,
+      tokenService,
     });
     app = express();
     app.use(router);

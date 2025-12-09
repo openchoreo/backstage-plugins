@@ -4,6 +4,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
 import { observabilityServiceRef } from './services/ObservabilityService';
+import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 
 /**
  * openchoreoObservabilityBackendPlugin backend plugin
@@ -23,6 +24,7 @@ export const openchoreoObservabilityBackendPlugin = createBackendPlugin({
         logger: coreServices.logger,
         config: coreServices.rootConfig,
         observabilityService: observabilityServiceRef,
+        tokenService: openChoreoTokenServiceRef,
       },
       async init({
         httpAuth,
@@ -30,6 +32,7 @@ export const openchoreoObservabilityBackendPlugin = createBackendPlugin({
         logger,
         config,
         observabilityService,
+        tokenService,
       }) {
         // Check if observability feature is enabled (defaults to true)
         const observabilityEnabled =
@@ -48,6 +51,7 @@ export const openchoreoObservabilityBackendPlugin = createBackendPlugin({
           await createRouter({
             httpAuth,
             observabilityService,
+            tokenService,
           }),
         );
       },

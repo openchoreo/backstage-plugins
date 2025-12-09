@@ -10,6 +10,7 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 // Use generated types from OpenAPI spec
 type ModelsProject = OpenChoreoComponents['schemas']['ProjectResponse'];
@@ -50,15 +51,18 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly defaultOwner: string;
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly componentTypeUtils: ComponentTypeUtils;
+  private readonly tokenService?: OpenChoreoTokenService;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
     logger: LoggerService,
     config: Config,
+    tokenService?: OpenChoreoTokenService,
   ) {
     this.taskRunner = taskRunner;
     this.logger = logger;
     this.baseUrl = config.getString('openchoreo.baseUrl');
+    this.tokenService = tokenService;
     // Default owner for all entities - configurable via app-config.yaml
     this.defaultOwner =
       config.getOptionalString('openchoreo.defaultOwner') || 'developers';
@@ -95,9 +99,23 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         'Fetching organizations and projects from OpenChoreo API',
       );
 
-      // Create client instance
+      // Get service token for background task (client credentials flow)
+      let token: string | undefined;
+      if (this.tokenService?.hasServiceCredentials()) {
+        try {
+          token = await this.tokenService.getServiceToken();
+          this.logger.debug('Using service token for OpenChoreo API requests');
+        } catch (error) {
+          this.logger.warn(
+            `Failed to get service token, continuing without auth: ${error}`,
+          );
+        }
+      }
+
+      // Create client instance with service token
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 

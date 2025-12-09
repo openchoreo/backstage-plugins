@@ -15,6 +15,7 @@ import { DashboardInfoService } from './services/DashboardService/DashboardInfoS
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
+import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 
 /**
  * choreoPlugin backend plugin
@@ -34,8 +35,9 @@ export const choreoPlugin = createBackendPlugin({
         permissions: coreServices.permissions,
         discovery: coreServices.discovery,
         config: coreServices.rootConfig,
+        tokenService: openChoreoTokenServiceRef,
       },
-      async init({ logger, config, httpRouter }) {
+      async init({ logger, config, httpRouter, tokenService }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
 
         if (!openchoreoConfig) {
@@ -120,6 +122,7 @@ export const choreoPlugin = createBackendPlugin({
             traitInfoService,
             workflowSchemaService,
             secretReferencesInfoService,
+            tokenService,
           }),
         );
       },

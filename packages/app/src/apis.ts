@@ -19,6 +19,7 @@ import {
 import { OAuth2 } from '@backstage/core-app-api';
 import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
 import { UserSettingsStorage } from '@backstage/plugin-user-settings';
+import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 
 // API reference for default-idp OIDC provider
 export const defaultIdpAuthApiRef: ApiRef<any> = createApiRef({
@@ -32,6 +33,18 @@ export const apis: AnyApiFactory[] = [
     factory: ({ configApi }) => ScmIntegrationsApi.fromConfig(configApi),
   }),
   ScmAuth.createDefaultApiFactory(),
+
+  // Custom FetchApi that automatically injects auth tokens
+  // This wraps all fetch calls to include Backstage token + IDP token
+  createApiFactory({
+    api: fetchApiRef,
+    deps: {
+      identityApi: identityApiRef,
+      oauthApi: defaultIdpAuthApiRef,
+    },
+    factory: ({ identityApi, oauthApi }) =>
+      new OpenChoreoFetchApi(identityApi, oauthApi),
+  }),
 
   // Default IDP OIDC Auth provider
   createApiFactory({

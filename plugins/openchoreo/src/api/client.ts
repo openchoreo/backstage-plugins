@@ -21,6 +21,9 @@ export interface ApiFetchOptions {
  * Centralized fetch utility for OpenChoreo API calls.
  * Handles authentication, URL construction, and error handling consistently.
  *
+ * Note: The user's IDP token is automatically injected by the custom FetchApi
+ * configured in packages/app/src/apis.ts (OpenChoreoFetchApi).
+ *
  * @example
  * // GET request with params
  * const data = await apiFetch({
@@ -81,6 +84,9 @@ export async function apiFetch<T = unknown>({
 /**
  * Fetch without throwing on non-OK responses.
  * Returns the response for custom handling.
+ *
+ * Note: The user's IDP token is automatically injected by the custom FetchApi
+ * configured in packages/app/src/apis.ts (OpenChoreoFetchApi).
  */
 export async function apiFetchRaw({
   endpoint,
