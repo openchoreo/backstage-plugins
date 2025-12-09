@@ -14,6 +14,7 @@ import {
   immediateCatalogServiceRef,
   ImmediateCatalogService,
 } from './service/ImmediateCatalogService';
+import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 
 // Singleton instance of the ScaffolderEntityProvider
 // This will be shared across the module and the service
@@ -34,8 +35,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
         config: coreServices.rootConfig,
         logger: coreServices.logger,
         scheduler: coreServices.scheduler,
+        tokenService: openChoreoTokenServiceRef,
       },
-      async init({ catalog, config, logger, scheduler }) {
+      async init({ catalog, config, logger, scheduler, tokenService }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
         const frequency =
           openchoreoConfig?.getOptionalNumber('schedule.frequency') ?? 30;
@@ -55,7 +57,12 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(
-          new OpenChoreoEntityProvider(taskRunner, logger, config),
+          new OpenChoreoEntityProvider(
+            taskRunner,
+            logger,
+            config,
+            tokenService,
+          ),
         );
 
         // Create and register the ScaffolderEntityProvider for immediate insertions

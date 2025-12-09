@@ -42,9 +42,13 @@ export class ObservabilityService {
 
   /**
    * Fetches environments for observability filtering purposes.
+   *
+   * @param organizationName - The organization name
+   * @param userToken - Optional user token for authentication (takes precedence over default token)
    */
   async fetchEnvironmentsByOrganization(
     organizationName: string,
+    userToken?: string,
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
@@ -55,7 +59,7 @@ export class ObservabilityService {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         logger: this.logger,
-        token: this.token,
+        token: userToken ?? this.token,
       });
 
       const { data, error, response } = await client.GET(
@@ -105,8 +109,8 @@ export class ObservabilityService {
    * then fetches metrics from the observability service.
    *
    * @param componentId - The ID of the component
-   * @param environmentId - The ID of the environment
    * @param projectId - The ID of the project
+   * @param environmentId - The ID of the environment
    * @param orgName - The organization name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
@@ -116,6 +120,7 @@ export class ObservabilityService {
    * @param options.offset - The offset from the first metric to return
    * @param options.startTime - The start time of the metrics
    * @param options.endTime - The end time of the metrics
+   * @param userToken - Optional user token for authentication (takes precedence over default token)
    * @returns Promise<ResourceMetricsTimeSeries> - The metrics data
    */
   async fetchMetricsByComponent(
@@ -132,6 +137,7 @@ export class ObservabilityService {
       startTime?: string;
       endTime?: string;
     },
+    userToken?: string,
   ): Promise<ComponentMetricsTimeSeries> {
     const startTime = Date.now();
     try {
@@ -140,9 +146,10 @@ export class ObservabilityService {
       );
 
       // First, get the observer URL from the main API
+      const effectiveToken = userToken ?? this.token;
       const mainClient = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token: effectiveToken,
         logger: this.logger,
       });
       const {
@@ -178,7 +185,7 @@ export class ObservabilityService {
       // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
-        this.token,
+        effectiveToken,
         this.logger,
       );
 
@@ -303,6 +310,7 @@ export class ObservabilityService {
    * @param options.endTime - The end time of the traces
    * @param options.traceId - Trace ID to filter by (optional, supports wildcards)
    * @param options.sortOrder - Sort order for traces (asc/desc)
+   * @param userToken - Optional user token for authentication (takes precedence over default token)
    * @returns Promise with traces data
    */
   async fetchTracesByProject(
@@ -319,6 +327,7 @@ export class ObservabilityService {
       traceId?: string;
       sortOrder?: 'asc' | 'desc';
     },
+    userToken?: string,
   ): Promise<{
     traces: Array<{
       traceId: string;
@@ -342,11 +351,12 @@ export class ObservabilityService {
       );
 
       let observerUrl: string | undefined;
+      const effectiveToken = userToken ?? this.token;
 
       if (environmentName) {
         const mainClient = createOpenChoreoApiClient({
           baseUrl: this.baseUrl,
-          token: this.token,
+          token: effectiveToken,
           logger: this.logger,
         });
         // Get the list of components from the main API using the project
@@ -444,7 +454,7 @@ export class ObservabilityService {
       // Use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
-        this.token,
+        effectiveToken,
         this.logger,
       );
 

@@ -20,6 +20,11 @@ import {
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
+import {
+  OpenChoreoTokenService,
+  createUserTokenMiddleware,
+  getUserTokenFromRequest,
+} from '@openchoreo/openchoreo-auth';
 
 export async function createRouter({
   environmentInfoService,
@@ -33,6 +38,7 @@ export async function createRouter({
   traitInfoService,
   workflowSchemaService,
   secretReferencesInfoService,
+  tokenService,
 }: {
   environmentInfoService: EnvironmentInfoService;
   cellDiagramInfoService: CellDiagramService;
@@ -45,9 +51,13 @@ export async function createRouter({
   traitInfoService: TraitInfoService;
   workflowSchemaService: WorkflowSchemaService;
   secretReferencesInfoService: SecretReferencesService;
+  tokenService: OpenChoreoTokenService;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
+
+  // Add middleware to extract and cache user's IDP token from request headers
+  router.use(createUserTokenMiddleware(tokenService));
 
   router.get('/deploy', async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
@@ -350,11 +360,14 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await componentInfoService.fetchComponentDetails(
         organizationName as string,
         projectName as string,
         componentName as string,
+        userToken,
       ),
     );
   });
@@ -373,12 +386,15 @@ export async function createRouter({
       throw new InputError('autoDeploy must be a boolean value');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await componentInfoService.patchComponent(
         organizationName as string,
         projectName as string,
         componentName as string,
         autoDeploy as boolean,
+        userToken,
       ),
     );
   });

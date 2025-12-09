@@ -11,18 +11,27 @@ export type ModelsCompleteComponent =
 export class ComponentInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private token?: string;
+  private defaultToken?: string;
 
-  constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  constructor(logger: LoggerService, baseUrl: string, defaultToken?: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
+    this.defaultToken = defaultToken;
   }
 
+  /**
+   * Fetches component details from OpenChoreo API.
+   *
+   * @param orgName - Organization name
+   * @param projectName - Project name
+   * @param componentName - Component name
+   * @param token - Optional user token (overrides default token if provided)
+   */
   async fetchComponentDetails(
     orgName: string,
     projectName: string,
     componentName: string,
+    token?: string,
   ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
       `Fetching component details for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
@@ -31,7 +40,7 @@ export class ComponentInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token: token ?? this.defaultToken,
         logger: this.logger,
       });
 
@@ -68,11 +77,21 @@ export class ComponentInfoService {
     }
   }
 
+  /**
+   * Patches a component in OpenChoreo API.
+   *
+   * @param orgName - Organization name
+   * @param projectName - Project name
+   * @param componentName - Component name
+   * @param autoDeploy - Auto deploy setting
+   * @param token - Optional user token (overrides default token if provided)
+   */
   async patchComponent(
     orgName: string,
     projectName: string,
     componentName: string,
     autoDeploy: boolean,
+    token?: string,
   ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
       `Patching component: ${componentName} in project: ${projectName}, organization: ${orgName} with autoDeploy: ${autoDeploy}`,
@@ -81,7 +100,7 @@ export class ComponentInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token: token ?? this.defaultToken,
         logger: this.logger,
       });
 
