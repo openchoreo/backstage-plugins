@@ -16,6 +16,13 @@ export {
   type OpenChoreoObservabilityClientConfig,
 } from './factory';
 
+// Export tracing utilities
+export {
+  isTracingEnabled,
+  createTracingMiddleware,
+  TRACE_ENV_VAR,
+} from './tracing';
+
 // Export generated types as namespaces
 export * as OpenChoreoAPI from './generated/openchoreo';
 export * as ObservabilityAPI from './generated/observability';
