@@ -29,7 +29,7 @@ import {
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { UserSettingsPage } from '@backstage/plugin-user-settings';
-import { apis, defaultIdpAuthApiRef, guestAuthApiRef } from './apis';
+import { apis, defaultIdpAuthApiRef } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { searchPage } from './components/search/SearchPage';
@@ -59,7 +59,7 @@ import { configApiRef, useApi } from '@backstage/core-plugin-api';
  * based on openchoreo.features.auth.enabled configuration.
  *
  * When auth is enabled (default): Uses OpenChoreo IDP OAuth flow
- * When auth is disabled: Auto-signs in as guest user
+ * When auth is disabled: Auto-signs in as guest user using Backstage's built-in guest provider
  */
 function DynamicSignInPage(props: any) {
   const configApi = useApi(configApiRef);
@@ -69,19 +69,10 @@ function DynamicSignInPage(props: any) {
     configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
   if (!authEnabled) {
-    // Guest mode: auto-login as guest
-    return (
-      <SignInPage
-        {...props}
-        auto
-        provider={{
-          id: 'guest',
-          title: 'Guest',
-          message: 'Continue as Guest',
-          apiRef: guestAuthApiRef,
-        }}
-      />
-    );
+    // Guest mode: use Backstage's built-in guest provider
+    // This uses ProxiedSignInIdentity with the backend guest module
+    // and falls back to GuestUserIdentity (legacy) if not available
+    return <SignInPage {...props} auto providers={['guest']} />;
   }
 
   // Default: OpenChoreo IDP OAuth
