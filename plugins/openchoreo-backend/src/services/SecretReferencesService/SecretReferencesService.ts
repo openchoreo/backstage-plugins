@@ -11,16 +11,15 @@ export type ModelsSecretReferences =
 export class SecretReferencesService {
   private logger: LoggerService;
   private baseUrl: string;
-  private token?: string;
 
-  constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
   async fetchSecretReferences(
     orgName: string,
+    token?: string,
   ): Promise<ModelsSecretReferences> {
     this.logger.debug(
       `Fetching secret references for organization: ${orgName}`,
@@ -29,7 +28,7 @@ export class SecretReferencesService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 

@@ -1,11 +1,7 @@
 import { Entity } from '@backstage/catalog-model';
-import {
-  discoveryApiRef,
-  identityApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import { useAsyncRetry } from 'react-use';
-import { fetchEnvironmentInfo } from '../../../api/environments';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 interface EndpointInfo {
   name: string;
@@ -35,8 +31,7 @@ export interface Environment {
 }
 
 export function useEnvironmentData(entity: Entity) {
-  const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const {
     loading,
@@ -44,9 +39,9 @@ export function useEnvironmentData(entity: Entity) {
     error,
     retry,
   } = useAsyncRetry(async () => {
-    const data = await fetchEnvironmentInfo(entity, discovery, identityApi);
+    const data = await client.fetchEnvironmentInfo(entity);
     return data as Environment[];
-  }, [entity, discovery, identityApi]);
+  }, [entity, client]);
 
   return {
     environments: environments ?? [],

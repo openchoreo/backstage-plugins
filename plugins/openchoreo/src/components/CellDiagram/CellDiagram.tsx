@@ -8,12 +8,8 @@ import {
 } from '@backstage/core-components';
 
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  discoveryApiRef,
-  identityApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
-import { getCellDiagramInfo } from '../../api/cellDiagram';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { Project } from '@wso2/cell-diagram';
 
 const CellView = lazy(() =>
@@ -25,13 +21,12 @@ const CellView = lazy(() =>
 export const CellDiagram = () => {
   const { entity } = useEntity();
   const [cellDiagramData, setCellDiagramData] = useState<Project>();
-  const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getCellDiagramInfo(entity, discovery, identityApi);
+        const data = await client.getCellDiagramInfo(entity);
         setCellDiagramData(data as Project);
       } catch (error) {
         // Error handling could be added here if needed
@@ -39,7 +34,7 @@ export const CellDiagram = () => {
     };
 
     fetchData();
-  }, [entity, discovery, identityApi]);
+  }, [entity, client]);
 
   return (
     <Page themeId="tool">

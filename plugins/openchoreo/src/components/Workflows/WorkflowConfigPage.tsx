@@ -14,16 +14,9 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { RJSFValidationError } from '@rjsf/utils';
 import { JSONSchema7 } from 'json-schema';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  fetchWorkflowSchema,
-  updateComponentWorkflowSchema,
-} from '../../api/workflows';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {
   CHOREO_ANNOTATIONS,
   sanitizeLabel,
@@ -88,8 +81,7 @@ export const WorkflowConfigPage = ({
 }: WorkflowConfigPageProps) => {
   const classes = useStyles();
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -120,9 +112,7 @@ export const WorkflowConfigPage = ({
         throw new Error('Organization not found in entity');
       }
 
-      const schemaResponse = await fetchWorkflowSchema(
-        discovery,
-        identityApi,
+      const schemaResponse = await client.fetchWorkflowSchema(
         organization,
         workflowName,
       );
@@ -175,14 +165,7 @@ export const WorkflowConfigPage = ({
     } finally {
       setLoading(false);
     }
-  }, [
-    entity,
-    discovery,
-    identityApi,
-    workflowName,
-    systemParameters,
-    parameters,
-  ]);
+  }, [entity, client, workflowName, systemParameters, parameters]);
 
   useEffect(() => {
     if (workflowName) {
@@ -272,10 +255,8 @@ export const WorkflowConfigPage = ({
     setError(null);
 
     try {
-      await updateComponentWorkflowSchema(
+      await client.updateComponentWorkflowSchema(
         entity,
-        discovery,
-        identityApi,
         formData.systemParameters,
         formData.parameters,
       );

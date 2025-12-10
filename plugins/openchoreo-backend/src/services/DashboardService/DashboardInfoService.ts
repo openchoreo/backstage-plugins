@@ -18,6 +18,7 @@ export class DashboardInfoService {
     orgName: string,
     projectName: string,
     componentName: string,
+    token?: string,
   ): Promise<number> {
     this.logger.info(
       `Fetching bindings count for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
@@ -26,6 +27,7 @@ export class DashboardInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 
@@ -73,6 +75,7 @@ export class DashboardInfoService {
       projectName: string;
       componentName: string;
     }>,
+    token?: string,
   ): Promise<number> {
     this.logger.info(
       `Fetching bindings count for ${components.length} components`,
@@ -82,7 +85,12 @@ export class DashboardInfoService {
       // Fetch bindings for all components in parallel
       const bindingsCounts = await Promise.all(
         components.map(({ orgName, projectName, componentName }) =>
-          this.fetchDashboardMetrics(orgName, projectName, componentName),
+          this.fetchDashboardMetrics(
+            orgName,
+            projectName,
+            componentName,
+            token,
+          ),
         ),
       );
 

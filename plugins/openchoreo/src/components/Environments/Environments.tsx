@@ -2,11 +2,7 @@ import { useCallback, useState, useEffect, useMemo } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Progress } from '@backstage/core-components';
 import { Box } from '@material-ui/core';
-import {
-  discoveryApiRef,
-  identityApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 
 import { useNotification } from '../../hooks';
 import {
@@ -21,16 +17,14 @@ import { useEnvironmentsStyles } from './styles';
 import { EnvironmentsRouter } from './EnvironmentsRouter';
 import { EnvironmentsProvider } from './EnvironmentsContext';
 import { NotificationBanner } from './components';
-import { deployRelease, promoteToEnvironment } from '../../api/environments';
-import { getComponentDetails } from '../../api/runtimeLogs';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 
 export const Environments = () => {
   // Initialize global styles (includes keyframe animation)
   useEnvironmentsStyles();
 
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   // Routing
   const { navigateToList } = useEnvironmentRouting();
@@ -42,7 +36,7 @@ export const Environments = () => {
   // Auto deploy state
   const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
   const { updateAutoDeploy, isUpdating: autoDeployUpdating } =
-    useAutoDeployUpdate(entity, discovery, identityApi);
+    useAutoDeployUpdate(entity);
 
   // Notifications
   const notification = useNotification();
@@ -51,11 +45,7 @@ export const Environments = () => {
   useEffect(() => {
     const fetchComponentData = async () => {
       try {
-        const componentData = await getComponentDetails(
-          entity,
-          discovery,
-          identityApi,
-        );
+        const componentData = await client.getComponentDetails(entity);
         if (componentData && 'autoDeploy' in componentData) {
           setAutoDeploy((componentData as any).autoDeploy);
         }
@@ -65,7 +55,7 @@ export const Environments = () => {
     };
 
     fetchComponentData();
-  }, [entity, discovery, identityApi]);
+  }, [entity, client]);
 
   // Polling for pending deployments
   useEnvironmentPolling(isPending, refetch);
@@ -104,21 +94,14 @@ export const Environments = () => {
       try {
         if (pendingAction.type === 'deploy') {
           // Complete the deploy after overrides are saved
-          await deployRelease(
-            entity,
-            discovery,
-            identityApi,
-            pendingAction.releaseName,
-          );
+          await client.deployRelease(entity, pendingAction.releaseName);
           notification.showSuccess(
             `Successfully deployed to ${pendingAction.targetEnvironment}`,
           );
         } else if (pendingAction.type === 'promote') {
           // Complete the promote after overrides are saved
-          await promoteToEnvironment(
+          await client.promoteToEnvironment(
             entity,
-            discovery,
-            identityApi,
             pendingAction.sourceEnvironment.toLowerCase(),
             pendingAction.targetEnvironment.toLowerCase(),
           );
@@ -135,7 +118,7 @@ export const Environments = () => {
         navigateToList();
       }
     },
-    [entity, discovery, identityApi, notification, refetch, navigateToList],
+    [entity, client, notification, refetch, navigateToList],
   );
 
   // Context value

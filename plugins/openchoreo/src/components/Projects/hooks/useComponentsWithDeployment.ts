@@ -1,30 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
-import {
-  CHOREO_ANNOTATIONS,
-  type OpenChoreoComponents,
-} from '@openchoreo/backstage-plugin-common';
-import { apiFetch } from '../../../api/client';
-import { API_ENDPOINTS } from '../../../constants';
-
-// Use generated types from OpenAPI spec
-type ReleaseBindingResponse =
-  OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
-type APIResponse = OpenChoreoComponents['schemas']['APIResponse'];
-type ListResponse = OpenChoreoComponents['schemas']['ListResponse'];
-
-// Response type from /release-bindings endpoint
-type ReleaseBindingsResponse = APIResponse & {
-  data?: ListResponse & {
-    items?: ReleaseBindingResponse[];
-  };
-};
+import { useApi } from '@backstage/core-plugin-api';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 // Deployment status with state information
 export interface EnvironmentDeploymentStatus {
@@ -57,8 +36,7 @@ export function useComponentsWithDeployment(
   systemEntity: Entity,
 ): UseComponentsWithDeploymentResult {
   const catalogApi = useApi(catalogApiRef);
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [components, setComponents] = useState<ComponentWithDeployment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,39 +79,8 @@ export function useComponentsWithDeployment(
             try {
               // Fetch release bindings and builds in parallel
               const [releaseBindingsData, buildsData] = await Promise.all([
-                apiFetch<ReleaseBindingsResponse>({
-                  endpoint: API_ENDPOINTS.RELEASE_BINDINGS,
-                  discovery,
-                  identity,
-                  params: {
-                    componentName,
-                    projectName,
-                    organizationName: organization,
-                  },
-                }),
-                // Fetch builds for this component
-                (async () => {
-                  try {
-                    const { token } = await identity.getCredentials();
-                    const baseUrl = await discovery.getBaseUrl('openchoreo');
-                    const response = await fetch(
-                      `${baseUrl}/builds?componentName=${encodeURIComponent(
-                        componentName,
-                      )}&projectName=${encodeURIComponent(
-                        projectName,
-                      )}&organizationName=${encodeURIComponent(organization)}`,
-                      {
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                        },
-                      },
-                    );
-                    if (!response.ok) return null;
-                    return await response.json();
-                  } catch {
-                    return null;
-                  }
-                })(),
+                client.fetchReleaseBindings(component as Entity),
+                client.fetchBuilds(componentName, projectName, organization),
               ]);
 
               // Parse deployment status from release bindings
@@ -141,7 +88,7 @@ export function useComponentsWithDeployment(
 
               const bindings = releaseBindingsData?.data?.items;
               if (bindings && Array.isArray(bindings)) {
-                bindings.forEach((binding: ReleaseBindingResponse) => {
+                bindings.forEach(binding => {
                   const envName = binding.environment?.toLowerCase();
                   if (
                     envName &&
@@ -195,7 +142,7 @@ export function useComponentsWithDeployment(
     } finally {
       setLoading(false);
     }
-  }, [systemEntity, catalogApi, discovery, identity]);
+  }, [systemEntity, catalogApi, client]);
 
   useEffect(() => {
     fetchComponents();

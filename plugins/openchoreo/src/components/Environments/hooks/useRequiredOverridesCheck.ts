@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
 import { JSONSchema7 } from 'json-schema';
 import { Entity } from '@backstage/catalog-model';
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import {
-  fetchComponentReleaseSchema,
-  fetchReleaseBindings,
+  openChoreoClientApiRef,
   ReleaseBinding,
-} from '../../../api/environments';
+} from '../../../api/OpenChoreoClientApi';
 import { getMissingRequiredFields } from '../overridesUtils';
 
 export interface RequiredOverridesCheckResult {
@@ -45,9 +44,9 @@ interface UseRequiredOverridesCheckReturn extends RequiredOverridesCheckResult {
  */
 export function useRequiredOverridesCheck(
   entity: Entity,
-  discovery: DiscoveryApi,
-  identityApi: IdentityApi,
 ): UseRequiredOverridesCheckReturn {
+  const client = useApi(openChoreoClientApiRef);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasRequiredOverrides, setHasRequiredOverrides] = useState(false);
@@ -69,10 +68,8 @@ export function useRequiredOverridesCheck(
 
       try {
         // Fetch the schema for this release
-        const schemaResponse = await fetchComponentReleaseSchema(
+        const schemaResponse = await client.fetchComponentReleaseSchema(
           entity,
-          discovery,
-          identityApi,
           releaseName,
         );
 
@@ -109,11 +106,7 @@ export function useRequiredOverridesCheck(
         setHasRequiredOverrides(true);
 
         // Fetch existing release bindings to get current overrides
-        const bindingsResponse = await fetchReleaseBindings(
-          entity,
-          discovery,
-          identityApi,
-        );
+        const bindingsResponse = await client.fetchReleaseBindings(entity);
 
         let currentOverrides: Record<string, unknown> = {};
 
@@ -153,7 +146,7 @@ export function useRequiredOverridesCheck(
         setIsLoading(false);
       }
     },
-    [entity, discovery, identityApi],
+    [entity, client],
   );
 
   return {

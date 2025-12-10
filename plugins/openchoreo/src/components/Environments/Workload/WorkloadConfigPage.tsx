@@ -12,8 +12,7 @@ import {
   ModelsWorkload,
   ModelsBuild,
 } from '@openchoreo/backstage-plugin-common';
-import { applyWorkload, fetchWorkloadInfo } from '../../../api/workloadInfo';
-import { createComponentRelease } from '../../../api/environments';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { WorkloadProvider } from './WorkloadContext';
 import { WorkloadEditor } from './WorkloadEditor';
 import { DetailPageLayout } from '../components/DetailPageLayout';
@@ -63,6 +62,7 @@ export const WorkloadConfigPage = ({
   const classes = useStyles();
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
 
   const [workloadSpec, setWorkloadSpec] = useState<ModelsWorkload | null>(null);
@@ -85,7 +85,7 @@ export const WorkloadConfigPage = ({
     const fetchWorkload = async () => {
       try {
         setIsLoading(true);
-        const response = await fetchWorkloadInfo(entity, discovery, identity);
+        const response = await client.fetchWorkloadInfo(entity);
         setWorkloadSpec(response);
         // Store a deep copy as initial state for change comparison
         setInitialWorkload(
@@ -102,7 +102,7 @@ export const WorkloadConfigPage = ({
       setInitialWorkload(null);
       setError(null);
     };
-  }, [entity, discovery, identity]);
+  }, [entity, client]);
 
   // Fetch builds
   useEffect(() => {
@@ -153,14 +153,10 @@ export const WorkloadConfigPage = ({
     setError(null);
     try {
       // Step 1: Apply workload
-      await applyWorkload(entity, discovery, identity, workloadSpec);
+      await client.applyWorkload(entity, workloadSpec);
 
       // Step 2: Create ComponentRelease (auto-generated name)
-      const releaseResponse = await createComponentRelease(
-        entity,
-        discovery,
-        identity,
-      );
+      const releaseResponse = await client.createComponentRelease(entity);
 
       if (!releaseResponse.data?.name) {
         throw new Error('Failed to create release: no release name returned');

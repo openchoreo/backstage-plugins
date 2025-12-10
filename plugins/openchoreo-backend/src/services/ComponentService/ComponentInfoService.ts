@@ -11,12 +11,10 @@ export type ModelsCompleteComponent =
 export class ComponentInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private defaultToken?: string;
 
-  constructor(logger: LoggerService, baseUrl: string, defaultToken?: string) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.defaultToken = defaultToken;
   }
 
   /**
@@ -40,7 +38,7 @@ export class ComponentInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: token ?? this.defaultToken,
+        token,
         logger: this.logger,
       });
 
@@ -100,7 +98,7 @@ export class ComponentInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: token ?? this.defaultToken,
+        token,
         logger: this.logger,
       });
 

@@ -15,20 +15,14 @@ type ModelsWorkload = OpenChoreoComponents['schemas']['WorkloadResponse'];
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
-  private readonly token?: string;
 
-  public constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
-  static create(
-    logger: LoggerService,
-    baseUrl: string,
-    token?: string,
-  ): WorkloadInfoService {
-    return new WorkloadInfoService(logger, baseUrl, token);
+  static create(logger: LoggerService, baseUrl: string): WorkloadInfoService {
+    return new WorkloadInfoService(logger, baseUrl);
   }
 
   /**
@@ -42,11 +36,14 @@ export class WorkloadInfoService implements WorkloadService {
    * @returns {Promise<ModelsWorkload>} The workload configuration
    * @throws {Error} When there's an error fetching data from the API
    */
-  async fetchWorkloadInfo(request: {
-    projectName: string;
-    componentName: string;
-    organizationName: string;
-  }): Promise<ModelsWorkload> {
+  async fetchWorkloadInfo(
+    request: {
+      projectName: string;
+      componentName: string;
+      organizationName: string;
+    },
+    token?: string,
+  ): Promise<ModelsWorkload> {
     const { projectName, componentName, organizationName } = request;
 
     try {
@@ -56,7 +53,7 @@ export class WorkloadInfoService implements WorkloadService {
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -101,12 +98,15 @@ export class WorkloadInfoService implements WorkloadService {
    * @returns {Promise<any>} The result of the apply operation
    * @throws {Error} When there's an error applying the workload
    */
-  async applyWorkload(request: {
-    projectName: string;
-    componentName: string;
-    organizationName: string;
-    workloadSpec: ModelsWorkload;
-  }): Promise<any> {
+  async applyWorkload(
+    request: {
+      projectName: string;
+      componentName: string;
+      organizationName: string;
+      workloadSpec: ModelsWorkload;
+    },
+    token?: string,
+  ): Promise<any> {
     const { projectName, componentName, organizationName, workloadSpec } =
       request;
 
@@ -117,7 +117,7 @@ export class WorkloadInfoService implements WorkloadService {
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 

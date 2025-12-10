@@ -108,25 +108,34 @@ export const cellChoreoWorkflowTypes: ObjectToFetch[] = [
 ];
 
 export interface CellDiagramService {
-  fetchProjectInfo(request: {
-    projectName: string;
-    orgName: string;
-  }): Promise<Project | undefined>;
+  fetchProjectInfo(
+    request: {
+      projectName: string;
+      orgName: string;
+    },
+    token?: string,
+  ): Promise<Project | undefined>;
 }
 
 export interface WorkloadService {
-  fetchWorkloadInfo(request: {
-    projectName: string;
-    componentName: string;
-    organizationName: string;
-  }): Promise<any>;
+  fetchWorkloadInfo(
+    request: {
+      projectName: string;
+      componentName: string;
+      organizationName: string;
+    },
+    token?: string,
+  ): Promise<any>;
 
-  applyWorkload(request: {
-    projectName: string;
-    componentName: string;
-    organizationName: string;
-    workloadSpec: any;
-  }): Promise<any>;
+  applyWorkload(
+    request: {
+      projectName: string;
+      componentName: string;
+      organizationName: string;
+      workloadSpec: any;
+    },
+    token?: string,
+  ): Promise<any>;
 }
 
 export interface RuntimeLogsService {
@@ -144,11 +153,15 @@ export interface RuntimeLogsService {
     },
     orgName: string,
     projectName: string,
+    token?: string,
   ): Promise<RuntimeLogsResponse>;
 }
 
 export interface SecretReferencesService {
-  fetchSecretReferences(orgName: string): Promise<ModelsSecretReferences>;
+  fetchSecretReferences(
+    orgName: string,
+    token?: string,
+  ): Promise<ModelsSecretReferences>;
 }
 
 // LogEntry and RuntimeLogsResponse are now imported from the generated observability client
