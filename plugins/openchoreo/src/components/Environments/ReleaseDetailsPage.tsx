@@ -1,13 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import { fetchEnvironmentRelease } from '../../api/environments';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { ReleaseInfoTabbedView } from './ReleaseDataRenderer/ReleaseInfoTabbedView';
 import { DetailPageLayout } from './components/DetailPageLayout';
 import type { Environment } from './hooks/useEnvironmentData';
@@ -60,8 +56,7 @@ export const ReleaseDetailsPage = ({
   onTabChange,
 }: ReleaseDetailsPageProps) => {
   const classes = useStyles();
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +71,8 @@ export const ReleaseDetailsPage = ({
     setError(null);
 
     try {
-      const data = await fetchEnvironmentRelease(
+      const data = await client.fetchEnvironmentRelease(
         entity,
-        discovery,
-        identity,
         environmentName,
       );
       setReleaseData(data);
@@ -88,7 +81,7 @@ export const ReleaseDetailsPage = ({
     } finally {
       setLoading(false);
     }
-  }, [environmentName, entity, discovery, identity]);
+  }, [environmentName, entity, client]);
 
   useEffect(() => {
     loadReleaseData();

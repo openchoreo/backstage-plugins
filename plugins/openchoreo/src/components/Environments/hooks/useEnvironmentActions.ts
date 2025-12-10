@@ -1,10 +1,7 @@
 import { useCallback } from 'react';
 import { Entity } from '@backstage/catalog-model';
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
-import {
-  promoteToEnvironment,
-  deleteReleaseBinding,
-} from '../../../api/environments';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { ItemActionTracker } from '../types';
 
 interface UseNotificationHook {
@@ -18,12 +15,12 @@ interface UseNotificationHook {
  */
 export function useEnvironmentActions(
   entity: Entity,
-  discovery: DiscoveryApi,
-  identityApi: IdentityApi,
   refetch: () => void,
   notification: UseNotificationHook,
   refreshTracker: ItemActionTracker,
 ) {
+  const client = useApi(openChoreoClientApiRef);
+
   const handleRefreshEnvironment = useCallback(
     (envName: string) =>
       refreshTracker.withTracking(envName, async () => {
@@ -37,10 +34,8 @@ export function useEnvironmentActions(
 
   const handlePromote = useCallback(
     async (sourceEnvName: string, targetEnvName: string) => {
-      await promoteToEnvironment(
+      await client.promoteToEnvironment(
         entity,
-        discovery,
-        identityApi,
         sourceEnvName.toLowerCase(),
         targetEnvName.toLowerCase(),
       );
@@ -49,23 +44,18 @@ export function useEnvironmentActions(
         `Component promoted from ${sourceEnvName} to ${targetEnvName}`,
       );
     },
-    [entity, discovery, identityApi, refetch, notification],
+    [entity, client, refetch, notification],
   );
 
   const handleSuspend = useCallback(
     async (envName: string) => {
-      await deleteReleaseBinding(
-        entity,
-        discovery,
-        identityApi,
-        envName.toLowerCase(),
-      );
+      await client.deleteReleaseBinding(entity, envName.toLowerCase());
       await refetch();
       notification.showSuccess(
         `Component suspended from ${envName} successfully`,
       );
     },
-    [entity, discovery, identityApi, refetch, notification],
+    [entity, client, refetch, notification],
   );
 
   return {

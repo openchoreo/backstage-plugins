@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { useApi } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import {
-  getRuntimeLogs,
-  getEnvironments,
-  getComponentDetails,
-  calculateTimeRange,
-} from '../../api/runtimeLogs';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { calculateTimeRange } from '../../api/runtimeLogs';
 import {
   LogEntry,
   Environment,
@@ -20,8 +15,7 @@ import {
 
 export function useEnvironments() {
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
   const [environments, setEnvironments] = useState<Environment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +25,7 @@ export function useEnvironments() {
       try {
         setLoading(true);
         setError(null);
-        const envs = await getEnvironments(entity, discovery, identity);
+        const envs = await client.getEnvironments(entity);
         setEnvironments(envs);
       } catch (err) {
         setError(
@@ -43,7 +37,7 @@ export function useEnvironments() {
     };
 
     fetchEnvironments();
-  }, [entity, discovery, identity]);
+  }, [entity, client]);
 
   return { environments, loading, error };
 }
@@ -54,8 +48,7 @@ export function useRuntimeLogs(
   environments: Environment[],
 ) {
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,11 +59,7 @@ export function useRuntimeLogs(
   useEffect(() => {
     const fetchComponentId = async () => {
       try {
-        const componentDetails = await getComponentDetails(
-          entity,
-          discovery,
-          identity,
-        );
+        const componentDetails = await client.getComponentDetails(entity);
         setComponentId(componentDetails.uid || null);
       } catch (err) {
         setError(
@@ -80,7 +69,7 @@ export function useRuntimeLogs(
     };
 
     fetchComponentId();
-  }, [entity, discovery, identity]);
+  }, [entity, client]);
 
   const fetchLogs = useCallback(
     async (reset: boolean = false) => {
@@ -118,11 +107,11 @@ export function useRuntimeLogs(
           endTime = lastLog.timestamp;
         }
 
-        const response = await getRuntimeLogs(entity, discovery, identity, {
+        const response = await client.getRuntimeLogs(entity, {
           componentId,
           componentName,
           environmentId: filters.environmentId,
-          environmentName: selectedEnvironment.resourceName,
+          environmentName: selectedEnvironment.name,
           logLevels: filters.logLevel,
           startTime,
           endTime,
@@ -146,8 +135,7 @@ export function useRuntimeLogs(
     },
     [
       entity,
-      discovery,
-      identity,
+      client,
       filters,
       pagination.limit,
       logs,

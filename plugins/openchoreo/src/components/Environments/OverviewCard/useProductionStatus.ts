@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
-import { fetchEnvironmentInfo } from '../../../api/environments';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import type { Environment } from '../hooks/useEnvironmentData';
 
 interface ProductionStatusState {
@@ -21,8 +17,7 @@ interface ProductionStatusState {
  */
 export function useProductionStatus() {
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [state, setState] = useState<ProductionStatusState>({
     productionEnv: null,
@@ -33,10 +28,8 @@ export function useProductionStatus() {
 
   const fetchData = useCallback(async () => {
     try {
-      const environments = (await fetchEnvironmentInfo(
+      const environments = (await client.fetchEnvironmentInfo(
         entity,
-        discovery,
-        identityApi,
       )) as Environment[];
 
       // Find production environment (matches "prod" or "production", case-insensitive)
@@ -58,7 +51,7 @@ export function useProductionStatus() {
         error: err as Error,
       }));
     }
-  }, [entity, discovery, identityApi]);
+  }, [entity, client]);
 
   const refresh = useCallback(async () => {
     setState(prev => ({ ...prev, refreshing: true }));

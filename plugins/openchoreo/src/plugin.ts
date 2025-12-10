@@ -2,7 +2,13 @@ import {
   createPlugin,
   createRoutableExtension,
   createComponentExtension,
+  createApiFactory,
+  discoveryApiRef,
+  fetchApiRef,
+  identityApiRef,
 } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
+import { OpenChoreoClient } from './api/OpenChoreoClient';
 import {
   rootCatalogEnvironmentRouteRef,
   rootCatalogRuntimeLogsRouteRef,
@@ -12,6 +18,18 @@ import {
 
 export const choreoPlugin = createPlugin({
   id: 'openchoreo',
+  apis: [
+    createApiFactory({
+      api: openChoreoClientApiRef,
+      deps: {
+        discoveryApi: discoveryApiRef,
+        fetchApi: fetchApiRef,
+        identityApi: identityApiRef,
+      },
+      factory: ({ discoveryApi, fetchApi, identityApi }) =>
+        new OpenChoreoClient(discoveryApi, identityApi, fetchApi),
+    }),
+  ],
 });
 
 // Component page tab

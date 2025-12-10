@@ -69,16 +69,20 @@ export class CellDiagramInfoService implements CellDiagramService {
    * @param {string} request.orgName - Name of the organization the project belongs to
    * @returns {Promise<Project | undefined>} Project information if found, undefined otherwise
    */
-  async fetchProjectInfo({
-    projectName,
-    orgName,
-  }: {
-    projectName: string;
-    orgName: string;
-  }): Promise<Project | undefined> {
+  async fetchProjectInfo(
+    {
+      projectName,
+      orgName,
+    }: {
+      projectName: string;
+      orgName: string;
+    },
+    token?: string,
+  ): Promise<Project | undefined> {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 

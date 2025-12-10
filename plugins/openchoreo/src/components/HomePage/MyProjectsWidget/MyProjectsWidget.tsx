@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { SummaryWidgetWrapper } from '@openchoreo/backstage-plugin-react';
 import FolderIcon from '@material-ui/icons/Folder';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { fetchTotalBindingsCount } from '../../../api/dashboard';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 /**
  * A widget that displays project metrics for developers
@@ -22,8 +18,7 @@ export const MyProjectsWidget = () => {
   const [error, setError] = useState<string | null>(null);
 
   const catalogApi = useApi(catalogApiRef);
-  const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const fetchData = useCallback(async () => {
     try {
@@ -68,10 +63,8 @@ export const MyProjectsWidget = () => {
 
       // Fetch total bindings count from backend
       if (componentInfoList.length > 0) {
-        const totalBindings = await fetchTotalBindingsCount(
+        const totalBindings = await client.fetchTotalBindingsCount(
           componentInfoList,
-          discoveryApi,
-          identityApi,
         );
         setComponentBindingsCount(totalBindings);
       } else {
@@ -87,7 +80,7 @@ export const MyProjectsWidget = () => {
     } finally {
       setLoading(false);
     }
-  }, [catalogApi, discoveryApi, identityApi]);
+  }, [catalogApi, client]);
 
   useEffect(() => {
     fetchData();

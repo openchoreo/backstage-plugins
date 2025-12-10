@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
-  fetchSecretReferences,
+  openChoreoClientApiRef,
   SecretReference,
-} from '../api/secretReferences';
+} from '../api/OpenChoreoClientApi';
 
 export interface UseSecretReferencesResult {
   secretReferences: SecretReference[];
@@ -14,8 +13,7 @@ export interface UseSecretReferencesResult {
 }
 
 export function useSecretReferences(): UseSecretReferencesResult {
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
   const [secretReferences, setSecretReferences] = useState<SecretReference[]>(
     [],
@@ -28,11 +26,7 @@ export function useSecretReferences(): UseSecretReferencesResult {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchSecretReferences(
-          entity,
-          discovery,
-          identity,
-        );
+        const response = await client.fetchSecretReferences(entity);
         if (response.success && response.data.items) {
           setSecretReferences(response.data.items);
         }
@@ -50,7 +44,7 @@ export function useSecretReferences(): UseSecretReferencesResult {
       setSecretReferences([]);
       setError(null);
     };
-  }, [entity, discovery, identity]);
+  }, [entity, client]);
 
   return { secretReferences, isLoading, error };
 }

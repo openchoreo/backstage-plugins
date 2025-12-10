@@ -1,17 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import {
-  getRuntimeLogs,
-  getEnvironments,
-  getComponentDetails,
-  calculateTimeRange,
-} from '../../../api/runtimeLogs';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { calculateTimeRange } from '../../../api/runtimeLogs';
 import type { LogEntry, Environment } from '../types';
 
 interface LogsSummaryState {
@@ -30,8 +22,7 @@ interface LogsSummaryState {
  */
 export function useLogsSummary() {
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [state, setState] = useState<LogsSummaryState>({
     errorCount: 0,
@@ -46,11 +37,7 @@ export function useLogsSummary() {
   const fetchData = useCallback(async () => {
     try {
       // Get component ID first
-      const componentDetails = await getComponentDetails(
-        entity,
-        discovery,
-        identity,
-      );
+      const componentDetails = await client.getComponentDetails(entity);
       const componentId = componentDetails.uid;
 
       if (!componentId) {
@@ -58,11 +45,7 @@ export function useLogsSummary() {
       }
 
       // Get environments
-      const environments: Environment[] = await getEnvironments(
-        entity,
-        discovery,
-        identity,
-      );
+      const environments: Environment[] = await client.getEnvironments(entity);
 
       if (environments.length === 0) {
         setState(prev => ({
@@ -85,7 +68,7 @@ export function useLogsSummary() {
       const { startTime, endTime } = calculateTimeRange('1h');
 
       // Fetch logs to get counts
-      const response = await getRuntimeLogs(entity, discovery, identity, {
+      const response = await client.getRuntimeLogs(entity, {
         componentId,
         componentName,
         environmentId: selectedEnv.id,
@@ -134,7 +117,7 @@ export function useLogsSummary() {
         }));
       }
     }
-  }, [entity, discovery, identity]);
+  }, [entity, client]);
 
   const refresh = useCallback(async () => {
     setState(prev => ({ ...prev, refreshing: true }));

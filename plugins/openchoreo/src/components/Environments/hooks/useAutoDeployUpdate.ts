@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { Entity } from '@backstage/catalog-model';
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
-import { patchComponent } from '../../../api/environments';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 /**
  * Hook for updating component auto deploy setting
  */
-export const useAutoDeployUpdate = (
-  entity: Entity,
-  discovery: DiscoveryApi,
-  identity: IdentityApi,
-) => {
+export const useAutoDeployUpdate = (entity: Entity) => {
+  const client = useApi(openChoreoClientApiRef);
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +17,7 @@ export const useAutoDeployUpdate = (
     setError(null);
 
     try {
-      await patchComponent(entity, discovery, identity, autoDeploy);
+      await client.patchComponent(entity, autoDeploy);
       setIsUpdating(false);
       return true;
     } catch (err: any) {

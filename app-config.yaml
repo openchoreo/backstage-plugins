@@ -113,7 +113,18 @@ openchoreo:
   # For local Kind: defaults to http://openchoreo-api.openchoreo.svc.cluster.local:8080/api/v1
   # For production: set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.openchoreoApi.url
   baseUrl: ${OPENCHOREO_API_URL}
-  token: ${OPENCHOREO_TOKEN} # optional for now: for authentication
+
+  # Authentication configuration
+  # User-initiated requests: Token forwarded from frontend (IDP access token via x-openchoreo-token header)
+  # Background tasks (Catalog Provider): Uses client credentials below
+  auth:
+    # OAuth2 Client Credentials for background tasks (Catalog Entity Provider)
+    # Required for the Catalog Provider to fetch organizations, projects, and components
+    clientId: ${OPENCHOREO_AUTH_CLIENT_ID}
+    clientSecret: ${OPENCHOREO_AUTH_CLIENT_SECRET}
+    tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
+    # scopes: ['openid'] # Optional: uncomment to specify scopes
+
   defaultOwner: 'platformengineer' # Default owner for catalog entities
   schedule:
     frequency: 30 # seconds between runs (default: 30)

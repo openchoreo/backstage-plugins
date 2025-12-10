@@ -29,12 +29,16 @@ export class WorkflowSchemaService {
   /**
    * Fetch list of component workflows for an organization
    */
-  async fetchWorkflows(orgName: string): Promise<WorkflowListResponse> {
+  async fetchWorkflows(
+    orgName: string,
+    token?: string,
+  ): Promise<WorkflowListResponse> {
     this.logger.debug(`Fetching component workflows for org: ${orgName}`);
 
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 
@@ -77,6 +81,7 @@ export class WorkflowSchemaService {
   async fetchWorkflowSchema(
     orgName: string,
     workflowName: string,
+    token?: string,
   ): Promise<WorkflowSchemaResponse> {
     this.logger.debug(
       `Fetching schema for component workflow: ${workflowName} in org: ${orgName}`,
@@ -85,6 +90,7 @@ export class WorkflowSchemaService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 
@@ -131,6 +137,7 @@ export class WorkflowSchemaService {
     componentName: string,
     systemParameters: { [key: string]: unknown },
     parameters?: { [key: string]: unknown },
+    token?: string,
   ): Promise<OpenChoreoComponents['schemas']['APIResponse']> {
     this.logger.debug(
       `Updating workflow schema for component: ${componentName} in project: ${projectName}, org: ${orgName}`,
@@ -139,6 +146,7 @@ export class WorkflowSchemaService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 

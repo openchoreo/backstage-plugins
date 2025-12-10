@@ -20,18 +20,17 @@ export class ObservabilityNotConfiguredError extends Error {
 export class BuildInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private token?: string;
 
-  constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
   async fetchBuilds(
     orgName: string,
     projectName: string,
     componentName: string,
+    token?: string,
   ): Promise<ModelsBuild[]> {
     this.logger.debug(
       `Fetching component workflow runs for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
@@ -40,6 +39,7 @@ export class BuildInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 
@@ -81,6 +81,7 @@ export class BuildInfoService {
     projectName: string,
     componentName: string,
     commit?: string,
+    token?: string,
   ): Promise<ModelsBuild> {
     this.logger.info(
       `Triggering component workflow for component: ${componentName} in project: ${projectName}, organization: ${orgName}${
@@ -91,6 +92,7 @@ export class BuildInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 
@@ -133,6 +135,7 @@ export class BuildInfoService {
     buildId: string,
     limit?: number,
     sortOrder?: 'asc' | 'desc',
+    token?: string,
   ): Promise<RuntimeLogsResponse> {
     this.logger.debug(
       `Fetching build logs for component: ${componentName}, build: ${buildId}`,
@@ -142,7 +145,7 @@ export class BuildInfoService {
       // First, get the observer URL from the main API
       const mainClient = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -183,7 +186,7 @@ export class BuildInfoService {
       // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
-        this.token,
+        token,
         this.logger,
       );
 

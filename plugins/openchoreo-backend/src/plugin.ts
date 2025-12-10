@@ -45,68 +45,46 @@ export const choreoPlugin = createBackendPlugin({
           return;
         }
 
+        const baseUrl = openchoreoConfig.getString('baseUrl');
+
+        // All services use user tokens forwarded from the frontend
+        // No default token - services require token parameter for each API call
         const environmentInfoService = new EnvironmentInfoService(
           logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
+          baseUrl,
         );
 
         const cellDiagramInfoService = new CellDiagramInfoService(
           logger,
-          openchoreoConfig.get('baseUrl'),
+          baseUrl,
           config,
         );
 
-        const buildInfoService = new BuildInfoService(
-          logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
-        );
+        const buildInfoService = new BuildInfoService(logger, baseUrl);
 
-        const componentInfoService = new ComponentInfoService(
-          logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
-        );
+        const componentInfoService = new ComponentInfoService(logger, baseUrl);
 
-        const projectInfoService = new ProjectInfoService(
-          logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
-        );
+        const projectInfoService = new ProjectInfoService(logger, baseUrl);
 
         const runtimeLogsInfoService = new RuntimeLogsInfoService(
           logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
+          baseUrl,
         );
 
-        const workloadInfoService = new WorkloadInfoService(
-          logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
-        );
+        const workloadInfoService = new WorkloadInfoService(logger, baseUrl);
 
-        const dashboardInfoService = new DashboardInfoService(
-          logger,
-          openchoreoConfig.get('baseUrl'),
-        );
+        const dashboardInfoService = new DashboardInfoService(logger, baseUrl);
 
-        const traitInfoService = new TraitInfoService(
-          logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
-        );
+        const traitInfoService = new TraitInfoService(logger, baseUrl);
 
         const workflowSchemaService = new WorkflowSchemaService(
           logger,
-          openchoreoConfig.get('baseUrl'),
+          baseUrl,
         );
 
         const secretReferencesInfoService = new SecretReferencesService(
           logger,
-          openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
+          baseUrl,
         );
 
         httpRouter.use(

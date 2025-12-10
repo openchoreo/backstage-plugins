@@ -22,12 +22,10 @@ export class ObservabilityNotConfiguredError extends Error {
 export class RuntimeLogsInfoService implements RuntimeLogsService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
-  private readonly token?: string;
 
-  public constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
   /**
@@ -58,6 +56,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
     },
     orgName: string,
     projectName: string,
+    token?: string,
   ): Promise<RuntimeLogsResponse> {
     try {
       const {
@@ -78,7 +77,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       // First, get the observer URL from the main API
       const mainClient = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -120,7 +119,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
-        this.token,
+        token,
         this.logger,
       );
 

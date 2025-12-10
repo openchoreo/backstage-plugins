@@ -44,6 +44,7 @@ export class TraitInfoService {
     orgName: string,
     page: number = 1,
     pageSize: number = 100,
+    token?: string,
   ): Promise<TraitListResponse> {
     this.logger.debug(
       `Fetching traits (traits) for organization: ${orgName} (page: ${page}, pageSize: ${pageSize})`,
@@ -52,6 +53,7 @@ export class TraitInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 
@@ -91,6 +93,7 @@ export class TraitInfoService {
   async fetchTraitSchema(
     orgName: string,
     traitName: string,
+    token?: string,
   ): Promise<TraitSchemaResponse> {
     this.logger.debug(
       `Fetching schema for trait (trait): ${traitName} in org: ${orgName}`,
@@ -99,6 +102,7 @@ export class TraitInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token,
         logger: this.logger,
       });
 

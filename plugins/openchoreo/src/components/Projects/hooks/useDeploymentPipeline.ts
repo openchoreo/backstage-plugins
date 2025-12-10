@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import {
   CHOREO_ANNOTATIONS,
   type OpenChoreoComponents,
 } from '@openchoreo/backstage-plugin-common';
-import { apiFetch } from '../../../api/client';
-import { API_ENDPOINTS } from '../../../constants';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 type DeploymentPipelineResponse =
   OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
@@ -23,8 +18,7 @@ interface DeploymentPipelineData {
 
 export const useDeploymentPipeline = () => {
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [data, setData] = useState<DeploymentPipelineData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,15 +40,8 @@ export const useDeploymentPipeline = () => {
         }
 
         // Fetch deployment pipeline from Backstage backend
-        const pipelineData = await apiFetch<DeploymentPipelineResponse>({
-          endpoint: API_ENDPOINTS.DEPLOYMENT_PIPELINE,
-          discovery,
-          identity,
-          params: {
-            projectName,
-            organizationName: organization,
-          },
-        });
+        const pipelineData: DeploymentPipelineResponse =
+          await client.fetchDeploymentPipeline(projectName, organization);
 
         // Extract environments from promotion paths in order
         // The promotion paths define the deployment flow: source -> targets
@@ -103,7 +90,7 @@ export const useDeploymentPipeline = () => {
     };
 
     fetchPipelineData();
-  }, [entity, discovery, identity]);
+  }, [entity, client]);
 
   return { data, loading, error };
 };

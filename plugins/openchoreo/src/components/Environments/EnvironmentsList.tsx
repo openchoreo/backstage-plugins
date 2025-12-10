@@ -1,11 +1,6 @@
 import { useCallback } from 'react';
 import { Grid } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  discoveryApiRef,
-  identityApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
 
 import { useItemActionTracker, useNotification } from '../../hooks';
 import {
@@ -24,8 +19,6 @@ import { useEnvironmentsContext } from './EnvironmentsContext';
  */
 export const EnvironmentsList = () => {
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
 
   const {
     environments,
@@ -55,8 +48,6 @@ export const EnvironmentsList = () => {
   // Action handlers
   const { handleRefreshEnvironment, handleSuspend } = useEnvironmentActions(
     entity,
-    discovery,
-    identityApi,
     refetch,
     notification,
     refreshTracker,

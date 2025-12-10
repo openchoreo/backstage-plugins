@@ -2,12 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import { Entity } from '@backstage/catalog-model';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
-import { patchReleaseBindingOverrides } from '../../api/environments';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { makeStyles } from '@material-ui/core/styles';
 import { OverrideContent } from './OverrideContent';
 import { useOverrideChanges } from './hooks/useOverrideChanges';
@@ -91,8 +87,7 @@ export const EnvironmentOverridesPage = ({
   onTabChange,
 }: EnvironmentOverridesPageProps) => {
   const classes = useStyles();
-  const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -124,8 +119,6 @@ export const EnvironmentOverridesPage = ({
     reload,
   } = useOverridesData(
     entity,
-    discovery,
-    identityApi,
     environment.name,
     releaseNameForOverrides,
     true, // always open
@@ -624,10 +617,8 @@ export const EnvironmentOverridesPage = ({
     setSaveError(null);
 
     try {
-      await patchReleaseBindingOverrides(
+      await client.patchReleaseBindingOverrides(
         entity,
-        discovery,
-        identityApi,
         environment.name.toLowerCase(),
         formState.componentTypeFormData,
         formState.traitFormDataMap,
@@ -668,10 +659,8 @@ export const EnvironmentOverridesPage = ({
 
     try {
       if (deleteTarget === 'all') {
-        await patchReleaseBindingOverrides(
+        await client.patchReleaseBindingOverrides(
           entity,
-          discovery,
-          identityApi,
           environment.name.toLowerCase(),
           {},
           {},

@@ -9,16 +9,12 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import Close from '@material-ui/icons/Close';
-import {
-  useApi,
-  discoveryApiRef,
-  identityApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import type {
   ModelsBuild,
   LogEntry,
 } from '@openchoreo/backstage-plugin-common';
-import { fetchBuildLogsForBuild } from '../../api/buildLogs';
+import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 
 const useStyles = makeStyles(theme => ({
   logsContainer: {
@@ -49,8 +45,7 @@ interface BuildLogsProps {
 
 export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
   const classes = useStyles();
-  const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,11 +57,7 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
       setLogs([]);
 
       try {
-        const logsData = await fetchBuildLogsForBuild(
-          discoveryApi,
-          identityApi,
-          selectedBuild,
-        );
+        const logsData = await client.fetchBuildLogsForBuild(selectedBuild);
         setLogs(logsData.logs || []);
       } catch (err) {
         setError(
@@ -80,7 +71,7 @@ export const BuildLogs = ({ open, onClose, build }: BuildLogsProps) => {
     if (open && build) {
       fetchBuildLogs(build);
     }
-  }, [discoveryApi, identityApi, open, build]);
+  }, [client, open, build]);
 
   const renderLogsContent = () => {
     if (loading) {

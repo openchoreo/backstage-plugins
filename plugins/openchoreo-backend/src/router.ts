@@ -68,12 +68,17 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.fetchDeploymentInfo({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string, // TODO: Get from request or config
-      }),
+      await environmentInfoService.fetchDeploymentInfo(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -93,14 +98,19 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.promoteComponent({
-        sourceEnvironment: sourceEnv,
-        targetEnvironment: targetEnv,
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: orgName as string,
-      }),
+      await environmentInfoService.promoteComponent(
+        {
+          sourceEnvironment: sourceEnv,
+          targetEnvironment: targetEnv,
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: orgName as string,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -113,13 +123,18 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.deleteReleaseBinding({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: orgName as string,
-        environment: environment as string,
-      }),
+      await environmentInfoService.deleteReleaseBinding(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: orgName as string,
+          environment: environment as string,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -145,14 +160,19 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.updateComponentBinding({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: orgName as string,
-        bindingName: bindingName as string,
-        releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
-      }),
+      await environmentInfoService.updateComponentBinding(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: orgName as string,
+          bindingName: bindingName as string,
+          releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
+        },
+        userToken,
+      ),
     );
   });
 
@@ -166,11 +186,17 @@ export async function createRouter({
           'projectName and organizationName are required query parameters',
         );
       }
+
+      const userToken = getUserTokenFromRequest(req);
+
       res.json(
-        await cellDiagramInfoService.fetchProjectInfo({
-          projectName: projectName as string,
-          orgName: organizationName as string,
-        }),
+        await cellDiagramInfoService.fetchProjectInfo(
+          {
+            projectName: projectName as string,
+            orgName: organizationName as string,
+          },
+          userToken,
+        ),
       );
     },
   );
@@ -183,11 +209,14 @@ export async function createRouter({
       throw new InputError('organizationName is a required query parameter');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await traitInfoService.fetchTraits(
         organizationName as string,
         page ? parseInt(page as string, 10) : undefined,
         pageSize ? parseInt(pageSize as string, 10) : undefined,
+        userToken,
       ),
     );
   });
@@ -204,10 +233,13 @@ export async function createRouter({
       throw new InputError('traitName is a required query parameter');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await traitInfoService.fetchTraitSchema(
         organizationName as string,
         traitName as string,
+        userToken,
       ),
     );
   });
@@ -263,8 +295,13 @@ export async function createRouter({
       throw new InputError('organizationName is a required query parameter');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await workflowSchemaService.fetchWorkflows(organizationName as string),
+      await workflowSchemaService.fetchWorkflows(
+        organizationName as string,
+        userToken,
+      ),
     );
   });
 
@@ -280,10 +317,13 @@ export async function createRouter({
       throw new InputError('workflowName is a required query parameter');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await workflowSchemaService.fetchWorkflowSchema(
         organizationName as string,
         workflowName as string,
+        userToken,
       ),
     );
   });
@@ -303,6 +343,8 @@ export async function createRouter({
       throw new InputError('systemParameters are required in request body');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await workflowSchemaService.updateComponentWorkflowSchema(
         organizationName as string,
@@ -310,6 +352,7 @@ export async function createRouter({
         componentName as string,
         systemParameters,
         parameters ? parameters : undefined,
+        userToken,
       ),
     );
   });
@@ -323,11 +366,14 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await buildInfoService.fetchBuilds(
         organizationName as string,
         projectName as string,
         componentName as string,
+        userToken,
       ),
     );
   });
@@ -341,12 +387,15 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await buildInfoService.triggerBuild(
         organizationName as string,
         projectName as string,
         componentName as string,
         commit as string | undefined,
+        userToken,
       ),
     );
   });
@@ -408,10 +457,13 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await projectInfoService.fetchProjectDetails(
         organizationName as string,
         projectName as string,
+        userToken,
       ),
     );
   });
@@ -425,10 +477,13 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await projectInfoService.fetchProjectDeploymentPipeline(
         organizationName as string,
         projectName as string,
+        userToken,
       ),
     );
   });
@@ -443,12 +498,17 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     try {
       const result = await buildInfoService.fetchBuildLogs(
         orgName as string,
         projectName as string,
         componentName as string,
         buildId as string,
+        undefined, // limit
+        undefined, // sortOrder
+        userToken,
       );
       return res.json(result);
     } catch (error: unknown) {
@@ -490,6 +550,8 @@ export async function createRouter({
         });
       }
 
+      const userToken = getUserTokenFromRequest(req);
+
       try {
         const result = await runtimeLogsInfoService.fetchRuntimeLogs(
           {
@@ -504,6 +566,7 @@ export async function createRouter({
           },
           orgName as string,
           projectName as string,
+          userToken,
         );
 
         return res.json(result);
@@ -551,12 +614,17 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     try {
-      const result = await workloadInfoService.fetchWorkloadInfo({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string,
-      });
+      const result = await workloadInfoService.fetchWorkloadInfo(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+        },
+        userToken,
+      );
 
       res.json(result);
     } catch (error) {
@@ -586,13 +654,18 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     try {
-      const result = await workloadInfoService.applyWorkload({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string,
-        workloadSpec,
-      });
+      const result = await workloadInfoService.applyWorkload(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+          workloadSpec,
+        },
+        userToken,
+      );
 
       res.json(result);
     } catch (error) {
@@ -613,9 +686,14 @@ export async function createRouter({
       throw new InputError('components array is required in request body');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     try {
       const totalBindings =
-        await dashboardInfoService.fetchComponentsBindingsCount(components);
+        await dashboardInfoService.fetchComponentsBindingsCount(
+          components,
+          userToken,
+        );
 
       res.json({ totalBindings });
     } catch (error) {
@@ -638,13 +716,18 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.createComponentRelease({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string,
-        releaseName: releaseName as string | undefined,
-      }),
+      await environmentInfoService.createComponentRelease(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+          releaseName: releaseName as string | undefined,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -662,13 +745,18 @@ export async function createRouter({
       throw new InputError('releaseName is required in request body');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.deployRelease({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string,
-        releaseName: releaseName as string,
-      }),
+      await environmentInfoService.deployRelease(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+          releaseName: releaseName as string,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -682,13 +770,18 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.fetchComponentReleaseSchema({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string,
-        releaseName: releaseName as string,
-      }),
+      await environmentInfoService.fetchComponentReleaseSchema(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+          releaseName: releaseName as string,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -701,12 +794,17 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.fetchReleaseBindings({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string,
-      }),
+      await environmentInfoService.fetchReleaseBindings(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -728,17 +826,22 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.patchReleaseBindingOverrides({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: orgName as string,
-        environment: environment as string,
-        componentTypeEnvOverrides: componentTypeEnvOverrides,
-        traitOverrides: traitOverrides,
-        workloadOverrides: workloadOverrides,
-        releaseName: releaseName as string | undefined,
-      }),
+      await environmentInfoService.patchReleaseBindingOverrides(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: orgName as string,
+          environment: environment as string,
+          componentTypeEnvOverrides: componentTypeEnvOverrides,
+          traitOverrides: traitOverrides,
+          workloadOverrides: workloadOverrides,
+          releaseName: releaseName as string | undefined,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -757,13 +860,18 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.fetchEnvironmentRelease({
-        componentName: componentName as string,
-        projectName: projectName as string,
-        organizationName: organizationName as string,
-        environmentName: environmentName as string,
-      }),
+      await environmentInfoService.fetchEnvironmentRelease(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          organizationName: organizationName as string,
+          environmentName: environmentName as string,
+        },
+        userToken,
+      ),
     );
   });
 
@@ -775,9 +883,12 @@ export async function createRouter({
       throw new InputError('organizationName is a required query parameter');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await secretReferencesInfoService.fetchSecretReferences(
         organizationName as string,
+        userToken,
       ),
     );
   });

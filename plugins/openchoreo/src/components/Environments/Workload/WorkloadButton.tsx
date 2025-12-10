@@ -8,7 +8,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { Alert, Skeleton } from '@material-ui/lab';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-import { fetchWorkloadInfo } from '../../../api/workloadInfo';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
 interface WorkloadButtonProps {
@@ -26,6 +26,7 @@ export const WorkloadButton = ({
 }: WorkloadButtonProps) => {
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -37,14 +38,14 @@ export const WorkloadButton = ({
     const fetchWorkload = async () => {
       try {
         setIsLoading(true);
-        await fetchWorkloadInfo(entity, discovery, identity);
+        await client.fetchWorkloadInfo(entity);
       } catch (e) {
         setError('Failed to fetch workload info');
       }
       setIsLoading(false);
     };
     fetchWorkload();
-  }, [entity, discovery, identity]);
+  }, [entity, client]);
 
   // Fetch builds to check if deployment is possible
   useEffect(() => {

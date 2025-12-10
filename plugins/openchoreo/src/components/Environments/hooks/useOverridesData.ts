@@ -1,12 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { JSONSchema7 } from 'json-schema';
 import { Entity } from '@backstage/catalog-model';
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
-import {
-  fetchComponentReleaseSchema,
-  fetchReleaseBindings,
-} from '../../../api/environments';
-import { fetchWorkloadInfo } from '../../../api/workloadInfo';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { getSchemaDefaults } from '../overridesUtils';
 import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
 
@@ -95,12 +91,12 @@ const hasActualWorkloadData = (workloadOverrides: any): boolean => {
  */
 export function useOverridesData(
   entity: Entity,
-  discovery: DiscoveryApi,
-  identityApi: IdentityApi,
   environmentName: string | undefined,
   releaseName: string | undefined,
   isOpen: boolean,
 ): UseOverridesDataReturn {
+  const client = useApi(openChoreoClientApiRef);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -187,10 +183,8 @@ export function useOverridesData(
 
     try {
       // Fetch schema for the release
-      const schemaResponse = await fetchComponentReleaseSchema(
+      const schemaResponse = await client.fetchComponentReleaseSchema(
         entity,
-        discovery,
-        identityApi,
         releaseName,
       );
 
@@ -237,11 +231,7 @@ export function useOverridesData(
       }
 
       // Fetch existing bindings to get current overrides
-      const bindingsResponse = await fetchReleaseBindings(
-        entity,
-        discovery,
-        identityApi,
-      );
+      const bindingsResponse = await client.fetchReleaseBindings(entity);
 
       if (bindingsResponse.success && bindingsResponse.data?.items) {
         const bindings = bindingsResponse.data.items as ReleaseBinding[];
@@ -287,11 +277,7 @@ export function useOverridesData(
           setHasActualWorkloadOverrides(hasActualWorkload);
 
           // Always fetch base workload info for reference display
-          const workloadInfo = await fetchWorkloadInfo(
-            entity,
-            discovery,
-            identityApi,
-          );
+          const workloadInfo = await client.fetchWorkloadInfo(entity);
           setBaseWorkloadData(workloadInfo);
 
           // If no workload overrides exist, populate container structure from base workload
@@ -318,11 +304,7 @@ export function useOverridesData(
           setInitialTraitFormDataMap({});
 
           // Always fetch base workload info for reference display
-          const workloadInfo = await fetchWorkloadInfo(
-            entity,
-            discovery,
-            identityApi,
-          );
+          const workloadInfo = await client.fetchWorkloadInfo(entity);
           setBaseWorkloadData(workloadInfo);
 
           // Populate container structure from base workload
@@ -347,7 +329,7 @@ export function useOverridesData(
     } finally {
       setLoading(false);
     }
-  }, [entity, discovery, identityApi, environmentName, releaseName]);
+  }, [entity, client, environmentName, releaseName]);
 
   useEffect(() => {
     if (isOpen && environmentName) {

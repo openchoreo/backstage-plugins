@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Entity } from '@backstage/catalog-model';
-import {
-  discoveryApiRef,
-  identityApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
-import { fetchEnvironmentRelease } from '../../../api/environments';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { extractInvokeUrl } from '../utils/invokeUrlUtils';
 import { ReleaseData } from '../ReleaseDataRenderer/types';
 
@@ -19,8 +15,7 @@ export function useInvokeUrl(
   releaseName: string | undefined,
   status: 'Ready' | 'NotReady' | 'Failed' | undefined,
 ) {
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const [invokeUrl, setInvokeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,10 +31,8 @@ export function useInvokeUrl(
       setLoading(true);
       try {
         const envName = resourceName || environmentName;
-        const releaseData = (await fetchEnvironmentRelease(
+        const releaseData = (await client.fetchEnvironmentRelease(
           entity,
-          discovery,
-          identity,
           envName,
         )) as ReleaseData;
         const url = extractInvokeUrl(releaseData);
@@ -53,15 +46,7 @@ export function useInvokeUrl(
     };
 
     fetchInvokeUrl();
-  }, [
-    releaseName,
-    status,
-    environmentName,
-    resourceName,
-    entity,
-    discovery,
-    identity,
-  ]);
+  }, [releaseName, status, environmentName, resourceName, entity, client]);
 
   return { invokeUrl, loading };
 }

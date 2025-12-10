@@ -16,14 +16,10 @@ import {
   ModelsWorkload,
 } from '@openchoreo/backstage-plugin-common';
 import { catalogApiRef, useEntity } from '@backstage/plugin-catalog-react';
-import {
-  discoveryApiRef,
-  identityApiRef,
-  useApi,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { fetchWorkloadInfo } from '../../../../api/workloadInfo';
+import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 
 interface ConnectionItemProps {
   connectionName: string;
@@ -57,8 +53,7 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
 }) => {
   const classes = useStyles();
   const catalogApi = useApi(catalogApiRef);
-  const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   const { entity: selectedEntity } = useEntity();
   const [allComponents, setAllComponents] = useState<Entity[]>([]);
@@ -115,10 +110,8 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
       );
       if (component) {
         try {
-          const toWorkload: ModelsWorkload = await fetchWorkloadInfo(
+          const toWorkload: ModelsWorkload = await client.fetchWorkloadInfo(
             component,
-            discoveryApi,
-            identityApi,
           );
           setEndPointList(Object.keys(toWorkload?.endpoints || {}));
         } catch (error) {
@@ -130,8 +123,7 @@ export const ConnectionItem: FC<ConnectionItemProps> = ({
   }, [
     allComponents,
     connection.params?.componentName,
-    discoveryApi,
-    identityApi,
+    client,
     connection.params?.projectName,
   ]);
 

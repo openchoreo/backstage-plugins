@@ -12,17 +12,16 @@ export type ModelsDeploymentPipeline =
 export class ProjectInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private token?: string;
 
-  constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
   async fetchProjectDetails(
     orgName: string,
     projectName: string,
+    token?: string,
   ): Promise<ModelsProject> {
     this.logger.debug(
       `Fetching project details for: ${projectName} in organization: ${orgName}`,
@@ -31,7 +30,7 @@ export class ProjectInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -71,6 +70,7 @@ export class ProjectInfoService {
   async fetchProjectDeploymentPipeline(
     orgName: string,
     projectName: string,
+    token?: string,
   ): Promise<ModelsDeploymentPipeline> {
     this.logger.debug(
       `Fetching deployment pipeline for project: ${projectName} in organization: ${orgName}`,
@@ -78,7 +78,7 @@ export class ProjectInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 

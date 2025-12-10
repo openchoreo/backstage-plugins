@@ -13,24 +13,22 @@ type ReleaseBindingResponse =
 /**
  * Service for managing and retrieving environment-related information for deployments.
  * This service handles fetching environment details from the OpenChoreo API.
+ * All methods require a user token to be passed for authentication.
  */
 export class EnvironmentInfoService implements EnvironmentService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
-  private readonly token?: string;
 
-  public constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
   static create(
     logger: LoggerService,
     baseUrl: string,
-    token?: string,
   ): EnvironmentInfoService {
-    return new EnvironmentInfoService(logger, baseUrl, token);
+    return new EnvironmentInfoService(logger, baseUrl);
   }
 
   /**
@@ -46,11 +44,14 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @returns {Promise<Environment[]>} Array of environments with their deployment information
    * @throws {Error} When there's an error fetching data from the API
    */
-  async fetchDeploymentInfo(request: {
-    projectName: string;
-    componentName: string;
-    organizationName: string;
-  }): Promise<Environment[]> {
+  async fetchDeploymentInfo(
+    request: {
+      projectName: string;
+      componentName: string;
+      organizationName: string;
+    },
+    token?: string,
+  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.debug(
@@ -85,7 +86,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -507,13 +508,16 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @returns {Promise<Environment[]>} Array of environments with updated deployment information
    * @throws {Error} When there's an error promoting the component
    */
-  async promoteComponent(request: {
-    sourceEnvironment: string;
-    targetEnvironment: string;
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-  }): Promise<Environment[]> {
+  async promoteComponent(
+    request: {
+      sourceEnvironment: string;
+      targetEnvironment: string;
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+    },
+    token?: string,
+  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.info(
@@ -522,7 +526,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -556,11 +560,14 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
 
       // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo({
-        componentName: request.componentName,
-        projectName: request.projectName,
-        organizationName: request.organizationName,
-      });
+      const refreshedEnvironments = await this.fetchDeploymentInfo(
+        {
+          componentName: request.componentName,
+          projectName: request.projectName,
+          organizationName: request.organizationName,
+        },
+        token,
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -590,12 +597,15 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @returns {Promise<Environment[]>} Array of environments with updated deployment information
    * @throws {Error} When there's an error deleting the binding
    */
-  async deleteReleaseBinding(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-    environment: string;
-  }): Promise<Environment[]> {
+  async deleteReleaseBinding(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+      environment: string;
+    },
+    token?: string,
+  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.info(
@@ -604,7 +614,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -632,11 +642,14 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
 
       // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo({
-        componentName: request.componentName,
-        projectName: request.projectName,
-        organizationName: request.organizationName,
-      });
+      const refreshedEnvironments = await this.fetchDeploymentInfo(
+        {
+          componentName: request.componentName,
+          projectName: request.projectName,
+          organizationName: request.organizationName,
+        },
+        token,
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -667,13 +680,16 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @returns {Promise<Environment[]>} Array of environments with updated deployment information
    * @throws {Error} When there's an error updating the binding
    */
-  async updateComponentBinding(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-    bindingName: string;
-    releaseState: 'Active' | 'Suspend' | 'Undeploy';
-  }): Promise<Environment[]> {
+  async updateComponentBinding(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+      bindingName: string;
+      releaseState: 'Active' | 'Suspend' | 'Undeploy';
+    },
+    token?: string,
+  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.info(
@@ -682,7 +698,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -713,11 +729,14 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
 
       // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo({
-        componentName: request.componentName,
-        projectName: request.projectName,
-        organizationName: request.organizationName,
-      });
+      const refreshedEnvironments = await this.fetchDeploymentInfo(
+        {
+          componentName: request.componentName,
+          projectName: request.projectName,
+          organizationName: request.organizationName,
+        },
+        token,
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -746,12 +765,15 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} [request.releaseName] - Optional release name (auto-generated if omitted)
    * @returns {Promise<any>} Response from the OpenChoreo API
    */
-  async createComponentRelease(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-    releaseName?: string;
-  }) {
+  async createComponentRelease(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+      releaseName?: string;
+    },
+    token?: string,
+  ) {
     const startTime = Date.now();
     this.logger.debug(
       `Creating component release for ${request.componentName} in ${request.projectName}`,
@@ -760,7 +782,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -815,12 +837,15 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} request.releaseName - Name of the release to deploy
    * @returns {Promise<Environment[]>} Updated environment information
    */
-  async deployRelease(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-    releaseName: string;
-  }): Promise<Environment[]> {
+  async deployRelease(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+      releaseName: string;
+    },
+    token?: string,
+  ): Promise<Environment[]> {
     const startTime = Date.now();
     this.logger.debug(
       `Deploying release ${request.releaseName} for component ${request.componentName}`,
@@ -829,9 +854,13 @@ export class EnvironmentInfoService implements EnvironmentService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
+
+      this.logger.debug(
+        `Deploy release request: org=${request.organizationName}, project=${request.projectName}, component=${request.componentName}, release=${request.releaseName}`,
+      );
 
       const { error, response } = await client.POST(
         '/orgs/{orgName}/projects/{projectName}/components/{componentName}/deploy',
@@ -850,17 +879,24 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
 
       if (error || !response.ok) {
-        throw new Error(
-          `Failed to deploy release: ${response.status} ${response.statusText}`,
+        const errorMessage = error
+          ? JSON.stringify(error)
+          : `${response.status} ${response.statusText}`;
+        this.logger.error(
+          `Deploy release API error for ${request.componentName}: ${errorMessage}`,
         );
+        throw new Error(`Failed to deploy release: ${errorMessage}`);
       }
 
       // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo({
-        componentName: request.componentName,
-        projectName: request.projectName,
-        organizationName: request.organizationName,
-      });
+      const refreshedEnvironments = await this.fetchDeploymentInfo(
+        {
+          componentName: request.componentName,
+          projectName: request.projectName,
+          organizationName: request.organizationName,
+        },
+        token,
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -889,12 +925,15 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} request.releaseName - Name of the release to get schema for
    * @returns {Promise<any>} JSON Schema for the release's override configuration
    */
-  async fetchComponentReleaseSchema(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-    releaseName: string;
-  }) {
+  async fetchComponentReleaseSchema(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+      releaseName: string;
+    },
+    token?: string,
+  ) {
     const startTime = Date.now();
     this.logger.debug(
       `Fetching component release schema for ${request.releaseName}`,
@@ -903,7 +942,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -952,11 +991,14 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} request.organizationName - Name of the organization
    * @returns {Promise<any>} List of release bindings
    */
-  async fetchReleaseBindings(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-  }) {
+  async fetchReleaseBindings(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+    },
+    token?: string,
+  ) {
     const startTime = Date.now();
     this.logger.debug(
       `Fetching release bindings for component ${request.componentName}`,
@@ -965,7 +1007,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -1018,16 +1060,19 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {any} request.workloadOverrides - Workload container overrides to apply
    * @returns {Promise<any>} Updated binding response
    */
-  async patchReleaseBindingOverrides(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-    environment: string;
-    componentTypeEnvOverrides: any;
-    traitOverrides?: any;
-    workloadOverrides?: any;
-    releaseName?: string;
-  }) {
+  async patchReleaseBindingOverrides(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+      environment: string;
+      componentTypeEnvOverrides: any;
+      traitOverrides?: any;
+      workloadOverrides?: any;
+      releaseName?: string;
+    },
+    token?: string,
+  ) {
     const startTime = Date.now();
     this.logger.debug(
       `Patching release binding overrides for component ${request.componentName} in environment ${request.environment}`,
@@ -1036,7 +1081,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
@@ -1097,12 +1142,15 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} request.environmentName - Name of the environment
    * @returns {Promise<any>} Release information including spec and status
    */
-  async fetchEnvironmentRelease(request: {
-    componentName: string;
-    projectName: string;
-    organizationName: string;
-    environmentName: string;
-  }) {
+  async fetchEnvironmentRelease(
+    request: {
+      componentName: string;
+      projectName: string;
+      organizationName: string;
+      environmentName: string;
+    },
+    token?: string,
+  ) {
     const startTime = Date.now();
     this.logger.debug(
       `Fetching environment release for component ${request.componentName} in environment ${request.environmentName}`,
@@ -1111,7 +1159,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token,
         logger: this.logger,
       });
 
