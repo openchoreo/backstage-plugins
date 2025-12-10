@@ -78,5 +78,53 @@ export async function createRouter({
     }
   });
 
+  router.post('/rca-reports', async (_req, res) => {
+    await httpAuth.credentials(_req, { allow: ['user'] });
+
+    try {
+      const reports = await observabilityService.fetchRCAReportsByProject(
+        _req.body.projectId,
+        _req.body.environmentId,
+        _req.body.orgName,
+        _req.body.projectName,
+        _req.body.environmentName,
+        _req.body.componentUids || [],
+        _req.body.options,
+      );
+      return res.status(200).json(reports);
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch RCA reports',
+      });
+    }
+  });
+
+  router.post('/rca-reports/alert/:alertId', async (_req, res) => {
+    await httpAuth.credentials(_req, { allow: ['user'] });
+
+    const { alertId } = _req.params;
+
+    try {
+      const report = await observabilityService.fetchRCAReportByAlert(
+        alertId,
+        _req.body.projectId,
+        _req.body.environmentId,
+        _req.body.orgName,
+        _req.body.projectName,
+        _req.body.environmentName,
+        _req.body.options,
+      );
+      return res.status(200).json(report);
+    } catch (error) {
+      return res.status(500).json({
+        error:
+          error instanceof Error ? error.message : 'Failed to fetch RCA report',
+      });
+    }
+  });
+
   return router;
 }
