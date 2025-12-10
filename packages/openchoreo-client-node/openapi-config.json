@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "8786ca6362e6509d753b99318e19b370311a5602",
-  "lastSyncDate": "2025-11-28T19:22:20+05:30",
-  "lastSyncDescription": "Added PATCH /orgs/{orgName}/projects/{projectName}/components/{componentName} endpoint with autoDeploy support and PatchComponentRequest schema."
+  "lastSyncCommit": "84e600909d3b90f3263949e3610ea7a46de42d79",
+  "lastSyncDate": "2025-12-09T15:37:42+05:30",
+  "lastSyncDescription": "Added component trait management endpoints: GET /orgs/{orgName}/projects/{projectName}/components/{componentName}/traits to list traits, PUT /orgs/{orgName}/projects/{projectName}/components/{componentName}/traits to update all traits. Added schemas: ComponentTraitResponse, ComponentTraitRequest, UpdateComponentTraitsRequest."
 }

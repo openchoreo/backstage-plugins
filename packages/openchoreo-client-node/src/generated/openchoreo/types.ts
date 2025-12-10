@@ -451,6 +451,24 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all traits attached to a component */
+    get: operations['listComponentTraits'];
+    /** Update all traits on a component */
+    put: operations['updateComponentTraits'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema': {
     parameters: {
       query?: never;
@@ -856,6 +874,30 @@ export interface components {
       /** @description Controls whether the component should automatically deploy to the default environment */
       autoDeploy?: boolean;
     };
+    ComponentTraitResponse: {
+      /** @description Name of the Trait resource */
+      name: string;
+      /** @description Unique instance name for this trait within the component */
+      instanceName: string;
+      /** @description Trait parameter values */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    ComponentTraitRequest: {
+      /** @description Name of the Trait resource to use */
+      name: string;
+      /** @description Unique instance name for this trait within the component */
+      instanceName: string;
+      /** @description Trait parameter values */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    UpdateComponentTraitsRequest: {
+      /** @description Array of trait instances to attach to the component (replaces all existing traits) */
+      traits: components['schemas']['ComponentTraitRequest'][];
+    };
     EnvironmentResponse: {
       uid: string;
       name: string;
@@ -1075,14 +1117,13 @@ export interface components {
     ObserverUrlData: {
       observerUrl?: string;
     };
-    /**
-     * @description Immutable snapshot of component configuration.
+    /** @description Immutable snapshot of component configuration.
      *     Note: The following fields are immutable after creation and cannot be modified:
      *     - componentType
      *     - traits
      *     - componentProfile
      *     - workload
-     */
+     *      */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
@@ -2157,6 +2198,110 @@ export interface operations {
         };
       };
       /** @description Component not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listComponentTraits: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'];
+            totalCount?: number;
+            page?: number;
+            pageSize?: number;
+          };
+        };
+      };
+      /** @description Bad request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Component not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateComponentTraits: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateComponentTraitsRequest'];
+      };
+    };
+    responses: {
+      /** @description Traits updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'];
+            totalCount?: number;
+            page?: number;
+            pageSize?: number;
+          };
+        };
+      };
+      /** @description Bad request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Component or trait not found */
       404: {
         headers: {
           [name: string]: unknown;

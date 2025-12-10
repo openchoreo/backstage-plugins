@@ -325,6 +325,52 @@ components:
           type: boolean
           description: Controls whether the component should automatically deploy to the default environment
 
+    # Component Traits
+    ComponentTraitResponse:
+      type: object
+      required:
+        - name
+        - instanceName
+      properties:
+        name:
+          type: string
+          description: Name of the Trait resource
+        instanceName:
+          type: string
+          description: Unique instance name for this trait within the component
+        parameters:
+          type: object
+          description: Trait parameter values
+          additionalProperties: true
+
+    ComponentTraitRequest:
+      type: object
+      required:
+        - name
+        - instanceName
+      properties:
+        name:
+          type: string
+          description: Name of the Trait resource to use
+        instanceName:
+          type: string
+          description: Unique instance name for this trait within the component
+        parameters:
+          type: object
+          description: Trait parameter values
+          additionalProperties: true
+
+    UpdateComponentTraitsRequest:
+      type: object
+      required:
+        - traits
+      properties:
+        traits:
+          type: array
+          description: Array of trait instances to attach to the component (replaces all existing traits)
+          items:
+            $ref: '#/components/schemas/ComponentTraitRequest'
+
     # Environment
     EnvironmentResponse:
       type: object
@@ -2260,6 +2306,105 @@ paths:
                         $ref: '#/components/schemas/ComponentSchemaResponse'
         '404':
           description: Component not found
+
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/traits:
+    get:
+      summary: List all traits attached to a component
+      operationId: listComponentTraits
+      tags:
+        - Components
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ListResponse'
+                      totalCount:
+                        type: integer
+                      page:
+                        type: integer
+                      pageSize:
+                        type: integer
+        '400':
+          description: Bad request
+        '403':
+          description: Forbidden
+        '404':
+          description: Component not found
+
+    put:
+      summary: Update all traits on a component
+      operationId: updateComponentTraits
+      tags:
+        - Components
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateComponentTraitsRequest'
+      responses:
+        '200':
+          description: Traits updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ListResponse'
+                      totalCount:
+                        type: integer
+                      page:
+                        type: integer
+                      pageSize:
+                        type: integer
+        '400':
+          description: Bad request
+        '403':
+          description: Forbidden
+        '404':
+          description: Component or trait not found
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema:
     patch:
