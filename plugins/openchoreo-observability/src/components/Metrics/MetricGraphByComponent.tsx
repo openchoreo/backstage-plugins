@@ -97,7 +97,10 @@ export const MetricGraphByComponent = ({
           width="auto"
           tickFormatter={v => formatMetricValue(v, usageType)}
         />
-        <Tooltip labelFormatter={formatTooltipTime} />
+        <Tooltip
+          labelFormatter={formatTooltipTime}
+          formatter={(value: number) => formatMetricValue(value, usageType)}
+        />
         <Legend
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
