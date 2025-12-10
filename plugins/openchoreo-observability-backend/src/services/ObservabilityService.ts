@@ -24,20 +24,14 @@ export class ObservabilityNotConfiguredError extends Error {
 export class ObservabilityService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
-  private readonly token?: string;
 
-  static create(
-    logger: LoggerService,
-    baseUrl: string,
-    token?: string,
-  ): ObservabilityService {
-    return new ObservabilityService(logger, baseUrl, token);
+  static create(logger: LoggerService, baseUrl: string): ObservabilityService {
+    return new ObservabilityService(logger, baseUrl);
   }
 
-  private constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  private constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
   /**
@@ -59,7 +53,7 @@ export class ObservabilityService {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         logger: this.logger,
-        token: userToken ?? this.token,
+        token: userToken,
       });
 
       const { data, error, response } = await client.GET(
@@ -146,10 +140,9 @@ export class ObservabilityService {
       );
 
       // First, get the observer URL from the main API
-      const effectiveToken = userToken ?? this.token;
       const mainClient = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: effectiveToken,
+        token: userToken,
         logger: this.logger,
       });
       const {
@@ -185,7 +178,7 @@ export class ObservabilityService {
       // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
-        effectiveToken,
+        userToken,
         this.logger,
       );
 
@@ -351,12 +344,11 @@ export class ObservabilityService {
       );
 
       let observerUrl: string | undefined;
-      const effectiveToken = userToken ?? this.token;
 
       if (environmentName) {
         const mainClient = createOpenChoreoApiClient({
           baseUrl: this.baseUrl,
-          token: effectiveToken,
+          token: userToken,
           logger: this.logger,
         });
         // Get the list of components from the main API using the project
@@ -454,7 +446,7 @@ export class ObservabilityService {
       // Use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
-        effectiveToken,
+        userToken,
         this.logger,
       );
 
@@ -556,9 +548,7 @@ export const observabilityServiceRef = createServiceRef<
         const baseUrl =
           deps.config.getOptionalString('openchoreo.baseUrl') ||
           'http://localhost:8080';
-        const token = deps.config.getOptionalString('openchoreo.token');
-
-        return ObservabilityService.create(deps.logger, baseUrl, token);
+        return ObservabilityService.create(deps.logger, baseUrl);
       },
     }),
 });
