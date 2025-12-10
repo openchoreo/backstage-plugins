@@ -22,6 +22,7 @@ export interface LogsResponse {
 export interface Environment {
   id: string;
   name: string;
+  resourceName: string;
 }
 
 export interface RuntimeLogsFilters {
