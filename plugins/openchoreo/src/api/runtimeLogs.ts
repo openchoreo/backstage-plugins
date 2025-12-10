@@ -102,6 +102,7 @@ export async function getEnvironments(
   return envData.map((env: any) => ({
     id: env.uid || env.name,
     name: env.name || env.uid,
+    resourceName: env.resourceName,
   }));
 }
 

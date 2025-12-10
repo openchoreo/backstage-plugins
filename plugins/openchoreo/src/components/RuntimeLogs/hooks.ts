@@ -122,7 +122,7 @@ export function useRuntimeLogs(
           componentId,
           componentName,
           environmentId: filters.environmentId,
-          environmentName: selectedEnvironment.name,
+          environmentName: selectedEnvironment.resourceName,
           logLevels: filters.logLevel,
           startTime,
           endTime,
