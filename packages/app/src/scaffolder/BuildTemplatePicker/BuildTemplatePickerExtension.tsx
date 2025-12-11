@@ -12,7 +12,7 @@ import {
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import type { OpenChoreoComponents } from '@openchoreo/backstage-plugin-common';
 
@@ -45,7 +45,7 @@ export const BuildTemplatePicker = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   // Get the organization name from form context
   const organizationName = formContext.formData?.organization_name;
@@ -75,17 +75,12 @@ export const BuildTemplatePicker = ({
       setError(null);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
-        const response = await fetch(
+        // Use fetchApi which automatically injects Backstage + IDP tokens
+        const response = await fetchApi.fetch(
           `${baseUrl}/build-templates?organizationName=${encodeURIComponent(
             orgName,
           )}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -113,7 +108,7 @@ export const BuildTemplatePicker = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, discoveryApi, formContext, identityApi]);
+  }, [organizationName, discoveryApi, formContext, fetchApi]);
 
   const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
     onChange(event.target.value as string);

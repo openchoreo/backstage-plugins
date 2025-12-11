@@ -47,11 +47,17 @@ export const openchoreoObservabilityBackendPlugin = createBackendPlugin({
           return;
         }
 
+        // Check if auth feature is enabled (defaults to true)
+        // When auth is disabled, httpAuth checks are skipped to allow guest access
+        const authEnabled =
+          config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
+
         httpRouter.use(
           await createRouter({
             httpAuth,
             observabilityService,
             tokenService,
+            authEnabled,
           }),
         );
       },

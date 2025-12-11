@@ -12,7 +12,7 @@ import {
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import type { OpenChoreoComponents } from '@openchoreo/backstage-plugin-common';
 
@@ -58,7 +58,7 @@ export const BuildTemplateParameters = ({
   const [loading, setLoading] = useState(false);
 
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   // Get the selected build template and organization from form context
   const selectedTemplateName = formContext?.formData?.build_template_name;
@@ -84,17 +84,12 @@ export const BuildTemplateParameters = ({
       setLoading(true);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
-        const response = await fetch(
+        // Use fetchApi which automatically injects Backstage + IDP tokens
+        const response = await fetchApi.fetch(
           `${baseUrl}/build-templates?organizationName=${encodeURIComponent(
             orgName,
           )}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -114,7 +109,7 @@ export const BuildTemplateParameters = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, discoveryApi, identityApi]);
+  }, [organizationName, discoveryApi, fetchApi]);
 
   // Update parameters when template selection or templates change
   useEffect(() => {
