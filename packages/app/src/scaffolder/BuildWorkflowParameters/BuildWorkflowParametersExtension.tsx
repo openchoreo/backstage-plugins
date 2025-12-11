@@ -4,7 +4,7 @@ import { Typography, Box } from '@material-ui/core';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { JSONSchema7 } from 'json-schema';
 import Form from '@rjsf/material-ui';
@@ -51,7 +51,7 @@ export const BuildWorkflowParameters = ({
   const prevWorkflowRef = useRef<string | undefined>(undefined);
 
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   // Get the selected workflow and organization from form data
   // The workflow_name is a sibling field in the same section
@@ -93,17 +93,12 @@ export const BuildWorkflowParameters = ({
       setError(null);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
-        const response = await fetch(
+        // Use fetchApi which automatically injects Backstage + IDP tokens
+        const response = await fetchApi.fetch(
           `${baseUrl}/workflow-schema?organizationName=${encodeURIComponent(
             orgName,
           )}&workflowName=${encodeURIComponent(selectedWorkflowName)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -159,7 +154,7 @@ export const BuildWorkflowParameters = ({
     return () => {
       ignore = true;
     };
-  }, [selectedWorkflowName, organizationName, discoveryApi, identityApi]);
+  }, [selectedWorkflowName, organizationName, discoveryApi, fetchApi]);
 
   // Sync schema to formData when workflow changes (not just when schema loads)
   useEffect(() => {

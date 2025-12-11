@@ -20,7 +20,7 @@ import AddIcon from '@material-ui/icons/Add';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import Form from '@rjsf/material-ui';
 import { JSONSchema7 } from 'json-schema';
@@ -77,7 +77,7 @@ export const TraitsField = ({
   const [error, setError] = useState<string | null>(null);
 
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   // Get organization name from ui:options
   const organizationName =
@@ -98,7 +98,6 @@ export const TraitsField = ({
       setError(null);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
         // Extract organization name if it's in entity reference format
@@ -109,15 +108,11 @@ export const TraitsField = ({
 
         const orgName = extractOrgName(organizationName);
 
-        const response = await fetch(
+        // Use fetchApi which automatically injects Backstage + IDP tokens
+        const response = await fetchApi.fetch(
           `${baseUrl}/traits?organizationName=${encodeURIComponent(
             orgName,
           )}&page=1&pageSize=100`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -145,7 +140,7 @@ export const TraitsField = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, discoveryApi, identityApi]);
+  }, [organizationName, discoveryApi, fetchApi]);
 
   // Fetch schema for selected trait and add it
   const handleAddTrait = async () => {
@@ -157,7 +152,6 @@ export const TraitsField = ({
     setError(null);
 
     try {
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
       // Extract organization name
@@ -168,15 +162,11 @@ export const TraitsField = ({
 
       const orgName = extractOrgName(organizationName);
 
-      const response = await fetch(
+      // Use fetchApi which automatically injects Backstage + IDP tokens
+      const response = await fetchApi.fetch(
         `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(
           orgName,
         )}&traitName=${encodeURIComponent(selectedTrait)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
       );
 
       if (!response.ok) {

@@ -74,6 +74,7 @@ describe('createRouter', () => {
       httpAuth: mockServices.httpAuth(),
       observabilityService,
       tokenService,
+      authEnabled: true, // Test with auth enabled
     });
     app = express();
     app.use(router);

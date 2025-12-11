@@ -12,7 +12,7 @@ import {
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 
 /*
@@ -44,7 +44,7 @@ export const BuildWorkflowPicker = ({
   const [error, setError] = useState<string | null>(null);
 
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   // Get workflows from enum (if provided) or organizationName from ui:options
   const enumWorkflows = (schema.enum as string[]) || null;
@@ -74,7 +74,6 @@ export const BuildWorkflowPicker = ({
       setError(null);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
         // Extract organization name if it's in entity reference format
@@ -85,15 +84,11 @@ export const BuildWorkflowPicker = ({
 
         const orgName = extractOrgName(organizationName);
 
-        const response = await fetch(
+        // Use fetchApi which automatically injects Backstage + IDP tokens
+        const response = await fetchApi.fetch(
           `${baseUrl}/workflows?organizationName=${encodeURIComponent(
             orgName,
           )}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -122,7 +117,7 @@ export const BuildWorkflowPicker = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, enumWorkflows, discoveryApi, identityApi]);
+  }, [organizationName, enumWorkflows, discoveryApi, fetchApi]);
 
   const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedWorkflow = event.target.value as string;

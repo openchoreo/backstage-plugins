@@ -12,10 +12,12 @@ export async function createRouter({
   httpAuth,
   observabilityService,
   tokenService,
+  authEnabled,
 }: {
   httpAuth: HttpAuthService;
   observabilityService: typeof observabilityServiceRef.T;
   tokenService: OpenChoreoTokenService;
+  authEnabled: boolean;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
@@ -24,7 +26,11 @@ export async function createRouter({
   router.use(createUserTokenMiddleware(tokenService));
 
   router.post('/metrics', async (_req, res) => {
-    await httpAuth.credentials(_req, { allow: ['user'] });
+    // Only enforce user auth when auth feature is enabled
+    // When auth is disabled (guest mode), skip httpAuth check
+    if (authEnabled) {
+      await httpAuth.credentials(_req, { allow: ['user'] });
+    }
     const userToken = getUserTokenFromRequest(_req);
     try {
       const metrics = await observabilityService.fetchMetricsByComponent(
@@ -48,7 +54,10 @@ export async function createRouter({
   });
 
   router.get('/environments', async (req, res) => {
-    await httpAuth.credentials(req, { allow: ['user'] });
+    // Only enforce user auth when auth feature is enabled
+    if (authEnabled) {
+      await httpAuth.credentials(req, { allow: ['user'] });
+    }
     const { organization } = req.query;
     if (!organization) {
       return res.status(400).json({ error: 'Organization is required' });
@@ -72,7 +81,10 @@ export async function createRouter({
   });
 
   router.post('/traces', async (_req, res) => {
-    await httpAuth.credentials(_req, { allow: ['user'] });
+    // Only enforce user auth when auth feature is enabled
+    if (authEnabled) {
+      await httpAuth.credentials(_req, { allow: ['user'] });
+    }
     const userToken = getUserTokenFromRequest(_req);
     try {
       const traces = await observabilityService.fetchTracesByProject(
