@@ -27,7 +27,7 @@ export class PlatformEnvironmentInfoService
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
 
-  public constructor(logger: LoggerService, baseUrl: string, _token?: string) {
+  public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -35,22 +35,22 @@ export class PlatformEnvironmentInfoService
   static create(
     logger: LoggerService,
     baseUrl: string,
-    token?: string,
   ): PlatformEnvironmentInfoService {
-    return new PlatformEnvironmentInfoService(logger, baseUrl, token);
+    return new PlatformEnvironmentInfoService(logger, baseUrl);
   }
 
   /**
    * Fetches all environments across all organizations.
    * This provides a platform-wide view for platform engineers.
    */
-  async fetchAllEnvironments(): Promise<Environment[]> {
+  async fetchAllEnvironments(userToken?: string): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.debug('Starting platform-wide environment fetch');
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token: userToken,
         logger: this.logger,
       });
 
@@ -102,6 +102,7 @@ export class PlatformEnvironmentInfoService
    */
   async fetchEnvironmentsByOrganization(
     organizationName: string,
+    userToken?: string,
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
@@ -111,6 +112,7 @@ export class PlatformEnvironmentInfoService
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token: userToken,
         logger: this.logger,
       });
 
@@ -163,13 +165,14 @@ export class PlatformEnvironmentInfoService
    * Fetches all dataplanes across all organizations.
    * This provides a platform-wide view for platform engineers.
    */
-  async fetchAllDataplanes(): Promise<DataPlane[]> {
+  async fetchAllDataplanes(userToken?: string): Promise<DataPlane[]> {
     const startTime = Date.now();
     try {
       this.logger.debug('Starting platform-wide dataplane fetch');
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token: userToken,
         logger: this.logger,
       });
 
@@ -221,6 +224,7 @@ export class PlatformEnvironmentInfoService
    */
   async fetchDataplanesByOrganization(
     organizationName: string,
+    userToken?: string,
   ): Promise<DataPlane[]> {
     const startTime = Date.now();
     try {
@@ -230,6 +234,7 @@ export class PlatformEnvironmentInfoService
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token: userToken,
         logger: this.logger,
       });
 
@@ -278,17 +283,17 @@ export class PlatformEnvironmentInfoService
   /**
    * Fetches all dataplanes with their associated environments
    */
-  async fetchDataplanesWithEnvironments(): Promise<
-    DataPlaneWithEnvironments[]
-  > {
+  async fetchDataplanesWithEnvironments(
+    userToken?: string,
+  ): Promise<DataPlaneWithEnvironments[]> {
     const startTime = Date.now();
     try {
       this.logger.debug('Starting dataplanes with environments fetch');
 
       // Fetch both dataplanes and environments in parallel
       const [dataplanes, environments] = await Promise.all([
-        this.fetchAllDataplanes(),
-        this.fetchAllEnvironments(),
+        this.fetchAllDataplanes(userToken),
+        this.fetchAllEnvironments(userToken),
       ]);
 
       // Group environments by dataPlaneRef
@@ -327,9 +332,9 @@ export class PlatformEnvironmentInfoService
   /**
    * Fetches all dataplanes with their associated environments and component counts
    */
-  async fetchDataplanesWithEnvironmentsAndComponentCounts(): Promise<
-    DataPlaneWithEnvironments[]
-  > {
+  async fetchDataplanesWithEnvironmentsAndComponentCounts(
+    userToken?: string,
+  ): Promise<DataPlaneWithEnvironments[]> {
     const startTime = Date.now();
     try {
       this.logger.debug(
@@ -338,7 +343,7 @@ export class PlatformEnvironmentInfoService
 
       // First get dataplanes with environments
       const dataplanesWithEnvironments =
-        await this.fetchDataplanesWithEnvironments();
+        await this.fetchDataplanesWithEnvironments(userToken);
 
       // For each environment, we need to count components
       // Note: This is a simplified approach. In a real implementation, you might want to:
@@ -380,6 +385,7 @@ export class PlatformEnvironmentInfoService
       projectName: string;
       componentName: string;
     }>,
+    userToken?: string,
   ): Promise<Map<string, number>> {
     const startTime = Date.now();
     const componentCountsByEnvironment = new Map<string, number>();
@@ -391,6 +397,7 @@ export class PlatformEnvironmentInfoService
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token: userToken,
         logger: this.logger,
       });
 
@@ -465,6 +472,7 @@ export class PlatformEnvironmentInfoService
       projectName: string;
       componentName: string;
     }>,
+    userToken?: string,
   ): Promise<number> {
     const startTime = Date.now();
     const deployedComponents = new Set<string>();
@@ -476,6 +484,7 @@ export class PlatformEnvironmentInfoService
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token: userToken,
         logger: this.logger,
       });
 
@@ -550,6 +559,7 @@ export class PlatformEnvironmentInfoService
       projectName: string;
       componentName: string;
     }>,
+    userToken?: string,
   ): Promise<number> {
     const startTime = Date.now();
     let healthyWorkloadCount = 0;
@@ -561,6 +571,7 @@ export class PlatformEnvironmentInfoService
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
+        token: userToken,
         logger: this.logger,
       });
 

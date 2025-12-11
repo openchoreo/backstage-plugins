@@ -1,24 +1,34 @@
 import express from 'express';
 import Router from 'express-promise-router';
 import { PlatformEnvironmentInfoService } from './services/PlatformEnvironmentService';
+import {
+  OpenChoreoTokenService,
+  createUserTokenMiddleware,
+  getUserTokenFromRequest,
+} from '@openchoreo/openchoreo-auth';
 
 export interface RouterOptions {
   platformEnvironmentService: PlatformEnvironmentInfoService;
+  tokenService: OpenChoreoTokenService;
 }
 
 export async function createRouter(
   options: RouterOptions,
 ): Promise<express.Router> {
-  const { platformEnvironmentService } = options;
+  const { platformEnvironmentService, tokenService } = options;
   const router = Router();
 
   router.use(express.json());
 
+  // Add middleware to extract and cache user's IDP token from request headers
+  router.use(createUserTokenMiddleware(tokenService));
+
   // Get all environments across the platform
-  router.get('/environments', async (_req, res) => {
+  router.get('/environments', async (req, res) => {
     try {
+      const userToken = getUserTokenFromRequest(req);
       const environments =
-        await platformEnvironmentService.fetchAllEnvironments();
+        await platformEnvironmentService.fetchAllEnvironments(userToken);
       res.json({
         success: true,
         data: environments,
@@ -35,9 +45,11 @@ export async function createRouter(
   router.get('/environments/:orgName', async (req, res) => {
     try {
       const { orgName } = req.params;
+      const userToken = getUserTokenFromRequest(req);
       const environments =
         await platformEnvironmentService.fetchEnvironmentsByOrganization(
           orgName,
+          userToken,
         );
       res.json({
         success: true,
@@ -52,9 +64,12 @@ export async function createRouter(
   });
 
   // Get all dataplanes across the platform
-  router.get('/dataplanes', async (_req, res) => {
+  router.get('/dataplanes', async (req, res) => {
     try {
-      const dataplanes = await platformEnvironmentService.fetchAllDataplanes();
+      const userToken = getUserTokenFromRequest(req);
+      const dataplanes = await platformEnvironmentService.fetchAllDataplanes(
+        userToken,
+      );
       res.json({
         success: true,
         data: dataplanes,
@@ -71,8 +86,12 @@ export async function createRouter(
   router.get('/dataplanes/:orgName', async (req, res) => {
     try {
       const { orgName } = req.params;
+      const userToken = getUserTokenFromRequest(req);
       const dataplanes =
-        await platformEnvironmentService.fetchDataplanesByOrganization(orgName);
+        await platformEnvironmentService.fetchDataplanesByOrganization(
+          orgName,
+          userToken,
+        );
       res.json({
         success: true,
         data: dataplanes,
@@ -86,10 +105,13 @@ export async function createRouter(
   });
 
   // Get all dataplanes with their associated environments
-  router.get('/dataplanes-with-environments', async (_req, res) => {
+  router.get('/dataplanes-with-environments', async (req, res) => {
     try {
+      const userToken = getUserTokenFromRequest(req);
       const dataplanesWithEnvironments =
-        await platformEnvironmentService.fetchDataplanesWithEnvironments();
+        await platformEnvironmentService.fetchDataplanesWithEnvironments(
+          userToken,
+        );
       res.json({
         success: true,
         data: dataplanesWithEnvironments,
@@ -105,10 +127,13 @@ export async function createRouter(
   // Get all dataplanes with their associated environments and component counts
   router.get(
     '/dataplanes-with-environments-and-components',
-    async (_req, res) => {
+    async (req, res) => {
       try {
+        const userToken = getUserTokenFromRequest(req);
         const dataplanesWithEnvironments =
-          await platformEnvironmentService.fetchDataplanesWithEnvironmentsAndComponentCounts();
+          await platformEnvironmentService.fetchDataplanesWithEnvironmentsAndComponentCounts(
+            userToken,
+          );
         res.json({
           success: true,
           data: dataplanesWithEnvironments,
@@ -135,9 +160,11 @@ export async function createRouter(
         });
       }
 
+      const userToken = getUserTokenFromRequest(req);
       const componentCounts =
         await platformEnvironmentService.fetchComponentCountsPerEnvironment(
           components,
+          userToken,
         );
 
       // Convert Map to object for JSON response
@@ -168,9 +195,11 @@ export async function createRouter(
         });
       }
 
+      const userToken = getUserTokenFromRequest(req);
       const distinctCount =
         await platformEnvironmentService.fetchDistinctDeployedComponentsCount(
           components,
+          userToken,
         );
 
       return res.json({
@@ -198,8 +227,12 @@ export async function createRouter(
         });
       }
 
+      const userToken = getUserTokenFromRequest(req);
       const healthyCount =
-        await platformEnvironmentService.fetchHealthyWorkloadCount(components);
+        await platformEnvironmentService.fetchHealthyWorkloadCount(
+          components,
+          userToken,
+        );
 
       return res.json({
         success: true,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
   useApi,
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
@@ -20,7 +20,7 @@ export const DeveloperPortalWidget = () => {
   const [error, setError] = useState<string | null>(null);
 
   const discovery = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const catalogApi = useApi(catalogApiRef);
 
   const fetchData = useCallback(async () => {
@@ -30,11 +30,7 @@ export const DeveloperPortalWidget = () => {
 
       // Fetch distinct deployed components count and projects (systems)
       const [distinctCount, systemsResponse] = await Promise.all([
-        fetchDistinctDeployedComponentsCount(
-          discovery,
-          identityApi,
-          catalogApi,
-        ),
+        fetchDistinctDeployedComponentsCount(discovery, fetchApi, catalogApi),
         // Projects map to System in Backstage catalog
         catalogApi.getEntities({
           filter: { kind: 'System' },
@@ -54,7 +50,7 @@ export const DeveloperPortalWidget = () => {
     } finally {
       setLoading(false);
     }
-  }, [discovery, identityApi, catalogApi]);
+  }, [discovery, fetchApi, catalogApi]);
 
   useEffect(() => {
     fetchData();

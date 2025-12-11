@@ -4,6 +4,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
 import { PlatformEnvironmentInfoService } from './services/PlatformEnvironmentService';
+import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 
 /**
  * platformEngineerCorePlugin backend plugin
@@ -18,8 +19,9 @@ export const platformEngineerCorePlugin = createBackendPlugin({
         logger: coreServices.logger,
         httpRouter: coreServices.httpRouter,
         config: coreServices.rootConfig,
+        tokenService: openChoreoTokenServiceRef,
       },
-      async init({ logger, config, httpRouter }) {
+      async init({ logger, config, httpRouter, tokenService }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
 
         if (!openchoreoConfig) {
@@ -32,12 +34,12 @@ export const platformEngineerCorePlugin = createBackendPlugin({
         const platformEnvironmentService = new PlatformEnvironmentInfoService(
           logger,
           openchoreoConfig.get('baseUrl'),
-          openchoreoConfig.getOptional('token'),
         );
 
         httpRouter.use(
           await createRouter({
             platformEnvironmentService,
+            tokenService,
           }),
         );
 

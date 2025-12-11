@@ -1,4 +1,4 @@
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { CatalogApi } from '@backstage/catalog-client';
 import { DataPlaneWithEnvironments } from '../types';
 
@@ -10,23 +10,15 @@ interface ComponentInfo {
 
 export async function fetchDataplanesWithEnvironmentsAndComponents(
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
   catalogApi: CatalogApi,
 ): Promise<DataPlaneWithEnvironments[]> {
-  const { token } = await identity.getCredentials();
-
   // First, get the basic dataplanes with environments
-  const dataplanesUrl = new URL(
-    `${await discovery.getBaseUrl(
-      'platform-engineer-core',
-    )}/dataplanes-with-environments-and-components`,
-  );
+  const dataplanesUrl = `${await discovery.getBaseUrl(
+    'platform-engineer-core',
+  )}/dataplanes-with-environments-and-components`;
 
-  const dataplanesRes = await fetch(dataplanesUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const dataplanesRes = await fetchApi.fetch(dataplanesUrl);
 
   if (!dataplanesRes.ok) {
     throw new Error(
@@ -81,17 +73,14 @@ export async function fetchDataplanesWithEnvironmentsAndComponents(
     });
 
     // Call the backend to get component counts per environment using bindings API
-    const componentCountsUrl = new URL(
-      `${await discovery.getBaseUrl(
-        'platform-engineer-core',
-      )}/component-counts-per-environment`,
-    );
+    const componentCountsUrl = `${await discovery.getBaseUrl(
+      'platform-engineer-core',
+    )}/component-counts-per-environment`;
 
-    const componentCountsRes = await fetch(componentCountsUrl, {
+    const componentCountsRes = await fetchApi.fetch(componentCountsUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         components: componentInfos,

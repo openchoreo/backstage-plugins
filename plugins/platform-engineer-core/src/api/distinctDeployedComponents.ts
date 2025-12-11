@@ -1,4 +1,4 @@
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { CatalogApi } from '@backstage/catalog-client';
 
 interface ComponentInfo {
@@ -9,12 +9,10 @@ interface ComponentInfo {
 
 export async function fetchDistinctDeployedComponentsCount(
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
   catalogApi: CatalogApi,
 ): Promise<number> {
   try {
-    const { token } = await identity.getCredentials();
-
     // Fetch all components from the catalog
     const components = await catalogApi.getEntities({
       filter: {
@@ -51,17 +49,14 @@ export async function fetchDistinctDeployedComponentsCount(
     });
 
     // Call the backend to get distinct deployed components count
-    const distinctCountUrl = new URL(
-      `${await discovery.getBaseUrl(
-        'platform-engineer-core',
-      )}/distinct-deployed-components-count`,
-    );
+    const distinctCountUrl = `${await discovery.getBaseUrl(
+      'platform-engineer-core',
+    )}/distinct-deployed-components-count`;
 
-    const distinctCountRes = await fetch(distinctCountUrl, {
+    const distinctCountRes = await fetchApi.fetch(distinctCountUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         components: componentInfos,

@@ -38,36 +38,42 @@ export interface PlatformEnvironmentService {
   /**
    * Fetches all environments across all organizations
    */
-  fetchAllEnvironments(): Promise<Environment[]>;
+  fetchAllEnvironments(userToken?: string): Promise<Environment[]>;
 
   /**
    * Fetches environments for a specific organization
    */
   fetchEnvironmentsByOrganization(
     organizationName: string,
+    userToken?: string,
   ): Promise<Environment[]>;
 
   /**
    * Fetches all dataplanes across all organizations
    */
-  fetchAllDataplanes(): Promise<DataPlane[]>;
+  fetchAllDataplanes(userToken?: string): Promise<DataPlane[]>;
 
   /**
    * Fetches dataplanes for a specific organization
    */
-  fetchDataplanesByOrganization(organizationName: string): Promise<DataPlane[]>;
+  fetchDataplanesByOrganization(
+    organizationName: string,
+    userToken?: string,
+  ): Promise<DataPlane[]>;
 
   /**
    * Fetches all dataplanes with their associated environments
    */
-  fetchDataplanesWithEnvironments(): Promise<DataPlaneWithEnvironments[]>;
+  fetchDataplanesWithEnvironments(
+    userToken?: string,
+  ): Promise<DataPlaneWithEnvironments[]>;
 
   /**
    * Fetches all dataplanes with their associated environments and component counts
    */
-  fetchDataplanesWithEnvironmentsAndComponentCounts(): Promise<
-    DataPlaneWithEnvironments[]
-  >;
+  fetchDataplanesWithEnvironmentsAndComponentCounts(
+    userToken?: string,
+  ): Promise<DataPlaneWithEnvironments[]>;
 
   /**
    * Fetches component counts per environment using bindings API
@@ -78,6 +84,7 @@ export interface PlatformEnvironmentService {
       projectName: string;
       componentName: string;
     }>,
+    userToken?: string,
   ): Promise<Map<string, number>>;
 
   /**
@@ -89,6 +96,7 @@ export interface PlatformEnvironmentService {
       projectName: string;
       componentName: string;
     }>,
+    userToken?: string,
   ): Promise<number>;
 
   /**
@@ -101,5 +109,6 @@ export interface PlatformEnvironmentService {
       projectName: string;
       componentName: string;
     }>,
+    userToken?: string,
   ): Promise<number>;
 }
