@@ -70,10 +70,8 @@ export const SecretSelector: FC<SecretSelectorProps> = ({
   const handleNameChange = (event: React.ChangeEvent<{ value: unknown }>) => {
     const newName = event.target.value as string;
     onSecretNameChange(newName);
-    // Auto-clear key when name changes
-    if (newName !== secretName) {
-      onSecretKeyChange('');
-    }
+    // Note: Key clearing is handled by the parent component (e.g., EnvVarEditor.handleSecretNameChange)
+    // to avoid race conditions with React state updates
   };
 
   const handleKeyChange = (event: React.ChangeEvent<{ value: unknown }>) => {
