@@ -65,6 +65,12 @@ describe('plugin', () => {
               traces: [],
               tookMs: 0,
             }),
+            fetchRCAReportsByProject: jest.fn().mockResolvedValue({
+              reports: [],
+              totalCount: 0,
+              tookMs: 0,
+            }),
+            fetchRCAReportByAlert: jest.fn().mockResolvedValue({}),
           }),
         }),
       ],
@@ -104,6 +110,12 @@ describe('plugin', () => {
             fetchTracesByProject: jest
               .fn()
               .mockRejectedValue(new Error('Failed to fetch traces')),
+            fetchRCAReportsByProject: jest
+              .fn()
+              .mockRejectedValue(new Error('Failed to fetch RCA reports')),
+            fetchRCAReportByAlert: jest
+              .fn()
+              .mockRejectedValue(new Error('Failed to fetch RCA report')),
           }),
         }),
       ],

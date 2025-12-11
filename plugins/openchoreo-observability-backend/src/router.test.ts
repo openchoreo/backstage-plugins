@@ -59,6 +59,8 @@ describe('createRouter', () => {
       fetchMetricsByComponent: jest.fn(),
       fetchEnvironmentsByOrganization: jest.fn(),
       fetchTracesByProject: jest.fn(),
+      fetchRCAReportsByProject: jest.fn(),
+      fetchRCAReportByAlert: jest.fn(),
     };
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),

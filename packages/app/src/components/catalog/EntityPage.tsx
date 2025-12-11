@@ -74,6 +74,7 @@ import {
 import {
   ObservabilityMetrics,
   ObservabilityTraces,
+  ObservabilityRCA,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import { FeatureGate } from '@openchoreo/backstage-plugin-react';
@@ -480,6 +481,9 @@ const systemPage = (
       <FeatureGatedContent feature="observability">
         <ObservabilityTraces />
       </FeatureGatedContent>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/rca" title="AI DIAGNOSTICS">
+      <ObservabilityRCA />
     </EntityLayout.Route>
   </EntityLayout>
 );

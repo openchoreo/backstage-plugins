@@ -67,11 +67,25 @@ export const TIME_RANGE_OPTIONS: TimeRangeOption[] = [
   { value: '14d', label: 'Last 14 days' },
 ];
 
+export type RCAStatus = 'pending' | 'completed' | 'failed';
+
+export interface RCAStatusOption {
+  value: RCAStatus;
+  label: string;
+}
+
+export const RCA_STATUS_OPTIONS: RCAStatusOption[] = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'failed', label: 'Failed' },
+];
+
 export interface Filters {
   environment: Environment;
   timeRange: string;
   componentIds?: string[];
   searchQuery?: string;
+  rcaStatus?: RCAStatus;
 }
 
 export interface Environment {
@@ -86,4 +100,19 @@ export interface Environment {
   dnsPrefix?: string;
   createdAt: string;
   status?: string;
+}
+
+export interface RCAReportSummary {
+  alertId?: string;
+  projectUid?: string;
+  reportId?: string;
+  timestamp?: string;
+  summary?: string;
+  status?: RCAStatus;
+}
+
+export interface RCAReportDetailed extends RCAReportSummary {
+  reportVersion?: number;
+  availableVersions?: number[];
+  [key: string]: unknown;
 }

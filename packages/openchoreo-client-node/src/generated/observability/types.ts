@@ -184,6 +184,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/rca-reports/project/{projectId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get RCA reports by project
+     * @description Retrieve AI-powered Root Cause Analysis reports for a specific project with optional filtering
+     */
+    post: operations['getRCAReportsByProject'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/rca-reports/alert/{alertId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get single RCA report by alert
+     * @description Retrieve a single AI-powered Root Cause Analysis report for a specific alert. Returns the latest version by default, or a specific version if provided via query parameter.
+     */
+    get: operations['getRCAReportByAlert'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -792,6 +832,141 @@ export interface components {
        */
       message: string;
     };
+    ProjectRCAReportsRequest: {
+      /**
+       * @description Array of component UIDs to filter reports (optional)
+       * @example [
+       *       "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
+       *       "3f7b9e1a-4c6d-4e8f-a2b5-7d1c3e8f4a9b"
+       *     ]
+       */
+      componentUids?: string[];
+      /**
+       * Format: uuid
+       * @description Environment UID to filter reports (optional)
+       * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
+       */
+      environmentUid?: string;
+      /**
+       * Format: date-time
+       * @description Start time for report query in RFC3339 format (optional)
+       * @example 2025-01-10T00:00:00Z
+       */
+      startTime?: string;
+      /**
+       * Format: date-time
+       * @description End time for report query in RFC3339 format (optional)
+       * @example 2025-01-10T23:59:59Z
+       */
+      endTime?: string;
+      /**
+       * @description Filter by report status (optional)
+       * @example completed
+       * @enum {string}
+       */
+      status?: 'pending' | 'completed' | 'failed';
+      /**
+       * @description Maximum number of reports to return
+       * @default 100
+       * @example 100
+       */
+      limit: number;
+    };
+    RCAReportSummary: {
+      /**
+       * @description Alert identifier
+       * @example alert-789
+       */
+      alertId?: string;
+      /**
+       * Format: uuid
+       * @description Project UID
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      projectUid?: string;
+      /**
+       * @description Report identifier
+       * @example report-456
+       */
+      reportId?: string;
+      /**
+       * Format: date-time
+       * @description Report generation timestamp
+       * @example 2025-01-10T12:34:56.789Z
+       */
+      timestamp?: string;
+      /**
+       * @description Brief summary of the RCA report
+       * @example High CPU usage detected in authentication service
+       */
+      summary?: string;
+      /**
+       * @description Report generation status
+       * @example completed
+       * @enum {string}
+       */
+      status?: 'pending' | 'completed' | 'failed';
+    };
+    RCAReportsResponse: {
+      /** @description Array of RCA report summaries */
+      reports?: components['schemas']['RCAReportSummary'][];
+      /**
+       * @description Total number of matching reports
+       * @example 42
+       */
+      totalCount?: number;
+      /**
+       * @description Query execution time in milliseconds
+       * @example 15
+       */
+      tookMs?: number;
+    };
+    /** @description Full AI-powered Root Cause Analysis report with version information */
+    RCAReportDetailed: {
+      /**
+       * @description Alert identifier
+       * @example alert-789
+       */
+      alertId?: string;
+      /**
+       * Format: uuid
+       * @description Project UID
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      projectUid?: string;
+      /**
+       * @description The version number of the report being returned
+       * @example 2
+       */
+      reportVersion?: number;
+      /**
+       * @description Report identifier for this version
+       * @example report-456
+       */
+      reportId?: string;
+      /**
+       * Format: date-time
+       * @description Report generation timestamp for this version
+       * @example 2025-01-10T12:34:56.789Z
+       */
+      timestamp?: string;
+      /**
+       * @description Report generation status for this version
+       * @example completed
+       * @enum {string}
+       */
+      status?: 'pending' | 'completed' | 'failed';
+      /**
+       * @description List of all available version numbers for this alert (sorted descending, latest first)
+       * @example [
+       *       2,
+       *       1
+       *     ]
+       */
+      availableVersions?: number[];
+    } & {
+      [key: string]: unknown;
+    };
   };
   responses: never;
   parameters: never;
@@ -1182,6 +1357,113 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getRCAReportsByProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The unique identifier of the project */
+        projectId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProjectRCAReportsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved RCA reports */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RCAReportsResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description RCA service not available */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
+        };
+      };
+    };
+  };
+  getRCAReportByAlert: {
+    parameters: {
+      query?: {
+        /** @description Specific version number of the report to retrieve. If not provided, returns the latest version. */
+        version?: number;
+      };
+      header?: never;
+      path: {
+        /** @description The unique identifier of the alert */
+        alertId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successfully retrieved RCA report */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RCAReportDetailed'];
+        };
+      };
+      /** @description RCA report not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description RCA service not available */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
         };
       };
     };
