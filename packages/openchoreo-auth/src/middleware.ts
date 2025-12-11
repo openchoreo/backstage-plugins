@@ -1,4 +1,5 @@
-import { Request, RequestHandler } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { AuthenticationError } from '@backstage/errors';
 import { OpenChoreoTokenService } from './OpenChoreoTokenService';
 
 /**
@@ -64,4 +65,51 @@ export function getUserTokenFromRequest(req: Request): string | undefined {
   // null means "checked but not present", so return undefined
   // undefined means middleware hasn't run (also return undefined)
   return token === null ? undefined : token;
+}
+
+/**
+ * Creates middleware that requires authentication for mutating operations.
+ *
+ * When auth is enabled (openchoreo.features.auth.enabled=true), this middleware
+ * checks for a valid user token on the request. If no token is present, it rejects
+ * the request with a 401 Unauthorized error.
+ *
+ * When auth is disabled (guest mode), requests are allowed through without token validation.
+ * This prevents guest users from accidentally triggering mutations when auth was
+ * intentionally disabled.
+ *
+ * @param tokenService - OpenChoreo token service for extracting tokens
+ * @param authEnabled - Whether authentication is enabled (from config)
+ * @returns Express middleware function
+ *
+ * @example
+ * ```typescript
+ * const requireAuth = createRequireAuthMiddleware(tokenService, authEnabled);
+ *
+ * // Apply to mutating routes
+ * router.post('/create-release', requireAuth, async (req, res) => {
+ *   // Only authenticated users reach here when auth is enabled
+ * });
+ * ```
+ */
+export function createRequireAuthMiddleware(
+  tokenService: OpenChoreoTokenService,
+  authEnabled: boolean,
+): RequestHandler {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    // When auth is disabled (guest mode), allow all requests
+    if (!authEnabled) {
+      return next();
+    }
+
+    // When auth is enabled, require a valid user token
+    const userToken = tokenService.getUserToken(req);
+    if (!userToken) {
+      throw new AuthenticationError(
+        'Authentication required for this operation. Please sign in to continue.',
+      );
+    }
+
+    return next();
+  };
 }

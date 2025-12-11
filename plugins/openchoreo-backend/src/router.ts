@@ -24,6 +24,7 @@ import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,
   getUserTokenFromRequest,
+  createRequireAuthMiddleware,
 } from '@openchoreo/openchoreo-auth';
 
 export async function createRouter({
@@ -39,6 +40,7 @@ export async function createRouter({
   workflowSchemaService,
   secretReferencesInfoService,
   tokenService,
+  authEnabled,
 }: {
   environmentInfoService: EnvironmentInfoService;
   cellDiagramInfoService: CellDiagramService;
@@ -52,12 +54,17 @@ export async function createRouter({
   workflowSchemaService: WorkflowSchemaService;
   secretReferencesInfoService: SecretReferencesService;
   tokenService: OpenChoreoTokenService;
+  authEnabled: boolean;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
 
   // Add middleware to extract and cache user's IDP token from request headers
   router.use(createUserTokenMiddleware(tokenService));
+
+  // Middleware to require authentication for mutating operations
+  // When auth is enabled, POST/PUT/PATCH/DELETE operations require a valid user token
+  const requireAuth = createRequireAuthMiddleware(tokenService, authEnabled);
 
   router.get('/deploy', async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
@@ -82,7 +89,7 @@ export async function createRouter({
     );
   });
 
-  router.post('/promote-deployment', async (req, res) => {
+  router.post('/promote-deployment', requireAuth, async (req, res) => {
     const { sourceEnv, targetEnv, componentName, projectName, orgName } =
       req.body;
 
@@ -114,7 +121,7 @@ export async function createRouter({
     );
   });
 
-  router.delete('/delete-release-binding', async (req, res) => {
+  router.delete('/delete-release-binding', requireAuth, async (req, res) => {
     const { componentName, projectName, orgName, environment } = req.body;
 
     if (!componentName || !projectName || !orgName || !environment) {
@@ -138,7 +145,7 @@ export async function createRouter({
     );
   });
 
-  router.patch('/update-binding', async (req, res) => {
+  router.patch('/update-binding', requireAuth, async (req, res) => {
     const { componentName, projectName, orgName, bindingName, releaseState } =
       req.body;
 
@@ -267,7 +274,7 @@ export async function createRouter({
   });
 
   // Endpoint for updating component traits
-  router.put('/component-traits', async (req, res) => {
+  router.put('/component-traits', requireAuth, async (req, res) => {
     const { organizationName, projectName, componentName, traits } = req.body;
 
     if (!organizationName || !projectName || !componentName) {
@@ -335,7 +342,7 @@ export async function createRouter({
   });
 
   // Endpoint for updating component workflow schema
-  router.patch('/component-workflow-schema', async (req, res) => {
+  router.patch('/component-workflow-schema', requireAuth, async (req, res) => {
     const { organizationName, projectName, componentName } = req.query;
     const { systemParameters, parameters } = req.body;
 
@@ -384,7 +391,7 @@ export async function createRouter({
     );
   });
 
-  router.post('/builds', async (req, res) => {
+  router.post('/builds', requireAuth, async (req, res) => {
     const { componentName, projectName, organizationName, commit } = req.body;
 
     if (!componentName || !projectName || !organizationName) {
@@ -427,7 +434,7 @@ export async function createRouter({
     );
   });
 
-  router.patch('/component', async (req, res) => {
+  router.patch('/component', requireAuth, async (req, res) => {
     const { componentName, projectName, organizationName, autoDeploy } =
       req.body;
 
@@ -644,7 +651,7 @@ export async function createRouter({
     }
   });
 
-  router.post('/workload', async (req, res) => {
+  router.post('/workload', requireAuth, async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
     const workloadSpec = req.body;
 
@@ -712,7 +719,7 @@ export async function createRouter({
     }
   });
 
-  router.post('/create-release', async (req, res) => {
+  router.post('/create-release', requireAuth, async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
     const { releaseName } = req.body;
 
@@ -737,7 +744,7 @@ export async function createRouter({
     );
   });
 
-  router.post('/deploy-release', async (req, res) => {
+  router.post('/deploy-release', requireAuth, async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
     const { releaseName } = req.body;
 
@@ -814,7 +821,7 @@ export async function createRouter({
     );
   });
 
-  router.patch('/patch-release-binding', async (req, res) => {
+  router.patch('/patch-release-binding', requireAuth, async (req, res) => {
     const {
       componentName,
       projectName,

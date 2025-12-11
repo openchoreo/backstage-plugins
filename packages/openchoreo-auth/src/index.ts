@@ -21,6 +21,7 @@ export { ClientCredentialsProvider } from './ClientCredentialsProvider';
 export {
   createUserTokenMiddleware,
   getUserTokenFromRequest,
+  createRequireAuthMiddleware,
 } from './middleware';
 
 export type { OpenChoreoAuthConfig, CachedToken, TokenResponse } from './types';

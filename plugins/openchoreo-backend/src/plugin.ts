@@ -47,6 +47,11 @@ export const choreoPlugin = createBackendPlugin({
 
         const baseUrl = openchoreoConfig.getString('baseUrl');
 
+        // Check if auth feature is enabled (defaults to true)
+        // When auth is enabled, mutating operations require a valid user token
+        const authEnabled =
+          config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
+
         // All services use user tokens forwarded from the frontend
         // No default token - services require token parameter for each API call
         const environmentInfoService = new EnvironmentInfoService(
@@ -101,6 +106,7 @@ export const choreoPlugin = createBackendPlugin({
             workflowSchemaService,
             secretReferencesInfoService,
             tokenService,
+            authEnabled,
           }),
         );
       },

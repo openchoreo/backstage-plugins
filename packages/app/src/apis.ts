@@ -15,6 +15,7 @@ import {
   identityApiRef,
   fetchApiRef,
   storageApiRef,
+  OAuthApi,
 } from '@backstage/core-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
 import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
@@ -22,7 +23,7 @@ import { UserSettingsStorage } from '@backstage/plugin-user-settings';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 
 // API reference for default-idp OIDC provider
-export const defaultIdpAuthApiRef: ApiRef<any> = createApiRef({
+export const defaultIdpAuthApiRef: ApiRef<OAuthApi> = createApiRef({
   id: 'auth.default-idp',
 });
 

@@ -18,24 +18,27 @@ import {
   stringifyEntityRef,
   DEFAULT_NAMESPACE,
 } from '@backstage/catalog-model';
+import {
+  OpenChoreoTokenPayload,
+  decodeJwtUnsafe,
+  isTokenExpired,
+  getTimeUntilExpiry,
+} from './jwtUtils';
 
 /**
- * JWT token payload interface for OpenChoreo tokens
+ * Extracts profile info from a decoded JWT payload
  */
-interface OpenChoreoTokenPayload {
-  sub: string;
-  username: string;
-  given_name?: string;
-  family_name?: string;
-  group?: string;
-  aud: string;
-  exp: number;
-  iat: number;
-  iss: string;
-  jti: string;
-  nbf: number;
-  scope?: string;
-  auth_time?: number;
+function extractProfileFromPayload(
+  payload: OpenChoreoTokenPayload,
+): ProfileInfo {
+  return {
+    email: payload.username, // username contains the email
+    displayName:
+      payload.given_name && payload.family_name
+        ? `${payload.given_name} ${payload.family_name}`
+        : payload.username,
+    picture: undefined, // Not available in the token
+  };
 }
 
 /**
@@ -56,44 +59,21 @@ const customProfileTransform = async (
 
   // Try to extract from access token first
   if (accessToken) {
-    try {
-      const payload: OpenChoreoTokenPayload = JSON.parse(
-        Buffer.from(accessToken.split('.')[1], 'base64').toString(),
-      );
-      profile = {
-        email: payload.username, // username contains the email
-        displayName:
-          payload.given_name && payload.family_name
-            ? `${payload.given_name} ${payload.family_name}`
-            : payload.username,
-        picture: undefined, // Not available in the token
-        ...profile,
-      };
-    } catch (error) {
-      logger?.warn(
-        'Failed to decode access token for profile:',
-        error as Error,
-      );
+    const payload = decodeJwtUnsafe(accessToken);
+    if (payload) {
+      profile = extractProfileFromPayload(payload);
+    } else {
+      logger?.warn('Failed to decode access token for profile');
     }
   }
 
   // Fallback to ID token if access token didn't work
   if (!profile.email && idToken) {
-    try {
-      const payload: OpenChoreoTokenPayload = JSON.parse(
-        Buffer.from(idToken.split('.')[1], 'base64').toString(),
-      );
-      profile = {
-        email: payload.username,
-        displayName:
-          payload.given_name && payload.family_name
-            ? `${payload.given_name} ${payload.family_name}`
-            : payload.username,
-        picture: undefined,
-        ...profile,
-      };
-    } catch (error) {
-      logger?.warn('Failed to decode ID token for profile:', error as Error);
+    const payload = decodeJwtUnsafe(idToken);
+    if (payload) {
+      profile = extractProfileFromPayload(payload);
+    } else {
+      logger?.warn('Failed to decode ID token for profile');
     }
   }
 
@@ -186,46 +166,44 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
       );
 
       // Decode the JWT to check expiration
-      try {
-        const payload: OpenChoreoTokenPayload = JSON.parse(
-          Buffer.from(accessToken.split('.')[1], 'base64').toString(),
+      const payload = decodeJwtUnsafe(accessToken);
+      if (!payload) {
+        throw new Error(
+          'Invalid access token format, re-authentication required',
         );
-
-        const now = Math.floor(Date.now() / 1000);
-        const timeUntilExpiry = payload.exp - now;
-
-        // If token is expired or about to expire (less than 60 seconds), fail the refresh
-        if (timeUntilExpiry < 60) {
-          throw new Error('Access token expired, re-authentication required');
-        }
-
-        // Token is still valid, return the same session
-        // This allows Backstage to re-issue user tokens without calling the OAuth provider
-        // We need to return the same structure as helper.refresh() would return
-        const result: OAuthAuthenticatorResult<any> = {
-          fullProfile: {
-            provider: 'default-idp',
-            id: payload.sub,
-            displayName:
-              payload.given_name && payload.family_name
-                ? `${payload.given_name} ${payload.family_name}`
-                : payload.username,
-            emails: [{ value: payload.username }],
-          },
-          session: {
-            accessToken,
-            tokenType: 'Bearer',
-            idToken: payload.jti, // Use JTI as ID token placeholder
-            scope: payload.scope || 'openid profile email',
-            expiresInSeconds: timeUntilExpiry,
-            refreshToken, // Keep the same pseudo-refresh token
-          },
-        };
-
-        return result;
-      } catch (error) {
-        throw new Error('Invalid access token, re-authentication required');
       }
+
+      // If token is expired or about to expire (less than 60 seconds), fail the refresh
+      if (isTokenExpired(payload, 60)) {
+        throw new Error('Access token expired, re-authentication required');
+      }
+
+      const timeUntilExpiry = getTimeUntilExpiry(payload);
+
+      // Token is still valid, return the same session
+      // This allows Backstage to re-issue user tokens without calling the OAuth provider
+      // We need to return the same structure as helper.refresh() would return
+      const result: OAuthAuthenticatorResult<any> = {
+        fullProfile: {
+          provider: 'default-idp',
+          id: payload.sub,
+          displayName:
+            payload.given_name && payload.family_name
+              ? `${payload.given_name} ${payload.family_name}`
+              : payload.username,
+          emails: [{ value: payload.username }],
+        },
+        session: {
+          accessToken,
+          tokenType: 'Bearer',
+          idToken: payload.jti, // Use JTI as ID token placeholder
+          scope: payload.scope || 'openid profile email',
+          expiresInSeconds: timeUntilExpiry,
+          refreshToken, // Keep the same pseudo-refresh token
+        },
+      };
+
+      return result;
     }
 
     // Fallback to default refresh behavior (will likely fail)
@@ -281,22 +259,13 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
 
               let groups: string[] = [];
               if (accessToken) {
-                // Decode JWT to get claims (simple base64 decode, no verification needed here)
-                try {
-                  const payload = JSON.parse(
-                    Buffer.from(accessToken.split('.')[1], 'base64').toString(),
+                const payload = decodeJwtUnsafe(accessToken);
+                if (payload?.group) {
+                  groups = [payload.group];
+                } else if (!payload) {
+                  logger.warn(
+                    'Failed to decode access token for group extraction',
                   );
-                  // Extract group from access token - it's a single string, not an array
-                  const group = payload.group;
-                  if (group) {
-                    groups = [group];
-                  }
-                } catch (error) {
-                  logger.error(
-                    'Failed to decode access token for group extraction:',
-                    error as Error,
-                  );
-                  // Silently continue if access token decode fails
                 }
               }
 
