@@ -8,6 +8,7 @@ import {
 import { Config } from '@backstage/config';
 import { AuthenticationError } from '@backstage/errors';
 import { ClientCredentialsProvider } from './ClientCredentialsProvider';
+import { NoOpTokenService } from './NoOpTokenService';
 import { OPENCHOREO_TOKEN_HEADER, OpenChoreoAuthConfig } from './types';
 
 /**
@@ -117,6 +118,16 @@ export const openChoreoTokenServiceRef =
           config: coreServices.rootConfig,
         },
         async factory({ logger, config }) {
+          // Check if auth is enabled (defaults to true)
+          const authEnabled =
+            config.getOptionalBoolean('openchoreo.features.auth.enabled') ??
+            true;
+
+          if (!authEnabled) {
+            logger.info('OpenChoreo auth disabled - using no-op token service');
+            return new NoOpTokenService();
+          }
+
           const authConfig = readOpenChoreoAuthConfig(config);
           return new DefaultOpenChoreoTokenService(logger, authConfig);
         },

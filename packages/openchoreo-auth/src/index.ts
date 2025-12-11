@@ -14,6 +14,7 @@ export {
   DefaultOpenChoreoTokenService,
   openChoreoTokenServiceRef,
 } from './OpenChoreoTokenService';
+export { NoOpTokenService } from './NoOpTokenService';
 
 export { ClientCredentialsProvider } from './ClientCredentialsProvider';
 
