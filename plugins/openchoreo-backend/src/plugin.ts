@@ -93,6 +93,7 @@ export const choreoPlugin = createBackendPlugin({
         const traitInfoService = new TraitInfoService(
           logger,
           openchoreoConfig.get('baseUrl'),
+          openchoreoConfig.getOptional('token'),
         );
 
         const workflowSchemaService = new WorkflowSchemaService(

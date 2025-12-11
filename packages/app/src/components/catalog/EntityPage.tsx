@@ -68,6 +68,7 @@ import {
   RuntimeHealthCard,
   DeploymentPipelineCard,
   ProjectComponentsCard,
+  Traits,
 } from '@openchoreo/backstage-plugin';
 
 import {
@@ -179,6 +180,10 @@ const serviceEntityPage = (
       </FeatureGatedContent>
     </EntityLayout.Route>
 
+    <EntityLayout.Route path="/traits" title="Traits">
+      <Traits />
+    </EntityLayout.Route>
+
     <EntityLayout.Route path="/metrics" title="Metrics">
       <FeatureGatedContent feature="observability">
         <ObservabilityMetrics />
@@ -247,6 +252,10 @@ const websiteEntityPage = (
       <FeatureGatedContent feature="observability">
         <RuntimeLogs />
       </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/traits" title="Traits">
+      <Traits />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/metrics" title="Metrics">

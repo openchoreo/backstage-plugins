@@ -7,6 +7,7 @@ import {
   rootCatalogEnvironmentRouteRef,
   rootCatalogRuntimeLogsRouteRef,
   rootCatalogWorkflowsRouteRef,
+  rootCatalogTraitsRouteRef,
 } from './routes';
 
 export const choreoPlugin = createPlugin({
@@ -49,6 +50,15 @@ export const Workflows = choreoPlugin.provide(
     name: 'ChoreoWorkflows',
     component: () => import('./components/Workflows').then(m => m.Workflows),
     mountPoint: rootCatalogWorkflowsRouteRef,
+  }),
+);
+
+// Traits page tab
+export const Traits = choreoPlugin.provide(
+  createRoutableExtension({
+    name: 'ChoreoTraits',
+    component: () => import('./components/Traits').then(m => m.Traits),
+    mountPoint: rootCatalogTraitsRouteRef,
   }),
 );
 

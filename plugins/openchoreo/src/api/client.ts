@@ -1,6 +1,6 @@
 import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
 
-export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
 
 export interface ApiFetchOptions {
   /** API endpoint path (e.g., '/deploy', '/promote-deployment') */

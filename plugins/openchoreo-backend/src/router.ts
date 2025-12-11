@@ -202,6 +202,49 @@ export async function createRouter({
     );
   });
 
+  // Endpoint for listing component traits
+  router.get('/component-traits', async (req, res) => {
+    const { organizationName, projectName, componentName } = req.query;
+
+    if (!organizationName || !projectName || !componentName) {
+      throw new InputError(
+        'organizationName, projectName and componentName are required query parameters',
+      );
+    }
+
+    res.json(
+      await traitInfoService.fetchComponentTraits(
+        organizationName as string,
+        projectName as string,
+        componentName as string,
+      ),
+    );
+  });
+
+  // Endpoint for updating component traits
+  router.put('/component-traits', async (req, res) => {
+    const { organizationName, projectName, componentName, traits } = req.body;
+
+    if (!organizationName || !projectName || !componentName) {
+      throw new InputError(
+        'organizationName, projectName and componentName are required in request body',
+      );
+    }
+
+    if (!traits || !Array.isArray(traits)) {
+      throw new InputError('traits must be an array in request body');
+    }
+
+    res.json(
+      await traitInfoService.updateComponentTraits(
+        organizationName as string,
+        projectName as string,
+        componentName as string,
+        { traits },
+      ),
+    );
+  });
+
   // Endpoint for listing workflows
   router.get('/workflows', async (req, res) => {
     const { organizationName } = req.query;

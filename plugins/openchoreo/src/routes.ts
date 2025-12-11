@@ -12,3 +12,6 @@ export const rootCatalogRuntimeLogsRouteRef = createRouteRef({
 export const rootCatalogWorkflowsRouteRef = createRouteRef({
   id: 'workflows',
 });
+export const rootCatalogTraitsRouteRef = createRouteRef({
+  id: 'traits',
+});

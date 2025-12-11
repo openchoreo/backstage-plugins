@@ -17,4 +17,5 @@ export const API_ENDPOINTS = {
   COMPONENT_WORKFLOW_SCHEMA: '/component-workflow-schema',
   SECRET_REFERENCES: '/secret-references',
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
+  COMPONENT_TRAITS: '/component-traits',
 } as const;
