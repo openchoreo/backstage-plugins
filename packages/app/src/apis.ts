@@ -36,14 +36,16 @@ export const apis: AnyApiFactory[] = [
 
   // Custom FetchApi that automatically injects auth tokens
   // This wraps all fetch calls to include Backstage token + IDP token
+  // When openchoreo.features.auth.enabled is false, IDP token injection is skipped
   createApiFactory({
     api: fetchApiRef,
     deps: {
       identityApi: identityApiRef,
       oauthApi: defaultIdpAuthApiRef,
+      configApi: configApiRef,
     },
-    factory: ({ identityApi, oauthApi }) =>
-      new OpenChoreoFetchApi(identityApi, oauthApi),
+    factory: ({ identityApi, oauthApi, configApi }) =>
+      new OpenChoreoFetchApi(identityApi, oauthApi, configApi),
   }),
 
   // Default IDP OIDC Auth provider
