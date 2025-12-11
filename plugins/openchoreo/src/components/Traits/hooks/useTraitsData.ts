@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
-import { fetchComponentTraits, ComponentTrait } from '../../../api/traits';
+import {
+  openChoreoClientApiRef,
+  ComponentTrait,
+} from '../../../api/OpenChoreoClientApi';
 
 export const useTraitsData = () => {
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const openChoreoClient = useApi(openChoreoClientApiRef);
 
   const [traits, setTraits] = useState<ComponentTrait[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,14 +18,14 @@ export const useTraitsData = () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchComponentTraits(entity, discovery, identity);
+      const data = await openChoreoClient.fetchComponentTraits(entity);
       setTraits(data);
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  }, [entity, discovery, identity]);
+  }, [entity, openChoreoClient]);
 
   useEffect(() => {
     fetchTraits();

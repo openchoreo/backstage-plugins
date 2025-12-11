@@ -1,4 +1,4 @@
-import { ComponentTrait } from '../../api/traits';
+import { ComponentTrait } from '../../api/OpenChoreoClientApi';
 
 export interface TraitWithState extends ComponentTrait {
   state: 'original' | 'added' | 'modified' | 'deleted';

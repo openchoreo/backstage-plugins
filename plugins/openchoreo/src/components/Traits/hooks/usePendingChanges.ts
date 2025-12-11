@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { ComponentTrait } from '../../../api/traits';
+import { ComponentTrait } from '../../../api/OpenChoreoClientApi';
 import { TraitWithState, PendingChanges } from '../types';
 
 export const usePendingChanges = (initialTraits: ComponentTrait[]) => {
