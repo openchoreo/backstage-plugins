@@ -394,6 +394,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: RCA service not available
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'RCA service not available'
 
   /api/rca-reports/alert/{alertId}:
     get:
@@ -437,6 +444,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: RCA service not available
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'RCA service not available'
 
 components:
   schemas:

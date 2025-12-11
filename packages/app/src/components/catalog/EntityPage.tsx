@@ -73,6 +73,7 @@ import {
 import {
   ObservabilityMetrics,
   ObservabilityTraces,
+  ObservabilityRCA,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 const techdocsContent = (
@@ -465,6 +466,9 @@ const systemPage = (
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">
       <ObservabilityTraces />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/rca" title="AI DIAGNOSTICS">
+      <ObservabilityRCA />
     </EntityLayout.Route>
   </EntityLayout>
 );

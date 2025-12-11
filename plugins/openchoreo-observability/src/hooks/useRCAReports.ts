@@ -6,7 +6,7 @@ import {
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../api/ObservabilityApi';
-import { Filters, Trace } from '../types';
+import { Filters, RCAReportSummary } from '../types';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { calculateTimeRange } from '../utils/timeRangeUtils';
@@ -55,15 +55,16 @@ async function getProjectDetails(
   return projectData;
 }
 
-export function useTraces(filters: Filters, entity: Entity) {
+export function useRCAReports(filters: Filters, entity: Entity) {
   const observabilityApi = useApi(observabilityApiRef);
   const discovery = useApi(discoveryApiRef);
   const identity = useApi(identityApiRef);
   const fetchApi = useApi(fetchApiRef);
-  const [traces, setTraces] = useState<Trace[]>([]);
+  const [reports, setReports] = useState<RCAReportSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState<number | undefined>(undefined);
 
   const organization =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
@@ -74,18 +75,10 @@ export function useTraces(filters: Filters, entity: Entity) {
     [filters.componentIds],
   );
 
-  // Memoize filtered traces based on searchQuery
-  const filteredTraces = useMemo(() => {
-    if (!filters.searchQuery || filters.searchQuery.trim() === '') {
-      return traces;
-    }
-    const searchLower = filters.searchQuery.toLowerCase().trim();
-    return traces.filter(trace =>
-      trace.traceId.toLowerCase().includes(searchLower),
-    );
-  }, [traces, filters.searchQuery]);
+  // Memoize rcaStatus for dependency array
+  const rcaStatus = filters.rcaStatus;
 
-  const fetchTraces = useCallback(
+  const fetchReports = useCallback(
     async (reset: boolean = false) => {
       if (
         !filters.environment ||
@@ -106,7 +99,7 @@ export function useTraces(filters: Filters, entity: Entity) {
         // Get component UIDs from filters (empty array means all components)
         const componentUids = filters.componentIds || [];
 
-        const response = await observabilityApi.getTraces(
+        const response = await observabilityApi.getRCAReports(
           projectId,
           filters.environment.uid,
           filters.environment.name,
@@ -117,15 +110,18 @@ export function useTraces(filters: Filters, entity: Entity) {
             limit: 100,
             startTime,
             endTime,
-            sortOrder: 'desc',
+            status: rcaStatus,
           },
         );
 
-        if (reset || !traces || traces.length === 0) {
-          setTraces(response.traces);
+        if (reset || !reports || reports.length === 0) {
+          setReports(response.reports);
+          setTotalCount(response.totalCount);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch traces');
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch RCA reports',
+        );
       } finally {
         setLoading(false);
       }
@@ -135,7 +131,8 @@ export function useTraces(filters: Filters, entity: Entity) {
       filters.environment,
       filters.timeRange,
       filters.componentIds,
-      traces,
+      rcaStatus,
+      reports,
       organization,
       projectId,
       entity,
@@ -163,23 +160,30 @@ export function useTraces(filters: Filters, entity: Entity) {
     fetchIds();
   }, [entity, discovery, identity, fetchApi]);
 
-  // Auto-fetch traces when filters change
+  // Auto-fetch reports when filters change
   useEffect(() => {
     if (projectId && filters.environment && filters.timeRange) {
-      fetchTraces(true);
+      fetchReports(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, filters.environment, filters.timeRange, componentIdsKey]);
+  }, [
+    projectId,
+    filters.environment,
+    filters.timeRange,
+    componentIdsKey,
+    rcaStatus,
+  ]);
 
   const refresh = useCallback(() => {
-    setTraces([]);
-    fetchTraces(true);
-  }, [fetchTraces]);
+    setReports([]);
+    fetchReports(true);
+  }, [fetchReports]);
 
   return {
-    traces: filteredTraces,
+    reports,
     loading,
     error,
     refresh,
+    totalCount,
   };
 }
