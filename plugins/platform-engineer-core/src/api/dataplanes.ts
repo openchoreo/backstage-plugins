@@ -1,20 +1,15 @@
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { DataPlane } from '../types';
 
 export async function fetchAllDataplanes(
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
 ): Promise<DataPlane[]> {
-  const { token } = await identity.getCredentials();
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl('platform-engineer-core')}/dataplanes`,
-  );
+  const backendUrl = `${await discovery.getBaseUrl(
+    'platform-engineer-core',
+  )}/dataplanes`;
 
-  const res = await fetch(backendUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetchApi.fetch(backendUrl);
 
   if (!res.ok) {
     throw new Error(`Failed to fetch dataplanes: ${res.statusText}`);
@@ -31,20 +26,13 @@ export async function fetchAllDataplanes(
 export async function fetchDataplanesByOrganization(
   organizationName: string,
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
 ): Promise<DataPlane[]> {
-  const { token } = await identity.getCredentials();
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl(
-      'platform-engineer-core',
-    )}/dataplanes/${organizationName}`,
-  );
+  const backendUrl = `${await discovery.getBaseUrl(
+    'platform-engineer-core',
+  )}/dataplanes/${organizationName}`;
 
-  const res = await fetch(backendUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetchApi.fetch(backendUrl);
 
   if (!res.ok) {
     throw new Error(

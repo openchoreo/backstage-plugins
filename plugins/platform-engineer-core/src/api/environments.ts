@@ -1,20 +1,15 @@
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { Environment } from '../types';
 
 export async function fetchAllEnvironments(
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
 ): Promise<Environment[]> {
-  const { token } = await identity.getCredentials();
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl('platform-engineer-core')}/environments`,
-  );
+  const backendUrl = `${await discovery.getBaseUrl(
+    'platform-engineer-core',
+  )}/environments`;
 
-  const res = await fetch(backendUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetchApi.fetch(backendUrl);
 
   if (!res.ok) {
     throw new Error(`Failed to fetch environments: ${res.statusText}`);
@@ -31,20 +26,13 @@ export async function fetchAllEnvironments(
 export async function fetchEnvironmentsByOrganization(
   organizationName: string,
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
 ): Promise<Environment[]> {
-  const { token } = await identity.getCredentials();
-  const backendUrl = new URL(
-    `${await discovery.getBaseUrl(
-      'platform-engineer-core',
-    )}/environments/${organizationName}`,
-  );
+  const backendUrl = `${await discovery.getBaseUrl(
+    'platform-engineer-core',
+  )}/environments/${organizationName}`;
 
-  const res = await fetch(backendUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetchApi.fetch(backendUrl);
 
   if (!res.ok) {
     throw new Error(

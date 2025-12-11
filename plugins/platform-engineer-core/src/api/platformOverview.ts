@@ -1,4 +1,4 @@
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { CatalogApi } from '@backstage/catalog-client';
 import { DataPlane, Environment } from '../types';
 
@@ -19,25 +19,16 @@ export interface PlatformOverviewData {
  */
 export async function fetchPlatformOverview(
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
   catalogApi: CatalogApi,
 ): Promise<PlatformOverviewData> {
   try {
-    const { token } = await identity.getCredentials();
     const baseUrl = await discovery.getBaseUrl('platform-engineer-core');
 
     // Fetch dataplanes and environments in parallel
     const [dataplanesRes, environmentsRes] = await Promise.all([
-      fetch(new URL(`${baseUrl}/dataplanes`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }),
-      fetch(new URL(`${baseUrl}/environments`), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }),
+      fetchApi.fetch(`${baseUrl}/dataplanes`),
+      fetchApi.fetch(`${baseUrl}/environments`),
     ]);
 
     if (!dataplanesRes.ok || !environmentsRes.ok) {
@@ -94,18 +85,18 @@ export async function fetchPlatformOverview(
     });
 
     // Call the backend to get healthy workload count
-    const healthyWorkloadUrl = new URL(`${baseUrl}/healthy-workload-count`);
-
-    const healthyWorkloadRes = await fetch(healthyWorkloadUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+    const healthyWorkloadRes = await fetchApi.fetch(
+      `${baseUrl}/healthy-workload-count`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          components: componentInfos,
+        }),
       },
-      body: JSON.stringify({
-        components: componentInfos,
-      }),
-    });
+    );
 
     let healthyWorkloadCount = 0;
     if (healthyWorkloadRes.ok) {
