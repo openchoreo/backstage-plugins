@@ -17,13 +17,27 @@ type TraitSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   };
 };
 
+type ComponentTraitListResponse =
+  OpenChoreoComponents['schemas']['APIResponse'] & {
+    data?: OpenChoreoComponents['schemas']['ListResponse'] & {
+      items?: OpenChoreoComponents['schemas']['ComponentTraitResponse'][];
+    };
+  };
+
+export type ComponentTrait =
+  OpenChoreoComponents['schemas']['ComponentTraitResponse'];
+export type UpdateComponentTraitsRequest =
+  OpenChoreoComponents['schemas']['UpdateComponentTraitsRequest'];
+
 export class TraitInfoService {
   private logger: LoggerService;
   private baseUrl: string;
+  private token?: string;
 
-  constructor(logger: LoggerService, baseUrl: string) {
+  constructor(logger: LoggerService, baseUrl: string, token?: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+    this.token = token;
   }
 
   async fetchTraits(
@@ -114,6 +128,110 @@ export class TraitInfoService {
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for trait ${traitName} in org ${orgName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  async fetchComponentTraits(
+    orgName: string,
+    projectName: string,
+    componentName: string,
+  ): Promise<ComponentTrait[]> {
+    this.logger.debug(
+      `Fetching component traits for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch component traits: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data?.success) {
+        throw new Error('API request was not successful');
+      }
+
+      const traitListResponse: ComponentTraitListResponse =
+        data as ComponentTraitListResponse;
+      const traits = traitListResponse.data?.items || [];
+
+      this.logger.debug(
+        `Successfully fetched ${traits.length} traits for component: ${componentName}`,
+      );
+      return traits;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch component traits for ${componentName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  async updateComponentTraits(
+    orgName: string,
+    projectName: string,
+    componentName: string,
+    traits: UpdateComponentTraitsRequest,
+  ): Promise<ComponentTrait[]> {
+    this.logger.debug(
+      `Updating component traits for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token: this.token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.PUT(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+          },
+          body: traits,
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to update component traits: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data?.success) {
+        throw new Error('API request was not successful');
+      }
+
+      const traitListResponse: ComponentTraitListResponse =
+        data as ComponentTraitListResponse;
+      const updatedTraits = traitListResponse.data?.items || [];
+
+      this.logger.debug(
+        `Successfully updated traits for component: ${componentName}`,
+      );
+      return updatedTraits;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update component traits for ${componentName}: ${error}`,
       );
       throw error;
     }

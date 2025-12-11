@@ -5,6 +5,7 @@ export { Builds } from './components/Builds/Builds';
 export {
   RuntimeLogs,
   Workflows,
+  Traits,
   WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,

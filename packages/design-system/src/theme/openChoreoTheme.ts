@@ -19,7 +19,7 @@ const colors = {
     dark: '#dc2626',
   },
   warning: {
-    light: '#fffbeb',
+    light: '#fff5eb',
     main: '#f59e0b',
     dark: '#d97706',
   },
