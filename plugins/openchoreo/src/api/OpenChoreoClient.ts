@@ -19,6 +19,7 @@ import type {
   ComponentInfo,
   SecretReferencesResponse,
   BuildLogsParams,
+  ComponentTrait,
 } from './OpenChoreoClientApi';
 import type {
   LogsResponse,
@@ -52,6 +53,7 @@ const API_ENDPOINTS = {
   BUILD_LOGS: '/build-logs',
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
+  COMPONENT_TRAITS: '/component-traits',
 } as const;
 
 // ============================================
@@ -107,7 +109,7 @@ function entityMetadataToParams(
 // OpenChoreo Client Implementation
 // ============================================
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
 
 /**
  * OpenChoreo Client - implements all OpenChoreo backend operations.
@@ -661,6 +663,35 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params: {
         projectName,
         organizationName,
+      },
+    });
+  }
+
+  // ============================================
+  // Traits Operations
+  // ============================================
+
+  async fetchComponentTraits(entity: Entity): Promise<ComponentTrait[]> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<ComponentTrait[]>(API_ENDPOINTS.COMPONENT_TRAITS, {
+      params: entityMetadataToParams(metadata),
+    });
+  }
+
+  async updateComponentTraits(
+    entity: Entity,
+    traits: ComponentTrait[],
+  ): Promise<ComponentTrait[]> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<ComponentTrait[]>(API_ENDPOINTS.COMPONENT_TRAITS, {
+      method: 'PUT',
+      body: {
+        organizationName: metadata.organization,
+        projectName: metadata.project,
+        componentName: metadata.component,
+        traits,
       },
     });
   }

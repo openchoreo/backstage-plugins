@@ -32,12 +32,10 @@ export type UpdateComponentTraitsRequest =
 export class TraitInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private token?: string;
 
-  constructor(logger: LoggerService, baseUrl: string, token?: string) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.token = token;
   }
 
   async fetchTraits(
@@ -141,6 +139,7 @@ export class TraitInfoService {
     orgName: string,
     projectName: string,
     componentName: string,
+    userToken?: string,
   ): Promise<ComponentTrait[]> {
     this.logger.debug(
       `Fetching component traits for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
@@ -149,7 +148,7 @@ export class TraitInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token: userToken,
         logger: this.logger,
       });
 
@@ -193,6 +192,7 @@ export class TraitInfoService {
     projectName: string,
     componentName: string,
     traits: UpdateComponentTraitsRequest,
+    userToken?: string,
   ): Promise<ComponentTrait[]> {
     this.logger.debug(
       `Updating component traits for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
@@ -201,7 +201,7 @@ export class TraitInfoService {
     try {
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
-        token: this.token,
+        token: userToken,
         logger: this.logger,
       });
 

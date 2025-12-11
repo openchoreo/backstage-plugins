@@ -12,7 +12,6 @@ import WarningRounded from '@material-ui/icons/WarningRounded';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
 import { useTraitsStyles } from './styles';
 import { useTraitsData } from './hooks/useTraitsData';
 import { usePendingChanges } from './hooks/usePendingChanges';
@@ -21,13 +20,15 @@ import { TraitAccordion } from './TraitAccordion';
 import { AddTraitDialog } from './AddTraitDialog';
 import { EditTraitDialog } from './EditTraitDialog';
 import { ConfirmChangesDialog } from './ConfirmChangesDialog';
-import { ComponentTrait, updateComponentTraits } from '../../api/traits';
+import {
+  openChoreoClientApiRef,
+  ComponentTrait,
+} from '../../api/OpenChoreoClientApi';
 
 export const Traits = () => {
   const classes = useTraitsStyles();
   const { entity } = useEntity();
-  const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const openChoreoClient = useApi(openChoreoClientApiRef);
   const { traits, loading, error, refetch } = useTraitsData();
   const {
     traitsState,
@@ -82,7 +83,7 @@ export const Traits = () => {
     setSaveError(null);
     try {
       const traitsToSave = getTraitsForSave();
-      await updateComponentTraits(entity, discovery, identity, traitsToSave);
+      await openChoreoClient.updateComponentTraits(entity, traitsToSave);
       await refetch(); // Refresh the data
       setConfirmDialogOpen(false);
       discardAll(); // Clear pending changes after successful save

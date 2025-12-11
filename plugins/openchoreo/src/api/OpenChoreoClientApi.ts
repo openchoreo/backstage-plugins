@@ -109,6 +109,13 @@ export interface BuildLogsParams {
   sortOrder?: 'asc' | 'desc';
 }
 
+/** Component trait response */
+export interface ComponentTrait {
+  name: string;
+  instanceName: string;
+  parameters?: Record<string, unknown>;
+}
+
 // ============================================
 // OpenChoreo Client API Interface
 // ============================================
@@ -250,6 +257,17 @@ export interface OpenChoreoClientApi {
     projectName: string,
     organizationName: string,
   ): Promise<any>;
+
+  // === Traits Operations ===
+
+  /** Fetch all traits attached to a component */
+  fetchComponentTraits(entity: Entity): Promise<ComponentTrait[]>;
+
+  /** Update all traits on a component (replaces existing traits) */
+  updateComponentTraits(
+    entity: Entity,
+    traits: ComponentTrait[],
+  ): Promise<ComponentTrait[]>;
 }
 
 // ============================================

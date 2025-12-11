@@ -20,7 +20,7 @@ import Form from '@rjsf/material-ui';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
 import { useTraitsStyles } from './styles';
-import { ComponentTrait } from '../../api/traits';
+import { ComponentTrait } from '../../api/OpenChoreoClientApi';
 import { extractEntityMetadata } from '../../utils/entityUtils';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 

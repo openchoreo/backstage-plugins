@@ -254,11 +254,14 @@ export async function createRouter({
       );
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await traitInfoService.fetchComponentTraits(
         organizationName as string,
         projectName as string,
         componentName as string,
+        userToken,
       ),
     );
   });
@@ -277,12 +280,15 @@ export async function createRouter({
       throw new InputError('traits must be an array in request body');
     }
 
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
       await traitInfoService.updateComponentTraits(
         organizationName as string,
         projectName as string,
         componentName as string,
         { traits },
+        userToken,
       ),
     );
   });
