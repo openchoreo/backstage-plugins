@@ -45,19 +45,20 @@ openchoreo:
 thunder:
   baseUrl: http://thunder.openchoreo.localhost:8080
 
-# OAuth authentication configuration (Kind cluster)
+# OIDC authentication configuration (Kind cluster)
 auth:
   environment: development
+  session:
+    secret: local-dev-secret
   providers:
-    default-idp:
+    openchoreo-idp:
       development:
         # OAuth credentials from Kind cluster helm values
         # (see openchoreo/install/dev/openchoreo-values.yaml)
         clientId: openchoreo-backstage-client
         clientSecret: backstage-portal-secret
-        authorizationUrl: http://thunder.openchoreo.localhost:8080/oauth2/authorize
-        tokenUrl: http://thunder.openchoreo.localhost:8080/oauth2/token
-        scope: 'openid profile email'
+        metadataUrl: http://thunder.openchoreo.localhost:8080/.well-known/openid-configuration
+        prompt: auto
 
 # GitHub integration (optional)
 # Uncomment and add your personal access token if you need GitHub integration

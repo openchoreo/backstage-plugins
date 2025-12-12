@@ -22,9 +22,9 @@ import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
 import { UserSettingsStorage } from '@backstage/plugin-user-settings';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 
-// API reference for default-idp OIDC provider
-export const defaultIdpAuthApiRef: ApiRef<OAuthApi> = createApiRef({
-  id: 'auth.default-idp',
+// API reference for OpenChoreo IDP OIDC provider
+export const openChoreoIdpAuthApiRef: ApiRef<OAuthApi> = createApiRef({
+  id: 'auth.openchoreo-idp',
 });
 
 export const apis: AnyApiFactory[] = [
@@ -42,16 +42,16 @@ export const apis: AnyApiFactory[] = [
     api: fetchApiRef,
     deps: {
       identityApi: identityApiRef,
-      oauthApi: defaultIdpAuthApiRef,
+      oauthApi: openChoreoIdpAuthApiRef,
       configApi: configApiRef,
     },
     factory: ({ identityApi, oauthApi, configApi }) =>
       new OpenChoreoFetchApi(identityApi, oauthApi, configApi),
   }),
 
-  // Default IDP OIDC Auth provider
+  // OpenChoreo IDP OIDC Auth provider
   createApiFactory({
-    api: defaultIdpAuthApiRef,
+    api: openChoreoIdpAuthApiRef,
     deps: {
       discoveryApi: discoveryApiRef,
       oauthRequestApi: oauthRequestApiRef,
@@ -62,7 +62,7 @@ export const apis: AnyApiFactory[] = [
         discoveryApi,
         oauthRequestApi,
         provider: {
-          id: 'default-idp',
+          id: 'openchoreo-idp',
           title: 'OpenChoreo IDP',
           icon: () => null,
         },

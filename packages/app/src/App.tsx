@@ -29,7 +29,7 @@ import {
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
 import { UserSettingsPage } from '@backstage/plugin-user-settings';
-import { apis, defaultIdpAuthApiRef } from './apis';
+import { apis, openChoreoIdpAuthApiRef } from './apis';
 import { entityPage } from './components/catalog/EntityPage';
 import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { searchPage } from './components/search/SearchPage';
@@ -81,10 +81,10 @@ function DynamicSignInPage(props: any) {
       {...props}
       auto
       provider={{
-        id: 'default-idp',
+        id: 'openchoreo-idp',
         title: 'OpenChoreo IDP',
         message: 'Sign in using OpenChoreo Identity Provider',
-        apiRef: defaultIdpAuthApiRef,
+        apiRef: openChoreoIdpAuthApiRef,
       }}
     />
   );

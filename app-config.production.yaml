@@ -50,19 +50,19 @@ techdocs:
     type: 'local' # Alternatives - 'googleGcs' or 'awsS3'. Read documentation for using alternatives.
 
 auth:
+  session:
+    secret: ${SESSION_SECRET}
   providers:
-    # OpenChoreo Default IDP - Custom OAuth provider (without discovery endpoint)
+    # OpenChoreo IDP - OIDC provider with discovery endpoint
     # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
     # Client credentials are automatically configured from asgardeoThunder.backstagePortal values
-    # OPENCHOREO_AUTH_AUTHORIZATION_URL and OPENCHOREO_AUTH_TOKEN_URL are auto-configured from backstage.thunder.baseUrl
-    # or can be explicitly set via backstage.auth.authorizationUrl and backstage.auth.tokenUrl in Helm values
-    default-idp:
+    # THUNDER_BASE_URL is used to derive the OIDC discovery endpoint
+    openchoreo-idp:
       development:
         clientId: ${OPENCHOREO_AUTH_CLIENT_ID}
         clientSecret: ${OPENCHOREO_AUTH_CLIENT_SECRET}
-        authorizationUrl: ${OPENCHOREO_AUTH_AUTHORIZATION_URL}
-        tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
-        scope: 'openid profile email'
+        metadataUrl: ${THUNDER_BASE_URL}/.well-known/openid-configuration
+        prompt: auto
 
     # Guest provider - used when openchoreo.features.auth.enabled is false
     # Allows users to access the portal without authentication (demo/development mode)

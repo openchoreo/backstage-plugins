@@ -9163,9 +9163,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default@workspace:^, @openchoreo/backstage-plugin-auth-backend-module-openchoreo-default@workspace:plugins/auth-backend-module-openchoreo-default":
+"@openchoreo/backstage-plugin-auth-backend-module-openchoreo-idp@workspace:^, @openchoreo/backstage-plugin-auth-backend-module-openchoreo-idp@workspace:plugins/auth-backend-module-openchoreo-idp":
   version: 0.0.0-use.local
-  resolution: "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default@workspace:plugins/auth-backend-module-openchoreo-default"
+  resolution: "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-idp@workspace:plugins/auth-backend-module-openchoreo-idp"
   dependencies:
     "@backstage/backend-plugin-api": "npm:1.4.3"
     "@backstage/backend-test-utils": "npm:1.9.0"
@@ -9173,9 +9173,6 @@ __metadata:
     "@backstage/cli": "npm:0.34.3"
     "@backstage/plugin-auth-backend-module-oidc-provider": "npm:0.4.8"
     "@backstage/plugin-auth-node": "npm:0.6.8"
-    "@types/passport-oauth2": "npm:1.8.0"
-    jose: "npm:^6.1.3"
-    passport-oauth2: "npm:1.8.0"
   languageName: unknown
   linkType: soft
 
@@ -15131,15 +15128,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/oauth@npm:*":
-  version: 0.9.6
-  resolution: "@types/oauth@npm:0.9.6"
-  dependencies:
-    "@types/node": "npm:*"
-  checksum: 10c0/2f3e4ee1059fd28fc2cb6dd9d0973365a0630ea1fa305ac5455ea9666220b73d8ac42e5bee42367a0f12a1041ef103a16c55bf7803d0a82898319c3e32095b4a
-  languageName: node
-  linkType: hard
-
 "@types/parse-json@npm:^4.0.0":
   version: 4.0.2
   resolution: "@types/parse-json@npm:4.0.2"
@@ -15147,18 +15135,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/passport-oauth2@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@types/passport-oauth2@npm:1.8.0"
-  dependencies:
-    "@types/express": "npm:*"
-    "@types/oauth": "npm:*"
-    "@types/passport": "npm:*"
-  checksum: 10c0/1635679ed70044858570488fb46a14868099286f4fe785d47874c1a02706cf5b5cee07e5be0e75a5103a5c260ea9e903e0243d8b7992281680233e69f60e72fa
-  languageName: node
-  linkType: hard
-
-"@types/passport@npm:*, @types/passport@npm:^1.0.3":
+"@types/passport@npm:^1.0.3":
   version: 1.0.17
   resolution: "@types/passport@npm:1.0.17"
   dependencies:
@@ -16941,7 +16918,7 @@ __metadata:
     "@backstage/plugin-search-backend-node": "npm:1.3.15"
     "@backstage/plugin-techdocs-backend": "npm:2.1.0"
     "@backstage/plugin-user-settings-backend": "npm:0.3.7"
-    "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default": "workspace:^"
+    "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-idp": "workspace:^"
     "@openchoreo/backstage-plugin-backend": "workspace:^"
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^"
@@ -24792,13 +24769,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jose@npm:^6.1.3":
-  version: 6.1.3
-  resolution: "jose@npm:6.1.3"
-  checksum: 10c0/b9577b4a7a5e84131011c23823db9f5951eae3ba796771a6a2401ae5dd50daf71104febc8ded9c38146aa5ebe94a92ac09c725e699e613ef26949b9f5a8bc30f
-  languageName: node
-  linkType: hard
-
 "js-base64@npm:^3.6.0":
   version: 3.7.8
   resolution: "js-base64@npm:3.7.8"
@@ -28677,7 +28647,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"passport-oauth2@npm:1.8.0, passport-oauth2@npm:1.x.x, passport-oauth2@npm:^1.7.0":
+"passport-oauth2@npm:1.x.x, passport-oauth2@npm:^1.7.0":
   version: 1.8.0
   resolution: "passport-oauth2@npm:1.8.0"
   dependencies:

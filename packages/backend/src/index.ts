@@ -7,7 +7,7 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
-import { OpenChoreoDefaultAuthModule } from '@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default';
+import { openChoreoIdpAuthModule } from '@openchoreo/backstage-plugin-auth-backend-module-openchoreo-idp';
 import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHttpRouter';
 import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
@@ -27,8 +27,8 @@ backend.add(import('@backstage/plugin-auth-backend'));
 // See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
 
 // Auth providers - both registered, but each checks config to determine if it should activate
-// OpenChoreo Default IDP OAuth provider (active when openchoreo.features.auth.enabled = true)
-backend.add(OpenChoreoDefaultAuthModule);
+// OpenChoreo IDP OIDC provider (active when openchoreo.features.auth.enabled = true)
+backend.add(openChoreoIdpAuthModule);
 // Guest provider for development/demo mode (active when openchoreo.features.auth.enabled = false)
 backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
 
