@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useContext, useMemo } from 'react';
-import { useNavigate, UNSAFE_NavigationContext as NavigationContext } from 'react-router-dom';
+import {
+  useNavigate,
+  UNSAFE_NavigationContext as NavigationContext,
+} from 'react-router-dom';
 import type { Navigator } from 'react-router-dom';
 import {
   Box,
@@ -63,7 +66,10 @@ export const Traits = () => {
 
   // Track if we should allow navigation (when user confirms discard)
   const allowNavigationRef = useRef(false);
-  const pendingNavigationRef = useRef<{ to: string; action: 'push' | 'replace' } | null>(null);
+  const pendingNavigationRef = useRef<{
+    to: string;
+    action: 'push' | 'replace';
+  } | null>(null);
   const navigate = useNavigate();
   const navigation = useContext(NavigationContext);
 
@@ -74,9 +80,11 @@ export const Traits = () => {
 
   // Calculate total number of changes
   const totalChanges = useMemo(() => {
-    return pendingChanges.added.length +
-    pendingChanges.modified.length +
-    pendingChanges.deleted.length;
+    return (
+      pendingChanges.added.length +
+      pendingChanges.modified.length +
+      pendingChanges.deleted.length
+    );
   }, [pendingChanges]);
 
   // Warn user before leaving page with unsaved changes (browser navigation)
@@ -237,166 +245,173 @@ export const Traits = () => {
       <Box className={classes.container}>
         {/* Header */}
         <Box className={classes.header}>
-        <Box>
-          <Typography variant="h5" className={classes.title}>
-            Traits
-          </Typography>
-        </Box>
-        {!showEmptyState && (
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setAddDialogOpen(true)}
-          >
-            Add Trait
-          </Button>
-        )}
-      </Box>
-
-      {/* Unsaved Changes Banner */}
-      {hasChanges && (
-        <Paper className={classes.unsavedBanner} elevation={0}>
-          <Box className={classes.unsavedText}>
-            <WarningRounded className={classes.unsavedIcon} />
-            <Box>
-              <Typography variant="subtitle2" className={classes.unsavedTitle}>
-                Unsaved Changes
-              </Typography>
-              <Typography variant="body2" className={classes.unsavedMessage}>
-                You have unsaved changes (
-                {pendingChanges.added.length > 0 &&
-                  `${pendingChanges.added.length} added`}
-                {pendingChanges.added.length > 0 &&
-                  (pendingChanges.modified.length > 0 ||
-                    pendingChanges.deleted.length > 0) &&
-                  ', '}
-                {pendingChanges.modified.length > 0 &&
-                  `${pendingChanges.modified.length} modified`}
-                {pendingChanges.modified.length > 0 &&
-                  pendingChanges.deleted.length > 0 &&
-                  ', '}
-                {pendingChanges.deleted.length > 0 &&
-                  `${pendingChanges.deleted.length} deleted`}
-                )
-              </Typography>
-            </Box>
+          <Box>
+            <Typography variant="h5" className={classes.title}>
+              Traits
+            </Typography>
           </Box>
-          <Box className={classes.unsavedActions}>
-            <Button size="small" variant="outlined" onClick={handleDiscardAll}>
-              Discard All
-            </Button>
+          {!showEmptyState && (
             <Button
-              size="small"
-              variant="contained"
+              variant="outlined"
               color="primary"
-              startIcon={<SaveIcon />}
-              onClick={handleConfirmChanges}
+              startIcon={<AddIcon />}
+              onClick={() => setAddDialogOpen(true)}
             >
-              Save Changes
+              Add Trait
             </Button>
-          </Box>
-        </Paper>
-      )}
-
-      {/* Empty State */}
-      {showEmptyState && (
-        <TraitsEmptyState onAddTrait={() => setAddDialogOpen(true)} />
-      )}
-
-      {/* Traits List */}
-      {!showEmptyState && (
-        <Box>
-          {traitsState.map(trait => (
-            <TraitAccordion
-              key={trait.instanceName}
-              trait={trait}
-              expanded={expandedTraitIds.has(trait.instanceName)}
-              onToggle={() => handleToggleAccordion(trait.instanceName)}
-              onEdit={() => handleEditClick(trait)}
-              onDelete={() => deleteTrait(trait.instanceName)}
-              onUndo={
-                trait.state === 'deleted'
-                  ? () => undoDelete(trait.instanceName)
-                  : undefined
-              }
-            />
-          ))}
+          )}
         </Box>
-      )}
 
-      {/* Add Trait Dialog */}
-      <AddTraitDialog
-        open={addDialogOpen}
-        onClose={() => setAddDialogOpen(false)}
-        onAdd={handleAddTrait}
-        existingInstanceNames={existingInstanceNames}
-      />
+        {/* Unsaved Changes Banner */}
+        {hasChanges && (
+          <Paper className={classes.unsavedBanner} elevation={0}>
+            <Box className={classes.unsavedText}>
+              <WarningRounded className={classes.unsavedIcon} />
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  className={classes.unsavedTitle}
+                >
+                  Unsaved Changes
+                </Typography>
+                <Typography variant="body2" className={classes.unsavedMessage}>
+                  You have unsaved changes (
+                  {pendingChanges.added.length > 0 &&
+                    `${pendingChanges.added.length} added`}
+                  {pendingChanges.added.length > 0 &&
+                    (pendingChanges.modified.length > 0 ||
+                      pendingChanges.deleted.length > 0) &&
+                    ', '}
+                  {pendingChanges.modified.length > 0 &&
+                    `${pendingChanges.modified.length} modified`}
+                  {pendingChanges.modified.length > 0 &&
+                    pendingChanges.deleted.length > 0 &&
+                    ', '}
+                  {pendingChanges.deleted.length > 0 &&
+                    `${pendingChanges.deleted.length} deleted`}
+                  )
+                </Typography>
+              </Box>
+            </Box>
+            <Box className={classes.unsavedActions}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleDiscardAll}
+              >
+                Discard All
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                startIcon={<SaveIcon />}
+                onClick={handleConfirmChanges}
+              >
+                Save Changes
+              </Button>
+            </Box>
+          </Paper>
+        )}
 
-      {/* Edit Trait Dialog */}
-      <EditTraitDialog
-        open={editDialogOpen}
-        onClose={() => {
-          setEditDialogOpen(false);
-          setSelectedTraitForEdit(null);
-        }}
-        onSave={handleEditSave}
-        trait={selectedTraitForEdit}
-        existingInstanceNames={existingInstanceNames}
-      />
+        {/* Empty State */}
+        {showEmptyState && (
+          <TraitsEmptyState onAddTrait={() => setAddDialogOpen(true)} />
+        )}
 
-      {/* Confirm Changes Dialog */}
-      <ConfirmChangesDialog
-        open={confirmDialogOpen}
-        onClose={() => {
-          setConfirmDialogOpen(false);
-          setSaveError(null);
-        }}
-        onConfirm={handleSaveChanges}
-        changes={pendingChanges}
-        isLoading={saving}
-      />
+        {/* Traits List */}
+        {!showEmptyState && (
+          <Box>
+            {traitsState.map(trait => (
+              <TraitAccordion
+                key={trait.instanceName}
+                trait={trait}
+                expanded={expandedTraitIds.has(trait.instanceName)}
+                onToggle={() => handleToggleAccordion(trait.instanceName)}
+                onEdit={() => handleEditClick(trait)}
+                onDelete={() => deleteTrait(trait.instanceName)}
+                onUndo={
+                  trait.state === 'deleted'
+                    ? () => undoDelete(trait.instanceName)
+                    : undefined
+                }
+              />
+            ))}
+          </Box>
+        )}
 
-      {/* Unsaved Changes Dialog */}
-      <UnsavedChangesDialog
-        open={unsavedChangesDialogOpen}
-        onDiscard={() => {
-          // Discard all changes
-          discardAll();
-          // Allow navigation to proceed
-          allowNavigationRef.current = true;
-          setUnsavedChangesDialogOpen(false);
+        {/* Add Trait Dialog */}
+        <AddTraitDialog
+          open={addDialogOpen}
+          onClose={() => setAddDialogOpen(false)}
+          onAdd={handleAddTrait}
+          existingInstanceNames={existingInstanceNames}
+        />
 
-          // Proceed with the pending navigation
-          if (pendingNavigationRef.current) {
-            const { to, action } = pendingNavigationRef.current;
-            if (action === 'push') {
-              navigate(to);
-            } else {
-              navigate(to, { replace: true });
+        {/* Edit Trait Dialog */}
+        <EditTraitDialog
+          open={editDialogOpen}
+          onClose={() => {
+            setEditDialogOpen(false);
+            setSelectedTraitForEdit(null);
+          }}
+          onSave={handleEditSave}
+          trait={selectedTraitForEdit}
+          existingInstanceNames={existingInstanceNames}
+        />
+
+        {/* Confirm Changes Dialog */}
+        <ConfirmChangesDialog
+          open={confirmDialogOpen}
+          onClose={() => {
+            setConfirmDialogOpen(false);
+            setSaveError(null);
+          }}
+          onConfirm={handleSaveChanges}
+          changes={pendingChanges}
+          isLoading={saving}
+        />
+
+        {/* Unsaved Changes Dialog */}
+        <UnsavedChangesDialog
+          open={unsavedChangesDialogOpen}
+          onDiscard={() => {
+            // Discard all changes
+            discardAll();
+            // Allow navigation to proceed
+            allowNavigationRef.current = true;
+            setUnsavedChangesDialogOpen(false);
+
+            // Proceed with the pending navigation
+            if (pendingNavigationRef.current) {
+              const { to, action } = pendingNavigationRef.current;
+              if (action === 'push') {
+                navigate(to);
+              } else {
+                navigate(to, { replace: true });
+              }
+              pendingNavigationRef.current = null;
             }
+
+            // Reset the flag after navigation
+            setTimeout(() => {
+              allowNavigationRef.current = false;
+            }, 100);
+          }}
+          onStay={() => {
+            setUnsavedChangesDialogOpen(false);
+            // Clear pending navigation
             pendingNavigationRef.current = null;
-          }
+          }}
+          changeCount={totalChanges}
+        />
 
-          // Reset the flag after navigation
-          setTimeout(() => {
-            allowNavigationRef.current = false;
-          }, 100);
-        }}
-        onStay={() => {
-          setUnsavedChangesDialogOpen(false);
-          // Clear pending navigation
-          pendingNavigationRef.current = null;
-        }}
-        changeCount={totalChanges}
-      />
-
-      {/* Save Error Alert */}
-      {saveError && (
-        <Alert severity="error" onClose={() => setSaveError(null)}>
-          {saveError}
-        </Alert>
-      )}
+        {/* Save Error Alert */}
+        {saveError && (
+          <Alert severity="error" onClose={() => setSaveError(null)}>
+            {saveError}
+          </Alert>
+        )}
       </Box>
     </>
   );
