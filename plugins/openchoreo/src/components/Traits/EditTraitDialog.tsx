@@ -367,7 +367,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
           variant="contained"
           disabled={!canSave}
         >
-          Save Changes
+          Update Trait
         </Button>
       </DialogActions>
     </Dialog>
