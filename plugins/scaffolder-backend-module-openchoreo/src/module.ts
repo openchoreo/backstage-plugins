@@ -19,12 +19,7 @@ export const scaffolderModule = createBackendModule({
         discovery: coreServices.discovery,
         immediateCatalog: immediateCatalogServiceRef,
       },
-      async init({
-        scaffolderActions,
-        config,
-        discovery,
-        immediateCatalog,
-      }) {
+      async init({ scaffolderActions, config, discovery, immediateCatalog }) {
         scaffolderActions.addActions(
           createProjectAction(config),
           createComponentAction(config, discovery, immediateCatalog),
