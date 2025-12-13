@@ -16,12 +16,18 @@ export const scaffolderModule = createBackendModule({
       deps: {
         scaffolderActions: scaffolderActionsExtensionPoint,
         config: coreServices.rootConfig,
+        discovery: coreServices.discovery,
         immediateCatalog: immediateCatalogServiceRef,
       },
-      async init({ scaffolderActions, config, immediateCatalog }) {
+      async init({
+        scaffolderActions,
+        config,
+        discovery,
+        immediateCatalog,
+      }) {
         scaffolderActions.addActions(
           createProjectAction(config),
-          createComponentAction(config, immediateCatalog),
+          createComponentAction(config, discovery, immediateCatalog),
         );
       },
     });
