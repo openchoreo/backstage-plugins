@@ -15,6 +15,7 @@ import {
   type ImmediateCatalogService,
   translateComponentToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import type { DiscoveryService } from '@backstage/backend-plugin-api';
 
 type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 
@@ -25,6 +26,7 @@ const MAX_NAME_LENGTH = 253;
 
 export const createComponentAction = (
   config: Config,
+  discovery: DiscoveryService,
   immediateCatalog: ImmediateCatalogService,
 ) => {
   return createTemplateAction({
@@ -114,13 +116,8 @@ export const createComponentAction = (
       // Check if component with the same name already exists in this organization
       // Note: This requires catalog-backend to be accessible
       try {
-        const backstageUrl = config.getString('backend.baseUrl');
         const catalogApi = new CatalogClient({
-          discoveryApi: {
-            async getBaseUrl(pluginId: string) {
-              return `${backstageUrl}/api/${pluginId}`;
-            },
-          },
+          discoveryApi: discovery,
         });
 
         // Get all components from catalog
