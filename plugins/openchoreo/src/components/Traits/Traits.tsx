@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useContext, useMemo } from 'react';
+import { useNavigate, UNSAFE_NavigationContext as NavigationContext } from 'react-router-dom';
+import type { Navigator } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -12,6 +14,7 @@ import WarningRounded from '@material-ui/icons/WarningRounded';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
+import { UnsavedChangesDialog } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { useTraitsData } from './hooks/useTraitsData';
 import { usePendingChanges } from './hooks/usePendingChanges';
@@ -24,11 +27,14 @@ import {
   openChoreoClientApiRef,
   ComponentTrait,
 } from '../../api/OpenChoreoClientApi';
+import { useNotification } from '../../hooks';
+import { NotificationBanner } from '../Environments/components';
 
 export const Traits = () => {
   const classes = useTraitsStyles();
   const { entity } = useEntity();
   const openChoreoClient = useApi(openChoreoClientApiRef);
+  const notification = useNotification();
   const { traits, loading, error, refetch } = useTraitsData();
   const {
     traitsState,
@@ -42,22 +48,111 @@ export const Traits = () => {
     getTraitsForSave,
   } = usePendingChanges(traits);
 
-  const [expandedTraitId, setExpandedTraitId] = useState<string | null>(null);
+  const [expandedTraitIds, setExpandedTraitIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [unsavedChangesDialogOpen, setUnsavedChangesDialogOpen] =
+    useState(false);
   const [selectedTraitForEdit, setSelectedTraitForEdit] =
     useState<ComponentTrait | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Track if we should allow navigation (when user confirms discard)
+  const allowNavigationRef = useRef(false);
+  const pendingNavigationRef = useRef<{ to: string; action: 'push' | 'replace' } | null>(null);
+  const navigate = useNavigate();
+  const navigation = useContext(NavigationContext);
 
   // Get all existing instance names (excluding deleted traits)
   const existingInstanceNames = traitsState
     .filter(t => t.state !== 'deleted')
     .map(t => t.instanceName);
 
+  // Calculate total number of changes
+  const totalChanges = useMemo(() => {
+    return pendingChanges.added.length +
+    pendingChanges.modified.length +
+    pendingChanges.deleted.length;
+  }, [pendingChanges]);
+
+  // Warn user before leaving page with unsaved changes (browser navigation)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges && !allowNavigationRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
+
+  // Block in-app navigation when there are unsaved changes
+  useEffect(() => {
+    if (!hasChanges || !navigation) {
+      return undefined;
+    }
+
+    const navigator = navigation.navigator as Navigator;
+    const originalPush = navigator.push;
+    const originalReplace = navigator.replace;
+
+    // Override push method
+    navigator.push = (to: any, state?: any) => {
+      if (allowNavigationRef.current) {
+        originalPush.call(navigator, to, state);
+        return;
+      }
+
+      // Store pending navigation
+      pendingNavigationRef.current = {
+        to: typeof to === 'string' ? to : to.pathname,
+        action: 'push',
+      };
+
+      // Show confirmation dialog
+      setUnsavedChangesDialogOpen(true);
+    };
+
+    // Override replace method
+    navigator.replace = (to: any, state?: any) => {
+      if (allowNavigationRef.current) {
+        originalReplace.call(navigator, to, state);
+        return;
+      }
+
+      // Store pending navigation
+      pendingNavigationRef.current = {
+        to: typeof to === 'string' ? to : to.pathname,
+        action: 'replace',
+      };
+
+      // Show confirmation dialog
+      setUnsavedChangesDialogOpen(true);
+    };
+
+    // Cleanup - restore original methods
+    return () => {
+      navigator.push = originalPush;
+      navigator.replace = originalReplace;
+    };
+  }, [hasChanges, navigation]);
+
   const handleToggleAccordion = (instanceName: string) => {
-    setExpandedTraitId(prev => (prev === instanceName ? null : instanceName));
+    setExpandedTraitIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(instanceName)) {
+        newSet.delete(instanceName);
+      } else {
+        newSet.add(instanceName);
+      }
+      return newSet;
+    });
   };
 
   const handleAddTrait = (trait: ComponentTrait) => {
@@ -87,8 +182,15 @@ export const Traits = () => {
       await refetch(); // Refresh the data
       setConfirmDialogOpen(false);
       discardAll(); // Clear pending changes after successful save
+
+      // Show success notification
+      notification.showSuccess('Traits updated successfully');
     } catch (err) {
-      setSaveError((err as Error).message || 'Failed to save changes');
+      const errorMessage = (err as Error).message || 'Failed to save changes';
+      setSaveError(errorMessage);
+
+      // Show error notification
+      notification.showError(`Failed to update traits: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -128,17 +230,16 @@ export const Traits = () => {
   const showEmptyState = traitsState.length === 0;
 
   return (
-    <Box className={classes.container}>
-      {/* Header */}
-      <Box className={classes.header}>
+    <>
+      {/* Notification Banner */}
+      <NotificationBanner notification={notification.notification} />
+
+      <Box className={classes.container}>
+        {/* Header */}
+        <Box className={classes.header}>
         <Box>
           <Typography variant="h5" className={classes.title}>
             Traits
-          </Typography>
-          <Typography variant="body2" className={classes.description}>
-            Add traits to enhance your component functionality. Traits provide
-            capabilities like persistent storage, observability, and security
-            policies.
           </Typography>
         </Box>
         {!showEmptyState && (
@@ -210,7 +311,7 @@ export const Traits = () => {
             <TraitAccordion
               key={trait.instanceName}
               trait={trait}
-              expanded={expandedTraitId === trait.instanceName}
+              expanded={expandedTraitIds.has(trait.instanceName)}
               onToggle={() => handleToggleAccordion(trait.instanceName)}
               onEdit={() => handleEditClick(trait)}
               onDelete={() => deleteTrait(trait.instanceName)}
@@ -256,12 +357,47 @@ export const Traits = () => {
         isLoading={saving}
       />
 
+      {/* Unsaved Changes Dialog */}
+      <UnsavedChangesDialog
+        open={unsavedChangesDialogOpen}
+        onDiscard={() => {
+          // Discard all changes
+          discardAll();
+          // Allow navigation to proceed
+          allowNavigationRef.current = true;
+          setUnsavedChangesDialogOpen(false);
+
+          // Proceed with the pending navigation
+          if (pendingNavigationRef.current) {
+            const { to, action } = pendingNavigationRef.current;
+            if (action === 'push') {
+              navigate(to);
+            } else {
+              navigate(to, { replace: true });
+            }
+            pendingNavigationRef.current = null;
+          }
+
+          // Reset the flag after navigation
+          setTimeout(() => {
+            allowNavigationRef.current = false;
+          }, 100);
+        }}
+        onStay={() => {
+          setUnsavedChangesDialogOpen(false);
+          // Clear pending navigation
+          pendingNavigationRef.current = null;
+        }}
+        changeCount={totalChanges}
+      />
+
       {/* Save Error Alert */}
       {saveError && (
         <Alert severity="error" onClose={() => setSaveError(null)}>
           {saveError}
         </Alert>
       )}
-    </Box>
+      </Box>
+    </>
   );
 };
