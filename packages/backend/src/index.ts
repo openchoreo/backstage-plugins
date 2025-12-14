@@ -11,6 +11,10 @@ import { OpenChoreoDefaultAuthModule } from '@openchoreo/backstage-plugin-auth-b
 import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHttpRouter';
 import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
+// OPTIONAL: For large-scale deployments, use the incremental ingestion module
+// Uncomment the following lines and comment out the standard catalog-backend-module below
+// import { catalogModuleOpenchoreoIncrementalProvider } from '@openchoreo/plugin-catalog-backend-module-openchoreo-incremental';
+
 const backend = createBackend();
 
 backend.add(rootHttpRouterServiceFactory());
@@ -34,6 +38,17 @@ backend.add(import('@backstage/plugin-catalog-backend'));
 backend.add(
   import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
 );
+/*
+OPTIONAL: For large-scale deployments, use incremental ingestion instead
+Comment out the standard module 
+backend.add(import('@backstage/plugin-catalog-backend'));
+above and uncomment the lines below:
+backend.add(
+  import('@openchoreo/plugin-catalog-backend-module-openchoreo-incremental'),
+);
+backend.add(catalogModuleOpenChoreoIncrementalProvider);
+Note: Also update app-config.yaml to use openchoreo.incremental instead of openchoreo.schedule
+*/
 
 // See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
 backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
