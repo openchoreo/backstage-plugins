@@ -1,12 +1,36 @@
 import { Entity } from '@backstage/catalog-model';
-import { OpenChoreoAPI } from '@openchoreo/openchoreo-client-node';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import {
   CHOREO_ANNOTATIONS,
   sanitizeLabel,
 } from '@openchoreo/backstage-plugin-common';
+import { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
-type ComponentType = OpenChoreoAPI.ComponentType;
+/**
+ * Type definition for Component Type data structure used by the converter.
+ * This is assembled from ComponentTypeResponse metadata + schema data.
+ */
+type ComponentTypeResponse =
+  OpenChoreoComponents['schemas']['ComponentTypeResponse'];
+
+export interface ComponentType {
+  metadata: Pick<
+    ComponentTypeResponse,
+    | 'name'
+    | 'displayName'
+    | 'description'
+    | 'workloadType'
+    | 'allowedWorkflows'
+    | 'createdAt'
+  > & {
+    name: NonNullable<ComponentTypeResponse['name']>;
+    workloadType: NonNullable<ComponentTypeResponse['workloadType']>;
+    createdAt: NonNullable<ComponentTypeResponse['createdAt']>;
+  };
+  spec: {
+    inputParametersSchema: JSONSchema7;
+  };
+}
 
 /**
  * Configuration for the Component Type to Template converter
@@ -41,6 +65,16 @@ export class CtdToTemplateConverter {
     componentType: ComponentType,
     organizationName: string,
   ): Entity {
+    // Validate required fields
+    if (!componentType.metadata?.name) {
+      throw new Error('ComponentType metadata.name is required');
+    }
+    if (!componentType.metadata?.workloadType) {
+      throw new Error(
+        `ComponentType ${componentType.metadata.name} is missing required field: workloadType`,
+      );
+    }
+
     const templateName = this.generateTemplateName(componentType.metadata.name);
     const title =
       componentType.metadata.displayName ||
@@ -50,11 +84,9 @@ export class CtdToTemplateConverter {
 
     // Infer tags from component type name and workloadType
     const inferredTags = this.inferTagsFromCtd(componentType);
-    const tags = [
-      'openchoreo',
-      ...inferredTags,
-      ...(componentType.metadata.tags || []),
-    ].filter(tag => tag && tag.trim().length > 0); // Filter out empty/whitespace-only tags
+    const tags = ['openchoreo', ...inferredTags].filter(
+      tag => tag && tag.trim().length > 0,
+    ); // Filter out empty/whitespace-only tags
 
     // Build the template entity
     const templateEntity: Entity = {

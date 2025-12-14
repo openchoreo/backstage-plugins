@@ -25,3 +25,10 @@ export const CHOREO_ANNOTATIONS = {
 export const CHOREO_LABELS = {
   MANAGED: 'openchoreo.io/managed',
 } as const;
+
+/**
+ * Default page limit for API pagination requests.
+ * Set to 500 to align with the API's MaxPageLimit for optimal performance,
+ * reducing the number of HTTP requests needed for large deployments.
+ */
+export const DEFAULT_PAGE_LIMIT = 500;

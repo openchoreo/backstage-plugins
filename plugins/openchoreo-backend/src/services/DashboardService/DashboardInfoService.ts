@@ -43,7 +43,7 @@ export class DashboardInfoService {
         },
       );
 
-      if (error || !response.ok) {
+      if (error || !response.ok || !data) {
         throw new Error(
           `Failed to fetch bindings: ${response.status} ${response.statusText}`,
         );

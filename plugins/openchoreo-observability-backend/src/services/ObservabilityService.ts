@@ -67,7 +67,7 @@ export class ObservabilityService {
         },
       );
 
-      if (error || !response.ok) {
+      if (error || !response.ok || !data) {
         this.logger.error(
           `Failed to fetch environments for organization ${organizationName}: ${response.status} ${response.statusText}`,
         );

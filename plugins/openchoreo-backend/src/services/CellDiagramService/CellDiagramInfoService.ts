@@ -97,12 +97,12 @@ export class CellDiagramInfoService implements CellDiagramService {
 
       if (listError || !listResponse.ok) {
         this.logger.error(
-          `Failed to fetch components for project ${projectName}`,
+          `Failed to fetch components for project ${projectName}: ${listResponse.status}`,
         );
         return undefined;
       }
 
-      if (!componentsListData.success || !componentsListData.data?.items) {
+      if (!componentsListData || !componentsListData.success || !componentsListData.data?.items) {
         this.logger.warn('No components found in API response');
         return undefined;
       }

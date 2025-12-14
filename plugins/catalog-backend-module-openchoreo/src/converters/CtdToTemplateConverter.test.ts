@@ -1,8 +1,5 @@
-import { CtdToTemplateConverter } from './CtdToTemplateConverter';
-import { OpenChoreoAPI } from '@openchoreo/openchoreo-client-node';
+import { CtdToTemplateConverter, ComponentType } from './CtdToTemplateConverter';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-
-type ComponentType = OpenChoreoAPI.ComponentType;
 
 describe('CtdToTemplateConverter', () => {
   let converter: CtdToTemplateConverter;
