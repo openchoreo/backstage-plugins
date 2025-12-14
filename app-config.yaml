@@ -126,9 +126,19 @@ openchoreo:
     # scopes: ['openid'] # Optional: uncomment to specify scopes
 
   defaultOwner: 'platformengineer' # Default owner for catalog entities
+
+  # DEFAULT: Standard scheduled ingestion (recommended for most deployments)
   schedule:
     frequency: 30 # seconds between runs (default: 30)
     timeout: 120 # seconds for timeout (default: 120)
+  # OPTIONAL: For large-scale deployments, use incremental ingestion instead
+  # Uncomment the section below and comment out the schedule section above
+  # Also update packages/backend/src/index.ts to use the incremental module
+  # incremental:
+  #   burstLength: 16 # Duration of each burst of processing activity in seconds
+  #   burstInterval: 8 # Interval between bursts of processing activity in seconds
+  #   chunkSize: 512 # Number of items to fetch per API request
+  #   restLength: 60 # Duration of rest periods between bursts in minutes
 
   # Feature flags for enabling/disabling OpenChoreo functionality
   # These can be controlled via Helm values: backstage.features.*
