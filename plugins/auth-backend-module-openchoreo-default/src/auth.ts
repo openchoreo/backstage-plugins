@@ -260,8 +260,8 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
               let groups: string[] = [];
               if (accessToken) {
                 const payload = decodeJwtUnsafe(accessToken);
-                if (payload?.group) {
-                  groups = [payload.group];
+                if (payload?.groups && Array.isArray(payload.groups)) {
+                  groups = payload.groups;
                 } else if (!payload) {
                   logger.warn(
                     'Failed to decode access token for group extraction',

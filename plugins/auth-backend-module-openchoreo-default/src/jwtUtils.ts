@@ -9,7 +9,13 @@ export interface OpenChoreoTokenPayload {
   username: string;
   given_name?: string;
   family_name?: string;
-  group?: string;
+  groups?: string[];
+  ouHandle?: string;
+  ouId?: string;
+  ouName?: string;
+  userType?: string;
+  client_id?: string;
+  grant_type?: string;
   aud: string;
   exp: number;
   iat: number;
