@@ -16,6 +16,9 @@ import type {
   SecretReferencesResponse,
   BuildLogsParams,
   ComponentTrait,
+  AuthzRole,
+  RoleEntitlementMapping,
+  UserTypeInfo,
 } from './OpenChoreoClientApi';
 import type {
   LogsResponse,
@@ -50,6 +53,11 @@ const API_ENDPOINTS = {
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
   COMPONENT_TRAITS: '/component-traits',
+  // Authorization endpoints
+  AUTHZ_ROLES: '/authz/roles',
+  AUTHZ_ROLE_MAPPINGS: '/authz/role-mappings',
+  AUTHZ_ACTIONS: '/authz/actions',
+  AUTHZ_USER_TYPES: '/authz/user-types',
 } as const;
 
 // ============================================
@@ -683,5 +691,84 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         traits,
       },
     });
+  }
+
+  // ============================================
+  // Authorization Operations
+  // ============================================
+
+  async listRoles(): Promise<AuthzRole[]> {
+    const response = await this.apiFetch<{ data: AuthzRole[] }>(
+      API_ENDPOINTS.AUTHZ_ROLES,
+    );
+    return response.data || [];
+  }
+
+  async getRole(name: string): Promise<AuthzRole> {
+    const response = await this.apiFetch<{ data: AuthzRole }>(
+      `${API_ENDPOINTS.AUTHZ_ROLES}/${encodeURIComponent(name)}`,
+    );
+    return response.data;
+  }
+
+  async addRole(role: AuthzRole): Promise<AuthzRole> {
+    const response = await this.apiFetch<{ data: AuthzRole }>(
+      API_ENDPOINTS.AUTHZ_ROLES,
+      {
+        method: 'POST',
+        body: role,
+      },
+    );
+    return response.data;
+  }
+
+  async deleteRole(name: string): Promise<void> {
+    await this.apiFetch(
+      `${API_ENDPOINTS.AUTHZ_ROLES}/${encodeURIComponent(name)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  }
+
+  async listRoleMappings(): Promise<RoleEntitlementMapping[]> {
+    const response = await this.apiFetch<{ data: RoleEntitlementMapping[] }>(
+      API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS,
+    );
+    return response.data || [];
+  }
+
+  async addRoleMapping(
+    mapping: RoleEntitlementMapping,
+  ): Promise<RoleEntitlementMapping> {
+    const response = await this.apiFetch<{ data: RoleEntitlementMapping }>(
+      API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS,
+      {
+        method: 'POST',
+        body: mapping,
+      },
+    );
+    return response.data;
+  }
+
+  async deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void> {
+    await this.apiFetch(API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS, {
+      method: 'DELETE',
+      body: mapping,
+    });
+  }
+
+  async listActions(): Promise<string[]> {
+    const response = await this.apiFetch<{ data: string[] }>(
+      API_ENDPOINTS.AUTHZ_ACTIONS,
+    );
+    return response.data || [];
+  }
+
+  async listUserTypes(): Promise<UserTypeInfo[]> {
+    const response = await this.apiFetch<{ data: UserTypeInfo[] }>(
+      API_ENDPOINTS.AUTHZ_USER_TYPES,
+    );
+    return response.data || [];
   }
 }

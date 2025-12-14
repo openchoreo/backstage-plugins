@@ -4,6 +4,7 @@ import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
+import SecurityIcon from '@material-ui/icons/Security';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
@@ -124,6 +125,8 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
         {/* End global nav */}
         <SidebarDivider />
+        {/* Admin section */}
+        <SidebarItem icon={SecurityIcon} to="admin/access-control" text="Access Control" />
         <SidebarScrollWrapper>
           {/* Items in this group will be scrollable if they run out of space */}
         </SidebarScrollWrapper>
