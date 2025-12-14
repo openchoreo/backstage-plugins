@@ -727,6 +727,146 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/authz/roles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all roles */
+    get: operations['listRoles'];
+    put?: never;
+    /** Create a new role */
+    post: operations['addRole'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/roles/{roleName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific role */
+    get: operations['getRole'];
+    put?: never;
+    post?: never;
+    /** Delete a role */
+    delete: operations['removeRole'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/role-mappings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all role-entitlement mappings */
+    get: operations['listRoleMappings'];
+    put?: never;
+    /** Create a new role-entitlement mapping */
+    post: operations['addRoleMapping'];
+    /** Remove a role-entitlement mapping */
+    delete: operations['removeRoleMapping'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/actions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all available actions */
+    get: operations['listActions'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/user-types': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all configured user types */
+    get: operations['listUserTypes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/evaluate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Evaluate a single authorization request */
+    post: operations['evaluate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/batch-evaluate': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Evaluate multiple authorization requests */
+    post: operations['batchEvaluate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/profile': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get subject's authorization profile */
+    get: operations['getSubjectProfile'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1313,6 +1453,89 @@ export interface components {
     ComponentWorkflowRepositoryRevision: {
       branch: string;
       commit?: string;
+    };
+    /** @enum {string} */
+    SubjectType: 'user' | 'service_account';
+    /** @enum {string} */
+    PolicyEffectType: 'allow' | 'deny';
+    Entitlement: {
+      claim: string;
+      value: string;
+    };
+    AuthzResourceHierarchy: {
+      organization?: string;
+      organization_units?: string[];
+      project?: string;
+      component?: string;
+    };
+    Role: {
+      name: string;
+      actions: string[];
+    };
+    RoleEntitlementMapping: {
+      role_name: string;
+      entitlement: components['schemas']['Entitlement'];
+      hierarchy: components['schemas']['AuthzResourceHierarchy'];
+      effect: components['schemas']['PolicyEffectType'];
+      context?: Record<string, never>;
+    };
+    EntitlementClaimInfo: {
+      name: string;
+      display_name: string;
+    };
+    UserTypeInfo: {
+      type: components['schemas']['SubjectType'];
+      display_name: string;
+      priority: number;
+      entitlement: components['schemas']['EntitlementClaimInfo'];
+    };
+    Subject: {
+      jwt_token: string;
+    };
+    AuthzResource: {
+      type: string;
+      id?: string;
+      hierarchy: components['schemas']['AuthzResourceHierarchy'];
+    };
+    EvaluateRequest: {
+      subject: components['schemas']['Subject'];
+      resource: components['schemas']['AuthzResource'];
+      action: string;
+      context?: Record<string, never>;
+    };
+    BatchEvaluateRequest: {
+      requests: components['schemas']['EvaluateRequest'][];
+    };
+    DecisionContext: {
+      reason?: string;
+    };
+    Decision: {
+      decision: boolean;
+      context?: components['schemas']['DecisionContext'];
+    };
+    BatchEvaluateResponse: {
+      decisions: components['schemas']['Decision'][];
+    };
+    CapabilityResource: {
+      path: string;
+      constraints?: Record<string, never>;
+    };
+    ActionCapability: {
+      allowed?: components['schemas']['CapabilityResource'][];
+      denied?: components['schemas']['CapabilityResource'][];
+    };
+    SubjectContext: {
+      Type?: components['schemas']['SubjectType'];
+      EntitlementClaim?: string;
+      EntitlementValues?: string[];
+    };
+    UserCapabilitiesResponse: {
+      user?: components['schemas']['SubjectContext'];
+      capabilities?: {
+        [key: string]: components['schemas']['ActionCapability'];
+      };
+      /** Format: date-time */
+      evaluatedAt?: string;
     };
   };
   responses: never;
@@ -2837,6 +3060,326 @@ export interface operations {
         content: {
           'application/json': components['schemas']['APIResponse'] & {
             data?: components['schemas']['WorkloadResponse'];
+          };
+        };
+      };
+    };
+  };
+  listRoles: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['Role'][];
+          };
+        };
+      };
+    };
+  };
+  addRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Role'];
+      };
+    };
+    responses: {
+      /** @description Role created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+      /** @description Role already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        roleName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['Role'];
+          };
+        };
+      };
+      /** @description Role not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  removeRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        roleName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Role deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Role not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listRoleMappings: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['RoleEntitlementMapping'][];
+          };
+        };
+      };
+    };
+  };
+  addRoleMapping: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RoleEntitlementMapping'];
+      };
+    };
+    responses: {
+      /** @description Mapping created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+      /** @description Mapping already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  removeRoleMapping: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RoleEntitlementMapping'];
+      };
+    };
+    responses: {
+      /** @description Mapping deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Mapping not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listActions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: string[];
+          };
+        };
+      };
+    };
+  };
+  listUserTypes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['UserTypeInfo'][];
+          };
+        };
+      };
+    };
+  };
+  evaluate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EvaluateRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['Decision'];
+          };
+        };
+      };
+    };
+  };
+  batchEvaluate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BatchEvaluateRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['BatchEvaluateResponse'];
+          };
+        };
+      };
+    };
+  };
+  getSubjectProfile: {
+    parameters: {
+      query: {
+        /** @description Organization name (required) */
+        org: string;
+        /** @description Project name (optional) */
+        project?: string;
+        /** @description Component name (optional) */
+        component?: string;
+        /** @description Organization units (optional) */
+        ou?: string[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['UserCapabilitiesResponse'];
           };
         };
       };
