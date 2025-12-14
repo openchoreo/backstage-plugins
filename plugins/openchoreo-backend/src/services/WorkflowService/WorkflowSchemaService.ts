@@ -3,6 +3,7 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
 
 // Type definition matching the API response structure
 type WorkflowSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
@@ -12,7 +13,7 @@ type WorkflowSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
 };
 
 type WorkflowListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data: OpenChoreoComponents['schemas']['ListResponse'] & {
+  data: {
     items: OpenChoreoComponents['schemas']['WorkflowResponse'][];
   };
 };
@@ -42,31 +43,44 @@ export class WorkflowSchemaService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/component-workflows',
-        {
-          params: {
-            path: { orgName },
+      const items = await fetchAllResources(async cursor => {
+        const { data, error, response } = await client.GET(
+          '/orgs/{orgName}/component-workflows',
+          {
+            params: {
+              path: { orgName },
+              query: {
+                limit: DEFAULT_PAGE_LIMIT,
+                ...(cursor && { continue: cursor }),
+              },
+            },
           },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component workflows: ${response.status} ${response.statusText}`,
         );
-      }
 
-      if (!data?.success) {
-        throw new Error('Failed to fetch component workflows');
-      }
+        if (error || !response.ok || !data) {
+          throw new Error(
+            `Failed to fetch component workflows: ${response.status} ${response.statusText}`,
+          );
+        }
 
-      const workflowList: WorkflowListResponse = data as WorkflowListResponse;
+        if (!data.success || !data.data?.items) {
+          throw new Error('Failed to retrieve workflows list');
+        }
+
+        return {
+          items: data.data.items as OpenChoreoComponents['schemas']['WorkflowResponse'][],
+          metadata: data.data?.metadata,
+        };
+      });
 
       this.logger.debug(
-        `Successfully fetched ${workflowList.data.items.length} component workflows for org: ${orgName}`,
+        `Successfully fetched ${items.length} component workflows for org: ${orgName}`,
       );
-      return workflowList;
+
+      return {
+        success: true,
+        data: { items },
+      } as WorkflowListResponse;
     } catch (error) {
       this.logger.error(
         `Failed to fetch component workflows for org ${orgName}: ${error}`,

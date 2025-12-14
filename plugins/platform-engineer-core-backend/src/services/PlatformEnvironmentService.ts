@@ -3,12 +3,17 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import {
+  fetchAllResources,
+  DEFAULT_PAGE_LIMIT,
+} from '@openchoreo/backstage-plugin-common';
 
 // Use generated types from OpenAPI spec
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
 type ReleaseBindingResponse =
   OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
+type ResponseMetadata = OpenChoreoComponents['schemas']['ResponseMetadata'];
 
 import {
   PlatformEnvironmentService,
@@ -57,28 +62,7 @@ export class PlatformEnvironmentInfoService
       // For now, we'll fetch environments from a default organization
       // In a real implementation, you might need to fetch from multiple organizations
       // or have a platform-wide API endpoint
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/environments',
-        {
-          params: {
-            path: { orgName: 'default' }, // This should be configurable or fetched from a platform API
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        this.logger.error(
-          `Failed to fetch platform environments: ${response.status} ${response.statusText}`,
-        );
-        return [];
-      }
-
-      if (!data.success || !data.data?.items) {
-        this.logger.warn('No environments found in platform API response');
-        return [];
-      }
-
-      const environments = data.data.items;
+      const environments = await this.fetchOrgEnvironments(client, 'default');
       const result = this.transformEnvironmentData(environments, 'default');
 
       const totalTime = Date.now() - startTime;
@@ -116,30 +100,10 @@ export class PlatformEnvironmentInfoService
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/environments',
-        {
-          params: {
-            path: { orgName: organizationName },
-          },
-        },
+      const environments = await this.fetchOrgEnvironments(
+        client,
+        organizationName,
       );
-
-      if (error || !response.ok) {
-        this.logger.error(
-          `Failed to fetch environments for organization ${organizationName}: ${response.status} ${response.statusText}`,
-        );
-        return [];
-      }
-
-      if (!data.success || !data.data?.items) {
-        this.logger.warn(
-          `No environments found for organization ${organizationName}`,
-        );
-        return [];
-      }
-
-      const environments = data.data.items;
       const result = this.transformEnvironmentData(
         environments,
         organizationName,
@@ -179,28 +143,7 @@ export class PlatformEnvironmentInfoService
       // For now, we'll fetch dataplanes from a default organization
       // In a real implementation, you might need to fetch from multiple organizations
       // or have a platform-wide API endpoint
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/dataplanes',
-        {
-          params: {
-            path: { orgName: 'default' }, // This should be configurable or fetched from a platform API
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        this.logger.error(
-          `Failed to fetch platform dataplanes: ${response.status} ${response.statusText}`,
-        );
-        return [];
-      }
-
-      if (!data.success || !data.data?.items) {
-        this.logger.warn('No dataplanes found in platform API response');
-        return [];
-      }
-
-      const dataplanes = data.data.items;
+      const dataplanes = await this.fetchOrgDataplanes(client, 'default');
       const result = this.transformDataPlaneData(dataplanes, 'default');
 
       const totalTime = Date.now() - startTime;
@@ -238,30 +181,10 @@ export class PlatformEnvironmentInfoService
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/dataplanes',
-        {
-          params: {
-            path: { orgName: organizationName },
-          },
-        },
+      const dataplanes = await this.fetchOrgDataplanes(
+        client,
+        organizationName,
       );
-
-      if (error || !response.ok) {
-        this.logger.error(
-          `Failed to fetch dataplanes for organization ${organizationName}: ${response.status} ${response.statusText}`,
-        );
-        return [];
-      }
-
-      if (!data.success || !data.data?.items) {
-        this.logger.warn(
-          `No dataplanes found for organization ${organizationName}`,
-        );
-        return [];
-      }
-
-      const dataplanes = data.data.items;
       const result = this.transformDataPlaneData(dataplanes, organizationName);
 
       const totalTime = Date.now() - startTime;
@@ -409,32 +332,23 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
-            const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
-              {
-                params: {
-                  path: {
-                    orgName: component.orgName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
-                  },
-                },
-              },
+            // Get all bindings for this component
+            const bindings = await this.fetchComponentReleaseBindings(
+              client,
+              component.orgName,
+              component.projectName,
+              component.componentName,
             );
 
-            if (!error && response.ok && data.success && data.data?.items) {
-              // Count environments where this component is deployed
-              const bindings = data.data.items as ReleaseBindingResponse[];
-              bindings.forEach(binding => {
-                const envName = binding.environment;
-                if (envName) {
-                  const currentCount =
-                    componentCountsByEnvironment.get(envName) || 0;
-                  componentCountsByEnvironment.set(envName, currentCount + 1);
-                }
-              });
-            }
+            // Count environments where this component is deployed
+            bindings.forEach(binding => {
+              const envName = binding.environment;
+              if (envName) {
+                const currentCount =
+                  componentCountsByEnvironment.get(envName) || 0;
+                componentCountsByEnvironment.set(envName, currentCount + 1);
+              }
+            });
           } catch (error) {
             this.logger.warn(
               `Failed to fetch bindings for component ${component.orgName}/${component.projectName}/${component.componentName}:`,
@@ -496,27 +410,15 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
-            const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
-              {
-                params: {
-                  path: {
-                    orgName: component.orgName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
-                  },
-                },
-              },
+            // Get all bindings for this component
+            const bindings = await this.fetchComponentReleaseBindings(
+              client,
+              component.orgName,
+              component.projectName,
+              component.componentName,
             );
 
-            if (
-              !error &&
-              response.ok &&
-              data.success &&
-              data.data?.items &&
-              data.data.items.length > 0
-            ) {
+            if (bindings.length > 0) {
               // If component has at least one binding, count it as deployed
               const componentKey = `${component.orgName}/${component.projectName}/${component.componentName}`;
               deployedComponents.add(componentKey);
@@ -583,29 +485,19 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
-            const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
-              {
-                params: {
-                  path: {
-                    orgName: component.orgName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
-                  },
-                },
-              },
+            // Get all bindings for this component
+            const bindings = await this.fetchComponentReleaseBindings(
+              client,
+              component.orgName,
+              component.projectName,
+              component.componentName,
             );
 
-            if (!error && response.ok && data.success && data.data?.items) {
-              // Count healthy workloads by checking if status.status === 'Active'
-              const bindings = data.data.items as ReleaseBindingResponse[];
-              const healthyCount = bindings.filter(
-                binding => binding.status === 'Ready',
-              ).length;
-              return healthyCount;
-            }
-            return 0;
+            // Count healthy workloads by checking if status === 'Ready'
+            const healthyCount = bindings.filter(
+              binding => binding.status === 'Ready',
+            ).length;
+            return healthyCount;
           } catch (error) {
             this.logger.warn(
               `Failed to fetch bindings for component ${component.orgName}/${component.projectName}/${component.componentName}:`,
@@ -685,6 +577,122 @@ export class PlatformEnvironmentInfoService
       };
 
       return transformedDataPlane;
+    });
+  }
+
+  /**
+   * Fetches all environments for an organization
+   */
+  private async fetchOrgEnvironments(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+  ): Promise<ModelsEnvironment[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/environments',
+        {
+          params: {
+            path: { orgName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch environments for organization ${orgName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve environment list');
+      }
+
+      return {
+        items: data.data.items as ModelsEnvironment[],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  /**
+   * Fetches all dataplanes for an organization
+   */
+  private async fetchOrgDataplanes(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+  ): Promise<ModelsDataPlane[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/dataplanes',
+        {
+          params: {
+            path: { orgName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch dataplanes for organization ${orgName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve dataplane list');
+      }
+
+      return {
+        items: data.data.items as ModelsDataPlane[],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  /**
+   * Fetches all release bindings for a component
+   */
+  private async fetchComponentReleaseBindings(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+    projectName: string,
+    componentName: string,
+  ): Promise<ReleaseBindingResponse[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch release bindings for component ${orgName}/${projectName}/${componentName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve release bindings list');
+      }
+
+      return {
+        items: data.data.items as ReleaseBindingResponse[],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
     });
   }
 }

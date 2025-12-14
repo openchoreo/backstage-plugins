@@ -9315,6 +9315,7 @@ __metadata:
     "@backstage/cli": "npm:0.34.3"
     "@backstage/config": "npm:1.3.4"
     "@backstage/errors": "npm:1.2.7"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/openchoreo-auth": "workspace:^"
     "@openchoreo/openchoreo-client-node": "workspace:^"
     "@testing-library/jest-dom": "npm:6.9.1"

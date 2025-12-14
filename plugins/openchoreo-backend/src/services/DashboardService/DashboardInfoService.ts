@@ -1,5 +1,6 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
 
 export interface DashboardMetrics {
   totalBindings: number;
@@ -31,27 +32,37 @@ export class DashboardInfoService {
         logger: this.logger,
       });
 
-      // Fetch bindings for the component
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
-        {
-          params: {
-            path: {
-              orgName,
-              projectName,
-              componentName,
+      // Fetch bindings for the component (handle pagination)
+      const bindings = await fetchAllResources(async cursor => {
+        const { data, error, response } = await client.GET(
+          '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+          {
+            params: {
+              path: {
+                orgName,
+                projectName,
+                componentName,
+              },
+              query: {
+                limit: DEFAULT_PAGE_LIMIT,
+                ...(cursor && { continue: cursor }),
+              },
             },
           },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch bindings: ${response.status} ${response.statusText}`,
         );
-      }
 
-      const bindings = data.success && data.data?.items ? data.data.items : [];
+        if (error || !response.ok || !data) {
+          throw new Error(
+            `Failed to fetch bindings: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        if (!data.success || !data.data?.items) {
+          return { items: [], metadata: data.data?.metadata };
+        }
+
+        return { items: data.data.items, metadata: data.data?.metadata };
+      });
 
       const bindingsCount = bindings.length;
 

@@ -740,12 +740,18 @@ export interface components {
       code?: string;
     };
     ListResponse: {
-      items?: {
+      items: {
         [key: string]: unknown;
       }[];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
+      metadata: components['schemas']['ResponseMetadata'];
+    };
+    ResponseMetadata: {
+      /** @description Kubernetes resource version for the list operation */
+      resourceVersion: string;
+      /** @description Opaque continuation token, empty string when no more results */
+      continue?: string;
+      /** @description Indicates if more results are available */
+      hasMore: boolean;
     };
     /** @description Wrapped schema containing component-type and trait environment override schemas */
     ComponentSchemaResponse: {
@@ -992,6 +998,8 @@ export interface components {
       description?: string;
       workloadType: string;
       allowedWorkflows?: string[];
+      /** @description Tags for categorization and filtering */
+      tags?: string[];
       /** Format: date-time */
       createdAt: string;
     };
@@ -1316,7 +1324,12 @@ export interface components {
     };
   };
   responses: never;
-  parameters: never;
+  parameters: {
+    /** @description Maximum number of items to return per page */
+    limitParam: number;
+    /** @description Opaque continuation token from previous response */
+    continueParam: string;
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
@@ -1426,7 +1439,12 @@ export interface operations {
   };
   listOrganizations: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -1445,6 +1463,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1474,7 +1499,12 @@ export interface operations {
   };
   listSecretReferences: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1503,11 +1533,23 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   listDataPlanes: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1528,6 +1570,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1586,7 +1635,12 @@ export interface operations {
   };
   listEnvironments: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1607,6 +1661,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1665,7 +1726,12 @@ export interface operations {
   };
   listBuildPlanes: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1687,11 +1753,23 @@ export interface operations {
           };
         };
       };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   listComponentTypes: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1712,6 +1790,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1752,7 +1837,12 @@ export interface operations {
   };
   listWorkflows: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1773,6 +1863,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1813,7 +1910,12 @@ export interface operations {
   };
   listComponentWorkflows: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1834,6 +1936,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1874,7 +1983,12 @@ export interface operations {
   };
   listTraits: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1895,6 +2009,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1935,7 +2056,12 @@ export interface operations {
   };
   listProjects: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -1956,6 +2082,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -2039,7 +2172,12 @@ export interface operations {
   };
   listComponents: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -2061,6 +2199,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -2208,7 +2353,12 @@ export interface operations {
   };
   listComponentTraits: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -2342,7 +2492,12 @@ export interface operations {
   };
   listComponentWorkflowRuns: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -2365,6 +2520,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -2406,7 +2568,12 @@ export interface operations {
   };
   getComponentBinding: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -2429,6 +2596,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -2463,7 +2637,12 @@ export interface operations {
   };
   listComponentReleases: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -2486,6 +2665,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -2582,7 +2768,12 @@ export interface operations {
   };
   listReleaseBindings: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['limitParam'];
+        /** @description Opaque continuation token from previous response */
+        continue?: components['parameters']['continueParam'];
+      };
       header?: never;
       path: {
         orgName: string;
@@ -2605,6 +2796,13 @@ export interface operations {
             };
           };
         };
+      };
+      /** @description Continue token expired */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

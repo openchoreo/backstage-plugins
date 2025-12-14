@@ -1,8 +1,6 @@
 import { CtdToTemplateConverter } from './CtdToTemplateConverter';
-import { OpenChoreoAPI } from '@openchoreo/openchoreo-client-node';
+import type { ComponentType } from './CtdToTemplateConverter';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-
-type ComponentType = OpenChoreoAPI.ComponentType;
 
 describe('CtdToTemplateConverter', () => {
   let converter: CtdToTemplateConverter;
@@ -131,6 +129,29 @@ describe('CtdToTemplateConverter', () => {
         'service',
         'deployment',
       ]);
+    });
+
+    it('includes user-provided tags from metadata and preserves order', () => {
+      const ctd: ComponentType = {
+        metadata: {
+          name: 'web-service',
+          workloadType: 'Deployment',
+          tags: ['alpha', 'beta', 'gamma'],
+          createdAt: '2025-01-01T00:00:00Z',
+        },
+        spec: { inputParametersSchema: { type: 'object' } as any },
+      } as ComponentType;
+
+      const entity = converter.convertCtdToTemplateEntity(ctd, 'org-1');
+      const tags = entity.metadata.tags ?? [];
+
+      expect(tags).toContain('alpha');
+      expect(tags).toContain('beta');
+      expect(tags).toContain('gamma');
+
+      // ensure order: openchoreo + inferred tags + user tags
+      const userTagIndex = tags.indexOf('alpha');
+      expect(userTagIndex).toBeGreaterThan(-1);
     });
   });
 

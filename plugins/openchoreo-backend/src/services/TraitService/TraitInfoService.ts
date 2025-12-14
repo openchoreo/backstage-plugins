@@ -3,10 +3,11 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
 
 // Type definitions matching the API response structure
 type TraitListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: OpenChoreoComponents['schemas']['ListResponse'] & {
+  data?: {
     items?: OpenChoreoComponents['schemas']['TraitResponse'][];
   };
 };
@@ -38,15 +39,8 @@ export class TraitInfoService {
     this.baseUrl = baseUrl;
   }
 
-  async fetchTraits(
-    orgName: string,
-    page: number = 1,
-    pageSize: number = 100,
-    token?: string,
-  ): Promise<TraitListResponse> {
-    this.logger.debug(
-      `Fetching traits (traits) for organization: ${orgName} (page: ${page}, pageSize: ${pageSize})`,
-    );
+  async fetchTraits(orgName: string, token?: string): Promise<TraitListResponse> {
+    this.logger.debug(`Fetching traits for organization: ${orgName}`);
 
     try {
       const client = createOpenChoreoApiClient({
@@ -55,33 +49,39 @@ export class TraitInfoService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/traits',
-        {
+      const items = await fetchAllResources(async cursor => {
+        const { data, error, response } = await client.GET('/orgs/{orgName}/traits', {
           params: {
             path: { orgName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
           },
-        },
-      );
+        });
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch traits: ${response.status} ${response.statusText}`,
-        );
-      }
+        if (error || !response.ok || !data) {
+          throw new Error(
+            `Failed to fetch traits: ${response.status} ${response.statusText}`,
+          );
+        }
 
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
+        if (!data.success || !data.data?.items) {
+          throw new Error('Failed to retrieve traits list');
+        }
 
-      const traitListResponse: TraitListResponse = data as TraitListResponse;
+        return {
+          items: data.data.items as OpenChoreoComponents['schemas']['TraitResponse'][],
+          metadata: data.data?.metadata,
+        };
+      });
 
-      this.logger.debug(
-        `Successfully fetched ${
-          traitListResponse.data?.items?.length || 0
-        } traits for org: ${orgName}`,
-      );
-      return traitListResponse;
+      this.logger.debug(`Successfully fetched ${items.length} traits for org: ${orgName}`);
+
+      return {
+        success: true,
+        data: { items },
+      } as TraitListResponse;
     } catch (error) {
       this.logger.error(`Failed to fetch traits for org ${orgName}: ${error}`);
       throw error;
@@ -152,28 +152,36 @@ export class TraitInfoService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits',
-        {
-          params: {
-            path: { orgName, projectName, componentName },
+
+      const traits = await fetchAllResources(async cursor => {
+        const { data, error, response } = await client.GET(
+          '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits',
+          {
+            params: {
+              path: { orgName, projectName, componentName },
+              query: {
+                limit: DEFAULT_PAGE_LIMIT,
+                ...(cursor && { continue: cursor }),
+              },
+            },
           },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component traits: ${response.status} ${response.statusText}`,
         );
-      }
 
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
+        if (error || !response.ok || !data) {
+          throw new Error(
+            `Failed to fetch component traits: ${response.status} ${response.statusText}`,
+          );
+        }
 
-      const traitListResponse: ComponentTraitListResponse =
-        data as ComponentTraitListResponse;
-      const traits = traitListResponse.data?.items || [];
+        if (!data.success || !data.data?.items) {
+          return { items: [], metadata: data.data?.metadata };
+        }
+
+        return {
+          items: data.data.items as OpenChoreoComponents['schemas']['ComponentTraitResponse'][],
+          metadata: data.data?.metadata,
+        };
+      });
 
       this.logger.debug(
         `Successfully fetched ${traits.length} traits for component: ${componentName}`,

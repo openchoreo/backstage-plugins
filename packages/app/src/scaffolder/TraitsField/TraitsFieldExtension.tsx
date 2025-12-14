@@ -110,9 +110,7 @@ export const TraitsField = ({
 
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/traits?organizationName=${encodeURIComponent(
-            orgName,
-          )}&page=1&pageSize=100`,
+          `${baseUrl}/traits?organizationName=${encodeURIComponent(orgName)}`,
         );
 
         if (!response.ok) {

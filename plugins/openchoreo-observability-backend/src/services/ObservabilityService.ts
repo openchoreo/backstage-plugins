@@ -65,7 +65,7 @@ export class ObservabilityService {
         },
       );
 
-      if (error || !response.ok) {
+      if (error || !response.ok || !data) {
         this.logger.error(
           `Failed to fetch environments for organization ${organizationName}: ${response.status} ${response.statusText}`,
         );
@@ -369,7 +369,7 @@ export class ObservabilityService {
           );
         }
 
-        if (!componentsData.success || !componentsData.data?.items) {
+        if (!componentsData || !componentsData.success || !componentsData.data?.items) {
           throw new Error(
             `API returned unsuccessful response: ${JSON.stringify(
               componentsData,

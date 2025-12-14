@@ -4,6 +4,7 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
 
 // Use generated types from OpenAPI spec
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
@@ -92,40 +93,71 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const environmentsPromise = createTimedPromise(
         (async () => {
-          const { data, error, response } = await client.GET(
-            '/orgs/{orgName}/environments',
-            {
-              params: { path: { orgName: request.organizationName } },
-            },
-          );
-          if (error || !response.ok) {
-            throw new Error(`Failed to fetch environments: ${response.status}`);
-          }
-          return { ok: response.ok, json: async () => data };
+          const items = await fetchAllResources(async cursor => {
+            const { data, error, response } = await client.GET(
+              '/orgs/{orgName}/environments',
+              {
+                params: {
+                  path: { orgName: request.organizationName },
+                  query: {
+                    limit: DEFAULT_PAGE_LIMIT,
+                    ...(cursor && { continue: cursor }),
+                  },
+                },
+              },
+            );
+
+            if (error || !response.ok || !data) {
+              throw new Error(`Failed to fetch environments: ${response.status}`);
+            }
+
+            if (!data.success || !data.data?.items) {
+              return { items: [] as ModelsEnvironment[], metadata: data.data?.metadata };
+            }
+
+            return { items: data.data.items as ModelsEnvironment[], metadata: data.data?.metadata };
+          });
+
+          return items;
         })(),
         'environments',
       );
 
       const bindingsPromise = createTimedPromise(
         (async () => {
-          const { data, error, response } = await client.GET(
-            '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
-            {
-              params: {
-                path: {
-                  orgName: request.organizationName,
-                  projectName: request.projectName,
-                  componentName: request.componentName,
+          const items = await fetchAllResources(async cursor => {
+            const { data, error, response } = await client.GET(
+              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+              {
+                params: {
+                  path: {
+                    orgName: request.organizationName,
+                    projectName: request.projectName,
+                    componentName: request.componentName,
+                  },
+                  query: {
+                    limit: DEFAULT_PAGE_LIMIT,
+                    ...(cursor && { continue: cursor }),
+                  },
                 },
               },
-            },
-          );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch release bindings: ${response.status}`,
             );
-          }
-          return data.success && data.data?.items ? data.data.items : [];
+
+            if (error || !response.ok || !data) {
+              throw new Error(`Failed to fetch release bindings: ${response.status}`);
+            }
+
+            if (!data.success || !data.data?.items) {
+              return { items: [], metadata: data.data?.metadata };
+            }
+
+            return {
+              items: data.data.items,
+              metadata: data.data?.metadata,
+            };
+          });
+
+          return items;
         })(),
         'bindings',
       );
@@ -168,24 +200,15 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Total parallel API calls completed in ${fetchEnd - fetchStart}ms`,
       );
 
-      const environmentsResponse = environmentsResult.result;
+      const environmentsList = environmentsResult.result as ModelsEnvironment[];
       const bindings = bindingsResult.result;
       const deploymentPipeline = pipelineResult.result;
-
-      if (!environmentsResponse.ok) {
-        this.logger.error(
-          `Failed to fetch environments for organization ${request.organizationName}`,
-        );
-        return [];
-      }
-
-      const environmentsData = await environmentsResponse.json();
-      if (!environmentsData.success || !environmentsData.data?.items) {
+      if (!environmentsList || environmentsList.length === 0) {
         this.logger.warn('No environments found in API response');
         return [];
       }
 
-      const environments = environmentsData.data.items as ModelsEnvironment[];
+      const environments = environmentsList as ModelsEnvironment[];
 
       // Transform environment data with bindings and promotion information
       const transformStart = Date.now();
@@ -1011,31 +1034,49 @@ export class EnvironmentInfoService implements EnvironmentService {
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
-        {
-          params: {
-            path: {
-              orgName: request.organizationName,
-              projectName: request.projectName,
-              componentName: request.componentName,
+      const items = await fetchAllResources(async cursor => {
+        const { data, error, response } = await client.GET(
+          '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+          {
+            params: {
+              path: {
+                orgName: request.organizationName,
+                projectName: request.projectName,
+                componentName: request.componentName,
+              },
+              query: {
+                limit: DEFAULT_PAGE_LIMIT,
+                ...(cursor && { continue: cursor }),
+              },
             },
           },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch release bindings: ${response.status} ${response.statusText}`,
         );
-      }
+
+        if (error || !response.ok || !data) {
+          throw new Error(
+            `Failed to fetch release bindings: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        if (!data.success || !data.data?.items) {
+          return { items: [], metadata: data.data?.metadata };
+        }
+
+        return {
+          items: data.data.items,
+          metadata: data.data?.metadata,
+        };
+      });
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
         `Release bindings fetched for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
-      return data;
+      return {
+        success: true,
+        data: { items },
+      };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
