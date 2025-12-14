@@ -50,6 +50,7 @@ import {
   OpenChoreoIcon,
   openChoreoTheme,
 } from '@openchoreo/backstage-design-system';
+import { AccessControlPage } from '@openchoreo/backstage-plugin';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
@@ -196,6 +197,7 @@ const routes = (
     </Route>
     <Route path="/settings" element={<UserSettingsPage />} />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
+    <Route path="/admin/access-control" element={<AccessControlPage />} />
   </FlatRoutes>
 );
 

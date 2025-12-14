@@ -20,6 +20,7 @@ import {
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
+import { AuthzService } from './services/AuthzService/AuthzService';
 import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,
@@ -39,6 +40,7 @@ export async function createRouter({
   traitInfoService,
   workflowSchemaService,
   secretReferencesInfoService,
+  authzService,
   tokenService,
   authEnabled,
 }: {
@@ -53,6 +55,7 @@ export async function createRouter({
   traitInfoService: TraitInfoService;
   workflowSchemaService: WorkflowSchemaService;
   secretReferencesInfoService: SecretReferencesService;
+  authzService: AuthzService;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
 }): Promise<express.Router> {
@@ -904,6 +907,75 @@ export async function createRouter({
         userToken,
       ),
     );
+  });
+
+  // =====================
+  // Authorization Endpoints
+  // =====================
+
+  // Roles
+  router.get('/authz/roles', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listRoles(userToken));
+  });
+
+  router.get('/authz/roles/:name', async (req, res) => {
+    const { name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.getRole(name, userToken));
+  });
+
+  router.post('/authz/roles', requireAuth, async (req, res) => {
+    const role = req.body;
+    if (!role || !role.name || !role.actions) {
+      throw new InputError('Role must have name and actions fields');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.addRole(role, userToken));
+  });
+
+  router.delete('/authz/roles/:name', requireAuth, async (req, res) => {
+    const { name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    await authzService.removeRole(name, userToken);
+    res.status(204).send();
+  });
+
+  // Role Mappings
+  router.get('/authz/role-mappings', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listRoleMappings(userToken));
+  });
+
+  router.post('/authz/role-mappings', requireAuth, async (req, res) => {
+    const mapping = req.body;
+    if (!mapping || !mapping.role_name || !mapping.entitlement) {
+      throw new InputError('Mapping must have role_name and entitlement fields');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.addRoleMapping(mapping, userToken));
+  });
+
+  router.delete('/authz/role-mappings', requireAuth, async (req, res) => {
+    const mapping = req.body;
+    if (!mapping || !mapping.role_name || !mapping.entitlement) {
+      throw new InputError('Mapping must have role_name and entitlement fields');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    await authzService.removeRoleMapping(mapping, userToken);
+    res.status(204).send();
+  });
+
+  // Actions
+  router.get('/authz/actions', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listActions(userToken));
+  });
+
+  // User Types
+  router.get('/authz/user-types', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listUserTypes(userToken));
   });
 
   return router;

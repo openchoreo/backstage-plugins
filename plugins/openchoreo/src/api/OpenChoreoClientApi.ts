@@ -98,6 +98,48 @@ export interface SecretReferencesResponse {
   };
 }
 
+/** Authorization types */
+export interface AuthzRole {
+  name: string;
+  actions: string[];
+}
+
+export interface Entitlement {
+  claim: string;
+  value: string;
+}
+
+export interface ResourceHierarchy {
+  organization?: string;
+  organization_units?: string[];
+  project?: string;
+  component?: string;
+}
+
+export type PolicyEffect = 'allow' | 'deny';
+
+export interface RoleEntitlementMapping {
+  role_name: string;
+  entitlement: Entitlement;
+  hierarchy: ResourceHierarchy;
+  effect: PolicyEffect;
+  context?: Record<string, unknown>;
+}
+
+export interface EntitlementClaimInfo {
+  name: string;
+  display_name: string;
+}
+
+export type SubjectType = 'user' | 'service_account';
+
+export interface UserTypeInfo {
+  type: SubjectType;
+  display_name: string;
+  priority: number;
+  entitlement: EntitlementClaimInfo;
+}
+
 /** Build logs params */
 export interface BuildLogsParams {
   componentName: string;
@@ -268,6 +310,35 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     traits: ComponentTrait[],
   ): Promise<ComponentTrait[]>;
+
+  // === Authorization Operations ===
+
+  /** List all roles */
+  listRoles(): Promise<AuthzRole[]>;
+
+  /** Get a specific role */
+  getRole(name: string): Promise<AuthzRole>;
+
+  /** Create a new role */
+  addRole(role: AuthzRole): Promise<AuthzRole>;
+
+  /** Delete a role */
+  deleteRole(name: string): Promise<void>;
+
+  /** List all role mappings */
+  listRoleMappings(): Promise<RoleEntitlementMapping[]>;
+
+  /** Create a new role mapping */
+  addRoleMapping(mapping: RoleEntitlementMapping): Promise<RoleEntitlementMapping>;
+
+  /** Delete a role mapping */
+  deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void>;
+
+  /** List all available actions */
+  listActions(): Promise<string[]>;
+
+  /** List all user types */
+  listUserTypes(): Promise<UserTypeInfo[]>;
 }
 
 // ============================================

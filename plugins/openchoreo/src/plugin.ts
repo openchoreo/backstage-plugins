@@ -13,6 +13,7 @@ import {
   rootCatalogRuntimeLogsRouteRef,
   rootCatalogWorkflowsRouteRef,
   rootCatalogTraitsRouteRef,
+  accessControlRouteRef,
 } from './routes';
 
 export const choreoPlugin = createPlugin({
@@ -118,5 +119,15 @@ export const DeploymentPipelineCard = choreoPlugin.provide(
           m => m.DeploymentPipelineCard,
         ),
     },
+  }),
+);
+
+// Access Control page
+export const AccessControlPage = choreoPlugin.provide(
+  createRoutableExtension({
+    name: 'AccessControlPage',
+    component: () =>
+      import('./components/AccessControl').then(m => m.AccessControlPage),
+    mountPoint: accessControlRouteRef,
   }),
 );
