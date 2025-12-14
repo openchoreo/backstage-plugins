@@ -9,4 +9,8 @@ export type {
 } from './useMappings';
 export { useActions } from './useActions';
 export { useUserTypes } from './useUserTypes';
-export type { UserTypeInfo, SubjectType, EntitlementClaimInfo } from './useUserTypes';
+export type {
+  UserTypeInfo,
+  SubjectType,
+  EntitlementClaimInfo,
+} from './useUserTypes';

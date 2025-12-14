@@ -133,17 +133,14 @@ export const RoleDialog = ({
   };
 
   // Group actions by resource type for better organization
-  const groupedActions = availableActions.reduce(
-    (groups, action) => {
-      const [resource] = action.split(':');
-      if (!groups[resource]) {
-        groups[resource] = [];
-      }
-      groups[resource].push(action);
-      return groups;
-    },
-    {} as Record<string, string[]>,
-  );
+  const groupedActions = availableActions.reduce((groups, action) => {
+    const [resource] = action.split(':');
+    if (!groups[resource]) {
+      groups[resource] = [];
+    }
+    groups[resource].push(action);
+    return groups;
+  }, {} as Record<string, string[]>);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -202,28 +199,28 @@ export const RoleDialog = ({
             multiple
             value={selectedActions}
             onChange={e => setSelectedActions(e.target.value as string[])}
-            renderValue={() =>
-              `${selectedActions.length} action(s) selected`
-            }
+            renderValue={() => `${selectedActions.length} action(s) selected`}
             className={classes.actionsSelect}
           >
-            {Object.entries(groupedActions).map(([resource, resourceActions]) => [
-              <MenuItem key={`header-${resource}`} disabled>
-                <Typography variant="subtitle2" color="primary">
-                  {resource.toUpperCase()}
-                </Typography>
-              </MenuItem>,
-              ...resourceActions.map(action => (
-                <MenuItem
-                  key={action}
-                  value={action}
-                  className={classes.menuItem}
-                >
-                  <Checkbox checked={selectedActions.includes(action)} />
-                  <ListItemText primary={action} />
-                </MenuItem>
-              )),
-            ])}
+            {Object.entries(groupedActions).map(
+              ([resource, resourceActions]) => [
+                <MenuItem key={`header-${resource}`} disabled>
+                  <Typography variant="subtitle2" color="primary">
+                    {resource.toUpperCase()}
+                  </Typography>
+                </MenuItem>,
+                ...resourceActions.map(action => (
+                  <MenuItem
+                    key={action}
+                    value={action}
+                    className={classes.menuItem}
+                  >
+                    <Checkbox checked={selectedActions.includes(action)} />
+                    <ListItemText primary={action} />
+                  </MenuItem>
+                )),
+              ],
+            )}
           </Select>
         </FormControl>
 
@@ -256,7 +253,9 @@ export const RoleDialog = ({
           variant="contained"
           disabled={saving}
         >
-          {saving ? 'Saving...' : editingRole ? 'Update' : 'Create'}
+          {saving && 'Saving...'}
+          {!saving && editingRole && 'Update'}
+          {!saving && !editingRole && 'Create'}
         </Button>
       </DialogActions>
     </Dialog>

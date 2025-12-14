@@ -8,7 +8,12 @@ import {
   PolicyEffect,
 } from '../../../api/OpenChoreoClientApi';
 
-export type { RoleEntitlementMapping, Entitlement, ResourceHierarchy, PolicyEffect };
+export type {
+  RoleEntitlementMapping,
+  Entitlement,
+  ResourceHierarchy,
+  PolicyEffect,
+};
 
 interface UseMappingsResult {
   mappings: RoleEntitlementMapping[];
@@ -39,15 +44,21 @@ export function useMappings(): UseMappingsResult {
     }
   }, [client]);
 
-  const addMapping = useCallback(async (mapping: RoleEntitlementMapping) => {
-    await client.addRoleMapping(mapping);
-    await fetchMappings();
-  }, [client, fetchMappings]);
+  const addMapping = useCallback(
+    async (mapping: RoleEntitlementMapping) => {
+      await client.addRoleMapping(mapping);
+      await fetchMappings();
+    },
+    [client, fetchMappings],
+  );
 
-  const deleteMapping = useCallback(async (mapping: RoleEntitlementMapping) => {
-    await client.deleteRoleMapping(mapping);
-    await fetchMappings();
-  }, [client, fetchMappings]);
+  const deleteMapping = useCallback(
+    async (mapping: RoleEntitlementMapping) => {
+      await client.deleteRoleMapping(mapping);
+      await fetchMappings();
+    },
+    [client, fetchMappings],
+  );
 
   useEffect(() => {
     fetchMappings();

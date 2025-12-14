@@ -221,7 +221,9 @@ export const ActionsTab = () => {
                         {group.resource}
                       </Typography>
                     }
-                    secondary={`${group.actions.length} action${group.actions.length !== 1 ? 's' : ''}`}
+                    secondary={`${group.actions.length} action${
+                      group.actions.length !== 1 ? 's' : ''
+                    }`}
                   />
                   {expandedGroups.has(group.resource) ? (
                     <ExpandLess />

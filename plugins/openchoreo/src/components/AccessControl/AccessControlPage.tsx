@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { Page, Header, Content, WarningPanel } from '@backstage/core-components';
+import {
+  Page,
+  Header,
+  Content,
+  WarningPanel,
+} from '@backstage/core-components';
 import SecurityIcon from '@material-ui/icons/Security';
 import PeopleIcon from '@material-ui/icons/People';
 import ListAltIcon from '@material-ui/icons/ListAlt';
@@ -29,9 +34,11 @@ type TabId = 'roles' | 'mappings' | 'actions';
 const isAuthzDisabledError = (error: Error | null): boolean => {
   if (!error) return false;
   const msg = error.message.toLowerCase();
-  return msg.includes('authorization is disabled') ||
-         msg.includes('policy management operations are not available') ||
-         (msg.includes('403') && msg.includes('forbidden'));
+  return (
+    msg.includes('authorization is disabled') ||
+    msg.includes('policy management operations are not available') ||
+    (msg.includes('403') && msg.includes('forbidden'))
+  );
 };
 
 export const AccessControlPage = () => {
@@ -83,18 +90,24 @@ export const AccessControlPage = () => {
           subtitle="Manage roles, permissions, and entitlement mappings"
         />
         <Content className={classes.content}>
-          <WarningPanel
-            severity="info"
-            title="Authorization is Disabled"
-          >
+          <WarningPanel severity="info" title="Authorization is Disabled">
             <Typography variant="body1">
-              Policy management operations are not available because authorization is disabled
-              in the OpenChoreo backend configuration.
+              Policy management operations are not available because
+              authorization is disabled in the OpenChoreo backend configuration.
             </Typography>
             <Typography variant="body2" style={{ marginTop: 16 }}>
               To enable authorization, configure the OpenChoreo backend with:
             </Typography>
-            <Box component="pre" style={{ marginTop: 8, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4, overflow: 'auto' }}>
+            <Box
+              component="pre"
+              style={{
+                marginTop: 8,
+                padding: 12,
+                backgroundColor: '#f5f5f5',
+                borderRadius: 4,
+                overflow: 'auto',
+              }}
+            >
               {`authz:
   enabled: true
   databasePath: /path/to/authz.db

@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { openChoreoClientApiRef, AuthzRole } from '../../../api/OpenChoreoClientApi';
+import {
+  openChoreoClientApiRef,
+  AuthzRole,
+} from '../../../api/OpenChoreoClientApi';
 
 export type Role = AuthzRole;
 
@@ -33,15 +36,21 @@ export function useRoles(): UseRolesResult {
     }
   }, [client]);
 
-  const addRole = useCallback(async (role: Role) => {
-    await client.addRole(role);
-    await fetchRoles();
-  }, [client, fetchRoles]);
+  const addRole = useCallback(
+    async (role: Role) => {
+      await client.addRole(role);
+      await fetchRoles();
+    },
+    [client, fetchRoles],
+  );
 
-  const deleteRole = useCallback(async (name: string) => {
-    await client.deleteRole(name);
-    await fetchRoles();
-  }, [client, fetchRoles]);
+  const deleteRole = useCallback(
+    async (name: string) => {
+      await client.deleteRole(name);
+      await fetchRoles();
+    },
+    [client, fetchRoles],
+  );
 
   useEffect(() => {
     fetchRoles();

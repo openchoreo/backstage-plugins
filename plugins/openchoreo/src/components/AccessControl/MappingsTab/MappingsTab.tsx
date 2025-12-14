@@ -18,6 +18,11 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -25,7 +30,12 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
-import { useMappings, useRoles, RoleEntitlementMapping, ResourceHierarchy } from '../hooks';
+import {
+  useMappings,
+  useRoles,
+  RoleEntitlementMapping,
+  ResourceHierarchy,
+} from '../hooks';
 import { MappingDialog } from './MappingDialog';
 
 const useStyles = makeStyles(theme => ({
@@ -90,13 +100,17 @@ const formatHierarchy = (hierarchy: ResourceHierarchy): string => {
 
 export const MappingsTab = () => {
   const classes = useStyles();
-  const { mappings, loading, error, fetchMappings, addMapping, deleteMapping } = useMappings();
+  const { mappings, loading, error, fetchMappings, addMapping, deleteMapping } =
+    useMappings();
   const { roles } = useRoles();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [effectFilter, setEffectFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [mappingToDelete, setMappingToDelete] =
+    useState<RoleEntitlementMapping | null>(null);
 
   const filteredMappings = useMemo(() => {
     return mappings.filter(mapping => {
@@ -133,15 +147,17 @@ export const MappingsTab = () => {
     setDialogOpen(true);
   };
 
-  const handleDeleteMapping = async (mapping: RoleEntitlementMapping) => {
-    const entitlementStr = `${mapping.entitlement.claim}=${mapping.entitlement.value}`;
-    if (
-      window.confirm(
-        `Are you sure you want to delete the mapping for role "${mapping.role_name}" with entitlement "${entitlementStr}"?`,
-      )
-    ) {
-      await deleteMapping(mapping);
+  const handleDeleteMapping = (mapping: RoleEntitlementMapping) => {
+    setMappingToDelete(mapping);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteMapping = async () => {
+    if (mappingToDelete) {
+      await deleteMapping(mappingToDelete);
     }
+    setDeleteConfirmOpen(false);
+    setMappingToDelete(null);
   };
 
   const handleSaveMapping = async (mapping: RoleEntitlementMapping) => {
@@ -195,7 +211,11 @@ export const MappingsTab = () => {
           }}
         />
 
-        <FormControl variant="outlined" size="small" className={classes.filterSelect}>
+        <FormControl
+          variant="outlined"
+          size="small"
+          className={classes.filterSelect}
+        >
           <InputLabel>Role</InputLabel>
           <Select
             value={roleFilter}
@@ -211,7 +231,11 @@ export const MappingsTab = () => {
           </Select>
         </FormControl>
 
-        <FormControl variant="outlined" size="small" className={classes.filterSelect}>
+        <FormControl
+          variant="outlined"
+          size="small"
+          className={classes.filterSelect}
+        >
           <InputLabel>Effect</InputLabel>
           <Select
             value={effectFilter}
@@ -251,7 +275,9 @@ export const MappingsTab = () => {
             </TableHead>
             <TableBody>
               {filteredMappings.map((mapping, index) => (
-                <TableRow key={`${mapping.role_name}-${mapping.entitlement.value}-${index}`}>
+                <TableRow
+                  key={`${mapping.role_name}-${mapping.entitlement.value}-${index}`}
+                >
                   <TableCell>
                     <Typography variant="body2">{mapping.role_name}</Typography>
                   </TableCell>
@@ -298,6 +324,31 @@ export const MappingsTab = () => {
         onSave={handleSaveMapping}
         availableRoles={roles}
       />
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <DialogTitle>Delete Role Mapping</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {mappingToDelete && (
+              <>
+                Are you sure you want to delete the mapping for role "
+                {mappingToDelete.role_name}" with entitlement "
+                {mappingToDelete.entitlement.claim}=
+                {mappingToDelete.entitlement.value}"?
+              </>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={confirmDeleteMapping} color="secondary">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

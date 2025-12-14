@@ -329,7 +329,9 @@ export interface OpenChoreoClientApi {
   listRoleMappings(): Promise<RoleEntitlementMapping[]>;
 
   /** Create a new role mapping */
-  addRoleMapping(mapping: RoleEntitlementMapping): Promise<RoleEntitlementMapping>;
+  addRoleMapping(
+    mapping: RoleEntitlementMapping,
+  ): Promise<RoleEntitlementMapping>;
 
   /** Delete a role mapping */
   deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void>;

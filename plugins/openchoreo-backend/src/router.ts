@@ -950,7 +950,9 @@ export async function createRouter({
   router.post('/authz/role-mappings', requireAuth, async (req, res) => {
     const mapping = req.body;
     if (!mapping || !mapping.role_name || !mapping.entitlement) {
-      throw new InputError('Mapping must have role_name and entitlement fields');
+      throw new InputError(
+        'Mapping must have role_name and entitlement fields',
+      );
     }
     const userToken = getUserTokenFromRequest(req);
     res.json(await authzService.addRoleMapping(mapping, userToken));
@@ -959,7 +961,9 @@ export async function createRouter({
   router.delete('/authz/role-mappings', requireAuth, async (req, res) => {
     const mapping = req.body;
     if (!mapping || !mapping.role_name || !mapping.entitlement) {
-      throw new InputError('Mapping must have role_name and entitlement fields');
+      throw new InputError(
+        'Mapping must have role_name and entitlement fields',
+      );
     }
     const userToken = getUserTokenFromRequest(req);
     await authzService.removeRoleMapping(mapping, userToken);
