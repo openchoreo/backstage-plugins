@@ -126,7 +126,11 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         {/* End global nav */}
         <SidebarDivider />
         {/* Admin section */}
-        <SidebarItem icon={SecurityIcon} to="admin/access-control" text="Access Control" />
+        <SidebarItem
+          icon={SecurityIcon}
+          to="admin/access-control"
+          text="Access Control"
+        />
         <SidebarScrollWrapper>
           {/* Items in this group will be scrollable if they run out of space */}
         </SidebarScrollWrapper>

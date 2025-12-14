@@ -7,8 +7,10 @@ import {
 // Type definitions from the OpenAPI spec
 export type Role = OpenChoreoComponents['schemas']['Role'];
 export type Entitlement = OpenChoreoComponents['schemas']['Entitlement'];
-export type ResourceHierarchy = OpenChoreoComponents['schemas']['AuthzResourceHierarchy'];
-export type RoleEntitlementMapping = OpenChoreoComponents['schemas']['RoleEntitlementMapping'];
+export type ResourceHierarchy =
+  OpenChoreoComponents['schemas']['AuthzResourceHierarchy'];
+export type RoleEntitlementMapping =
+  OpenChoreoComponents['schemas']['RoleEntitlementMapping'];
 export type UserTypeInfo = OpenChoreoComponents['schemas']['UserTypeInfo'];
 export type PolicyEffect = OpenChoreoComponents['schemas']['PolicyEffectType'];
 
@@ -21,9 +23,10 @@ type RoleResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   data?: Role;
 };
 
-type RoleMappingsListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: RoleEntitlementMapping[];
-};
+type RoleMappingsListResponse =
+  OpenChoreoComponents['schemas']['APIResponse'] & {
+    data?: RoleEntitlementMapping[];
+  };
 
 type RoleMappingResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   data?: RoleEntitlementMapping;
@@ -38,7 +41,11 @@ type UserTypesListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
 };
 
 // Helper to extract error message from API response
-function extractErrorMessage(error: unknown, response: Response, defaultMsg: string): string {
+function extractErrorMessage(
+  error: unknown,
+  response: Response,
+  defaultMsg: string,
+): string {
   // Try to get message from error object (openapi-fetch error response)
   if (error && typeof error === 'object') {
     const errObj = error as Record<string, unknown>;
@@ -82,12 +89,18 @@ export class AuthzService {
       const { data, error, response } = await client.GET('/authz/roles');
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to fetch roles');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch roles',
+        );
         throw new Error(errorMsg);
       }
 
       const rolesResponse = data as RolesListResponse;
-      this.logger.debug(`Successfully fetched ${rolesResponse.data?.length || 0} roles`);
+      this.logger.debug(
+        `Successfully fetched ${rolesResponse.data?.length || 0} roles`,
+      );
 
       return { data: rolesResponse.data || [] };
     } catch (err) {
@@ -101,14 +114,21 @@ export class AuthzService {
 
     try {
       const client = this.createClient(userToken);
-      const { data, error, response } = await client.GET('/authz/roles/{roleName}', {
-        params: {
-          path: { roleName: name },
+      const { data, error, response } = await client.GET(
+        '/authz/roles/{roleName}',
+        {
+          params: {
+            path: { roleName: name },
+          },
         },
-      });
+      );
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to fetch role');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch role',
+        );
         throw new Error(errorMsg);
       }
 
@@ -130,7 +150,11 @@ export class AuthzService {
       });
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to create role');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to create role',
+        );
         throw new Error(errorMsg);
       }
 
@@ -149,14 +173,21 @@ export class AuthzService {
 
     try {
       const client = this.createClient(userToken);
-      const { error, response } = await client.DELETE('/authz/roles/{roleName}', {
-        params: {
-          path: { roleName: name },
+      const { error, response } = await client.DELETE(
+        '/authz/roles/{roleName}',
+        {
+          params: {
+            path: { roleName: name },
+          },
         },
-      });
+      );
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to delete role');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to delete role',
+        );
         throw new Error(errorMsg);
       }
 
@@ -168,20 +199,32 @@ export class AuthzService {
   }
 
   // Role Mappings
-  async listRoleMappings(userToken?: string): Promise<{ data: RoleEntitlementMapping[] }> {
+  async listRoleMappings(
+    userToken?: string,
+  ): Promise<{ data: RoleEntitlementMapping[] }> {
     this.logger.debug('Fetching all role mappings');
 
     try {
       const client = this.createClient(userToken);
-      const { data, error, response } = await client.GET('/authz/role-mappings');
+      const { data, error, response } = await client.GET(
+        '/authz/role-mappings',
+      );
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to fetch role mappings');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch role mappings',
+        );
         throw new Error(errorMsg);
       }
 
       const mappingsResponse = data as RoleMappingsListResponse;
-      this.logger.debug(`Successfully fetched ${mappingsResponse.data?.length || 0} role mappings`);
+      this.logger.debug(
+        `Successfully fetched ${
+          mappingsResponse.data?.length || 0
+        } role mappings`,
+      );
 
       return { data: mappingsResponse.data || [] };
     } catch (err) {
@@ -198,17 +241,26 @@ export class AuthzService {
 
     try {
       const client = this.createClient(userToken);
-      const { data, error, response } = await client.POST('/authz/role-mappings', {
-        body: mapping,
-      });
+      const { data, error, response } = await client.POST(
+        '/authz/role-mappings',
+        {
+          body: mapping,
+        },
+      );
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to create role mapping');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to create role mapping',
+        );
         throw new Error(errorMsg);
       }
 
       const mappingResponse = data as RoleMappingResponse;
-      this.logger.debug(`Successfully created role mapping for role: ${mapping.role_name}`);
+      this.logger.debug(
+        `Successfully created role mapping for role: ${mapping.role_name}`,
+      );
 
       return { data: mappingResponse.data! };
     } catch (err) {
@@ -230,11 +282,17 @@ export class AuthzService {
       });
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to delete role mapping');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to delete role mapping',
+        );
         throw new Error(errorMsg);
       }
 
-      this.logger.debug(`Successfully deleted role mapping for role: ${mapping.role_name}`);
+      this.logger.debug(
+        `Successfully deleted role mapping for role: ${mapping.role_name}`,
+      );
     } catch (err) {
       this.logger.error(`Failed to delete role mapping: ${err}`);
       throw err;
@@ -250,12 +308,18 @@ export class AuthzService {
       const { data, error, response } = await client.GET('/authz/actions');
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to fetch actions');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch actions',
+        );
         throw new Error(errorMsg);
       }
 
       const actionsResponse = data as ActionsListResponse;
-      this.logger.debug(`Successfully fetched ${actionsResponse.data?.length || 0} actions`);
+      this.logger.debug(
+        `Successfully fetched ${actionsResponse.data?.length || 0} actions`,
+      );
 
       return { data: actionsResponse.data || [] };
     } catch (err) {
@@ -273,12 +337,20 @@ export class AuthzService {
       const { data, error, response } = await client.GET('/authz/user-types');
 
       if (error || !response.ok) {
-        const errorMsg = extractErrorMessage(error, response, 'Failed to fetch user types');
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch user types',
+        );
         throw new Error(errorMsg);
       }
 
       const userTypesResponse = data as UserTypesListResponse;
-      this.logger.debug(`Successfully fetched ${userTypesResponse.data?.length || 0} user types`);
+      this.logger.debug(
+        `Successfully fetched ${
+          userTypesResponse.data?.length || 0
+        } user types`,
+      );
 
       return { data: userTypesResponse.data || [] };
     } catch (err) {

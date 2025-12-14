@@ -14,6 +14,11 @@ import {
   Chip,
   TextField,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -62,6 +67,8 @@ export const RolesTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
 
   const filteredRoles = useMemo(() => {
     if (!searchQuery) return roles;
@@ -83,10 +90,17 @@ export const RolesTab = () => {
     setDialogOpen(true);
   };
 
-  const handleDeleteRole = async (name: string) => {
-    if (window.confirm(`Are you sure you want to delete the role "${name}"?`)) {
-      await deleteRole(name);
+  const handleDeleteRole = (name: string) => {
+    setRoleToDelete(name);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteRole = async () => {
+    if (roleToDelete) {
+      await deleteRole(roleToDelete);
     }
+    setDeleteConfirmOpen(false);
+    setRoleToDelete(null);
   };
 
   const handleSaveRole = async (role: Role) => {
@@ -168,14 +182,16 @@ export const RolesTab = () => {
                         No actions
                       </Typography>
                     ) : (
-                      role.actions.slice(0, 5).map(action => (
-                        <Chip
-                          key={action}
-                          label={action}
-                          size="small"
-                          className={classes.actionsChip}
-                        />
-                      ))
+                      role.actions
+                        .slice(0, 5)
+                        .map(action => (
+                          <Chip
+                            key={action}
+                            label={action}
+                            size="small"
+                            className={classes.actionsChip}
+                          />
+                        ))
                     )}
                     {role.actions.length > 5 && (
                       <Chip
@@ -218,6 +234,24 @@ export const RolesTab = () => {
         onSave={handleSaveRole}
         editingRole={editingRole}
       />
+
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+      >
+        <DialogTitle>Delete Role</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the role "{roleToDelete}"?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={confirmDeleteRole} color="secondary">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

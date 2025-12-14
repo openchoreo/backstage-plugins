@@ -22,7 +22,12 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
-import { useUserTypes, Role, RoleEntitlementMapping, PolicyEffect } from '../hooks';
+import {
+  useUserTypes,
+  Role,
+  RoleEntitlementMapping,
+  PolicyEffect,
+} from '../hooks';
 
 const useStyles = makeStyles(theme => ({
   section: {
@@ -104,7 +109,9 @@ export const MappingDialog = ({
   const [error, setError] = useState<string | null>(null);
 
   // Get the entitlement claim based on selected user type
-  const selectedUserTypeInfo = userTypes.find(ut => ut.type === selectedUserType);
+  const selectedUserTypeInfo = userTypes.find(
+    ut => ut.type === selectedUserType,
+  );
   const entitlementClaim = selectedUserTypeInfo?.entitlement.name || '';
 
   // Reset form when dialog opens
@@ -183,15 +190,16 @@ export const MappingDialog = ({
           component: component || undefined,
         },
         effect,
-        context: conditions.length > 0
-          ? conditions.reduce(
-              (acc, cond) => ({
-                ...acc,
-                [cond.key]: { [cond.operator]: cond.value },
-              }),
-              {},
-            )
-          : undefined,
+        context:
+          conditions.length > 0
+            ? conditions.reduce(
+                (acc, cond) => ({
+                  ...acc,
+                  [cond.key]: { [cond.operator]: cond.value },
+                }),
+                {},
+              )
+            : undefined,
       };
 
       await onSave(mapping);
@@ -392,7 +400,11 @@ export const MappingDialog = ({
                 </IconButton>
               </Box>
             ))}
-            <Button size="small" startIcon={<AddIcon />} onClick={handleAddCondition}>
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={handleAddCondition}
+            >
               Add Condition
             </Button>
           </Box>
