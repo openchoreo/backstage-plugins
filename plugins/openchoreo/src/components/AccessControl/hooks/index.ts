@@ -14,3 +14,8 @@ export type {
   SubjectType,
   EntitlementClaimInfo,
 } from './useUserTypes';
+export {
+  useOrganizations,
+  useProjects,
+  useComponents,
+} from './useHierarchyData';
