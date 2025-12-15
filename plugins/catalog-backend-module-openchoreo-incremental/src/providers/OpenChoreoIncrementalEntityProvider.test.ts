@@ -28,7 +28,14 @@ const createMockResponse = (
     },
   },
   error: undefined,
-  response: { ok: true, status: 200, statusText: 'OK' },
+  response: {
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    headers: {
+      get: jest.fn().mockReturnValue('1024'), // Mock content-length
+    },
+  },
 });
 
 describe('OpenChoreoIncrementalEntityProvider', () => {
@@ -347,7 +354,14 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
               },
             },
             error: undefined,
-            response: { ok: true, status: 200, statusText: 'OK' },
+            response: {
+              ok: true,
+              status: 200,
+              statusText: 'OK',
+              headers: {
+                get: jest.fn().mockReturnValue('2048'), // Mock content-length
+              },
+            },
           });
         }
         return Promise.resolve(createMockResponse([], false));
@@ -401,7 +415,14 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
             return Promise.resolve({
               data: undefined,
               error: { message: 'Cursor expired' },
-              response: { ok: false, status: 410, statusText: 'Gone' },
+              response: {
+                ok: false,
+                status: 410,
+                statusText: 'Gone',
+                headers: {
+                  get: jest.fn().mockReturnValue('0'), // Mock content-length
+                },
+              },
             });
           }
           // Restart without cursor
