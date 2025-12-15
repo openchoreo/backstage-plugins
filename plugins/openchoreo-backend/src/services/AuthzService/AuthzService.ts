@@ -358,4 +358,128 @@ export class AuthzService {
       throw err;
     }
   }
+
+  // =====================
+  // Hierarchy Data Methods (for Access Control autocomplete)
+  // =====================
+
+  // Organizations
+  async listOrganizations(
+    userToken?: string,
+  ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
+    this.logger.debug('Fetching all organizations');
+
+    try {
+      const client = this.createClient(userToken);
+      const { data, error, response } = await client.GET('/orgs');
+
+      if (error || !response.ok) {
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch organizations',
+        );
+        throw new Error(errorMsg);
+      }
+
+      // OpenChoreo API returns { data: { items: [...] } }
+      const orgsResponse = data as {
+        data?: { items?: Array<{ name: string }> };
+      };
+      const items = orgsResponse.data?.items || [];
+      this.logger.debug(`Successfully fetched ${items.length} organizations`);
+
+      return { data: items };
+    } catch (err) {
+      this.logger.error(`Failed to fetch organizations: ${err}`);
+      throw err;
+    }
+  }
+
+  // Projects
+  async listProjects(
+    orgName: string,
+    userToken?: string,
+  ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
+    this.logger.debug(`Fetching projects for organization: ${orgName}`);
+
+    try {
+      const client = this.createClient(userToken);
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects',
+        {
+          params: { path: { orgName } },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch projects',
+        );
+        throw new Error(errorMsg);
+      }
+
+      // OpenChoreo API returns { data: { items: [...] } }
+      const projectsResponse = data as {
+        data?: { items?: Array<{ name: string }> };
+      };
+      const items = projectsResponse.data?.items || [];
+      this.logger.debug(
+        `Successfully fetched ${items.length} projects for org ${orgName}`,
+      );
+
+      return { data: items };
+    } catch (err) {
+      this.logger.error(`Failed to fetch projects for org ${orgName}: ${err}`);
+      throw err;
+    }
+  }
+
+  // Components
+  async listComponents(
+    orgName: string,
+    projectName: string,
+    userToken?: string,
+  ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
+    this.logger.debug(
+      `Fetching components for org: ${orgName}, project: ${projectName}`,
+    );
+
+    try {
+      const client = this.createClient(userToken);
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components',
+        {
+          params: { path: { orgName, projectName } },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to fetch components',
+        );
+        throw new Error(errorMsg);
+      }
+
+      // OpenChoreo API returns { data: { items: [...] } }
+      const componentsResponse = data as {
+        data?: { items?: Array<{ name: string }> };
+      };
+      const items = componentsResponse.data?.items || [];
+      this.logger.debug(
+        `Successfully fetched ${items.length} components for ${orgName}/${projectName}`,
+      );
+
+      return { data: items };
+    } catch (err) {
+      this.logger.error(
+        `Failed to fetch components for ${orgName}/${projectName}: ${err}`,
+      );
+      throw err;
+    }
+  }
 }

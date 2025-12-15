@@ -982,5 +982,34 @@ export async function createRouter({
     res.json(await authzService.listUserTypes(userToken));
   });
 
+  // =====================
+  // Hierarchy Data Endpoints (for Access Control autocomplete)
+  // =====================
+
+  // Organizations
+  router.get('/orgs', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listOrganizations(userToken));
+  });
+
+  // Projects (for a given organization)
+  router.get('/orgs/:orgName/projects', async (req, res) => {
+    const { orgName } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listProjects(orgName, userToken));
+  });
+
+  // Components (for a given organization and project)
+  router.get(
+    '/orgs/:orgName/projects/:projectName/components',
+    async (req, res) => {
+      const { orgName, projectName } = req.params;
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.listComponents(orgName, projectName, userToken),
+      );
+    },
+  );
+
   return router;
 }

@@ -18,12 +18,17 @@ import {
   FormLabel,
   Divider,
   IconButton,
+  CircularProgress,
 } from '@material-ui/core';
+import { Autocomplete } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RemoveIcon from '@material-ui/icons/Remove';
 import {
   useUserTypes,
+  useOrganizations,
+  useProjects,
+  useComponents,
   Role,
   RoleEntitlementMapping,
   PolicyEffect,
@@ -108,6 +113,16 @@ export const MappingDialog = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Hierarchy data hooks (after state so we can use org/project values)
+  const { organizations, loading: orgsLoading } = useOrganizations();
+  const { projects, loading: projectsLoading } = useProjects(
+    organization || undefined,
+  );
+  const { components, loading: componentsLoading } = useComponents(
+    organization || undefined,
+    project || undefined,
+  );
+
   // Get the entitlement claim based on selected user type
   const selectedUserTypeInfo = userTypes.find(
     ut => ut.type === selectedUserType,
@@ -129,6 +144,18 @@ export const MappingDialog = ({
       setError(null);
     }
   }, [open, userTypes]);
+
+  // Cascade handlers - clear dependent fields when parent changes
+  const handleOrganizationChange = (value: string | null) => {
+    setOrganization(value || '');
+    setProject(''); // Reset project when org changes
+    setComponent(''); // Reset component when org changes
+  };
+
+  const handleProjectChange = (value: string | null) => {
+    setProject(value || '');
+    setComponent(''); // Reset component when project changes
+  };
 
   const handleAddOrgUnit = () => {
     setOrgUnits([...orgUnits, '']);
@@ -283,14 +310,38 @@ export const MappingDialog = ({
           </Typography>
 
           <Box className={classes.hierarchySection}>
-            <TextField
-              fullWidth
-              className={classes.formField}
-              label="Organization"
+            <Autocomplete
+              freeSolo
+              options={organizations.map(o => o.name)}
               value={organization}
-              onChange={e => setOrganization(e.target.value)}
-              placeholder="Leave empty for default organization"
-              size="small"
+              onChange={(_, value) => handleOrganizationChange(value)}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input') {
+                  handleOrganizationChange(value);
+                }
+              }}
+              loading={orgsLoading}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  className={classes.formField}
+                  label="Organization"
+                  placeholder="Leave empty for default organization"
+                  size="small"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {orgsLoading ? (
+                          <CircularProgress color="inherit" size={20} />
+                        ) : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
             />
 
             <Typography variant="body2" color="textSecondary" gutterBottom>
@@ -324,25 +375,83 @@ export const MappingDialog = ({
               </Button>
             </Box>
 
-            <TextField
-              fullWidth
-              className={classes.formField}
-              label="Project"
+            <Autocomplete
+              freeSolo
+              options={projects.map(p => p.name)}
               value={project}
-              onChange={e => setProject(e.target.value)}
-              placeholder="Leave empty to apply to all projects"
-              size="small"
-              style={{ marginTop: 16 }}
+              onChange={(_, value) => handleProjectChange(value)}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input') {
+                  handleProjectChange(value);
+                }
+              }}
+              disabled={!organization}
+              loading={projectsLoading}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  className={classes.formField}
+                  label="Project"
+                  placeholder={
+                    organization
+                      ? 'Leave empty to apply to all projects'
+                      : 'Select an organization first'
+                  }
+                  size="small"
+                  style={{ marginTop: 16 }}
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {projectsLoading ? (
+                          <CircularProgress color="inherit" size={20} />
+                        ) : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
             />
 
-            <TextField
-              fullWidth
-              className={classes.formField}
-              label="Component"
+            <Autocomplete
+              freeSolo
+              options={components.map(c => c.name)}
               value={component}
-              onChange={e => setComponent(e.target.value)}
-              placeholder="Leave empty to apply to all components"
-              size="small"
+              onChange={(_, value) => setComponent(value || '')}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input') {
+                  setComponent(value);
+                }
+              }}
+              disabled={!project}
+              loading={componentsLoading}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  fullWidth
+                  className={classes.formField}
+                  label="Component"
+                  placeholder={
+                    project
+                      ? 'Leave empty to apply to all components'
+                      : 'Select a project first'
+                  }
+                  size="small"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {componentsLoading ? (
+                          <CircularProgress color="inherit" size={20} />
+                        ) : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
             />
           </Box>
         </Box>

@@ -19,6 +19,9 @@ import type {
   AuthzRole,
   RoleEntitlementMapping,
   UserTypeInfo,
+  OrganizationSummary,
+  ProjectSummary,
+  ComponentSummary,
 } from './OpenChoreoClientApi';
 import type {
   LogsResponse,
@@ -58,6 +61,10 @@ const API_ENDPOINTS = {
   AUTHZ_ROLE_MAPPINGS: '/authz/role-mappings',
   AUTHZ_ACTIONS: '/authz/actions',
   AUTHZ_USER_TYPES: '/authz/user-types',
+  // Hierarchy data endpoints
+  ORGANIZATIONS: '/orgs',
+  PROJECTS: '/projects', // GET /orgs/{orgName}/projects
+  COMPONENTS: '/components', // GET /orgs/{orgName}/projects/{projectName}/components
 } as const;
 
 // ============================================
@@ -768,6 +775,36 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async listUserTypes(): Promise<UserTypeInfo[]> {
     const response = await this.apiFetch<{ data: UserTypeInfo[] }>(
       API_ENDPOINTS.AUTHZ_USER_TYPES,
+    );
+    return response.data || [];
+  }
+
+  // ============================================
+  // Hierarchy Data Operations
+  // ============================================
+
+  async listOrganizations(): Promise<OrganizationSummary[]> {
+    const response = await this.apiFetch<{ data: OrganizationSummary[] }>(
+      API_ENDPOINTS.ORGANIZATIONS,
+    );
+    return response.data || [];
+  }
+
+  async listProjects(orgName: string): Promise<ProjectSummary[]> {
+    const response = await this.apiFetch<{ data: ProjectSummary[] }>(
+      `/orgs/${encodeURIComponent(orgName)}/projects`,
+    );
+    return response.data || [];
+  }
+
+  async listComponents(
+    orgName: string,
+    projectName: string,
+  ): Promise<ComponentSummary[]> {
+    const response = await this.apiFetch<{ data: ComponentSummary[] }>(
+      `/orgs/${encodeURIComponent(orgName)}/projects/${encodeURIComponent(
+        projectName,
+      )}/components`,
     );
     return response.data || [];
   }

@@ -140,6 +140,24 @@ export interface UserTypeInfo {
   entitlement: EntitlementClaimInfo;
 }
 
+/** Organization summary for listing */
+export interface OrganizationSummary {
+  name: string;
+  displayName?: string;
+}
+
+/** Project summary for listing */
+export interface ProjectSummary {
+  name: string;
+  displayName?: string;
+}
+
+/** Component summary for listing */
+export interface ComponentSummary {
+  name: string;
+  displayName?: string;
+}
+
 /** Build logs params */
 export interface BuildLogsParams {
   componentName: string;
@@ -341,6 +359,20 @@ export interface OpenChoreoClientApi {
 
   /** List all user types */
   listUserTypes(): Promise<UserTypeInfo[]>;
+
+  // === Hierarchy Data Operations ===
+
+  /** List all organizations */
+  listOrganizations(): Promise<OrganizationSummary[]>;
+
+  /** List projects for an organization */
+  listProjects(orgName: string): Promise<ProjectSummary[]>;
+
+  /** List components for a project */
+  listComponents(
+    orgName: string,
+    projectName: string,
+  ): Promise<ComponentSummary[]>;
 }
 
 // ============================================
