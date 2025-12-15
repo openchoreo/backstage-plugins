@@ -4,6 +4,12 @@ import { OpenChoreoTokenService } from './OpenChoreoTokenService';
 import { runWithTokenContext } from './tokenContext';
 
 /**
+ * Cookie name used to store the OpenChoreo IDP token.
+ * This must match the cookie name used in the auth module's IdpTokenCookieManager.
+ */
+export const OPENCHOREO_IDP_TOKEN_COOKIE = 'openchoreo-idp-token';
+
+/**
  * Symbol key for storing the user token on the request object.
  * Using a symbol prevents collisions with other request properties.
  */
@@ -122,5 +128,66 @@ export function createRequireAuthMiddleware(
     }
 
     return next();
+  };
+}
+
+/**
+ * Creates middleware that reads the OpenChoreo IDP token from cookies and
+ * establishes a token context using AsyncLocalStorage.
+ *
+ * This middleware is designed to be applied at the root HTTP router level,
+ * before any route handlers. It reads the IDP token from the cookie that
+ * was set during authentication (by the auth module's IdpTokenCookieManager)
+ * and makes it available to ALL routes via `getUserTokenFromContext()`.
+ *
+ * This is critical for the permission system, which needs access to the
+ * user's IDP token to query the OpenChoreo /authz/profile API, but doesn't
+ * have direct access to the request object.
+ *
+ * Token priority:
+ * 1. Cookie (openchoreo-idp-token) - set by auth module
+ * 2. Header (x-openchoreo-token) - set by frontend for direct API calls
+ *
+ * @returns Express middleware function
+ *
+ * @example
+ * ```typescript
+ * // In backend/src/index.ts
+ * backend.add(rootHttpRouterServiceFactory({
+ *   configure: ({ app, applyDefaults, middleware }) => {
+ *     app.use(middleware.helmet());
+ *     app.use(middleware.cors());
+ *     app.use(express.json());
+ *     app.use(cookieParser());
+ *     app.use(createIdpTokenCookieMiddleware()); // Add before routes
+ *     applyDefaults();
+ *   }
+ * }));
+ * ```
+ */
+export function createIdpTokenCookieMiddleware(): RequestHandler {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    // Priority: cookie > header
+    let userToken: string | undefined;
+
+    // Try to get token from cookie (set by auth module during login)
+    const cookieToken = req.cookies?.[OPENCHOREO_IDP_TOKEN_COOKIE];
+    if (typeof cookieToken === 'string' && cookieToken.length > 0) {
+      userToken = cookieToken;
+    }
+
+    // Fallback to header (set by frontend for direct API calls)
+    if (!userToken) {
+      const headerToken = req.headers['x-openchoreo-token'];
+      if (typeof headerToken === 'string' && headerToken.length > 0) {
+        userToken = headerToken;
+      }
+    }
+
+    // Wrap the rest of the request in a token context
+    // This makes the token available via getUserTokenFromContext() anywhere
+    runWithTokenContext({ userToken }, () => {
+      next();
+    });
   };
 }
