@@ -62,12 +62,19 @@ export const createProjectAction = (
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
 
-      // Get service token for authentication
+      // Get authentication token
+      // Prefer user token from secrets (injected by form decorator) for user-based authorization
+      // Fall back to service token if user token is not available
       let token: string | undefined;
-      if (tokenService.hasServiceCredentials()) {
+      const userToken = ctx.secrets?.OPENCHOREO_USER_TOKEN;
+
+      if (userToken) {
+        token = userToken;
+        ctx.logger.debug('Using user token from secrets for OpenChoreo API');
+      } else if (tokenService.hasServiceCredentials()) {
         try {
           token = await tokenService.getServiceToken();
-          ctx.logger.debug('Using service token for OpenChoreo API');
+          ctx.logger.debug('Falling back to service token for OpenChoreo API');
         } catch (error) {
           ctx.logger.warn(`Failed to get service token: ${error}`);
         }
