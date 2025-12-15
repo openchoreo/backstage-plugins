@@ -1,5 +1,9 @@
 import { Knex } from 'knex';
 
+// Disable transaction for this migration due to CREATE INDEX CONCURRENTLY commands
+// PostgreSQL CONCURRENTLY operations cannot run inside transaction blocks
+export const config = { transaction: false };
+
 /**
  * Performance optimization migration for OpenChoreo incremental ingestion
  * This migration adds database indexes to improve query performance for large datasets
