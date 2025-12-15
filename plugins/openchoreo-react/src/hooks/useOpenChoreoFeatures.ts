@@ -10,6 +10,7 @@ const defaultFeatures: OpenChoreoFeatures = {
   workflows: { enabled: true },
   observability: { enabled: true },
   auth: { enabled: true },
+  authz: { enabled: true },
 };
 
 /**
@@ -49,6 +50,9 @@ export function useOpenChoreoFeatures(): OpenChoreoFeatures {
         auth: {
           enabled: featuresConfig.getOptionalBoolean('auth.enabled') ?? true,
         },
+        authz: {
+          enabled: featuresConfig.getOptionalBoolean('authz.enabled') ?? true,
+        },
       };
     } catch {
       // If config reading fails, use defaults to avoid breaking the app
@@ -79,4 +83,12 @@ export function useObservabilityEnabled(): boolean {
 export function useAuthEnabled(): boolean {
   const features = useOpenChoreoFeatures();
   return features.auth.enabled;
+}
+
+/**
+ * Helper hook to check if Authorization (Access Control) is enabled.
+ */
+export function useAuthzEnabled(): boolean {
+  const features = useOpenChoreoFeatures();
+  return features.authz.enabled;
 }
