@@ -33,4 +33,4 @@ export const CHOREO_LABELS = {
  * Set to 500 to align with the API's MaxPageLimit for optimal performance,
  * reducing the number of HTTP requests needed for large deployments.
  */
-export const DEFAULT_PAGE_LIMIT = 500;
+export const DEFAULT_PAGE_LIMIT = 512;
