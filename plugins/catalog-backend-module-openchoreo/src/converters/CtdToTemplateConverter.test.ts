@@ -20,7 +20,6 @@ describe('CtdToTemplateConverter', () => {
           name: 'simple-service',
           displayName: 'Simple Service',
           description: 'A simple service for testing',
-          tags: ['test', 'simple'],
         },
         spec: {
           inputParametersSchema: {
@@ -51,15 +50,11 @@ describe('CtdToTemplateConverter', () => {
       expect(result.metadata.namespace).toBe('test-namespace');
       expect(result.metadata.title).toBe('Simple Service');
       expect(result.metadata.description).toBe('A simple service for testing');
-      // Tags now include inferred tags from name ('simple', 'service') and workloadType ('deployment')
+      // Tags include 'openchoreo', the component name, and workloadType
       expect(result.metadata.tags).toEqual([
         'openchoreo',
-        'component-type',
-        'simple',
-        'service',
+        'simple-service',
         'deployment',
-        'test',
-        'simple',
       ]);
 
       // Check annotations
@@ -123,9 +118,7 @@ describe('CtdToTemplateConverter', () => {
       // Even without explicit tags, should have inferred tags from name and workloadType
       expect(result.metadata.tags).toEqual([
         'openchoreo',
-        'component-type',
-        'simple',
-        'service',
+        'simple-service',
         'deployment',
       ]);
     });

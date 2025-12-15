@@ -5,8 +5,6 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import {
   DEFAULT_PAGE_LIMIT,
-  fetchAllResources,
-  type PaginationResult,
 } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { Config } from '@backstage/config';
