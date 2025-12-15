@@ -32,6 +32,9 @@ export class OpenChoreoFetchApi implements FetchApi {
   ) {
     this.authEnabled =
       configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
+
+    // Bind fetch method to preserve 'this' context when used as callback
+    this.fetch = this.fetch.bind(this);
   }
 
   async fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
