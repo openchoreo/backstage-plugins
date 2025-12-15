@@ -25,6 +25,14 @@ type ResponseMetadata = OpenChoreoComponents['schemas']['ResponseMetadata'];
  * Incremental entity provider for OpenChoreo.
  * Processes entities in phases (organizations, projects, components) using cursor-based pagination
  * to enable efficient, resumable ingestion of large datasets.
+ *
+ * ## Iterator Semantics
+ * - `done: false` = Continue iteration, more batches available
+ * - `done: true` = Iteration complete, no more data to process
+ *
+ * **Important**: `done: false` means overall iteration continues, NOT that current resource has more items.
+ * When a resource is exhausted, we return `done: false` and advance to next resource.
+ * Only when ALL phases complete do we return `done: true`.
  */
 
 interface CursorTraversalCursor {
@@ -223,7 +231,7 @@ export class OpenChoreoIncrementalEntityProvider
       case 'components':
         return this.processComponentsCursor(client, context, cursor);
       default:
-        return { done: true };
+        return { done: true }; // Unknown phase = complete iteration
     }
   }
 
@@ -234,8 +242,9 @@ export class OpenChoreoIncrementalEntityProvider
   ): Promise<EntityIteratorResult<CursorTraversalCursor>> {
     if (!cursor.orgApiCursor) {
       // No more organization pages, transition to projects phase
+      // Note: done:false = continue iteration, not current resource has more items
       return {
-        done: false,
+        done: false, // Continue - moving to projects phase
         entities: [],
         cursor: {
           ...cursor,
@@ -370,8 +379,9 @@ export class OpenChoreoIncrementalEntityProvider
   ): Promise<EntityIteratorResult<CursorTraversalCursor>> {
     // If we've processed all organizations, transition to components phase
     if (cursor.currentOrgIndex >= cursor.orgQueue.length) {
+      // Note: done:false = continue iteration, not current resource has more items
       return {
-        done: false,
+        done: false, // Continue - moving to components phase
         entities: [],
         cursor: {
           ...cursor,
@@ -483,7 +493,7 @@ export class OpenChoreoIncrementalEntityProvider
     if (!hasMore) {
       // Finished this organization, move to next org
       return {
-        done: false,
+        done: false, // Continue - more organizations may exist
         entities: entities.map(entity => ({ entity })),
         cursor: {
           ...cursor,
@@ -513,8 +523,9 @@ export class OpenChoreoIncrementalEntityProvider
     cursor: CursorTraversalCursor,
   ): Promise<EntityIteratorResult<CursorTraversalCursor>> {
     // If all projects processed -> done
+    // Note: This is the ONLY place we return done:true - iteration complete
     if (cursor.currentProjectIndex >= cursor.projectQueue.length) {
-      return { done: true };
+      return { done: true }; // Iteration complete - no more data
     }
 
     const { org, project } = cursor.projectQueue[cursor.currentProjectIndex];
@@ -624,8 +635,9 @@ export class OpenChoreoIncrementalEntityProvider
 
     if (!hasMore) {
       // Finished this project, move to next project
+      // Note: done:false = continue iteration, not current resource has more items
       return {
-        done: false,
+        done: false, // Continue - more projects may exist
         entities: batchedEntities.map(entity => ({ entity })),
         cursor: {
           ...cursor,
