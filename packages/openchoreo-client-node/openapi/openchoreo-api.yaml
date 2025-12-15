@@ -1359,7 +1359,7 @@ components:
         minimum: 0
         maximum: 512
         default: 100
-      description: Maximum number of items to return per page
+        description: Maximum number of items to return per page (0 for no limit)
     continueParam:
       name: continue
       in: query

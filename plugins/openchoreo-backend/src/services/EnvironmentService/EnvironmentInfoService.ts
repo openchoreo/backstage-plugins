@@ -141,7 +141,7 @@ export class EnvironmentInfoService implements EnvironmentService {
                   },
                 },
               },
-            );
+          );
 
             if (error || !response.ok || !data) {
               throw new Error(`Failed to fetch release bindings: ${response.status}`);

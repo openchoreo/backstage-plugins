@@ -136,10 +136,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       );
       allEntities.push(...domainEntities);
 
-      // Get environments for each organization and create Environment entities
+      // Process organizations sequentially
       for (const org of organizations) {
         try {
-          // Fetch environments, dataplanes, and projects
+          // Fetch environments, dataplanes, and projects in parallel
           const [environments, dataplanes, projects] = await Promise.all([
             this.fetchAllEnvironments(client, org.name!),
             this.fetchAllDataplanes(client, org.name!),
@@ -172,18 +172,105 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
           // Get components for each project and create Component entities
           for (const project of projects) {
-              const components = await this.fetchAllComponents(
-                client,
-                org.name!,
-                project.name!,
-              );
-              this.logger.debug(
-                `Found ${components.length} components in project: ${project.name}`,
-              );
+            const components = await this.fetchAllComponents(
+              client,
+              org.name!,
+              project.name!,
+            );
 
-              for (const component of components) {
-            // If the component is a Service, fetch complete details and create both component and API entities
-            if (component.type === 'Service') {
+            this.logger.debug(
+              `Found ${components.length} components in project: ${project.name}`,
+            );
+
+            for (const component of components) {
+              // If the component is a Service, fetch complete details and create both component and API entities
+              if (component.type === 'Service') {
+                try {
+                  const {
+                    data: detailData,
+                    error: detailError,
+                    response: detailResponse,
+                  } = await client.GET(
+                    '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+                    {
+                      params: {
+                        path: {
+                          orgName: org.name!,
+                          projectName: project.name!,
+                          componentName: component.name!,
+                        },
+                      },
+                    },
+                  );
+
+                  if (
+                    detailError ||
+                    !detailResponse.ok ||
+                    !detailData.success ||
+                    !detailData.data
+                  ) {
+                    this.logger.warn(
+                      `Failed to fetch complete component details for ${component.name}: ${detailResponse.status}`,
+                    );
+                    // Fallback to basic component entity
+                    const componentEntity = this.translateComponentToEntity(
+                      component,
+                      org.name!,
+                      project.name!,
+                    );
+                    allEntities.push(componentEntity);
+                    continue;
+                  }
+
+                  const completeComponent = detailData.data;
+
+                  // Create component entity with providesApis
+                  const componentEntity = this.translateServiceComponentToEntity(
+                    completeComponent,
+                    org.name!,
+                    project.name!,
+                  );
+                  allEntities.push(componentEntity);
+
+                  // Create API entities if endpoints exist
+                  if (completeComponent.workload?.endpoints) {
+                    const apiEntities = this.createApiEntitiesFromWorkload(
+                      completeComponent,
+                      org.name!,
+                      project.name!,
+                    );
+                    allEntities.push(...apiEntities);
+                  }
+                } catch (error) {
+                  this.logger.warn(
+                    `Failed to fetch complete component details for ${component.name}: ${error}`,
+                  );
+                  // Fallback to basic component entity
+                  const componentEntity = this.translateComponentToEntity(
+                    component,
+                    org.name!,
+                    project.name!,
+                  );
+                  allEntities.push(componentEntity);
+                }
+              } else {
+                // Create basic component entity for non-Service components
+                const componentEntity = this.translateComponentToEntity(
+                  component,
+                  org.name!,
+                  project.name!,
+                );
+                allEntities.push(componentEntity);
+              }
+            }
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to process organization ${org.name}: ${error}`,
+          );
+          // Continue processing other organizations
+        }
+      }
               try {
                 const {
                   data: detailData,
@@ -262,7 +349,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               allEntities.push(componentEntity);
             }
           }
-        }
         } catch (error) {
           this.logger.error(
             `Failed to process organization ${org.name}: ${error}`,
@@ -371,7 +457,30 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             }
           })
           .filter((entity): entity is Entity => entity !== null);
-
+        const templateEntities: Entity[] = validCTDs
+          .map(ctd => {
+            try {
+              const templateEntity =
+                this.ctdConverter.convertCtdToTemplateEntity(ctd, org.name!);
+              // Add the required Backstage catalog annotations
+              if (!templateEntity.metadata.annotations) {
+                templateEntity.metadata.annotations = {};
+              }
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-location'
+              ] = `provider:${this.getProviderName()}`;
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-origin-location'
+              ] = `provider:${this.getProviderName()}`;
+              return templateEntity;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
+              );
+              return null;
+            }
+          })
+          .filter((entity): entity is Entity => entity !== null);
         allEntities.push(...templateEntities);
         this.logger.info(
           `Successfully generated ${templateEntities.length} template entities from CTDs in org: ${org.name}`,
@@ -633,7 +742,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   // --- Entity Translation Methods ---
-
   /**
    * Translates a ModelsOrganization from OpenChoreo API to a Backstage Domain entity
    */

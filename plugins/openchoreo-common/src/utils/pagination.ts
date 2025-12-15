@@ -22,6 +22,7 @@ export async function fetchAllResources<T>(
 ): Promise<T[]> {
   const results: T[] = [];
   let continueToken: string | undefined;
+  let previousToken: string | undefined;
   let pageCount = 0;
 
   do {
@@ -52,7 +53,15 @@ export async function fetchAllResources<T>(
       );
     }
 
+    // Detect if pagination token is not advancing (stuck in a loop)
+    if (continueToken !== undefined && continueToken === previousToken) {
+      throw new Error(
+        'Pagination token not advancing - possible API bug detected',
+      );
+    }
+
     results.push(...response.items);
+    previousToken = continueToken;
 
     // Only continue if hasMore is true AND continue token is a non-empty string
     if (response.metadata?.hasMore && response.metadata.continue) {

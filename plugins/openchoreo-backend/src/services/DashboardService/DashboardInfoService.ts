@@ -49,13 +49,14 @@ export class DashboardInfoService {
               },
             },
           },
-        );
+        },
+      );
 
-        if (error || !response.ok || !data) {
-          throw new Error(
-            `Failed to fetch bindings: ${response.status} ${response.statusText}`,
-          );
-        }
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch bindings: ${response.status} ${response.statusText}`,
+        );
+      }
 
         if (!data.success || !data.data?.items) {
           return { items: [], metadata: data.data?.metadata };
