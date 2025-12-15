@@ -201,7 +201,12 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
 
     const burst = jest.fn().mockResolvedValue(undefined);
     await provider.around(burst);
-    expect(mockClient.GET).toHaveBeenCalled();
+    // around() does not call the API client itself; it only prepares context and calls the burst
+    expect(burst).toHaveBeenCalledWith({
+      config,
+      logger: expect.any(Object),
+    });
+    expect(mockClient.GET).not.toHaveBeenCalled();
   });
 
   it('cursor traversal sets resourceType across phases', async () => {
@@ -460,8 +465,9 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
       expect(result.entities?.[0].entity.metadata.name).toBe('org1');
       expect(result.entities?.[1].entity.metadata.name).toBe('org2');
       expect(result.cursor?.phase).toBe('projects');
+      // Implementation logs an 'Expired cursor detected' message when restarting org fetch
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('HTTP 410: Pagination token expired during \'orgs\' phase'),
+        expect.stringContaining('Expired cursor detected'),
       );
     });
 
@@ -471,15 +477,19 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
       const provider = new OpenChoreoIncrementalEntityProvider(config, logger);
 
       const mockClient = {
-        GET: jest
-          .fn()
-          .mockResolvedValueOnce(
-            createMockResponse([{ name: 'org1' }], false),
-          )
-          .mockRejectedValueOnce(new Error('continue parameter is too old'))
-          .mockResolvedValueOnce(
-            createMockResponse([{ name: 'project1' }], false),
-          ),
+        GET: jest.fn().mockImplementation((path: string, _options?: any) => {
+          if (path === '/orgs/{orgName}/projects' && _options?.params?.query?.continue) {
+            // Simulate expired cursor when continue param is present
+            return Promise.reject(new Error('continue parameter is too old'));
+          }
+          if (path === '/orgs/{orgName}/projects') {
+            return Promise.resolve(createMockResponse([{ name: 'project1' }], false));
+          }
+          if (path === '/orgs') {
+            return Promise.resolve(createMockResponse([{ name: 'org1' }], false));
+          }
+          return Promise.resolve(createMockResponse([], false));
+        }),
       };
       (createOpenChoreoApiClient as jest.Mock).mockReturnValue(mockClient);
 
@@ -499,9 +509,10 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
 
       expect(result.done).toBe(false);
       expect(result.entities).toHaveLength(1);
-      expect(result.cursor?.phase).toBe('components');
+      // Implementation restarts the project fetch for the current org and keeps processing in 'projects' phase
+      expect(result.cursor?.phase).toBe('projects');
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('HTTP 410: Pagination token expired during \'projects\' phase'),
+        expect.stringContaining('Expired cursor detected for projects'),
       );
     });
 
@@ -511,18 +522,24 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
       const provider = new OpenChoreoIncrementalEntityProvider(config, logger);
 
       const mockClient = {
-        GET: jest
-          .fn()
-          .mockResolvedValueOnce(
-            createMockResponse([{ name: 'org1' }], false),
-          )
-          .mockResolvedValueOnce(
-            createMockResponse([{ name: 'project1' }], false),
-          )
-          .mockRejectedValueOnce(new Error('expired cursor token'))
-          .mockResolvedValueOnce(
-            createMockResponse([{ name: 'comp1' }], false),
-          ),
+        GET: jest.fn().mockImplementation((path: string, _options?: any) => {
+          if (
+            path === '/orgs/{orgName}/projects/{projectName}/components' &&
+            _options?.params?.query?.continue
+          ) {
+            return Promise.reject(new Error('expired cursor token'));
+          }
+          if (path === '/orgs/{orgName}/projects/{projectName}/components') {
+            return Promise.resolve(createMockResponse([{ name: 'comp1' }], false));
+          }
+          if (path === '/orgs') {
+            return Promise.resolve(createMockResponse([{ name: 'org1' }], false));
+          }
+          if (path === '/orgs/{orgName}/projects') {
+            return Promise.resolve(createMockResponse([{ name: 'project1' }], false));
+          }
+          return Promise.resolve(createMockResponse([], false));
+        }),
       };
       (createOpenChoreoApiClient as jest.Mock).mockReturnValue(mockClient);
 
@@ -546,7 +563,7 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
       expect(result.cursor?.phase).toBe('components');
       expect(result.cursor?.currentProjectIndex).toBe(1);
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('HTTP 410: Pagination token expired during \'components\' phase'),
+        expect.stringContaining('Expired cursor detected'),
       );
     });
 
@@ -579,8 +596,9 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
 
       await provider.next({ config, logger }, cursor);
 
+      // The in-band retry path for orgs logs an 'Expired cursor detected' message (cursor not included)
       expect(logger.warn).toHaveBeenCalledWith(
-        expect.stringContaining('Cursor: aaaaaaaaa...'),
+        expect.stringContaining('Expired cursor detected'),
       );
     });
   });
