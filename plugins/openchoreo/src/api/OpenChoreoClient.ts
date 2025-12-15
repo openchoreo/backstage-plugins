@@ -1,8 +1,4 @@
-import {
-  DiscoveryApi,
-  FetchApi,
-  IdentityApi,
-} from '@backstage/core-plugin-api';
+import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
@@ -120,7 +116,6 @@ type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
 export class OpenChoreoClient implements OpenChoreoClientApi {
   constructor(
     private readonly discovery: DiscoveryApi,
-    private readonly identity: IdentityApi,
     private readonly fetchApi: FetchApi,
   ) {}
 
@@ -136,7 +131,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params?: Record<string, string>;
     },
   ): Promise<T> {
-    const { token } = await this.identity.getCredentials();
     const baseUrl = await this.discovery.getBaseUrl('openchoreo');
     const url = new URL(`${baseUrl}${endpoint}`);
 
@@ -144,9 +138,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       url.search = new URLSearchParams(options.params).toString();
     }
 
-    const headers: HeadersInit = {
-      Authorization: `Bearer ${token}`,
-    };
+    const headers: HeadersInit = {};
 
     if (options?.body !== undefined) {
       headers['Content-Type'] = 'application/json';
@@ -154,7 +146,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
     const response = await this.fetchApi.fetch(url.toString(), {
       method: options?.method || 'GET',
-      headers,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
       body:
         options?.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
@@ -175,7 +167,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params?: Record<string, string>;
     },
   ): Promise<Response> {
-    const { token } = await this.identity.getCredentials();
     const baseUrl = await this.discovery.getBaseUrl('openchoreo');
     const url = new URL(`${baseUrl}${endpoint}`);
 
@@ -183,9 +174,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       url.search = new URLSearchParams(options.params).toString();
     }
 
-    const headers: HeadersInit = {
-      Authorization: `Bearer ${token}`,
-    };
+    const headers: HeadersInit = {};
 
     if (options?.body !== undefined) {
       headers['Content-Type'] = 'application/json';
@@ -193,7 +182,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
     return this.fetchApi.fetch(url.toString(), {
       method: options?.method || 'GET',
-      headers,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
       body:
         options?.body !== undefined ? JSON.stringify(options.body) : undefined,
     });

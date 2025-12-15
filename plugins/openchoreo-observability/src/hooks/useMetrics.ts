@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../api/ObservabilityApi';
@@ -14,10 +13,8 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 async function getComponentDetails(
   entity: Entity,
   discovery: any,
-  identity: any,
   fetchApi: any,
 ): Promise<{ uid?: string }> {
-  const { token } = await identity.getCredentials();
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
   const organization =
@@ -41,11 +38,7 @@ async function getComponentDetails(
 
   backendUrl.search = params.toString();
 
-  const response = await fetchApi.fetch(backendUrl.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetchApi.fetch(backendUrl.toString());
 
   if (!response.ok) {
     throw new Error(
@@ -60,10 +53,8 @@ async function getComponentDetails(
 async function getProjectDetails(
   entity: Entity,
   discovery: any,
-  identity: any,
   fetchApi: any,
 ): Promise<{ uid?: string }> {
-  const { token } = await identity.getCredentials();
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
   const organization =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
@@ -85,11 +76,7 @@ async function getProjectDetails(
 
   backendUrl.search = params.toString();
 
-  const response = await fetchApi.fetch(backendUrl.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetchApi.fetch(backendUrl.toString());
 
   if (!response.ok) {
     throw new Error(
@@ -109,7 +96,6 @@ export function useMetrics(
 ) {
   const observabilityApi = useApi(observabilityApiRef);
   const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
   const fetchApi = useApi(fetchApiRef);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -122,8 +108,8 @@ export function useMetrics(
     const fetchIds = async () => {
       try {
         const [componentDetails, projectDetails] = await Promise.all([
-          getComponentDetails(entity, discovery, identity, fetchApi),
-          getProjectDetails(entity, discovery, identity, fetchApi),
+          getComponentDetails(entity, discovery, fetchApi),
+          getProjectDetails(entity, discovery, fetchApi),
         ]);
         setComponentId(componentDetails.uid || null);
         setProjectId(projectDetails.uid || null);
@@ -137,7 +123,7 @@ export function useMetrics(
     };
 
     fetchIds();
-  }, [entity, discovery, identity, fetchApi]);
+  }, [entity, discovery, fetchApi]);
 
   const fetchMetrics = useCallback(
     async (reset: boolean = false) => {

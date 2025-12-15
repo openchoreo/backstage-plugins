@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { observabilityApiRef } from '../api/ObservabilityApi';
@@ -13,10 +12,8 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 async function getProjectDetails(
   entity: Entity,
   discovery: any,
-  identity: any,
   fetchApi: any,
 ): Promise<{ uid?: string }> {
-  const { token } = await identity.getCredentials();
   const project = entity.metadata.name as string;
   const organization =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
@@ -38,11 +35,7 @@ async function getProjectDetails(
 
   backendUrl.search = params.toString();
 
-  const response = await fetchApi.fetch(backendUrl.toString(), {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetchApi.fetch(backendUrl.toString());
 
   if (!response.ok) {
     throw new Error(
@@ -57,7 +50,6 @@ async function getProjectDetails(
 export function useTraces(filters: Filters, entity: Entity) {
   const observabilityApi = useApi(observabilityApiRef);
   const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
   const fetchApi = useApi(fetchApiRef);
   const [traces, setTraces] = useState<Trace[]>([]);
   const [loading, setLoading] = useState(false);
@@ -148,7 +140,6 @@ export function useTraces(filters: Filters, entity: Entity) {
         const projectDetails = await getProjectDetails(
           entity,
           discovery,
-          identity,
           fetchApi,
         );
         setProjectId(projectDetails.uid || null);
@@ -160,7 +151,7 @@ export function useTraces(filters: Filters, entity: Entity) {
     };
 
     fetchIds();
-  }, [entity, discovery, identity, fetchApi]);
+  }, [entity, discovery, fetchApi]);
 
   // Auto-fetch traces when filters change
   useEffect(() => {

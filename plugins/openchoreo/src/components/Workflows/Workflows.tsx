@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import {
   Progress,
@@ -63,7 +63,7 @@ const useStyles = makeStyles(theme => ({
 export const Workflows = () => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
   // URL-based routing
@@ -99,14 +99,12 @@ export const Workflows = () => {
       async (commit?: string) => {
         const { componentName, projectName, organizationName } =
           await getEntityDetails();
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        const response = await fetch(`${baseUrl}/builds`, {
+        const response = await fetchApi.fetch(`${baseUrl}/builds`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             componentName,
@@ -122,7 +120,7 @@ export const Workflows = () => {
 
         await workflowData.fetchBuilds();
       },
-      [discoveryApi, identityApi, getEntityDetails, workflowData],
+      [discoveryApi, fetchApi, getEntityDetails, workflowData],
     ),
   );
 

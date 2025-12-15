@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { useComponentEntityDetails } from '@openchoreo/backstage-plugin-react';
 import type {
@@ -23,7 +23,7 @@ interface WorkflowDataState {
  */
 export function useWorkflowData() {
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
   const [state, setState] = useState<WorkflowDataState>({
@@ -38,20 +38,14 @@ export function useWorkflowData() {
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
 
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const response = await fetch(
+      const response = await fetchApi.fetch(
         `${baseUrl}/component?componentName=${encodeURIComponent(
           componentName,
         )}&projectName=${encodeURIComponent(
           projectName,
         )}&organizationName=${encodeURIComponent(organizationName)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
       );
 
       if (!response.ok) {
@@ -63,27 +57,21 @@ export function useWorkflowData() {
     } catch (err) {
       setState(prev => ({ ...prev, error: err as Error }));
     }
-  }, [discoveryApi, identityApi, getEntityDetails]);
+  }, [discoveryApi, fetchApi, getEntityDetails]);
 
   const fetchBuilds = useCallback(async () => {
     try {
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
 
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const response = await fetch(
+      const response = await fetchApi.fetch(
         `${baseUrl}/builds?componentName=${encodeURIComponent(
           componentName,
         )}&projectName=${encodeURIComponent(
           projectName,
         )}&organizationName=${encodeURIComponent(organizationName)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
       );
 
       if (!response.ok) {
@@ -95,7 +83,7 @@ export function useWorkflowData() {
     } catch (err) {
       setState(prev => ({ ...prev, error: err as Error }));
     }
-  }, [discoveryApi, identityApi, getEntityDetails]);
+  }, [discoveryApi, fetchApi, getEntityDetails]);
 
   // Initial data fetch
   useEffect(() => {

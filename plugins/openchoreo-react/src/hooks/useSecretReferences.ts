@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
-import { discoveryApiRef, identityApiRef } from '@backstage/core-plugin-api';
+import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import type { Entity } from '@backstage/catalog-model';
-import type { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import type { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 
 /** Information about a secret key in a secret reference */
 export interface SecretDataSourceInfo {
@@ -35,9 +35,8 @@ interface SecretReferencesResponse {
 async function fetchSecretReferences(
   entity: Entity,
   discovery: DiscoveryApi,
-  identity: IdentityApi,
+  fetchApi: FetchApi,
 ): Promise<SecretReferencesResponse> {
-  const { token } = await identity.getCredentials();
   const organizationName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
 
@@ -54,11 +53,7 @@ async function fetchSecretReferences(
   });
   backendUrl.search = params.toString();
 
-  const res = await fetch(backendUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const res = await fetchApi.fetch(backendUrl.toString());
 
   if (!res.ok) {
     throw new Error('Failed to fetch secret references');
@@ -84,7 +79,7 @@ export interface UseSecretReferencesResult {
  */
 export function useSecretReferences(): UseSecretReferencesResult {
   const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const { entity } = useEntity();
   const [secretReferences, setSecretReferences] = useState<SecretReference[]>(
     [],
@@ -100,7 +95,7 @@ export function useSecretReferences(): UseSecretReferencesResult {
         const response = await fetchSecretReferences(
           entity,
           discovery,
-          identity,
+          fetchApi,
         );
         if (response.success && response.data.items) {
           setSecretReferences(response.data.items);
@@ -119,7 +114,7 @@ export function useSecretReferences(): UseSecretReferencesResult {
       setSecretReferences([]);
       setError(null);
     };
-  }, [entity, discovery, identity]);
+  }, [entity, discovery, fetchApi]);
 
   return { secretReferences, isLoading, error };
 }

@@ -13,7 +13,7 @@ import {
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import Form from '@rjsf/material-ui';
@@ -113,7 +113,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
   const classes = useTraitsStyles();
   const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   const [instanceName, setInstanceName] = useState<string>('');
   const [parameters, setParameters] = useState<Record<string, any>>({});
@@ -155,18 +155,12 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       setError(null);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        const response = await fetch(
+        const response = await fetchApi.fetch(
           `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(
             metadata.organization,
           )}&traitName=${encodeURIComponent(trait.name)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -198,7 +192,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [trait, open, metadata.organization, discoveryApi, identityApi]);
+  }, [trait, open, metadata.organization, discoveryApi, fetchApi]);
 
   // Validate instance name
   useEffect(() => {

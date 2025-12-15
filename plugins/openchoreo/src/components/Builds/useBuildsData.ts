@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { DiscoveryApi, IdentityApi } from '@backstage/core-plugin-api';
+import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
 import type {
   ModelsBuild,
   ModelsCompleteComponent,
@@ -27,7 +27,7 @@ interface UseBuildsDataReturn {
  */
 export function useBuildsData(
   discoveryApi: DiscoveryApi,
-  identityApi: IdentityApi,
+  fetchApi: FetchApi,
   getEntityDetails: () => Promise<EntityDetails>,
 ): UseBuildsDataReturn {
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
@@ -43,18 +43,14 @@ export function useBuildsData(
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
 
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const response = await fetch(
+      const response = await fetchApi.fetch(
         `${baseUrl}/component?componentName=${encodeURIComponent(
           componentName,
         )}&projectName=${encodeURIComponent(
           projectName,
         )}&organizationName=${encodeURIComponent(organizationName)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
       );
 
       if (!response.ok) {
@@ -66,25 +62,21 @@ export function useBuildsData(
     } catch (err) {
       setError(err as Error);
     }
-  }, [discoveryApi, identityApi, getEntityDetails]);
+  }, [discoveryApi, fetchApi, getEntityDetails]);
 
   const fetchBuilds = useCallback(async () => {
     try {
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
 
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const response = await fetch(
+      const response = await fetchApi.fetch(
         `${baseUrl}/builds?componentName=${encodeURIComponent(
           componentName,
         )}&projectName=${encodeURIComponent(
           projectName,
         )}&organizationName=${encodeURIComponent(organizationName)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
       );
 
       if (!response.ok) {
@@ -98,7 +90,7 @@ export function useBuildsData(
     } finally {
       setLoading(false);
     }
-  }, [discoveryApi, identityApi, getEntityDetails]);
+  }, [discoveryApi, fetchApi, getEntityDetails]);
 
   const triggerBuild = useCallback(async () => {
     setTriggeringBuild(true);
@@ -106,14 +98,12 @@ export function useBuildsData(
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
 
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const response = await fetch(`${baseUrl}/builds`, {
+      const response = await fetchApi.fetch(`${baseUrl}/builds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           componentName,
@@ -132,7 +122,7 @@ export function useBuildsData(
     } finally {
       setTriggeringBuild(false);
     }
-  }, [discoveryApi, identityApi, getEntityDetails, fetchBuilds]);
+  }, [discoveryApi, fetchApi, getEntityDetails, fetchBuilds]);
 
   const refreshBuilds = useCallback(async () => {
     setRefreshing(true);
