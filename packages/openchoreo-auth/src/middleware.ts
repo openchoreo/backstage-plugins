@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AuthenticationError } from '@backstage/errors';
 import { OpenChoreoTokenService } from './OpenChoreoTokenService';
+import { runWithTokenContext } from './tokenContext';
 
 /**
  * Symbol key for storing the user token on the request object.
@@ -19,8 +20,12 @@ type RequestWithUserToken = Request & {
  * Creates middleware that extracts the user's IDP token from request headers
  * and caches it on the request object.
  *
- * This allows routes to access the token efficiently without repeatedly
- * parsing headers. Use `getUserTokenFromRequest()` to retrieve the token.
+ * This middleware also establishes a token context using AsyncLocalStorage,
+ * making the token accessible to any code that runs during the request
+ * (including permission policies) without explicitly passing the request object.
+ *
+ * Use `getUserTokenFromRequest()` to retrieve the token from the request,
+ * or `getUserTokenFromContext()` to retrieve it from anywhere in the request lifecycle.
  *
  * @param tokenService - OpenChoreo token service for extracting tokens
  * @returns Express middleware function
@@ -39,9 +44,15 @@ export function createUserTokenMiddleware(
   tokenService: OpenChoreoTokenService,
 ): RequestHandler {
   return (req: RequestWithUserToken, _res, next) => {
-    // Extract and cache the token (null means "checked but not present")
-    req[userTokenSymbol] = tokenService.getUserToken(req) ?? null;
-    next();
+    // Extract the token (null means "checked but not present")
+    const userToken = tokenService.getUserToken(req) ?? null;
+    req[userTokenSymbol] = userToken;
+
+    // Wrap the rest of the request in a token context
+    // This makes the token available via getTokenContext() anywhere in the request
+    runWithTokenContext({ userToken: userToken ?? undefined }, () => {
+      next();
+    });
   };
 }
 

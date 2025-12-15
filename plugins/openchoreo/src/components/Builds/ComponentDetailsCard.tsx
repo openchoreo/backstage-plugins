@@ -1,6 +1,14 @@
 import type { FC } from 'react';
-import { Typography, Button, Box, Link, IconButton } from '@material-ui/core';
+import {
+  Typography,
+  Button,
+  Box,
+  Link,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core';
 import { Card } from '@openchoreo/backstage-design-system';
+import { usePermission } from '@backstage/plugin-permission-react';
 import GitHub from '@material-ui/icons/GitHub';
 import CallSplit from '@material-ui/icons/CallSplit';
 import FileCopy from '@material-ui/icons/FileCopy';
@@ -8,6 +16,7 @@ import type { ModelsCompleteComponent } from '@openchoreo/backstage-plugin-commo
 import {
   getRepositoryUrl,
   getRepositoryInfo,
+  openchoreoComponentBuildPermission,
 } from '@openchoreo/backstage-plugin-common';
 
 interface ComponentDetailsCardProps {
@@ -42,6 +51,12 @@ export const ComponentDetailsCard: FC<ComponentDetailsCardProps> = ({
 }) => {
   const repoUrl = getRepositoryUrl(componentDetails);
   const repoInfo = getRepositoryInfo(componentDetails);
+
+  // Check if user has permission to trigger builds
+  const { allowed: canBuild, loading: permissionLoading } = usePermission({
+    permission: openchoreoComponentBuildPermission,
+  });
+  const buildDisabled = triggeringBuild || permissionLoading || !canBuild;
 
   return (
     <Card padding={16} style={{ marginBottom: 16 }}>
@@ -93,16 +108,26 @@ export const ComponentDetailsCard: FC<ComponentDetailsCardProps> = ({
             <Typography variant="body2">{repoInfo.branch || 'N/A'}</Typography>
           </Box>
           <Box display="flex">
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              onClick={onTriggerBuild}
-              disabled={triggeringBuild}
-              style={{ marginRight: '12px' }}
+            <Tooltip
+              title={
+                !canBuild && !permissionLoading
+                  ? 'You do not have permission to trigger builds'
+                  : ''
+              }
             >
-              {triggeringBuild ? 'Building...' : 'Build Latest'}
-            </Button>
+              <span>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={onTriggerBuild}
+                  disabled={buildDisabled}
+                  style={{ marginRight: '12px' }}
+                >
+                  {triggeringBuild ? 'Building...' : 'Build Latest'}
+                </Button>
+              </span>
+            </Tooltip>
             <Button variant="outlined" size="small" onClick={() => {}}>
               Show Commits
             </Button>
