@@ -6,3 +6,7 @@
  */
 
 export { OpenChoreoDefaultAuthModule } from './auth';
+export {
+  IdpTokenCookieManager,
+  type IdpTokenCookieManagerOptions,
+} from './IdpTokenCookieManager';

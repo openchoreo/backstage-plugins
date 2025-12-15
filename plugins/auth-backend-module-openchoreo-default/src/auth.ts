@@ -12,6 +12,7 @@ import {
   ProfileInfo,
   AuthResolverContext,
   OAuthAuthenticatorResult,
+  AuthProviderFactory,
 } from '@backstage/plugin-auth-node';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
 import {
@@ -24,6 +25,106 @@ import {
   isTokenExpired,
   getTimeUntilExpiry,
 } from './jwtUtils';
+import {
+  IdpTokenCookieManager,
+  IdpTokenCookieManagerOptions,
+} from './IdpTokenCookieManager';
+
+// Key to store IDP token on request object for cookie setting
+const IDP_TOKEN_KEY = '__openchoreo_idp_token__';
+
+/**
+ * Creates a provider factory that wraps the base OAuth factory to set
+ * the IDP access token cookie on authentication success.
+ *
+ * The cookie is set in the frameHandler (after OAuth callback) and refresh
+ * handlers, and removed in the logout handler.
+ */
+function createOpenChoreoOAuthProviderFactory(options: {
+  authenticator: ReturnType<typeof createOAuthAuthenticator>;
+  signInResolver: Parameters<
+    typeof createOAuthProviderFactory
+  >[0]['signInResolver'];
+  cookieManagerOptions: IdpTokenCookieManagerOptions;
+}): AuthProviderFactory {
+  const baseFactory = createOAuthProviderFactory({
+    authenticator: options.authenticator,
+    signInResolver: options.signInResolver,
+  });
+
+  const cookieManager = new IdpTokenCookieManager(options.cookieManagerOptions);
+
+  return ctx => {
+    const baseHandlers = baseFactory(ctx);
+
+    return {
+      // Must call through baseHandlers object to preserve 'this' binding
+      // (baseHandlers is an OAuthEnvironmentHandler instance with internal methods)
+      start: (req, res) => baseHandlers.start(req, res),
+
+      frameHandler: async (req, res) => {
+        // Wrap res.end to set cookie before response is finalized
+        const originalEnd = res.end.bind(res);
+        let ended = false;
+
+        res.end = function endWithCookie(
+          chunk?: any,
+          encoding?: any,
+          cb?: any,
+        ): any {
+          if (!ended) {
+            ended = true;
+            // Get token stored by authenticator
+            const token = (req as any)[IDP_TOKEN_KEY];
+            if (token) {
+              cookieManager.setToken(res, token);
+            }
+          }
+          return originalEnd(chunk, encoding, cb);
+        };
+
+        await baseHandlers.frameHandler(req, res);
+      },
+
+      refresh: baseHandlers.refresh
+        ? async (req, res) => {
+            // Wrap res.end to update cookie on refresh
+            const originalEnd = res.end.bind(res);
+            let ended = false;
+
+            res.end = function endWithCookieRefresh(
+              chunk?: any,
+              encoding?: any,
+              cb?: any,
+            ): any {
+              if (!ended) {
+                ended = true;
+                const token = (req as any)[IDP_TOKEN_KEY];
+                if (token) {
+                  cookieManager.setToken(res, token);
+                }
+              }
+              return originalEnd(chunk, encoding, cb);
+            };
+
+            await baseHandlers.refresh!(req, res);
+          }
+        : undefined,
+
+      logout: baseHandlers.logout
+        ? async (req, res) => {
+            // Remove cookie on logout
+            cookieManager.removeToken(res);
+            await baseHandlers.logout!(req, res);
+          }
+        : async (_req, res) => {
+            // Even if base doesn't have logout, we need to remove the cookie
+            cookieManager.removeToken(res);
+            res.status(200).end();
+          },
+    };
+  };
+}
 
 /**
  * Extracts profile info from a decoded JWT payload
@@ -142,6 +243,11 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
   async authenticate(input, helper) {
     const { fullProfile, session } = await helper.authenticate(input);
 
+    // Store access token on request for cookie setting by the wrapper factory
+    if (session.accessToken && input.req) {
+      (input.req as any)[IDP_TOKEN_KEY] = session.accessToken;
+    }
+
     // OpenChoreo at the moment doesn't return refresh tokens, so we use the access token
     // as a pseudo-refresh token. Since the access token is valid for 3600 seconds,
     // we can use it to maintain the session without actual OAuth refresh.
@@ -183,6 +289,11 @@ export const defaultIdpAuthenticator = createOAuthAuthenticator({
       // Token is still valid, return the same session
       // This allows Backstage to re-issue user tokens without calling the OAuth provider
       // We need to return the same structure as helper.refresh() would return
+      // Store access token on request for cookie setting by the wrapper factory
+      if (input.req) {
+        (input.req as any)[IDP_TOKEN_KEY] = accessToken;
+      }
+
       const result: OAuthAuthenticatorResult<any> = {
         fullProfile: {
           provider: 'default-idp',
@@ -240,10 +351,18 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
           return;
         }
 
+        // Get URLs for cookie configuration
+        const baseUrl = config.getString('backend.baseUrl');
+        const appUrl = config.getString('app.baseUrl');
+
         providers.registerProvider({
           providerId: 'default-idp',
-          factory: createOAuthProviderFactory({
+          factory: createOpenChoreoOAuthProviderFactory({
             authenticator: defaultIdpAuthenticator,
+            cookieManagerOptions: {
+              baseUrl,
+              appUrl,
+            },
             signInResolver: async (info, ctx) => {
               const { profile } = info;
 
@@ -297,6 +416,10 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
             },
           }),
         });
+
+        logger.info(
+          'OpenChoreo default-idp auth provider registered with IDP token cookie support',
+        );
       },
     });
   },

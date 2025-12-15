@@ -22,6 +22,8 @@ export {
   createUserTokenMiddleware,
   getUserTokenFromRequest,
   createRequireAuthMiddleware,
+  createIdpTokenCookieMiddleware,
+  OPENCHOREO_IDP_TOKEN_COOKIE,
 } from './middleware';
 
 export {
