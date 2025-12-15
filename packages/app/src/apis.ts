@@ -9,15 +9,10 @@ import {
   createApiFactory,
   discoveryApiRef,
   oauthRequestApiRef,
-  ApiRef,
-  createApiRef,
   errorApiRef,
   identityApiRef,
   fetchApiRef,
   storageApiRef,
-  OAuthApi,
-  ProfileInfoApi,
-  SessionApi,
 } from '@backstage/core-plugin-api';
 import { OAuth2 } from '@backstage/core-app-api';
 import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
@@ -30,13 +25,11 @@ import {
   DefaultScaffolderFormDecoratorsApi,
 } from '@backstage/plugin-scaffolder/alpha';
 import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
+// Import from separate file to avoid circular dependency with form decorators
+import { defaultIdpAuthApiRef } from './apis/authRefs';
 
-// API reference for default-idp OIDC provider
-export const defaultIdpAuthApiRef: ApiRef<
-  OAuthApi & ProfileInfoApi & SessionApi
-> = createApiRef({
-  id: 'auth.default-idp',
-});
+// Re-export for backward compatibility (used by App.tsx)
+export { defaultIdpAuthApiRef };
 
 export const apis: AnyApiFactory[] = [
   createApiFactory({
