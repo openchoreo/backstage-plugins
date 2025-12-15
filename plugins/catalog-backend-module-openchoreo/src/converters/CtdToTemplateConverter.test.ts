@@ -1,4 +1,7 @@
-import { CtdToTemplateConverter, ComponentType } from './CtdToTemplateConverter';
+import {
+  CtdToTemplateConverter,
+  ComponentType,
+} from './CtdToTemplateConverter';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 describe('CtdToTemplateConverter', () => {
@@ -541,7 +544,10 @@ describe('CtdToTemplateConverter', () => {
       // CI/CD Setup should be present but workflow_name should not have an enum when no allowedWorkflows
       const ciSetup = parameters.find(p => p.title === 'CI/CD Setup');
       expect(ciSetup).toBeDefined();
-      expect(ciSetup!.dependencies.useBuiltInCI.oneOf[0].properties.workflow_name.enum).toBeUndefined();
+      expect(
+        ciSetup!.dependencies.useBuiltInCI.oneOf[0].properties.workflow_name
+          .enum,
+      ).toBeUndefined();
     });
   });
 

@@ -80,9 +80,9 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
     const provider = new OpenChoreoIncrementalEntityProvider(config, logger);
 
     const mockClient = {
-      GET: jest.fn().mockResolvedValue(
-        createMockResponse([{ name: 'org1' }], false),
-      ),
+      GET: jest
+        .fn()
+        .mockResolvedValue(createMockResponse([{ name: 'org1' }], false)),
     };
     (createOpenChoreoApiClient as jest.Mock).mockReturnValue(mockClient);
 
@@ -184,8 +184,6 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
       componentApiCursor: undefined,
     });
   });
-
-
 
   it('handles cursor mode by default', async () => {
     const config = createMockConfig();
@@ -380,8 +378,6 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
     expect(apiKinds.length).toBe(2);
   });
 
-
-
   it('handles HTTP 410 expired cursor error and restarts', async () => {
     const config = createMockConfig();
     const logger = createMockLogger();
@@ -440,7 +436,9 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
       const mockClient = {
         GET: jest
           .fn()
-          .mockRejectedValueOnce(new Error('Request failed with status code 410'))
+          .mockRejectedValueOnce(
+            new Error('Request failed with status code 410'),
+          )
           .mockResolvedValueOnce(
             createMockResponse([{ name: 'org1' }, { name: 'org2' }], false),
           ),
@@ -478,15 +476,22 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
 
       const mockClient = {
         GET: jest.fn().mockImplementation((path: string, _options?: any) => {
-          if (path === '/orgs/{orgName}/projects' && _options?.params?.query?.continue) {
+          if (
+            path === '/orgs/{orgName}/projects' &&
+            _options?.params?.query?.continue
+          ) {
             // Simulate expired cursor when continue param is present
             return Promise.reject(new Error('continue parameter is too old'));
           }
           if (path === '/orgs/{orgName}/projects') {
-            return Promise.resolve(createMockResponse([{ name: 'project1' }], false));
+            return Promise.resolve(
+              createMockResponse([{ name: 'project1' }], false),
+            );
           }
           if (path === '/orgs') {
-            return Promise.resolve(createMockResponse([{ name: 'org1' }], false));
+            return Promise.resolve(
+              createMockResponse([{ name: 'org1' }], false),
+            );
           }
           return Promise.resolve(createMockResponse([], false));
         }),
@@ -530,13 +535,19 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
             return Promise.reject(new Error('expired cursor token'));
           }
           if (path === '/orgs/{orgName}/projects/{projectName}/components') {
-            return Promise.resolve(createMockResponse([{ name: 'comp1' }], false));
+            return Promise.resolve(
+              createMockResponse([{ name: 'comp1' }], false),
+            );
           }
           if (path === '/orgs') {
-            return Promise.resolve(createMockResponse([{ name: 'org1' }], false));
+            return Promise.resolve(
+              createMockResponse([{ name: 'org1' }], false),
+            );
           }
           if (path === '/orgs/{orgName}/projects') {
-            return Promise.resolve(createMockResponse([{ name: 'project1' }], false));
+            return Promise.resolve(
+              createMockResponse([{ name: 'project1' }], false),
+            );
           }
           return Promise.resolve(createMockResponse([], false));
         }),
@@ -577,9 +588,7 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
         GET: jest
           .fn()
           .mockRejectedValueOnce(new Error('HTTP 410 Gone'))
-          .mockResolvedValueOnce(
-            createMockResponse([{ name: 'org1' }], false),
-          ),
+          .mockResolvedValueOnce(createMockResponse([{ name: 'org1' }], false)),
       };
       (createOpenChoreoApiClient as jest.Mock).mockReturnValue(mockClient);
 

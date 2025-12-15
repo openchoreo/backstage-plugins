@@ -66,8 +66,12 @@ export class ComponentBatchProcessor {
       );
 
       try {
-        const MAX_CONCURRENT = context.config.getOptionalNumber('openchoreo.maxConcurrentRequests') ?? 5; // Limit concurrent API calls
-        const BATCH_DELAY = context.config.getOptionalNumber('openchoreo.batchDelayMs') ?? 100; // 100ms delay between batches
+        const MAX_CONCURRENT =
+          context.config.getOptionalNumber(
+            'openchoreo.maxConcurrentRequests',
+          ) ?? 5; // Limit concurrent API calls
+        const BATCH_DELAY =
+          context.config.getOptionalNumber('openchoreo.batchDelayMs') ?? 100; // 100ms delay between batches
 
         for (let i = 0; i < serviceComponents.length; i += MAX_CONCURRENT) {
           const batch = serviceComponents.slice(i, i + MAX_CONCURRENT);

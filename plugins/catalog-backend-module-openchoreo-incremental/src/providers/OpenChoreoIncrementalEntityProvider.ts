@@ -3,9 +3,7 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import {
-  DEFAULT_PAGE_LIMIT,
-} from '@openchoreo/backstage-plugin-common';
+import { DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
@@ -141,12 +139,17 @@ export class OpenChoreoIncrementalEntityProvider
         errorMessage.includes('continue parameter is too old')
       ) {
         const phase = cursor?.phase || 'unknown';
-        const cursorValue = cursor?.orgApiCursor || cursor?.projectApiCursor || cursor?.componentApiCursor;
-        
+        const cursorValue =
+          cursor?.orgApiCursor ||
+          cursor?.projectApiCursor ||
+          cursor?.componentApiCursor;
+
         context.logger.warn(
           `HTTP 410: Pagination token expired during '${phase}' phase. ` +
-          `Cursor: ${cursorValue ? `${cursorValue.substring(0, 20)}...` : 'none'}. ` +
-          `Resetting cursor and restarting ingestion from beginning.`
+            `Cursor: ${
+              cursorValue ? `${cursorValue.substring(0, 20)}...` : 'none'
+            }. ` +
+            `Resetting cursor and restarting ingestion from beginning.`,
         );
 
         // Restart from the beginning without cursor
