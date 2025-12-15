@@ -210,7 +210,7 @@ export async function createRouter({
 
   // Endpoint for listing traits
   router.get('/traits', async (req, res) => {
-    const { organizationName } = req.query;
+    const { organizationName, limit, continue: continueToken } = req.query;
 
     if (!organizationName) {
       throw new InputError('organizationName is a required query parameter');
@@ -219,7 +219,12 @@ export async function createRouter({
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
-      await traitInfoService.fetchTraits(organizationName as string, userToken),
+      await traitInfoService.fetchTraits(
+        organizationName as string,
+        userToken,
+        limit ? parseInt(limit as string, 10) : undefined,
+        continueToken as string | undefined,
+      ),
     );
   });
 

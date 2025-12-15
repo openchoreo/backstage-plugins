@@ -122,6 +122,10 @@ export class ConfigValidator {
           rejectEmptySourceCollections: incrementalConfig.getOptionalBoolean(
             'rejectEmptySourceCollections',
           ),
+          maxConcurrentRequests: incrementalConfig.getOptionalNumber(
+            'maxConcurrentRequests',
+          ),
+          batchDelayMs: incrementalConfig.getOptionalNumber('batchDelayMs'),
         },
       };
     }
@@ -147,8 +151,9 @@ export class ConfigValidator {
 
     // Validate timing relationships
     if (incremental.burstLength >= incremental.burstInterval) {
-      logger.warn(
-        `burstLength (${incremental.burstLength}s) should be less than burstInterval (${incremental.burstInterval}s) for optimal performance`,
+      throw new OpenChoreoIncrementalIngestionError(
+        `burstLength (${incremental.burstLength}s) must be less than burstInterval (${incremental.burstInterval}s) to ensure proper burst/rest cycle. Current configuration would cause overlapping or continuous bursts.`,
+        'INVALID_BURST_TIMING',
       );
     }
 
@@ -228,6 +233,8 @@ export class ConfigValidator {
           restLength: 30,
           chunkSize: 50,
           rejectEmptySourceCollections: false,
+          maxConcurrentRequests: 5,
+          batchDelayMs: 100,
         },
       },
     };

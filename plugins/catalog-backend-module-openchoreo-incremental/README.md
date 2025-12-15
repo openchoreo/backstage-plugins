@@ -4,6 +4,17 @@ The OpenChoreo Incremental Provider processes entities in small batches using cu
 
 ## Installation
 
+### 1. Add Workspace Dependency
+
+First, add the incremental provider as a workspace dependency:
+
+```bash
+# From your Backstage root directory
+yarn add @openchoreo/plugin-catalog-backend-module-openchoreo-incremental
+```
+
+### 2. Register the Module
+
 Add the incremental provider module to your backend:
 
 ```typescript
@@ -17,13 +28,18 @@ backend.add(
 
 ```yaml
 openchoreo:
-  baseUrl: ${OPENCHOREO_API_URL}
-  token: ${OPENCHOREO_TOKEN}
+  api:
+    baseUrl: ${OPENCHOREO_API_URL}
+    token: ${OPENCHOREO_TOKEN}
   incremental:
     burstLength: 10 # seconds - duration of each processing burst
     burstInterval: 30 # seconds - interval between bursts during active ingestion
     restLength: 30 # minutes - rest period after completing full ingestion
     chunkSize: 50 # entities per API request
+    maxConcurrentRequests: 5 # max concurrent API calls during batch processing
+    batchDelayMs: 100 # delay in milliseconds between batch requests
+    rejectRemovalsAbovePercentage: 80 # reject sync if removals exceed this percentage
+    rejectEmptySourceCollections: false # reject removals from empty collections
 ```
 
 ## How It Works

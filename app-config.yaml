@@ -157,15 +157,6 @@ openchoreo:
     auth:
       enabled: ${OPENCHOREO_FEATURES_AUTH_ENABLED}
 
-  # OPTIONAL: For large-scale deployments, use incremental ingestion instead
-  # Uncomment the section below and comment out the schedule section above
-  # Also update packages/backend/src/index.ts to use the incremental module
-  # incremental:
-  #   burstLength: 16 # Duration of each burst of processing activity in seconds
-  #   burstInterval: 8 # Interval between bursts of processing activity in seconds
-  #   chunkSize: 512 # Number of items to fetch per API request
-  #   restLength: 60 # Duration of rest periods between bursts in minutes
-
   # Component Type Mappings (optional - defaults provided)
   # Maps OpenChoreo component types to Backstage page variants
   # Custom mappings are evaluated before defaults

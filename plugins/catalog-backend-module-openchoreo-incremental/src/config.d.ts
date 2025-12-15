@@ -109,6 +109,30 @@ export const openchoreoIncrementalConfigSchema = z.object({
     .boolean()
     .default(false)
     .describe('Reject removals from empty collections'),
+
+  /**
+   * Maximum number of concurrent API requests during batch processing.
+   * Must be between 1 and 50.
+   * @default 5
+   */
+  maxConcurrentRequests: z
+    .number()
+    .min(1)
+    .max(50)
+    .default(5)
+    .describe('Maximum concurrent API requests during batch processing'),
+
+  /**
+   * Delay in milliseconds between batch processing requests.
+   * Must be between 0 and 10000.
+   * @default 100
+   */
+  batchDelayMs: z
+    .number()
+    .min(0)
+    .max(10000)
+    .default(100)
+    .describe('Delay in milliseconds between batch processing requests'),
 });
 
 /**
@@ -138,6 +162,8 @@ export interface OpenChoreoIncrementalConfig {
       backoff?: number[];
       rejectRemovalsAbovePercentage?: number;
       rejectEmptySourceCollections: boolean;
+      maxConcurrentRequests: number;
+      batchDelayMs: number;
     };
   };
 }

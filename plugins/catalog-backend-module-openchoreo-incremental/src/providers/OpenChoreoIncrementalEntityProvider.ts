@@ -43,6 +43,10 @@ interface CursorTraversalCursor {
   currentProject?: string;
   cursorResetCount?: number;
   phase?: 'orgs' | 'projects' | 'components';
+  // Track processed entities to avoid duplicates on cursor reset
+  processedOrgs?: Set<string>;
+  processedProjects?: Set<string>;
+  processedComponents?: Set<string>;
 }
 
 export type OpenChoreoCursor = CursorTraversalCursor;
@@ -215,6 +219,9 @@ export class OpenChoreoIncrementalEntityProvider
         projectQueue: [],
         currentProjectIndex: 0,
         componentApiCursor: undefined,
+        processedOrgs: new Set(orgItems.map(o => o.name!)),
+        processedProjects: new Set(),
+        processedComponents: new Set(),
       };
 
       return {
@@ -280,7 +287,9 @@ export class OpenChoreoIncrementalEntityProvider
         errorMessage.includes('continue parameter is too old')
       ) {
         context.logger.warn(
-          'Expired cursor detected for organizations, restarting fetch from beginning',
+          `Expired cursor detected for organizations (reset #${
+            (cursor.cursorResetCount || 0) + 1
+          }), restarting fetch from beginning to avoid duplicates`,
         );
 
         // Restart organization fetch without cursor
@@ -308,14 +317,27 @@ export class OpenChoreoIncrementalEntityProvider
           | ResponseMetadata
           | undefined;
 
-        // Reset the organization cursor and clear org queue since we're starting over
-        const newOrgQueue = items.map((o: ModelsOrganization) => o.name!);
+        // Filter out already processed organizations to avoid duplicates
+        const newItems = items.filter(o => !cursor.processedOrgs?.has(o.name!));
+        const newOrgQueue = newItems.map((o: ModelsOrganization) => o.name!);
 
-        const entities: Entity[] = items.map((o: ModelsOrganization) =>
+        // Update processed organizations set
+        const updatedProcessedOrgs = new Set(cursor.processedOrgs || []);
+        newItems.forEach(o => updatedProcessedOrgs.add(o.name!));
+
+        const entities: Entity[] = newItems.map((o: ModelsOrganization) =>
           this.translator.translateOrganizationToDomain(o),
         );
 
         const hasMore = metadata?.hasMore && !!metadata?.continue;
+
+        context.logger.info(
+          `Filtered ${
+            items.length - newItems.length
+          } already processed organizations, emitting ${
+            newItems.length
+          } new organizations`,
+        );
 
         return {
           done: false,
@@ -325,6 +347,8 @@ export class OpenChoreoIncrementalEntityProvider
             orgApiCursor: metadata?.continue,
             orgQueue: newOrgQueue,
             phase: hasMore ? 'orgs' : 'projects',
+            cursorResetCount: (cursor.cursorResetCount || 0) + 1,
+            processedOrgs: updatedProcessedOrgs,
           },
         };
       }
@@ -351,15 +375,31 @@ export class OpenChoreoIncrementalEntityProvider
 
     const items = data.data.items as ModelsOrganization[];
     const metadata = data.data.metadata as ResponseMetadata | undefined;
-    const entities: Entity[] = items.map((o: ModelsOrganization) =>
+
+    // Filter out already processed organizations to avoid duplicates
+    const newItems = items.filter(o => !cursor.processedOrgs?.has(o.name!));
+
+    // Update processed organizations set
+    const updatedProcessedOrgs = new Set(cursor.processedOrgs || []);
+    newItems.forEach(o => updatedProcessedOrgs.add(o.name!));
+
+    const entities: Entity[] = newItems.map((o: ModelsOrganization) =>
       this.translator.translateOrganizationToDomain(o),
     );
 
-    // Append to orgQueue
+    // Append to orgQueue (only new items)
     const newOrgQueue = cursor.orgQueue.concat(
-      items.map((o: ModelsOrganization) => o.name!),
+      newItems.map((o: ModelsOrganization) => o.name!),
     );
     const hasMore = metadata?.hasMore && !!metadata?.continue;
+
+    if (items.length > newItems.length) {
+      context.logger.debug(
+        `Filtered ${
+          items.length - newItems.length
+        } already processed organizations`,
+      );
+    }
 
     return {
       done: false,
@@ -369,6 +409,7 @@ export class OpenChoreoIncrementalEntityProvider
         orgApiCursor: metadata?.continue,
         orgQueue: newOrgQueue,
         phase: hasMore ? 'orgs' : 'projects',
+        processedOrgs: updatedProcessedOrgs,
       },
     };
   }

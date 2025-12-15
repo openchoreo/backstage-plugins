@@ -9,13 +9,17 @@ export interface PaginationResult<T> {
 
 /**
  * Maximum number of pages to fetch before considering it an infinite loop.
- * This is a safety limit to prevent runaway pagination.
+ * This is a safety limit to prevent runaway pagination and excessive memory usage.
+ * With DEFAULT_PAGE_LIMIT of 512, this allows up to 25,600 items (50MB+ of memory).
  */
-const MAX_PAGINATION_PAGES = 1000;
+const MAX_PAGINATION_PAGES = 50;
 
 /**
  * Generic helper to fetch all resources using cursor-based pagination.
  * Throws an error if any page fails to fetch or if pagination appears to be stuck.
+ *
+ * WARNING: This function loads all results into memory. For large datasets,
+ * consider using chunked processing or streaming approaches.
  */
 export async function fetchAllResources<T>(
   fetchPage: (cursor?: string) => Promise<PaginationResult<T> | null>,
@@ -29,7 +33,18 @@ export async function fetchAllResources<T>(
     // Check for potential infinite loop
     if (++pageCount > MAX_PAGINATION_PAGES) {
       throw new Error(
-        `Pagination exceeded ${MAX_PAGINATION_PAGES} pages - possible infinite loop detected`,
+        `Pagination exceeded ${MAX_PAGINATION_PAGES} pages (${
+          pageCount * 512
+        } items estimated) - possible infinite loop detected or dataset too large for memory. Consider using chunked processing.`,
+      );
+    }
+
+    // Warn about large memory usage
+    if (pageCount === 10) {
+      console.warn(
+        `fetchAllResources: Loading ${
+          pageCount * 512
+        }+ items into memory. Consider chunked processing for large datasets.`,
       );
     }
 
