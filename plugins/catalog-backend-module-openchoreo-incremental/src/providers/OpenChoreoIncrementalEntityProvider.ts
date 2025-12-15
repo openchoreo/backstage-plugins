@@ -62,8 +62,8 @@ interface OpenChoreoContext {
 export class OpenChoreoIncrementalEntityProvider
   implements IncrementalEntityProvider<OpenChoreoCursor, OpenChoreoContext>
 {
-  // OpenAPI schema caps page size at 500; enforce locally to avoid 400s
-  private static readonly API_MAX_PAGE_LIMIT = 500;
+  // OpenAPI schema caps page size at 5000; enforce locally to avoid 400s
+  private static readonly API_MAX_PAGE_LIMIT = DEFAULT_PAGE_LIMIT;
   private readonly config: Config;
   private readonly logger: LoggerService;
   private readonly chunkSize: number;

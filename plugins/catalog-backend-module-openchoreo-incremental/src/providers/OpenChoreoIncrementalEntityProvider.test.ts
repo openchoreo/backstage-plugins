@@ -6,6 +6,7 @@ import { OpenChoreoIncrementalEntityProvider } from './OpenChoreoIncrementalEnti
 import { ConfigReader } from '@backstage/config';
 import { mockServices } from '@backstage/backend-test-utils';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import { DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
 
 jest.mock('@openchoreo/openchoreo-client-node');
 
@@ -91,7 +92,7 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
     expect(mockClient.GET).toHaveBeenCalledWith('/orgs', {
       params: {
         query: {
-          limit: 500,
+          limit: DEFAULT_PAGE_LIMIT,
         },
       },
     });
