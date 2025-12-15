@@ -25,6 +25,11 @@ import { UserSettingsStorage } from '@backstage/plugin-user-settings';
 import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
 import { OpenChoreoPermissionApi } from './apis/OpenChoreoPermissionApi';
+import {
+  formDecoratorsApiRef,
+  DefaultScaffolderFormDecoratorsApi,
+} from '@backstage/plugin-scaffolder/alpha';
+import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
 
 // API reference for default-idp OIDC provider
 export const defaultIdpAuthApiRef: ApiRef<
@@ -115,5 +120,16 @@ export const apis: AnyApiFactory[] = [
       identityApi: identityApiRef,
     },
     factory: deps => UserSettingsStorage.create(deps),
+  }),
+
+  // Form decorators for scaffolder - injects user's OpenChoreo token as a secret
+  // This enables user-based authorization in scaffolder actions
+  createApiFactory({
+    api: formDecoratorsApiRef,
+    deps: {},
+    factory: () =>
+      DefaultScaffolderFormDecoratorsApi.create({
+        decorators: [openChoreoTokenDecorator],
+      }),
   }),
 ];

@@ -9,6 +9,9 @@ metadata:
 spec:
   owner: guests
   type: component
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
   parameters:
     - title: Component Metadata
       required:
