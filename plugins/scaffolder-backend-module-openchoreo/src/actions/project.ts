@@ -2,12 +2,8 @@ import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
-import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
-export const createProjectAction = (
-  config: Config,
-  tokenService: OpenChoreoTokenService,
-) => {
+export const createProjectAction = (config: Config) => {
   return createTemplateAction({
     id: 'openchoreo:project:create',
     description: 'Create OpenChoreo Project',
@@ -62,25 +58,15 @@ export const createProjectAction = (
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
 
-      // Get authentication token
-      // Prefer user token from secrets (injected by form decorator) for user-based authorization
-      // Fall back to service token if user token is not available
-      let token: string | undefined;
-      const userToken = ctx.secrets?.OPENCHOREO_USER_TOKEN;
-
-      if (userToken) {
-        token = userToken;
-        ctx.logger.debug('Using user token from secrets for OpenChoreo API');
-      } else if (tokenService.hasServiceCredentials()) {
-        try {
-          token = await tokenService.getServiceToken();
-          ctx.logger.debug('Falling back to service token for OpenChoreo API');
-        } catch (error) {
-          ctx.logger.warn(`Failed to get service token: ${error}`);
-        }
+      // Get user token from secrets (injected by form decorator)
+      const token = ctx.secrets?.OPENCHOREO_USER_TOKEN;
+      if (!token) {
+        throw new Error(
+          'User authentication token not available. Please ensure you are logged in.',
+        );
       }
+      ctx.logger.debug('Using user token from secrets for OpenChoreo API');
 
-      // Create a new instance of the OpenChoreo API client using the generated client
       const client = createOpenChoreoApiClient({
         baseUrl,
         token,

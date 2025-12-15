@@ -16,7 +16,6 @@ import {
   translateComponentToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import type { DiscoveryService } from '@backstage/backend-plugin-api';
-import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 
@@ -29,7 +28,6 @@ export const createComponentAction = (
   config: Config,
   discovery: DiscoveryService,
   immediateCatalog: ImmediateCatalogService,
-  tokenService: OpenChoreoTokenService,
 ) => {
   return createTemplateAction({
     id: 'openchoreo:component:create',
@@ -232,25 +230,14 @@ export const createComponentAction = (
         // Create the API client using the auto-generated client
         const baseUrl = config.getString('openchoreo.baseUrl');
 
-        // Get authentication token
-        // Prefer user token from secrets (injected by form decorator) for user-based authorization
-        // Fall back to service token if user token is not available
-        let token: string | undefined;
-        const userToken = ctx.secrets?.OPENCHOREO_USER_TOKEN;
-
-        if (userToken) {
-          token = userToken;
-          ctx.logger.debug('Using user token from secrets for OpenChoreo API');
-        } else if (tokenService.hasServiceCredentials()) {
-          try {
-            token = await tokenService.getServiceToken();
-            ctx.logger.debug(
-              'Falling back to service token for OpenChoreo API',
-            );
-          } catch (error) {
-            ctx.logger.warn(`Failed to get service token: ${error}`);
-          }
+        // Get user token from secrets (injected by form decorator)
+        const token = ctx.secrets?.OPENCHOREO_USER_TOKEN;
+        if (!token) {
+          throw new Error(
+            'User authentication token not available. Please ensure you are logged in.',
+          );
         }
+        ctx.logger.debug('Using user token from secrets for OpenChoreo API');
 
         const client = createOpenChoreoApiClient({
           baseUrl,

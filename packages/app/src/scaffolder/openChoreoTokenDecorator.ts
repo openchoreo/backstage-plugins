@@ -1,5 +1,5 @@
 import { createScaffolderFormDecorator } from '@backstage/plugin-scaffolder-react/alpha';
-import { defaultIdpAuthApiRef } from '../apis';
+import { defaultIdpAuthApiRef } from '../apis/authRefs';
 
 /**
  * Form decorator that injects the user's OpenChoreo IDP token as a secret.
@@ -20,17 +20,15 @@ export const openChoreoTokenDecorator = createScaffolderFormDecorator({
   id: 'openchoreo:inject-user-token',
   deps: { oauthApi: defaultIdpAuthApiRef },
   async decorator({ setSecrets }, { oauthApi }) {
-    try {
-      const token = await oauthApi.getAccessToken();
-      if (token) {
-        setSecrets(state => ({
-          ...state,
-          OPENCHOREO_USER_TOKEN: token,
-        }));
-      }
-    } catch {
-      // Continue without token if not available (e.g., guest mode)
-      // The scaffolder action will fall back to service token
+    const token = await oauthApi.getAccessToken();
+    if (!token) {
+      throw new Error(
+        'Failed to get authentication token. Please ensure you are logged in.',
+      );
     }
+    setSecrets(state => ({
+      ...state,
+      OPENCHOREO_USER_TOKEN: token,
+    }));
   },
 });
