@@ -17,7 +17,7 @@ import {
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import Form from '@rjsf/material-ui';
@@ -120,7 +120,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
   const classes = useTraitsStyles();
   const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   const [availableTraits, setAvailableTraits] = useState<TraitListItem[]>([]);
   const [selectedTrait, setSelectedTrait] = useState<string>('');
@@ -152,18 +152,12 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
       setError(null);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        const response = await fetch(
+        const response = await fetchApi.fetch(
           `${baseUrl}/traits?organizationName=${encodeURIComponent(
             metadata.organization,
           )}&page=1&pageSize=100`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -191,7 +185,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [open, metadata.organization, discoveryApi, identityApi]);
+  }, [open, metadata.organization, discoveryApi, fetchApi]);
 
   // Fetch schema when trait is selected
   useEffect(() => {
@@ -210,18 +204,12 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
       setError(null);
 
       try {
-        const { token } = await identityApi.getCredentials();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        const response = await fetch(
+        const response = await fetchApi.fetch(
           `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(
             metadata.organization,
           )}&traitName=${encodeURIComponent(selectedTrait)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
         );
 
         if (!response.ok) {
@@ -258,7 +246,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [selectedTrait, metadata.organization, discoveryApi, identityApi]);
+  }, [selectedTrait, metadata.organization, discoveryApi, fetchApi]);
 
   // Validate instance name
   useEffect(() => {

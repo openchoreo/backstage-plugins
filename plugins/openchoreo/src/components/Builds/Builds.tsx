@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import {
   Progress,
@@ -54,7 +54,7 @@ const columns: TableColumn<ModelsBuild>[] = [
 
 export const Builds = () => {
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
   const {
@@ -66,7 +66,7 @@ export const Builds = () => {
     refreshing,
     triggerBuild,
     refreshBuilds,
-  } = useBuildsData(discoveryApi, identityApi, getEntityDetails);
+  } = useBuildsData(discoveryApi, fetchApi, getEntityDetails);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedBuild, setSelectedBuild] = useState<ModelsBuild | null>(null);

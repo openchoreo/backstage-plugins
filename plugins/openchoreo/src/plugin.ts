@@ -5,7 +5,6 @@ import {
   createApiFactory,
   discoveryApiRef,
   fetchApiRef,
-  identityApiRef,
 } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 import { OpenChoreoClient } from './api/OpenChoreoClient';
@@ -24,10 +23,9 @@ export const choreoPlugin = createPlugin({
       deps: {
         discoveryApi: discoveryApiRef,
         fetchApi: fetchApiRef,
-        identityApi: identityApiRef,
       },
-      factory: ({ discoveryApi, fetchApi, identityApi }) =>
-        new OpenChoreoClient(discoveryApi, identityApi, fetchApi),
+      factory: ({ discoveryApi, fetchApi }) =>
+        new OpenChoreoClient(discoveryApi, fetchApi),
     }),
   ],
 });

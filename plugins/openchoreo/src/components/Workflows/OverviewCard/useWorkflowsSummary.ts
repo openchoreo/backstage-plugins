@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { useComponentEntityDetails } from '@openchoreo/backstage-plugin-react';
 import type {
@@ -24,7 +24,7 @@ interface WorkflowsSummaryState {
  */
 export function useWorkflowsSummary() {
   const discoveryApi = useApi(discoveryApiRef);
-  const identityApi = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
 
   const [state, setState] = useState<WorkflowsSummaryState>({
@@ -40,26 +40,23 @@ export function useWorkflowsSummary() {
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
 
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
       // Fetch component details and builds in parallel
       const [componentResponse, buildsResponse] = await Promise.all([
-        fetch(
+        fetchApi.fetch(
           `${baseUrl}/component?componentName=${encodeURIComponent(
             componentName,
           )}&projectName=${encodeURIComponent(
             projectName,
           )}&organizationName=${encodeURIComponent(organizationName)}`,
-          { headers: { Authorization: `Bearer ${token}` } },
         ),
-        fetch(
+        fetchApi.fetch(
           `${baseUrl}/builds?componentName=${encodeURIComponent(
             componentName,
           )}&projectName=${encodeURIComponent(
             projectName,
           )}&organizationName=${encodeURIComponent(organizationName)}`,
-          { headers: { Authorization: `Bearer ${token}` } },
         ),
       ]);
 
@@ -97,7 +94,7 @@ export function useWorkflowsSummary() {
         error: err as Error,
       }));
     }
-  }, [discoveryApi, identityApi, getEntityDetails]);
+  }, [discoveryApi, fetchApi, getEntityDetails]);
 
   const triggerBuild = useCallback(async () => {
     setState(prev => ({ ...prev, triggeringBuild: true }));
@@ -105,14 +102,12 @@ export function useWorkflowsSummary() {
       const { componentName, projectName, organizationName } =
         await getEntityDetails();
 
-      const { token } = await identityApi.getCredentials();
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      const response = await fetch(`${baseUrl}/builds`, {
+      const response = await fetchApi.fetch(`${baseUrl}/builds`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           componentName,
@@ -132,7 +127,7 @@ export function useWorkflowsSummary() {
     } finally {
       setState(prev => ({ ...prev, triggeringBuild: false }));
     }
-  }, [discoveryApi, identityApi, getEntityDetails, fetchData]);
+  }, [discoveryApi, fetchApi, getEntityDetails, fetchData]);
 
   const refresh = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true }));

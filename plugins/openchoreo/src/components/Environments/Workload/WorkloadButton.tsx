@@ -4,7 +4,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useApi,
   discoveryApiRef,
-  identityApiRef,
+  fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { Alert, Skeleton } from '@material-ui/lab';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
@@ -25,7 +25,7 @@ export const WorkloadButton = ({
   isWorking = false,
 }: WorkloadButtonProps) => {
   const discovery = useApi(discoveryApiRef);
-  const identity = useApi(identityApiRef);
+  const fetchApi = useApi(fetchApiRef);
   const client = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
 
@@ -57,21 +57,15 @@ export const WorkloadButton = ({
         const organizationName =
           entity.metadata.annotations?.['openchoreo.io/organization'];
 
-        const { token } = await identity.getCredentials();
         const baseUrl = await discovery.getBaseUrl('openchoreo');
 
         if (projectName && organizationName && componentName) {
-          const response = await fetch(
+          const response = await fetchApi.fetch(
             `${baseUrl}/builds?componentName=${encodeURIComponent(
               componentName,
             )}&projectName=${encodeURIComponent(
               projectName,
             )}&organizationName=${encodeURIComponent(organizationName)}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            },
           );
 
           if (!response.ok) {
@@ -86,7 +80,7 @@ export const WorkloadButton = ({
       }
     };
     fetchBuilds();
-  }, [entity.metadata.name, entity.metadata.annotations, identity, discovery]);
+  }, [entity.metadata.name, entity.metadata.annotations, fetchApi, discovery]);
 
   const isFromSource = isFromSourceComponent(entity);
   const hasBuilds = builds.length > 0;
