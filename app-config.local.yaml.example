@@ -40,6 +40,8 @@ openchoreo:
       enabled: true    # Set to false to hide Metrics, Traces, Runtime Logs tabs
     auth:
       enabled: true    # Set to false for guest mode (no OAuth login required)
+    authz:
+      enabled: true    # Set to false to hide Access Control sidebar and pages
 
 # Thunder IDP configuration (Kind cluster)
 thunder:

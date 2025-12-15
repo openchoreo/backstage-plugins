@@ -29,6 +29,7 @@ export function FeatureGatedContent({
       workflows: 'Workflows',
       observability: 'Observability',
       auth: 'Authentication',
+      authz: 'Authorization',
     };
 
     return (
