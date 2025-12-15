@@ -37,6 +37,7 @@
     "@backstage/plugin-scaffolder-node": "0.11.1",
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
+    "@openchoreo/openchoreo-auth": "workspace:^",
     "@openchoreo/openchoreo-client-node": "workspace:^",
     "zod": "3.25.76"
   },
