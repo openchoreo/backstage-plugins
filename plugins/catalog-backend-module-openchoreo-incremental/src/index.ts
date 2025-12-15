@@ -29,6 +29,10 @@ export { catalogModuleOpenchoreoIncremental as default } from './module';
 export { catalogModuleOpenchoreoIncremental } from './module';
 export { catalogModuleOpenchoreoIncrementalProvider } from './module/index';
 export {
+  catalogModuleOpenchoreoImmediateCatalogIncremental,
+  openchoreoImmediateCatalogIncrementalServiceFactory,
+} from './openchoreoImmediateCatalogIncremental';
+export {
   openchoreoIncrementalProvidersExtensionPoint,
   type OpenChoreoIncrementalProviderExtensionPoint,
 } from './module/index';

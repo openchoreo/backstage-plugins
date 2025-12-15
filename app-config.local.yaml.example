@@ -30,6 +30,12 @@ backend:
 openchoreo:
   baseUrl: http://api.openchoreo.localhost:8080/api/v1
   # token: ""  # Optional: uncomment if you need API authentication
+  # OPTIONAL: For large-scale local testing, enable incremental ingestion
+  # incremental:
+  #   burstLength: 16
+  #   burstInterval: 8
+  #   chunkSize: 512
+  #   restLength: 60
 
 # Thunder IDP configuration (Kind cluster)
 thunder:
