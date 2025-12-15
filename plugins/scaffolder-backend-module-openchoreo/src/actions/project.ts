@@ -2,8 +2,12 @@ import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
+import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
-export const createProjectAction = (config: Config) => {
+export const createProjectAction = (
+  config: Config,
+  tokenService: OpenChoreoTokenService,
+) => {
   return createTemplateAction({
     id: 'openchoreo:project:create',
     description: 'Create OpenChoreo Project',
@@ -58,9 +62,21 @@ export const createProjectAction = (config: Config) => {
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
 
+      // Get service token for authentication
+      let token: string | undefined;
+      if (tokenService.hasServiceCredentials()) {
+        try {
+          token = await tokenService.getServiceToken();
+          ctx.logger.debug('Using service token for OpenChoreo API');
+        } catch (error) {
+          ctx.logger.warn(`Failed to get service token: ${error}`);
+        }
+      }
+
       // Create a new instance of the OpenChoreo API client using the generated client
       const client = createOpenChoreoApiClient({
         baseUrl,
+        token,
         logger: ctx.logger,
       });
 
