@@ -1,5 +1,7 @@
 /* eslint-disable no-nested-ternary */
-import { Box, Button } from '@material-ui/core';
+import { Box, Button, Tooltip } from '@material-ui/core';
+import { usePermission } from '@backstage/plugin-permission-react';
+import { openchoreoComponentPromotePermission } from '@openchoreo/backstage-plugin-common';
 import { EnvironmentActionsProps } from '../types';
 
 /**
@@ -16,6 +18,12 @@ export const EnvironmentActions = ({
   onPromote,
   onSuspend,
 }: EnvironmentActionsProps) => {
+  // Check if user has permission to promote
+  const { allowed: canPromote, loading: promotePermissionLoading } =
+    usePermission({
+      permission: openchoreoComponentPromotePermission,
+    });
+
   const hasPromotionTargets =
     deploymentStatus === 'Ready' &&
     promotionTargets &&
@@ -41,26 +49,38 @@ export const EnvironmentActions = ({
             justifyContent="flex-end"
             mb={index < promotionTargets!.length - 1 ? 2 : bindingName ? 2 : 0}
           >
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              disabled={
-                promotionTracker.isActive(target.name) ||
-                isAlreadyPromoted(target.name)
+            <Tooltip
+              title={
+                !canPromote && !promotePermissionLoading
+                  ? 'You do not have permission to promote'
+                  : ''
               }
-              onClick={() => onPromote(target.name)}
             >
-              {isAlreadyPromoted(target.name)
-                ? `Promoted to ${target.name}`
-                : promotionTracker.isActive(target.name)
-                ? 'Promoting...'
-                : `Promote to ${target.name}`}
-              {!isAlreadyPromoted(target.name) &&
-                target.requiresApproval &&
-                !promotionTracker.isActive(target.name) &&
-                ' (Approval Required)'}
-            </Button>
+              <span>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  disabled={
+                    promotePermissionLoading ||
+                    !canPromote ||
+                    promotionTracker.isActive(target.name) ||
+                    isAlreadyPromoted(target.name)
+                  }
+                  onClick={() => onPromote(target.name)}
+                >
+                  {isAlreadyPromoted(target.name)
+                    ? `Promoted to ${target.name}`
+                    : promotionTracker.isActive(target.name)
+                    ? 'Promoting...'
+                    : `Promote to ${target.name}`}
+                  {!isAlreadyPromoted(target.name) &&
+                    target.requiresApproval &&
+                    !promotionTracker.isActive(target.name) &&
+                    ' (Approval Required)'}
+                </Button>
+              </span>
+            </Tooltip>
           </Box>
         ))}
 
@@ -69,27 +89,39 @@ export const EnvironmentActions = ({
         <Box display="flex" flexWrap="wrap" justifyContent="flex-end">
           {/* Single promotion button */}
           {hasSingleTarget && (
-            <Button
-              style={{ marginRight: '8px' }}
-              variant="contained"
-              color="primary"
-              size="small"
-              disabled={
-                promotionTracker.isActive(promotionTargets![0].name) ||
-                isAlreadyPromoted(promotionTargets![0].name)
+            <Tooltip
+              title={
+                !canPromote && !promotePermissionLoading
+                  ? 'You do not have permission to promote'
+                  : ''
               }
-              onClick={() => onPromote(promotionTargets![0].name)}
             >
-              {isAlreadyPromoted(promotionTargets![0].name)
-                ? 'Promoted'
-                : promotionTracker.isActive(promotionTargets![0].name)
-                ? 'Promoting...'
-                : 'Promote'}
-              {!isAlreadyPromoted(promotionTargets![0].name) &&
-                promotionTargets![0].requiresApproval &&
-                !promotionTracker.isActive(promotionTargets![0].name) &&
-                ' (Approval Required)'}
-            </Button>
+              <span>
+                <Button
+                  style={{ marginRight: '8px' }}
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  disabled={
+                    promotePermissionLoading ||
+                    !canPromote ||
+                    promotionTracker.isActive(promotionTargets![0].name) ||
+                    isAlreadyPromoted(promotionTargets![0].name)
+                  }
+                  onClick={() => onPromote(promotionTargets![0].name)}
+                >
+                  {isAlreadyPromoted(promotionTargets![0].name)
+                    ? 'Promoted'
+                    : promotionTracker.isActive(promotionTargets![0].name)
+                    ? 'Promoting...'
+                    : 'Promote'}
+                  {!isAlreadyPromoted(promotionTargets![0].name) &&
+                    promotionTargets![0].requiresApproval &&
+                    !promotionTracker.isActive(promotionTargets![0].name) &&
+                    ' (Approval Required)'}
+                </Button>
+              </span>
+            </Tooltip>
           )}
 
           {/* Suspend button - show whenever there's a binding */}

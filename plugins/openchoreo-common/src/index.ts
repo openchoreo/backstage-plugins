@@ -1,4 +1,24 @@
 export { CHOREO_ANNOTATIONS, CHOREO_LABELS } from './constants';
+
+// Permissions
+export {
+  OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  OPENCHOREO_RESOURCE_TYPE_PROJECT,
+  openchoreoComponentCreatePermission,
+  openchoreoComponentDeletePermission,
+  openchoreoComponentReadPermission,
+  openchoreoComponentBuildPermission,
+  openchoreoComponentDeployPermission,
+  openchoreoComponentPromotePermission,
+  openchoreoComponentUpdatePermission,
+  openchoreoProjectCreatePermission,
+  openchoreoProjectDeletePermission,
+  openchoreoAccessControlManagePermission,
+  openchoreoRolesManagePermission,
+  openchoreoRoleMappingsManagePermission,
+  openchoreoPermissions,
+  OPENCHOREO_PERMISSION_TO_ACTION,
+} from './permissions';
 export {
   getRepositoryInfo,
   getRepositoryUrl,
