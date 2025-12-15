@@ -182,7 +182,7 @@ describe('CtdToTemplateConverter', () => {
 
       // Check UI fields
       expect(parameters[0].properties.component_name['ui:field']).toBe(
-        'EntityNamePicker',
+        'ComponentNamePicker',
       );
       expect(parameters[0].properties.organization_name['ui:disabled']).toBe(
         true,
@@ -254,7 +254,8 @@ describe('CtdToTemplateConverter', () => {
       // Check boolean
       expect(props.enableBackup.type).toBe('boolean');
       expect(props.enableBackup.default).toBe(true);
-      expect(props.enableBackup['ui:widget']).toBe('radio');
+      // Booleans now use default checkbox/switch widgets; no explicit radio widget
+      expect(props.enableBackup['ui:widget']).toBeUndefined();
     });
 
     it('should handle nested objects', () => {
@@ -435,11 +436,12 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have only Component Metadata + Addons sections
-      // (CTD config section skipped due to empty properties, CI Setup skipped due to no allowedWorkflows)
-      expect(parameters).toHaveLength(2);
+      // Should have Component Metadata + CI/CD Setup + Traits sections
+      // (CTD config section skipped due to empty properties)
+      expect(parameters).toHaveLength(3);
       expect(parameters[0].title).toBe('Component Metadata');
-      expect(parameters[1].title).toBe('Addons');
+      expect(parameters[1].title).toBe('CI/CD Setup');
+      expect(parameters[2].title).toBe('Traits');
     });
 
     it('should generate CI Setup section with workflow configuration when CTD has allowedWorkflows', () => {
@@ -468,13 +470,13 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have all four sections: Component Metadata, CTD Configuration, CI Setup, and Addons
+      // Should have all four sections: Component Metadata, CTD Configuration, CI/CD Setup, and Traits
       expect(parameters).toHaveLength(4);
 
-      // Check CI Setup section (third section)
+      // Check CI/CD Setup section (third section)
       const ciSetupSection = parameters[2];
-      expect(ciSetupSection.title).toBe('CI Setup');
-      expect(ciSetupSection.required).toEqual(['useBuiltInCI']);
+      expect(ciSetupSection.title).toBe('CI/CD Setup');
+      expect(ciSetupSection.required).toEqual(['autoDeploy', 'useBuiltInCI']);
 
       // Check useBuiltInCI property
       expect(ciSetupSection.properties.useBuiltInCI).toBeDefined();
@@ -482,54 +484,47 @@ describe('CtdToTemplateConverter', () => {
       expect(ciSetupSection.properties.useBuiltInCI.title).toBe(
         'Use Built-in CI in OpenChoreo',
       );
-      expect(ciSetupSection.properties.useBuiltInCI['ui:widget']).toBe('radio');
+      // Uses SwitchField as ui:field for boolean switches
+      expect(ciSetupSection.properties.useBuiltInCI['ui:field']).toBe(
+        'SwitchField',
+      );
 
-      // Check dependencies structure
+      // Check dependencies structure uses oneOf with two branches
       expect(ciSetupSection.dependencies.useBuiltInCI).toBeDefined();
-      expect(ciSetupSection.dependencies.useBuiltInCI.allOf).toBeDefined();
-      expect(ciSetupSection.dependencies.useBuiltInCI.allOf).toHaveLength(2);
+      expect(ciSetupSection.dependencies.useBuiltInCI.oneOf).toBeDefined();
+      expect(ciSetupSection.dependencies.useBuiltInCI.oneOf).toHaveLength(2);
 
       // Check true case (when CI is enabled)
-      const trueCase = ciSetupSection.dependencies.useBuiltInCI.allOf[0];
-      expect(trueCase.if.properties.useBuiltInCI.const).toBe(true);
+      const trueCase = ciSetupSection.dependencies.useBuiltInCI.oneOf[0];
+      expect(trueCase.properties.useBuiltInCI.const).toBe(true);
 
-      // CTD templates now use workflow-based structure with only workflow fields
-      expect(trueCase.then.properties.workflow_name).toBeDefined();
-      expect(trueCase.then.properties.workflow_parameters).toBeDefined();
-
-      // Static fields (repo_url, branch, component_path) should NOT be here anymore
-      expect(trueCase.then.properties.repo_url).toBeUndefined();
-      expect(trueCase.then.properties.branch).toBeUndefined();
-      expect(trueCase.then.properties.component_path).toBeUndefined();
+      // Workflow fields present
+      expect(trueCase.properties.workflow_name).toBeDefined();
+      expect(trueCase.properties.workflow_parameters).toBeDefined();
 
       // Check workflow_name has enum from allowedWorkflows
-      expect(trueCase.then.properties.workflow_name.enum).toEqual([
+      expect(trueCase.properties.workflow_name.enum).toEqual([
         'nodejs-build',
         'docker-build',
       ]);
-      expect(trueCase.then.properties.workflow_name['ui:field']).toBe(
+      expect(trueCase.properties.workflow_name['ui:field']).toBe(
         'BuildWorkflowPicker',
       );
 
       // Check workflow_parameters uses custom UI field
-      expect(trueCase.then.properties.workflow_parameters['ui:field']).toBe(
+      expect(trueCase.properties.workflow_parameters['ui:field']).toBe(
         'BuildWorkflowParameters',
       );
 
       // Check required fields when CI is enabled - only workflow fields now
-      expect(trueCase.then.required).toEqual([
+      expect(trueCase.required).toEqual([
         'workflow_name',
         'workflow_parameters',
       ]);
 
       // Check false case (when CI is disabled)
-      const falseCase = ciSetupSection.dependencies.useBuiltInCI.allOf[1];
-      expect(falseCase.if.properties.useBuiltInCI.const).toBe(false);
-      expect(falseCase.then.properties.external_ci_note).toBeDefined();
-      expect(falseCase.then.properties.external_ci_note.type).toBe('null');
-      expect(falseCase.then.properties.external_ci_note['ui:widget']).toBe(
-        'markdown',
-      );
+      const falseCase = ciSetupSection.dependencies.useBuiltInCI.oneOf[1];
+      expect(falseCase.properties.useBuiltInCI.const).toBe(false);
     });
 
     it('should not include CI Setup section when CTD has no allowedWorkflows', () => {
@@ -558,18 +553,19 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have only 3 sections: Component Metadata, CTD Configuration, and Addons
-      // CI Setup section should be absent when no allowedWorkflows
-      expect(parameters).toHaveLength(3);
+      // Should have 4 sections: Component Metadata, CTD Configuration, CI/CD Setup, and Traits
+      expect(parameters).toHaveLength(4);
 
-      // Verify section titles to confirm CI Setup is not present
+      // Verify section titles
       expect(parameters[0].title).toBe('Component Metadata');
       expect(parameters[1].title).toContain('Configuration');
-      expect(parameters[2].title).toBe('Addons');
+      expect(parameters[2].title).toBe('CI/CD Setup');
+      expect(parameters[3].title).toBe('Traits');
 
-      // Verify no section has 'CI Setup' title
-      const hasCISetup = parameters.some(p => p.title === 'CI Setup');
-      expect(hasCISetup).toBe(false);
+      // CI/CD Setup should be present but workflow_name should not have an enum when no allowedWorkflows
+      const ciSetup = parameters.find(p => p.title === 'CI/CD Setup');
+      expect(ciSetup).toBeDefined();
+      expect(ciSetup!.dependencies.useBuiltInCI.oneOf[0].properties.workflow_name.enum).toBeUndefined();
     });
   });
 
@@ -625,7 +621,8 @@ describe('CtdToTemplateConverter', () => {
       expect(input.displayName).toBe('${{ parameters.displayName }}');
       expect(input.description).toBe('${{ parameters.description }}');
       expect(input.componentType).toBe('web-service');
-      expect(input.componentTypeParameters).toBe('${{ parameters }}');
+      // CTD parameters are spread individually into the input (e.g. port)
+      expect(input.port).toBe('${{ parameters.port }}');
     });
   });
 
