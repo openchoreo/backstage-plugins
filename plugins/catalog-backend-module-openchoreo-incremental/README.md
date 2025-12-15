@@ -60,7 +60,7 @@ The provider uses continuation token-based pagination with the following charact
 - **Continuation Tokens**: Opaque tokens that mark the position in the result set
 - **Resource Version**: Kubernetes-style resource versioning for consistency
 - **HasMore Flag**: Indicates if more results are available
-- **Limit Parameter**: Controls the number of items per page (0-500, default 100)
+- **Limit Parameter**: Controls the number of items per page (0-512, default 100)
 
 Example response structure:
 

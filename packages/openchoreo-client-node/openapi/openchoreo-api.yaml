@@ -1357,7 +1357,7 @@ components:
       schema:
         type: integer
         minimum: 0
-        maximum: 500
+        maximum: 512
         default: 100
       description: Maximum number of items to return per page
     continueParam:
