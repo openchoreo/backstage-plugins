@@ -5,7 +5,10 @@ import {
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { RuntimeLogsResponse } from '../../types';
-import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
+import {
+  fetchAllResources,
+  DEFAULT_PAGE_LIMIT,
+} from '@openchoreo/backstage-plugin-common';
 
 // Use generated type from OpenAPI spec
 type ModelsBuild =
@@ -68,7 +71,10 @@ export class BuildInfoService {
           return { items: [] as any[], metadata: data.data?.metadata };
         }
 
-        return { items: data.data.items as any[], metadata: data.data?.metadata };
+        return {
+          items: data.data.items as any[],
+          metadata: data.data?.metadata,
+        };
       });
 
       this.logger.debug(

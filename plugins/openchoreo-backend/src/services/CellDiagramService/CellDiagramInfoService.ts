@@ -11,7 +11,10 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
+import {
+  fetchAllResources,
+  DEFAULT_PAGE_LIMIT,
+} from '@openchoreo/backstage-plugin-common';
 import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 
 // Use generated type from OpenAPI spec
@@ -112,7 +115,10 @@ export class CellDiagramInfoService implements CellDiagramService {
 
           if (!data.success || !data.data?.items) {
             // Treat empty list as no components
-            return { items: [] as ModelsCompleteComponent[], metadata: data.data?.metadata };
+            return {
+              items: [] as ModelsCompleteComponent[],
+              metadata: data.data?.metadata,
+            };
           }
 
           return {
@@ -121,7 +127,9 @@ export class CellDiagramInfoService implements CellDiagramService {
           };
         });
       } catch (err) {
-        this.logger.error(`Failed to fetch components for project ${projectName}: ${err}`);
+        this.logger.error(
+          `Failed to fetch components for project ${projectName}: ${err}`,
+        );
         return undefined;
       }
 

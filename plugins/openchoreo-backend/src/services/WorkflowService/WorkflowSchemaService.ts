@@ -3,7 +3,10 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
+import {
+  fetchAllResources,
+  DEFAULT_PAGE_LIMIT,
+} from '@openchoreo/backstage-plugin-common';
 
 // Type definition matching the API response structure
 type WorkflowSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
@@ -68,7 +71,8 @@ export class WorkflowSchemaService {
         }
 
         return {
-          items: data.data.items as OpenChoreoComponents['schemas']['WorkflowResponse'][],
+          items: data.data
+            .items as OpenChoreoComponents['schemas']['WorkflowResponse'][],
           metadata: data.data?.metadata,
         };
       });

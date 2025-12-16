@@ -369,7 +369,11 @@ export class ObservabilityService {
           );
         }
 
-        if (!componentsData || !componentsData.success || !componentsData.data?.items) {
+        if (
+          !componentsData ||
+          !componentsData.success ||
+          !componentsData.data?.items
+        ) {
           throw new Error(
             `API returned unsuccessful response: ${JSON.stringify(
               componentsData,

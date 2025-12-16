@@ -4,7 +4,10 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { fetchAllResources, DEFAULT_PAGE_LIMIT } from '@openchoreo/backstage-plugin-common';
+import {
+  fetchAllResources,
+  DEFAULT_PAGE_LIMIT,
+} from '@openchoreo/backstage-plugin-common';
 
 // Use generated types from OpenAPI spec
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
@@ -108,14 +111,22 @@ export class EnvironmentInfoService implements EnvironmentService {
             );
 
             if (error || !response.ok || !data) {
-              throw new Error(`Failed to fetch environments: ${response.status}`);
+              throw new Error(
+                `Failed to fetch environments: ${response.status}`,
+              );
             }
 
             if (!data.success || !data.data?.items) {
-              return { items: [] as ModelsEnvironment[], metadata: data.data?.metadata };
+              return {
+                items: [] as ModelsEnvironment[],
+                metadata: data.data?.metadata,
+              };
             }
 
-            return { items: data.data.items as ModelsEnvironment[], metadata: data.data?.metadata };
+            return {
+              items: data.data.items as ModelsEnvironment[],
+              metadata: data.data?.metadata,
+            };
           });
 
           return items;
@@ -141,10 +152,12 @@ export class EnvironmentInfoService implements EnvironmentService {
                   },
                 },
               },
-          );
+            );
 
             if (error || !response.ok || !data) {
-              throw new Error(`Failed to fetch release bindings: ${response.status}`);
+              throw new Error(
+                `Failed to fetch release bindings: ${response.status}`,
+              );
             }
 
             if (!data.success || !data.data?.items) {

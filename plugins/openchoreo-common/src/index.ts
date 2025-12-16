@@ -1,4 +1,8 @@
-export { CHOREO_ANNOTATIONS, CHOREO_LABELS, DEFAULT_PAGE_LIMIT } from './constants';
+export {
+  CHOREO_ANNOTATIONS,
+  CHOREO_LABELS,
+  DEFAULT_PAGE_LIMIT,
+} from './constants';
 export {
   getRepositoryInfo,
   getRepositoryUrl,
