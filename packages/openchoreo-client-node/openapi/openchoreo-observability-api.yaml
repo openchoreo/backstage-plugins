@@ -20,6 +20,8 @@ tags:
     description: Trace retrieval endpoints
   - name: Metrics
     description: Resource metrics endpoints
+  - name: RCA Reports
+    description: AI-powered Root Cause Analysis report retrieval endpoints
   - name: Health
     description: Health check endpoints
 
@@ -351,6 +353,104 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/rca-reports/project/{projectUid}:
+    post:
+      tags:
+        - RCA Reports
+      summary: Get RCA reports by project
+      description: Retrieve AI-powered Root Cause Analysis reports for a specific project with optional filtering
+      operationId: getRCAReportsByProject
+      parameters:
+        - name: projectUid
+          in: path
+          required: true
+          description: The unique identifier of the project
+          schema:
+            type: string
+            example: '8a4c5e3f-9a3b-4a9e-b1e6-2c8d409f3a7b'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRCAReportsRequest'
+      responses:
+        '200':
+          description: Successfully retrieved RCA reports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RCAReportsResponse'
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: RCA service not available
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'RCA service not available'
+
+  /api/rca-reports/alert/{alertId}:
+    get:
+      tags:
+        - RCA Reports
+      summary: Get single RCA report by alert
+      description: Retrieve a single AI-powered Root Cause Analysis report for a specific alert. Returns the latest version by default, or a specific version if provided via query parameter.
+      operationId: getRCAReportByAlert
+      parameters:
+        - name: alertId
+          in: path
+          required: true
+          description: The unique identifier of the alert
+          schema:
+            type: string
+            example: 'alert-789'
+        - name: version
+          in: query
+          required: false
+          description: Specific version number of the report to retrieve. If not provided, returns the latest version.
+          schema:
+            type: integer
+            minimum: 1
+            example: 2
+      responses:
+        '200':
+          description: Successfully retrieved RCA report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RCAReportDetailed'
+        '404':
+          description: RCA report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: RCA service not available
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 'RCA service not available'
 
 components:
   schemas:
@@ -941,3 +1041,671 @@ components:
           type: string
           description: Human-readable error message
           example: 'Invalid request format'
+
+    ProjectRCAReportsRequest:
+      type: object
+      required:
+        - startTime
+        - endTime
+        - environmentUid
+      properties:
+        componentUids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Array of component UIDs to filter reports (optional)
+          example:
+            [
+              '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b',
+              '3f7b9e1a-4c6d-4e8f-a2b5-7d1c3e8f4a9b',
+            ]
+        environmentUid:
+          type: string
+          format: uuid
+          description: Environment UID to filter reports
+          example: '2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c'
+        startTime:
+          type: string
+          format: date-time
+          description: Start time for report query in RFC3339 format
+          example: '2025-01-10T00:00:00Z'
+        endTime:
+          type: string
+          format: date-time
+          description: End time for report query in RFC3339 format
+          example: '2025-01-10T23:59:59Z'
+        status:
+          type: string
+          description: Filter by report status (optional)
+          enum: [pending, completed, failed]
+          example: 'completed'
+        limit:
+          type: integer
+          description: Maximum number of reports to return
+          default: 100
+          minimum: 1
+          maximum: 10000
+          example: 100
+
+    RCAReportSummary:
+      type: object
+      properties:
+        alertId:
+          type: string
+          description: Alert identifier
+          example: 'alert-789'
+        projectUid:
+          type: string
+          format: uuid
+          description: Project UID
+          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
+        reportId:
+          type: string
+          description: Report identifier
+          example: 'report-456'
+        timestamp:
+          type: string
+          format: date-time
+          description: Report generation timestamp
+          example: '2025-01-10T12:34:56.789Z'
+        summary:
+          type: string
+          description: Brief summary of the RCA report
+          example: 'High CPU usage detected in authentication service'
+        status:
+          type: string
+          description: Report generation status
+          enum: [pending, completed, failed]
+          example: 'completed'
+
+    RCAReportsResponse:
+      type: object
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/RCAReportSummary'
+          description: Array of RCA report summaries
+        totalCount:
+          type: integer
+          description: Total number of matching reports
+          example: 42
+        tookMs:
+          type: integer
+          description: Query execution time in milliseconds
+          example: 15
+
+    RCAReportDetailed:
+      type: object
+      description: Full AI-powered Root Cause Analysis report with version information
+      additionalProperties: true
+      properties:
+        alertId:
+          type: string
+          description: Alert identifier
+          example: 'alert-789'
+        projectUid:
+          type: string
+          format: uuid
+          description: Project UID
+          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
+        reportVersion:
+          type: integer
+          description: The version number of the report being returned
+          example: 2
+        reportId:
+          type: string
+          description: Report identifier for this version
+          example: 'report-456'
+        timestamp:
+          type: string
+          format: date-time
+          description: Report generation timestamp for this version
+          example: '2025-01-10T12:34:56.789Z'
+        status:
+          type: string
+          description: Report generation status for this version
+          enum: [pending, completed, failed]
+          example: 'completed'
+        availableVersions:
+          type: array
+          items:
+            type: integer
+          description: List of all available version numbers for this alert (sorted descending, latest first)
+          example: [2, 1]
+        report:
+          $ref: '#/components/schemas/RCAReport'
+          description: The complete Root Cause Analysis report content
+
+    RCAReport:
+      type: object
+      description: Complete Root Cause Analysis Report for OpenChoreo incidents
+      required:
+        - summary
+        - root_causes
+        - evidence
+        - recommendations
+      properties:
+        summary:
+          type: string
+          description: Executive summary - maximum 2 sentences describing the issue, impact, and root cause
+          example: 'The analytics service experienced 500 errors due to database connection pool exhaustion. This was caused by a memory leak in the connection handling code introduced in version 2.3.1.'
+        root_causes:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RootCause'
+          description: Identified root causes in order of significance
+        evidence:
+          $ref: '#/components/schemas/Evidence'
+          description: Concrete evidence supporting the root cause analysis, organized by telemetry type
+        investigation_path:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvestigationStep'
+          description: Sequential steps the agent took during investigation (5-10 significant steps typically)
+        positive_findings:
+          type: array
+          items:
+            type: string
+          description: Areas where the system was functioning normally, providing context and ruling out potential causes
+          example:
+            [
+              'CPU and memory usage were within normal ranges for frontend component',
+              'No network connectivity issues detected',
+            ]
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineEvent'
+          description: Chronological sequence of significant system events discovered through analysis
+        recommendations:
+          $ref: '#/components/schemas/Recommendations'
+
+    RootCause:
+      type: object
+      description: An identified root cause
+      required:
+        - description
+        - confidence
+        - evidence_summary
+      properties:
+        description:
+          type: string
+          description: Detailed description of the root cause. Be specific about what failed and why.
+          example: 'Database connection pool exhausted due to connections not being properly released after query completion'
+        confidence:
+          type: string
+          enum: [high, medium, low]
+          description: AI confidence level in this root cause determination
+          example: 'high'
+        affected_components:
+          type: array
+          items:
+            type: string
+          description: Component IDs affected by this root cause. Origin component listed first if identifiable.
+          example: ['analytics-service', 'database-proxy']
+        evidence_summary:
+          type: string
+          description: Brief summary of key evidence supporting this root cause
+          example: 'Error logs show "connection pool exhausted" messages. Metrics indicate increasing connection count without corresponding decreases.'
+
+    Evidence:
+      type: object
+      description: Comprehensive evidence organized by telemetry type
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEvidence'
+          description: Significant logs from the investigation
+        metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricEvidence'
+          description: Metric observations with statistical analysis per category
+        traces:
+          type: array
+          items:
+            $ref: '#/components/schemas/TraceEvidence'
+          description: Significant traces showing latency issues, errors, or cascading failures
+        correlations:
+          type: array
+          items:
+            type: string
+          description: Key correlations found between different telemetry sources
+          example:
+            [
+              'High CPU usage at 08:15 coincides with database timeout errors in logs and slow traces',
+            ]
+
+    LogEvidence:
+      type: object
+      description: Evidence from application logs
+      required:
+        - timestamp
+        - log_message
+        - log_level
+        - component_uid
+        - project_uid
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of the log entry
+          example: '2025-01-10T08:15:23.456Z'
+        log_message:
+          type: string
+          description: The actual log message content
+          example: 'ERROR: Database connection timeout after 30s'
+        log_level:
+          type: string
+          enum: [ERROR, WARN, INFO, DEBUG]
+          description: Log severity level
+          example: 'ERROR'
+        component_uid:
+          type: string
+          description: UID of the component that generated this log
+          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
+        project_uid:
+          type: string
+          description: UID of the project that component belongs to
+          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
+        significance:
+          type: string
+          nullable: true
+          description: Why this log is significant to the RCA
+          example: 'First occurrence of database timeout error, coinciding with spike in response times'
+
+    MetricEvidence:
+      type: object
+      description: Evidence from metrics data with statistical analysis per category
+      required:
+        - component_uid
+        - description
+      properties:
+        component_uid:
+          type: string
+          description: UID of the component
+          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
+        description:
+          type: string
+          description: Overall description of what was observed across all metric categories
+          example: 'CPU usage spiked to 95% at 08:15 UTC while memory remained stable'
+        cpu_usage:
+          $ref: '#/components/schemas/MetricCategoryStats'
+          nullable: true
+          description: Statistical analysis of CPU usage over time
+        memory:
+          $ref: '#/components/schemas/MetricCategoryStats'
+          nullable: true
+          description: Statistical analysis of memory usage over time
+        cpu_request:
+          type: number
+          nullable: true
+          description: Configured CPU request value in cores
+          example: 0.05
+        cpu_limit:
+          type: number
+          nullable: true
+          description: Configured CPU limit value in cores
+          example: 0.2
+        memory_request:
+          type: number
+          nullable: true
+          description: Configured memory request value in bytes
+          example: 536870912
+        memory_limit:
+          type: number
+          nullable: true
+          description: Configured memory limit value in bytes
+          example: 1073741824
+        cpu_pressure:
+          $ref: '#/components/schemas/ResourcePressure'
+          nullable: true
+          description: CPU resource pressure analysis
+        memory_pressure:
+          $ref: '#/components/schemas/ResourcePressure'
+          nullable: true
+          description: Memory resource pressure analysis
+        cpu_memory_correlation:
+          type: number
+          nullable: true
+          description: Pearson correlation between CPU and memory usage (-1 to 1)
+          example: 0.85
+        notable_events:
+          type: array
+          items:
+            type: string
+          description: List of notable events across all metric categories
+          example:
+            [
+              'CPU breached 80% threshold at 08:15 UTC',
+              'Memory spiked to 95% at 08:20 UTC',
+            ]
+
+    MetricCategoryStats:
+      type: object
+      description: Statistical analysis for a metric category
+      properties:
+        mean:
+          type: number
+          nullable: true
+          description: Mean (average) value across the time window
+          example: 0.75
+        median:
+          type: number
+          nullable: true
+          description: Median value
+          example: 0.72
+        minimum:
+          type: number
+          nullable: true
+          description: Minimum value observed
+          example: 0.45
+        maximum:
+          type: number
+          nullable: true
+          description: Maximum value observed
+          example: 0.95
+        std_deviation:
+          type: number
+          nullable: true
+          description: Standard deviation
+          example: 0.12
+        coefficient_of_variation:
+          type: number
+          nullable: true
+          description: Coefficient of variation (std_dev / mean), indicates relative variability
+          example: 0.16
+        p90:
+          type: number
+          nullable: true
+          description: 90th percentile value
+          example: 0.88
+        p95:
+          type: number
+          nullable: true
+          description: 95th percentile value
+          example: 0.92
+        spike_count:
+          type: integer
+          nullable: true
+          description: Number of anomalous spikes detected (Z-score > 3)
+          example: 3
+        max_spike_magnitude:
+          type: number
+          nullable: true
+          description: Maximum spike magnitude in standard deviations from mean
+          example: 4.2
+        largest_drop:
+          type: number
+          nullable: true
+          description: Largest sudden drop in value (most negative change)
+          example: -0.35
+        start_time:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO 8601 timestamp of first data point
+          example: '2025-01-10T08:00:00Z'
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO 8601 timestamp of last data point
+          example: '2025-01-10T09:00:00Z'
+
+    ResourcePressure:
+      type: object
+      description: Resource pressure analysis comparing usage to configured requests and limits
+      properties:
+        avg_usage_to_request_ratio:
+          type: number
+          nullable: true
+          description: Average ratio of usage to request (e.g., 0.5 means using 50% of requested resources)
+          example: 1.2
+        avg_usage_to_limit_ratio:
+          type: number
+          nullable: true
+          description: Average ratio of usage to limit (e.g., 0.8 means using 80% of limit)
+          example: 0.8
+        exceeded_requests:
+          type: boolean
+          nullable: true
+          description: Whether usage exceeded configured requests at any point
+          example: true
+        exceeded_limits:
+          type: boolean
+          nullable: true
+          description: Whether usage exceeded configured limits at any point (critical issue)
+          example: false
+
+    TraceEvidence:
+      type: object
+      description: Evidence from distributed traces
+      required:
+        - trace_id
+        - description
+        - total_duration_nanoseconds
+      properties:
+        trace_id:
+          type: string
+          description: Unique trace identifier
+          example: 'f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8'
+        description:
+          type: string
+          description: Description of what this trace shows
+          example: 'Request to /api/users took 5.2 seconds with database query accounting for 4.8 seconds'
+        total_duration_nanoseconds:
+          type: integer
+          format: int64
+          description: Total duration of the entire trace in nanoseconds
+          example: 5200000000
+        significant_spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpanDetails'
+          description: Key spans that are important to understanding this trace
+        affected_components:
+          type: array
+          items:
+            type: string
+          description: Component IDs involved in this trace
+          example: ['api-gateway', 'user-service', 'database']
+
+    SpanDetails:
+      type: object
+      description: Details of a single trace span
+      required:
+        - span_id
+        - name
+        - duration_nanoseconds
+        - start_time
+        - end_time
+      properties:
+        span_id:
+          type: string
+          description: Unique span identifier
+          example: 'ad3537e3f48207d0'
+        name:
+          type: string
+          description: Name/operation of the span
+          example: 'database-query'
+        component_uid:
+          type: string
+          nullable: true
+          description: Component UID for this span
+          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
+        project_uid:
+          type: string
+          nullable: true
+          description: Project UID for this span
+          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
+        duration_nanoseconds:
+          type: integer
+          format: int64
+          description: Duration of this span in nanoseconds
+          example: 4800000000
+        start_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when span started
+          example: '2025-01-10T08:15:23.100Z'
+        end_time:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when span ended
+          example: '2025-01-10T08:15:27.900Z'
+        parent_span_id:
+          type: string
+          nullable: true
+          description: Parent span ID if applicable
+          example: 'b72e731db5edfd1d'
+
+    InvestigationStep:
+      type: object
+      description: A significant step the agent took during investigation
+      required:
+        - action
+        - outcome
+      properties:
+        action:
+          type: string
+          description: What the agent investigated
+          example: 'Analyzed error logs from analytics-service'
+        rationale:
+          type: string
+          nullable: true
+          description: Why the agent took this step
+          example: 'Previous step showed high error rate from this component'
+        outcome:
+          type: string
+          description: What the agent found or concluded from this step
+          example: 'Found 47 database connection timeout errors between 08:15 and 08:20 UTC'
+        hypothesis:
+          type: string
+          nullable: true
+          description: If this step was testing a hypothesis, what was it?
+          example: 'Database connection pool may be exhausted'
+        hypothesis_confirmed:
+          type: boolean
+          nullable: true
+          description: If testing a hypothesis, was it confirmed or rejected?
+          example: true
+
+    TimelineEvent:
+      type: object
+      description: A significant event that occurred in the system
+      required:
+        - timestamp
+        - event_description
+        - source
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of when the event occurred
+          example: '2025-01-10T08:15:00Z'
+        event_description:
+          type: string
+          description: Description of what happened in the system
+          example: 'analytics-service started returning 500 errors'
+        source:
+          type: string
+          enum: [logs, metrics, traces]
+          description: Which telemetry source revealed this event
+          example: 'logs'
+        affected_components:
+          type: array
+          items:
+            type: string
+          description: Component IDs involved in this event
+          example: ['analytics-service']
+        aggregated_count:
+          type: integer
+          nullable: true
+          description: If this event represents multiple similar occurrences, how many times did it occur?
+          example: 47
+        time_range_start:
+          type: string
+          format: date-time
+          nullable: true
+          description: If aggregated, ISO 8601 timestamp of first occurrence
+          example: '2025-01-10T08:15:00Z'
+        time_range_end:
+          type: string
+          format: date-time
+          nullable: true
+          description: If aggregated, ISO 8601 timestamp of last occurrence
+          example: '2025-01-10T08:20:00Z'
+
+    Recommendations:
+      type: object
+      description: Actionable recommendations to prevent recurrence
+      properties:
+        immediate:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImmediateAction'
+          description: Actions to take immediately to resolve or mitigate the issue
+        future:
+          type: array
+          items:
+            $ref: '#/components/schemas/FutureAction'
+          description: Actions to take in the future to prevent recurrence
+        monitoring_improvements:
+          type: array
+          items:
+            type: string
+          description: Suggestions for additional monitoring, alerting, or observability improvements
+          example:
+            [
+              'Add alerting for database connection pool usage above 80%',
+              'Implement distributed tracing for database queries',
+            ]
+
+    ImmediateAction:
+      type: object
+      description: An immediate action to resolve or mitigate the issue
+      required:
+        - action
+        - priority
+      properties:
+        action:
+          type: string
+          description: Description of the immediate action
+          example: 'Restart analytics-service to release stuck database connections'
+        priority:
+          type: string
+          enum: [critical, high, medium]
+          description: Priority level of this action
+          example: 'critical'
+        estimated_impact:
+          type: string
+          nullable: true
+          description: Expected impact of taking this action
+          example: 'Will restore service functionality within 5 minutes'
+        affected_components:
+          type: array
+          items:
+            type: string
+          description: Component IDs affected by this action
+          example: ['analytics-service']
+
+    FutureAction:
+      type: object
+      description: An action to take in the future (short-term or long-term)
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          description: Description of the action
+          example: 'Review and fix connection pooling logic to ensure connections are properly released'
+        rationale:
+          type: string
+          nullable: true
+          description: Why this action is recommended
+          example: 'Will prevent connection pool exhaustion from recurring'

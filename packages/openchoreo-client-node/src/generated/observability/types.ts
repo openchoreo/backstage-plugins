@@ -184,6 +184,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/rca-reports/project/{projectUid}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get RCA reports by project
+     * @description Retrieve AI-powered Root Cause Analysis reports for a specific project with optional filtering
+     */
+    post: operations['getRCAReportsByProject'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/rca-reports/alert/{alertId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get single RCA report by alert
+     * @description Retrieve a single AI-powered Root Cause Analysis report for a specific alert. Returns the latest version by default, or a specific version if provided via query parameter.
+     */
+    get: operations['getRCAReportByAlert'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -797,6 +837,595 @@ export interface components {
        */
       message: string;
     };
+    ProjectRCAReportsRequest: {
+      /**
+       * @description Array of component UIDs to filter reports (optional)
+       * @example [
+       *       "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
+       *       "3f7b9e1a-4c6d-4e8f-a2b5-7d1c3e8f4a9b"
+       *     ]
+       */
+      componentUids?: string[];
+      /**
+       * Format: uuid
+       * @description Environment UID to filter reports
+       * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
+       */
+      environmentUid: string;
+      /**
+       * Format: date-time
+       * @description Start time for report query in RFC3339 format
+       * @example 2025-01-10T00:00:00Z
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description End time for report query in RFC3339 format
+       * @example 2025-01-10T23:59:59Z
+       */
+      endTime: string;
+      /**
+       * @description Filter by report status (optional)
+       * @example completed
+       * @enum {string}
+       */
+      status?: 'pending' | 'completed' | 'failed';
+      /**
+       * @description Maximum number of reports to return
+       * @default 100
+       * @example 100
+       */
+      limit: number;
+    };
+    RCAReportSummary: {
+      /**
+       * @description Alert identifier
+       * @example alert-789
+       */
+      alertId?: string;
+      /**
+       * Format: uuid
+       * @description Project UID
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      projectUid?: string;
+      /**
+       * @description Report identifier
+       * @example report-456
+       */
+      reportId?: string;
+      /**
+       * Format: date-time
+       * @description Report generation timestamp
+       * @example 2025-01-10T12:34:56.789Z
+       */
+      timestamp?: string;
+      /**
+       * @description Brief summary of the RCA report
+       * @example High CPU usage detected in authentication service
+       */
+      summary?: string;
+      /**
+       * @description Report generation status
+       * @example completed
+       * @enum {string}
+       */
+      status?: 'pending' | 'completed' | 'failed';
+    };
+    RCAReportsResponse: {
+      /** @description Array of RCA report summaries */
+      reports?: components['schemas']['RCAReportSummary'][];
+      /**
+       * @description Total number of matching reports
+       * @example 42
+       */
+      totalCount?: number;
+      /**
+       * @description Query execution time in milliseconds
+       * @example 15
+       */
+      tookMs?: number;
+    };
+    /** @description Full AI-powered Root Cause Analysis report with version information */
+    RCAReportDetailed: {
+      /**
+       * @description Alert identifier
+       * @example alert-789
+       */
+      alertId?: string;
+      /**
+       * Format: uuid
+       * @description Project UID
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      projectUid?: string;
+      /**
+       * @description The version number of the report being returned
+       * @example 2
+       */
+      reportVersion?: number;
+      /**
+       * @description Report identifier for this version
+       * @example report-456
+       */
+      reportId?: string;
+      /**
+       * Format: date-time
+       * @description Report generation timestamp for this version
+       * @example 2025-01-10T12:34:56.789Z
+       */
+      timestamp?: string;
+      /**
+       * @description Report generation status for this version
+       * @example completed
+       * @enum {string}
+       */
+      status?: 'pending' | 'completed' | 'failed';
+      /**
+       * @description List of all available version numbers for this alert (sorted descending, latest first)
+       * @example [
+       *       2,
+       *       1
+       *     ]
+       */
+      availableVersions?: number[];
+      /** @description The complete Root Cause Analysis report content */
+      report?: components['schemas']['RCAReport'];
+    } & {
+      [key: string]: unknown;
+    };
+    /** @description Complete Root Cause Analysis Report for OpenChoreo incidents */
+    RCAReport: {
+      /**
+       * @description Executive summary - maximum 2 sentences describing the issue, impact, and root cause
+       * @example The analytics service experienced 500 errors due to database connection pool exhaustion. This was caused by a memory leak in the connection handling code introduced in version 2.3.1.
+       */
+      summary: string;
+      /** @description Identified root causes in order of significance */
+      root_causes: components['schemas']['RootCause'][];
+      /** @description Concrete evidence supporting the root cause analysis, organized by telemetry type */
+      evidence: components['schemas']['Evidence'];
+      /** @description Sequential steps the agent took during investigation (5-10 significant steps typically) */
+      investigation_path?: components['schemas']['InvestigationStep'][];
+      /**
+       * @description Areas where the system was functioning normally, providing context and ruling out potential causes
+       * @example [
+       *       "CPU and memory usage were within normal ranges for frontend component",
+       *       "No network connectivity issues detected"
+       *     ]
+       */
+      positive_findings?: string[];
+      /** @description Chronological sequence of significant system events discovered through analysis */
+      timeline?: components['schemas']['TimelineEvent'][];
+      recommendations: components['schemas']['Recommendations'];
+    };
+    /** @description An identified root cause */
+    RootCause: {
+      /**
+       * @description Detailed description of the root cause. Be specific about what failed and why.
+       * @example Database connection pool exhausted due to connections not being properly released after query completion
+       */
+      description: string;
+      /**
+       * @description AI confidence level in this root cause determination
+       * @example high
+       * @enum {string}
+       */
+      confidence: 'high' | 'medium' | 'low';
+      /**
+       * @description Component IDs affected by this root cause. Origin component listed first if identifiable.
+       * @example [
+       *       "analytics-service",
+       *       "database-proxy"
+       *     ]
+       */
+      affected_components?: string[];
+      /**
+       * @description Brief summary of key evidence supporting this root cause
+       * @example Error logs show "connection pool exhausted" messages. Metrics indicate increasing connection count without corresponding decreases.
+       */
+      evidence_summary: string;
+    };
+    /** @description Comprehensive evidence organized by telemetry type */
+    Evidence: {
+      /** @description Significant logs from the investigation */
+      logs?: components['schemas']['LogEvidence'][];
+      /** @description Metric observations with statistical analysis per category */
+      metrics?: components['schemas']['MetricEvidence'][];
+      /** @description Significant traces showing latency issues, errors, or cascading failures */
+      traces?: components['schemas']['TraceEvidence'][];
+      /**
+       * @description Key correlations found between different telemetry sources
+       * @example [
+       *       "High CPU usage at 08:15 coincides with database timeout errors in logs and slow traces"
+       *     ]
+       */
+      correlations?: string[];
+    };
+    /** @description Evidence from application logs */
+    LogEvidence: {
+      /**
+       * Format: date-time
+       * @description ISO 8601 timestamp of the log entry
+       * @example 2025-01-10T08:15:23.456Z
+       */
+      timestamp: string;
+      /**
+       * @description The actual log message content
+       * @example ERROR: Database connection timeout after 30s
+       */
+      log_message: string;
+      /**
+       * @description Log severity level
+       * @example ERROR
+       * @enum {string}
+       */
+      log_level: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
+      /**
+       * @description UID of the component that generated this log
+       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
+       */
+      component_uid: string;
+      /**
+       * @description UID of the project that component belongs to
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      project_uid: string;
+      /**
+       * @description Why this log is significant to the RCA
+       * @example First occurrence of database timeout error, coinciding with spike in response times
+       */
+      significance?: string | null;
+    };
+    /** @description Evidence from metrics data with statistical analysis per category */
+    MetricEvidence: {
+      /**
+       * @description UID of the component
+       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
+       */
+      component_uid: string;
+      /**
+       * @description Overall description of what was observed across all metric categories
+       * @example CPU usage spiked to 95% at 08:15 UTC while memory remained stable
+       */
+      description: string;
+      /** @description Statistical analysis of CPU usage over time */
+      cpu_usage?: components['schemas']['MetricCategoryStats'];
+      /** @description Statistical analysis of memory usage over time */
+      memory?: components['schemas']['MetricCategoryStats'];
+      /**
+       * @description Configured CPU request value in cores
+       * @example 0.05
+       */
+      cpu_request?: number | null;
+      /**
+       * @description Configured CPU limit value in cores
+       * @example 0.2
+       */
+      cpu_limit?: number | null;
+      /**
+       * @description Configured memory request value in bytes
+       * @example 536870912
+       */
+      memory_request?: number | null;
+      /**
+       * @description Configured memory limit value in bytes
+       * @example 1073741824
+       */
+      memory_limit?: number | null;
+      /** @description CPU resource pressure analysis */
+      cpu_pressure?: components['schemas']['ResourcePressure'];
+      /** @description Memory resource pressure analysis */
+      memory_pressure?: components['schemas']['ResourcePressure'];
+      /**
+       * @description Pearson correlation between CPU and memory usage (-1 to 1)
+       * @example 0.85
+       */
+      cpu_memory_correlation?: number | null;
+      /**
+       * @description List of notable events across all metric categories
+       * @example [
+       *       "CPU breached 80% threshold at 08:15 UTC",
+       *       "Memory spiked to 95% at 08:20 UTC"
+       *     ]
+       */
+      notable_events?: string[];
+    };
+    /** @description Statistical analysis for a metric category */
+    MetricCategoryStats: {
+      /**
+       * @description Mean (average) value across the time window
+       * @example 0.75
+       */
+      mean?: number | null;
+      /**
+       * @description Median value
+       * @example 0.72
+       */
+      median?: number | null;
+      /**
+       * @description Minimum value observed
+       * @example 0.45
+       */
+      minimum?: number | null;
+      /**
+       * @description Maximum value observed
+       * @example 0.95
+       */
+      maximum?: number | null;
+      /**
+       * @description Standard deviation
+       * @example 0.12
+       */
+      std_deviation?: number | null;
+      /**
+       * @description Coefficient of variation (std_dev / mean), indicates relative variability
+       * @example 0.16
+       */
+      coefficient_of_variation?: number | null;
+      /**
+       * @description 90th percentile value
+       * @example 0.88
+       */
+      p90?: number | null;
+      /**
+       * @description 95th percentile value
+       * @example 0.92
+       */
+      p95?: number | null;
+      /**
+       * @description Number of anomalous spikes detected (Z-score > 3)
+       * @example 3
+       */
+      spike_count?: number | null;
+      /**
+       * @description Maximum spike magnitude in standard deviations from mean
+       * @example 4.2
+       */
+      max_spike_magnitude?: number | null;
+      /**
+       * @description Largest sudden drop in value (most negative change)
+       * @example -0.35
+       */
+      largest_drop?: number | null;
+      /**
+       * Format: date-time
+       * @description ISO 8601 timestamp of first data point
+       * @example 2025-01-10T08:00:00Z
+       */
+      start_time?: string | null;
+      /**
+       * Format: date-time
+       * @description ISO 8601 timestamp of last data point
+       * @example 2025-01-10T09:00:00Z
+       */
+      end_time?: string | null;
+    };
+    /** @description Resource pressure analysis comparing usage to configured requests and limits */
+    ResourcePressure: {
+      /**
+       * @description Average ratio of usage to request (e.g., 0.5 means using 50% of requested resources)
+       * @example 1.2
+       */
+      avg_usage_to_request_ratio?: number | null;
+      /**
+       * @description Average ratio of usage to limit (e.g., 0.8 means using 80% of limit)
+       * @example 0.8
+       */
+      avg_usage_to_limit_ratio?: number | null;
+      /**
+       * @description Whether usage exceeded configured requests at any point
+       * @example true
+       */
+      exceeded_requests?: boolean | null;
+      /**
+       * @description Whether usage exceeded configured limits at any point (critical issue)
+       * @example false
+       */
+      exceeded_limits?: boolean | null;
+    };
+    /** @description Evidence from distributed traces */
+    TraceEvidence: {
+      /**
+       * @description Unique trace identifier
+       * @example f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8
+       */
+      trace_id: string;
+      /**
+       * @description Description of what this trace shows
+       * @example Request to /api/users took 5.2 seconds with database query accounting for 4.8 seconds
+       */
+      description: string;
+      /**
+       * Format: int64
+       * @description Total duration of the entire trace in nanoseconds
+       * @example 5200000000
+       */
+      total_duration_nanoseconds: number;
+      /** @description Key spans that are important to understanding this trace */
+      significant_spans?: components['schemas']['SpanDetails'][];
+      /**
+       * @description Component IDs involved in this trace
+       * @example [
+       *       "api-gateway",
+       *       "user-service",
+       *       "database"
+       *     ]
+       */
+      affected_components?: string[];
+    };
+    /** @description Details of a single trace span */
+    SpanDetails: {
+      /**
+       * @description Unique span identifier
+       * @example ad3537e3f48207d0
+       */
+      span_id: string;
+      /**
+       * @description Name/operation of the span
+       * @example database-query
+       */
+      name: string;
+      /**
+       * @description Component UID for this span
+       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
+       */
+      component_uid?: string | null;
+      /**
+       * @description Project UID for this span
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      project_uid?: string | null;
+      /**
+       * Format: int64
+       * @description Duration of this span in nanoseconds
+       * @example 4800000000
+       */
+      duration_nanoseconds: number;
+      /**
+       * Format: date-time
+       * @description ISO 8601 timestamp when span started
+       * @example 2025-01-10T08:15:23.100Z
+       */
+      start_time: string;
+      /**
+       * Format: date-time
+       * @description ISO 8601 timestamp when span ended
+       * @example 2025-01-10T08:15:27.900Z
+       */
+      end_time: string;
+      /**
+       * @description Parent span ID if applicable
+       * @example b72e731db5edfd1d
+       */
+      parent_span_id?: string | null;
+    };
+    /** @description A significant step the agent took during investigation */
+    InvestigationStep: {
+      /**
+       * @description What the agent investigated
+       * @example Analyzed error logs from analytics-service
+       */
+      action: string;
+      /**
+       * @description Why the agent took this step
+       * @example Previous step showed high error rate from this component
+       */
+      rationale?: string | null;
+      /**
+       * @description What the agent found or concluded from this step
+       * @example Found 47 database connection timeout errors between 08:15 and 08:20 UTC
+       */
+      outcome: string;
+      /**
+       * @description If this step was testing a hypothesis, what was it?
+       * @example Database connection pool may be exhausted
+       */
+      hypothesis?: string | null;
+      /**
+       * @description If testing a hypothesis, was it confirmed or rejected?
+       * @example true
+       */
+      hypothesis_confirmed?: boolean | null;
+    };
+    /** @description A significant event that occurred in the system */
+    TimelineEvent: {
+      /**
+       * Format: date-time
+       * @description ISO 8601 timestamp of when the event occurred
+       * @example 2025-01-10T08:15:00Z
+       */
+      timestamp: string;
+      /**
+       * @description Description of what happened in the system
+       * @example analytics-service started returning 500 errors
+       */
+      event_description: string;
+      /**
+       * @description Which telemetry source revealed this event
+       * @example logs
+       * @enum {string}
+       */
+      source: 'logs' | 'metrics' | 'traces';
+      /**
+       * @description Component IDs involved in this event
+       * @example [
+       *       "analytics-service"
+       *     ]
+       */
+      affected_components?: string[];
+      /**
+       * @description If this event represents multiple similar occurrences, how many times did it occur?
+       * @example 47
+       */
+      aggregated_count?: number | null;
+      /**
+       * Format: date-time
+       * @description If aggregated, ISO 8601 timestamp of first occurrence
+       * @example 2025-01-10T08:15:00Z
+       */
+      time_range_start?: string | null;
+      /**
+       * Format: date-time
+       * @description If aggregated, ISO 8601 timestamp of last occurrence
+       * @example 2025-01-10T08:20:00Z
+       */
+      time_range_end?: string | null;
+    };
+    /** @description Actionable recommendations to prevent recurrence */
+    Recommendations: {
+      /** @description Actions to take immediately to resolve or mitigate the issue */
+      immediate?: components['schemas']['ImmediateAction'][];
+      /** @description Actions to take in the future to prevent recurrence */
+      future?: components['schemas']['FutureAction'][];
+      /**
+       * @description Suggestions for additional monitoring, alerting, or observability improvements
+       * @example [
+       *       "Add alerting for database connection pool usage above 80%",
+       *       "Implement distributed tracing for database queries"
+       *     ]
+       */
+      monitoring_improvements?: string[];
+    };
+    /** @description An immediate action to resolve or mitigate the issue */
+    ImmediateAction: {
+      /**
+       * @description Description of the immediate action
+       * @example Restart analytics-service to release stuck database connections
+       */
+      action: string;
+      /**
+       * @description Priority level of this action
+       * @example critical
+       * @enum {string}
+       */
+      priority: 'critical' | 'high' | 'medium';
+      /**
+       * @description Expected impact of taking this action
+       * @example Will restore service functionality within 5 minutes
+       */
+      estimated_impact?: string | null;
+      /**
+       * @description Component IDs affected by this action
+       * @example [
+       *       "analytics-service"
+       *     ]
+       */
+      affected_components?: string[];
+    };
+    /** @description An action to take in the future (short-term or long-term) */
+    FutureAction: {
+      /**
+       * @description Description of the action
+       * @example Review and fix connection pooling logic to ensure connections are properly released
+       */
+      action: string;
+      /**
+       * @description Why this action is recommended
+       * @example Will prevent connection pool exhaustion from recurring
+       */
+      rationale?: string | null;
+    };
   };
   responses: never;
   parameters: never;
@@ -1187,6 +1816,113 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getRCAReportsByProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The unique identifier of the project */
+        projectUid: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProjectRCAReportsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved RCA reports */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RCAReportsResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description RCA service not available */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
+        };
+      };
+    };
+  };
+  getRCAReportByAlert: {
+    parameters: {
+      query?: {
+        /** @description Specific version number of the report to retrieve. If not provided, returns the latest version. */
+        version?: number;
+      };
+      header?: never;
+      path: {
+        /** @description The unique identifier of the alert */
+        alertId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successfully retrieved RCA report */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RCAReportDetailed'];
+        };
+      };
+      /** @description RCA report not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description RCA service not available */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'text/plain': string;
         };
       };
     };

@@ -35,6 +35,118 @@ export class ObservabilityService {
   }
 
   /**
+   * Resolves the observability URL for a given project and environment.
+   * This is a temporary helper function to avoid code duplication.
+   *
+   * @param orgName - The organization name
+   * @param projectName - The project name
+   * @param environmentName - The environment name
+   * @param userToken - Optional user token for authentication
+   * @returns The resolved observer URL
+   */
+  private async resolveObserverUrl(
+    orgName: string,
+    projectName: string,
+    environmentName: string,
+    userToken?: string,
+  ): Promise<string> {
+    if (!environmentName) {
+      throw new Error('Environment is required to resolve observer URL');
+    }
+
+    const mainClient = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token: userToken,
+      logger: this.logger,
+    });
+
+    // Get the list of components from the main API using the project
+    const {
+      data: componentsData,
+      error: componentsError,
+      response: componentsResponse,
+    } = await mainClient.GET(
+      '/orgs/{orgName}/projects/{projectName}/components',
+      {
+        params: { path: { orgName, projectName } },
+      },
+    );
+
+    if (componentsError || !componentsResponse.ok) {
+      throw new Error(
+        `Failed to get components: ${componentsResponse.status} ${componentsResponse.statusText}`,
+      );
+    }
+
+    if (!componentsData.success || !componentsData.data?.items) {
+      throw new Error(
+        `API returned unsuccessful response: ${JSON.stringify(componentsData)}`,
+      );
+    }
+
+    const components = componentsData.data.items as Component[];
+
+    if (!components || components.length === 0) {
+      throw new Error(
+        `No components found in project ${projectName}. Cannot get observer URL.`,
+      );
+    }
+
+    const firstComponent = components[0];
+    if (!firstComponent.name) {
+      throw new Error(
+        `Component name not found for first component in project ${projectName}`,
+      );
+    }
+
+    this.logger.debug(
+      `Using component ${firstComponent.name} to get observer URL for project ${projectName}`,
+    );
+
+    // Get observer URL from the main API using a component
+    const {
+      data: urlData,
+      error: urlError,
+      response: urlResponse,
+    } = await mainClient.GET(
+      '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url' as any,
+      {
+        params: {
+          path: {
+            orgName,
+            projectName,
+            componentName: firstComponent.name,
+            environmentName,
+          },
+        },
+      },
+    );
+
+    if (urlError || !urlResponse.ok) {
+      throw new Error(
+        `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
+      );
+    }
+
+    if (!urlData.success || !urlData.data) {
+      throw new Error(
+        `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
+      );
+    }
+
+    const observerUrl = urlData.data.observerUrl;
+    if (!observerUrl) {
+      throw new ObservabilityNotConfiguredError(projectName);
+    }
+
+    this.logger.debug(
+      `Resolved observer URL: ${observerUrl} for project ${projectName}, environment ${environmentName}`,
+    );
+
+    return observerUrl;
+  }
+
+  /**
    * Fetches environments for observability filtering purposes.
    *
    * @param organizationName - The organization name
@@ -525,6 +637,245 @@ export class ObservabilityService {
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error fetching traces for project ${projectId} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches RCA reports for a specific project.
+   * This method dynamically resolves the observability URL from the main API,
+   * then fetches RCA reports from the observability service.
+   *
+   * @param projectId - The ID of the project
+   * @param environmentId - The ID of the environment
+   * @param orgName - The organization name
+   * @param projectName - The project name
+   * @param environmentName - The name of the environment
+   * @param componentUids - Array of component UIDs to filter reports (optional)
+   * @param options - Parameters for filtering reports
+   * @param options.startTime - The start time of the reports (required)
+   * @param options.endTime - The end time of the reports (required)
+   * @param options.status - Filter by report status (pending/completed/failed) (optional)
+   * @param options.limit - The maximum number of reports to return (optional)
+   * @param userToken - Optional user token for authentication (takes precedence over default token)
+   * @returns Promise with RCA reports data
+   */
+  async fetchRCAReportsByProject(
+    projectId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    environmentName: string,
+    componentUids: string[],
+    options: {
+      startTime: string;
+      endTime: string;
+      status?: 'pending' | 'completed' | 'failed';
+      limit?: number;
+    },
+    userToken?: string,
+  ): Promise<{
+    reports: Array<{
+      alertId?: string;
+      projectUid?: string;
+      reportId?: string;
+      timestamp?: string;
+      summary?: string;
+      status?: 'pending' | 'completed' | 'failed';
+    }>;
+    totalCount?: number;
+    tookMs?: number;
+  }> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching RCA reports for project ${projectName} in environment ${environmentName}`,
+      );
+
+      // Resolve the observer URL using the helper function
+      const observerUrl = await this.resolveObserverUrl(
+        orgName,
+        projectName,
+        environmentName,
+        userToken,
+      );
+
+      // Use the observability client with the resolved URL
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        userToken,
+        this.logger,
+      );
+
+      this.logger.debug(
+        `Sending RCA reports request to ${observerUrl}/api/rca-reports/project/${projectId}`,
+      );
+
+      const requestBody = {
+        componentUids: componentUids.length > 0 ? componentUids : undefined,
+        environmentUid: environmentId,
+        startTime: options.startTime,
+        endTime: options.endTime,
+        status: options?.status,
+        limit: options?.limit || 100,
+      };
+
+      this.logger.debug(
+        `Calling POST ${observerUrl}/api/rca-reports/project/${projectId} with body: ${JSON.stringify(
+          requestBody,
+        )}`,
+      );
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/rca-reports/project/{projectUid}',
+        {
+          params: {
+            path: { projectUid: projectId },
+          },
+          body: requestBody,
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMessage = error
+          ? JSON.stringify(error)
+          : `HTTP ${response.status} ${response.statusText}`;
+        const fullUrl = `${observerUrl}/api/rca-reports/project/${projectId}`;
+        this.logger.error(
+          `Failed to fetch RCA reports for project ${projectId} from ${fullUrl}: ${errorMessage}`,
+        );
+        throw new Error(
+          `Failed to fetch RCA reports from ${fullUrl}: ${errorMessage}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully fetched RCA reports for project ${projectId}: ${
+          data?.reports?.length || 0
+        } reports`,
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `RCA reports fetch completed for project ${projectId} (${totalTime}ms)`,
+      );
+
+      return {
+        reports: data?.reports || [],
+        totalCount: data?.totalCount,
+        tookMs: data?.tookMs,
+      };
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching RCA reports for project ${projectId} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches a single RCA report by alert ID.
+   * This method dynamically resolves the observability URL from the main API,
+   * then fetches the RCA report from the observability service.
+   *
+   * @param alertId - The ID of the alert
+   * @param projectId - The ID of the project
+   * @param environmentId - The ID of the environment
+   * @param orgName - The organization name
+   * @param projectName - The project name
+   * @param environmentName - The name of the environment
+   * @param options - Optional parameters
+   * @param options.version - Specific version number of the report to retrieve
+   * @param userToken - Optional user token for authentication (takes precedence over default token)
+   * @returns Promise with RCA report details
+   */
+  async fetchRCAReportByAlert(
+    alertId: string,
+    _projectId: string,
+    _environmentId: string,
+    orgName: string,
+    projectName: string,
+    environmentName: string,
+    options?: {
+      version?: number;
+    },
+    userToken?: string,
+  ): Promise<{
+    alertId?: string;
+    projectUid?: string;
+    reportVersion?: number;
+    reportId?: string;
+    timestamp?: string;
+    status?: 'pending' | 'completed' | 'failed';
+    availableVersions?: number[];
+    [key: string]: unknown;
+  }> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching RCA report for alert ${alertId} in project ${projectName}, environment ${environmentName}`,
+      );
+
+      // Resolve the observer URL using the helper function
+      const observerUrl = await this.resolveObserverUrl(
+        orgName,
+        projectName,
+        environmentName,
+        userToken,
+      );
+
+      // Use the observability client with the resolved URL
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        userToken,
+        this.logger,
+      );
+
+      this.logger.debug(
+        `Sending RCA report request to ${observerUrl}/api/rca-reports/alert/${alertId}${
+          options?.version ? `?version=${options.version}` : ''
+        }`,
+      );
+
+      const { data, error, response } = await obsClient.GET(
+        '/api/rca-reports/alert/{alertId}',
+        {
+          params: {
+            path: { alertId },
+            query: options?.version ? { version: options.version } : {},
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMessage = error
+          ? JSON.stringify(error)
+          : `HTTP ${response.status} ${response.statusText}`;
+        const fullUrl = `${observerUrl}/api/rca-reports/alert/${alertId}`;
+        this.logger.error(
+          `Failed to fetch RCA report for alert ${alertId} from ${fullUrl}: ${errorMessage}`,
+        );
+        throw new Error(
+          `Failed to fetch RCA report from ${fullUrl}: ${errorMessage}`,
+        );
+      }
+
+      this.logger.debug(`Successfully fetched RCA report for alert ${alertId}`);
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `RCA report fetch completed for alert ${alertId} (${totalTime}ms)`,
+      );
+
+      return data || {};
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching RCA report for alert ${alertId} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
