@@ -4,10 +4,6 @@ import { ReleaseData } from '../ReleaseDataRenderer/types';
  * Extracts the invoke URL from release data by finding HTTPRoute resources
  * and constructing the URL from hostname and path prefix.
  *
- * Based on the pattern:
- * HOSTNAME=$(kubectl get httproute -A -l openchoreo.dev/component=greeting-service -o jsonpath='{.items[0].spec.hostnames[0]}')
- * PATH_PREFIX=$(kubectl get httproute -A -l openchoreo.dev/component=greeting-service -o jsonpath='{.items[0].spec.rules[0].matches[0].path.value}')
- * curl "http://${HOSTNAME}:9080${PATH_PREFIX}/greeter/greet"
  */
 export function extractInvokeUrl(
   releaseData: ReleaseData | null,
@@ -43,10 +39,10 @@ export function extractInvokeUrl(
     }
 
     // Construct the invoke URL
-    // Format: http://{hostname}:9080{path} or just http://{hostname}:9080 if no path
+    // Format: http://{hostname}:19080{path} or just http://{hostname}:19080 if no path
     const url = pathValue
-      ? `http://${hostname}:9080${pathValue}`
-      : `http://${hostname}:9080`;
+      ? `http://${hostname}:19080${pathValue}`
+      : `http://${hostname}:19080`;
     return url;
   } catch (error) {
     // If there's any error parsing the structure, return null
