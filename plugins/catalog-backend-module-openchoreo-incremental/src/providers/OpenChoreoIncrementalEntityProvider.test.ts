@@ -182,14 +182,17 @@ describe('OpenChoreoIncrementalEntityProvider', () => {
     expect(result.done).toBe(false);
     expect(result.entities).toHaveLength(2);
     expect(result.cursor).toEqual({
-      phase: 'projects',
+      componentApiCursor: undefined,
+      currentOrgIndex: 0,
+      currentProjectIndex: 0,
       orgApiCursor: undefined,
       orgQueue: ['org1', 'org2'],
-      currentOrgIndex: 0,
+      phase: 'projects',
+      processedComponents: new Set(),
+      processedOrgs: new Set(['org1', 'org2']),
+      processedProjects: new Set(),
       projectApiCursor: undefined,
       projectQueue: [],
-      currentProjectIndex: 0,
-      componentApiCursor: undefined,
     });
   });
 

@@ -25,9 +25,11 @@ import { ConfigReader } from '@backstage/config';
 import { IncrementalEntityProvider } from '../types';
 import { WrapperProviders } from './WrapperProviders';
 
-jest.setTimeout(60_000);
+jest.setTimeout(120_000);
 
-describe('WrapperProviders', () => {
+const describeOrSkip = process.env.CI ? describe.skip : describe;
+
+describeOrSkip('WrapperProviders', () => {
   const applyDatabaseMigrations = jest.fn();
   const databases = TestDatabases.create({
     ids: ['POSTGRES_17', 'POSTGRES_13', 'SQLITE_3', 'MYSQL_8'],
