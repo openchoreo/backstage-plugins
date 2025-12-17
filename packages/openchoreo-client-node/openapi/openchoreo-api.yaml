@@ -1387,6 +1387,9 @@ components:
         - hierarchy
         - effect
       properties:
+        id:
+          type: integer
+          description: Unique identifier for the mapping
         role_name:
           type: string
         entitlement:
@@ -1397,6 +1400,17 @@ components:
           $ref: '#/components/schemas/PolicyEffectType'
         context:
           type: object
+
+    UpdateRoleRequest:
+      type: object
+      required:
+        - actions
+      properties:
+        actions:
+          type: array
+          items:
+            type: string
+          description: List of actions to assign to the role
 
     EntitlementClaimInfo:
       type: object
@@ -3432,6 +3446,37 @@ paths:
                         $ref: '#/components/schemas/Role'
         '404':
           description: Role not found
+    put:
+      summary: Update a role
+      operationId: updateRole
+      tags:
+        - Authorization
+      parameters:
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Role'
+        '404':
+          description: Role not found
     delete:
       summary: Delete a role
       operationId: removeRole
@@ -3443,11 +3488,20 @@ paths:
           required: true
           schema:
             type: string
+        - name: force
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: If true, force delete the role and all associated mappings
       responses:
         '204':
           description: Role deleted
         '404':
           description: Role not found
+        '409':
+          description: Role is in use by role mappings (use force=true to delete anyway)
 
   /authz/role-mappings:
     get:
@@ -3455,6 +3509,25 @@ paths:
       operationId: listRoleMappings
       tags:
         - Authorization
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter mappings by role name
+        - name: claim
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter mappings by entitlement claim (must be used with value)
+        - name: value
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter mappings by entitlement value (must be used with claim)
       responses:
         '200':
           description: Successful response
@@ -3489,17 +3562,54 @@ paths:
                 $ref: '#/components/schemas/APIResponse'
         '409':
           description: Mapping already exists
-    delete:
-      summary: Remove a role-entitlement mapping
-      operationId: removeRoleMapping
+
+  /authz/role-mappings/{mappingId}:
+    put:
+      summary: Update a role-entitlement mapping
+      operationId: updateRoleMapping
       tags:
         - Authorization
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the mapping to update
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RoleEntitlementMapping'
+      responses:
+        '200':
+          description: Mapping updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RoleEntitlementMapping'
+        '404':
+          description: Mapping not found
+        '409':
+          description: Mapping conflict
+    delete:
+      summary: Remove a role-entitlement mapping
+      operationId: removeRoleMapping
+      tags:
+        - Authorization
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the mapping to delete
       responses:
         '204':
           description: Mapping deleted

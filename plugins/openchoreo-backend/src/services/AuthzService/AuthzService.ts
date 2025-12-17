@@ -270,16 +270,19 @@ export class AuthzService {
   }
 
   async removeRoleMapping(
-    mapping: RoleEntitlementMapping,
+    mappingId: number,
     userToken?: string,
   ): Promise<void> {
-    this.logger.debug(`Deleting role mapping for role: ${mapping.role_name}`);
+    this.logger.debug(`Deleting role mapping with ID: ${mappingId}`);
 
     try {
       const client = this.createClient(userToken);
-      const { error, response } = await client.DELETE('/authz/role-mappings', {
-        body: mapping,
-      });
+      const { error, response } = await client.DELETE(
+        '/authz/role-mappings/{mappingId}',
+        {
+          params: { path: { mappingId } },
+        },
+      );
 
       if (error || !response.ok) {
         const errorMsg = extractErrorMessage(
@@ -291,7 +294,7 @@ export class AuthzService {
       }
 
       this.logger.debug(
-        `Successfully deleted role mapping for role: ${mapping.role_name}`,
+        `Successfully deleted role mapping with ID: ${mappingId}`,
       );
     } catch (err) {
       this.logger.error(`Failed to delete role mapping: ${err}`);

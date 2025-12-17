@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Typography,
   Button,
@@ -27,8 +27,10 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import DeleteIcon from '@material-ui/icons/Delete';
+import EditIcon from '@material-ui/icons/Edit';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
+import ClearIcon from '@material-ui/icons/Clear';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import {
   useMappings,
@@ -100,31 +102,56 @@ const formatHierarchy = (hierarchy: ResourceHierarchy): string => {
 
 export const MappingsTab = () => {
   const classes = useStyles();
-  const { mappings, loading, error, fetchMappings, addMapping, deleteMapping } =
-    useMappings();
+  const {
+    mappings,
+    loading,
+    error,
+    filters,
+    setFilters,
+    fetchMappings,
+    addMapping,
+    updateMapping,
+    deleteMapping,
+  } = useMappings();
   const { roles } = useRoles();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [effectFilter, setEffectFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingMapping, setEditingMapping] =
+    useState<RoleEntitlementMapping | undefined>(undefined);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [mappingToDelete, setMappingToDelete] =
     useState<RoleEntitlementMapping | null>(null);
 
+  // Server-side role filter
+  const handleRoleFilterChange = useCallback(
+    (value: string) => {
+      if (value === 'all') {
+        setFilters({ ...filters, role: undefined });
+      } else {
+        setFilters({ ...filters, role: value });
+      }
+    },
+    [filters, setFilters],
+  );
+
+  // Clear all filters
+  const handleClearFilters = useCallback(() => {
+    setFilters({});
+    setSearchQuery('');
+    setEffectFilter('all');
+  }, [setFilters]);
+
+  // Client-side filtering for effect and search (not supported by API)
   const filteredMappings = useMemo(() => {
     return mappings.filter(mapping => {
-      // Role filter
-      if (roleFilter !== 'all' && mapping.role_name !== roleFilter) {
-        return false;
-      }
-
-      // Effect filter
+      // Effect filter (client-side)
       if (effectFilter !== 'all' && mapping.effect !== effectFilter) {
         return false;
       }
 
-      // Search filter
+      // Search filter (client-side)
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const searchFields = [
@@ -141,9 +168,15 @@ export const MappingsTab = () => {
 
       return true;
     });
-  }, [mappings, searchQuery, roleFilter, effectFilter]);
+  }, [mappings, searchQuery, effectFilter]);
 
   const handleCreateMapping = () => {
+    setEditingMapping(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditMapping = (mapping: RoleEntitlementMapping) => {
+    setEditingMapping(mapping);
     setDialogOpen(true);
   };
 
@@ -153,17 +186,30 @@ export const MappingsTab = () => {
   };
 
   const confirmDeleteMapping = async () => {
-    if (mappingToDelete) {
-      await deleteMapping(mappingToDelete);
+    if (mappingToDelete?.id !== undefined) {
+      await deleteMapping(mappingToDelete.id);
     }
     setDeleteConfirmOpen(false);
     setMappingToDelete(null);
   };
 
   const handleSaveMapping = async (mapping: RoleEntitlementMapping) => {
-    await addMapping(mapping);
+    if (editingMapping?.id !== undefined) {
+      await updateMapping(editingMapping.id, mapping);
+    } else {
+      await addMapping(mapping);
+    }
     setDialogOpen(false);
+    setEditingMapping(undefined);
   };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    setEditingMapping(undefined);
+  };
+
+  const hasActiveFilters =
+    filters.role || searchQuery || effectFilter !== 'all';
 
   if (loading) {
     return <Progress />;
@@ -173,14 +219,12 @@ export const MappingsTab = () => {
     return <ResponseErrorPanel error={error} />;
   }
 
-  const uniqueRoles = [...new Set(mappings.map(m => m.role_name))];
-
   return (
     <Box>
       <Box className={classes.header}>
         <Typography variant="h5">Role Mappings</Typography>
         <Box className={classes.headerActions}>
-          <IconButton onClick={fetchMappings} size="small" title="Refresh">
+          <IconButton onClick={() => fetchMappings()} size="small" title="Refresh">
             <RefreshIcon />
           </IconButton>
           <Button
@@ -218,14 +262,14 @@ export const MappingsTab = () => {
         >
           <InputLabel>Role</InputLabel>
           <Select
-            value={roleFilter}
-            onChange={e => setRoleFilter(e.target.value as string)}
+            value={filters.role || 'all'}
+            onChange={e => handleRoleFilterChange(e.target.value as string)}
             label="Role"
           >
             <MenuItem value="all">All Roles</MenuItem>
-            {uniqueRoles.map(role => (
-              <MenuItem key={role} value={role}>
-                {role}
+            {roles.map(role => (
+              <MenuItem key={role.name} value={role.name}>
+                {role.name}
               </MenuItem>
             ))}
           </Select>
@@ -247,12 +291,22 @@ export const MappingsTab = () => {
             <MenuItem value="deny">Deny</MenuItem>
           </Select>
         </FormControl>
+
+        {hasActiveFilters && (
+          <Button
+            size="small"
+            startIcon={<ClearIcon />}
+            onClick={handleClearFilters}
+          >
+            Clear Filters
+          </Button>
+        )}
       </Box>
 
       {filteredMappings.length === 0 ? (
         <Box className={classes.emptyState}>
           <Typography variant="body1" color="textSecondary">
-            {searchQuery || roleFilter !== 'all' || effectFilter !== 'all'
+            {hasActiveFilters
               ? 'No mappings match your filters'
               : 'No role mappings defined yet. Create your first mapping to grant permissions.'}
           </Typography>
@@ -275,9 +329,7 @@ export const MappingsTab = () => {
             </TableHead>
             <TableBody>
               {filteredMappings.map((mapping, index) => (
-                <TableRow
-                  key={`${mapping.role_name}-${mapping.entitlement.value}-${index}`}
-                >
+                <TableRow key={mapping.id ?? `${mapping.role_name}-${index}`}>
                   <TableCell>
                     <Typography variant="body2">{mapping.role_name}</Typography>
                   </TableCell>
@@ -305,6 +357,13 @@ export const MappingsTab = () => {
                   <TableCell align="right">
                     <IconButton
                       size="small"
+                      onClick={() => handleEditMapping(mapping)}
+                      title="Edit"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
                       onClick={() => handleDeleteMapping(mapping)}
                       title="Delete"
                     >
@@ -320,9 +379,10 @@ export const MappingsTab = () => {
 
       <MappingDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={handleDialogClose}
         onSave={handleSaveMapping}
         availableRoles={roles}
+        editingMapping={editingMapping}
       />
 
       <Dialog

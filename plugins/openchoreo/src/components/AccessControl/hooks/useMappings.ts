@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   openChoreoClientApiRef,
   RoleEntitlementMapping,
+  RoleMappingFilters,
   Entitlement,
   ResourceHierarchy,
   PolicyEffect,
@@ -10,6 +11,7 @@ import {
 
 export type {
   RoleEntitlementMapping,
+  RoleMappingFilters,
   Entitlement,
   ResourceHierarchy,
   PolicyEffect,
@@ -19,30 +21,51 @@ interface UseMappingsResult {
   mappings: RoleEntitlementMapping[];
   loading: boolean;
   error: Error | null;
-  fetchMappings: () => Promise<void>;
+  filters: RoleMappingFilters;
+  setFilters: (filters: RoleMappingFilters) => void;
+  fetchMappings: (filters?: RoleMappingFilters) => Promise<void>;
   addMapping: (mapping: RoleEntitlementMapping) => Promise<void>;
-  deleteMapping: (mapping: RoleEntitlementMapping) => Promise<void>;
+  updateMapping: (
+    mappingId: number,
+    mapping: RoleEntitlementMapping,
+  ) => Promise<void>;
+  deleteMapping: (mappingId: number) => Promise<void>;
 }
 
 export function useMappings(): UseMappingsResult {
   const [mappings, setMappings] = useState<RoleEntitlementMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [filters, setFiltersState] = useState<RoleMappingFilters>({});
+  const filtersRef = useRef<RoleMappingFilters>({});
 
   const client = useApi(openChoreoClientApiRef);
 
-  const fetchMappings = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const result = await client.listRoleMappings();
-      setMappings(result);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [client]);
+  const fetchMappings = useCallback(
+    async (overrideFilters?: RoleMappingFilters) => {
+      try {
+        setLoading(true);
+        setError(null);
+        const activeFilters = overrideFilters ?? filtersRef.current;
+        const result = await client.listRoleMappings(activeFilters);
+        setMappings(result);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Unknown error'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [client],
+  );
+
+  const setFilters = useCallback(
+    (newFilters: RoleMappingFilters) => {
+      filtersRef.current = newFilters;
+      setFiltersState(newFilters);
+      fetchMappings(newFilters);
+    },
+    [fetchMappings],
+  );
 
   const addMapping = useCallback(
     async (mapping: RoleEntitlementMapping) => {
@@ -52,9 +75,17 @@ export function useMappings(): UseMappingsResult {
     [client, fetchMappings],
   );
 
+  const updateMapping = useCallback(
+    async (mappingId: number, mapping: RoleEntitlementMapping) => {
+      await client.updateRoleMapping(mappingId, mapping);
+      await fetchMappings();
+    },
+    [client, fetchMappings],
+  );
+
   const deleteMapping = useCallback(
-    async (mapping: RoleEntitlementMapping) => {
-      await client.deleteRoleMapping(mapping);
+    async (mappingId: number) => {
+      await client.deleteRoleMapping(mappingId);
       await fetchMappings();
     },
     [client, fetchMappings],
@@ -68,8 +99,11 @@ export function useMappings(): UseMappingsResult {
     mappings,
     loading,
     error,
+    filters,
+    setFilters,
     fetchMappings,
     addMapping,
+    updateMapping,
     deleteMapping,
   };
 }

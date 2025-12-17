@@ -3,6 +3,7 @@ export type { Role } from './useRoles';
 export { useMappings } from './useMappings';
 export type {
   RoleEntitlementMapping,
+  RoleMappingFilters,
   Entitlement,
   ResourceHierarchy,
   PolicyEffect,

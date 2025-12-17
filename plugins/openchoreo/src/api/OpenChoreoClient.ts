@@ -18,6 +18,7 @@ import type {
   ComponentTrait,
   AuthzRole,
   RoleEntitlementMapping,
+  RoleMappingFilters,
   UserTypeInfo,
   OrganizationSummary,
   ProjectSummary,
@@ -729,20 +730,53 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return response.data;
   }
 
-  async deleteRole(name: string): Promise<void> {
-    await this.apiFetch(
+  async updateRole(name: string, actions: string[]): Promise<AuthzRole> {
+    const response = await this.apiFetch<{ data: AuthzRole }>(
       `${API_ENDPOINTS.AUTHZ_ROLES}/${encodeURIComponent(name)}`,
+      {
+        method: 'PUT',
+        body: { actions },
+      },
+    );
+    return response.data;
+  }
+
+  async deleteRole(name: string, force?: boolean): Promise<void> {
+    const queryString = force ? '?force=true' : '';
+    await this.apiFetch(
+      `${API_ENDPOINTS.AUTHZ_ROLES}/${encodeURIComponent(name)}${queryString}`,
       {
         method: 'DELETE',
       },
     );
   }
 
-  async listRoleMappings(): Promise<RoleEntitlementMapping[]> {
+  async listRoleMappings(
+    filters?: RoleMappingFilters,
+  ): Promise<RoleEntitlementMapping[]> {
+    const params = new URLSearchParams();
+    if (filters?.role) {
+      params.set('role', filters.role);
+    }
+    if (filters?.claim && filters?.value) {
+      params.set('claim', filters.claim);
+      params.set('value', filters.value);
+    }
+    const queryString = params.toString();
+    const url = queryString
+      ? `${API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS}?${queryString}`
+      : API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS;
+
     const response = await this.apiFetch<{ data: RoleEntitlementMapping[] }>(
-      API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS,
+      url,
     );
     return response.data || [];
+  }
+
+  async getRoleMappingsForRole(
+    roleName: string,
+  ): Promise<RoleEntitlementMapping[]> {
+    return this.listRoleMappings({ role: roleName });
   }
 
   async addRoleMapping(
@@ -758,10 +792,23 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return response.data;
   }
 
-  async deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void> {
-    await this.apiFetch(API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS, {
+  async updateRoleMapping(
+    mappingId: number,
+    mapping: RoleEntitlementMapping,
+  ): Promise<RoleEntitlementMapping> {
+    const response = await this.apiFetch<{ data: RoleEntitlementMapping }>(
+      `${API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS}/${mappingId}`,
+      {
+        method: 'PUT',
+        body: mapping,
+      },
+    );
+    return response.data;
+  }
+
+  async deleteRoleMapping(mappingId: number): Promise<void> {
+    await this.apiFetch(`${API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS}/${mappingId}`, {
       method: 'DELETE',
-      body: mapping,
     });
   }
 

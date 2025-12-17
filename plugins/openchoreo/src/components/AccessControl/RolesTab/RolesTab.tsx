@@ -19,6 +19,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  CircularProgress,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -26,8 +30,9 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
+import WarningIcon from '@material-ui/icons/Warning';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
-import { useRoles, Role } from '../hooks';
+import { useRoles, Role, RoleEntitlementMapping } from '../hooks';
 import { RoleDialog } from './RoleDialog';
 
 const useStyles = makeStyles(theme => ({
@@ -59,16 +64,50 @@ const useStyles = makeStyles(theme => ({
     textAlign: 'center',
     padding: theme.spacing(4),
   },
+  warningHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    color: theme.palette.warning.main,
+  },
+  warningIcon: {
+    color: theme.palette.warning.main,
+  },
+  mappingsList: {
+    maxHeight: 200,
+    overflow: 'auto',
+    backgroundColor: theme.palette.background.default,
+    borderRadius: theme.shape.borderRadius,
+    marginTop: theme.spacing(2),
+  },
+  forceDeleteButton: {
+    backgroundColor: theme.palette.error.main,
+    color: theme.palette.error.contrastText,
+    '&:hover': {
+      backgroundColor: theme.palette.error.dark,
+    },
+  },
 }));
 
 export const RolesTab = () => {
   const classes = useStyles();
-  const { roles, loading, error, fetchRoles, addRole, deleteRole } = useRoles();
+  const {
+    roles,
+    loading,
+    error,
+    fetchRoles,
+    addRole,
+    updateRole,
+    deleteRole,
+    getRoleMappings,
+  } = useRoles();
   const [searchQuery, setSearchQuery] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
+  const [roleMappings, setRoleMappings] = useState<RoleEntitlementMapping[]>([]);
+  const [checkingMappings, setCheckingMappings] = useState(false);
 
   const filteredRoles = useMemo(() => {
     if (!searchQuery) return roles;
@@ -90,23 +129,44 @@ export const RolesTab = () => {
     setDialogOpen(true);
   };
 
-  const handleDeleteRole = (name: string) => {
+  const handleDeleteRole = async (name: string) => {
     setRoleToDelete(name);
+    setCheckingMappings(true);
     setDeleteConfirmOpen(true);
+
+    try {
+      const mappings = await getRoleMappings(name);
+      setRoleMappings(mappings);
+    } catch {
+      setRoleMappings([]);
+    } finally {
+      setCheckingMappings(false);
+    }
   };
 
-  const confirmDeleteRole = async () => {
+  const confirmDeleteRole = async (force: boolean = false) => {
     if (roleToDelete) {
-      await deleteRole(roleToDelete);
+      await deleteRole(roleToDelete, force);
     }
     setDeleteConfirmOpen(false);
     setRoleToDelete(null);
+    setRoleMappings([]);
   };
 
   const handleSaveRole = async (role: Role) => {
-    await addRole(role);
+    if (editingRole) {
+      await updateRole(role.name, role.actions);
+    } else {
+      await addRole(role);
+    }
     setDialogOpen(false);
     setEditingRole(undefined);
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteConfirmOpen(false);
+    setRoleToDelete(null);
+    setRoleMappings([]);
   };
 
   if (loading) {
@@ -235,22 +295,69 @@ export const RolesTab = () => {
         editingRole={editingRole}
       />
 
-      <Dialog
-        open={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-      >
-        <DialogTitle>Delete Role</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the role "{roleToDelete}"?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDeleteRole} color="secondary">
-            Delete
-          </Button>
-        </DialogActions>
+      <Dialog open={deleteConfirmOpen} onClose={closeDeleteDialog} maxWidth="sm" fullWidth>
+        {checkingMappings ? (
+          <>
+            <DialogTitle>Checking Role Usage</DialogTitle>
+            <DialogContent>
+              <Box display="flex" alignItems="center" style={{ gap: 16 }} py={2}>
+                <CircularProgress size={24} />
+                <Typography>Checking for role mappings...</Typography>
+              </Box>
+            </DialogContent>
+          </>
+        ) : roleMappings.length > 0 ? (
+          <>
+            <DialogTitle>
+              <Box className={classes.warningHeader}>
+                <WarningIcon className={classes.warningIcon} />
+                <span>Role Has Active Mappings</span>
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                The role "{roleToDelete}" has {roleMappings.length} active mapping
+                {roleMappings.length > 1 ? 's' : ''}. Deleting it will also remove
+                the following mappings:
+              </DialogContentText>
+              <List className={classes.mappingsList} dense>
+                {roleMappings.map((mapping, index) => (
+                  <ListItem key={mapping.id ?? index}>
+                    <ListItemText
+                      primary={`${mapping.entitlement.claim}=${mapping.entitlement.value}`}
+                      secondary={`Effect: ${mapping.effect.toUpperCase()}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeDeleteDialog}>Cancel</Button>
+              <Button
+                onClick={() => confirmDeleteRole(true)}
+                className={classes.forceDeleteButton}
+                variant="contained"
+              >
+                Force Delete
+              </Button>
+            </DialogActions>
+          </>
+        ) : (
+          <>
+            <DialogTitle>Delete Role</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Are you sure you want to delete the role "{roleToDelete}"?
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeDeleteDialog}>Cancel</Button>
+              <Button onClick={() => confirmDeleteRole(false)} color="secondary">
+                Delete
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Box>
   );
