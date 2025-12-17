@@ -20,7 +20,9 @@ import {
 import { OAuth2 } from '@backstage/core-app-api';
 import { VisitsWebStorageApi, visitsApiRef } from '@backstage/plugin-home';
 import { UserSettingsStorage } from '@backstage/plugin-user-settings';
+import { permissionApiRef } from '@backstage/plugin-permission-react';
 import { OpenChoreoFetchApi } from './apis/OpenChoreoFetchApi';
+import { OpenChoreoPermissionApi } from './apis/OpenChoreoPermissionApi';
 
 // API reference for default-idp OIDC provider
 export const defaultIdpAuthApiRef: ApiRef<OAuthApi> = createApiRef({
@@ -34,6 +36,26 @@ export const apis: AnyApiFactory[] = [
     factory: ({ configApi }) => ScmIntegrationsApi.fromConfig(configApi),
   }),
   ScmAuth.createDefaultApiFactory(),
+
+  // Custom PermissionApi that injects IDP token for OpenChoreo authorization
+  // This is needed because Backstage's default PermissionClient doesn't allow
+  // custom headers to be injected (it uses cross-fetch directly)
+  createApiFactory({
+    api: permissionApiRef,
+    deps: {
+      configApi: configApiRef,
+      discoveryApi: discoveryApiRef,
+      identityApi: identityApiRef,
+      oauthApi: defaultIdpAuthApiRef,
+    },
+    factory: ({ configApi, discoveryApi, identityApi, oauthApi }) =>
+      new OpenChoreoPermissionApi({
+        config: configApi,
+        discovery: discoveryApi,
+        identity: identityApi,
+        oauthApi,
+      }),
+  }),
 
   // Custom FetchApi that automatically injects auth tokens
   // This wraps all fetch calls to include Backstage token + IDP token

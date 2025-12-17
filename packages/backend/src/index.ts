@@ -10,13 +10,12 @@ import { createBackend } from '@backstage/backend-defaults';
 import { OpenChoreoDefaultAuthModule } from '@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default';
 import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHttpRouter';
 import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-catalog-backend-module';
-import { createIdpTokenCookieMiddleware } from '@openchoreo/openchoreo-auth';
-import cookieParser from 'cookie-parser';
+import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
 
 const backend = createBackend();
 
-// Configure root HTTP router with cookie parsing and IDP token middleware
-// This middleware reads the IDP token from cookies and makes it available
+// Configure root HTTP router with IDP token header middleware
+// This middleware reads the IDP token from headers and makes it available
 // to ALL routes via AsyncLocalStorage, which is critical for the permission
 // system to access the user's IDP token when making authorization decisions.
 backend.add(
@@ -28,12 +27,9 @@ backend.add(
       app.use(middleware.compression());
       app.use(middleware.logging());
 
-      // Parse cookies - required for IDP token middleware
-      app.use(cookieParser());
-
-      // IDP token middleware - reads token from cookie and establishes
+      // IDP token middleware - reads token from header and establishes
       // AsyncLocalStorage context so getUserTokenFromContext() works everywhere
-      app.use(createIdpTokenCookieMiddleware());
+      app.use(createIdpTokenHeaderMiddleware());
 
       // Apply remaining defaults (routes, error handling, etc.)
       applyDefaults();
