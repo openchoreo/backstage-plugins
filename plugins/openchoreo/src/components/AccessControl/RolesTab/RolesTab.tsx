@@ -106,7 +106,9 @@ export const RolesTab = () => {
   const [editingRole, setEditingRole] = useState<Role | undefined>(undefined);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
-  const [roleMappings, setRoleMappings] = useState<RoleEntitlementMapping[]>([]);
+  const [roleMappings, setRoleMappings] = useState<RoleEntitlementMapping[]>(
+    [],
+  );
   const [checkingMappings, setCheckingMappings] = useState(false);
 
   const filteredRoles = useMemo(() => {
@@ -295,12 +297,22 @@ export const RolesTab = () => {
         editingRole={editingRole}
       />
 
-      <Dialog open={deleteConfirmOpen} onClose={closeDeleteDialog} maxWidth="sm" fullWidth>
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={closeDeleteDialog}
+        maxWidth="sm"
+        fullWidth
+      >
         {checkingMappings && (
           <>
             <DialogTitle>Checking Role Usage</DialogTitle>
             <DialogContent>
-              <Box display="flex" alignItems="center" style={{ gap: 16 }} py={2}>
+              <Box
+                display="flex"
+                alignItems="center"
+                style={{ gap: 16 }}
+                py={2}
+              >
                 <CircularProgress size={24} />
                 <Typography>Checking for role mappings...</Typography>
               </Box>
@@ -317,9 +329,10 @@ export const RolesTab = () => {
             </DialogTitle>
             <DialogContent>
               <DialogContentText>
-                The role "{roleToDelete}" has {roleMappings.length} active mapping
-                {roleMappings.length > 1 ? 's' : ''}. Deleting it will also remove
-                the following mappings:
+                The role "{roleToDelete}" has {roleMappings.length} active
+                mapping
+                {roleMappings.length > 1 ? 's' : ''}. Deleting it will also
+                remove the following mappings:
               </DialogContentText>
               <List className={classes.mappingsList} dense>
                 {roleMappings.map((mapping, index) => (
@@ -354,7 +367,10 @@ export const RolesTab = () => {
             </DialogContent>
             <DialogActions>
               <Button onClick={closeDeleteDialog}>Cancel</Button>
-              <Button onClick={() => confirmDeleteRole(false)} color="secondary">
+              <Button
+                onClick={() => confirmDeleteRole(false)}
+                color="secondary"
+              >
                 Delete
               </Button>
             </DialogActions>

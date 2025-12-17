@@ -140,8 +140,9 @@ export const MappingsTab = () => {
   const [entitlementPopoverAnchor, setEntitlementPopoverAnchor] =
     useState<HTMLElement | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingMapping, setEditingMapping] =
-    useState<RoleEntitlementMapping | undefined>(undefined);
+  const [editingMapping, setEditingMapping] = useState<
+    RoleEntitlementMapping | undefined
+  >(undefined);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [mappingToDelete, setMappingToDelete] =
     useState<RoleEntitlementMapping | null>(null);
@@ -159,7 +160,9 @@ export const MappingsTab = () => {
   );
 
   // Entitlement filter popover handlers
-  const handleOpenEntitlementPopover = (event: React.MouseEvent<HTMLElement>) => {
+  const handleOpenEntitlementPopover = (
+    event: React.MouseEvent<HTMLElement>,
+  ) => {
     setEntitlementPopoverAnchor(event.currentTarget);
   };
 
@@ -271,7 +274,11 @@ export const MappingsTab = () => {
       <Box className={classes.header}>
         <Typography variant="h5">Role Mappings</Typography>
         <Box className={classes.headerActions}>
-          <IconButton onClick={() => fetchMappings()} size="small" title="Refresh">
+          <IconButton
+            onClick={() => fetchMappings()}
+            size="small"
+            title="Refresh"
+          >
             <RefreshIcon />
           </IconButton>
           <Button

@@ -934,6 +934,16 @@ export async function createRouter({
     res.json(await authzService.addRole(role, userToken));
   });
 
+  router.put('/authz/roles/:name', requireAuth, async (req, res) => {
+    const { name } = req.params;
+    const { actions } = req.body;
+    if (!actions || !Array.isArray(actions)) {
+      throw new InputError('Request body must have actions array');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.updateRole(name, actions, userToken));
+  });
+
   router.delete('/authz/roles/:name', requireAuth, async (req, res) => {
     const { name } = req.params;
     const userToken = getUserTokenFromRequest(req);

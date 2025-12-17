@@ -168,6 +168,44 @@ export class AuthzService {
     }
   }
 
+  async updateRole(
+    name: string,
+    actions: string[],
+    userToken?: string,
+  ): Promise<{ data: Role }> {
+    this.logger.debug(`Updating role: ${name}`);
+
+    try {
+      const client = this.createClient(userToken);
+      const { data, error, response } = await client.PUT(
+        '/authz/roles/{roleName}',
+        {
+          params: {
+            path: { roleName: name },
+          },
+          body: { actions },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to update role',
+        );
+        throw new Error(errorMsg);
+      }
+
+      const roleResponse = data as RoleResponse;
+      this.logger.debug(`Successfully updated role: ${name}`);
+
+      return { data: roleResponse.data! };
+    } catch (err) {
+      this.logger.error(`Failed to update role ${name}: ${err}`);
+      throw err;
+    }
+  }
+
   async removeRole(name: string, userToken?: string): Promise<void> {
     this.logger.debug(`Deleting role: ${name}`);
 
