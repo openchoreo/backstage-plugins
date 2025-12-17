@@ -296,7 +296,7 @@ export const RolesTab = () => {
       />
 
       <Dialog open={deleteConfirmOpen} onClose={closeDeleteDialog} maxWidth="sm" fullWidth>
-        {checkingMappings ? (
+        {checkingMappings && (
           <>
             <DialogTitle>Checking Role Usage</DialogTitle>
             <DialogContent>
@@ -306,7 +306,8 @@ export const RolesTab = () => {
               </Box>
             </DialogContent>
           </>
-        ) : roleMappings.length > 0 ? (
+        )}
+        {!checkingMappings && roleMappings.length > 0 && (
           <>
             <DialogTitle>
               <Box className={classes.warningHeader}>
@@ -342,7 +343,8 @@ export const RolesTab = () => {
               </Button>
             </DialogActions>
           </>
-        ) : (
+        )}
+        {!checkingMappings && roleMappings.length === 0 && (
           <>
             <DialogTitle>Delete Role</DialogTitle>
             <DialogContent>

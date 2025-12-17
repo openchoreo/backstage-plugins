@@ -593,13 +593,10 @@ export const MappingDialog = ({
           variant="contained"
           disabled={saving}
         >
-          {saving
-            ? isEditMode
-              ? 'Updating...'
-              : 'Creating...'
-            : isEditMode
-              ? 'Update Mapping'
-              : 'Create Mapping'}
+          {(() => {
+            if (saving) return isEditMode ? 'Updating...' : 'Creating...';
+            return isEditMode ? 'Update Mapping' : 'Create Mapping';
+          })()}
         </Button>
       </DialogActions>
     </Dialog>

@@ -23,6 +23,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Popover,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -31,6 +32,7 @@ import EditIcon from '@material-ui/icons/Edit';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
+import FilterListIcon from '@material-ui/icons/FilterList';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import {
   useMappings,
@@ -62,6 +64,22 @@ const useStyles = makeStyles(theme => ({
   },
   filterSelect: {
     minWidth: 150,
+  },
+  entitlementFilterChip: {
+    cursor: 'pointer',
+  },
+  entitlementPopover: {
+    padding: theme.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+    minWidth: 280,
+  },
+  entitlementPopoverActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(1),
   },
   tableContainer: {
     marginTop: theme.spacing(2),
@@ -117,6 +135,10 @@ export const MappingsTab = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [effectFilter, setEffectFilter] = useState<string>('all');
+  const [claimFilter, setClaimFilter] = useState('');
+  const [valueFilter, setValueFilter] = useState('');
+  const [entitlementPopoverAnchor, setEntitlementPopoverAnchor] =
+    useState<HTMLElement | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingMapping, setEditingMapping] =
     useState<RoleEntitlementMapping | undefined>(undefined);
@@ -136,11 +158,36 @@ export const MappingsTab = () => {
     [filters, setFilters],
   );
 
+  // Entitlement filter popover handlers
+  const handleOpenEntitlementPopover = (event: React.MouseEvent<HTMLElement>) => {
+    setEntitlementPopoverAnchor(event.currentTarget);
+  };
+
+  const handleCloseEntitlementPopover = () => {
+    setEntitlementPopoverAnchor(null);
+  };
+
+  const handleApplyEntitlementFilter = () => {
+    if (claimFilter && valueFilter) {
+      setFilters({ ...filters, claim: claimFilter, value: valueFilter });
+    }
+    handleCloseEntitlementPopover();
+  };
+
+  const handleClearEntitlementFilter = () => {
+    setClaimFilter('');
+    setValueFilter('');
+    const { claim: _c, value: _v, ...rest } = filters;
+    setFilters(rest);
+  };
+
   // Clear all filters
   const handleClearFilters = useCallback(() => {
     setFilters({});
     setSearchQuery('');
     setEffectFilter('all');
+    setClaimFilter('');
+    setValueFilter('');
   }, [setFilters]);
 
   // Client-side filtering for effect and search (not supported by API)
@@ -209,7 +256,7 @@ export const MappingsTab = () => {
   };
 
   const hasActiveFilters =
-    filters.role || searchQuery || effectFilter !== 'all';
+    filters.role || filters.claim || searchQuery || effectFilter !== 'all';
 
   if (loading) {
     return <Progress />;
@@ -274,6 +321,77 @@ export const MappingsTab = () => {
             ))}
           </Select>
         </FormControl>
+
+        {filters.claim && filters.value ? (
+          <Chip
+            className={classes.entitlementFilterChip}
+            icon={<FilterListIcon />}
+            label={`${filters.claim}=${filters.value}`}
+            onClick={handleOpenEntitlementPopover}
+            onDelete={handleClearEntitlementFilter}
+            color="primary"
+            variant="outlined"
+          />
+        ) : (
+          <Button
+            size="small"
+            startIcon={<FilterListIcon />}
+            onClick={handleOpenEntitlementPopover}
+            variant="outlined"
+          >
+            Entitlement
+          </Button>
+        )}
+
+        <Popover
+          open={Boolean(entitlementPopoverAnchor)}
+          anchorEl={entitlementPopoverAnchor}
+          onClose={handleCloseEntitlementPopover}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'left',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'left',
+          }}
+        >
+          <Box className={classes.entitlementPopover}>
+            <Typography variant="subtitle2">Filter by Entitlement</Typography>
+            <TextField
+              label="Claim"
+              placeholder="e.g., groups"
+              variant="outlined"
+              size="small"
+              value={claimFilter}
+              onChange={e => setClaimFilter(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label="Value"
+              placeholder="e.g., platform-team"
+              variant="outlined"
+              size="small"
+              value={valueFilter}
+              onChange={e => setValueFilter(e.target.value)}
+              fullWidth
+            />
+            <Box className={classes.entitlementPopoverActions}>
+              <Button size="small" onClick={handleCloseEntitlementPopover}>
+                Cancel
+              </Button>
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                onClick={handleApplyEntitlementFilter}
+                disabled={!claimFilter || !valueFilter}
+              >
+                Apply
+              </Button>
+            </Box>
+          </Box>
+        </Popover>
 
         <FormControl
           variant="outlined"
