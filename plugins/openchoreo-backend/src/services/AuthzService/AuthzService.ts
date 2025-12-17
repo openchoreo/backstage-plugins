@@ -200,14 +200,25 @@ export class AuthzService {
 
   // Role Mappings
   async listRoleMappings(
+    filters?: { role?: string; claim?: string; value?: string },
     userToken?: string,
   ): Promise<{ data: RoleEntitlementMapping[] }> {
-    this.logger.debug('Fetching all role mappings');
+    this.logger.debug('Fetching role mappings', { filters });
 
     try {
       const client = this.createClient(userToken);
+
+      // Build query params, only including defined values
+      const query: { role?: string; claim?: string; value?: string } = {};
+      if (filters?.role) query.role = filters.role;
+      if (filters?.claim) query.claim = filters.claim;
+      if (filters?.value) query.value = filters.value;
+
       const { data, error, response } = await client.GET(
         '/authz/role-mappings',
+        {
+          params: { query },
+        },
       );
 
       if (error || !response.ok) {
