@@ -944,7 +944,12 @@ export async function createRouter({
   // Role Mappings
   router.get('/authz/role-mappings', async (req, res) => {
     const userToken = getUserTokenFromRequest(req);
-    res.json(await authzService.listRoleMappings(userToken));
+    const filters = {
+      role: req.query.role as string | undefined,
+      claim: req.query.claim as string | undefined,
+      value: req.query.value as string | undefined,
+    };
+    res.json(await authzService.listRoleMappings(filters, userToken));
   });
 
   router.post('/authz/role-mappings', requireAuth, async (req, res) => {
