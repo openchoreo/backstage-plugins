@@ -32,10 +32,10 @@ openchoreo:
   # token: ""  # Optional: uncomment if you need API authentication
   # OPTIONAL: For large-scale local testing, enable incremental ingestion
   # incremental:
-  #   burstLength: 16
-  #   burstInterval: 8
-  #   chunkSize: 512
-  #   restLength: 60
+  #   burstLength: 16 # Duration of each burst of processing activity in seconds
+  #   burstInterval: 8 # Interval between bursts of processing activity in seconds
+  #   chunkSize: 512 # Number of items to fetch per API request
+  #   restLength: 60 # Duration of rest periods between bursts in minutes
 
   # Feature flags (optional overrides)
   # All features are enabled by default. Uncomment to disable specific features:
