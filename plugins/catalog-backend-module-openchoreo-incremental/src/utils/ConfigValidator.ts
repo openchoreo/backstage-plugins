@@ -19,7 +19,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   openchoreoIncrementalConfigValidation,
   OpenChoreoIncrementalConfig,
-} from '../config.d';
+} from '../config';
 import { OpenChoreoIncrementalIngestionError } from '../database/errors';
 
 /**

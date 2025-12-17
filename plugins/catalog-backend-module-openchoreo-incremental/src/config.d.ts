@@ -23,127 +23,17 @@ import { z } from 'zod';
 /**
  * Configuration options for the OpenChoreo API connection.
  */
-export const openchoreoApiConfigSchema = z.object({
-  /**
-   * Base URL for the OpenChoreo API.
-   */
-  baseUrl: z.string().url().describe('OpenChoreo API base URL'),
-
-  /**
-   * Optional authentication token for API access.
-   */
-  token: z.string().optional().describe('OpenChoreo API authentication token'),
-});
+export declare const openchoreoApiConfigSchema: import('zod').ZodTypeAny;
 
 /**
  * Configuration options for incremental ingestion behavior.
  */
-export const openchoreoIncrementalConfigSchema = z.object({
-  /**
-   * Duration of each ingestion burst in seconds. Must be between 1 and 300.
-   * @default 10
-   */
-  burstLength: z
-    .number()
-    .min(1)
-    .max(300)
-    .default(10)
-    .describe('Duration of ingestion bursts in seconds'),
-
-  /**
-   * Interval between ingestion bursts in seconds. Must be between 5 and 300.
-   * @default 30
-   */
-  burstInterval: z
-    .number()
-    .min(5)
-    .max(300)
-    .default(30)
-    .describe('Interval between ingestion bursts in seconds'),
-
-  /**
-   * Rest period after successful ingestion in minutes. Must be between 1 and 1440.
-   * @default 30
-   */
-  restLength: z
-    .number()
-    .min(1)
-    .max(1440)
-    .default(30)
-    .describe('Rest period after ingestion in minutes'),
-
-  /**
-   * Number of entities to process in each batch. Must be between 1 and 1000.
-   * @default 50
-   */
-  chunkSize: z
-    .number()
-    .min(1)
-    .max(1000)
-    .default(50)
-    .describe('Number of entities per batch'),
-
-  /**
-   * Backoff strategy for failed ingestion attempts in seconds.
-   */
-  backoff: z
-    .array(z.number().positive())
-    .optional()
-    .describe('Backoff durations in seconds'),
-
-  /**
-   * Percentage threshold above which entity removals will be rejected (0-100).
-   */
-  rejectRemovalsAbovePercentage: z
-    .number()
-    .min(0)
-    .max(100)
-    .optional()
-    .describe('Removal rejection threshold percentage'),
-
-  /**
-   * Whether to reject removals when source collections are empty.
-   * @default false
-   */
-  rejectEmptySourceCollections: z
-    .boolean()
-    .default(false)
-    .describe('Reject removals from empty collections'),
-
-  /**
-   * Maximum number of concurrent API requests during batch processing.
-   * Must be between 1 and 50.
-   * @default 5
-   */
-  maxConcurrentRequests: z
-    .number()
-    .min(1)
-    .max(50)
-    .default(5)
-    .describe('Maximum concurrent API requests during batch processing'),
-
-  /**
-   * Delay in milliseconds between batch processing requests.
-   * Must be between 0 and 10000.
-   * @default 100
-   */
-  batchDelayMs: z
-    .number()
-    .min(0)
-    .max(10000)
-    .default(100)
-    .describe('Delay in milliseconds between batch processing requests'),
-});
+export declare const openchoreoIncrementalConfigSchema: import('zod').ZodTypeAny;
 
 /**
  * Complete configuration schema for OpenChoreo incremental plugin.
  */
-export const openchoreoIncrementalConfigValidation = z.object({
-  openchoreo: z.object({
-    api: openchoreoApiConfigSchema.optional(),
-    incremental: openchoreoIncrementalConfigSchema.optional(),
-  }),
-});
+export declare const openchoreoIncrementalConfigValidation: import('zod').ZodTypeAny;
 
 /**
  * TypeScript interface for the complete OpenChoreo configuration.
