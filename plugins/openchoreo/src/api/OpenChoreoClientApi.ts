@@ -119,11 +119,19 @@ export interface ResourceHierarchy {
 export type PolicyEffect = 'allow' | 'deny';
 
 export interface RoleEntitlementMapping {
+  id?: number;
   role_name: string;
   entitlement: Entitlement;
   hierarchy: ResourceHierarchy;
   effect: PolicyEffect;
   context?: Record<string, unknown>;
+}
+
+/** Filters for listing role mappings */
+export interface RoleMappingFilters {
+  role?: string;
+  claim?: string;
+  value?: string;
 }
 
 export interface EntitlementClaimInfo {
@@ -340,19 +348,31 @@ export interface OpenChoreoClientApi {
   /** Create a new role */
   addRole(role: AuthzRole): Promise<AuthzRole>;
 
-  /** Delete a role */
-  deleteRole(name: string): Promise<void>;
+  /** Update an existing role's actions */
+  updateRole(name: string, actions: string[]): Promise<AuthzRole>;
 
-  /** List all role mappings */
-  listRoleMappings(): Promise<RoleEntitlementMapping[]>;
+  /** Delete a role. Use force=true to delete even if role has mappings */
+  deleteRole(name: string, force?: boolean): Promise<void>;
+
+  /** List role mappings with optional filters */
+  listRoleMappings(filters?: RoleMappingFilters): Promise<RoleEntitlementMapping[]>;
+
+  /** Get all role mappings for a specific role */
+  getRoleMappingsForRole(roleName: string): Promise<RoleEntitlementMapping[]>;
 
   /** Create a new role mapping */
   addRoleMapping(
     mapping: RoleEntitlementMapping,
   ): Promise<RoleEntitlementMapping>;
 
-  /** Delete a role mapping */
-  deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void>;
+  /** Update an existing role mapping */
+  updateRoleMapping(
+    mappingId: number,
+    mapping: RoleEntitlementMapping,
+  ): Promise<RoleEntitlementMapping>;
+
+  /** Delete a role mapping by ID */
+  deleteRoleMapping(mappingId: number): Promise<void>;
 
   /** List all available actions */
   listActions(): Promise<string[]>;

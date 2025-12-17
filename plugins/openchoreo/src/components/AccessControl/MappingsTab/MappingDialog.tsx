@@ -89,6 +89,7 @@ interface MappingDialogProps {
   onClose: () => void;
   onSave: (mapping: RoleEntitlementMapping) => Promise<void>;
   availableRoles: Role[];
+  editingMapping?: RoleEntitlementMapping;
 }
 
 export const MappingDialog = ({
@@ -96,6 +97,7 @@ export const MappingDialog = ({
   onClose,
   onSave,
   availableRoles,
+  editingMapping,
 }: MappingDialogProps) => {
   const classes = useStyles();
   const { userTypes } = useUserTypes();
@@ -129,21 +131,52 @@ export const MappingDialog = ({
   );
   const entitlementClaim = selectedUserTypeInfo?.entitlement.name || '';
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens or populate from editingMapping
   useEffect(() => {
     if (open) {
-      setSelectedRole('');
-      setSelectedUserType(userTypes[0]?.type || '');
-      setEntitlementValue('');
-      setOrganization('');
-      setOrgUnits([]);
-      setProject('');
-      setComponent('');
-      setConditions([]);
-      setEffect('allow');
+      if (editingMapping) {
+        // Populate form from editingMapping
+        setSelectedRole(editingMapping.role_name);
+        // Find the user type based on the entitlement claim
+        const matchingUserType = userTypes.find(
+          ut => ut.entitlement.name === editingMapping.entitlement.claim,
+        );
+        setSelectedUserType(matchingUserType?.type || userTypes[0]?.type || '');
+        setEntitlementValue(editingMapping.entitlement.value);
+        setOrganization(editingMapping.hierarchy.organization || '');
+        setOrgUnits(editingMapping.hierarchy.organization_units || []);
+        setProject(editingMapping.hierarchy.project || '');
+        setComponent(editingMapping.hierarchy.component || '');
+        // Parse context back to conditions
+        if (editingMapping.context) {
+          const parsedConditions: Condition[] = Object.entries(
+            editingMapping.context,
+          ).map(([key, operatorValue]) => {
+            const [operator, value] = Object.entries(
+              operatorValue as Record<string, string>,
+            )[0];
+            return { key, operator, value };
+          });
+          setConditions(parsedConditions);
+        } else {
+          setConditions([]);
+        }
+        setEffect(editingMapping.effect);
+      } else {
+        // Reset form for new mapping
+        setSelectedRole('');
+        setSelectedUserType(userTypes[0]?.type || '');
+        setEntitlementValue('');
+        setOrganization('');
+        setOrgUnits([]);
+        setProject('');
+        setComponent('');
+        setConditions([]);
+        setEffect('allow');
+      }
       setError(null);
     }
-  }, [open, userTypes]);
+  }, [open, userTypes, editingMapping]);
 
   // Cascade handlers - clear dependent fields when parent changes
   const handleOrganizationChange = (value: string | null) => {
@@ -237,9 +270,13 @@ export const MappingDialog = ({
     }
   };
 
+  const isEditMode = !!editingMapping;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Create Role Mapping</DialogTitle>
+      <DialogTitle>
+        {isEditMode ? 'Edit Role Mapping' : 'Create Role Mapping'}
+      </DialogTitle>
       <DialogContent>
         {/* Role Selection */}
         <Box className={classes.section}>
@@ -556,7 +593,13 @@ export const MappingDialog = ({
           variant="contained"
           disabled={saving}
         >
-          {saving ? 'Creating...' : 'Create Mapping'}
+          {saving
+            ? isEditMode
+              ? 'Updating...'
+              : 'Creating...'
+            : isEditMode
+              ? 'Update Mapping'
+              : 'Create Mapping'}
         </Button>
       </DialogActions>
     </Dialog>

@@ -754,7 +754,8 @@ export interface paths {
     };
     /** Get a specific role */
     get: operations['getRole'];
-    put?: never;
+    /** Update a role */
+    put: operations['updateRole'];
     post?: never;
     /** Delete a role */
     delete: operations['removeRole'];
@@ -775,6 +776,23 @@ export interface paths {
     put?: never;
     /** Create a new role-entitlement mapping */
     post: operations['addRoleMapping'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/authz/role-mappings/{mappingId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Update a role-entitlement mapping */
+    put: operations['updateRoleMapping'];
+    post?: never;
     /** Remove a role-entitlement mapping */
     delete: operations['removeRoleMapping'];
     options?: never;
@@ -1473,11 +1491,17 @@ export interface components {
       actions: string[];
     };
     RoleEntitlementMapping: {
+      /** @description Unique identifier for the mapping */
+      id?: number;
       role_name: string;
       entitlement: components['schemas']['Entitlement'];
       hierarchy: components['schemas']['AuthzResourceHierarchy'];
       effect: components['schemas']['PolicyEffectType'];
       context?: Record<string, never>;
+    };
+    UpdateRoleRequest: {
+      /** @description List of actions to assign to the role */
+      actions: string[];
     };
     EntitlementClaimInfo: {
       name: string;
@@ -3149,9 +3173,47 @@ export interface operations {
       };
     };
   };
-  removeRole: {
+  updateRole: {
     parameters: {
       query?: never;
+      header?: never;
+      path: {
+        roleName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateRoleRequest'];
+      };
+    };
+    responses: {
+      /** @description Role updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['Role'];
+          };
+        };
+      };
+      /** @description Role not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  removeRole: {
+    parameters: {
+      query?: {
+        /** @description If true, force delete the role and all associated mappings */
+        force?: boolean;
+      };
       header?: never;
       path: {
         roleName: string;
@@ -3174,11 +3236,25 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description Role is in use by role mappings (use force=true to delete anyway) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   listRoleMappings: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Filter mappings by role name */
+        role?: string;
+        /** @description Filter mappings by entitlement claim (must be used with value) */
+        claim?: string;
+        /** @description Filter mappings by entitlement value (must be used with claim) */
+        value?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -3229,11 +3305,14 @@ export interface operations {
       };
     };
   };
-  removeRoleMapping: {
+  updateRoleMapping: {
     parameters: {
       query?: never;
       header?: never;
-      path?: never;
+      path: {
+        /** @description The unique identifier of the mapping to update */
+        mappingId: number;
+      };
       cookie?: never;
     };
     requestBody: {
@@ -3241,6 +3320,45 @@ export interface operations {
         'application/json': components['schemas']['RoleEntitlementMapping'];
       };
     };
+    responses: {
+      /** @description Mapping updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['RoleEntitlementMapping'];
+          };
+        };
+      };
+      /** @description Mapping not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Mapping conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  removeRoleMapping: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The unique identifier of the mapping to delete */
+        mappingId: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description Mapping deleted */
       204: {
