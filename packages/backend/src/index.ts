@@ -42,27 +42,15 @@ backend.add(OpenChoreoDefaultAuthModule);
 // Guest provider for development/demo mode (active when openchoreo.features.auth.enabled = false)
 backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
 
-/**
- * ----------------------------------------------------------------------
- * INCREMENTAL INGESTION: STEP 2 of 3
- * ----------------------------------------------------------------------
- *
- * If enabling Incremental Ingestion:
- * 1. COMMENT OUT the Standard Catalog line below.
- * 2. DO NOT comment out the 'scaffolder-entity-model' line.
- */
-
-// Standard Catalog (Comment this line out for Incremental Ingestion)
+// catalog plugin
 backend.add(import('@backstage/plugin-catalog-backend'));
-
-// Scaffolder Entity Model (Keep this active in both modes)
 backend.add(
   import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
 );
 
 /**
  * ----------------------------------------------------------------------
- * INCREMENTAL INGESTION: STEP 3 of 3
+ * INCREMENTAL INGESTION: STEP 2 of 2
  * ----------------------------------------------------------------------
  *
  *  Note: You must also update app-config.yaml to use:
