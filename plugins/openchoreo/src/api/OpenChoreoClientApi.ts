@@ -355,7 +355,9 @@ export interface OpenChoreoClientApi {
   deleteRole(name: string, force?: boolean): Promise<void>;
 
   /** List role mappings with optional filters */
-  listRoleMappings(filters?: RoleMappingFilters): Promise<RoleEntitlementMapping[]>;
+  listRoleMappings(
+    filters?: RoleMappingFilters,
+  ): Promise<RoleEntitlementMapping[]>;
 
   /** Get all role mappings for a specific role */
   getRoleMappingsForRole(roleName: string): Promise<RoleEntitlementMapping[]>;
