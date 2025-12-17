@@ -1,88 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  TextField,
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Radio,
-  RadioGroup,
-  FormControlLabel,
-  FormLabel,
-  Divider,
   IconButton,
-  CircularProgress,
 } from '@material-ui/core';
-import { Autocomplete } from '@material-ui/lab';
+import CloseIcon from '@material-ui/icons/Close';
 import { makeStyles } from '@material-ui/core/styles';
-import AddIcon from '@material-ui/icons/Add';
-import RemoveIcon from '@material-ui/icons/Remove';
+import { useUserTypes, Role, RoleEntitlementMapping } from '../hooks';
 import {
-  useUserTypes,
-  useOrganizations,
-  useProjects,
-  useComponents,
-  Role,
-  RoleEntitlementMapping,
-  PolicyEffect,
-} from '../hooks';
+  WizardState,
+  WizardStepId,
+  WIZARD_STEPS,
+  getStepIndex,
+  isStepValid,
+  createInitialWizardState,
+  WizardStepper,
+  RoleStep,
+  SubjectStep,
+  ScopeStep,
+  EffectStep,
+  ReviewStep,
+} from './wizard';
 
 const useStyles = makeStyles(theme => ({
-  section: {
-    marginBottom: theme.spacing(3),
+  dialogTitle: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: theme.spacing(1),
   },
-  sectionTitle: {
-    marginBottom: theme.spacing(1),
+  closeButton: {
+    marginRight: -theme.spacing(1),
   },
-  formField: {
-    marginBottom: theme.spacing(2),
-  },
-  hierarchySection: {
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.background.default,
-    borderRadius: theme.shape.borderRadius,
-  },
-  orgUnitsContainer: {
+  dialogContent: {
+    minHeight: 500,
     display: 'flex',
     flexDirection: 'column',
-    gap: theme.spacing(1),
   },
-  orgUnitRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
+  stepContent: {
+    flex: 1,
+    padding: theme.spacing(2, 0),
   },
-  addOrgUnitButton: {
-    marginTop: theme.spacing(1),
-  },
-  conditionsSection: {
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.background.default,
-    borderRadius: theme.shape.borderRadius,
-  },
-  conditionRow: {
-    display: 'flex',
-    gap: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-    alignItems: 'center',
-  },
-  effectSection: {
+  errorText: {
+    color: theme.palette.error.main,
     marginTop: theme.spacing(2),
   },
 }));
-
-interface Condition {
-  key: string;
-  operator: string;
-  value: string;
-}
 
 interface MappingDialogProps {
   open: boolean;
@@ -102,134 +68,90 @@ export const MappingDialog = ({
   const classes = useStyles();
   const { userTypes } = useUserTypes();
 
-  // Form state
-  const [selectedRole, setSelectedRole] = useState('');
-  const [selectedUserType, setSelectedUserType] = useState('');
-  const [entitlementValue, setEntitlementValue] = useState('');
-  const [organization, setOrganization] = useState('');
-  const [orgUnits, setOrgUnits] = useState<string[]>([]);
-  const [project, setProject] = useState('');
-  const [component, setComponent] = useState('');
-  const [conditions, setConditions] = useState<Condition[]>([]);
-  const [effect, setEffect] = useState<PolicyEffect>('allow');
+  const [currentStep, setCurrentStep] = useState<WizardStepId>('role');
+  const [wizardState, setWizardState] = useState<WizardState>(() =>
+    createInitialWizardState(userTypes),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Hierarchy data hooks (after state so we can use org/project values)
-  const { organizations, loading: orgsLoading } = useOrganizations();
-  const { projects, loading: projectsLoading } = useProjects(
-    organization || undefined,
-  );
-  const { components, loading: componentsLoading } = useComponents(
-    organization || undefined,
-    project || undefined,
-  );
+  const isEditMode = !!editingMapping;
 
-  // Get the entitlement claim based on selected user type
-  const selectedUserTypeInfo = userTypes.find(
-    ut => ut.type === selectedUserType,
-  );
-  const entitlementClaim = selectedUserTypeInfo?.entitlement.name || '';
-
-  // Reset form when dialog opens or populate from editingMapping
+  // Initialize/reset wizard when dialog opens
   useEffect(() => {
     if (open) {
+      setCurrentStep('role');
+      setError(null);
+
       if (editingMapping) {
-        // Populate form from editingMapping
-        setSelectedRole(editingMapping.role_name);
-        // Find the user type based on the entitlement claim
+        // Populate from editing mapping
         const matchingUserType = userTypes.find(
           ut => ut.entitlement.name === editingMapping.entitlement.claim,
         );
-        setSelectedUserType(matchingUserType?.type || userTypes[0]?.type || '');
-        setEntitlementValue(editingMapping.entitlement.value);
-        setOrganization(editingMapping.hierarchy.organization || '');
-        setOrgUnits(editingMapping.hierarchy.organization_units || []);
-        setProject(editingMapping.hierarchy.project || '');
-        setComponent(editingMapping.hierarchy.component || '');
-        // Parse context back to conditions
-        if (editingMapping.context) {
-          const parsedConditions: Condition[] = Object.entries(
-            editingMapping.context,
-          ).map(([key, operatorValue]) => {
-            const [operator, value] = Object.entries(
-              operatorValue as Record<string, string>,
-            )[0];
-            return { key, operator, value };
-          });
-          setConditions(parsedConditions);
-        } else {
-          setConditions([]);
-        }
-        setEffect(editingMapping.effect);
+
+        setWizardState({
+          selectedRole: editingMapping.role_name,
+          subjectType: matchingUserType?.type || userTypes[0]?.type || '',
+          entitlementValue: editingMapping.entitlement.value,
+          scopeType:
+            editingMapping.hierarchy.organization ||
+            editingMapping.hierarchy.project ||
+            editingMapping.hierarchy.component
+              ? 'specific'
+              : 'global',
+          organization: editingMapping.hierarchy.organization || '',
+          orgUnits: editingMapping.hierarchy.organization_units || [],
+          project: editingMapping.hierarchy.project || '',
+          component: editingMapping.hierarchy.component || '',
+          effect: editingMapping.effect,
+        });
       } else {
-        // Reset form for new mapping
-        setSelectedRole('');
-        setSelectedUserType(userTypes[0]?.type || '');
-        setEntitlementValue('');
-        setOrganization('');
-        setOrgUnits([]);
-        setProject('');
-        setComponent('');
-        setConditions([]);
-        setEffect('allow');
+        // Reset for new mapping
+        setWizardState(createInitialWizardState(userTypes));
       }
-      setError(null);
     }
-  }, [open, userTypes, editingMapping]);
+  }, [open, editingMapping, userTypes]);
 
-  // Cascade handlers - clear dependent fields when parent changes
-  const handleOrganizationChange = (value: string | null) => {
-    setOrganization(value || '');
-    setProject(''); // Reset project when org changes
-    setComponent(''); // Reset component when org changes
+  const handleStateChange = useCallback((updates: Partial<WizardState>) => {
+    setWizardState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const handleStepClick = (stepId: WizardStepId) => {
+    setCurrentStep(stepId);
   };
 
-  const handleProjectChange = (value: string | null) => {
-    setProject(value || '');
-    setComponent(''); // Reset component when project changes
+  const handleNext = () => {
+    const currentIndex = getStepIndex(currentStep);
+    if (currentIndex < WIZARD_STEPS.length - 1) {
+      setCurrentStep(WIZARD_STEPS[currentIndex + 1].id);
+    }
   };
 
-  const handleAddOrgUnit = () => {
-    setOrgUnits([...orgUnits, '']);
+  const handleBack = () => {
+    const currentIndex = getStepIndex(currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(WIZARD_STEPS[currentIndex - 1].id);
+    }
   };
 
-  const handleRemoveOrgUnit = (index: number) => {
-    setOrgUnits(orgUnits.filter((_, i) => i !== index));
-  };
-
-  const handleOrgUnitChange = (index: number, value: string) => {
-    const updated = [...orgUnits];
-    updated[index] = value;
-    setOrgUnits(updated);
-  };
-
-  const handleAddCondition = () => {
-    setConditions([...conditions, { key: '', operator: '==', value: '' }]);
-  };
-
-  const handleRemoveCondition = (index: number) => {
-    setConditions(conditions.filter((_, i) => i !== index));
-  };
-
-  const handleConditionChange = (
-    index: number,
-    field: keyof Condition,
-    value: string,
-  ) => {
-    const updated = [...conditions];
-    updated[index] = { ...updated[index], [field]: value };
-    setConditions(updated);
-  };
-
-  const handleSave = async () => {
-    if (!selectedRole) {
-      setError('Please select a role');
-      return;
+  const handleSubmit = async () => {
+    // Validate all steps
+    for (const step of WIZARD_STEPS) {
+      if (!isStepValid(step.id, wizardState)) {
+        setError(`Please complete the ${step.label} step`);
+        setCurrentStep(step.id);
+        return;
+      }
     }
 
-    if (!entitlementClaim || !entitlementValue.trim()) {
-      setError('Please provide an entitlement value');
+    // Get entitlement claim from user type
+    const selectedUserTypeInfo = userTypes.find(
+      ut => ut.type === wizardState.subjectType,
+    );
+    const entitlementClaim = selectedUserTypeInfo?.entitlement.name || '';
+
+    if (!entitlementClaim) {
+      setError('Invalid subject type selected');
       return;
     }
 
@@ -238,28 +160,22 @@ export const MappingDialog = ({
       setError(null);
 
       const mapping: RoleEntitlementMapping = {
-        role_name: selectedRole,
+        role_name: wizardState.selectedRole,
         entitlement: {
           claim: entitlementClaim,
-          value: entitlementValue.trim(),
+          value: wizardState.entitlementValue.trim(),
         },
-        hierarchy: {
-          organization: organization || undefined,
-          organization_units: orgUnits.filter(u => u.trim()) || undefined,
-          project: project || undefined,
-          component: component || undefined,
-        },
-        effect,
-        context:
-          conditions.length > 0
-            ? conditions.reduce(
-                (acc, cond) => ({
-                  ...acc,
-                  [cond.key]: { [cond.operator]: cond.value },
-                }),
-                {},
-              )
-            : undefined,
+        hierarchy:
+          wizardState.scopeType === 'global'
+            ? {}
+            : {
+                organization: wizardState.organization || undefined,
+                organization_units:
+                  wizardState.orgUnits.filter(u => u.trim()) || undefined,
+                project: wizardState.project || undefined,
+                component: wizardState.component || undefined,
+              },
+        effect: wizardState.effect,
       };
 
       await onSave(mapping);
@@ -270,335 +186,65 @@ export const MappingDialog = ({
     }
   };
 
-  const isEditMode = !!editingMapping;
+  const renderStepContent = () => {
+    const stepProps = {
+      state: wizardState,
+      onChange: handleStateChange,
+      availableRoles,
+      userTypes,
+    };
+
+    switch (currentStep) {
+      case 'role':
+        return <RoleStep {...stepProps} />;
+      case 'subject':
+        return <SubjectStep {...stepProps} />;
+      case 'scope':
+        return <ScopeStep state={wizardState} onChange={handleStateChange} />;
+      case 'effect':
+        return <EffectStep state={wizardState} onChange={handleStateChange} />;
+      case 'review':
+        return <ReviewStep {...stepProps} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {isEditMode ? 'Edit Role Mapping' : 'Create Role Mapping'}
+      <DialogTitle disableTypography className={classes.dialogTitle}>
+        <Typography variant="h6">
+          {isEditMode ? 'Edit Role Mapping' : 'Create Role Mapping'}
+        </Typography>
+        <IconButton
+          className={classes.closeButton}
+          onClick={onClose}
+          disabled={saving}
+        >
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
-      <DialogContent>
-        {/* Role Selection */}
-        <Box className={classes.section}>
-          <FormControl fullWidth className={classes.formField}>
-            <InputLabel>Role</InputLabel>
-            <Select
-              value={selectedRole}
-              onChange={e => setSelectedRole(e.target.value as string)}
-              label="Role"
-            >
-              {availableRoles.map(role => (
-                <MenuItem key={role.name} value={role.name}>
-                  {role.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
 
-        <Divider />
-
-        {/* Entitlement Section */}
-        <Box className={classes.section}>
-          <Typography variant="subtitle1" className={classes.sectionTitle}>
-            Entitlement (Who gets this role?)
-          </Typography>
-
-          <FormControl fullWidth className={classes.formField}>
-            <InputLabel>Subject Type</InputLabel>
-            <Select
-              value={selectedUserType}
-              onChange={e => setSelectedUserType(e.target.value as string)}
-              label="Subject Type"
-            >
-              {userTypes.map(ut => (
-                <MenuItem key={ut.type} value={ut.type}>
-                  {ut.display_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <TextField
-            fullWidth
-            className={classes.formField}
-            label={`${entitlementClaim || 'Entitlement'} Value`}
-            value={entitlementValue}
-            onChange={e => setEntitlementValue(e.target.value)}
-            placeholder={
-              selectedUserType === 'user'
-                ? 'e.g., platform-team'
-                : 'e.g., ci-bot-123'
-            }
-            helperText={
-              selectedUserTypeInfo
-                ? `JWT claim: ${entitlementClaim}`
-                : 'Select a subject type first'
-            }
-          />
-        </Box>
-
-        <Divider />
-
-        {/* Hierarchy Section */}
-        <Box className={classes.section}>
-          <Typography variant="subtitle1" className={classes.sectionTitle}>
-            Scope (Where does this apply?)
-          </Typography>
-
-          <Box className={classes.hierarchySection}>
-            <Autocomplete
-              freeSolo
-              options={organizations.map(o => o.name)}
-              value={organization}
-              onChange={(_, value) => handleOrganizationChange(value)}
-              onInputChange={(_, value, reason) => {
-                if (reason === 'input') {
-                  handleOrganizationChange(value);
-                }
-              }}
-              loading={orgsLoading}
-              renderInput={params => (
-                <TextField
-                  {...params}
-                  fullWidth
-                  className={classes.formField}
-                  label="Organization"
-                  placeholder="Leave empty for default organization"
-                  size="small"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {orgsLoading ? (
-                          <CircularProgress color="inherit" size={20} />
-                        ) : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-
-            <Typography variant="body2" color="textSecondary" gutterBottom>
-              Organization Units (multi-level hierarchy):
-            </Typography>
-            <Box className={classes.orgUnitsContainer}>
-              {orgUnits.map((unit, index) => (
-                <Box key={index} className={classes.orgUnitRow}>
-                  <TextField
-                    size="small"
-                    value={unit}
-                    onChange={e => handleOrgUnitChange(index, e.target.value)}
-                    placeholder={`Level ${index + 1}`}
-                    fullWidth
-                  />
-                  <IconButton
-                    size="small"
-                    onClick={() => handleRemoveOrgUnit(index)}
-                  >
-                    <RemoveIcon />
-                  </IconButton>
-                </Box>
-              ))}
-              <Button
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={handleAddOrgUnit}
-                className={classes.addOrgUnitButton}
-              >
-                Add Org Unit
-              </Button>
-            </Box>
-
-            <Autocomplete
-              freeSolo
-              options={projects.map(p => p.name)}
-              value={project}
-              onChange={(_, value) => handleProjectChange(value)}
-              onInputChange={(_, value, reason) => {
-                if (reason === 'input') {
-                  handleProjectChange(value);
-                }
-              }}
-              disabled={!organization}
-              loading={projectsLoading}
-              renderInput={params => (
-                <TextField
-                  {...params}
-                  fullWidth
-                  className={classes.formField}
-                  label="Project"
-                  placeholder={
-                    organization
-                      ? 'Leave empty to apply to all projects'
-                      : 'Select an organization first'
-                  }
-                  size="small"
-                  style={{ marginTop: 16 }}
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {projectsLoading ? (
-                          <CircularProgress color="inherit" size={20} />
-                        ) : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-
-            <Autocomplete
-              freeSolo
-              options={components.map(c => c.name)}
-              value={component}
-              onChange={(_, value) => setComponent(value || '')}
-              onInputChange={(_, value, reason) => {
-                if (reason === 'input') {
-                  setComponent(value);
-                }
-              }}
-              disabled={!project}
-              loading={componentsLoading}
-              renderInput={params => (
-                <TextField
-                  {...params}
-                  fullWidth
-                  className={classes.formField}
-                  label="Component"
-                  placeholder={
-                    project
-                      ? 'Leave empty to apply to all components'
-                      : 'Select a project first'
-                  }
-                  size="small"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {componentsLoading ? (
-                          <CircularProgress color="inherit" size={20} />
-                        ) : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-          </Box>
-        </Box>
-
-        <Divider />
-
-        {/* Conditions Section */}
-        <Box className={classes.section}>
-          <Typography variant="subtitle1" className={classes.sectionTitle}>
-            Conditions (Optional instance-level constraints)
-          </Typography>
-
-          <Box className={classes.conditionsSection}>
-            {conditions.map((condition, index) => (
-              <Box key={index} className={classes.conditionRow}>
-                <TextField
-                  size="small"
-                  value={condition.key}
-                  onChange={e =>
-                    handleConditionChange(index, 'key', e.target.value)
-                  }
-                  placeholder="resource.env"
-                  style={{ flex: 2 }}
-                />
-                <Select
-                  value={condition.operator}
-                  onChange={e =>
-                    handleConditionChange(
-                      index,
-                      'operator',
-                      e.target.value as string,
-                    )
-                  }
-                  style={{ flex: 1 }}
-                  variant="outlined"
-                >
-                  <MenuItem value="==">==</MenuItem>
-                  <MenuItem value="!=">!=</MenuItem>
-                  <MenuItem value="in">in</MenuItem>
-                </Select>
-                <TextField
-                  size="small"
-                  value={condition.value}
-                  onChange={e =>
-                    handleConditionChange(index, 'value', e.target.value)
-                  }
-                  placeholder="dev"
-                  style={{ flex: 2 }}
-                />
-                <IconButton
-                  size="small"
-                  onClick={() => handleRemoveCondition(index)}
-                >
-                  <RemoveIcon />
-                </IconButton>
-              </Box>
-            ))}
-            <Button
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={handleAddCondition}
-            >
-              Add Condition
-            </Button>
-          </Box>
-        </Box>
-
-        <Divider />
-
-        {/* Effect Section */}
-        <Box className={classes.effectSection}>
-          <FormControl component="fieldset">
-            <FormLabel component="legend">Effect</FormLabel>
-            <RadioGroup
-              row
-              value={effect}
-              onChange={e => setEffect(e.target.value as PolicyEffect)}
-            >
-              <FormControlLabel
-                value="allow"
-                control={<Radio />}
-                label="Allow"
-              />
-              <FormControlLabel value="deny" control={<Radio />} label="Deny" />
-            </RadioGroup>
-          </FormControl>
-        </Box>
+      <DialogContent className={classes.dialogContent}>
+        <Box className={classes.stepContent}>{renderStepContent()}</Box>
 
         {error && (
-          <Typography color="error" variant="body2" style={{ marginTop: 16 }}>
+          <Typography variant="body2" className={classes.errorText}>
             {error}
           </Typography>
         )}
+
+        <WizardStepper
+          currentStep={currentStep}
+          state={wizardState}
+          onStepClick={handleStepClick}
+          onNext={handleNext}
+          onBack={handleBack}
+          onSubmit={handleSubmit}
+          saving={saving}
+          isEditMode={isEditMode}
+        />
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={saving}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSave}
-          color="primary"
-          variant="contained"
-          disabled={saving}
-        >
-          {(() => {
-            if (saving) return isEditMode ? 'Updating...' : 'Creating...';
-            return isEditMode ? 'Update Mapping' : 'Create Mapping';
-          })()}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
