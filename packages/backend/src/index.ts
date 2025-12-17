@@ -13,7 +13,7 @@ import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-cat
 
 /**
  * OPTIONAL: For large-scale deployments, use the incremental ingestion module
- * 
+ *
  * ----------------------------------------------------------------------
  * INCREMENTAL INGESTION: STEP 1 of 3
  * ----------------------------------------------------------------------
@@ -46,7 +46,7 @@ backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
  * ----------------------------------------------------------------------
  * INCREMENTAL INGESTION: STEP 2 of 3
  * ----------------------------------------------------------------------
- * 
+ *
  * If enabling Incremental Ingestion:
  * 1. COMMENT OUT the Standard Catalog line below.
  * 2. DO NOT comment out the 'scaffolder-entity-model' line.
@@ -64,7 +64,7 @@ backend.add(
  * ----------------------------------------------------------------------
  * INCREMENTAL INGESTION: STEP 3 of 3
  * ----------------------------------------------------------------------
- * 
+ *
  *  Note: You must also update app-config.yaml to use:
  * 'openchoreo.incremental' instead of 'openchoreo.schedule'
  */

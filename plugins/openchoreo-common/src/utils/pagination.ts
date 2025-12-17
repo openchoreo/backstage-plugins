@@ -30,7 +30,8 @@ export async function fetchAllResources<T>(
     typeof timeoutMs === 'number'
       ? new Promise<never>((_, reject) => {
           timeoutId = setTimeout(
-            () => reject(new Error(`Pagination timed out after ${timeoutMs} ms`)),
+            () =>
+              reject(new Error(`Pagination timed out after ${timeoutMs} ms`)),
             timeoutMs,
           );
         })
@@ -55,22 +56,33 @@ export async function fetchAllResources<T>(
       if (timeoutPromise) toAwait.push(timeoutPromise);
       if (abortPromise) toAwait.push(abortPromise);
 
-      const response = (await Promise.race(toAwait)) as PaginationResult<T> | null;
+      const response = (await Promise.race(
+        toAwait,
+      )) as PaginationResult<T> | null;
 
       if (!response) {
         throw new Error(
-          `Failed to fetch page during pagination${continueToken ? ` (cursor: ${continueToken})` : ''}`,
+          `Failed to fetch page during pagination${
+            continueToken ? ` (cursor: ${continueToken})` : ''
+          }`,
         );
       }
 
       // Validate that the API is not returning the same token we just used
-      if (response.metadata?.continue && response.metadata.continue === continueToken) {
-        throw new Error('Pagination token not advancing - possible API bug detected');
+      if (
+        response.metadata?.continue &&
+        response.metadata.continue === continueToken
+      ) {
+        throw new Error(
+          'Pagination token not advancing - possible API bug detected',
+        );
       }
 
       // Detect if pagination token is not advancing (stuck in a loop)
       if (continueToken !== undefined && continueToken === previousToken) {
-        throw new Error('Pagination token not advancing - possible API bug detected');
+        throw new Error(
+          'Pagination token not advancing - possible API bug detected',
+        );
       }
 
       results.push(...response.items);
