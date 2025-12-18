@@ -6,13 +6,9 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import { usePermission } from '@backstage/plugin-permission-react';
 import { Alert, Skeleton } from '@material-ui/lab';
-import { stringifyEntityRef } from '@backstage/catalog-model';
-import {
-  ModelsBuild,
-  openchoreoComponentDeployPermission,
-} from '@openchoreo/backstage-plugin-common';
+import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { useDeployPermission } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -39,11 +35,11 @@ export const WorkloadButton = ({
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
 
   // Check if user has permission to deploy
-  const { allowed: canDeploy, loading: deployPermissionLoading } =
-    usePermission({
-      permission: openchoreoComponentDeployPermission,
-      resourceRef: stringifyEntityRef(entity),
-    });
+  const {
+    canDeploy,
+    loading: deployPermissionLoading,
+    deniedTooltip,
+  } = useDeployPermission();
 
   // Fetch workload info to check if it exists
   useEffect(() => {
@@ -128,13 +124,7 @@ export const WorkloadButton = ({
           {getAlertMessage()}
         </Alert>
       )}
-      <Tooltip
-        title={
-          !canDeploy && !deployPermissionLoading
-            ? 'You do not have permission to deploy'
-            : ''
-        }
-      >
+      <Tooltip title={deniedTooltip}>
         <span style={{ alignSelf: 'flex-end' }}>
           <Button
             onClick={onConfigureWorkload}
