@@ -8,7 +8,6 @@ import {
   PolicyQuery,
   PolicyQueryUser,
 } from '@backstage/plugin-permission-node';
-import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { getUserTokenFromContext } from '@openchoreo/openchoreo-auth';
 import {
@@ -21,14 +20,15 @@ import {
   createOpenChoreoConditionalDecision,
 } from '../rules';
 
+/** Permission name prefix for OpenChoreo permissions */
+const PERMISSION_PREFIX = 'openchoreo.';
+
 /**
  * Options for the OpenChoreoPermissionPolicy.
  */
 export interface OpenChoreoPermissionPolicyOptions {
   /** Service for fetching user capabilities */
   authzService: AuthzProfileService;
-  /** OpenChoreo configuration */
-  config: Config;
   /** Logger service */
   logger: LoggerService;
 }
@@ -54,15 +54,10 @@ export interface OpenChoreoPermissionPolicyOptions {
 export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   private readonly authzService: AuthzProfileService;
   private readonly logger: LoggerService;
-  private readonly permissionPrefix: string;
 
   constructor(options: OpenChoreoPermissionPolicyOptions) {
     this.authzService = options.authzService;
     this.logger = options.logger;
-
-    const permConfig = options.config.getOptionalConfig('permission');
-    this.permissionPrefix =
-      permConfig?.getOptionalString('permissionPrefix') ?? 'openchoreo.';
   }
 
   /**
@@ -84,7 +79,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
     const { permission } = request;
 
     // Only handle OpenChoreo permissions
-    if (!permission.name.startsWith(this.permissionPrefix)) {
+    if (!permission.name.startsWith(PERMISSION_PREFIX)) {
       // Defer to other policies by allowing
       return { result: AuthorizeResult.ALLOW };
     }
@@ -155,9 +150,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       const actionCapability = capabilities.capabilities?.[action];
       const isAllowed = (actionCapability?.allowed?.length ?? 0) > 0;
 
-      this.logger.debug(
-        `${permission.name}: ${isAllowed ? 'ALLOW' : 'DENY'}`,
-      );
+      this.logger.debug(`${permission.name}: ${isAllowed ? 'ALLOW' : 'DENY'}`);
 
       return {
         result: isAllowed ? AuthorizeResult.ALLOW : AuthorizeResult.DENY,

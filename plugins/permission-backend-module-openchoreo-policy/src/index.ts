@@ -19,7 +19,6 @@ export type { OpenChoreoPermissionPolicyOptions } from './policy';
 export { AuthzProfileService, AuthzProfileCache } from './services';
 export type {
   AuthzProfileServiceOptions,
-  AuthzProfileCacheOptions,
   UserCapabilitiesResponse,
   OpenChoreoScope,
 } from './services';
