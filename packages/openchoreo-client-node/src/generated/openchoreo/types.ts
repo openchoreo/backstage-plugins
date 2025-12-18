@@ -3474,9 +3474,9 @@ export interface operations {
   };
   getSubjectProfile: {
     parameters: {
-      query: {
-        /** @description Organization name (required) */
-        org: string;
+      query?: {
+        /** @description Organization name (optional, omit for global profile) */
+        org?: string;
         /** @description Project name (optional) */
         project?: string;
         /** @description Component name (optional) */

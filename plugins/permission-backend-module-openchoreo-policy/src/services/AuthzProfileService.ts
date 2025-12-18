@@ -52,47 +52,60 @@ export class AuthzProfileService {
   }
 
   /**
-   * Fetches user capabilities for the given scope.
+   * Fetches user capabilities, optionally filtered by scope.
    *
    * @param userToken - The user's OpenChoreo IDP token
-   * @param scope - The scope (org, project, component) to check capabilities for
-   * @returns The user's capabilities for the given scope
+   * @param scope - Optional scope (org, project, component) to filter capabilities
+   * @returns The user's capabilities (global if no scope provided)
    */
   async getCapabilities(
     userToken: string,
-    scope: OpenChoreoScope,
+    scope?: OpenChoreoScope,
   ): Promise<UserCapabilitiesResponse> {
-    const { org, project, component } = scope;
+    const org = scope?.org;
+    const project = scope?.project;
+    const component = scope?.component;
 
-    // Check cache first
+    // Check cache first (use 'global' as key when no org specified)
+    const cacheKey = org ?? 'global';
     if (this.cache) {
-      const cached = await this.cache.get(userToken, org, project, component);
+      const cached = await this.cache.get(
+        userToken,
+        cacheKey,
+        project,
+        component,
+      );
       if (cached) {
-        this.logger.debug(
-          `Cache hit for capabilities: org=${org} project=${project} component=${component}`,
+        this.logger.info(
+          `Cache hit for capabilities: org=${
+            org ?? 'global'
+          } project=${project} component=${component}`,
         );
         return cached;
       }
     }
 
-    this.logger.debug(
-      `Fetching capabilities from API: org=${org} project=${project} component=${component}`,
+    this.logger.info(
+      `Fetching capabilities from API: org=${
+        org ?? 'global'
+      } project=${project} component=${component}`,
     );
 
     try {
       const client = this.createClient(userToken);
 
-      // Build query parameters
+      // Build query parameters - only include if provided
       const query: {
-        org: string;
+        org?: string;
         project?: string;
         component?: string;
         ou?: string[];
-      } = { org };
+      } = {};
 
+      if (org) query.org = org;
       if (project) query.project = project;
       if (component) query.component = component;
-      if (scope.orgUnits?.length) query.ou = scope.orgUnits;
+      if (scope?.orgUnits?.length) query.ou = scope.orgUnits;
 
       const { data, error, response } = await client.GET('/authz/profile', {
         params: { query },
@@ -115,13 +128,21 @@ export class AuthzProfileService {
 
       // Cache the result
       if (this.cache) {
-        await this.cache.set(userToken, org, capabilities, project, component);
+        await this.cache.set(
+          userToken,
+          cacheKey,
+          capabilities,
+          project,
+          component,
+        );
       }
 
       return capabilities;
     } catch (err) {
       this.logger.error(
-        `Failed to fetch capabilities for org=${org} project=${project} component=${component}: ${err}`,
+        `Failed to fetch capabilities for org=${
+          org ?? 'global'
+        } project=${project} component=${component}: ${err}`,
       );
       throw err;
     }

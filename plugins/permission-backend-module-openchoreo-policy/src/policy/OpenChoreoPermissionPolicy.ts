@@ -15,8 +15,7 @@ import {
   OPENCHOREO_PERMISSION_TO_ACTION,
   OPENCHOREO_RESOURCE_TYPE_COMPONENT,
 } from '@openchoreo/backstage-plugin-common';
-import { AuthzProfileService, OpenChoreoScope } from '../services';
-import { extractOrgFromToken } from './scopeExtractor';
+import { AuthzProfileService } from '../services';
 import {
   openchoreoConditions,
   createOpenChoreoConditionalDecision,
@@ -56,7 +55,6 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   private readonly authzService: AuthzProfileService;
   private readonly logger: LoggerService;
   private readonly permissionPrefix: string;
-  private readonly defaultOrg?: string;
 
   constructor(options: OpenChoreoPermissionPolicyOptions) {
     this.authzService = options.authzService;
@@ -65,7 +63,6 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
     const permConfig = options.config.getOptionalConfig('permission');
     this.permissionPrefix =
       permConfig?.getOptionalString('permissionPrefix') ?? 'openchoreo.';
-    this.defaultOrg = permConfig?.getOptionalString('defaultOrg');
   }
 
   /**
@@ -111,36 +108,24 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
 
       // Map Backstage permission name to OpenChoreo action
       const action = this.mapPermissionToAction(permission.name);
+
       if (!action) {
         this.logger.warn(`Unknown OpenChoreo permission: ${permission.name}`);
         return { result: AuthorizeResult.DENY };
       }
 
-      // Determine scope (org from token or default)
-      const scope = this.resolveScope(userToken);
-      if (!scope) {
-        this.logger.debug(
-          `Could not resolve scope for ${permission.name}, using default deny`,
-        );
-        return { result: AuthorizeResult.DENY };
-      }
+      // Fetch capabilities with hardcoded org (temporary until API supports optional org)
+      // TODO: Remove hardcoded org once /authz/profile API supports optional org parameter
+      const capabilities = await this.authzService.getCapabilities(userToken, {
+        org: 'default',
+      });
 
       // For resource-based permissions (component-level), return CONDITIONAL
       // The apply-conditions handler will check capabilities against entity scope
       if (
         isResourcePermission(permission, OPENCHOREO_RESOURCE_TYPE_COMPONENT)
       ) {
-        // Fetch capabilities (cached) to pass to the condition
-        const capabilities = await this.authzService.getCapabilities(
-          userToken,
-          scope,
-        );
         const actionCapability = capabilities.capabilities?.[action];
-
-        this.logger.debug(
-          `Returning CONDITIONAL for ${permission.name} (action: ${action}) ` +
-            `with capability patterns`,
-        );
 
         // Extract paths from capability (Backstage rule params only support primitives)
         const allowedPaths =
@@ -152,6 +137,10 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
             ?.map(d => d.path)
             .filter((p): p is string => !!p) ?? [];
 
+        this.logger.debug(
+          `Returning CONDITIONAL for ${permission.name} (action: ${action})`,
+        );
+
         return createOpenChoreoConditionalDecision(
           permission,
           openchoreoConditions.matchesCapability({
@@ -162,16 +151,12 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         );
       }
 
-      // For basic permissions (org-level), check capabilities directly
-      const isAllowed = await this.authzService.isActionAllowed(
-        userToken,
-        action,
-        scope,
-      );
+      // For basic permissions (non-resource), check if action has any allowed paths
+      const actionCapability = capabilities.capabilities?.[action];
+      const isAllowed = (actionCapability?.allowed?.length ?? 0) > 0;
 
       this.logger.debug(
-        `Permission ${permission.name} (action: ${action}) for ` +
-          `org=${scope.org}: ${isAllowed ? 'ALLOW' : 'DENY'}`,
+        `${permission.name}: ${isAllowed ? 'ALLOW' : 'DENY'}`,
       );
 
       return {
@@ -191,27 +176,5 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
    */
   private mapPermissionToAction(permissionName: string): string | undefined {
     return OPENCHOREO_PERMISSION_TO_ACTION[permissionName];
-  }
-
-  /**
-   * Resolves the scope for a permission check.
-   *
-   * Extracts org from the user's JWT token or falls back to config default.
-   * For resource-specific scope resolution, the CONDITIONAL pattern delegates
-   * this to the apply-conditions handler which has access to the resourceRef.
-   */
-  private resolveScope(userToken: string): OpenChoreoScope | undefined {
-    // Try to extract org from the user's JWT token
-    const tokenOrg = extractOrgFromToken(userToken);
-    if (tokenOrg) {
-      return { org: tokenOrg };
-    }
-
-    // Fall back to configured default org
-    if (this.defaultOrg) {
-      return { org: this.defaultOrg };
-    }
-
-    return undefined;
   }
 }

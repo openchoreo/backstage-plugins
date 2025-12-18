@@ -37,37 +37,3 @@ export async function extractScopeFromEntity(
     return undefined;
   }
 }
-
-/**
- * Extracts organization from JWT token claims.
- *
- * This is used for non-entity permissions where we need to determine
- * the org context from the user's identity.
- *
- * @param userToken - The user's OpenChoreo IDP token (JWT)
- * @returns The organization from the token claims, or undefined
- */
-export function extractOrgFromToken(userToken: string): string | undefined {
-  try {
-    // JWT format: header.payload.signature
-    const parts = userToken.split('.');
-    if (parts.length !== 3) {
-      return undefined;
-    }
-
-    // Decode the payload (base64url)
-    const payload = parts[1];
-    const decoded = Buffer.from(payload, 'base64url').toString('utf-8');
-    const claims = JSON.parse(decoded);
-
-    // Look for org claim - adjust claim name based on your IDP configuration
-    return (
-      claims.org ||
-      claims.organization ||
-      claims['openchoreo/org'] ||
-      claims['https://openchoreo.com/org']
-    );
-  } catch {
-    return undefined;
-  }
-}
