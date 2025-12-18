@@ -41,7 +41,8 @@ export interface OpenChoreoPermissionPolicyOptions {
  *
  * Key features:
  * - Only handles permissions prefixed with 'openchoreo.' (composable)
- * - Extracts scope from entity annotations or JWT claims
+ * - Returns CONDITIONAL for resource permissions, with capability patterns
+ *   matched against entity scope at apply-conditions time
  * - Caches capabilities per request for efficiency
  * - Maps Backstage permissions to OpenChoreo actions
  *
