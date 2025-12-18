@@ -7,7 +7,6 @@ import {
   Content,
   WarningPanel,
 } from '@backstage/core-components';
-import { RequirePermission } from '@backstage/plugin-permission-react';
 import SecurityIcon from '@material-ui/icons/Security';
 import PeopleIcon from '@material-ui/icons/People';
 import ListAltIcon from '@material-ui/icons/ListAlt';
@@ -15,7 +14,6 @@ import {
   VerticalTabNav,
   TabItemData,
 } from '@openchoreo/backstage-design-system';
-import { openchoreoAccessControlManagePermission } from '@openchoreo/backstage-plugin-common';
 import { RolesTab } from './RolesTab';
 import { MappingsTab } from './MappingsTab';
 import { ActionsTab } from './ActionsTab';
@@ -145,26 +143,6 @@ const AccessControlPageContent = () => {
 };
 
 /**
- * Access Control page wrapped with permission check.
- * Users must have the 'openchoreo.access-control.manage' permission to access this page.
+ * Access Control page for managing roles, permissions, and entitlement mappings.
  */
-export const AccessControlPage = () => (
-  <RequirePermission
-    permission={openchoreoAccessControlManagePermission}
-    errorPage={
-      <Page themeId="tool">
-        <Header
-          title="Access Control"
-          subtitle="Manage roles, permissions, and entitlement mappings"
-        />
-        <Content>
-          <WarningPanel severity="error" title="Access Denied">
-            You do not have permission to manage access control settings.
-          </WarningPanel>
-        </Content>
-      </Page>
-    }
-  >
-    <AccessControlPageContent />
-  </RequirePermission>
-);
+export const AccessControlPage = AccessControlPageContent;

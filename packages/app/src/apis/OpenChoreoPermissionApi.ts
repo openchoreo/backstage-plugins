@@ -1,12 +1,10 @@
 import { Config } from '@backstage/config';
-import { IdentityApi, OAuthApi } from '@backstage/core-plugin-api';
-import { DiscoveryApi } from '@backstage/plugin-permission-common';
-import { PermissionApi } from '@backstage/plugin-permission-react';
 import {
-  AuthorizePermissionRequest,
-  AuthorizePermissionResponse,
-  AuthorizeResult,
-} from '@backstage/plugin-permission-common';
+  DiscoveryApi,
+  IdentityApi,
+  OAuthApi,
+} from '@backstage/core-plugin-api';
+import { AuthorizeResult } from '@backstage/plugin-permission-common';
 
 /**
  * Header name used to pass the user's IDP token to backend services.
@@ -24,7 +22,7 @@ const OPENCHOREO_TOKEN_HEADER = 'x-openchoreo-token';
  * This enables the backend permission policy to access the user's IDP token
  * for making authorization decisions via the OpenChoreo /authz/profile API.
  */
-export class OpenChoreoPermissionApi implements PermissionApi {
+export class OpenChoreoPermissionApi {
   private readonly enabled: boolean;
   private readonly authEnabled: boolean;
   private readonly discovery: DiscoveryApi;
@@ -47,9 +45,10 @@ export class OpenChoreoPermissionApi implements PermissionApi {
       true;
   }
 
-  async authorize(
-    request: AuthorizePermissionRequest,
-  ): Promise<AuthorizePermissionResponse> {
+  async authorize(request: {
+    permission: { name: string };
+    resourceRef?: string;
+  }) {
     // When permissions are disabled, allow everything
     if (!this.enabled) {
       return { result: AuthorizeResult.ALLOW };
@@ -92,6 +91,6 @@ export class OpenChoreoPermissionApi implements PermissionApi {
     }
 
     const data = await response.json();
-    return { result: data.items[0].result };
+    return data.items[0];
   }
 }
