@@ -118,6 +118,10 @@ export {
   useBuildPermission,
   type UseBuildPermissionResult,
 } from './hooks/useBuildPermission';
+export {
+  useDeployPermission,
+  type UseDeployPermissionResult,
+} from './hooks/useDeployPermission';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';

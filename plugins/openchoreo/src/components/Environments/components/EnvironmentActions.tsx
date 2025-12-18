@@ -1,9 +1,6 @@
 /* eslint-disable no-nested-ternary */
 import { Box, Button, Tooltip } from '@material-ui/core';
-import { useEntity } from '@backstage/plugin-catalog-react';
-import { stringifyEntityRef } from '@backstage/catalog-model';
-import { usePermission } from '@backstage/plugin-permission-react';
-import { openchoreoComponentDeployPermission } from '@openchoreo/backstage-plugin-common';
+import { useDeployPermission } from '@openchoreo/backstage-plugin-react';
 import { EnvironmentActionsProps } from '../types';
 
 /**
@@ -20,14 +17,12 @@ export const EnvironmentActions = ({
   onPromote,
   onSuspend,
 }: EnvironmentActionsProps) => {
-  const { entity } = useEntity();
-
   // Check if user has permission to promote (uses deploy permission)
-  const { allowed: canPromote, loading: promotePermissionLoading } =
-    usePermission({
-      permission: openchoreoComponentDeployPermission,
-      resourceRef: stringifyEntityRef(entity),
-    });
+  const {
+    canDeploy: canPromote,
+    loading: promotePermissionLoading,
+    deniedTooltip,
+  } = useDeployPermission();
 
   const hasPromotionTargets =
     deploymentStatus === 'Ready' &&
@@ -54,13 +49,7 @@ export const EnvironmentActions = ({
             justifyContent="flex-end"
             mb={index < promotionTargets!.length - 1 ? 2 : bindingName ? 2 : 0}
           >
-            <Tooltip
-              title={
-                !canPromote && !promotePermissionLoading
-                  ? 'You do not have permission to promote'
-                  : ''
-              }
-            >
+            <Tooltip title={deniedTooltip}>
               <span>
                 <Button
                   variant="contained"
@@ -94,13 +83,7 @@ export const EnvironmentActions = ({
         <Box display="flex" flexWrap="wrap" justifyContent="flex-end">
           {/* Single promotion button */}
           {hasSingleTarget && (
-            <Tooltip
-              title={
-                !canPromote && !promotePermissionLoading
-                  ? 'You do not have permission to promote'
-                  : ''
-              }
-            >
+            <Tooltip title={deniedTooltip}>
               <span>
                 <Button
                   style={{ marginRight: '8px' }}
