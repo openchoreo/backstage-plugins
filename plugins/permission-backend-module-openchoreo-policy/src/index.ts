@@ -23,3 +23,13 @@ export type {
   UserCapabilitiesResponse,
   OpenChoreoScope,
 } from './services';
+
+// Re-export permission rules and condition exports for integration
+export {
+  matchesCapability,
+  openchoreoComponentResourceRef,
+  openchoreoPermissionRules,
+  openchoreoConditions,
+  createOpenChoreoConditionalDecision,
+} from './rules';
+export type { MatchesCapabilityParams } from './rules';

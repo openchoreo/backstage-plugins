@@ -1,5 +1,6 @@
 import {
   AuthorizeResult,
+  isResourcePermission,
   PolicyDecision,
 } from '@backstage/plugin-permission-common';
 import {
@@ -10,9 +11,16 @@ import {
 import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { getUserTokenFromContext } from '@openchoreo/openchoreo-auth';
-import { OPENCHOREO_PERMISSION_TO_ACTION } from '@openchoreo/backstage-plugin-common';
+import {
+  OPENCHOREO_PERMISSION_TO_ACTION,
+  OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+} from '@openchoreo/backstage-plugin-common';
 import { AuthzProfileService, OpenChoreoScope } from '../services';
 import { extractOrgFromToken } from './scopeExtractor';
+import {
+  openchoreoConditions,
+  createOpenChoreoConditionalDecision,
+} from '../rules';
 
 /**
  * Options for the OpenChoreoPermissionPolicy.
@@ -63,11 +71,12 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   /**
    * Handles a permission request.
    *
-   * For OpenChoreo permissions (prefixed with 'openchoreo.'), this method:
-   * 1. Extracts the user's OpenChoreo token from the request context
-   * 2. Maps the Backstage permission to an OpenChoreo action
-   * 3. Resolves the scope (org/project/component)
-   * 4. Checks capabilities via the /authz/profile API
+   * For OpenChoreo resource permissions (e.g., component-level):
+   * - Returns CONDITIONAL with capability patterns for entity-level checks
+   * - The apply-conditions handler will match patterns against entity scope
+   *
+   * For OpenChoreo basic permissions (org-level):
+   * - Returns ALLOW/DENY based on profile capabilities
    *
    * For non-OpenChoreo permissions, returns ALLOW to defer to other policies.
    */
@@ -116,7 +125,44 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         return { result: AuthorizeResult.DENY };
       }
 
-      // Check capabilities from OpenChoreo
+      // For resource-based permissions (component-level), return CONDITIONAL
+      // The apply-conditions handler will check capabilities against entity scope
+      if (
+        isResourcePermission(permission, OPENCHOREO_RESOURCE_TYPE_COMPONENT)
+      ) {
+        // Fetch capabilities (cached) to pass to the condition
+        const capabilities = await this.authzService.getCapabilities(
+          userToken,
+          scope,
+        );
+        const actionCapability = capabilities.capabilities?.[action];
+
+        this.logger.debug(
+          `Returning CONDITIONAL for ${permission.name} (action: ${action}) ` +
+            `with capability patterns`,
+        );
+
+        // Extract paths from capability (Backstage rule params only support primitives)
+        const allowedPaths =
+          actionCapability?.allowed
+            ?.map(a => a.path)
+            .filter((p): p is string => !!p) ?? [];
+        const deniedPaths =
+          actionCapability?.denied
+            ?.map(d => d.path)
+            .filter((p): p is string => !!p) ?? [];
+
+        return createOpenChoreoConditionalDecision(
+          permission,
+          openchoreoConditions.matchesCapability({
+            action,
+            allowedPaths,
+            deniedPaths,
+          }),
+        );
+      }
+
+      // For basic permissions (org-level), check capabilities directly
       const isAllowed = await this.authzService.isActionAllowed(
         userToken,
         action,
@@ -125,8 +171,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
 
       this.logger.debug(
         `Permission ${permission.name} (action: ${action}) for ` +
-          `org=${scope.org} project=${scope.project} component=${scope.component}: ` +
-          `${isAllowed ? 'ALLOW' : 'DENY'}`,
+          `org=${scope.org}: ${isAllowed ? 'ALLOW' : 'DENY'}`,
       );
 
       return {

@@ -17,6 +17,11 @@ import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchema
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
+import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
+import {
+  matchesCapability,
+  openchoreoComponentResourceRef,
+} from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
 
 /**
  * choreoPlugin backend plugin
@@ -34,11 +39,19 @@ export const choreoPlugin = createBackendPlugin({
         httpRouter: coreServices.httpRouter,
         catalog: catalogServiceRef,
         permissions: coreServices.permissions,
+        permissionsRegistry: coreServices.permissionsRegistry,
         discovery: coreServices.discovery,
         config: coreServices.rootConfig,
         tokenService: openChoreoTokenServiceRef,
       },
-      async init({ logger, config, httpRouter, tokenService }) {
+      async init({
+        logger,
+        config,
+        httpRouter,
+        tokenService,
+        catalog,
+        permissionsRegistry,
+      }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
 
         if (!openchoreoConfig) {
@@ -94,6 +107,33 @@ export const choreoPlugin = createBackendPlugin({
         );
 
         const authzService = new AuthzService(logger, baseUrl);
+
+        // Register OpenChoreo component permissions with the permissions registry
+        // This enables CONDITIONAL permission checks against catalog entities
+        const componentPermissions = openchoreoPermissions.filter(
+          p =>
+            'resourceType' in p &&
+            p.resourceType === openchoreoComponentResourceRef.resourceType,
+        );
+
+        permissionsRegistry.addResourceType({
+          resourceRef: openchoreoComponentResourceRef,
+          permissions: componentPermissions,
+          rules: [matchesCapability],
+          getResources: async (resourceRefs: string[]) => {
+            // Fetch entities from the catalog by their refs
+            return Promise.all(
+              resourceRefs.map(async ref => {
+                try {
+                  return await catalog.getEntityByRef(ref);
+                } catch {
+                  // Entity not found - return undefined (will be denied)
+                  return undefined;
+                }
+              }),
+            );
+          },
+        });
 
         httpRouter.use(
           await createRouter({
