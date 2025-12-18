@@ -28,12 +28,12 @@ export const openchoreoComponentReadPermission = createPermission({
 
 /**
  * Permission to trigger a build for a component.
- * Note: Currently org-scoped. Will be resource-based when entity-level
- * authorization is implemented.
+ * Resource-based: requires the specific component context.
  */
 export const openchoreoComponentBuildPermission = createPermission({
   name: 'openchoreo.component.build',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
 });
 
 /**
