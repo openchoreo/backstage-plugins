@@ -109,11 +109,8 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         return { result: AuthorizeResult.DENY };
       }
 
-      // Fetch capabilities with hardcoded org (temporary until API supports optional org)
-      // TODO: Remove hardcoded org once /authz/profile API supports optional org parameter
-      const capabilities = await this.authzService.getCapabilities(userToken, {
-        org: 'default',
-      });
+      // Fetch global capabilities (scope matching happens in apply-conditions)
+      const capabilities = await this.authzService.getCapabilities(userToken);
 
       // For resource-based permissions (component-level), return CONDITIONAL
       // The apply-conditions handler will check capabilities against entity scope
