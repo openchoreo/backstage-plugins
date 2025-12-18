@@ -9,7 +9,13 @@ import {
   ResponseErrorPanel,
   EmptyState,
 } from '@backstage/core-components';
-import { Typography, Button, Box, CircularProgress } from '@material-ui/core';
+import {
+  Typography,
+  Button,
+  Box,
+  CircularProgress,
+  Tooltip,
+} from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import SettingsIcon from '@material-ui/icons/SettingsOutlined';
@@ -25,7 +31,10 @@ import { WorkflowRunDetailsPage } from './WorkflowRunDetailsPage';
 import { RunsTab, OverviewTab, BuildWithCommitDialog } from './components';
 import { useWorkflowData, useWorkflowRouting } from './hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-import { useComponentEntityDetails } from '@openchoreo/backstage-plugin-react';
+import {
+  useComponentEntityDetails,
+  useBuildPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { useAsyncOperation } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
@@ -65,6 +74,11 @@ export const Workflows = () => {
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
+  const {
+    canBuild,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useBuildPermission();
 
   // URL-based routing
   const {
@@ -287,33 +301,47 @@ export const Workflows = () => {
         <Box className={classes.headerActions}>
           {routingState.tab === 'runs' ? (
             <>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={handleOpenCommitDialog}
-                startIcon={<CodeIcon />}
-                disabled={!componentDetails?.componentWorkflow}
-              >
-                Build With Commit
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => triggerWorkflowOp.execute()}
-                disabled={
-                  triggerWorkflowOp.isLoading ||
-                  !componentDetails?.componentWorkflow
-                }
-                startIcon={
-                  triggerWorkflowOp.isLoading ? (
-                    <CircularProgress size={16} />
-                  ) : (
-                    <PlayArrowIcon />
-                  )
-                }
-              >
-                Build Latest
-              </Button>
+              <Tooltip title={deniedTooltip}>
+                <span>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={handleOpenCommitDialog}
+                    startIcon={<CodeIcon />}
+                    disabled={
+                      !componentDetails?.componentWorkflow ||
+                      permissionLoading ||
+                      !canBuild
+                    }
+                  >
+                    Build With Commit
+                  </Button>
+                </span>
+              </Tooltip>
+              <Tooltip title={deniedTooltip}>
+                <span>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => triggerWorkflowOp.execute()}
+                    disabled={
+                      triggerWorkflowOp.isLoading ||
+                      !componentDetails?.componentWorkflow ||
+                      permissionLoading ||
+                      !canBuild
+                    }
+                    startIcon={
+                      triggerWorkflowOp.isLoading ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <PlayArrowIcon />
+                      )
+                    }
+                  >
+                    Build Latest
+                  </Button>
+                </span>
+              </Tooltip>
             </>
           ) : (
             <>

@@ -1,4 +1,11 @@
-import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
+import {
+  Box,
+  Button,
+  Typography,
+  CircularProgress,
+  Tooltip,
+} from '@material-ui/core';
+import { useBuildPermission } from '@openchoreo/backstage-plugin-react';
 import { Skeleton } from '@material-ui/lab';
 import { Link } from '@backstage/core-components';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
@@ -22,6 +29,11 @@ export const WorkflowsOverviewCard = () => {
     triggeringBuild,
     triggerBuild,
   } = useWorkflowsSummary();
+  const {
+    canBuild,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useBuildPermission();
 
   // Loading state
   if (loading) {
@@ -88,22 +100,26 @@ export const WorkflowsOverviewCard = () => {
           </Typography>
         </Box>
         <Box className={classes.actions}>
-          <Button
-            variant="outlined"
-            color="primary"
-            size="small"
-            onClick={triggerBuild}
-            disabled={triggeringBuild}
-            startIcon={
-              triggeringBuild ? (
-                <CircularProgress size={14} />
-              ) : (
-                <BuildIcon fontSize="small" />
-              )
-            }
-          >
-            {triggeringBuild ? 'Building...' : 'Build Now'}
-          </Button>
+          <Tooltip title={deniedTooltip}>
+            <span>
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                onClick={triggerBuild}
+                disabled={triggeringBuild || permissionLoading || !canBuild}
+                startIcon={
+                  triggeringBuild ? (
+                    <CircularProgress size={14} />
+                  ) : (
+                    <BuildIcon fontSize="small" />
+                  )
+                }
+              >
+                {triggeringBuild ? 'Building...' : 'Build Now'}
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
       </Card>
     );
@@ -151,22 +167,26 @@ export const WorkflowsOverviewCard = () => {
       </Box>
 
       <Box className={classes.actions}>
-        <Button
-          variant="outlined"
-          color="primary"
-          size="small"
-          onClick={triggerBuild}
-          disabled={triggeringBuild}
-          startIcon={
-            triggeringBuild ? (
-              <CircularProgress size={14} />
-            ) : (
-              <BuildIcon fontSize="small" />
-            )
-          }
-        >
-          {triggeringBuild ? 'Building...' : 'Build Now'}
-        </Button>
+        <Tooltip title={deniedTooltip}>
+          <span>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              onClick={triggerBuild}
+              disabled={triggeringBuild || permissionLoading || !canBuild}
+              startIcon={
+                triggeringBuild ? (
+                  <CircularProgress size={14} />
+                ) : (
+                  <BuildIcon fontSize="small" />
+                )
+              }
+            >
+              {triggeringBuild ? 'Building...' : 'Build Now'}
+            </Button>
+          </span>
+        </Tooltip>
       </Box>
     </Card>
   );

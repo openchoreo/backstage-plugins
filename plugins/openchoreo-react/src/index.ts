@@ -114,6 +114,10 @@ export {
   type UseUrlSyncedTabOptions,
   type UseUrlSyncedTabResult,
 } from './hooks/useUrlSyncedTab';
+export {
+  useBuildPermission,
+  type UseBuildPermissionResult,
+} from './hooks/useBuildPermission';
 
 // Change Detection Components
 export { ChangeDiff, type ChangeDiffProps } from './components/ChangeDiff';
