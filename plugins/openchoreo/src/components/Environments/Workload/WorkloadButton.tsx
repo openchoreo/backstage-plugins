@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Box, Button } from '@material-ui/core';
+import { Box, Button, Tooltip } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useApi,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import { usePermission } from '@backstage/plugin-permission-react';
 import { Alert, Skeleton } from '@material-ui/lab';
-import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { stringifyEntityRef } from '@backstage/catalog-model';
+import {
+  ModelsBuild,
+  openchoreoComponentDeployPermission,
+} from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -32,6 +37,13 @@ export const WorkloadButton = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
+
+  // Check if user has permission to deploy
+  const { allowed: canDeploy, loading: deployPermissionLoading } =
+    usePermission({
+      permission: openchoreoComponentDeployPermission,
+      resourceRef: stringifyEntityRef(entity),
+    });
 
   // Fetch workload info to check if it exists
   useEffect(() => {
@@ -116,16 +128,31 @@ export const WorkloadButton = ({
           {getAlertMessage()}
         </Alert>
       )}
-      <Button
-        onClick={onConfigureWorkload}
-        disabled={!enableDeploy || isLoading || isWorking}
-        variant="contained"
-        color="primary"
-        size="small"
-        style={{ alignSelf: 'flex-end' }}
+      <Tooltip
+        title={
+          !canDeploy && !deployPermissionLoading
+            ? 'You do not have permission to deploy'
+            : ''
+        }
       >
-        Configure & Deploy
-      </Button>
+        <span style={{ alignSelf: 'flex-end' }}>
+          <Button
+            onClick={onConfigureWorkload}
+            disabled={
+              !enableDeploy ||
+              isLoading ||
+              isWorking ||
+              deployPermissionLoading ||
+              !canDeploy
+            }
+            variant="contained"
+            color="primary"
+            size="small"
+          >
+            Configure & Deploy
+          </Button>
+        </span>
+      </Tooltip>
     </Box>
   );
 };

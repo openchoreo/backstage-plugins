@@ -1,7 +1,9 @@
 /* eslint-disable no-nested-ternary */
 import { Box, Button, Tooltip } from '@material-ui/core';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import { stringifyEntityRef } from '@backstage/catalog-model';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { openchoreoComponentPromotePermission } from '@openchoreo/backstage-plugin-common';
+import { openchoreoComponentDeployPermission } from '@openchoreo/backstage-plugin-common';
 import { EnvironmentActionsProps } from '../types';
 
 /**
@@ -18,10 +20,13 @@ export const EnvironmentActions = ({
   onPromote,
   onSuspend,
 }: EnvironmentActionsProps) => {
-  // Check if user has permission to promote
+  const { entity } = useEntity();
+
+  // Check if user has permission to promote (uses deploy permission)
   const { allowed: canPromote, loading: promotePermissionLoading } =
     usePermission({
-      permission: openchoreoComponentPromotePermission,
+      permission: openchoreoComponentDeployPermission,
+      resourceRef: stringifyEntityRef(entity),
     });
 
   const hasPromotionTargets =

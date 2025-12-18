@@ -107,8 +107,8 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         return { result: AuthorizeResult.DENY };
       }
 
-      // Determine scope (org/project/component)
-      const scope = await this.resolveScope(userToken, request, user);
+      // Determine scope (org from token or default)
+      const scope = this.resolveScope(userToken);
       if (!scope) {
         this.logger.debug(
           `Could not resolve scope for ${permission.name}, using default deny`,
@@ -151,18 +151,11 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   /**
    * Resolves the scope for a permission check.
    *
-   * For resource-based permissions, attempts to extract scope from the entity.
-   * Falls back to extracting org from the user's JWT token or config default.
+   * Extracts org from the user's JWT token or falls back to config default.
+   * For resource-specific scope resolution, the CONDITIONAL pattern delegates
+   * this to the apply-conditions handler which has access to the resourceRef.
    */
-  private async resolveScope(
-    userToken: string,
-    _request: PolicyQuery,
-    _user: PolicyQueryUser,
-  ): Promise<OpenChoreoScope | undefined> {
-    // For now, we can't get the resourceRef from PolicyQuery
-    // (that would require CONDITIONAL responses)
-    // So we fall back to extracting org from token or default
-
+  private resolveScope(userToken: string): OpenChoreoScope | undefined {
     // Try to extract org from the user's JWT token
     const tokenOrg = extractOrgFromToken(userToken);
     if (tokenOrg) {
