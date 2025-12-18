@@ -70,6 +70,7 @@ export {
   useWorkflowsEnabled,
   useObservabilityEnabled,
   useAuthEnabled,
+  useAuthzEnabled,
 } from './hooks/useOpenChoreoFeatures';
 export {
   useComponentEntityDetails,

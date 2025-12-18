@@ -15,6 +15,7 @@ import { DashboardInfoService } from './services/DashboardService/DashboardInfoS
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
+import { AuthzService } from './services/AuthzService/AuthzService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 
 /**
@@ -92,6 +93,8 @@ export const choreoPlugin = createBackendPlugin({
           baseUrl,
         );
 
+        const authzService = new AuthzService(logger, baseUrl);
+
         httpRouter.use(
           await createRouter({
             environmentInfoService,
@@ -105,6 +108,7 @@ export const choreoPlugin = createBackendPlugin({
             traitInfoService,
             workflowSchemaService,
             secretReferencesInfoService,
+            authzService,
             tokenService,
             authEnabled,
           }),

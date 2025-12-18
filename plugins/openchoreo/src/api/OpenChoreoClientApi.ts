@@ -98,6 +98,74 @@ export interface SecretReferencesResponse {
   };
 }
 
+/** Authorization types */
+export interface AuthzRole {
+  name: string;
+  actions: string[];
+}
+
+export interface Entitlement {
+  claim: string;
+  value: string;
+}
+
+export interface ResourceHierarchy {
+  organization?: string;
+  organization_units?: string[];
+  project?: string;
+  component?: string;
+}
+
+export type PolicyEffect = 'allow' | 'deny';
+
+export interface RoleEntitlementMapping {
+  id?: number;
+  role_name: string;
+  entitlement: Entitlement;
+  hierarchy: ResourceHierarchy;
+  effect: PolicyEffect;
+  context?: Record<string, unknown>;
+}
+
+/** Filters for listing role mappings */
+export interface RoleMappingFilters {
+  role?: string;
+  claim?: string;
+  value?: string;
+}
+
+export interface EntitlementClaimInfo {
+  name: string;
+  display_name: string;
+}
+
+export type SubjectType = 'user' | 'service_account';
+
+export interface UserTypeInfo {
+  type: SubjectType;
+  display_name: string;
+  priority: number;
+  entitlement: EntitlementClaimInfo;
+}
+
+/** Organization summary for listing */
+export interface OrganizationSummary {
+  name: string;
+  displayName?: string;
+}
+
+/** Project summary for listing */
+export interface ProjectSummary {
+  name: string;
+  displayName?: string;
+}
+
+/** Component summary for listing */
+export interface ComponentSummary {
+  name: string;
+  displayName?: string;
+}
+
 /** Build logs params */
 export interface BuildLogsParams {
   componentName: string;
@@ -268,6 +336,65 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     traits: ComponentTrait[],
   ): Promise<ComponentTrait[]>;
+
+  // === Authorization Operations ===
+
+  /** List all roles */
+  listRoles(): Promise<AuthzRole[]>;
+
+  /** Get a specific role */
+  getRole(name: string): Promise<AuthzRole>;
+
+  /** Create a new role */
+  addRole(role: AuthzRole): Promise<AuthzRole>;
+
+  /** Update an existing role's actions */
+  updateRole(name: string, actions: string[]): Promise<AuthzRole>;
+
+  /** Delete a role. Use force=true to delete even if role has mappings */
+  deleteRole(name: string, force?: boolean): Promise<void>;
+
+  /** List role mappings with optional filters */
+  listRoleMappings(
+    filters?: RoleMappingFilters,
+  ): Promise<RoleEntitlementMapping[]>;
+
+  /** Get all role mappings for a specific role */
+  getRoleMappingsForRole(roleName: string): Promise<RoleEntitlementMapping[]>;
+
+  /** Create a new role mapping */
+  addRoleMapping(
+    mapping: RoleEntitlementMapping,
+  ): Promise<RoleEntitlementMapping>;
+
+  /** Update an existing role mapping */
+  updateRoleMapping(
+    mappingId: number,
+    mapping: RoleEntitlementMapping,
+  ): Promise<RoleEntitlementMapping>;
+
+  /** Delete a role mapping by ID */
+  deleteRoleMapping(mappingId: number): Promise<void>;
+
+  /** List all available actions */
+  listActions(): Promise<string[]>;
+
+  /** List all user types */
+  listUserTypes(): Promise<UserTypeInfo[]>;
+
+  // === Hierarchy Data Operations ===
+
+  /** List all organizations */
+  listOrganizations(): Promise<OrganizationSummary[]>;
+
+  /** List projects for an organization */
+  listProjects(orgName: string): Promise<ProjectSummary[]>;
+
+  /** List components for a project */
+  listComponents(
+    orgName: string,
+    projectName: string,
+  ): Promise<ComponentSummary[]>;
 }
 
 // ============================================

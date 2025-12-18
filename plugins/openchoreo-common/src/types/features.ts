@@ -14,6 +14,8 @@
  *       enabled: true
  *     auth:
  *       enabled: true
+ *     authz:
+ *       enabled: true
  * ```
  */
 export interface OpenChoreoFeatures {
@@ -23,9 +25,11 @@ export interface OpenChoreoFeatures {
   observability: { enabled: boolean };
   /** Authentication feature (when disabled, uses guest mode) */
   auth: { enabled: boolean };
+  /** Authorization feature (Access Control UI) */
+  authz: { enabled: boolean };
 }
 
 /**
  * Feature names that can be toggled.
  */
-export type FeatureName = 'workflows' | 'observability' | 'auth';
+export type FeatureName = 'workflows' | 'observability' | 'auth' | 'authz';

@@ -121,6 +121,10 @@ openchoreo:
     # When disabled (false), users are automatically logged in as guests (no OAuth required)
     auth:
       enabled: ${OPENCHOREO_FEATURES_AUTH_ENABLED}
+    # Authorization configuration (Access Control)
+    # When disabled, hides Access Control sidebar item and pages
+    authz:
+      enabled: ${OPENCHOREO_FEATURES_AUTHZ_ENABLED}
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

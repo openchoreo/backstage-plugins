@@ -10,6 +10,7 @@ export {
   ProductionOverviewCard,
   RuntimeHealthCard,
   DeploymentPipelineCard,
+  AccessControlPage,
 } from './plugin';
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';

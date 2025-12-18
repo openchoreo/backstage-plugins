@@ -1,0 +1,1 @@
+export { AccessControlPage } from './AccessControlPage';

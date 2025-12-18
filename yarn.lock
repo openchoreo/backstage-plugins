@@ -11294,6 +11294,7 @@ __metadata:
     "@backstage/plugin-scaffolder-node-test-utils": "npm:0.3.3"
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
+    "@openchoreo/openchoreo-auth": "workspace:^"
     "@openchoreo/openchoreo-client-node": "workspace:^"
     zod: "npm:3.25.76"
   languageName: unknown

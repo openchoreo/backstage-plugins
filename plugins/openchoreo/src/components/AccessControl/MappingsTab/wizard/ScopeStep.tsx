@@ -1,0 +1,297 @@
+import {
+  Box,
+  Typography,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  CircularProgress,
+} from '@material-ui/core';
+import { Autocomplete } from '@material-ui/lab';
+import { makeStyles } from '@material-ui/core/styles';
+import { WizardState } from './types';
+import { useOrganizations, useProjects, useComponents } from '../../hooks';
+
+const useStyles = makeStyles(theme => ({
+  root: {
+    minHeight: 350,
+  },
+  title: {
+    marginBottom: theme.spacing(2),
+  },
+  subtitle: {
+    marginBottom: theme.spacing(3),
+    color: theme.palette.text.secondary,
+  },
+  scopeTypeSection: {
+    marginBottom: theme.spacing(3),
+  },
+  scopeTypeLabel: {
+    fontWeight: 500,
+    marginBottom: theme.spacing(1),
+  },
+  hierarchySection: {
+    maxHeight: 280,
+    overflowY: 'auto',
+    padding: theme.spacing(2),
+    backgroundColor: theme.palette.background.default,
+    borderRadius: theme.shape.borderRadius,
+    border: `1px solid ${theme.palette.divider}`,
+  },
+  fieldGroup: {
+    marginBottom: theme.spacing(2),
+    '&:last-child': {
+      marginBottom: 0,
+    },
+  },
+  fieldLabel: {
+    marginBottom: theme.spacing(0.5),
+    fontWeight: 500,
+    fontSize: '0.875rem',
+  },
+  fieldHint: {
+    color: theme.palette.text.secondary,
+    fontSize: '0.75rem',
+    marginTop: theme.spacing(0.5),
+  },
+  scopeSummary: {
+    marginTop: theme.spacing(2),
+    padding: theme.spacing(1.5),
+    backgroundColor: theme.palette.info.light,
+    borderRadius: theme.shape.borderRadius,
+  },
+  scopeSummaryText: {
+    color: theme.palette.info.contrastText,
+    fontSize: '0.875rem',
+    fontFamily: 'monospace',
+  },
+}));
+
+interface ScopeStepProps {
+  state: WizardState;
+  onChange: (updates: Partial<WizardState>) => void;
+}
+
+export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
+  const classes = useStyles();
+
+  // Hierarchy data hooks
+  const { organizations, loading: orgsLoading } = useOrganizations();
+  const { projects, loading: projectsLoading } = useProjects(
+    state.organization || undefined,
+  );
+  const { components, loading: componentsLoading } = useComponents(
+    state.organization || undefined,
+    state.project || undefined,
+  );
+
+  const handleScopeTypeChange = (scopeType: 'global' | 'specific') => {
+    onChange({
+      scopeType,
+      // Reset hierarchy when switching to global
+      ...(scopeType === 'global' && {
+        organization: '',
+        orgUnits: [],
+        project: '',
+        component: '',
+      }),
+    });
+  };
+
+  const handleOrganizationChange = (value: string | null) => {
+    onChange({
+      organization: value || '',
+      project: '',
+      component: '',
+    });
+  };
+
+  const handleProjectChange = (value: string | null) => {
+    onChange({
+      project: value || '',
+      component: '',
+    });
+  };
+
+  const handleComponentChange = (value: string | null) => {
+    onChange({ component: value || '' });
+  };
+
+  const getScopePath = (): string => {
+    if (state.scopeType === 'global') {
+      return '*';
+    }
+
+    const parts: string[] = [];
+    if (state.organization) parts.push(state.organization);
+    if (state.project) parts.push(state.project);
+    if (state.component) {
+      parts.push(state.component);
+    } else if (state.project) {
+      parts.push('*');
+    }
+
+    return parts.join('/') || '*';
+  };
+
+  return (
+    <Box className={classes.root}>
+      <Typography variant="h6" className={classes.title}>
+        Where should this role apply?
+      </Typography>
+
+      <Typography variant="body2" className={classes.subtitle}>
+        Define the scope of resources this mapping affects
+      </Typography>
+
+      <Box className={classes.scopeTypeSection}>
+        <RadioGroup
+          value={state.scopeType}
+          onChange={e =>
+            handleScopeTypeChange(e.target.value as 'global' | 'specific')
+          }
+        >
+          <FormControlLabel
+            value="global"
+            control={<Radio color="primary" size="small" />}
+            label="Everywhere (global scope)"
+          />
+          <FormControlLabel
+            value="specific"
+            control={<Radio color="primary" size="small" />}
+            label="Specific scope (organization, project, or component)"
+          />
+        </RadioGroup>
+      </Box>
+
+      {state.scopeType === 'specific' && (
+        <Box className={classes.hierarchySection}>
+          <Box className={classes.fieldGroup}>
+            <Typography className={classes.fieldLabel}>Organization</Typography>
+            <Autocomplete
+              freeSolo
+              options={organizations.map(o => o.name)}
+              value={state.organization}
+              onChange={(_, value) => handleOrganizationChange(value)}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input') {
+                  handleOrganizationChange(value);
+                }
+              }}
+              loading={orgsLoading}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  size="small"
+                  placeholder="Select or type organization"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {orgsLoading && (
+                          <CircularProgress color="inherit" size={20} />
+                        )}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Box>
+
+          <Box className={classes.fieldGroup}>
+            <Typography className={classes.fieldLabel}>Project</Typography>
+            <Typography className={classes.fieldHint}>
+              {state.organization
+                ? 'Leave empty to apply to all projects'
+                : 'Select an organization first'}
+            </Typography>
+            <Autocomplete
+              freeSolo
+              options={projects.map(p => p.name)}
+              value={state.project}
+              onChange={(_, value) => handleProjectChange(value)}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input') {
+                  handleProjectChange(value);
+                }
+              }}
+              disabled={!state.organization}
+              loading={projectsLoading}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  size="small"
+                  placeholder={
+                    state.organization ? 'Select or type project' : ''
+                  }
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {projectsLoading && (
+                          <CircularProgress color="inherit" size={20} />
+                        )}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Box>
+
+          <Box className={classes.fieldGroup}>
+            <Typography className={classes.fieldLabel}>Component</Typography>
+            <Typography className={classes.fieldHint}>
+              {state.project
+                ? 'Leave empty to apply to all components'
+                : 'Select a project first'}
+            </Typography>
+            <Autocomplete
+              freeSolo
+              options={components.map(c => c.name)}
+              value={state.component}
+              onChange={(_, value) => handleComponentChange(value)}
+              onInputChange={(_, value, reason) => {
+                if (reason === 'input') {
+                  handleComponentChange(value);
+                }
+              }}
+              disabled={!state.project}
+              loading={componentsLoading}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  size="small"
+                  placeholder={state.project ? 'Select or type component' : ''}
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {componentsLoading && (
+                          <CircularProgress color="inherit" size={20} />
+                        )}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Box>
+        </Box>
+      )}
+
+      <Box className={classes.scopeSummary}>
+        <Typography className={classes.scopeSummaryText}>
+          Scope: {getScopePath()}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};

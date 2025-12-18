@@ -71,6 +71,20 @@ export interface Config {
          */
         enabled?: boolean;
       };
+
+      /**
+       * Authorization configuration.
+       * Controls the Access Control UI for role-based access management.
+       * @deepVisibility frontend
+       */
+      authz?: {
+        /**
+         * Enable or disable authorization features.
+         * When disabled, Access Control sidebar item and pages are hidden.
+         * @visibility frontend
+         */
+        enabled?: boolean;
+      };
     };
 
     /**

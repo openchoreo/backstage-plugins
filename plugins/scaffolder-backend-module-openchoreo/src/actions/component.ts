@@ -16,6 +16,7 @@ import {
   translateComponentToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import type { DiscoveryService } from '@backstage/backend-plugin-api';
+import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 
@@ -28,6 +29,7 @@ export const createComponentAction = (
   config: Config,
   discovery: DiscoveryService,
   immediateCatalog: ImmediateCatalogService,
+  tokenService: OpenChoreoTokenService,
 ) => {
   return createTemplateAction({
     id: 'openchoreo:component:create',
@@ -229,8 +231,21 @@ export const createComponentAction = (
 
         // Create the API client using the auto-generated client
         const baseUrl = config.getString('openchoreo.baseUrl');
+
+        // Get service token for authentication
+        let token: string | undefined;
+        if (tokenService.hasServiceCredentials()) {
+          try {
+            token = await tokenService.getServiceToken();
+            ctx.logger.debug('Using service token for OpenChoreo API');
+          } catch (error) {
+            ctx.logger.warn(`Failed to get service token: ${error}`);
+          }
+        }
+
         const client = createOpenChoreoApiClient({
           baseUrl,
+          token,
           logger: ctx.logger,
         });
 

@@ -1368,6 +1368,238 @@ components:
         type: string
       description: Opaque continuation token from previous response
 
+    # Authorization types
+    SubjectType:
+      type: string
+      enum:
+        - user
+        - service_account
+
+    PolicyEffectType:
+      type: string
+      enum:
+        - allow
+        - deny
+
+    Entitlement:
+      type: object
+      required:
+        - claim
+        - value
+      properties:
+        claim:
+          type: string
+        value:
+          type: string
+
+    AuthzResourceHierarchy:
+      type: object
+      properties:
+        organization:
+          type: string
+        organization_units:
+          type: array
+          items:
+            type: string
+        project:
+          type: string
+        component:
+          type: string
+
+    Role:
+      type: object
+      required:
+        - name
+        - actions
+      properties:
+        name:
+          type: string
+        actions:
+          type: array
+          items:
+            type: string
+
+    RoleEntitlementMapping:
+      type: object
+      required:
+        - role_name
+        - entitlement
+        - hierarchy
+        - effect
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the mapping
+        role_name:
+          type: string
+        entitlement:
+          $ref: '#/components/schemas/Entitlement'
+        hierarchy:
+          $ref: '#/components/schemas/AuthzResourceHierarchy'
+        effect:
+          $ref: '#/components/schemas/PolicyEffectType'
+        context:
+          type: object
+
+    UpdateRoleRequest:
+      type: object
+      required:
+        - actions
+      properties:
+        actions:
+          type: array
+          items:
+            type: string
+          description: List of actions to assign to the role
+
+    EntitlementClaimInfo:
+      type: object
+      required:
+        - name
+        - display_name
+      properties:
+        name:
+          type: string
+        display_name:
+          type: string
+
+    UserTypeInfo:
+      type: object
+      required:
+        - type
+        - display_name
+        - priority
+        - entitlement
+      properties:
+        type:
+          $ref: '#/components/schemas/SubjectType'
+        display_name:
+          type: string
+        priority:
+          type: integer
+        entitlement:
+          $ref: '#/components/schemas/EntitlementClaimInfo'
+
+    Subject:
+      type: object
+      required:
+        - jwt_token
+      properties:
+        jwt_token:
+          type: string
+
+    AuthzResource:
+      type: object
+      required:
+        - type
+        - hierarchy
+      properties:
+        type:
+          type: string
+        id:
+          type: string
+        hierarchy:
+          $ref: '#/components/schemas/AuthzResourceHierarchy'
+
+    EvaluateRequest:
+      type: object
+      required:
+        - subject
+        - resource
+        - action
+      properties:
+        subject:
+          $ref: '#/components/schemas/Subject'
+        resource:
+          $ref: '#/components/schemas/AuthzResource'
+        action:
+          type: string
+        context:
+          type: object
+
+    BatchEvaluateRequest:
+      type: object
+      required:
+        - requests
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluateRequest'
+
+    DecisionContext:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    Decision:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: boolean
+        context:
+          $ref: '#/components/schemas/DecisionContext'
+
+    BatchEvaluateResponse:
+      type: object
+      required:
+        - decisions
+      properties:
+        decisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Decision'
+
+    CapabilityResource:
+      type: object
+      required:
+        - path
+      properties:
+        path:
+          type: string
+        constraints:
+          type: object
+
+    ActionCapability:
+      type: object
+      properties:
+        allowed:
+          type: array
+          items:
+            $ref: '#/components/schemas/CapabilityResource'
+        denied:
+          type: array
+          items:
+            $ref: '#/components/schemas/CapabilityResource'
+
+    SubjectContext:
+      type: object
+      properties:
+        Type:
+          $ref: '#/components/schemas/SubjectType'
+        EntitlementClaim:
+          type: string
+        EntitlementValues:
+          type: array
+          items:
+            type: string
+
+    UserCapabilitiesResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/SubjectContext'
+        capabilities:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ActionCapability'
+        evaluatedAt:
+          type: string
+          format: date-time
+
 security:
   - BearerAuth: []
 
@@ -3248,3 +3480,379 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/WorkloadResponse'
+
+  # Authorization endpoints
+  /authz/roles:
+    get:
+      summary: List all roles
+      operationId: listRoles
+      tags:
+        - Authorization
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Role'
+    post:
+      summary: Create a new role
+      operationId: addRole
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Role'
+      responses:
+        '201':
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+        '409':
+          description: Role already exists
+
+  /authz/roles/{roleName}:
+    get:
+      summary: Get a specific role
+      operationId: getRole
+      tags:
+        - Authorization
+      parameters:
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Role'
+        '404':
+          description: Role not found
+    put:
+      summary: Update a role
+      operationId: updateRole
+      tags:
+        - Authorization
+      parameters:
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Role'
+        '404':
+          description: Role not found
+    delete:
+      summary: Delete a role
+      operationId: removeRole
+      tags:
+        - Authorization
+      parameters:
+        - name: roleName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: force
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: If true, force delete the role and all associated mappings
+      responses:
+        '204':
+          description: Role deleted
+        '404':
+          description: Role not found
+        '409':
+          description: Role is in use by role mappings (use force=true to delete anyway)
+
+  /authz/role-mappings:
+    get:
+      summary: List all role-entitlement mappings
+      operationId: listRoleMappings
+      tags:
+        - Authorization
+      parameters:
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter mappings by role name
+        - name: claim
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter mappings by entitlement claim (must be used with value)
+        - name: value
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter mappings by entitlement value (must be used with claim)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RoleEntitlementMapping'
+    post:
+      summary: Create a new role-entitlement mapping
+      operationId: addRoleMapping
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleEntitlementMapping'
+      responses:
+        '201':
+          description: Mapping created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
+        '409':
+          description: Mapping already exists
+
+  /authz/role-mappings/{mappingId}:
+    put:
+      summary: Update a role-entitlement mapping
+      operationId: updateRoleMapping
+      tags:
+        - Authorization
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the mapping to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleEntitlementMapping'
+      responses:
+        '200':
+          description: Mapping updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RoleEntitlementMapping'
+        '404':
+          description: Mapping not found
+        '409':
+          description: Mapping conflict
+    delete:
+      summary: Remove a role-entitlement mapping
+      operationId: removeRoleMapping
+      tags:
+        - Authorization
+      parameters:
+        - name: mappingId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the mapping to delete
+      responses:
+        '204':
+          description: Mapping deleted
+        '404':
+          description: Mapping not found
+
+  /authz/actions:
+    get:
+      summary: List all available actions
+      operationId: listActions
+      tags:
+        - Authorization
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: string
+
+  /authz/user-types:
+    get:
+      summary: List all configured user types
+      operationId: listUserTypes
+      tags:
+        - Authorization
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserTypeInfo'
+
+  /authz/evaluate:
+    post:
+      summary: Evaluate a single authorization request
+      operationId: evaluate
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Decision'
+
+  /authz/batch-evaluate:
+    post:
+      summary: Evaluate multiple authorization requests
+      operationId: batchEvaluate
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchEvaluateRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BatchEvaluateResponse'
+
+  /authz/profile:
+    get:
+      summary: Get subject's authorization profile
+      operationId: getSubjectProfile
+      tags:
+        - Authorization
+      parameters:
+        - name: org
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Organization name (required)
+        - name: project
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Project name (optional)
+        - name: component
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Component name (optional)
+        - name: ou
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          description: Organization units (optional)
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserCapabilitiesResponse'

@@ -15,3 +15,6 @@ export const rootCatalogWorkflowsRouteRef = createRouteRef({
 export const rootCatalogTraitsRouteRef = createRouteRef({
   id: 'traits',
 });
+export const accessControlRouteRef = createRouteRef({
+  id: 'access-control',
+});
