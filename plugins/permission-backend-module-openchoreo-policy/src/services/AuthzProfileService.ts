@@ -11,6 +11,33 @@ type ProfileResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   data?: UserCapabilitiesResponse;
 };
 
+/** Default TTL in milliseconds when token expiration cannot be determined */
+const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Extracts TTL from JWT token expiration claim.
+ * Returns the time remaining until the token expires in milliseconds.
+ */
+function getTtlFromToken(token: string): number {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return DEFAULT_CACHE_TTL_MS;
+    }
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    const exp = payload.exp;
+    if (!exp) {
+      return DEFAULT_CACHE_TTL_MS;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const ttlSeconds = exp - now;
+    // Ensure at least 1 second TTL, max the remaining time
+    return Math.max(1000, ttlSeconds * 1000);
+  } catch {
+    return DEFAULT_CACHE_TTL_MS;
+  }
+}
+
 /**
  * Configuration for AuthzProfileService.
  */
@@ -126,12 +153,14 @@ export class AuthzProfileService {
         throw new Error('No capabilities data in response');
       }
 
-      // Cache the result
+      // Cache the result with TTL derived from token expiration
       if (this.cache) {
+        const ttlMs = getTtlFromToken(userToken);
         await this.cache.set(
           userToken,
           cacheKey,
           capabilities,
+          ttlMs,
           project,
           component,
         );

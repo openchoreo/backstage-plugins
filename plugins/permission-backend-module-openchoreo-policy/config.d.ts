@@ -6,41 +6,19 @@ export interface Config {
      */
     baseUrl?: string;
 
-    permission?: {
+    features?: {
       /**
-       * Enable the OpenChoreo permission policy.
-       * When false, the policy module will not be activated.
-       * @default true
-       * @visibility backend
+       * Authorization feature configuration.
        */
-      enabled?: boolean;
-
-      /**
-       * Default organization for non-entity permissions.
-       * Used when permission checks don't have entity context.
-       * @visibility backend
-       */
-      defaultOrg?: string;
-
-      /**
-       * Cache configuration for user capabilities.
-       */
-      cache?: {
+      authz?: {
         /**
-         * Time-to-live for cached capabilities in seconds.
-         * @default 300
+         * Enable the OpenChoreo authorization/permission policy.
+         * When false, the permission policy module will not be activated.
+         * @default true
          * @visibility backend
          */
-        ttlSeconds?: number;
+        enabled?: boolean;
       };
-
-      /**
-       * Permission name prefix to handle.
-       * Only permissions starting with this prefix will be evaluated by this policy.
-       * @default 'openchoreo.'
-       * @visibility backend
-       */
-      permissionPrefix?: string;
     };
   };
 }

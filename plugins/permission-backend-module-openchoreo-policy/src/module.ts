@@ -27,11 +27,9 @@ import { AuthzProfileService, AuthzProfileCache } from './services';
  * # In app-config.yaml
  * openchoreo:
  *   baseUrl: http://api.openchoreo.localhost:8080/api/v1
- *   permission:
- *     enabled: true
- *     defaultOrg: my-org
- *     cache:
- *       ttlSeconds: 300
+ *   features:
+ *     authz:
+ *       enabled: true
  * ```
  */
 export const permissionModuleOpenChoreoPolicy = createBackendModule({
@@ -55,25 +53,20 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
           return;
         }
 
-        const permissionConfig =
-          openchoreoConfig.getOptionalConfig('permission');
-        const enabled = permissionConfig?.getOptionalBoolean('enabled') ?? true;
+        const authzEnabled =
+          openchoreoConfig.getOptionalBoolean('features.authz.enabled') ?? true;
 
-        if (!enabled) {
-          logger.info('OpenChoreo permission policy explicitly disabled');
+        if (!authzEnabled) {
+          logger.info(
+            'OpenChoreo permission policy disabled via openchoreo.features.authz.enabled=false',
+          );
           return;
         }
 
         const baseUrl = openchoreoConfig.getString('baseUrl');
-        const ttlSeconds =
-          permissionConfig
-            ?.getOptionalConfig('cache')
-            ?.getOptionalNumber('ttlSeconds') ?? 300;
 
-        // Create the cache for capabilities
-        const authzCache = new AuthzProfileCache(cache, {
-          defaultTtlMs: ttlSeconds * 1000,
-        });
+        // Create the cache for capabilities (TTL derived from token expiration)
+        const authzCache = new AuthzProfileCache(cache);
 
         // Create the authz profile service
         const authzService = new AuthzProfileService({
@@ -85,7 +78,6 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
         // Create and register the policy
         const openchoreoPolicy = new OpenChoreoPermissionPolicy({
           authzService,
-          config: openchoreoConfig,
           logger,
         });
 
