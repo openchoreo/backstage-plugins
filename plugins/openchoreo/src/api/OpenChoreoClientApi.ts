@@ -273,8 +273,8 @@ export interface OpenChoreoClientApi {
     workflowName: string,
   ): Promise<WorkflowSchemaResponse>;
 
-  /** Update component workflow schema */
-  updateComponentWorkflowSchema(
+  /** Update component workflow parameters */
+  updateComponentWorkflowParameters(
     entity: Entity,
     systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,

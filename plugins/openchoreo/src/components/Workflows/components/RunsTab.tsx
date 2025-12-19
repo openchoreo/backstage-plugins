@@ -1,9 +1,22 @@
 import { Table, TableColumn } from '@backstage/core-components';
 import { Typography, Box, IconButton } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import Refresh from '@material-ui/icons/Refresh';
 import { BuildStatusChip } from '../BuildStatusChip';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+
+const useStyles = makeStyles(theme => ({
+  tableWrapper: {
+    '& tbody tr': {
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      '&:hover': {
+        backgroundColor: theme.palette.action.hover,
+      },
+    },
+  },
+}));
 
 interface RunsTabProps {
   builds: ModelsBuild[];
@@ -20,6 +33,8 @@ export const RunsTab = ({
   onRefresh,
   onRowClick,
 }: RunsTabProps) => {
+  const classes = useStyles();
+
   const columns: TableColumn[] = [
     {
       title: 'Workflow Run Name',
@@ -62,49 +77,51 @@ export const RunsTab = ({
   );
 
   return (
-    <Table
-      title={
-        <Box display="flex" alignItems="center">
-          <Typography variant="h6" component="span">
-            Workflow Runs
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={onRefresh}
-            disabled={isRefreshing || loading}
-            style={{ marginLeft: '8px' }}
-            title={isRefreshing ? 'Refreshing...' : 'Refresh builds'}
+    <Box className={classes.tableWrapper}>
+      <Table
+        title={
+          <Box display="flex" alignItems="center">
+            <Typography variant="h6" component="span">
+              Workflow Runs
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={onRefresh}
+              disabled={isRefreshing || loading}
+              style={{ marginLeft: '8px' }}
+              title={isRefreshing ? 'Refreshing...' : 'Refresh builds'}
+            >
+              <Refresh style={{ fontSize: '18px' }} />
+            </IconButton>
+          </Box>
+        }
+        options={{
+          search: true,
+          paging: true,
+          sorting: true,
+        }}
+        columns={columns}
+        data={sortedBuilds}
+        onRowClick={(_, rowData) => {
+          onRowClick(rowData as ModelsBuild);
+        }}
+        emptyContent={
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            flexDirection="column"
+            padding={4}
           >
-            <Refresh style={{ fontSize: '18px' }} />
-          </IconButton>
-        </Box>
-      }
-      options={{
-        search: true,
-        paging: true,
-        sorting: true,
-      }}
-      columns={columns}
-      data={sortedBuilds}
-      onRowClick={(_, rowData) => {
-        onRowClick(rowData as ModelsBuild);
-      }}
-      emptyContent={
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          flexDirection="column"
-          padding={4}
-        >
-          <Typography variant="h6" color="textSecondary" gutterBottom>
-            No workflow runs found
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            Trigger a workflow to see runs appear here
-          </Typography>
-        </Box>
-      }
-    />
+            <Typography variant="h6" color="textSecondary" gutterBottom>
+              No workflow runs found
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Trigger a workflow to see runs appear here
+            </Typography>
+          </Box>
+        }
+      />
+    </Box>
   );
 };

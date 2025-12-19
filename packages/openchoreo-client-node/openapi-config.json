@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "84e600909d3b90f3263949e3610ea7a46de42d79",
-  "lastSyncDate": "2025-12-09T15:37:42+05:30",
-  "lastSyncDescription": "Added component trait management endpoints: GET /orgs/{orgName}/projects/{projectName}/components/{componentName}/traits to list traits, PUT /orgs/{orgName}/projects/{projectName}/components/{componentName}/traits to update all traits. Added schemas: ComponentTraitResponse, ComponentTraitRequest, UpdateComponentTraitsRequest."
+  "lastSyncCommit": "8a827ae92a7f5399defb5745904cc87edfc2703b",
+  "lastSyncDate": "2025-12-19T09:24:36+05:30",
+  "lastSyncDescription": "Updated component workflow endpoints: renamed POST /component-workflows to POST /workflow-runs, added GET /workflow-runs/{runName}, renamed PATCH /component-workflow-schema to PATCH /workflow-parameters ."
 }
