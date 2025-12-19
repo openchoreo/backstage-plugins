@@ -113,9 +113,7 @@ export class BuildInfoService {
         throw new Error('No workflow run data returned');
       }
 
-      this.logger.debug(
-        `Successfully fetched workflow run: ${runName}`,
-      );
+      this.logger.debug(`Successfully fetched workflow run: ${runName}`);
       return data.data;
     } catch (error) {
       this.logger.error(

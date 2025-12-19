@@ -266,7 +266,9 @@ export const WorkflowConfigPage = ({
       onBack();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to update workflow parameters',
+        err instanceof Error
+          ? err.message
+          : 'Failed to update workflow parameters',
       );
     } finally {
       setSaving(false);
