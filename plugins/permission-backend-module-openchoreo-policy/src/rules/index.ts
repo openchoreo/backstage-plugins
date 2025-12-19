@@ -3,6 +3,7 @@ import {
   matchesCapability,
   openchoreoComponentResourceRef,
 } from './matchesCapability';
+import { matchesCatalogEntityCapability } from './matchesCatalogEntityCapability';
 
 export {
   matchesCapability,
@@ -10,10 +11,24 @@ export {
 } from './matchesCapability';
 export type { MatchesCapabilityParams } from './matchesCapability';
 
+export {
+  matchesCatalogEntityCapability,
+  type CatalogPermissionRule,
+  type MatchesCatalogEntityCapabilityParams,
+} from './matchesCatalogEntityCapability';
+
 /**
  * All OpenChoreo permission rules as a Record (required by createConditionExports).
  */
 export const openchoreoPermissionRules = { matchesCapability };
+
+/**
+ * All catalog entity permission rules for OpenChoreo.
+ * These rules work with the catalog-entity resource type.
+ */
+export const openchoreoСatalogPermissionRules = {
+  matchesCatalogEntityCapability,
+};
 
 /**
  * Condition exports for OpenChoreo component permissions.

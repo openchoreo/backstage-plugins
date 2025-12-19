@@ -18,6 +18,8 @@ export {
   openchoreoReleaseReadPermission,
   openchoreoPermissions,
   OPENCHOREO_PERMISSION_TO_ACTION,
+  CATALOG_PERMISSION_TO_ACTION,
+  OPENCHOREO_MANAGED_ENTITY_KINDS,
 } from './permissions';
 export {
   getRepositoryInfo,

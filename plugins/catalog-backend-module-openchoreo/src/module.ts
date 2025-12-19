@@ -3,7 +3,10 @@ import {
   createBackendModule,
   createServiceFactory,
 } from '@backstage/backend-plugin-api';
-import { catalogProcessingExtensionPoint } from '@backstage/plugin-catalog-node/alpha';
+import {
+  catalogProcessingExtensionPoint,
+  catalogPermissionExtensionPoint,
+} from '@backstage/plugin-catalog-node/alpha';
 import { OpenChoreoEntityProvider } from './provider/OpenChoreoEntityProvider';
 import { ScaffolderEntityProvider } from './provider/ScaffolderEntityProvider';
 import {
@@ -15,6 +18,7 @@ import {
   ImmediateCatalogService,
 } from './service/ImmediateCatalogService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
+import { matchesCatalogEntityCapability } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
 
 // Singleton instance of the ScaffolderEntityProvider
 // This will be shared across the module and the service
@@ -32,12 +36,20 @@ export const catalogModuleOpenchoreo = createBackendModule({
     env.registerInit({
       deps: {
         catalog: catalogProcessingExtensionPoint,
+        catalogPermissions: catalogPermissionExtensionPoint,
         config: coreServices.rootConfig,
         logger: coreServices.logger,
         scheduler: coreServices.scheduler,
         tokenService: openChoreoTokenServiceRef,
       },
-      async init({ catalog, config, logger, scheduler, tokenService }) {
+      async init({
+        catalog,
+        catalogPermissions,
+        config,
+        logger,
+        scheduler,
+        tokenService,
+      }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
         const frequency =
           openchoreoConfig?.getOptionalNumber('schedule.frequency') ?? 30;
@@ -74,6 +86,10 @@ export const catalogModuleOpenchoreo = createBackendModule({
           );
         }
         catalog.addEntityProvider(scaffolderProviderInstance);
+
+        // Register OpenChoreo permission rule for catalog entities
+        // This allows catalog.entity.* permissions to be checked against OpenChoreo capabilities
+        catalogPermissions.addPermissionRules(matchesCatalogEntityCapability);
       },
     });
   },
