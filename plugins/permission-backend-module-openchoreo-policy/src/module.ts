@@ -1,9 +1,23 @@
 import { createBackendModule } from '@backstage/backend-plugin-api';
 import { coreServices } from '@backstage/backend-plugin-api';
 import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
+import { PermissionPolicy } from '@backstage/plugin-permission-node';
+import {
+  AuthorizeResult,
+  PolicyDecision,
+} from '@backstage/plugin-permission-common';
 import { OpenChoreoPermissionPolicy } from './policy';
 import { AuthzProfileService, AuthzProfileCache } from './services';
 import { createRouter } from './router';
+
+/**
+ * Simple allow-all policy for when OpenChoreo authz is disabled.
+ */
+class AllowAllPolicy implements PermissionPolicy {
+  async handle(): Promise<PolicyDecision> {
+    return { result: AuthorizeResult.ALLOW };
+  }
+}
 
 /**
  * OpenChoreo permission policy backend module.
@@ -50,8 +64,9 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
 
         if (!openchoreoConfig) {
           logger.info(
-            'OpenChoreo permission policy disabled - no openchoreo configuration found',
+            'OpenChoreo permission policy disabled - no openchoreo configuration found. Using allow-all policy.',
           );
+          policy.setPolicy(new AllowAllPolicy());
           return;
         }
 
@@ -60,8 +75,9 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
 
         if (!authzEnabled) {
           logger.info(
-            'OpenChoreo permission policy disabled via openchoreo.features.authz.enabled=false',
+            'OpenChoreo permission policy disabled via openchoreo.features.authz.enabled=false. Using allow-all policy.',
           );
+          policy.setPolicy(new AllowAllPolicy());
           return;
         }
 
