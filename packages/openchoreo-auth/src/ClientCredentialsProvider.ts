@@ -31,7 +31,6 @@ export class ClientCredentialsProvider {
    * This method is thread-safe - concurrent calls will share the same token request.
    */
   async getToken(): Promise<string> {
-    this.logger.info('Getting token from ClientCredentialsProvider');
     // Return cached token if still valid
     if (this.cachedToken && this.isTokenValid(this.cachedToken)) {
       return this.cachedToken.accessToken;
@@ -57,7 +56,6 @@ export class ClientCredentialsProvider {
    * Checks if a cached token is still valid (not expired).
    */
   private isTokenValid(token: CachedToken): boolean {
-    this.logger.info(`Checking if token is valid: ${token.expiresAt}`);
     const isValid = Date.now() < token.expiresAt - TOKEN_EXPIRY_BUFFER_MS;
     return isValid;
   }
@@ -97,7 +95,6 @@ export class ClientCredentialsProvider {
       }
 
       const tokenResponse: TokenResponse = await response.json();
-      this.logger.info(`Token response: ${JSON.stringify(tokenResponse)}`);
 
       // Decode JWT to extract the actual expiration time from the exp claim
       // This is more accurate than using expires_in, which doesn't account for
@@ -116,14 +113,14 @@ export class ClientCredentialsProvider {
         } else {
           // Fallback to expires_in if exp claim is missing
           expiresAt = Date.now() + tokenResponse.expires_in * 1000;
-          this.logger.warn(
+          this.logger.debug(
             `JWT exp claim missing, falling back to expires_in calculation: ${expiresAt}`,
           );
         }
       } catch (error) {
         // Fallback to expires_in if JWT decoding fails
         expiresAt = Date.now() + tokenResponse.expires_in * 1000;
-        this.logger.warn(
+        this.logger.debug(
           `Failed to decode JWT token, falling back to expires_in calculation: ${error}`,
         );
       }
