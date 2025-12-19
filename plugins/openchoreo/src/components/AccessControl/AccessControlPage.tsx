@@ -41,7 +41,7 @@ const isAuthzDisabledError = (error: Error | null): boolean => {
   );
 };
 
-export const AccessControlPage = () => {
+const AccessControlPageContent = () => {
   const classes = useStyles();
   const [activeTab, setActiveTab] = useState<TabId>('roles');
   const { error: rolesError, loading: rolesLoading } = useRoles();
@@ -141,3 +141,8 @@ export const AccessControlPage = () => {
     </Page>
   );
 };
+
+/**
+ * Access Control page for managing roles, permissions, and entitlement mappings.
+ */
+export const AccessControlPage = AccessControlPageContent;

@@ -297,6 +297,8 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
             },
           }),
         });
+
+        logger.info('OpenChoreo default-idp auth provider registered');
       },
     });
   },

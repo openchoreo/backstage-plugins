@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AuthenticationError } from '@backstage/errors';
 import { OpenChoreoTokenService } from './OpenChoreoTokenService';
+import { runWithTokenContext } from './tokenContext';
 
 /**
  * Symbol key for storing the user token on the request object.
@@ -19,8 +20,12 @@ type RequestWithUserToken = Request & {
  * Creates middleware that extracts the user's IDP token from request headers
  * and caches it on the request object.
  *
- * This allows routes to access the token efficiently without repeatedly
- * parsing headers. Use `getUserTokenFromRequest()` to retrieve the token.
+ * This middleware also establishes a token context using AsyncLocalStorage,
+ * making the token accessible to any code that runs during the request
+ * (including permission policies) without explicitly passing the request object.
+ *
+ * Use `getUserTokenFromRequest()` to retrieve the token from the request,
+ * or `getUserTokenFromContext()` to retrieve it from anywhere in the request lifecycle.
  *
  * @param tokenService - OpenChoreo token service for extracting tokens
  * @returns Express middleware function
@@ -39,9 +44,15 @@ export function createUserTokenMiddleware(
   tokenService: OpenChoreoTokenService,
 ): RequestHandler {
   return (req: RequestWithUserToken, _res, next) => {
-    // Extract and cache the token (null means "checked but not present")
-    req[userTokenSymbol] = tokenService.getUserToken(req) ?? null;
-    next();
+    // Extract the token (null means "checked but not present")
+    const userToken = tokenService.getUserToken(req) ?? null;
+    req[userTokenSymbol] = userToken;
+
+    // Wrap the rest of the request in a token context
+    // This makes the token available via getTokenContext() anywhere in the request
+    runWithTokenContext({ userToken: userToken ?? undefined }, () => {
+      next();
+    });
   };
 }
 
@@ -111,5 +122,51 @@ export function createRequireAuthMiddleware(
     }
 
     return next();
+  };
+}
+
+/**
+ * Creates middleware that reads the OpenChoreo IDP token from the request header
+ * and establishes a token context using AsyncLocalStorage.
+ *
+ * This middleware is designed to be applied at the root HTTP router level,
+ * before any route handlers. It reads the IDP token from the `x-openchoreo-token`
+ * header (set by the frontend) and makes it available to ALL routes via
+ * `getUserTokenFromContext()`.
+ *
+ * This is critical for the permission system, which needs access to the
+ * user's IDP token to query the OpenChoreo /authz/profile API, but doesn't
+ * have direct access to the request object.
+ *
+ * @returns Express middleware function
+ *
+ * @example
+ * ```typescript
+ * // In backend/src/index.ts
+ * backend.add(rootHttpRouterServiceFactory({
+ *   configure: ({ app, applyDefaults, middleware }) => {
+ *     app.use(middleware.helmet());
+ *     app.use(middleware.cors());
+ *     app.use(createIdpTokenHeaderMiddleware()); // Add before routes
+ *     applyDefaults();
+ *   }
+ * }));
+ * ```
+ */
+export function createIdpTokenHeaderMiddleware(): RequestHandler {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    let userToken: string | undefined;
+
+    // Get token from header (set by frontend for API calls)
+    const headerToken = req.headers['x-openchoreo-token'];
+    if (typeof headerToken === 'string' && headerToken.length > 0) {
+      userToken = headerToken;
+    }
+
+    // Wrap the rest of the request in a token context
+    // This makes the token available via getUserTokenFromContext() anywhere
+    runWithTokenContext({ userToken }, () => {
+      next();
+    });
   };
 }

@@ -3,6 +3,27 @@ export {
   CHOREO_LABELS,
   DEFAULT_PAGE_LIMIT,
 } from './constants';
+
+// Permissions
+export {
+  OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  OPENCHOREO_RESOURCE_TYPE_PROJECT,
+  openchoreoComponentCreatePermission,
+  openchoreoComponentReadPermission,
+  openchoreoComponentBuildPermission,
+  openchoreoComponentDeployPermission,
+  openchoreoComponentUpdatePermission,
+  openchoreoProjectCreatePermission,
+  openchoreoProjectReadPermission,
+  openchoreoOrganizationReadPermission,
+  openchoreoEnvironmentCreatePermission,
+  openchoreoEnvironmentReadPermission,
+  openchoreoReleaseCreatePermission,
+  openchoreoReleaseReadPermission,
+  openchoreoPermissions,
+  OPENCHOREO_PERMISSION_TO_ACTION,
+} from './permissions';
+
 export {
   getRepositoryInfo,
   getRepositoryUrl,

@@ -28,7 +28,6 @@
     "@backstage/plugin-catalog-backend-module-scaffolder-entity-model": "0.2.12",
     "@backstage/plugin-kubernetes-backend": "0.20.2",
     "@backstage/plugin-permission-backend": "0.7.4",
-    "@backstage/plugin-permission-backend-module-allow-all-policy": "0.2.12",
     "@backstage/plugin-permission-common": "0.9.1",
     "@backstage/plugin-permission-node": "0.10.4",
     "@backstage/plugin-proxy-backend": "0.6.6",
@@ -46,17 +45,21 @@
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^",
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^",
+    "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^",
     "@openchoreo/backstage-plugin-scaffolder-backend-module": "workspace:^",
+    "@openchoreo/openchoreo-auth": "workspace:^",
     "@openchoreo/plugin-catalog-backend-module-openchoreo-incremental": "workspace:^",
     "app": "link:../app",
     "better-sqlite3": "9.6.0",
+    "cookie-parser": "1.4.7",
     "express-session": "1.18.2",
     "node-gyp": "10.3.1",
     "pg": "8.16.3"
   },
   "devDependencies": {
     "@backstage/cli": "0.34.3",
+    "@types/cookie-parser": "1.4.8",
     "@types/express-session": "1.18.2"
   },
   "files": [

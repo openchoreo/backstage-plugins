@@ -22,7 +22,15 @@ export {
   createUserTokenMiddleware,
   getUserTokenFromRequest,
   createRequireAuthMiddleware,
+  createIdpTokenHeaderMiddleware,
 } from './middleware';
+
+export {
+  runWithTokenContext,
+  getTokenContext,
+  getUserTokenFromContext,
+} from './tokenContext';
+export type { OpenChoreoTokenContext } from './tokenContext';
 
 export type { OpenChoreoAuthConfig, CachedToken, TokenResponse } from './types';
 export { OPENCHOREO_TOKEN_HEADER } from './types';

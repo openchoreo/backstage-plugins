@@ -10,6 +10,7 @@ import { createBackend } from '@backstage/backend-defaults';
 import { OpenChoreoDefaultAuthModule } from '@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default';
 import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHttpRouter';
 import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
 
 /**
  * OPTIONAL: For large-scale deployments, use the incremental ingestion module
@@ -23,7 +24,28 @@ import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-cat
 
 const backend = createBackend();
 
-backend.add(rootHttpRouterServiceFactory());
+// Configure root HTTP router with IDP token header middleware
+// This middleware reads the IDP token from headers and makes it available
+// to ALL routes via AsyncLocalStorage, which is critical for the permission
+// system to access the user's IDP token when making authorization decisions.
+backend.add(
+  rootHttpRouterServiceFactory({
+    configure: ({ app, applyDefaults, middleware }) => {
+      // Apply standard middleware first
+      app.use(middleware.helmet());
+      app.use(middleware.cors());
+      app.use(middleware.compression());
+      app.use(middleware.logging());
+
+      // IDP token middleware - reads token from header and establishes
+      // AsyncLocalStorage context so getUserTokenFromContext() works everywhere
+      app.use(createIdpTokenHeaderMiddleware());
+
+      // Apply remaining defaults (routes, error handling, etc.)
+      applyDefaults();
+    },
+  }),
+);
 backend.add(immediateCatalogServiceFactory);
 
 backend.add(import('@backstage/plugin-app-backend'));
@@ -68,9 +90,12 @@ backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
 
 // permission plugin
 backend.add(import('@backstage/plugin-permission-backend'));
-// See https://backstage.io/docs/permissions/getting-started for how to create your own permission policy
+// OpenChoreo permission policy - handles openchoreo.* permissions via /authz/profile API
+// Falls back to ALLOW for non-OpenChoreo permissions (composable with other policies)
 backend.add(
-  import('@backstage/plugin-permission-backend-module-allow-all-policy'),
+  import(
+    '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy'
+  ),
 );
 
 // search plugin

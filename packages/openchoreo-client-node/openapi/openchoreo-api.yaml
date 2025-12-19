@@ -3820,10 +3820,10 @@ paths:
       parameters:
         - name: org
           in: query
-          required: true
+          required: false
           schema:
             type: string
-          description: Organization name (required)
+          description: Organization name (optional, omit for global profile)
         - name: project
           in: query
           required: false

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Button } from '@material-ui/core';
+import { Box, Button, Tooltip } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useApi,
@@ -8,6 +8,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { Alert, Skeleton } from '@material-ui/lab';
 import { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { useDeployPermission } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 
@@ -32,6 +33,13 @@ export const WorkloadButton = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
+
+  // Check if user has permission to deploy
+  const {
+    canDeploy,
+    loading: deployPermissionLoading,
+    deniedTooltip,
+  } = useDeployPermission();
 
   // Fetch workload info to check if it exists
   useEffect(() => {
@@ -116,16 +124,25 @@ export const WorkloadButton = ({
           {getAlertMessage()}
         </Alert>
       )}
-      <Button
-        onClick={onConfigureWorkload}
-        disabled={!enableDeploy || isLoading || isWorking}
-        variant="contained"
-        color="primary"
-        size="small"
-        style={{ alignSelf: 'flex-end' }}
-      >
-        Configure & Deploy
-      </Button>
+      <Tooltip title={deniedTooltip}>
+        <span style={{ alignSelf: 'flex-end' }}>
+          <Button
+            onClick={onConfigureWorkload}
+            disabled={
+              !enableDeploy ||
+              isLoading ||
+              isWorking ||
+              deployPermissionLoading ||
+              !canDeploy
+            }
+            variant="contained"
+            color="primary"
+            size="small"
+          >
+            Configure & Deploy
+          </Button>
+        </span>
+      </Tooltip>
     </Box>
   );
 };
