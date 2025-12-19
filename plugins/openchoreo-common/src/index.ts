@@ -19,6 +19,7 @@ export {
   openchoreoPermissions,
   OPENCHOREO_PERMISSION_TO_ACTION,
   CATALOG_PERMISSION_TO_ACTION,
+  CATALOG_KIND_TO_ACTION,
   OPENCHOREO_MANAGED_ENTITY_KINDS,
 } from './permissions';
 export {
