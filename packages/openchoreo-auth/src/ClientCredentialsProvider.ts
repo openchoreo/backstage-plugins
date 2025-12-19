@@ -1,4 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
+import { decodeJwt } from 'jose';
 import { OpenChoreoAuthConfig, CachedToken, TokenResponse } from './types';
 
 /**
@@ -30,6 +31,7 @@ export class ClientCredentialsProvider {
    * This method is thread-safe - concurrent calls will share the same token request.
    */
   async getToken(): Promise<string> {
+    this.logger.info('Getting token from ClientCredentialsProvider');
     // Return cached token if still valid
     if (this.cachedToken && this.isTokenValid(this.cachedToken)) {
       return this.cachedToken.accessToken;
@@ -55,7 +57,9 @@ export class ClientCredentialsProvider {
    * Checks if a cached token is still valid (not expired).
    */
   private isTokenValid(token: CachedToken): boolean {
-    return Date.now() < token.expiresAt - TOKEN_EXPIRY_BUFFER_MS;
+    this.logger.info(`Checking if token is valid: ${token.expiresAt}`);
+    const isValid = Date.now() < token.expiresAt - TOKEN_EXPIRY_BUFFER_MS;
+    return isValid;
   }
 
   /**
@@ -93,15 +97,38 @@ export class ClientCredentialsProvider {
       }
 
       const tokenResponse: TokenResponse = await response.json();
+      this.logger.info(`Token response: ${JSON.stringify(tokenResponse)}`);
+
+      // Decode JWT to extract the actual expiration time from the exp claim
+      // This is more accurate than using expires_in, which doesn't account for
+      // time elapsed between token issuance and response receipt
+      let expiresAt: number;
+      try {
+        const decodedToken = decodeJwt(tokenResponse.access_token);
+        if (decodedToken.exp) {
+          // exp claim is in seconds, convert to milliseconds
+          expiresAt = decodedToken.exp * 1000;
+          this.logger.debug(`Using JWT exp claim for expiry: ${expiresAt} (${new Date(expiresAt).toISOString()})`);
+        } else {
+          // Fallback to expires_in if exp claim is missing
+          expiresAt = Date.now() + tokenResponse.expires_in * 1000;
+          this.logger.warn(`JWT exp claim missing, falling back to expires_in calculation: ${expiresAt}`);
+        }
+      } catch (error) {
+        // Fallback to expires_in if JWT decoding fails
+        expiresAt = Date.now() + tokenResponse.expires_in * 1000;
+        this.logger.warn(`Failed to decode JWT token, falling back to expires_in calculation: ${error}`);
+      }
 
       // Cache the token
       this.cachedToken = {
         accessToken: tokenResponse.access_token,
-        expiresAt: Date.now() + tokenResponse.expires_in * 1000,
+        expiresAt,
       };
 
+      const expiresInSeconds = Math.round((expiresAt - Date.now()) / 1000);
       this.logger.debug(
-        `Successfully obtained client credentials token, expires in ${tokenResponse.expires_in}s`,
+        `Successfully obtained client credentials token, expires in ${expiresInSeconds}s at ${new Date(expiresAt).toISOString()}`,
       );
 
       return tokenResponse.access_token;
