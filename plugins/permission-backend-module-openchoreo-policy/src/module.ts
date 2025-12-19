@@ -3,6 +3,7 @@ import { coreServices } from '@backstage/backend-plugin-api';
 import { policyExtensionPoint } from '@backstage/plugin-permission-node/alpha';
 import { OpenChoreoPermissionPolicy } from './policy';
 import { AuthzProfileService, AuthzProfileCache } from './services';
+import { createRouter } from './router';
 
 /**
  * OpenChoreo permission policy backend module.
@@ -42,8 +43,9 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
         config: coreServices.rootConfig,
         logger: coreServices.logger,
         cache: coreServices.cache,
+        httpRouter: coreServices.httpRouter,
       },
-      async init({ policy, config, logger, cache }) {
+      async init({ policy, config, logger, cache, httpRouter }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
 
         if (!openchoreoConfig) {
@@ -82,6 +84,14 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
         });
 
         policy.setPolicy(openchoreoPolicy);
+
+        // Register the router for internal endpoints (e.g., cache-capabilities)
+        httpRouter.use(
+          await createRouter({
+            authzService,
+            logger,
+          }),
+        );
 
         logger.info('OpenChoreo permission policy registered successfully');
       },

@@ -7,21 +7,36 @@ import {
   PermissionPolicy,
   PolicyQuery,
   PolicyQueryUser,
+  createConditionFactory,
 } from '@backstage/plugin-permission-node';
 import { LoggerService } from '@backstage/backend-plugin-api';
+import { RESOURCE_TYPE_CATALOG_ENTITY } from '@backstage/plugin-catalog-common/alpha';
 import { getUserTokenFromContext } from '@openchoreo/openchoreo-auth';
 import {
   OPENCHOREO_PERMISSION_TO_ACTION,
   OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  CATALOG_PERMISSION_TO_ACTION,
+  OPENCHOREO_MANAGED_ENTITY_KINDS,
 } from '@openchoreo/backstage-plugin-common';
 import { AuthzProfileService } from '../services';
 import {
   openchoreoConditions,
   createOpenChoreoConditionalDecision,
+  matchesCatalogEntityCapability,
 } from '../rules';
 
 /** Permission name prefix for OpenChoreo permissions */
 const PERMISSION_PREFIX = 'openchoreo.';
+
+/** Permission name prefix for catalog entity permissions */
+const CATALOG_PERMISSION_PREFIX = 'catalog.entity.';
+
+/** Condition factory for catalog entity capability rule */
+const catalogConditions = {
+  matchesCatalogEntityCapability: createConditionFactory(
+    matchesCatalogEntityCapability,
+  ),
+};
 
 /**
  * Options for the OpenChoreoPermissionPolicy.
@@ -40,7 +55,8 @@ export interface OpenChoreoPermissionPolicyOptions {
  * permissions based on the user's capabilities in OpenChoreo.
  *
  * Key features:
- * - Only handles permissions prefixed with 'openchoreo.' (composable)
+ * - Handles permissions prefixed with 'openchoreo.' (composable)
+ * - Handles 'catalog.entity.*' permissions for OpenChoreo-managed entities
  * - Returns CONDITIONAL for resource permissions, with capability patterns
  *   matched against entity scope at apply-conditions time
  * - Caches capabilities per request for efficiency
@@ -71,6 +87,9 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
    * For OpenChoreo basic permissions (org-level):
    * - Returns ALLOW/DENY based on profile capabilities
    *
+   * For catalog.entity.* permissions on OpenChoreo-managed entities:
+   * - Returns CONDITIONAL to check against OpenChoreo capabilities
+   *
    * For non-OpenChoreo permissions, returns ALLOW to defer to other policies.
    */
   async handle(
@@ -79,28 +98,30 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   ): Promise<PolicyDecision> {
     const { permission } = request;
 
+    this.logger.debug(`[POLICY_HANDLE] Permission: ${permission.name}`);
+
+    // Handle catalog.entity.* permissions for OpenChoreo-managed entities
+    if (permission.name.startsWith(CATALOG_PERMISSION_PREFIX)) {
+      this.logger.debug(`[POLICY_HANDLE] Routing to handleCatalogPermission`);
+      return this.handleCatalogPermission(request, user);
+    }
+
     // Only handle OpenChoreo permissions
     if (!permission.name.startsWith(PERMISSION_PREFIX)) {
       // Defer to other policies by allowing
       return { result: AuthorizeResult.ALLOW };
     }
 
-    // Must have a user for OpenChoreo permissions
-    if (!user) {
+    // Must have a user with userEntityRef for OpenChoreo permissions
+    const userEntityRef = user?.info?.userEntityRef;
+    if (!userEntityRef) {
       this.logger.debug(`Denying ${permission.name} - no user context`);
       return { result: AuthorizeResult.DENY };
     }
 
     try {
-      // Get the OpenChoreo user token from context
+      // Get the OpenChoreo user token from context (may be undefined for internal calls)
       const userToken = getUserTokenFromContext();
-
-      if (!userToken) {
-        this.logger.warn(
-          `No OpenChoreo token available for permission check: ${permission.name}`,
-        );
-        return { result: AuthorizeResult.DENY };
-      }
 
       // Map Backstage permission name to OpenChoreo action
       const action = this.mapPermissionToAction(permission.name);
@@ -110,8 +131,12 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         return { result: AuthorizeResult.DENY };
       }
 
-      // Fetch global capabilities (scope matching happens in apply-conditions)
-      const capabilities = await this.authzService.getCapabilities(userToken);
+      // Fetch global capabilities using userEntityRef-based lookup
+      // This works even when token is not available (uses cached capabilities)
+      const capabilities = await this.authzService.getCapabilitiesForUser(
+        userEntityRef,
+        userToken,
+      );
 
       // For resource-based permissions (component-level), return CONDITIONAL
       // The apply-conditions handler will check capabilities against entity scope
@@ -167,5 +192,116 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
    */
   private mapPermissionToAction(permissionName: string): string | undefined {
     return OPENCHOREO_PERMISSION_TO_ACTION[permissionName];
+  }
+
+  /**
+   * Handles catalog.entity.* permissions for OpenChoreo-managed entities.
+   *
+   * Returns CONDITIONAL so that the rule can check:
+   * 1. If the entity kind is one we care about (Component)
+   * 2. If the entity has OpenChoreo annotations
+   * 3. If the user has the required capability for that scope
+   */
+  private async handleCatalogPermission(
+    request: PolicyQuery,
+    user?: PolicyQueryUser,
+  ): Promise<PolicyDecision> {
+    const { permission } = request;
+
+    // Only handle resource-based catalog permissions
+    if (!isResourcePermission(permission, RESOURCE_TYPE_CATALOG_ENTITY)) {
+      // Non-resource catalog permissions (like create) - defer to other policies
+      return { result: AuthorizeResult.ALLOW };
+    }
+
+    // Map catalog permission to OpenChoreo action
+    const action = CATALOG_PERMISSION_TO_ACTION[permission.name];
+    if (!action) {
+      // Unknown catalog permission - defer to other policies
+      this.logger.debug(
+        `Unknown catalog permission ${permission.name}, deferring to other policies`,
+      );
+      return { result: AuthorizeResult.ALLOW };
+    }
+
+    // Must have a user context with userEntityRef
+    const userEntityRef = user?.info?.userEntityRef;
+    if (!userEntityRef) {
+      this.logger.debug(`Denying ${permission.name} - no user context`);
+      return { result: AuthorizeResult.DENY };
+    }
+
+    try {
+      // Get the OpenChoreo user token from context (may be undefined for internal calls)
+      const userToken = getUserTokenFromContext();
+
+      this.logger.debug(
+        `[CATALOG_PERMISSION] userEntityRef: ${userEntityRef}, token: ${
+          userToken ? 'PRESENT' : 'ABSENT'
+        }`,
+      );
+
+      // Fetch user capabilities using userEntityRef-based lookup
+      // This works even when token is not available (uses cached capabilities)
+      const capabilities = await this.authzService.getCapabilitiesForUser(
+        userEntityRef,
+        userToken,
+      );
+      const actionCapability = capabilities.capabilities?.[action];
+
+      // Extract paths from capability
+      const allowedPaths =
+        actionCapability?.allowed
+          ?.map(a => a.path)
+          .filter((p): p is string => !!p) ?? [];
+      const deniedPaths =
+        actionCapability?.denied
+          ?.map(d => d.path)
+          .filter((p): p is string => !!p) ?? [];
+
+      this.logger.debug(
+        `[CATALOG_PERMISSION] ${permission.name} -> action: ${action}`,
+      );
+      this.logger.debug(
+        `[CATALOG_PERMISSION] allowedPaths: ${JSON.stringify(allowedPaths)}`,
+      );
+      this.logger.debug(
+        `[CATALOG_PERMISSION] deniedPaths: ${JSON.stringify(deniedPaths)}`,
+      );
+      this.logger.debug(
+        `[CATALOG_PERMISSION] kinds: ${JSON.stringify(
+          OPENCHOREO_MANAGED_ENTITY_KINDS,
+        )}`,
+      );
+
+      const conditions = catalogConditions.matchesCatalogEntityCapability({
+        action,
+        allowedPaths,
+        deniedPaths,
+        kinds: OPENCHOREO_MANAGED_ENTITY_KINDS,
+      });
+
+      this.logger.debug(
+        `[CATALOG_PERMISSION] conditions: ${JSON.stringify(
+          conditions,
+          null,
+          2,
+        )}`,
+      );
+
+      // Return CONDITIONAL - the rule will check entity kind and scope
+      return {
+        result: AuthorizeResult.CONDITIONAL,
+        pluginId: 'catalog',
+        resourceType: RESOURCE_TYPE_CATALOG_ENTITY,
+        conditions,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error evaluating catalog permission ${permission.name}`,
+        error as Error,
+      );
+      return { result: AuthorizeResult.DENY };
+    }
   }
 }

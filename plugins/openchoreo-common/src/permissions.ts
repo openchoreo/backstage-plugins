@@ -158,3 +158,20 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
 };
+
+/**
+ * Mapping from Backstage catalog permissions to OpenChoreo API action names.
+ * Used to translate native Backstage catalog.entity.* permissions to OpenChoreo
+ * capability checks when the entity is an OpenChoreo-managed component.
+ */
+export const CATALOG_PERMISSION_TO_ACTION: Record<string, string> = {
+  'catalog.entity.read': 'component:view',
+  'catalog.entity.delete': 'component:delete',
+  'catalog.entity.refresh': 'component:update',
+};
+
+/**
+ * Entity kinds that should be checked against OpenChoreo permissions
+ * when catalog.entity.* permissions are evaluated.
+ */
+export const OPENCHOREO_MANAGED_ENTITY_KINDS = ['Component'];
