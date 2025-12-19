@@ -108,16 +108,24 @@ export class ClientCredentialsProvider {
         if (decodedToken.exp) {
           // exp claim is in seconds, convert to milliseconds
           expiresAt = decodedToken.exp * 1000;
-          this.logger.debug(`Using JWT exp claim for expiry: ${expiresAt} (${new Date(expiresAt).toISOString()})`);
+          this.logger.debug(
+            `Using JWT exp claim for expiry: ${expiresAt} (${new Date(
+              expiresAt,
+            ).toISOString()})`,
+          );
         } else {
           // Fallback to expires_in if exp claim is missing
           expiresAt = Date.now() + tokenResponse.expires_in * 1000;
-          this.logger.warn(`JWT exp claim missing, falling back to expires_in calculation: ${expiresAt}`);
+          this.logger.warn(
+            `JWT exp claim missing, falling back to expires_in calculation: ${expiresAt}`,
+          );
         }
       } catch (error) {
         // Fallback to expires_in if JWT decoding fails
         expiresAt = Date.now() + tokenResponse.expires_in * 1000;
-        this.logger.warn(`Failed to decode JWT token, falling back to expires_in calculation: ${error}`);
+        this.logger.warn(
+          `Failed to decode JWT token, falling back to expires_in calculation: ${error}`,
+        );
       }
 
       // Cache the token
@@ -128,7 +136,9 @@ export class ClientCredentialsProvider {
 
       const expiresInSeconds = Math.round((expiresAt - Date.now()) / 1000);
       this.logger.debug(
-        `Successfully obtained client credentials token, expires in ${expiresInSeconds}s at ${new Date(expiresAt).toISOString()}`,
+        `Successfully obtained client credentials token, expires in ${expiresInSeconds}s at ${new Date(
+          expiresAt,
+        ).toISOString()}`,
       );
 
       return tokenResponse.access_token;
