@@ -173,5 +173,37 @@ export const CATALOG_PERMISSION_TO_ACTION: Record<string, string> = {
 /**
  * Entity kinds that should be checked against OpenChoreo permissions
  * when catalog.entity.* permissions are evaluated.
+ *
+ * - Component: Maps to OpenChoreo components
+ * - System: Maps to OpenChoreo projects
+ * - Domain: Maps to OpenChoreo organizations
  */
-export const OPENCHOREO_MANAGED_ENTITY_KINDS = ['Component'];
+export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
+  'Component',
+  'System',
+  'Domain',
+];
+
+/**
+ * Mapping from entity kind to the OpenChoreo action for each catalog permission.
+ * Used to translate native Backstage catalog.entity.* permissions to OpenChoreo
+ * capability checks based on the entity kind.
+ *
+ * Each kind maps to a different resource type in OpenChoreo:
+ * - Component → component:* actions
+ * - System → project:* actions
+ * - Domain → organization:* actions
+ */
+export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
+  component: {
+    'catalog.entity.read': 'component:view',
+    'catalog.entity.delete': 'component:delete',
+    'catalog.entity.refresh': 'component:update',
+  },
+  system: {
+    'catalog.entity.read': 'project:view',
+  },
+  domain: {
+    'catalog.entity.read': 'organization:view',
+  },
+};

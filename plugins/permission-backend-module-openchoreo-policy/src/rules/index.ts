@@ -13,8 +13,9 @@ export type { MatchesCapabilityParams } from './matchesCapability';
 
 export {
   matchesCatalogEntityCapability,
-  type CatalogPermissionRule,
   type MatchesCatalogEntityCapabilityParams,
+  type KindCapability,
+  type KindCapabilities,
 } from './matchesCatalogEntityCapability';
 
 /**

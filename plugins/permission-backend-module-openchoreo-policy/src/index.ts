@@ -36,6 +36,7 @@ export {
 } from './rules';
 export type {
   MatchesCapabilityParams,
-  CatalogPermissionRule,
   MatchesCatalogEntityCapabilityParams,
+  KindCapability,
+  KindCapabilities,
 } from './rules';

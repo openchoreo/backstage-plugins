@@ -15,7 +15,7 @@ import { getUserTokenFromContext } from '@openchoreo/openchoreo-auth';
 import {
   OPENCHOREO_PERMISSION_TO_ACTION,
   OPENCHOREO_RESOURCE_TYPE_COMPONENT,
-  CATALOG_PERMISSION_TO_ACTION,
+  CATALOG_KIND_TO_ACTION,
   OPENCHOREO_MANAGED_ENTITY_KINDS,
 } from '@openchoreo/backstage-plugin-common';
 import { AuthzProfileService } from '../services';
@@ -198,9 +198,14 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
    * Handles catalog.entity.* permissions for OpenChoreo-managed entities.
    *
    * Returns CONDITIONAL so that the rule can check:
-   * 1. If the entity kind is one we care about (Component)
+   * 1. If the entity kind is one we care about (Component, System, Domain)
    * 2. If the entity has OpenChoreo annotations
    * 3. If the user has the required capability for that scope
+   *
+   * Different entity kinds map to different OpenChoreo resources:
+   * - Component → component:* actions
+   * - System → project:* actions
+   * - Domain → organization:* actions
    */
   private async handleCatalogPermission(
     request: PolicyQuery,
@@ -211,16 +216,6 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
     // Only handle resource-based catalog permissions
     if (!isResourcePermission(permission, RESOURCE_TYPE_CATALOG_ENTITY)) {
       // Non-resource catalog permissions (like create) - defer to other policies
-      return { result: AuthorizeResult.ALLOW };
-    }
-
-    // Map catalog permission to OpenChoreo action
-    const action = CATALOG_PERMISSION_TO_ACTION[permission.name];
-    if (!action) {
-      // Unknown catalog permission - defer to other policies
-      this.logger.debug(
-        `Unknown catalog permission ${permission.name}, deferring to other policies`,
-      );
       return { result: AuthorizeResult.ALLOW };
     }
 
@@ -247,37 +242,59 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         userEntityRef,
         userToken,
       );
-      const actionCapability = capabilities.capabilities?.[action];
 
-      // Extract paths from capability
-      const allowedPaths =
-        actionCapability?.allowed
-          ?.map(a => a.path)
-          .filter((p): p is string => !!p) ?? [];
-      const deniedPaths =
-        actionCapability?.denied
-          ?.map(d => d.path)
-          .filter((p): p is string => !!p) ?? [];
+      // Build kindCapabilities for each managed entity kind
+      // Each kind maps to a different OpenChoreo action
+      const kindCapabilities: Record<
+        string,
+        { action: string; allowedPaths: string[]; deniedPaths: string[] }
+      > = {};
 
-      this.logger.debug(
-        `[CATALOG_PERMISSION] ${permission.name} -> action: ${action}`,
-      );
-      this.logger.debug(
-        `[CATALOG_PERMISSION] allowedPaths: ${JSON.stringify(allowedPaths)}`,
-      );
-      this.logger.debug(
-        `[CATALOG_PERMISSION] deniedPaths: ${JSON.stringify(deniedPaths)}`,
-      );
-      this.logger.debug(
-        `[CATALOG_PERMISSION] kinds: ${JSON.stringify(
-          OPENCHOREO_MANAGED_ENTITY_KINDS,
+      for (const kind of OPENCHOREO_MANAGED_ENTITY_KINDS) {
+        const kindLower = kind.toLowerCase();
+        const kindActions = CATALOG_KIND_TO_ACTION[kindLower];
+        const action = kindActions?.[permission.name];
+
+        if (!action) {
+          // No action mapping for this permission on this kind
+          // The kind will be allowed by default in the rule
+          continue;
+        }
+
+        const actionCapability = capabilities.capabilities?.[action];
+
+        const allowedPaths =
+          actionCapability?.allowed
+            ?.map(a => a.path)
+            .filter((p): p is string => !!p) ?? [];
+        const deniedPaths =
+          actionCapability?.denied
+            ?.map(d => d.path)
+            .filter((p): p is string => !!p) ?? [];
+
+        kindCapabilities[kindLower] = {
+          action,
+          allowedPaths,
+          deniedPaths,
+        };
+
+        this.logger.debug(
+          `[CATALOG_PERMISSION] ${kind} -> action: ${action}, allowed: ${JSON.stringify(
+            allowedPaths,
+          )}`,
+        );
+      }
+
+      // Log the kindCapabilities for debugging
+      this.logger.info(
+        `[CATALOG_PERMISSION] kindCapabilities for ${userEntityRef}: ${JSON.stringify(
+          kindCapabilities,
         )}`,
       );
 
+      // Serialize kindCapabilities to JSON (Backstage rules only support primitives)
       const conditions = catalogConditions.matchesCatalogEntityCapability({
-        action,
-        allowedPaths,
-        deniedPaths,
+        kindCapabilitiesJson: JSON.stringify(kindCapabilities),
         kinds: OPENCHOREO_MANAGED_ENTITY_KINDS,
       });
 
