@@ -17,8 +17,9 @@ const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 /**
  * Extracts TTL from JWT token expiration claim.
  * Returns the time remaining until the token expires in milliseconds.
+ * Exported for use in pre-caching scenarios.
  */
-function getTtlFromToken(token: string): number {
+export function getTtlFromToken(token: string): number {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) {
@@ -103,7 +104,7 @@ export class AuthzProfileService {
         component,
       );
       if (cached) {
-        this.logger.info(
+        this.logger.debug(
           `Cache hit for capabilities: org=${
             org ?? 'global'
           } project=${project} component=${component}`,
@@ -112,7 +113,7 @@ export class AuthzProfileService {
       }
     }
 
-    this.logger.info(
+    this.logger.debug(
       `Fetching capabilities from API: org=${
         org ?? 'global'
       } project=${project} component=${component}`,
@@ -122,14 +123,16 @@ export class AuthzProfileService {
       const client = this.createClient(userToken);
 
       // Build query parameters - only include if provided
+      // TODO: Remove hardcoded org once API supports optional org
       const query: {
         org?: string;
         project?: string;
         component?: string;
         ou?: string[];
-      } = {};
+      } = {
+        org: org ?? 'default',
+      };
 
-      if (org) query.org = org;
       if (project) query.project = project;
       if (component) query.component = component;
       if (scope?.orgUnits?.length) query.ou = scope.orgUnits;
@@ -148,6 +151,11 @@ export class AuthzProfileService {
 
       const profileResponse = data as ProfileResponse;
       const capabilities = profileResponse.data;
+
+      // Debug: Log full profile response
+      this.logger.debug(
+        `Profile response: ${JSON.stringify(capabilities, null, 2)}`,
+      );
 
       if (!capabilities) {
         throw new Error('No capabilities data in response');
@@ -174,6 +182,107 @@ export class AuthzProfileService {
         } project=${project} component=${component}: ${err}`,
       );
       throw err;
+    }
+  }
+
+  /**
+   * Fetches user capabilities with userEntityRef-based cache lookup.
+   * This method is used by the permission policy where the token may not be available
+   * (e.g., internal service-to-service calls).
+   *
+   * Flow:
+   * 1. Try to get from cache by userEntityRef
+   * 2. If cache miss and token available, fetch from API and cache by userEntityRef
+   * 3. If no token and no cache, return empty capabilities (deny all)
+   *
+   * @param userEntityRef - The user's entity reference (e.g., "user:default/email@example.com")
+   * @param userToken - Optional user token (may be undefined for internal calls)
+   * @param scope - Optional scope to filter capabilities
+   * @returns The user's capabilities
+   */
+  async getCapabilitiesForUser(
+    userEntityRef: string,
+    userToken?: string,
+    scope?: OpenChoreoScope,
+  ): Promise<UserCapabilitiesResponse> {
+    const cacheKey = scope?.org ?? 'global';
+
+    // Try cache by userEntityRef first (works without token)
+    if (this.cache) {
+      const cached = await this.cache.getByUser(userEntityRef, cacheKey);
+      if (cached) {
+        this.logger.debug(`Cache hit by userEntityRef: ${userEntityRef}`);
+        this.logger.debug(
+          `[CAPABILITIES] For ${userEntityRef}: ${JSON.stringify(
+            cached.capabilities,
+            null,
+            2,
+          )}`,
+        );
+        return cached;
+      }
+    }
+
+    // If no token, we can't fetch - return empty capabilities (deny all OpenChoreo entities)
+    if (!userToken) {
+      this.logger.warn(
+        `No token and no cached capabilities for ${userEntityRef}`,
+      );
+      return { capabilities: {} };
+    }
+
+    // Fetch from API using existing method (which also caches by token)
+    const capabilities = await this.getCapabilities(userToken, scope);
+
+    this.logger.debug(
+      `[CAPABILITIES] Fetched for ${userEntityRef}: ${JSON.stringify(
+        capabilities.capabilities,
+        null,
+        2,
+      )}`,
+    );
+
+    // Also store by userEntityRef for future lookups without token
+    if (this.cache) {
+      const ttlMs = getTtlFromToken(userToken);
+      await this.cache.setByUser(userEntityRef, capabilities, ttlMs, cacheKey);
+    }
+
+    return capabilities;
+  }
+
+  /**
+   * Pre-caches capabilities for a user at sign-in time.
+   * This ensures capabilities are available for permission checks
+   * even when the token is not available (internal service calls).
+   *
+   * @param userEntityRef - The user's entity reference
+   * @param userToken - The user's OpenChoreo IDP token
+   */
+  async preCacheCapabilities(
+    userEntityRef: string,
+    userToken: string,
+  ): Promise<void> {
+    this.logger.debug(`Pre-caching capabilities for ${userEntityRef}`);
+
+    // Fetch capabilities from API
+    const capabilities = await this.getCapabilities(userToken);
+
+    this.logger.debug(
+      `[PRE-CACHE] Capabilities for ${userEntityRef}: ${JSON.stringify(
+        capabilities.capabilities,
+        null,
+        2,
+      )}`,
+    );
+
+    // Store by userEntityRef for permission policy lookups
+    if (this.cache) {
+      const ttlMs = getTtlFromToken(userToken);
+      await this.cache.setByUser(userEntityRef, capabilities, ttlMs, 'global');
+      this.logger.debug(
+        `Successfully cached capabilities for ${userEntityRef} (TTL: ${ttlMs}ms)`,
+      );
     }
   }
 }

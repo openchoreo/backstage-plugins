@@ -227,8 +227,9 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
         providers: authProvidersExtensionPoint,
         logger: coreServices.logger,
         config: coreServices.rootConfig,
+        discovery: coreServices.discovery,
       },
-      async init({ providers, logger, config }) {
+      async init({ providers, logger, config, discovery }) {
         // Check if auth feature is enabled (defaults to true)
         const authEnabled =
           config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
@@ -286,6 +287,36 @@ export const OpenChoreoDefaultAuthModule = createBackendModule({
                   }),
                 ),
               ];
+
+              // Pre-cache capabilities for permission checks
+              // This ensures capabilities are available even for internal service calls
+              if (accessToken) {
+                try {
+                  const permissionBaseUrl = await discovery.getBaseUrl(
+                    'permission',
+                  );
+                  const response = await fetch(
+                    `${permissionBaseUrl}/cache-capabilities`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userEntityRef, accessToken }),
+                    },
+                  );
+                  if (response.ok) {
+                    logger.info(`Pre-cached capabilities for ${userEntityRef}`);
+                  } else {
+                    logger.warn(
+                      `Failed to pre-cache capabilities: ${response.status} ${response.statusText}`,
+                    );
+                  }
+                } catch (error) {
+                  // Log but don't fail sign-in if caching fails
+                  logger.warn(
+                    `Failed to pre-cache capabilities for ${userEntityRef}: ${error}`,
+                  );
+                }
+              }
 
               // Issue token with user and group ownership
               return ctx.issueToken({

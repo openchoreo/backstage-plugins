@@ -30,5 +30,13 @@ export {
   openchoreoPermissionRules,
   openchoreoConditions,
   createOpenChoreoConditionalDecision,
+  // Catalog entity permission rule (for catalog-entity resource type)
+  matchesCatalogEntityCapability,
+  openchoreoСatalogPermissionRules,
 } from './rules';
-export type { MatchesCapabilityParams } from './rules';
+export type {
+  MatchesCapabilityParams,
+  MatchesCatalogEntityCapabilityParams,
+  KindCapability,
+  KindCapabilities,
+} from './rules';
