@@ -44,7 +44,7 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows',
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
             path: { orgName, projectName, componentName },
@@ -76,6 +76,55 @@ export class BuildInfoService {
     }
   }
 
+  async getWorkflowRun(
+    orgName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    token?: string,
+  ): Promise<any> {
+    this.logger.debug(
+      `Fetching workflow run: ${runName} for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
+        {
+          params: {
+            path: { orgName, projectName, componentName, runName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workflow run: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data?.success || !data.data) {
+        throw new Error('No workflow run data returned');
+      }
+
+      this.logger.debug(
+        `Successfully fetched workflow run: ${runName}`,
+      );
+      return data.data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch workflow run ${runName} for component ${componentName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
   async triggerBuild(
     orgName: string,
     projectName: string,
@@ -97,7 +146,7 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows',
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
             path: { orgName, projectName, componentName },
@@ -108,7 +157,7 @@ export class BuildInfoService {
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to trigger component workflow: ${response.status} ${response.statusText}`,
+          `Failed to create component workflow run: ${response.status} ${response.statusText}`,
         );
       }
 

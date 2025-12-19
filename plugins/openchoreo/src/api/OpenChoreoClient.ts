@@ -50,7 +50,7 @@ const API_ENDPOINTS = {
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   ENVIRONMENT_RELEASE: '/environment-release',
   WORKFLOW_SCHEMA: '/workflow-schema',
-  COMPONENT_WORKFLOW_SCHEMA: '/component-workflow-schema',
+  COMPONENT_WORKFLOW_PARAMETERS: '/workflow-parameters',
   SECRET_REFERENCES: '/secret-references',
   COMPONENT: '/component',
   BUILD_LOGS: '/build-logs',
@@ -430,14 +430,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     );
   }
 
-  async updateComponentWorkflowSchema(
+  async updateComponentWorkflowParameters(
     entity: Entity,
     systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,
   ): Promise<any> {
     const metadata = extractEntityMetadata(entity);
 
-    return this.apiFetch(API_ENDPOINTS.COMPONENT_WORKFLOW_SCHEMA, {
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_WORKFLOW_PARAMETERS, {
       method: 'PATCH',
       params: entityMetadataToParams(metadata),
       body: { systemParameters, parameters },
