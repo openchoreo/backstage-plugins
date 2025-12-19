@@ -6,7 +6,4 @@ export {
   type RunDetailsTab,
   type WorkflowRoutingState,
 } from './useWorkflowRouting';
-export {
-  useWorkflowRun,
-  type WorkflowRunDetails,
-} from './useWorkflowRun';
+export { useWorkflowRun, type WorkflowRunDetails } from './useWorkflowRun';
