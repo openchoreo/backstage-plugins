@@ -54,6 +54,7 @@ import { AccessControlPage } from '@openchoreo/backstage-plugin';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
+import { OpenChoreoProviderSettings } from './components/settings/OpenChoreoProviderSettings';
 
 /**
  * Dynamic SignInPage that switches between OAuth and Guest mode
@@ -195,7 +196,12 @@ const routes = (
     <Route path="/search" element={<SearchPage />}>
       {searchPage}
     </Route>
-    <Route path="/settings" element={<UserSettingsPage />} />
+    <Route
+      path="/settings"
+      element={
+        <UserSettingsPage providerSettings={<OpenChoreoProviderSettings />} />
+      }
+    />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
     <Route path="/admin/access-control" element={<AccessControlPage />} />
   </FlatRoutes>
