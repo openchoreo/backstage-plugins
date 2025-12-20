@@ -90,6 +90,9 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
    * For catalog.entity.* permissions on OpenChoreo-managed entities:
    * - Returns CONDITIONAL to check against OpenChoreo capabilities
    *
+   * For scaffolder.task.create:
+   * - Returns ALLOW if user has component:create capability for any scope
+   *
    * For non-OpenChoreo permissions, returns ALLOW to defer to other policies.
    */
   async handle(
@@ -99,6 +102,11 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
     const { permission } = request;
 
     this.logger.debug(`[POLICY_HANDLE] Permission: ${permission.name}`);
+
+    // Handle scaffolder.task.create - check if user has component:create capability
+    if (permission.name === 'scaffolder.task.create') {
+      return this.handleScaffolderTaskCreate(user);
+    }
 
     // Handle catalog.entity.* permissions for OpenChoreo-managed entities
     if (permission.name.startsWith(CATALOG_PERMISSION_PREFIX)) {
@@ -213,9 +221,14 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   ): Promise<PolicyDecision> {
     const { permission } = request;
 
+    // Handle catalog.entity.create - check if user has any create capability
+    if (permission.name === 'catalog.entity.create') {
+      return this.handleCatalogEntityCreate(user);
+    }
+
     // Only handle resource-based catalog permissions
     if (!isResourcePermission(permission, RESOURCE_TYPE_CATALOG_ENTITY)) {
-      // Non-resource catalog permissions (like create) - defer to other policies
+      // Other non-resource catalog permissions - defer to other policies
       return { result: AuthorizeResult.ALLOW };
     }
 
@@ -316,6 +329,110 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
     } catch (error) {
       this.logger.error(
         `Error evaluating catalog permission ${permission.name}`,
+        error as Error,
+      );
+      return { result: AuthorizeResult.DENY };
+    }
+  }
+
+  /**
+   * Handles scaffolder.task.create permission.
+   *
+   * Allows if user has component:create capability for ANY scope.
+   * This is a global check - we cannot filter by scope at this point
+   * since the template hasn't been executed yet.
+   */
+  private async handleScaffolderTaskCreate(
+    user?: PolicyQueryUser,
+  ): Promise<PolicyDecision> {
+    const userEntityRef = user?.info?.userEntityRef;
+    if (!userEntityRef) {
+      this.logger.debug('Denying scaffolder.task.create - no user context');
+      return { result: AuthorizeResult.DENY };
+    }
+
+    try {
+      const userToken = getUserTokenFromContext();
+      const capabilities = await this.authzService.getCapabilitiesForUser(
+        userEntityRef,
+        userToken,
+      );
+
+      // Check if user has component:create for any scope
+      const hasComponentCreate =
+        (capabilities.capabilities?.['component:create']?.allowed?.length ??
+          0) > 0;
+
+      this.logger.debug(
+        `scaffolder.task.create: ${hasComponentCreate ? 'ALLOW' : 'DENY'}`,
+      );
+
+      return {
+        result: hasComponentCreate
+          ? AuthorizeResult.ALLOW
+          : AuthorizeResult.DENY,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Error evaluating scaffolder.task.create permission',
+        error as Error,
+      );
+      return { result: AuthorizeResult.DENY };
+    }
+  }
+
+  /**
+   * Handles catalog.entity.create permission.
+   *
+   * Allows if user has ANY create capability:
+   * - component:create
+   * - project:create
+   * - organization:create
+   *
+   * This is a global check - the actual scope validation happens
+   * when the entity is registered and its annotations are checked.
+   */
+  private async handleCatalogEntityCreate(
+    user?: PolicyQueryUser,
+  ): Promise<PolicyDecision> {
+    const userEntityRef = user?.info?.userEntityRef;
+    if (!userEntityRef) {
+      this.logger.debug('Denying catalog.entity.create - no user context');
+      return { result: AuthorizeResult.DENY };
+    }
+
+    try {
+      const userToken = getUserTokenFromContext();
+      const capabilities = await this.authzService.getCapabilitiesForUser(
+        userEntityRef,
+        userToken,
+      );
+
+      // Check if user has any create capability
+      const hasComponentCreate =
+        (capabilities.capabilities?.['component:create']?.allowed?.length ??
+          0) > 0;
+      const hasProjectCreate =
+        (capabilities.capabilities?.['project:create']?.allowed?.length ?? 0) >
+        0;
+      const hasOrgCreate =
+        (capabilities.capabilities?.['organization:create']?.allowed?.length ??
+          0) > 0;
+
+      const hasAnyCreate =
+        hasComponentCreate || hasProjectCreate || hasOrgCreate;
+
+      this.logger.debug(
+        `catalog.entity.create: ${hasAnyCreate ? 'ALLOW' : 'DENY'} ` +
+          `(component:${hasComponentCreate}, project:${hasProjectCreate}, org:${hasOrgCreate})`,
+      );
+
+      return {
+        result: hasAnyCreate ? AuthorizeResult.ALLOW : AuthorizeResult.DENY,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Error evaluating catalog.entity.create permission',
         error as Error,
       );
       return { result: AuthorizeResult.DENY };
