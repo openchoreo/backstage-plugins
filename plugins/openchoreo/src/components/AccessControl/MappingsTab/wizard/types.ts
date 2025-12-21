@@ -1,4 +1,4 @@
-import { Role, PolicyEffect, UserTypeInfo } from '../../hooks';
+import { Role, PolicyEffect, UserTypeConfig } from '../../hooks';
 
 /**
  * Wizard state representing all form data across steps
@@ -48,14 +48,14 @@ export interface WizardStepProps {
   state: WizardState;
   onChange: (updates: Partial<WizardState>) => void;
   availableRoles: Role[];
-  userTypes: UserTypeInfo[];
+  userTypes: UserTypeConfig[];
 }
 
 /**
  * Initial state factory
  */
 export function createInitialWizardState(
-  userTypes: UserTypeInfo[],
+  userTypes: UserTypeConfig[],
 ): WizardState {
   return {
     selectedRole: '',

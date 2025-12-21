@@ -19,7 +19,7 @@ import type {
   AuthzRole,
   RoleEntitlementMapping,
   RoleMappingFilters,
-  UserTypeInfo,
+  UserTypeConfig,
   OrganizationSummary,
   ProjectSummary,
   ComponentSummary,
@@ -61,7 +61,8 @@ const API_ENDPOINTS = {
   AUTHZ_ROLES: '/authz/roles',
   AUTHZ_ROLE_MAPPINGS: '/authz/role-mappings',
   AUTHZ_ACTIONS: '/authz/actions',
-  AUTHZ_USER_TYPES: '/authz/user-types',
+  // Configuration endpoints
+  USER_TYPES: '/user-types',
   // Hierarchy data endpoints
   ORGANIZATIONS: '/orgs',
   PROJECTS: '/projects', // GET /orgs/{orgName}/projects
@@ -819,9 +820,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return response.data || [];
   }
 
-  async listUserTypes(): Promise<UserTypeInfo[]> {
-    const response = await this.apiFetch<{ data: UserTypeInfo[] }>(
-      API_ENDPOINTS.AUTHZ_USER_TYPES,
+  async listUserTypes(): Promise<UserTypeConfig[]> {
+    const response = await this.apiFetch<{ data: UserTypeConfig[] }>(
+      API_ENDPOINTS.USER_TYPES,
     );
     return response.data || [];
   }

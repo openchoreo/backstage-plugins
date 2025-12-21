@@ -1014,7 +1014,7 @@ export async function createRouter({
   });
 
   // User Types
-  router.get('/authz/user-types', async (req, res) => {
+  router.get('/user-types', async (req, res) => {
     const userToken = getUserTokenFromRequest(req);
     res.json(await authzService.listUserTypes(userToken));
   });

@@ -834,7 +834,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/authz/user-types': {
+  '/user-types': {
     parameters: {
       query?: never;
       header?: never;
@@ -1543,15 +1543,20 @@ export interface components {
       /** @description List of actions to assign to the role */
       actions: string[];
     };
-    EntitlementClaimInfo: {
-      name: string;
+    EntitlementConfig: {
+      claim: string;
       display_name: string;
     };
-    UserTypeInfo: {
+    AuthMechanismConfig: {
+      /** @description Authentication mechanism type (e.g., "jwt", "oauth2", "api_key") */
+      type: string;
+      entitlement: components['schemas']['EntitlementConfig'];
+    };
+    UserTypeConfig: {
       type: components['schemas']['SubjectType'];
       display_name: string;
       priority: number;
-      entitlement: components['schemas']['EntitlementClaimInfo'];
+      auth_mechanisms: components['schemas']['AuthMechanismConfig'][];
     };
     Subject: {
       jwt_token: string;
@@ -3488,7 +3493,7 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['UserTypeInfo'][];
+            data?: components['schemas']['UserTypeConfig'][];
           };
         };
       };

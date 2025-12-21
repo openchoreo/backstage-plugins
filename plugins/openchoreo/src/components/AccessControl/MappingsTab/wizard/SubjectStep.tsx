@@ -11,6 +11,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import PersonIcon from '@material-ui/icons/Person';
 import SettingsIcon from '@material-ui/icons/Settings';
 import { WizardStepProps } from './types';
+import { getEntitlementClaim } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -120,7 +121,7 @@ export const SubjectStep = ({
   const selectedUserTypeInfo = userTypes.find(
     ut => ut.type === state.subjectType,
   );
-  const entitlementClaim = selectedUserTypeInfo?.entitlement.name || '';
+  const entitlementClaim = getEntitlementClaim(selectedUserTypeInfo);
 
   const handleTypeChange = (type: string) => {
     onChange({ subjectType: type });
