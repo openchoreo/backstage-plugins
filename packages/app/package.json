@@ -48,6 +48,7 @@
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
+    "@openchoreo/backstage-plugin-openchoreo-ci": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-observability": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core": "workspace:^",
     "@openchoreo/backstage-plugin-react": "workspace:^",

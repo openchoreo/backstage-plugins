@@ -13,7 +13,6 @@ import { RuntimeLogsInfoService } from './services/RuntimeLogsService/RuntimeLog
 import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
-import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
@@ -96,11 +95,6 @@ export const choreoPlugin = createBackendPlugin({
 
         const traitInfoService = new TraitInfoService(logger, baseUrl);
 
-        const workflowSchemaService = new WorkflowSchemaService(
-          logger,
-          baseUrl,
-        );
-
         const secretReferencesInfoService = new SecretReferencesService(
           logger,
           baseUrl,
@@ -146,7 +140,6 @@ export const choreoPlugin = createBackendPlugin({
             workloadInfoService,
             dashboardInfoService,
             traitInfoService,
-            workflowSchemaService,
             secretReferencesInfoService,
             authzService,
             tokenService,

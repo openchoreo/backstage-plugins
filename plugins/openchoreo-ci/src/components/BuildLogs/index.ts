@@ -1,0 +1,1 @@
+export { LogsContent } from './BuildLogs';

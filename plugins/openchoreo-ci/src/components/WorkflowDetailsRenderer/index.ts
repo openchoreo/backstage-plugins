@@ -1,0 +1,1 @@
+export { WorkflowDetailsRenderer } from './WorkflowDetailsRenderer';

@@ -1,0 +1,1 @@
+export { WorkflowConfigPage } from './WorkflowConfigPage';

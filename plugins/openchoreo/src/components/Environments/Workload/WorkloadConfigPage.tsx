@@ -12,14 +12,16 @@ import {
   ModelsWorkload,
   ModelsBuild,
 } from '@openchoreo/backstage-plugin-common';
+import {
+  DetailPageLayout,
+  UnsavedChangesDialog,
+} from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { WorkloadProvider } from './WorkloadContext';
 import { WorkloadEditor } from './WorkloadEditor';
-import { DetailPageLayout } from '../components/DetailPageLayout';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
-import { UnsavedChangesDialog } from '@openchoreo/backstage-plugin-react';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {

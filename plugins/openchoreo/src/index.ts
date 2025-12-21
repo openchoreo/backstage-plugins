@@ -1,9 +1,9 @@
 export { choreoPlugin } from './plugin';
+export { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 export { Environments } from './components/Environments/Environments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
   RuntimeLogs,
-  Workflows,
   Traits,
   WorkflowsOverviewCard,
   ProductionOverviewCard,
