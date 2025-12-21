@@ -58,14 +58,28 @@ export const createProjectAction = (config: Config) => {
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
 
-      // Get user token from secrets (injected by form decorator)
-      const token = ctx.secrets?.OPENCHOREO_USER_TOKEN;
-      if (!token) {
+      // Check if authorization is enabled (defaults to true)
+      const authzEnabled =
+        config.getOptionalBoolean('openchoreo.features.authz.enabled') ?? true;
+
+      // Get user token from secrets (injected by form decorator) when authz is enabled
+      const token = authzEnabled
+        ? ctx.secrets?.OPENCHOREO_USER_TOKEN
+        : undefined;
+
+      if (authzEnabled && !token) {
         throw new Error(
           'User authentication token not available. Please ensure you are logged in.',
         );
       }
-      ctx.logger.debug('Using user token from secrets for OpenChoreo API');
+
+      if (token) {
+        ctx.logger.debug('Using user token from secrets for OpenChoreo API');
+      } else {
+        ctx.logger.debug(
+          'Authorization disabled - calling OpenChoreo API without auth',
+        );
+      }
 
       const client = createOpenChoreoApiClient({
         baseUrl,

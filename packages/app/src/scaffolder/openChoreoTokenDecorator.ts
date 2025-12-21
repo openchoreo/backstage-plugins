@@ -1,4 +1,5 @@
 import { createScaffolderFormDecorator } from '@backstage/plugin-scaffolder-react/alpha';
+import { configApiRef } from '@backstage/core-plugin-api';
 import { defaultIdpAuthApiRef } from '../apis/authRefs';
 
 /**
@@ -18,8 +19,17 @@ import { defaultIdpAuthApiRef } from '../apis/authRefs';
  */
 export const openChoreoTokenDecorator = createScaffolderFormDecorator({
   id: 'openchoreo:inject-user-token',
-  deps: { oauthApi: defaultIdpAuthApiRef },
-  async decorator({ setSecrets }, { oauthApi }) {
+  deps: { oauthApi: defaultIdpAuthApiRef, configApi: configApiRef },
+  async decorator({ setSecrets }, { oauthApi, configApi }) {
+    // Check if authorization is enabled (defaults to true)
+    const authzEnabled =
+      configApi.getOptionalBoolean('openchoreo.features.authz.enabled') ?? true;
+
+    if (!authzEnabled) {
+      // Skip token injection when authz is disabled
+      return;
+    }
+
     const token = await oauthApi.getAccessToken();
     if (!token) {
       throw new Error(
