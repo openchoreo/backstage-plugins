@@ -3,6 +3,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BlockIcon from '@material-ui/icons/Block';
 import { WizardStepProps } from './types';
+import { getEntitlementClaim } from '../../hooks';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -73,7 +74,7 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
   const selectedUserTypeInfo = userTypes.find(
     ut => ut.type === state.subjectType,
   );
-  const entitlementClaim = selectedUserTypeInfo?.entitlement.name || '';
+  const entitlementClaim = getEntitlementClaim(selectedUserTypeInfo);
 
   const getScopePath = (): string => {
     if (state.scopeType === 'global') {

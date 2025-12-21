@@ -2,22 +2,50 @@ import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   openChoreoClientApiRef,
-  UserTypeInfo,
+  UserTypeConfig,
   SubjectType,
-  EntitlementClaimInfo,
+  EntitlementConfig,
+  AuthMechanismConfig,
 } from '../../../api/OpenChoreoClientApi';
 
-export type { UserTypeInfo, SubjectType, EntitlementClaimInfo };
+export type {
+  UserTypeConfig,
+  SubjectType,
+  EntitlementConfig,
+  AuthMechanismConfig,
+};
+
+/**
+ * Extracts the entitlement claim from a UserTypeConfig.
+ *
+ * TODO: Currently uses the first auth mechanism. Future options:
+ * - Filter by specific type (e.g., type === 'jwt')
+ * - Support multiple auth mechanisms in UI
+ */
+export function getEntitlementClaim(
+  userType: UserTypeConfig | undefined,
+): string {
+  if (!userType || !userType.auth_mechanisms?.length) return '';
+  // Currently uses first auth mechanism - see TODO above for future enhancements
+  return userType.auth_mechanisms[0].entitlement.claim;
+}
+
+export function getEntitlementDisplayName(
+  userType: UserTypeConfig | undefined,
+): string {
+  if (!userType || !userType.auth_mechanisms?.length) return '';
+  return userType.auth_mechanisms[0].entitlement.display_name;
+}
 
 interface UseUserTypesResult {
-  userTypes: UserTypeInfo[];
+  userTypes: UserTypeConfig[];
   loading: boolean;
   error: Error | null;
   fetchUserTypes: () => Promise<void>;
 }
 
 export function useUserTypes(): UseUserTypesResult {
-  const [userTypes, setUserTypes] = useState<UserTypeInfo[]>([]);
+  const [userTypes, setUserTypes] = useState<UserTypeConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
