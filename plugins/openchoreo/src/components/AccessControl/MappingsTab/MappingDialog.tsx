@@ -9,7 +9,12 @@ import {
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import { makeStyles } from '@material-ui/core/styles';
-import { useUserTypes, Role, RoleEntitlementMapping } from '../hooks';
+import {
+  useUserTypes,
+  getEntitlementClaim,
+  Role,
+  RoleEntitlementMapping,
+} from '../hooks';
 import {
   WizardState,
   WizardStepId,
@@ -86,7 +91,7 @@ export const MappingDialog = ({
       if (editingMapping) {
         // Populate from editing mapping
         const matchingUserType = userTypes.find(
-          ut => ut.entitlement.name === editingMapping.entitlement.claim,
+          ut => getEntitlementClaim(ut) === editingMapping.entitlement.claim,
         );
 
         setWizardState({
@@ -148,7 +153,7 @@ export const MappingDialog = ({
     const selectedUserTypeInfo = userTypes.find(
       ut => ut.type === wizardState.subjectType,
     );
-    const entitlementClaim = selectedUserTypeInfo?.entitlement.name || '';
+    const entitlementClaim = getEntitlementClaim(selectedUserTypeInfo);
 
     if (!entitlementClaim) {
       setError('Invalid subject type selected');

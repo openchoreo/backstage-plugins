@@ -134,18 +134,23 @@ export interface RoleMappingFilters {
   value?: string;
 }
 
-export interface EntitlementClaimInfo {
-  name: string;
+export interface EntitlementConfig {
+  claim: string;
   display_name: string;
+}
+
+export interface AuthMechanismConfig {
+  type: string;
+  entitlement: EntitlementConfig;
 }
 
 export type SubjectType = 'user' | 'service_account';
 
-export interface UserTypeInfo {
+export interface UserTypeConfig {
   type: SubjectType;
   display_name: string;
   priority: number;
-  entitlement: EntitlementClaimInfo;
+  auth_mechanisms: AuthMechanismConfig[];
 }
 
 /** Organization summary for listing */
@@ -380,7 +385,7 @@ export interface OpenChoreoClientApi {
   listActions(): Promise<string[]>;
 
   /** List all user types */
-  listUserTypes(): Promise<UserTypeInfo[]>;
+  listUserTypes(): Promise<UserTypeConfig[]>;
 
   // === Hierarchy Data Operations ===
 

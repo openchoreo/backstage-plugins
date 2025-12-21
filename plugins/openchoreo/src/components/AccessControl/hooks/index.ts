@@ -9,11 +9,16 @@ export type {
   PolicyEffect,
 } from './useMappings';
 export { useActions } from './useActions';
-export { useUserTypes } from './useUserTypes';
+export {
+  useUserTypes,
+  getEntitlementClaim,
+  getEntitlementDisplayName,
+} from './useUserTypes';
 export type {
-  UserTypeInfo,
+  UserTypeConfig,
   SubjectType,
-  EntitlementClaimInfo,
+  EntitlementConfig,
+  AuthMechanismConfig,
 } from './useUserTypes';
 export {
   useOrganizations,

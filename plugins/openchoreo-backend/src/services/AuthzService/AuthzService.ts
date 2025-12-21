@@ -11,7 +11,7 @@ export type ResourceHierarchy =
   OpenChoreoComponents['schemas']['AuthzResourceHierarchy'];
 export type RoleEntitlementMapping =
   OpenChoreoComponents['schemas']['RoleEntitlementMapping'];
-export type UserTypeInfo = OpenChoreoComponents['schemas']['UserTypeInfo'];
+export type UserTypeConfig = OpenChoreoComponents['schemas']['UserTypeConfig'];
 export type PolicyEffect = OpenChoreoComponents['schemas']['PolicyEffectType'];
 
 // Response types
@@ -37,7 +37,7 @@ type ActionsListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
 };
 
 type UserTypesListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: UserTypeInfo[];
+  data?: UserTypeConfig[];
 };
 
 // Helper to extract error message from API response
@@ -381,12 +381,12 @@ export class AuthzService {
   }
 
   // User Types
-  async listUserTypes(userToken?: string): Promise<{ data: UserTypeInfo[] }> {
+  async listUserTypes(userToken?: string): Promise<{ data: UserTypeConfig[] }> {
     this.logger.debug('Fetching all user types');
 
     try {
       const client = this.createClient(userToken);
-      const { data, error, response } = await client.GET('/authz/user-types');
+      const { data, error, response } = await client.GET('/user-types');
 
       if (error || !response.ok) {
         const errorMsg = extractErrorMessage(

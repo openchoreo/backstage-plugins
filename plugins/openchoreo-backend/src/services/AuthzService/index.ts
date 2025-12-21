@@ -4,5 +4,5 @@ export type {
   Entitlement,
   ResourceHierarchy,
   RoleEntitlementMapping,
-  UserTypeInfo,
+  UserTypeConfig,
 } from './AuthzService';

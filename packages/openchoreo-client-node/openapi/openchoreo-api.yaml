@@ -1504,24 +1504,36 @@ components:
             type: string
           description: List of actions to assign to the role
 
-    EntitlementClaimInfo:
+    EntitlementConfig:
       type: object
       required:
-        - name
+        - claim
         - display_name
       properties:
-        name:
+        claim:
           type: string
         display_name:
           type: string
 
-    UserTypeInfo:
+    AuthMechanismConfig:
+      type: object
+      required:
+        - type
+        - entitlement
+      properties:
+        type:
+          type: string
+          description: Authentication mechanism type (e.g., "jwt", "oauth2", "api_key")
+        entitlement:
+          $ref: '#/components/schemas/EntitlementConfig'
+
+    UserTypeConfig:
       type: object
       required:
         - type
         - display_name
         - priority
-        - entitlement
+        - auth_mechanisms
       properties:
         type:
           $ref: '#/components/schemas/SubjectType'
@@ -1529,8 +1541,10 @@ components:
           type: string
         priority:
           type: integer
-        entitlement:
-          $ref: '#/components/schemas/EntitlementClaimInfo'
+        auth_mechanisms:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuthMechanismConfig'
 
     Subject:
       type: object
@@ -3834,12 +3848,12 @@ paths:
                         items:
                           type: string
 
-  /authz/user-types:
+  /user-types:
     get:
       summary: List all configured user types
       operationId: listUserTypes
       tags:
-        - Authorization
+        - Configuration
       responses:
         '200':
           description: Successful response
@@ -3853,7 +3867,7 @@ paths:
                       data:
                         type: array
                         items:
-                          $ref: '#/components/schemas/UserTypeInfo'
+                          $ref: '#/components/schemas/UserTypeConfig'
 
   /authz/evaluate:
     post:
