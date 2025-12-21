@@ -147,9 +147,9 @@ export class WorkflowSchemaService {
   }
 
   /**
-   * Update component workflow schema (PATCH)
+   * Update component workflow parameters (PATCH)
    */
-  async updateComponentWorkflowSchema(
+  async updateComponentWorkflowParameters(
     orgName: string,
     projectName: string,
     componentName: string,
@@ -158,7 +158,7 @@ export class WorkflowSchemaService {
     token?: string,
   ): Promise<OpenChoreoComponents['schemas']['APIResponse']> {
     this.logger.debug(
-      `Updating workflow schema for component: ${componentName} in project: ${projectName}, org: ${orgName}`,
+      `Updating workflow parameters for component: ${componentName} in project: ${projectName}, org: ${orgName}`,
     );
 
     try {
@@ -169,7 +169,7 @@ export class WorkflowSchemaService {
       });
 
       const { data, error, response } = await client.PATCH(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema',
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-parameters',
         {
           params: {
             path: { orgName, projectName, componentName },
@@ -183,21 +183,21 @@ export class WorkflowSchemaService {
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to update workflow schema: ${response.status} ${response.statusText}`,
+          `Failed to update workflow parameters: ${response.status} ${response.statusText}`,
         );
       }
 
       if (!data?.success) {
-        throw new Error('Failed to update workflow schema');
+        throw new Error('Failed to update workflow parameters');
       }
 
       this.logger.debug(
-        `Successfully updated workflow schema for component: ${componentName}`,
+        `Successfully updated workflow parameters for component: ${componentName}`,
       );
       return data;
     } catch (error) {
       this.logger.error(
-        `Failed to update workflow schema for component ${componentName}: ${error}`,
+        `Failed to update workflow parameters for component ${componentName}: ${error}`,
       );
       throw error;
     }

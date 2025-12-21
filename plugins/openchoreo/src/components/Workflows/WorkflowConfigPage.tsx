@@ -255,7 +255,7 @@ export const WorkflowConfigPage = ({
     setError(null);
 
     try {
-      await client.updateComponentWorkflowSchema(
+      await client.updateComponentWorkflowParameters(
         entity,
         formData.systemParameters,
         formData.parameters,
@@ -266,7 +266,9 @@ export const WorkflowConfigPage = ({
       onBack();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to update workflow schema',
+        err instanceof Error
+          ? err.message
+          : 'Failed to update workflow parameters',
       );
     } finally {
       setSaving(false);

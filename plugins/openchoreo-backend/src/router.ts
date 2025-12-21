@@ -345,7 +345,7 @@ export async function createRouter({
   });
 
   // Endpoint for updating component workflow schema
-  router.patch('/component-workflow-schema', requireAuth, async (req, res) => {
+  router.patch('/workflow-parameters', requireAuth, async (req, res) => {
     const { organizationName, projectName, componentName } = req.query;
     const { systemParameters, parameters } = req.body;
 
@@ -362,7 +362,7 @@ export async function createRouter({
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
-      await workflowSchemaService.updateComponentWorkflowSchema(
+      await workflowSchemaService.updateComponentWorkflowParameters(
         organizationName as string,
         projectName as string,
         componentName as string,
@@ -389,6 +389,28 @@ export async function createRouter({
         organizationName as string,
         projectName as string,
         componentName as string,
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/workflow-run', async (req, res) => {
+    const { componentName, projectName, organizationName, runName } = req.query;
+
+    if (!componentName || !projectName || !organizationName || !runName) {
+      throw new InputError(
+        'componentName, projectName, organizationName and runName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await buildInfoService.getWorkflowRun(
+        organizationName as string,
+        projectName as string,
+        componentName as string,
+        runName as string,
         userToken,
       ),
     );

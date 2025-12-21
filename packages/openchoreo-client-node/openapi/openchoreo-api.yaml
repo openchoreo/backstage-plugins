@@ -687,6 +687,55 @@ components:
           format: date-time
         image:
           type: string
+        workflow:
+          $ref: '#/components/schemas/ComponentWorkflowConfigResponse'
+
+    # ComponentWorkflowConfig
+    ComponentWorkflowConfigResponse:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        systemParameters:
+          $ref: '#/components/schemas/SystemParametersResponse'
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Developer-defined workflow parameters as arbitrary JSON
+
+    # SystemParameters
+    SystemParametersResponse:
+      type: object
+      properties:
+        repository:
+          $ref: '#/components/schemas/RepositoryResponse'
+
+    # Repository
+    RepositoryResponse:
+      type: object
+      required:
+        - url
+        - appPath
+      properties:
+        url:
+          type: string
+        appPath:
+          type: string
+        revision:
+          $ref: '#/components/schemas/RepositoryRevisionResponse'
+
+    # RepositoryRevision
+    RepositoryRevisionResponse:
+      type: object
+      required:
+        - branch
+      properties:
+        branch:
+          type: string
+        commit:
+          type: string
 
     # Trait
     TraitResponse:
@@ -1308,9 +1357,12 @@ components:
           type: string
 
     # Request schemas
-    UpdateComponentWorkflowSchemaRequest:
+    UpdateComponentWorkflowRequest:
       type: object
       properties:
+        workflowName:
+          type: string
+          description: Name of the workflow to initialize (optional, required for initialization)
         systemParameters:
           $ref: '#/components/schemas/ComponentWorkflowSystemParams'
         parameters:
@@ -2725,10 +2777,10 @@ paths:
         '404':
           description: Component or trait not found
 
-  /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema:
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-parameters:
     patch:
-      summary: Update component workflow schema
-      operationId: updateComponentWorkflowSchema
+      summary: Update component workflow parameters
+      operationId: updateComponentWorkflowParameters
       tags:
         - ComponentWorkflows
       parameters:
@@ -2752,10 +2804,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateComponentWorkflowSchemaRequest'
+              $ref: '#/components/schemas/UpdateComponentWorkflowRequest'
       responses:
         '200':
-          description: Workflow schema updated successfully
+          description: Workflow parameters updated successfully
           content:
             application/json:
               schema:
@@ -2766,10 +2818,10 @@ paths:
                       data:
                         $ref: '#/components/schemas/ComponentResponse'
 
-  /orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows:
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs:
     post:
-      summary: Trigger a component workflow
-      operationId: triggerComponentWorkflow
+      summary: Create a component workflow run
+      operationId: createComponentWorkflowRun
       tags:
         - ComponentWorkflows
       parameters:
@@ -2796,7 +2848,7 @@ paths:
           description: Git commit SHA (7-40 hexadecimal characters)
       responses:
         '201':
-          description: Component workflow triggered successfully
+          description: Component workflow run created successfully
           content:
             application/json:
               schema:
@@ -2853,6 +2905,48 @@ paths:
                                   $ref: '#/components/schemas/ComponentWorkflowRunResponse'
         '410':
           description: Continue token expired
+
+  /orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}:
+    get:
+      summary: Get a specific component workflow run
+      operationId: getComponentWorkflowRun
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentWorkflowRunResponse'
+        '404':
+          description: Component workflow run not found
 
   # Component Bindings
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings:

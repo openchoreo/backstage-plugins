@@ -469,7 +469,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflow-schema': {
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-parameters': {
     parameters: {
       query?: never;
       header?: never;
@@ -482,11 +482,11 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Update component workflow schema */
-    patch: operations['updateComponentWorkflowSchema'];
+    /** Update component workflow parameters */
+    patch: operations['updateComponentWorkflowParameters'];
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-workflows': {
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs': {
     parameters: {
       query?: never;
       header?: never;
@@ -496,8 +496,25 @@ export interface paths {
     /** List component workflow runs */
     get: operations['listComponentWorkflowRuns'];
     put?: never;
-    /** Trigger a component workflow */
-    post: operations['triggerComponentWorkflow'];
+    /** Create a component workflow run */
+    post: operations['createComponentWorkflowRun'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific component workflow run */
+    get: operations['getComponentWorkflowRun'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1179,6 +1196,27 @@ export interface components {
       /** Format: date-time */
       createdAt: string;
       image?: string;
+      workflow?: components['schemas']['ComponentWorkflowConfigResponse'];
+    };
+    ComponentWorkflowConfigResponse: {
+      name: string;
+      systemParameters?: components['schemas']['SystemParametersResponse'];
+      /** @description Developer-defined workflow parameters as arbitrary JSON */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    SystemParametersResponse: {
+      repository?: components['schemas']['RepositoryResponse'];
+    };
+    RepositoryResponse: {
+      url: string;
+      appPath: string;
+      revision?: components['schemas']['RepositoryRevisionResponse'];
+    };
+    RepositoryRevisionResponse: {
+      branch: string;
+      commit?: string;
     };
     TraitResponse: {
       name: string;
@@ -1461,7 +1499,9 @@ export interface components {
       reason?: string;
       message?: string;
     };
-    UpdateComponentWorkflowSchemaRequest: {
+    UpdateComponentWorkflowRequest: {
+      /** @description Name of the workflow to initialize (optional, required for initialization) */
+      workflowName?: string;
       systemParameters?: components['schemas']['ComponentWorkflowSystemParams'];
       /** @description Developer-defined workflow parameters as arbitrary JSON */
       parameters?: {
@@ -2707,7 +2747,7 @@ export interface operations {
       };
     };
   };
-  updateComponentWorkflowSchema: {
+  updateComponentWorkflowParameters: {
     parameters: {
       query?: never;
       header?: never;
@@ -2720,11 +2760,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateComponentWorkflowSchemaRequest'];
+        'application/json': components['schemas']['UpdateComponentWorkflowRequest'];
       };
     };
     responses: {
-      /** @description Workflow schema updated successfully */
+      /** @description Workflow parameters updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2777,7 +2817,7 @@ export interface operations {
       };
     };
   };
-  triggerComponentWorkflow: {
+  createComponentWorkflowRun: {
     parameters: {
       query?: {
         /** @description Git commit SHA (7-40 hexadecimal characters) */
@@ -2793,7 +2833,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Component workflow triggered successfully */
+      /** @description Component workflow run created successfully */
       201: {
         headers: {
           [name: string]: unknown;
@@ -2806,6 +2846,40 @@ export interface operations {
       };
       /** @description Invalid commit SHA format */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getComponentWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+        runName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentWorkflowRunResponse'];
+          };
+        };
+      };
+      /** @description Component workflow run not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
