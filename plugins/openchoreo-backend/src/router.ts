@@ -19,7 +19,6 @@ import {
 } from './services/RuntimeLogsService/RuntimeLogsService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
-import { WorkflowSchemaService } from './services/WorkflowService/WorkflowSchemaService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import {
   OpenChoreoTokenService,
@@ -38,7 +37,6 @@ export async function createRouter({
   workloadInfoService,
   dashboardInfoService,
   traitInfoService,
-  workflowSchemaService,
   secretReferencesInfoService,
   authzService,
   tokenService,
@@ -53,7 +51,6 @@ export async function createRouter({
   workloadInfoService: WorkloadService;
   dashboardInfoService: DashboardInfoService;
   traitInfoService: TraitInfoService;
-  workflowSchemaService: WorkflowSchemaService;
   secretReferencesInfoService: SecretReferencesService;
   authzService: AuthzService;
   tokenService: OpenChoreoTokenService;
@@ -302,77 +299,6 @@ export async function createRouter({
       ),
     );
   });
-
-  // Endpoint for listing workflows
-  router.get('/workflows', async (req, res) => {
-    const { organizationName } = req.query;
-
-    if (!organizationName) {
-      throw new InputError('organizationName is a required query parameter');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await workflowSchemaService.fetchWorkflows(
-        organizationName as string,
-        userToken,
-      ),
-    );
-  });
-
-  // Endpoint for fetching workflow schema
-  router.get('/workflow-schema', async (req, res) => {
-    const { organizationName, workflowName } = req.query;
-
-    if (!organizationName) {
-      throw new InputError('organizationName is a required query parameter');
-    }
-
-    if (!workflowName) {
-      throw new InputError('workflowName is a required query parameter');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await workflowSchemaService.fetchWorkflowSchema(
-        organizationName as string,
-        workflowName as string,
-        userToken,
-      ),
-    );
-  });
-
-  // Endpoint for updating component workflow schema
-  router.patch('/workflow-parameters', requireAuth, async (req, res) => {
-    const { organizationName, projectName, componentName } = req.query;
-    const { systemParameters, parameters } = req.body;
-
-    if (!organizationName || !projectName || !componentName) {
-      throw new InputError(
-        'organizationName, projectName and componentName are required query parameters',
-      );
-    }
-
-    if (!systemParameters) {
-      throw new InputError('systemParameters are required in request body');
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await workflowSchemaService.updateComponentWorkflowParameters(
-        organizationName as string,
-        projectName as string,
-        componentName as string,
-        systemParameters,
-        parameters ? parameters : undefined,
-        userToken,
-      ),
-    );
-  });
-
   router.get('/builds', async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
 
@@ -389,50 +315,6 @@ export async function createRouter({
         organizationName as string,
         projectName as string,
         componentName as string,
-        userToken,
-      ),
-    );
-  });
-
-  router.get('/workflow-run', async (req, res) => {
-    const { componentName, projectName, organizationName, runName } = req.query;
-
-    if (!componentName || !projectName || !organizationName || !runName) {
-      throw new InputError(
-        'componentName, projectName, organizationName and runName are required query parameters',
-      );
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await buildInfoService.getWorkflowRun(
-        organizationName as string,
-        projectName as string,
-        componentName as string,
-        runName as string,
-        userToken,
-      ),
-    );
-  });
-
-  router.post('/builds', requireAuth, async (req, res) => {
-    const { componentName, projectName, organizationName, commit } = req.body;
-
-    if (!componentName || !projectName || !organizationName) {
-      throw new InputError(
-        'componentName, projectName and organizationName are required in request body',
-      );
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    res.json(
-      await buildInfoService.triggerBuild(
-        organizationName as string,
-        projectName as string,
-        componentName as string,
-        commit as string | undefined,
         userToken,
       ),
     );

@@ -17,5 +17,5 @@ export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,
-} from './useAsyncOperation';
+} from '@openchoreo/backstage-plugin-react';
 export { useQueryParams } from './useQueryParams';
