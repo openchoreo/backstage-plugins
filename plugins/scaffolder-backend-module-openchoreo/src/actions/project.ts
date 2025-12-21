@@ -2,12 +2,8 @@ import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
-import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
-export const createProjectAction = (
-  config: Config,
-  tokenService: OpenChoreoTokenService,
-) => {
+export const createProjectAction = (config: Config) => {
   return createTemplateAction({
     id: 'openchoreo:project:create',
     description: 'Create OpenChoreo Project',
@@ -62,18 +58,29 @@ export const createProjectAction = (
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
 
-      // Get service token for authentication
-      let token: string | undefined;
-      if (tokenService.hasServiceCredentials()) {
-        try {
-          token = await tokenService.getServiceToken();
-          ctx.logger.debug('Using service token for OpenChoreo API');
-        } catch (error) {
-          ctx.logger.warn(`Failed to get service token: ${error}`);
-        }
+      // Check if authorization is enabled (defaults to true)
+      const authzEnabled =
+        config.getOptionalBoolean('openchoreo.features.authz.enabled') ?? true;
+
+      // Get user token from secrets (injected by form decorator) when authz is enabled
+      const token = authzEnabled
+        ? ctx.secrets?.OPENCHOREO_USER_TOKEN
+        : undefined;
+
+      if (authzEnabled && !token) {
+        throw new Error(
+          'User authentication token not available. Please ensure you are logged in.',
+        );
       }
 
-      // Create a new instance of the OpenChoreo API client using the generated client
+      if (token) {
+        ctx.logger.debug('Using user token from secrets for OpenChoreo API');
+      } else {
+        ctx.logger.debug(
+          'Authorization disabled - calling OpenChoreo API without auth',
+        );
+      }
+
       const client = createOpenChoreoApiClient({
         baseUrl,
         token,
