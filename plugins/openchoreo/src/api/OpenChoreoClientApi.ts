@@ -135,22 +135,22 @@ export interface RoleMappingFilters {
 }
 
 export interface EntitlementConfig {
-  Claim: string;
-  DisplayName: string;
+  claim: string;
+  displayName: string;
 }
 
 export interface AuthMechanismConfig {
-  Type: string;
-  Entitlement: EntitlementConfig;
+  type: string;
+  entitlement: EntitlementConfig;
 }
 
 export type SubjectType = 'user' | 'service_account';
 
 export interface UserTypeConfig {
-  Type: SubjectType;
-  DisplayName: string;
-  Priority: number;
-  AuthMechanisms: AuthMechanismConfig[];
+  type: SubjectType;
+  displayName: string;
+  priority: number;
+  authMechanisms: AuthMechanismConfig[];
 }
 
 /** Organization summary for listing */

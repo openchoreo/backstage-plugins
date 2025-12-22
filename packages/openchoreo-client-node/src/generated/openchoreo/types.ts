@@ -1545,19 +1545,19 @@ export interface components {
       actions: string[];
     };
     EntitlementConfig: {
-      Claim: string;
-      DisplayName: string;
+      claim: string;
+      displayName: string;
     };
     AuthMechanismConfig: {
       /** @description Authentication mechanism type (e.g., "jwt", "oauth2", "api_key") */
-      Type: string;
-      Entitlement: components['schemas']['EntitlementConfig'];
+      type: string;
+      entitlement: components['schemas']['EntitlementConfig'];
     };
     UserTypeConfig: {
-      Type: components['schemas']['SubjectType'];
-      DisplayName: string;
-      Priority: number;
-      AuthMechanisms: components['schemas']['AuthMechanismConfig'][];
+      type: components['schemas']['SubjectType'];
+      displayName: string;
+      priority: number;
+      authMechanisms: components['schemas']['AuthMechanismConfig'][];
     };
     Subject: {
       jwt_token: string;
