@@ -119,7 +119,7 @@ export const SubjectStep = ({
   const classes = useStyles();
 
   const selectedUserTypeInfo = userTypes.find(
-    ut => ut.type === state.subjectType,
+    ut => ut.Type === state.subjectType,
   );
   const entitlementClaim = getEntitlementClaim(selectedUserTypeInfo);
 
@@ -144,7 +144,7 @@ export const SubjectStep = ({
 
   const getValueLabel = () => {
     if (selectedUserTypeInfo) {
-      return `${selectedUserTypeInfo.display_name} Identifier`;
+      return `${selectedUserTypeInfo.DisplayName} Identifier`;
     }
     return 'Identifier';
   };
@@ -170,29 +170,29 @@ export const SubjectStep = ({
         <Box className={classes.typeCards}>
           {userTypes.map(userType => (
             <Paper
-              key={userType.type}
+              key={userType.Type}
               variant="outlined"
               className={`${classes.typeCard} ${
-                state.subjectType === userType.type
+                state.subjectType === userType.Type
                   ? classes.typeCardSelected
                   : ''
               }`}
-              onClick={() => handleTypeChange(userType.type)}
+              onClick={() => handleTypeChange(userType.Type)}
             >
               <Box className={classes.typeIcon}>
-                {getTypeIcon(userType.type)}
+                {getTypeIcon(userType.Type)}
               </Box>
               <Box className={classes.typeContent}>
                 <FormControlLabel
-                  value={userType.type}
+                  value={userType.Type}
                   control={<Radio color="primary" size="small" />}
                   label={
                     <Box>
                       <Typography className={classes.typeName}>
-                        {userType.display_name}
+                        {userType.DisplayName}
                       </Typography>
                       <Typography className={classes.typeDescription}>
-                        {getTypeDescription(userType.type)}
+                        {getTypeDescription(userType.Type)}
                       </Typography>
                     </Box>
                   }

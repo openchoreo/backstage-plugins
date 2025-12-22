@@ -1467,41 +1467,41 @@ components:
     EntitlementConfig:
       type: object
       required:
-        - claim
-        - display_name
+        - Claim
+        - DisplayName
       properties:
-        claim:
+        Claim:
           type: string
-        display_name:
+        DisplayName:
           type: string
 
     AuthMechanismConfig:
       type: object
       required:
-        - type
-        - entitlement
+        - Type
+        - Entitlement
       properties:
-        type:
+        Type:
           type: string
           description: Authentication mechanism type (e.g., "jwt", "oauth2", "api_key")
-        entitlement:
+        Entitlement:
           $ref: '#/components/schemas/EntitlementConfig'
 
     UserTypeConfig:
       type: object
       required:
-        - type
-        - display_name
-        - priority
-        - auth_mechanisms
+        - Type
+        - DisplayName
+        - Priority
+        - AuthMechanisms
       properties:
-        type:
+        Type:
           $ref: '#/components/schemas/SubjectType'
-        display_name:
+        DisplayName:
           type: string
-        priority:
+        Priority:
           type: integer
-        auth_mechanisms:
+        AuthMechanisms:
           type: array
           items:
             $ref: '#/components/schemas/AuthMechanismConfig'

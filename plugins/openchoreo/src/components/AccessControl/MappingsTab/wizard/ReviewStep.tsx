@@ -72,7 +72,7 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
   const classes = useStyles();
 
   const selectedUserTypeInfo = userTypes.find(
-    ut => ut.type === state.subjectType,
+    ut => ut.Type === state.subjectType,
   );
   const entitlementClaim = getEntitlementClaim(selectedUserTypeInfo);
 
@@ -94,7 +94,7 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
   };
 
   const getSubjectDescription = (): string => {
-    const typeName = selectedUserTypeInfo?.display_name || state.subjectType;
+    const typeName = selectedUserTypeInfo?.DisplayName || state.subjectType;
     return `${typeName} (${entitlementClaim} = "${state.entitlementValue}")`;
   };
 

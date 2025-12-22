@@ -19,22 +19,22 @@ export type {
  * Extracts the entitlement claim from a UserTypeConfig.
  *
  * TODO: Currently uses the first auth mechanism. Future options:
- * - Filter by specific type (e.g., type === 'jwt')
+ * - Filter by specific type (e.g., Type === 'jwt')
  * - Support multiple auth mechanisms in UI
  */
 export function getEntitlementClaim(
   userType: UserTypeConfig | undefined,
 ): string {
-  if (!userType || !userType.auth_mechanisms?.length) return '';
+  if (!userType || !userType.AuthMechanisms?.length) return '';
   // Currently uses first auth mechanism - see TODO above for future enhancements
-  return userType.auth_mechanisms[0].entitlement.claim;
+  return userType.AuthMechanisms[0].Entitlement.Claim;
 }
 
 export function getEntitlementDisplayName(
   userType: UserTypeConfig | undefined,
 ): string {
-  if (!userType || !userType.auth_mechanisms?.length) return '';
-  return userType.auth_mechanisms[0].entitlement.display_name;
+  if (!userType || !userType.AuthMechanisms?.length) return '';
+  return userType.AuthMechanisms[0].Entitlement.DisplayName;
 }
 
 interface UseUserTypesResult {
