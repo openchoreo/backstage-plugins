@@ -232,8 +232,7 @@ export const createComponentAction = (
 
         // Check if authorization is enabled (defaults to true)
         const authzEnabled =
-          config.getOptionalBoolean('openchoreo.features.auth.enabled') ??
-          true;
+          config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
         // Get user token from secrets (injected by form decorator) when authz is enabled
         const token = authzEnabled
