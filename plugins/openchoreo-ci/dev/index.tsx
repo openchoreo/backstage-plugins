@@ -1,10 +1,10 @@
 import { createDevApp } from '@backstage/dev-utils';
-import { openchoreoCiPlugin, OpenchoreoCiPage } from '../src/plugin';
+import { openchoreoCiPlugin, WorkflowsPage} from '../src/plugin';
 
 createDevApp()
   .registerPlugin(openchoreoCiPlugin)
   .addPage({
-    element: <OpenchoreoCiPage />,
+    element: <WorkflowsPage />,
     title: 'Root Page',
     path: '/openchoreo-ci',
   })

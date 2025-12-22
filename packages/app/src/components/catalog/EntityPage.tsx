@@ -70,7 +70,7 @@ import {
   Traits,
 } from '@openchoreo/backstage-plugin';
 
-import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
+import { WorkflowsPage as Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 
 import {
   ObservabilityMetrics,
