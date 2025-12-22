@@ -80,11 +80,12 @@ const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     marginTop: theme.spacing(2),
   },
-  forceDeleteButton: {
-    backgroundColor: theme.palette.error.main,
-    color: theme.palette.error.contrastText,
+  deleteButton: {
+    borderColor: theme.palette.error.main,
+    color: theme.palette.error.main,
     '&:hover': {
-      backgroundColor: theme.palette.error.dark,
+      borderColor: theme.palette.error.dark,
+      backgroundColor: 'rgba(211, 47, 47, 0.04)',
     },
   },
 }));
@@ -346,11 +347,13 @@ export const RolesTab = () => {
               </List>
             </DialogContent>
             <DialogActions>
-              <Button onClick={closeDeleteDialog}>Cancel</Button>
+              <Button onClick={closeDeleteDialog} variant="contained">
+                Cancel
+              </Button>
               <Button
                 onClick={() => confirmDeleteRole(true)}
-                className={classes.forceDeleteButton}
-                variant="contained"
+                className={classes.deleteButton}
+                variant="outlined"
               >
                 Force Delete
               </Button>
@@ -366,10 +369,13 @@ export const RolesTab = () => {
               </DialogContentText>
             </DialogContent>
             <DialogActions>
-              <Button onClick={closeDeleteDialog}>Cancel</Button>
+              <Button onClick={closeDeleteDialog} variant="contained">
+                Cancel
+              </Button>
               <Button
                 onClick={() => confirmDeleteRole(false)}
-                color="secondary"
+                variant="outlined"
+                className={classes.deleteButton}
               >
                 Delete
               </Button>
