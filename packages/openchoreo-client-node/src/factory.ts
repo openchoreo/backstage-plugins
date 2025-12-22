@@ -148,7 +148,7 @@ export function createOpenChoreoObservabilityApiClient(
     fetch: fetchApi,
     headers: token
       ? {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         }
       : undefined,
   };
