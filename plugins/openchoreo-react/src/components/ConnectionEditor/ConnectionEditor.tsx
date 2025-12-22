@@ -97,6 +97,8 @@ export interface ConnectionEditorProps {
   editDisabled?: boolean;
   /** Separately disable the Delete button (when another row is editing) */
   deleteDisabled?: boolean;
+  /** Disable the Apply button (when validation fails) */
+  applyDisabled?: boolean;
   /** Available connection types */
   connectionTypes: ConnectionTypeOption[];
   /** Available projects */
@@ -134,6 +136,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
   onCancel,
   editDisabled = false,
   deleteDisabled = false,
+  applyDisabled = false,
   connectionTypes,
   projects,
   components,
@@ -287,7 +290,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
             onClick={onApply}
             color="primary"
             size="small"
-            disabled={disabled}
+            disabled={disabled || applyDisabled}
             className={classes.actionButton}
             aria-label="Apply changes"
           >

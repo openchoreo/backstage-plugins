@@ -89,6 +89,8 @@ export interface EndpointEditorProps {
   editDisabled?: boolean;
   /** Separately disable the Delete button (when another row is editing) */
   deleteDisabled?: boolean;
+  /** Disable the Apply button (when validation fails) */
+  applyDisabled?: boolean;
   /** Callback when any field changes */
   onChange: (field: keyof WorkloadEndpoint, value: any) => void;
   /** Callback when the endpoint name changes */
@@ -112,6 +114,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
   onCancel,
   editDisabled = false,
   deleteDisabled = false,
+  applyDisabled = false,
   onChange,
   onNameChange,
   onRemove,
@@ -246,7 +249,7 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             onClick={onApply}
             color="primary"
             size="small"
-            disabled={disabled}
+            disabled={disabled || applyDisabled}
             className={classes.actionButton}
             aria-label="Apply changes"
           >

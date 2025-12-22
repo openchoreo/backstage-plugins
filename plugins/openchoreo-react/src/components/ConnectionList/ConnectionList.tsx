@@ -111,6 +111,7 @@ export const ConnectionList: FC<ConnectionListProps> = ({
               onCancel={editBuffer.cancelEdit}
               editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
               deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
+              applyDisabled={isCurrentlyEditing && !editBuffer.isBufferValid}
               connectionTypes={connectionTypes}
               projects={getProjects(connectionName)}
               components={getComponents(connectionName)}

@@ -28,6 +28,8 @@ export interface UseConnectionEditBufferResult {
   editBufferName: string | null;
   /** Whether any row is currently being edited */
   isAnyRowEditing: boolean;
+  /** Whether the current buffer is valid (all required fields filled) */
+  isBufferValid: boolean;
   /** Check if a specific row is being edited */
   isRowEditing: (connectionName: string) => boolean;
   /** Start editing an existing connection row */
@@ -51,15 +53,28 @@ export interface UseConnectionEditBufferResult {
 }
 
 /**
- * Check if a connection is empty (no type or missing required params)
+ * Check if a connection is truly empty (no data entered at all)
  */
 function isConnectionEmpty(connection: Connection | undefined | null): boolean {
   if (!connection) return true;
   return (
-    !connection.type ||
-    !connection.params?.componentName ||
-    !connection.params?.endpoint ||
+    !connection.type &&
+    !connection.params?.componentName &&
+    !connection.params?.endpoint &&
     !connection.params?.projectName
+  );
+}
+
+/**
+ * Check if a connection is valid (all required fields filled)
+ */
+function isConnectionValid(connection: Connection | undefined | null): boolean {
+  if (!connection) return false;
+  return !!(
+    connection.type &&
+    connection.params?.componentName &&
+    connection.params?.endpoint &&
+    connection.params?.projectName
   );
 }
 
@@ -107,6 +122,7 @@ export function useConnectionEditBuffer(
   const [editBufferName, setEditBufferName] = useState<string | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
+  const isBufferValid = isConnectionValid(editBuffer);
 
   const isRowEditing = useCallback(
     (connectionName: string): boolean => {
@@ -250,6 +266,7 @@ export function useConnectionEditBuffer(
     editBuffer,
     editBufferName,
     isAnyRowEditing,
+    isBufferValid,
     isRowEditing,
     startEdit,
     startNew,
