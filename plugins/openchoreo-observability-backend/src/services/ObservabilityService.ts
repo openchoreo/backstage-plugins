@@ -109,7 +109,7 @@ export class ObservabilityService {
       error: urlError,
       response: urlResponse,
     } = await mainClient.GET(
-      '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url' as any,
+      '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
       {
         params: {
           path: {
@@ -262,7 +262,7 @@ export class ObservabilityService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url' as any,
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
         {
           params: {
             path: { orgName, projectName, componentName, environmentName },
@@ -514,7 +514,7 @@ export class ObservabilityService {
           error: urlError,
           response: urlResponse,
         } = await mainClient.GET(
-          '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url' as any,
+          '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
           {
             params: {
               path: {

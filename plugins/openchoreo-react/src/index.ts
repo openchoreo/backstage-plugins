@@ -141,7 +141,7 @@ export {
 } from './components/ChangesList';
 
 // Utilities
-export { formatRelativeTime } from './utils/timeUtils';
+export { formatRelativeTime, calculateTimeRange } from './utils/timeUtils';
 export {
   deepCompareObjects,
   formatChangeValue,

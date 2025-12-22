@@ -75,6 +75,7 @@ import { WorkflowsPage as Workflows } from '@openchoreo/backstage-plugin-opencho
 import {
   ObservabilityMetrics,
   ObservabilityTraces,
+  ObservabilityRCA,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import { FeatureGate } from '@openchoreo/backstage-plugin-react';
@@ -480,6 +481,11 @@ const systemPage = (
     <EntityLayout.Route path="/traces" title="Traces">
       <FeatureGatedContent feature="observability">
         <ObservabilityTraces />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/rca-reports" title="RCA Reports">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityRCA />
       </FeatureGatedContent>
     </EntityLayout.Route>
   </EntityLayout>
