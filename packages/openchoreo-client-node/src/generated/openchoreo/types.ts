@@ -1313,13 +1313,14 @@ export interface components {
     ObserverUrlData: {
       observerUrl?: string;
     };
-    /** @description Immutable snapshot of component configuration.
+    /**
+     * @description Immutable snapshot of component configuration.
      *     Note: The following fields are immutable after creation and cannot be modified:
      *     - componentType
      *     - traits
      *     - componentProfile
      *     - workload
-     *      */
+     */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
@@ -1544,19 +1545,19 @@ export interface components {
       actions: string[];
     };
     EntitlementConfig: {
-      claim: string;
-      display_name: string;
+      Claim: string;
+      DisplayName: string;
     };
     AuthMechanismConfig: {
       /** @description Authentication mechanism type (e.g., "jwt", "oauth2", "api_key") */
-      type: string;
-      entitlement: components['schemas']['EntitlementConfig'];
+      Type: string;
+      Entitlement: components['schemas']['EntitlementConfig'];
     };
     UserTypeConfig: {
-      type: components['schemas']['SubjectType'];
-      display_name: string;
-      priority: number;
-      auth_mechanisms: components['schemas']['AuthMechanismConfig'][];
+      Type: components['schemas']['SubjectType'];
+      DisplayName: string;
+      Priority: number;
+      AuthMechanisms: components['schemas']['AuthMechanismConfig'][];
     };
     Subject: {
       jwt_token: string;
