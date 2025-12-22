@@ -1,8 +1,14 @@
-// Plugin exports
-export { openchoreoCiPlugin, OpenchoreoCiPage, WorkflowsPage } from './plugin';
+// Plugin exports - Workflows is exported as a routable extension
+export {
+  openchoreoCiPlugin,
+  WorkflowsPage,
+} from './plugin';
 
-// Component exports for direct use
-export { Workflows, BuildStatusChip } from './components';
+// Component exports for direct use (non-routable components only)
+export { Workflows } from './components/Workflows';
+
+// Component exports for direct use (non-routable components only)
+export { BuildStatusChip } from './components';
 
 // Hook exports
 export { useAsyncOperation } from './hooks';

@@ -35,18 +35,17 @@ export const openchoreoCiPlugin = createPlugin({
 });
 
 /**
- * Workflows page component - displays workflow runs and configuration
- * for a component entity.
+ * Workflows component - displays workflow runs and configuration
+ * for a component entity. This is the main entry point for the CI plugin.
+ * 
+ * Exported as a routable extension to ensure proper plugin registration
+ * and feature flag discovery.
  */
-export const OpenchoreoCiPage = openchoreoCiPlugin.provide(
+export const WorkflowsPage = openchoreoCiPlugin.provide(
   createRoutableExtension({
-    name: 'OpenchoreoCiPage',
+    name: 'WorkflowsPage',
     component: () => import('./components/Workflows').then(m => m.Workflows),
     mountPoint: rootRouteRef,
   }),
 );
 
-/**
- * Alias for backwards compatibility and clarity
- */
-export const WorkflowsPage = OpenchoreoCiPage;
