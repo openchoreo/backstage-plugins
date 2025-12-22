@@ -1,5 +1,5 @@
 import { createDevApp } from '@backstage/dev-utils';
-import { openchoreoCiPlugin, WorkflowsPage} from '../src/plugin';
+import { openchoreoCiPlugin, WorkflowsPage } from '../src/plugin';
 
 createDevApp()
   .registerPlugin(openchoreoCiPlugin)
