@@ -1,9 +1,10 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { WorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
 import {
   EndpointList,
   useEndpointEditBuffer,
 } from '@openchoreo/backstage-plugin-react';
+import { useWorkloadContext } from '../WorkloadContext';
 
 interface EndpointContentProps {
   endpoints: { [key: string]: WorkloadEndpoint };
@@ -20,11 +21,18 @@ export const EndpointContent: FC<EndpointContentProps> = ({
   onRemoveEndpoint,
   disabled,
 }) => {
+  const { setEditingSection } = useWorkloadContext();
+
   const editBuffer = useEndpointEditBuffer({
     endpoints,
     onEndpointReplace,
     onRemoveEndpoint,
   });
+
+  // Report editing state to context
+  useEffect(() => {
+    setEditingSection('endpoints', editBuffer.isAnyRowEditing);
+  }, [editBuffer.isAnyRowEditing, setEditingSection]);
 
   return (
     <EndpointList
