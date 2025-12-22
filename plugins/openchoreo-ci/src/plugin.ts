@@ -37,7 +37,7 @@ export const openchoreoCiPlugin = createPlugin({
 /**
  * Workflows component - displays workflow runs and configuration
  * for a component entity. This is the main entry point for the CI plugin.
- * 
+ *
  * Exported as a routable extension to ensure proper plugin registration
  * and feature flag discovery.
  */
@@ -48,4 +48,3 @@ export const WorkflowsPage = openchoreoCiPlugin.provide(
     mountPoint: rootRouteRef,
   }),
 );
-
