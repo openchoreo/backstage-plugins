@@ -173,6 +173,11 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       throw new Error(`API request failed (${response.status}): ${errorText}`);
     }
 
+    // Handle 204 No Content responses (e.g., successful deletes)
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     return response.json();
   }
 
