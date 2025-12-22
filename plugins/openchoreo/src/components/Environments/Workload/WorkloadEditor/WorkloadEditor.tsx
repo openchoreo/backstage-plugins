@@ -255,24 +255,20 @@ export function WorkloadEditor({
     updateWorkloadSpec(updatedData);
   };
 
-  const handleEndpointChange = (
+  const handleEndpointReplace = (
     endpointName: string,
-    field: keyof WorkloadEndpoint,
-    value: any,
+    endpoint: WorkloadEndpoint,
   ) => {
     const updatedEndpoints = {
       ...formData.endpoints,
-      [endpointName]: {
-        ...formData.endpoints?.[endpointName],
-        [field]: value,
-      } as WorkloadEndpoint,
+      [endpointName]: endpoint,
     };
     const updatedData = { ...formData, endpoints: updatedEndpoints };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
   };
 
-  const addEndpoint = () => {
+  const addEndpoint = (): string => {
     const endpointName = `endpoint-${
       Object.keys(formData.endpoints || {}).length + 1
     }`;
@@ -286,6 +282,7 @@ export function WorkloadEditor({
     const updatedData = { ...formData, endpoints: updatedEndpoints };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
+    return endpointName;
   };
 
   const removeEndpoint = (endpointName: string) => {
@@ -296,7 +293,7 @@ export function WorkloadEditor({
     updateWorkloadSpec(updatedData);
   };
 
-  const handleConnectionChange = (
+  const handleConnectionReplace = (
     connectionName: string,
     connection: Connection,
   ) => {
@@ -309,7 +306,7 @@ export function WorkloadEditor({
     updateWorkloadSpec(updatedData);
   };
 
-  const addConnection = () => {
+  const addConnection = (): string => {
     const connectionName = `connection-${
       Object.keys(formData.connections || {}).length + 1
     }`;
@@ -331,6 +328,7 @@ export function WorkloadEditor({
     const updatedData = { ...formData, connections: updatedConnections };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
+    return connectionName;
   };
 
   const removeConnection = (connectionName: string) => {
@@ -417,7 +415,7 @@ export function WorkloadEditor({
         <EndpointContent
           disabled={isDeploying}
           endpoints={formData.endpoints || {}}
-          onEndpointChange={handleEndpointChange}
+          onEndpointReplace={handleEndpointReplace}
           onAddEndpoint={addEndpoint}
           onRemoveEndpoint={removeEndpoint}
         />
@@ -426,7 +424,7 @@ export function WorkloadEditor({
         <ConnectionContent
           disabled={isDeploying}
           connections={formData.connections || {}}
-          onConnectionChange={handleConnectionChange}
+          onConnectionReplace={handleConnectionReplace}
           onAddConnection={addConnection}
           onRemoveConnection={removeConnection}
         />
