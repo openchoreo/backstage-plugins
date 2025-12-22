@@ -101,7 +101,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   ): Promise<PolicyDecision> {
     const { permission } = request;
 
-    this.logger.debug(`[POLICY_HANDLE] Permission: ${permission.name}`);
+    this.logger.debug(`Evaluating permission: ${permission.name}`);
 
     // Handle scaffolder.task.create - check if user has component:create capability
     if (permission.name === 'scaffolder.task.create') {
@@ -110,7 +110,6 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
 
     // Handle catalog.entity.* permissions for OpenChoreo-managed entities
     if (permission.name.startsWith(CATALOG_PERMISSION_PREFIX)) {
-      this.logger.debug(`[POLICY_HANDLE] Routing to handleCatalogPermission`);
       return this.handleCatalogPermission(request, user);
     }
 
@@ -162,10 +161,6 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
           actionCapability?.denied
             ?.map(d => d.path)
             .filter((p): p is string => !!p) ?? [];
-
-        this.logger.debug(
-          `Returning CONDITIONAL for ${permission.name} (action: ${action})`,
-        );
 
         return createOpenChoreoConditionalDecision(
           permission,
@@ -235,8 +230,12 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
     // Must have a user context with userEntityRef
     const userEntityRef = user?.info?.userEntityRef;
     if (!userEntityRef) {
-      this.logger.debug(`Denying ${permission.name} - no user context`);
-      return { result: AuthorizeResult.DENY };
+      // Allow service-to-service calls (internal calls without user context)
+      // These are typically from permission resolution or other backend services
+      this.logger.debug(
+        `Allowing ${permission.name} - service-to-service call (no user context)`,
+      );
+      return { result: AuthorizeResult.ALLOW };
     }
 
     try {

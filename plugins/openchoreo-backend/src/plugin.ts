@@ -50,6 +50,7 @@ export const choreoPlugin = createBackendPlugin({
         tokenService,
         catalog,
         permissionsRegistry,
+        auth,
       }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
 
@@ -115,17 +116,24 @@ export const choreoPlugin = createBackendPlugin({
           permissions: componentPermissions,
           rules: [matchesCapability],
           getResources: async (resourceRefs: string[]) => {
-            // Fetch entities from the catalog by their refs
-            return Promise.all(
-              resourceRefs.map(async ref => {
-                try {
-                  return await catalog.getEntityByRef(ref);
-                } catch {
-                  // Entity not found - return undefined (will be denied)
-                  return undefined;
-                }
-              }),
-            );
+            try {
+              // Get service credentials for catalog access
+              const credentials = await auth.getOwnServiceCredentials();
+              // Fetch entities by refs for permission rule evaluation
+              const response = await catalog.getEntitiesByRefs(
+                { entityRefs: resourceRefs },
+                { credentials } as Parameters<
+                  typeof catalog.getEntitiesByRefs
+                >[1],
+              );
+              return response.items;
+            } catch (error) {
+              logger.error(
+                `Failed to fetch entities for permission check`,
+                error as Error,
+              );
+              return resourceRefs.map(() => undefined);
+            }
           },
         });
 
