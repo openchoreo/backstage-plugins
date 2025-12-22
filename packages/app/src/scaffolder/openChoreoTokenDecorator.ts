@@ -23,7 +23,7 @@ export const openChoreoTokenDecorator = createScaffolderFormDecorator({
   async decorator({ setSecrets }, { oauthApi, configApi }) {
     // Check if authorization is enabled (defaults to true)
     const authzEnabled =
-      configApi.getOptionalBoolean('openchoreo.features.authz.enabled') ?? true;
+      configApi.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
     if (!authzEnabled) {
       // Skip token injection when authz is disabled
