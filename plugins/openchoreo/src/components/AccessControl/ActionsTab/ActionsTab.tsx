@@ -88,6 +88,21 @@ export const ActionsTab = () => {
     setExpandedGroups(new Set(groupedActions.map(g => g.resource)));
   };
 
+  const collapseAll = () => {
+    setExpandedGroups(new Set());
+  };
+
+  const allExpanded = groupedActions.length > 0 &&
+    groupedActions.every(g => expandedGroups.has(g.resource));
+
+  const toggleExpandCollapse = () => {
+    if (allExpanded) {
+      collapseAll();
+    } else {
+      expandAll();
+    }
+  };
+
   if (loading) {
     return <Progress />;
   }
@@ -142,9 +157,9 @@ export const ActionsTab = () => {
             variant="body2"
             color="primary"
             style={{ cursor: 'pointer' }}
-            onClick={expandAll}
+            onClick={toggleExpandCollapse}
           >
-            Expand all
+            {allExpanded ? 'Collapse all' : 'Expand all'}
           </Typography>
         )}
       </Box>
@@ -170,17 +185,17 @@ export const ActionsTab = () => {
                   <ListItemText
                     primary={
                       <Typography className={classes.groupTitle}>
-                        {group.resource}
+                        {group.resource}{' '}
+                        <Typography component="span" className={classes.actionCount}>
+                          ({group.actions.length} action{group.actions.length !== 1 ? 's' : ''})
+                        </Typography>
                       </Typography>
                     }
-                    secondary={`${group.actions.length} action${
-                      group.actions.length !== 1 ? 's' : ''
-                    }`}
                   />
                   {expandedGroups.has(group.resource) ? (
-                    <ExpandLess />
+                    <ExpandLess className={classes.expandIcon} />
                   ) : (
-                    <ExpandMore />
+                    <ExpandMore className={classes.expandIcon} />
                   )}
                 </ListItem>
                 <Collapse
@@ -188,19 +203,21 @@ export const ActionsTab = () => {
                   timeout="auto"
                   unmountOnExit
                 >
-                  <List component="div" disablePadding>
-                    {group.actions.map(action => (
-                      <ListItem key={action} className={classes.actionItem}>
-                        <ListItemText
-                          primary={
-                            <Typography className={classes.actionText}>
-                              {action}
-                            </Typography>
-                          }
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
+                  <Box className={classes.collapseContent}>
+                    <List component="div" disablePadding>
+                      {group.actions.map(action => (
+                        <ListItem key={action} className={classes.actionItem}>
+                          <ListItemText
+                            primary={
+                              <Typography className={classes.actionText}>
+                                {action}
+                              </Typography>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Box>
                 </Collapse>
               </Box>
             ))}
