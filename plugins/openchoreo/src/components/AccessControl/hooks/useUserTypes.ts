@@ -25,16 +25,16 @@ export type {
 export function getEntitlementClaim(
   userType: UserTypeConfig | undefined,
 ): string {
-  if (!userType || !userType.auth_mechanisms?.length) return '';
+  if (!userType || !userType.authMechanisms?.length) return '';
   // Currently uses first auth mechanism - see TODO above for future enhancements
-  return userType.auth_mechanisms[0].entitlement.claim;
+  return userType.authMechanisms[0].entitlement.claim;
 }
 
 export function getEntitlementDisplayName(
   userType: UserTypeConfig | undefined,
 ): string {
-  if (!userType || !userType.auth_mechanisms?.length) return '';
-  return userType.auth_mechanisms[0].entitlement.display_name;
+  if (!userType || !userType.authMechanisms?.length) return '';
+  return userType.authMechanisms[0].entitlement.displayName;
 }
 
 interface UseUserTypesResult {

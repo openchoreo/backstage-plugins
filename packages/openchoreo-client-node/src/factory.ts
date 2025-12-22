@@ -51,7 +51,7 @@ export interface OpenChoreoObservabilityClientConfig {
   baseUrl: string;
 
   /**
-   * Authentication token (passed as X-Original-Authorization header)
+   * Authentication token (passed as Authorization header)
    * If not provided, requests will be made without authentication
    */
   token?: string;
@@ -148,7 +148,7 @@ export function createOpenChoreoObservabilityApiClient(
     fetch: fetchApi,
     headers: token
       ? {
-          'X-Original-Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         }
       : undefined,
   };

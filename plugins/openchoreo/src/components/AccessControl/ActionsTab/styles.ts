@@ -18,25 +18,44 @@ export const useStyles = makeStyles(theme => ({
   },
   listContainer: {
     marginTop: theme.spacing(2),
+    backgroundColor: theme.palette.common.white,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 12,
+    boxShadow: 'none',
   },
   groupHeader: {
-    backgroundColor: theme.palette.background.default,
+    padding: theme.spacing(2, 3),
+    borderBottom: `1px solid ${theme.palette.divider}`,
     '&:hover': {
-      backgroundColor: theme.palette.action.hover,
+      backgroundColor: 'transparent',
     },
   },
   groupTitle: {
     fontWeight: 600,
     textTransform: 'capitalize',
+    fontSize: '0.875rem',
+    color: theme.palette.text.primary,
+  },
+  actionCount: {
+    color: theme.palette.text.secondary,
+    fontWeight: 500,
+  },
+  expandIcon: {
+    color: theme.palette.text.secondary,
+  },
+  collapseContent: {
+    borderBottom: `1px solid ${theme.palette.divider}`,
   },
   actionItem: {
-    paddingLeft: theme.spacing(4),
-    borderLeft: `2px solid ${theme.palette.divider}`,
-    marginLeft: theme.spacing(2),
+    paddingLeft: theme.spacing(6),
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(1),
   },
   actionText: {
     fontFamily: 'monospace',
-    fontSize: '0.9rem',
+    fontSize: '0.875rem',
+    color: theme.palette.text.secondary,
+    textTransform: 'lowercase',
   },
   emptyState: {
     textAlign: 'center',

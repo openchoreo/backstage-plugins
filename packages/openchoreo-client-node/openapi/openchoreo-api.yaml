@@ -1508,11 +1508,11 @@ components:
       type: object
       required:
         - claim
-        - display_name
+        - displayName
       properties:
         claim:
           type: string
-        display_name:
+        displayName:
           type: string
 
     AuthMechanismConfig:
@@ -1531,17 +1531,17 @@ components:
       type: object
       required:
         - type
-        - display_name
+        - displayName
         - priority
-        - auth_mechanisms
+        - authMechanisms
       properties:
         type:
           $ref: '#/components/schemas/SubjectType'
-        display_name:
+        displayName:
           type: string
         priority:
           type: integer
-        auth_mechanisms:
+        authMechanisms:
           type: array
           items:
             $ref: '#/components/schemas/AuthMechanismConfig'

@@ -136,7 +136,7 @@ export interface RoleMappingFilters {
 
 export interface EntitlementConfig {
   claim: string;
-  display_name: string;
+  displayName: string;
 }
 
 export interface AuthMechanismConfig {
@@ -148,9 +148,9 @@ export type SubjectType = 'user' | 'service_account';
 
 export interface UserTypeConfig {
   type: SubjectType;
-  display_name: string;
+  displayName: string;
   priority: number;
-  auth_mechanisms: AuthMechanismConfig[];
+  authMechanisms: AuthMechanismConfig[];
 }
 
 /** Organization summary for listing */

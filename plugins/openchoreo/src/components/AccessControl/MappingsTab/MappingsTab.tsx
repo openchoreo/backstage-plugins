@@ -60,7 +60,7 @@ const useStyles = makeStyles(theme => ({
     flexWrap: 'wrap',
   },
   searchField: {
-    width: 200,
+    width: theme.spacing(40),
   },
   filterSelect: {
     minWidth: 150,

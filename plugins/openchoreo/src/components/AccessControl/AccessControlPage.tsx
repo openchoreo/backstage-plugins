@@ -1,35 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Box, Typography } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
 import {
   Page,
   Header,
   Content,
   WarningPanel,
+  HeaderTabs,
 } from '@backstage/core-components';
-import SecurityIcon from '@material-ui/icons/Security';
-import PeopleIcon from '@material-ui/icons/People';
-import ListAltIcon from '@material-ui/icons/ListAlt';
-import {
-  VerticalTabNav,
-  TabItemData,
-} from '@openchoreo/backstage-design-system';
 import { RolesTab } from './RolesTab';
 import { MappingsTab } from './MappingsTab';
 import { ActionsTab } from './ActionsTab';
 import { useRoles } from './hooks/useRoles';
-
-const useStyles = makeStyles(theme => ({
-  content: {
-    padding: theme.spacing(3),
-    height: 'calc(100vh - 180px)',
-  },
-  tabNav: {
-    height: '100%',
-  },
-}));
-
-type TabId = 'roles' | 'mappings' | 'actions';
+import { useStyles } from './styles';
 
 const isAuthzDisabledError = (error: Error | null): boolean => {
   if (!error) return false;
@@ -43,39 +25,27 @@ const isAuthzDisabledError = (error: Error | null): boolean => {
 
 const AccessControlPageContent = () => {
   const classes = useStyles();
-  const [activeTab, setActiveTab] = useState<TabId>('roles');
+  const [selectedTab, setSelectedTab] = useState(0);
   const { error: rolesError, loading: rolesLoading } = useRoles();
 
   const authzDisabled = !rolesLoading && isAuthzDisabledError(rolesError);
 
-  const tabs = useMemo<TabItemData[]>(
+  const tabs = useMemo(
     () => [
-      {
-        id: 'roles',
-        label: 'Roles',
-        icon: <SecurityIcon fontSize="small" />,
-      },
-      {
-        id: 'mappings',
-        label: 'Role Mappings',
-        icon: <PeopleIcon fontSize="small" />,
-      },
-      {
-        id: 'actions',
-        label: 'Actions',
-        icon: <ListAltIcon fontSize="small" />,
-      },
+      { id: 'roles', label: 'Roles' },
+      { id: 'mappings', label: 'Role Mappings' },
+      { id: 'actions', label: 'Actions' },
     ],
     [],
   );
 
   const renderTabContent = () => {
-    switch (activeTab) {
-      case 'roles':
+    switch (selectedTab) {
+      case 0:
         return <RolesTab />;
-      case 'mappings':
+      case 1:
         return <MappingsTab />;
-      case 'actions':
+      case 2:
         return <ActionsTab />;
       default:
         return null;
@@ -128,15 +98,14 @@ const AccessControlPageContent = () => {
         subtitle="Manage roles, permissions, and entitlement mappings"
       />
       <Content className={classes.content}>
-        <Box className={classes.tabNav}>
-          <VerticalTabNav
+        <Box className={classes.tabsWrapper}>
+          <HeaderTabs
+            selectedIndex={selectedTab}
+            onChange={setSelectedTab}
             tabs={tabs}
-            activeTabId={activeTab}
-            onChange={tabId => setActiveTab(tabId as TabId)}
-          >
-            {renderTabContent()}
-          </VerticalTabNav>
+          />
         </Box>
+        <Box className={classes.tabPanel}>{renderTabContent()}</Box>
       </Content>
     </Page>
   );

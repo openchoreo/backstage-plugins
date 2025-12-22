@@ -144,7 +144,7 @@ export const SubjectStep = ({
 
   const getValueLabel = () => {
     if (selectedUserTypeInfo) {
-      return `${selectedUserTypeInfo.display_name} Identifier`;
+      return `${selectedUserTypeInfo.displayName} Identifier`;
     }
     return 'Identifier';
   };
@@ -189,7 +189,7 @@ export const SubjectStep = ({
                   label={
                     <Box>
                       <Typography className={classes.typeName}>
-                        {userType.display_name}
+                        {userType.displayName}
                       </Typography>
                       <Typography className={classes.typeDescription}>
                         {getTypeDescription(userType.type)}

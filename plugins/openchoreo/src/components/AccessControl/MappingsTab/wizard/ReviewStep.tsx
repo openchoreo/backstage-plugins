@@ -94,7 +94,7 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
   };
 
   const getSubjectDescription = (): string => {
-    const typeName = selectedUserTypeInfo?.display_name || state.subjectType;
+    const typeName = selectedUserTypeInfo?.displayName || state.subjectType;
     return `${typeName} (${entitlementClaim} = "${state.entitlementValue}")`;
   };
 
