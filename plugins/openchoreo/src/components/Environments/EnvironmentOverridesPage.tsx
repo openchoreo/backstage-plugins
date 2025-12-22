@@ -13,12 +13,12 @@ import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
 import {
   UnsavedChangesDialog,
   useUrlSyncedTab,
+  DetailPageLayout,
 } from '@openchoreo/backstage-plugin-react';
 import {
   calculateHasOverrides,
   getMissingRequiredFields,
 } from './overridesUtils';
-import { DetailPageLayout } from './components/DetailPageLayout';
 import type { Environment } from './hooks/useEnvironmentData';
 import type { PendingAction } from './types';
 import {

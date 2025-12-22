@@ -44,6 +44,7 @@
     "@openchoreo/backstage-plugin-backend": "workspace:^",
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^",
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^",
+    "@openchoreo/backstage-plugin-openchoreo-ci-backend": "workspace:^",
     "@openchoreo/backstage-plugin-openchoreo-observability-backend": "workspace:^",
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^",
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^",

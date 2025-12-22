@@ -127,4 +127,5 @@ backend.add(
 backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-observability-backend'),
 );
+backend.add(import('@openchoreo/backstage-plugin-openchoreo-ci-backend'));
 backend.start();

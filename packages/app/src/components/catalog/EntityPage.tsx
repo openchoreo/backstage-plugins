@@ -62,7 +62,6 @@ import {
   Environments,
   CellDiagram,
   RuntimeLogs,
-  Workflows,
   WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,
@@ -70,6 +69,8 @@ import {
   ProjectComponentsCard,
   Traits,
 } from '@openchoreo/backstage-plugin';
+
+import { WorkflowsPage as Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 
 import {
   ObservabilityMetrics,

@@ -11,7 +11,6 @@ import { OpenChoreoClient } from './api/OpenChoreoClient';
 import {
   rootCatalogEnvironmentRouteRef,
   rootCatalogRuntimeLogsRouteRef,
-  rootCatalogWorkflowsRouteRef,
   rootCatalogTraitsRouteRef,
   accessControlRouteRef,
 } from './routes';
@@ -58,15 +57,6 @@ export const RuntimeLogs = choreoPlugin.provide(
     component: () =>
       import('./components/RuntimeLogs/RuntimeLogs').then(m => m.RuntimeLogs),
     mountPoint: rootCatalogRuntimeLogsRouteRef,
-  }),
-);
-
-// Workflows page tab
-export const Workflows = choreoPlugin.provide(
-  createRoutableExtension({
-    name: 'ChoreoWorkflows',
-    component: () => import('./components/Workflows').then(m => m.Workflows),
-    mountPoint: rootCatalogWorkflowsRouteRef,
   }),
 );
 
