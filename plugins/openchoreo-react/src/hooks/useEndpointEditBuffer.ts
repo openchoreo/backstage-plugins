@@ -28,6 +28,8 @@ export interface UseEndpointEditBufferResult {
   editBufferName: string | null;
   /** Whether any row is currently being edited */
   isAnyRowEditing: boolean;
+  /** Whether the current buffer is valid (all required fields filled) */
+  isBufferValid: boolean;
   /** Check if a specific row is being edited */
   isRowEditing: (endpointName: string) => boolean;
   /** Start editing an existing endpoint row */
@@ -49,13 +51,23 @@ export interface UseEndpointEditBufferResult {
 }
 
 /**
- * Check if an endpoint is empty (no type or invalid port)
+ * Check if an endpoint is truly empty (no data entered at all)
  */
 function isEndpointEmpty(
   endpoint: WorkloadEndpoint | undefined | null,
 ): boolean {
   if (!endpoint) return true;
-  return !endpoint.type || endpoint.port === undefined || endpoint.port <= 0;
+  return !endpoint.type && (endpoint.port === undefined || endpoint.port <= 0);
+}
+
+/**
+ * Check if an endpoint is valid (all required fields filled)
+ */
+function isEndpointValid(
+  endpoint: WorkloadEndpoint | undefined | null,
+): boolean {
+  if (!endpoint) return false;
+  return !!(endpoint.type && endpoint.port !== undefined && endpoint.port > 0);
 }
 
 /**
@@ -103,6 +115,7 @@ export function useEndpointEditBuffer(
   const [editBufferName, setEditBufferName] = useState<string | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
+  const isBufferValid = isEndpointValid(editBuffer);
 
   const isRowEditing = useCallback(
     (endpointName: string): boolean => {
@@ -229,6 +242,7 @@ export function useEndpointEditBuffer(
     editBuffer,
     editBufferName,
     isAnyRowEditing,
+    isBufferValid,
     isRowEditing,
     startEdit,
     startNew,

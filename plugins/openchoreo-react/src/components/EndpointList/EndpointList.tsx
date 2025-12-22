@@ -81,6 +81,7 @@ export const EndpointList: FC<EndpointListProps> = ({
               onCancel={editBuffer.cancelEdit}
               editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
               deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
+              applyDisabled={isCurrentlyEditing && !editBuffer.isBufferValid}
               onChange={editBuffer.updateBuffer}
               onNameChange={editBuffer.updateBufferName}
               onRemove={() => handleRemoveEndpoint(endpointName)}
