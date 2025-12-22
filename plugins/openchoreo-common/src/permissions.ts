@@ -148,7 +148,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.component.create': 'component:create',
   'openchoreo.component.read': 'component:view',
   'openchoreo.component.update': 'component:update',
-  'openchoreo.component.build': 'componentworkflow:trigger',
+  'openchoreo.component.build': 'componentworkflow:create',
   'openchoreo.component.deploy': 'component:deploy',
   'openchoreo.project.create': 'project:create',
   'openchoreo.project.read': 'project:view',
