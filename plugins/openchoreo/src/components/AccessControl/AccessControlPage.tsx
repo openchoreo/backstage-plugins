@@ -105,9 +105,7 @@ const AccessControlPageContent = () => {
             tabs={tabs}
           />
         </Box>
-        <Box className={classes.tabPanel}>
-          {renderTabContent()}
-        </Box>
+        <Box className={classes.tabPanel}>{renderTabContent()}</Box>
       </Content>
     </Page>
   );

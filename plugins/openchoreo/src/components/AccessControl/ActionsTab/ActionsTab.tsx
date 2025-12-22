@@ -92,7 +92,8 @@ export const ActionsTab = () => {
     setExpandedGroups(new Set());
   };
 
-  const allExpanded = groupedActions.length > 0 &&
+  const allExpanded =
+    groupedActions.length > 0 &&
     groupedActions.every(g => expandedGroups.has(g.resource));
 
   const toggleExpandCollapse = () => {
@@ -186,8 +187,12 @@ export const ActionsTab = () => {
                     primary={
                       <Typography className={classes.groupTitle}>
                         {group.resource}{' '}
-                        <Typography component="span" className={classes.actionCount}>
-                          ({group.actions.length} action{group.actions.length !== 1 ? 's' : ''})
+                        <Typography
+                          component="span"
+                          className={classes.actionCount}
+                        >
+                          ({group.actions.length} action
+                          {group.actions.length !== 1 ? 's' : ''})
                         </Typography>
                       </Typography>
                     }
