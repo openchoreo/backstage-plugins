@@ -11,13 +11,7 @@ export const useStyles = makeStyles(theme => ({
       minWidth: 120,
       '&:hover': {
         textDecoration: 'underline',
-        // textDecorationColor: theme.palette.text.secondary,
-        // textDecorationThickness: '2px',
-        // textUnderlineOffset: '6px',
       },
-      // '&[class*="selected"]:hover': {
-      //   textDecorationColor: theme.palette.primary.main,
-      // },
     },
     '& .MuiTabs-indicator': {
       height: '3px',
