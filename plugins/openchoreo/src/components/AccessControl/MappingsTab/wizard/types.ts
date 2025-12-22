@@ -59,7 +59,7 @@ export function createInitialWizardState(
 ): WizardState {
   return {
     selectedRole: '',
-    subjectType: userTypes[0]?.Type || '',
+    subjectType: userTypes[0]?.type || '',
     entitlementValue: '',
     scopeType: 'global',
     organization: '',

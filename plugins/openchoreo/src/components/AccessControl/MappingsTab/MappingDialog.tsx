@@ -96,7 +96,7 @@ export const MappingDialog = ({
 
         setWizardState({
           selectedRole: editingMapping.role_name,
-          subjectType: matchingUserType?.Type || userTypes[0]?.Type || '',
+          subjectType: matchingUserType?.type || userTypes[0]?.type || '',
           entitlementValue: editingMapping.entitlement.value,
           scopeType:
             editingMapping.hierarchy.organization ||
@@ -151,7 +151,7 @@ export const MappingDialog = ({
 
     // Get entitlement claim from user type
     const selectedUserTypeInfo = userTypes.find(
-      ut => ut.Type === wizardState.subjectType,
+      ut => ut.type === wizardState.subjectType,
     );
     const entitlementClaim = getEntitlementClaim(selectedUserTypeInfo);
 
