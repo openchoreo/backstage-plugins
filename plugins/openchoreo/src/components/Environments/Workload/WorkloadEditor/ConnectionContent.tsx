@@ -16,6 +16,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
+import { useWorkloadContext } from '../WorkloadContext';
 
 interface ConnectionContentProps {
   connections: { [key: string]: Connection };
@@ -39,6 +40,7 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
   const catalogApi = useApi(catalogApiRef);
   const client = useApi(openChoreoClientApiRef);
   const { entity: selectedEntity } = useEntity();
+  const { setEditingSection } = useWorkloadContext();
 
   const [allComponents, setAllComponents] = useState<Entity[]>([]);
   const [endpointCache, setEndpointCache] = useState<{
@@ -50,6 +52,11 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
     onConnectionReplace,
     onRemoveConnection,
   });
+
+  // Report editing state to context
+  useEffect(() => {
+    setEditingSection('connections', editBuffer.isAnyRowEditing);
+  }, [editBuffer.isAnyRowEditing, setEditingSection]);
 
   // Fetch all components from catalog
   useEffect(() => {
