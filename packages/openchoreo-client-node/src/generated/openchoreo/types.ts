@@ -193,6 +193,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/orgs/{orgName}/environments/{envName}/observer-url': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get environment observer URL */
+    get: operations['getEnvironmentObserverURL'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/orgs/{orgName}/buildplanes': {
     parameters: {
       query?: never;
@@ -1312,15 +1329,16 @@ export interface components {
     };
     ObserverUrlData: {
       observerUrl?: string;
+      /** @description Message returned when observability is not configured */
+      message?: string;
     };
-    /**
-     * @description Immutable snapshot of component configuration.
+    /** @description Immutable snapshot of component configuration.
      *     Note: The following fields are immutable after creation and cannot be modified:
      *     - componentType
      *     - traits
      *     - componentProfile
      *     - workload
-     */
+     *      */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
@@ -1953,6 +1971,38 @@ export interface operations {
             data?: components['schemas']['EnvironmentResponse'];
           };
         };
+      };
+    };
+  };
+  getEnvironmentObserverURL: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        envName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ObserverUrlData'];
+          };
+        };
+      };
+      /** @description Environment or DataPlane not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

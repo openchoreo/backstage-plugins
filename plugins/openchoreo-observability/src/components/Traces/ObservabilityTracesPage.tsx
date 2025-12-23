@@ -90,7 +90,7 @@ export const ObservabilityTracesPage = () => {
       >
         <Typography variant="body1">
           {isObservabilityDisabled
-            ? 'Observability is not enabled for this component. Please enable observability to view runtime logs.'
+            ? 'Observability is not enabled for this project in this environment. Please enable observability to view traces'
             : error}
         </Typography>
         {!isObservabilityDisabled && (
