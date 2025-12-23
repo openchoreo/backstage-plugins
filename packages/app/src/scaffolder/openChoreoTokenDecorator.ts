@@ -1,9 +1,9 @@
 import { createScaffolderFormDecorator } from '@backstage/plugin-scaffolder-react/alpha';
 import { configApiRef } from '@backstage/core-plugin-api';
-import { defaultIdpAuthApiRef } from '../apis/authRefs';
+import { openChoreoAuthApiRef } from '../apis/authRefs';
 
 /**
- * Form decorator that injects the user's OpenChoreo IDP token as a secret.
+ * Form decorator that injects the user's OpenChoreo auth token as a secret.
  *
  * This decorator runs before form submission and:
  * 1. Retrieves the user's OAuth access token from the IDP
@@ -19,7 +19,7 @@ import { defaultIdpAuthApiRef } from '../apis/authRefs';
  */
 export const openChoreoTokenDecorator = createScaffolderFormDecorator({
   id: 'openchoreo:inject-user-token',
-  deps: { oauthApi: defaultIdpAuthApiRef, configApi: configApiRef },
+  deps: { oauthApi: openChoreoAuthApiRef, configApi: configApiRef },
   async decorator({ setSecrets }, { oauthApi, configApi }) {
     // Check if authorization is enabled (defaults to true)
     const authzEnabled =

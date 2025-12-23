@@ -1,9 +1,9 @@
 {
-  "name": "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default",
+  "name": "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
-  "description": "The openchoreo-default backend module for the auth plugin.",
+  "description": "OpenChoreo authentication backend module for Backstage. Works with any OIDC-compliant IDP configured in OpenChoreo.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "publishConfig": {

@@ -87,15 +87,20 @@ auth:
   # see https://backstage.io/docs/auth/ to learn about auth providers
   environment: development
   providers:
-    # OpenChoreo Default IDP - Custom OAuth provider (without discovery endpoint)
+    # OpenChoreo Auth - Works with any OAuth2/OIDC-compliant identity provider
     # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
-    # Client credentials are automatically configured from asgardeoThunder.backstagePortal values
-    # For local development with Kind: URLs set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml (e.g., http://sts.openchoreo.localhost)
-    # For production: set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.thunder.baseUrl (external URL with ingress/load balancer)
-    default-idp:
+    #
+    # Configuration modes:
+    # 1. OIDC Discovery (preferred): Set metadataUrl to auto-discover endpoints
+    # 2. Explicit URLs: Set authorizationUrl and tokenUrl directly
+    # If both are set, explicit URLs take precedence over discovered values
+    openchoreo-auth:
       development:
         clientId: ${OPENCHOREO_AUTH_CLIENT_ID}
         clientSecret: ${OPENCHOREO_AUTH_CLIENT_SECRET}
+        # OIDC Discovery URL (optional) - auto-discovers authorization/token endpoints
+        metadataUrl: ${OPENCHOREO_AUTH_METADATA_URL}
+        # Explicit OAuth2 endpoints (used if metadataUrl not set, or as override)
         authorizationUrl: ${OPENCHOREO_AUTH_AUTHORIZATION_URL}
         tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
         scope: 'openid profile email'

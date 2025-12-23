@@ -1,16 +1,16 @@
 import List from '@material-ui/core/List';
 import { ProviderSettingsItem } from '@backstage/plugin-user-settings';
-import { defaultIdpAuthApiRef } from '../../apis';
+import { openChoreoAuthApiRef } from '../../apis';
 import { OpenChoreoIcon } from '@openchoreo/backstage-design-system';
 
 export const OpenChoreoProviderSettings = () => {
   return (
     <List>
       <ProviderSettingsItem
-        title="OpenChoreo IDP"
-        description="Sign in with Thunder Identity Provider"
+        title="OpenChoreo"
+        description="Sign in with OpenChoreo Identity Provider"
         icon={OpenChoreoIcon}
-        apiRef={defaultIdpAuthApiRef}
+        apiRef={openChoreoAuthApiRef}
       />
     </List>
   );

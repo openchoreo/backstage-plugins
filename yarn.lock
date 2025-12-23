@@ -9606,9 +9606,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default@workspace:^, @openchoreo/backstage-plugin-auth-backend-module-openchoreo-default@workspace:plugins/auth-backend-module-openchoreo-default":
+"@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth@workspace:^, @openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth@workspace:plugins/auth-backend-module-openchoreo-auth":
   version: 0.0.0-use.local
-  resolution: "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default@workspace:plugins/auth-backend-module-openchoreo-default"
+  resolution: "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth@workspace:plugins/auth-backend-module-openchoreo-auth"
   dependencies:
     "@backstage/backend-plugin-api": "npm:1.4.3"
     "@backstage/backend-test-utils": "npm:1.9.0"
@@ -17577,7 +17577,7 @@ __metadata:
     "@backstage/plugin-search-backend-node": "npm:1.3.15"
     "@backstage/plugin-techdocs-backend": "npm:2.1.0"
     "@backstage/plugin-user-settings-backend": "npm:0.3.7"
-    "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-default": "workspace:^"
+    "@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth": "workspace:^"
     "@openchoreo/backstage-plugin-backend": "workspace:^"
     "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
     "@openchoreo/backstage-plugin-catalog-backend-module-openchoreo-users": "workspace:^"
