@@ -1,12 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import {
-  Content,
-  Header,
-  HeaderLabel,
-  Page,
-  Progress,
-} from '@backstage/core-components';
-
+import { Progress } from '@backstage/core-components';
+import Box from '@material-ui/core/Box';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
@@ -37,14 +31,16 @@ export const CellDiagram = () => {
   }, [entity, client]);
 
   return (
-    <Page themeId="tool">
-      <Header title="Architecture Diagram" type="tool">
-        <HeaderLabel label="Project" value={entity.metadata.name} />
-      </Header>
-      <Content>
+    <Box
+      sx={{
+        height: 'calc(100vh - 146px)',
+        width: 'calc(100% + 48px)',
+        margin: '-24px -24px -24px -24px',
+      }}
+    >
+      <Suspense fallback={<Progress />}>
         <CellView project={cellDiagramData} />
-        <Suspense fallback={<Progress />} />
-      </Content>
-    </Page>
+      </Suspense>
+    </Box>
   );
 };
