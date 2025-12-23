@@ -323,6 +323,44 @@ export class AuthzService {
     }
   }
 
+  async updateRoleMapping(
+    mappingId: number,
+    mapping: RoleEntitlementMapping,
+    userToken?: string,
+  ): Promise<{ data: RoleEntitlementMapping }> {
+    this.logger.debug(`Updating role mapping with ID: ${mappingId}`);
+
+    try {
+      const client = this.createClient(userToken);
+      const { data, error, response } = await client.PUT(
+        '/authz/role-mappings/{mappingId}',
+        {
+          params: { path: { mappingId } },
+          body: mapping,
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMsg = extractErrorMessage(
+          error,
+          response,
+          'Failed to update role mapping',
+        );
+        throw new Error(errorMsg);
+      }
+
+      const mappingResponse = data as RoleMappingResponse;
+      this.logger.debug(
+        `Successfully updated role mapping with ID: ${mappingId}`,
+      );
+
+      return { data: mappingResponse.data! };
+    } catch (err) {
+      this.logger.error(`Failed to update role mapping: ${err}`);
+      throw err;
+    }
+  }
+
   async removeRoleMapping(
     mappingId: number,
     userToken?: string,

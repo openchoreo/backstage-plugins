@@ -900,6 +900,27 @@ export async function createRouter({
     res.json(await authzService.addRoleMapping(mapping, userToken));
   });
 
+  router.put(
+    '/authz/role-mappings/:mappingId',
+    requireAuth,
+    async (req, res) => {
+      const mappingId = parseInt(req.params.mappingId, 10);
+      if (isNaN(mappingId)) {
+        throw new InputError('Invalid mapping ID');
+      }
+      const mapping = req.body;
+      if (!mapping || !mapping.role_name || !mapping.entitlement) {
+        throw new InputError(
+          'Mapping must have role_name and entitlement fields',
+        );
+      }
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.updateRoleMapping(mappingId, mapping, userToken),
+      );
+    },
+  );
+
   router.delete('/authz/role-mappings', requireAuth, async (req, res) => {
     const mapping = req.body;
     if (!mapping || !mapping.id) {
