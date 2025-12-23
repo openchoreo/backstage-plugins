@@ -41,21 +41,6 @@ export const useStyles = makeStyles(theme => ({
     borderRadius: '50%',
     flexShrink: 0,
   },
-  // iconContainerPrimary: {
-  //   backgroundColor: theme.palette.primary.light + '40',
-  // },
-  // iconContainerInfo: {
-  //   backgroundColor: theme.palette.info.light + '40',
-  // },
-  // iconContainerError: {
-  //   backgroundColor: theme.palette.error.light + '40',
-  // },
-  // iconContainerWarning: {
-  //   backgroundColor: theme.palette.warning.light + '40',
-  // },
-  // iconContainerSuccess: {
-  //   backgroundColor: theme.palette.success.light + '40',
-  // },
   iconContainerSecondary: {
     backgroundColor: theme.palette.grey[300],
   },
