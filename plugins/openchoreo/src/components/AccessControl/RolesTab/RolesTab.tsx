@@ -173,7 +173,9 @@ export const RolesTab = () => {
       setRoleMappings([]);
     } catch (err) {
       notification.showError(
-        `Failed to delete role: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        `Failed to delete role: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
       );
     }
   };
