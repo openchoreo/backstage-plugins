@@ -4,7 +4,6 @@ import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
-import SecurityIcon from '@material-ui/icons/Security';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
@@ -34,7 +33,7 @@ import { MyGroupsSidebarItem } from '@backstage/plugin-org';
 import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
-import { useAuthzEnabled } from '@openchoreo/backstage-plugin-react';
+import { AccessControlSidebarItem } from './AccessControlSidebarItem';
 
 const useSidebarLogoStyles = makeStyles({
   root: {
@@ -105,8 +104,6 @@ const SignOutButton = () => {
 };
 
 export const Root = ({ children }: PropsWithChildren<{}>) => {
-  const authzEnabled = useAuthzEnabled();
-
   return (
     <SidebarPage>
       <Sidebar>
@@ -134,13 +131,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
           {/* End global nav */}
           <SidebarDivider />
           {/* Admin section */}
-          {authzEnabled && (
-            <SidebarItem
-              icon={SecurityIcon}
-              to="admin/access-control"
-              text="Access Control"
-            />
-          )}
+          <AccessControlSidebarItem />
           <SidebarScrollWrapper>
             {/* Items in this group will be scrollable if they run out of space */}
           </SidebarScrollWrapper>
