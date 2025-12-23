@@ -86,6 +86,11 @@ export {
   DetailPageLayout,
   type DetailPageLayoutProps,
 } from './components/DetailPageLayout';
+export {
+  NotificationBanner,
+  type NotificationBannerProps,
+  type NotificationVariant,
+} from './components/NotificationBanner';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';

@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Divider,
   Box,
   Typography,
   IconButton,
@@ -218,7 +219,7 @@ export const MappingDialog = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle disableTypography className={classes.dialogTitle}>
-        <Typography variant="h6">
+        <Typography variant="h4">
           {isEditMode ? 'Edit Role Mapping' : 'Create Role Mapping'}
         </Typography>
         <IconButton
@@ -229,6 +230,7 @@ export const MappingDialog = ({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
+      <Divider />
 
       <DialogContent className={classes.dialogContent}>
         <Box className={classes.stepContent}>{renderStepContent()}</Box>
