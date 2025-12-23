@@ -26,10 +26,10 @@ import {
 } from '@backstage/plugin-scaffolder/alpha';
 import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
 // Import from separate file to avoid circular dependency with form decorators
-import { defaultIdpAuthApiRef } from './apis/authRefs';
+import { openChoreoAuthApiRef } from './apis/authRefs';
 
-// Re-export for backward compatibility (used by App.tsx)
-export { defaultIdpAuthApiRef };
+// Re-export for use by App.tsx and other components
+export { openChoreoAuthApiRef };
 
 export const apis: AnyApiFactory[] = [
   createApiFactory({
@@ -48,7 +48,7 @@ export const apis: AnyApiFactory[] = [
       configApi: configApiRef,
       discoveryApi: discoveryApiRef,
       identityApi: identityApiRef,
-      oauthApi: defaultIdpAuthApiRef,
+      oauthApi: openChoreoAuthApiRef,
     },
     factory: ({ configApi, discoveryApi, identityApi, oauthApi }) =>
       new OpenChoreoPermissionApi({
@@ -66,16 +66,16 @@ export const apis: AnyApiFactory[] = [
     api: fetchApiRef,
     deps: {
       identityApi: identityApiRef,
-      oauthApi: defaultIdpAuthApiRef,
+      oauthApi: openChoreoAuthApiRef,
       configApi: configApiRef,
     },
     factory: ({ identityApi, oauthApi, configApi }) =>
       new OpenChoreoFetchApi(identityApi, oauthApi, configApi),
   }),
 
-  // Default IDP OIDC Auth provider
+  // OpenChoreo Auth provider - works with any OIDC-compliant IDP
   createApiFactory({
-    api: defaultIdpAuthApiRef,
+    api: openChoreoAuthApiRef,
     deps: {
       discoveryApi: discoveryApiRef,
       oauthRequestApi: oauthRequestApiRef,
@@ -86,8 +86,8 @@ export const apis: AnyApiFactory[] = [
         discoveryApi,
         oauthRequestApi,
         provider: {
-          id: 'default-idp',
-          title: 'OpenChoreo IDP',
+          id: 'openchoreo-auth',
+          title: 'OpenChoreo',
           icon: () => null,
         },
         environment: configApi.getOptionalString('auth.environment'),
