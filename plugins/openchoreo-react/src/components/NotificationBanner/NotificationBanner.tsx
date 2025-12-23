@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Typography, IconButton } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
 import InfoIcon from '@material-ui/icons/InfoOutlined';
