@@ -17,6 +17,15 @@ export const catalogModuleOpenchoreoUsers = createBackendModule({
         scheduler: coreServices.scheduler,
       },
       async init({ catalog, config, logger, scheduler }) {
+        // Check if thunder is configured - skip if using a different IDP
+        const thunderBaseUrl = config.getOptionalString('thunder.baseUrl');
+        if (!thunderBaseUrl) {
+          logger.info(
+            'Thunder IDP not configured (thunder.baseUrl missing) - skipping user/group sync',
+          );
+          return;
+        }
+
         // Read schedule configuration from app-config.yaml
         const thunderConfig = config.getOptionalConfig('thunder');
         const frequency =
