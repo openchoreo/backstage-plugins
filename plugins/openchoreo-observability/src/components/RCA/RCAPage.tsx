@@ -61,7 +61,7 @@ const RCAListView = () => {
     const isObservabilityDisabled = error.includes(
       'Observability is not enabled',
     );
-    const isRCAServiceDisabled = error.includes('RCA service not available');
+    const isRCAServiceDisabled = error.includes('RCA service is not enabled');
 
     const isInfoAlert = isObservabilityDisabled || isRCAServiceDisabled;
 
