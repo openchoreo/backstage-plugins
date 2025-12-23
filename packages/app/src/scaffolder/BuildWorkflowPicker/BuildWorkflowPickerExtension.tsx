@@ -74,7 +74,7 @@ export const BuildWorkflowPicker = ({
       setError(null);
 
       try {
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+        const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
 
         // Extract organization name if it's in entity reference format
         const extractOrgName = (fullOrgName: string): string => {
