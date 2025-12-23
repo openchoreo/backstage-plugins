@@ -7,6 +7,7 @@ import {
   AccordionDetails,
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import { JsonViewer } from '@openchoreo/backstage-design-system';
 import { ResourceGroup } from './useResourceGroups';
 import { ReleaseInfoStyleClasses } from './styles';
 import { ResourceCard } from './ResourceCard';
@@ -54,17 +55,7 @@ export const ResourceGroupTab: FC<ResourceGroupTabProps> = ({
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <pre
-                style={{
-                  margin: 0,
-                  fontSize: '0.75rem',
-                  overflowX: 'auto',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {JSON.stringify(def.object, null, 2)}
-              </pre>
+              <JsonViewer value={def.object} maxHeight="500px" />
             </AccordionDetails>
           </Accordion>
         ))}
