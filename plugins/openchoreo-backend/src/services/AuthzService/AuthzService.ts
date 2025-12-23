@@ -206,7 +206,11 @@ export class AuthzService {
     }
   }
 
-  async removeRole(name: string, force?: boolean, userToken?: string): Promise<void> {
+  async removeRole(
+    name: string,
+    force?: boolean,
+    userToken?: string,
+  ): Promise<void> {
     this.logger.debug(`Deleting role: ${name}`, { force });
 
     try {
