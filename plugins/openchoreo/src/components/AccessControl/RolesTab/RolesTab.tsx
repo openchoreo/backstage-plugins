@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Divider,
   List,
   ListItem,
   ListItemText,
@@ -27,8 +28,8 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import DeleteIcon from '@material-ui/icons/Delete';
-import EditIcon from '@material-ui/icons/Edit';
+import DeleteIcon from '@material-ui/icons/DeleteOutlined';
+import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import WarningIcon from '@material-ui/icons/Warning';
@@ -72,7 +73,6 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1),
-    color: theme.palette.warning.main,
   },
   warningIcon: {
     color: theme.palette.warning.main,
@@ -313,6 +313,7 @@ export const RolesTab = () => {
                           onClick={() => handleEditRole(role)}
                           title="Edit"
                           disabled={!canUpdate}
+                          color="primary"
                         >
                           <EditIcon />
                         </IconButton>
@@ -325,6 +326,7 @@ export const RolesTab = () => {
                           onClick={() => handleDeleteRole(role.name)}
                           title="Delete"
                           disabled={!canDelete}
+                          color="primary"
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -356,7 +358,10 @@ export const RolesTab = () => {
       >
         {checkingMappings && (
           <>
-            <DialogTitle>Checking Role Usage</DialogTitle>
+            <DialogTitle disableTypography>
+              <Typography variant="h6">Checking Role Usage</Typography>
+            </DialogTitle>
+            <Divider />
             <DialogContent>
               <Box
                 display="flex"
@@ -372,12 +377,15 @@ export const RolesTab = () => {
         )}
         {!checkingMappings && roleMappings.length > 0 && (
           <>
-            <DialogTitle>
+            <DialogTitle disableTypography>
               <Box className={classes.warningHeader}>
                 <WarningIcon className={classes.warningIcon} />
-                <span>Role Has Active Mappings</span>
+                <Typography variant="h4" component="span">
+                  Role Has Active Mappings
+                </Typography>
               </Box>
             </DialogTitle>
+            <Divider />
             <DialogContent>
               <DialogContentText>
                 The role "{roleToDelete}" has {roleMappings.length} active
@@ -396,6 +404,7 @@ export const RolesTab = () => {
                 ))}
               </List>
             </DialogContent>
+            <Divider />
             <DialogActions>
               <Button onClick={closeDeleteDialog} variant="contained">
                 Cancel
@@ -412,12 +421,16 @@ export const RolesTab = () => {
         )}
         {!checkingMappings && roleMappings.length === 0 && (
           <>
-            <DialogTitle>Delete Role</DialogTitle>
+            <DialogTitle disableTypography>
+              <Typography variant="h6">Delete Role</Typography>
+            </DialogTitle>
+            <Divider />
             <DialogContent>
               <DialogContentText>
                 Are you sure you want to delete the role "{roleToDelete}"?
               </DialogContentText>
             </DialogContent>
+            <Divider />
             <DialogActions>
               <Button onClick={closeDeleteDialog} variant="contained">
                 Cancel

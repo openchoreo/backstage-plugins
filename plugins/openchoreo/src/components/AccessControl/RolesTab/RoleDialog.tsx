@@ -4,6 +4,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Divider,
   Button,
   TextField,
   Box,
@@ -142,13 +143,16 @@ export const RoleDialog = ({
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          {editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Role'}
+        <DialogTitle disableTypography>
+          <Typography variant="h4">
+            {editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Role'}
+          </Typography>
         </DialogTitle>
+        <Divider />
         <DialogContent>
           <Box className={classes.templateSection}>
             <Typography variant="subtitle2" gutterBottom>
-              Quick Start Templates:
+              Quick Start Templates
             </Typography>
             <Button
               variant="outlined"
@@ -227,6 +231,7 @@ export const RoleDialog = ({
             </Typography>
           )}
         </DialogContent>
+        <Divider />
         <DialogActions>
           <Button onClick={onClose} disabled={saving}>
             Cancel
