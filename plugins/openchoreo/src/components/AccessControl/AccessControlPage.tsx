@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import {
   Page,
@@ -42,50 +42,30 @@ const AccessControlPageContent = () => {
   const permissionsLoading =
     rolesPermissionLoading || mappingsPermissionLoading;
 
-  const tabs = useMemo(
-    () => [
-      {
-        id: 'roles',
-        label: 'Roles',
-        disabled: !canViewRoles,
-      },
-      {
-        id: 'mappings',
-        label: 'Role Mappings',
-        disabled: !canViewMappings,
-      },
-      { id: 'actions', label: 'Actions' },
-    ],
-    [canViewRoles, canViewMappings],
-  );
-
-  // Select first enabled tab when permissions are loaded and current tab is disabled
-  useEffect(() => {
-    if (!permissionsLoading) {
-      const currentTab = tabs[selectedTab];
-      if (currentTab?.disabled) {
-        const firstEnabledIndex = tabs.findIndex(tab => !tab.disabled);
-        if (firstEnabledIndex !== -1) {
-          setSelectedTab(firstEnabledIndex);
-        }
-      }
+  const tabs = useMemo(() => {
+    const visibleTabs = [];
+    if (canViewRoles) {
+      visibleTabs.push({ id: 'roles', label: 'Roles' });
     }
-  }, [permissionsLoading, tabs, selectedTab]);
+    if (canViewMappings) {
+      visibleTabs.push({ id: 'mappings', label: 'Role Mappings' });
+    }
+    visibleTabs.push({ id: 'actions', label: 'Actions' });
+    return visibleTabs;
+  }, [canViewRoles, canViewMappings]);
 
   const handleTabChange = (index: number) => {
-    const tab = tabs[index];
-    if (tab && !tab.disabled) {
-      setSelectedTab(index);
-    }
+    setSelectedTab(index);
   };
 
   const renderTabContent = () => {
-    switch (selectedTab) {
-      case 0:
+    const currentTab = tabs[selectedTab];
+    switch (currentTab?.id) {
+      case 'roles':
         return <RolesTab />;
-      case 1:
+      case 'mappings':
         return <MappingsTab />;
-      case 2:
+      case 'actions':
         return <ActionsTab />;
       default:
         return null;
