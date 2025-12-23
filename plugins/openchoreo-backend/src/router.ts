@@ -872,8 +872,9 @@ export async function createRouter({
 
   router.delete('/authz/roles/:name', requireAuth, async (req, res) => {
     const { name } = req.params;
+    const force = req.query.force === 'true';
     const userToken = getUserTokenFromRequest(req);
-    await authzService.removeRole(name, userToken);
+    await authzService.removeRole(name, force, userToken);
     res.status(204).send();
   });
 
