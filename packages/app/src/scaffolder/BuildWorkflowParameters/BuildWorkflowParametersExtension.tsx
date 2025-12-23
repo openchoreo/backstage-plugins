@@ -93,7 +93,7 @@ export const BuildWorkflowParameters = ({
       setError(null);
 
       try {
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+        const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
           `${baseUrl}/workflow-schema?organizationName=${encodeURIComponent(
