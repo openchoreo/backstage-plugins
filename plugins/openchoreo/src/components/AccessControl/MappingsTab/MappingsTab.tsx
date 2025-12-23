@@ -102,7 +102,7 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.success.contrastText,
   },
   denyChip: {
-    backgroundColor: theme.palette.error.light,
+    backgroundColor: theme.palette.error.main,
     color: theme.palette.error.contrastText,
   },
   emptyState: {
