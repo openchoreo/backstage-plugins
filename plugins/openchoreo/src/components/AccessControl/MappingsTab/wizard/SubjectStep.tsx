@@ -221,7 +221,8 @@ export const SubjectStep = ({
             showIcon
             message={
               <Typography>
-                This will map the "{state.selectedRole}" role to any request where{' '}
+                This will map the "{state.selectedRole}" role to any request
+                where{' '}
                 <strong>
                   {entitlementClaim} = "{state.entitlementValue}"
                 </strong>

@@ -38,7 +38,7 @@ const useStyles = makeStyles(theme => ({
     },
   },
   roleItemSelected: {
-    backgroundColor: theme.palette.action.selected,
+    backgroundColor: theme.palette.primary.light,
     borderLeft: `3px solid ${theme.palette.primary.main}`,
   },
   roleName: {

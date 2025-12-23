@@ -23,7 +23,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Divider,
   Popover,
   Tooltip,
 } from '@material-ui/core';
@@ -579,22 +578,24 @@ export const MappingsTab = () => {
         onClose={() => setDeleteConfirmOpen(false)}
       >
         <DialogTitle disableTypography>
-          <Typography variant="h6">Delete Role Mapping</Typography>
+          <Typography variant="h4">Delete Role Mapping</Typography>
         </DialogTitle>
-        <Divider />
         <DialogContent>
           <DialogContentText>
             {mappingToDelete && (
               <>
-                Are you sure you want to delete the mapping for role "
-                {mappingToDelete.role_name}" with entitlement "
-                {mappingToDelete.entitlement.claim}=
-                {mappingToDelete.entitlement.value}"?
+                Are you sure you want to delete the mapping for role &nbsp;
+                <strong>{mappingToDelete.role_name}</strong> with entitlement
+                &nbsp;
+                <strong>
+                  {mappingToDelete.entitlement.claim}=
+                  {mappingToDelete.entitlement.value}
+                </strong>
+                ?
               </>
             )}
           </DialogContentText>
         </DialogContent>
-        <Divider />
         <DialogActions>
           <Button
             onClick={() => setDeleteConfirmOpen(false)}

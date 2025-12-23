@@ -19,7 +19,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-  Divider,
   List,
   ListItem,
   ListItemText,
@@ -361,7 +360,6 @@ export const RolesTab = () => {
             <DialogTitle disableTypography>
               <Typography variant="h6">Checking Role Usage</Typography>
             </DialogTitle>
-            <Divider />
             <DialogContent>
               <Box
                 display="flex"
@@ -385,7 +383,6 @@ export const RolesTab = () => {
                 </Typography>
               </Box>
             </DialogTitle>
-            <Divider />
             <DialogContent>
               <DialogContentText>
                 The role "{roleToDelete}" has {roleMappings.length} active
@@ -404,7 +401,6 @@ export const RolesTab = () => {
                 ))}
               </List>
             </DialogContent>
-            <Divider />
             <DialogActions>
               <Button onClick={closeDeleteDialog} variant="contained">
                 Cancel
@@ -424,13 +420,11 @@ export const RolesTab = () => {
             <DialogTitle disableTypography>
               <Typography variant="h6">Delete Role</Typography>
             </DialogTitle>
-            <Divider />
             <DialogContent>
               <DialogContentText>
                 Are you sure you want to delete the role "{roleToDelete}"?
               </DialogContentText>
             </DialogContent>
-            <Divider />
             <DialogActions>
               <Button onClick={closeDeleteDialog} variant="contained">
                 Cancel
