@@ -54,15 +54,25 @@ thunder:
   baseUrl: http://thunder.openchoreo.localhost:8080
 
 # OAuth authentication configuration (Kind cluster)
+# The openchoreo-auth provider works with any OAuth2/OIDC-compliant identity provider
+#
+# Two configuration modes are supported:
+# 1. OIDC Discovery (preferred): Set metadataUrl to auto-discover endpoints
+# 2. Explicit URLs: Set authorizationUrl and tokenUrl directly
 auth:
   environment: development
   providers:
-    default-idp:
+    openchoreo-auth:
       development:
         # OAuth credentials from Kind cluster helm values
         # (see openchoreo/install/dev/openchoreo-values.yaml)
         clientId: openchoreo-backstage-client
         clientSecret: backstage-portal-secret
+
+        # Option 1: OIDC Discovery (preferred) - uncomment to use
+        # metadataUrl: http://thunder.openchoreo.localhost:8080/.well-known/openid-configuration
+
+        # Option 2: Explicit URLs (for IDPs without discovery endpoint)
         authorizationUrl: http://thunder.openchoreo.localhost:8080/oauth2/authorize
         tokenUrl: http://thunder.openchoreo.localhost:8080/oauth2/token
         scope: 'openid profile email'

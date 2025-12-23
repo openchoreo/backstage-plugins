@@ -320,6 +320,28 @@ export async function createRouter({
     );
   });
 
+  router.post('/builds', requireAuth, async (req, res) => {
+    const { componentName, projectName, organizationName, commit } = req.body;
+
+    if (!componentName || !projectName || !organizationName) {
+      throw new InputError(
+        'componentName, projectName and organizationName are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await buildInfoService.triggerBuild(
+        organizationName as string,
+        projectName as string,
+        componentName as string,
+        commit as string | undefined,
+        userToken,
+      ),
+    );
+  });
+
   router.get('/component', async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
 
@@ -850,8 +872,9 @@ export async function createRouter({
 
   router.delete('/authz/roles/:name', requireAuth, async (req, res) => {
     const { name } = req.params;
+    const force = req.query.force === 'true';
     const userToken = getUserTokenFromRequest(req);
-    await authzService.removeRole(name, userToken);
+    await authzService.removeRole(name, force, userToken);
     res.status(204).send();
   });
 

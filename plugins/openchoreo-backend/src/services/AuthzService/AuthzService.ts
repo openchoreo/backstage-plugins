@@ -206,8 +206,12 @@ export class AuthzService {
     }
   }
 
-  async removeRole(name: string, userToken?: string): Promise<void> {
-    this.logger.debug(`Deleting role: ${name}`);
+  async removeRole(
+    name: string,
+    force?: boolean,
+    userToken?: string,
+  ): Promise<void> {
+    this.logger.debug(`Deleting role: ${name}`, { force });
 
     try {
       const client = this.createClient(userToken);
@@ -216,6 +220,7 @@ export class AuthzService {
         {
           params: {
             path: { roleName: name },
+            query: force ? { force: true } : undefined,
           },
         },
       );

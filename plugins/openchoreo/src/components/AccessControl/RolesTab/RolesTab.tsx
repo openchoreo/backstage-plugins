@@ -35,6 +35,8 @@ import WarningIcon from '@material-ui/icons/Warning';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import { useRolePermissions } from '@openchoreo/backstage-plugin-react';
 import { useRoles, Role, RoleEntitlementMapping } from '../hooks';
+import { useNotification } from '../../../hooks';
+import { NotificationBanner } from '../../Environments/components';
 import { RoleDialog } from './RoleDialog';
 
 const useStyles = makeStyles(theme => ({
@@ -94,6 +96,7 @@ const useStyles = makeStyles(theme => ({
 
 export const RolesTab = () => {
   const classes = useStyles();
+  const notification = useNotification();
   const {
     canView,
     canCreate,
@@ -160,12 +163,21 @@ export const RolesTab = () => {
   };
 
   const confirmDeleteRole = async (force: boolean = false) => {
-    if (roleToDelete) {
+    if (!roleToDelete) return;
+
+    try {
       await deleteRole(roleToDelete, force);
+      notification.showSuccess(`Role "${roleToDelete}" deleted successfully`);
+      setDeleteConfirmOpen(false);
+      setRoleToDelete(null);
+      setRoleMappings([]);
+    } catch (err) {
+      notification.showError(
+        `Failed to delete role: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
+      );
     }
-    setDeleteConfirmOpen(false);
-    setRoleToDelete(null);
-    setRoleMappings([]);
   };
 
   const handleSaveRole = async (role: Role) => {
@@ -204,6 +216,7 @@ export const RolesTab = () => {
 
   return (
     <Box>
+      <NotificationBanner notification={notification.notification} />
       <Box className={classes.header}>
         <Typography variant="h5">Roles</Typography>
         <Box className={classes.headerActions}>
