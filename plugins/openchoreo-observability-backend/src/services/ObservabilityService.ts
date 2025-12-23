@@ -9,7 +9,7 @@ import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
-import { Component, ComponentMetricsTimeSeries, Environment } from '../types';
+import { ComponentMetricsTimeSeries, Environment } from '../types';
 
 /**
  * Error thrown when observability is not configured for a component
@@ -35,18 +35,15 @@ export class ObservabilityService {
   }
 
   /**
-   * Resolves the observability URL for a given project and environment.
-   * This is a temporary helper function to avoid code duplication.
+   * Resolves the observability URL for a given organization and environment.
    *
    * @param orgName - The organization name
-   * @param projectName - The project name
    * @param environmentName - The environment name
    * @param userToken - Optional user token for authentication
    * @returns The resolved observer URL
    */
   private async resolveObserverUrl(
     orgName: string,
-    projectName: string,
     environmentName: string,
     userToken?: string,
   ): Promise<string> {
@@ -60,63 +57,17 @@ export class ObservabilityService {
       logger: this.logger,
     });
 
-    // Get the list of components from the main API using the project
-    const {
-      data: componentsData,
-      error: componentsError,
-      response: componentsResponse,
-    } = await mainClient.GET(
-      '/orgs/{orgName}/projects/{projectName}/components',
-      {
-        params: { path: { orgName, projectName } },
-      },
-    );
-
-    if (componentsError || !componentsResponse.ok) {
-      throw new Error(
-        `Failed to get components: ${componentsResponse.status} ${componentsResponse.statusText}`,
-      );
-    }
-
-    if (!componentsData.success || !componentsData.data?.items) {
-      throw new Error(
-        `API returned unsuccessful response: ${JSON.stringify(componentsData)}`,
-      );
-    }
-
-    const components = componentsData.data.items as Component[];
-
-    if (!components || components.length === 0) {
-      throw new Error(
-        `No components found in project ${projectName}. Cannot get observer URL.`,
-      );
-    }
-
-    const firstComponent = components[0];
-    if (!firstComponent.name) {
-      throw new Error(
-        `Component name not found for first component in project ${projectName}`,
-      );
-    }
-
-    this.logger.debug(
-      `Using component ${firstComponent.name} to get observer URL for project ${projectName}`,
-    );
-
-    // Get observer URL from the main API using a component
     const {
       data: urlData,
       error: urlError,
       response: urlResponse,
     } = await mainClient.GET(
-      '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
+      '/orgs/{orgName}/environments/{envName}/observer-url',
       {
         params: {
           path: {
             orgName,
-            projectName,
-            componentName: firstComponent.name,
-            environmentName,
+            envName: environmentName,
           },
         },
       },
@@ -128,7 +79,7 @@ export class ObservabilityService {
       );
     }
 
-    if (!urlData.success || !urlData.data) {
+    if (!urlData?.success || !urlData?.data) {
       throw new Error(
         `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
       );
@@ -136,11 +87,11 @@ export class ObservabilityService {
 
     const observerUrl = urlData.data.observerUrl;
     if (!observerUrl) {
-      throw new ObservabilityNotConfiguredError(projectName);
+      throw new ObservabilityNotConfiguredError(orgName);
     }
 
     this.logger.debug(
-      `Resolved observer URL: ${observerUrl} for project ${projectName}, environment ${environmentName}`,
+      `Resolved observer URL: ${observerUrl} for org ${orgName}, environment ${environmentName}`,
     );
 
     return observerUrl;
@@ -455,105 +406,12 @@ export class ObservabilityService {
         }`,
       );
 
-      let observerUrl: string | undefined;
-
-      if (environmentName) {
-        const mainClient = createOpenChoreoApiClient({
-          baseUrl: this.baseUrl,
-          token: userToken,
-          logger: this.logger,
-        });
-        // Get the list of components from the main API using the project
-        const {
-          data: componentsData,
-          error: componentsError,
-          response: componentsResponse,
-        } = await mainClient.GET(
-          '/orgs/{orgName}/projects/{projectName}/components',
-          {
-            params: { path: { orgName, projectName } },
-          },
-        );
-
-        if (componentsError || !componentsResponse.ok) {
-          throw new Error(
-            `Failed to get components: ${componentsResponse.status} ${componentsResponse.statusText}`,
-          );
-        }
-
-        if (!componentsData.success || !componentsData.data?.items) {
-          throw new Error(
-            `API returned unsuccessful response: ${JSON.stringify(
-              componentsData,
-            )}`,
-          );
-        }
-
-        const components = componentsData.data.items as Component[];
-
-        if (!components || components.length === 0) {
-          throw new Error(
-            `No components found in project ${projectName}. Cannot get observer URL.`,
-          );
-        }
-
-        const firstComponent = components[0];
-        if (!firstComponent.name) {
-          throw new Error(
-            `Component name not found for first component in project ${projectName}`,
-          );
-        }
-
-        this.logger.debug(
-          `Using component ${firstComponent.name} to get observer URL for project ${projectName}`,
-        );
-
-        // Get observer URL from the main API using a component
-        const {
-          data: urlData,
-          error: urlError,
-          response: urlResponse,
-        } = await mainClient.GET(
-          '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
-          {
-            params: {
-              path: {
-                orgName,
-                projectName,
-                componentName: firstComponent.name,
-                environmentName,
-              },
-            },
-          },
-        );
-
-        if (urlError || !urlResponse.ok) {
-          throw new Error(
-            `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-          );
-        }
-
-        if (!urlData.success || !urlData.data) {
-          throw new Error(
-            `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-          );
-        }
-
-        observerUrl = urlData.data.observerUrl;
-        if (!observerUrl) {
-          throw new ObservabilityNotConfiguredError(projectName);
-        }
-
-        this.logger.debug(
-          `Resolved observer URL: ${observerUrl} for project ${projectName}, environment ${environmentName}`,
-        );
-      } else {
-        // If no environment is specified, we might need a different approach
-        // For now, throw an error as we need at least environment + component to get observer URL
-        throw new Error(
-          'Environment and components within the project are required to fetch traces',
-        );
-      }
+      // Resolve the observer URL using the helper function
+      const observerUrl = await this.resolveObserverUrl(
+        orgName,
+        environmentName,
+        userToken,
+      );
 
       // Use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
@@ -651,7 +509,6 @@ export class ObservabilityService {
    * @param projectId - The ID of the project
    * @param environmentId - The ID of the environment
    * @param orgName - The organization name
-   * @param projectName - The project name
    * @param environmentName - The name of the environment
    * @param componentUids - Array of component UIDs to filter reports (optional)
    * @param options - Parameters for filtering reports
@@ -666,7 +523,6 @@ export class ObservabilityService {
     projectId: string,
     environmentId: string,
     orgName: string,
-    projectName: string,
     environmentName: string,
     componentUids: string[],
     options: {
@@ -691,13 +547,12 @@ export class ObservabilityService {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Fetching RCA reports for project ${projectName} in environment ${environmentName}`,
+        `Fetching RCA reports for project ${projectId} in environment ${environmentName}`,
       );
 
       // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
         orgName,
-        projectName,
         environmentName,
         userToken,
       );
@@ -783,10 +638,7 @@ export class ObservabilityService {
    * then fetches the RCA report from the observability service.
    *
    * @param alertId - The ID of the alert
-   * @param projectId - The ID of the project
-   * @param environmentId - The ID of the environment
    * @param orgName - The organization name
-   * @param projectName - The project name
    * @param environmentName - The name of the environment
    * @param options - Optional parameters
    * @param options.version - Specific version number of the report to retrieve
@@ -795,10 +647,7 @@ export class ObservabilityService {
    */
   async fetchRCAReportByAlert(
     alertId: string,
-    _projectId: string,
-    _environmentId: string,
     orgName: string,
-    projectName: string,
     environmentName: string,
     options?: {
       version?: number;
@@ -817,13 +666,12 @@ export class ObservabilityService {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Fetching RCA report for alert ${alertId} in project ${projectName}, environment ${environmentName}`,
+        `Fetching RCA report for alert ${alertId} in environment ${environmentName}`,
       );
 
       // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
         orgName,
-        projectName,
         environmentName,
         userToken,
       );
