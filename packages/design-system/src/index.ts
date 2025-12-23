@@ -19,3 +19,5 @@ export type {
   SecretSelectorProps,
   SecretOption,
 } from './components/SecretSelector';
+export { JsonViewer } from './components/JsonViewer';
+export type { JsonViewerProps } from './components/JsonViewer';
