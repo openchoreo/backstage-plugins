@@ -98,7 +98,7 @@ const useStyles = makeStyles(theme => ({
     fontWeight: 600,
   },
   allowChip: {
-    backgroundColor: theme.palette.success.light,
+    backgroundColor: theme.palette.success.main,
     color: theme.palette.success.contrastText,
   },
   denyChip: {
