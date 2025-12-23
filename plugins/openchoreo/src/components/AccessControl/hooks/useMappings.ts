@@ -85,10 +85,15 @@ export function useMappings(): UseMappingsResult {
 
   const deleteMapping = useCallback(
     async (mappingId: number) => {
-      await client.deleteRoleMapping(mappingId);
+      // Find the mapping by ID
+      const mapping = mappings.find(m => m.id === mappingId);
+      if (!mapping) {
+        throw new Error(`Mapping with ID ${mappingId} not found`);
+      }
+      await client.deleteRoleMapping(mapping);
       await fetchMappings();
     },
-    [client, fetchMappings],
+    [client, fetchMappings, mappings],
   );
 
   useEffect(() => {

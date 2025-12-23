@@ -42,6 +42,8 @@ import {
   RoleEntitlementMapping,
   ResourceHierarchy,
 } from '../hooks';
+import { useNotification } from '../../../hooks';
+import { NotificationBanner } from '../../Environments/components';
 import { MappingDialog } from './MappingDialog';
 
 const useStyles = makeStyles(theme => ({
@@ -107,6 +109,14 @@ const useStyles = makeStyles(theme => ({
     textAlign: 'center',
     padding: theme.spacing(4),
   },
+  deleteButton: {
+    borderColor: theme.palette.error.main,
+    color: theme.palette.error.main,
+    '&:hover': {
+      borderColor: theme.palette.error.dark,
+      backgroundColor: 'rgba(211, 47, 47, 0.04)',
+    },
+  },
 }));
 
 const formatHierarchy = (hierarchy: ResourceHierarchy): string => {
@@ -122,6 +132,7 @@ const formatHierarchy = (hierarchy: ResourceHierarchy): string => {
 
 export const MappingsTab = () => {
   const classes = useStyles();
+  const notification = useNotification();
   const {
     canView,
     canCreate,
@@ -248,11 +259,22 @@ export const MappingsTab = () => {
   };
 
   const confirmDeleteMapping = async () => {
-    if (mappingToDelete?.id !== undefined) {
+    if (mappingToDelete?.id === undefined) return;
+
+    try {
       await deleteMapping(mappingToDelete.id);
+      notification.showSuccess(
+        `Mapping for role "${mappingToDelete.role_name}" deleted successfully`,
+      );
+      setDeleteConfirmOpen(false);
+      setMappingToDelete(null);
+    } catch (err) {
+      notification.showError(
+        `Failed to delete mapping: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
+      );
     }
-    setDeleteConfirmOpen(false);
-    setMappingToDelete(null);
   };
 
   const handleSaveMapping = async (mapping: RoleEntitlementMapping) => {
@@ -293,6 +315,7 @@ export const MappingsTab = () => {
 
   return (
     <Box>
+      <NotificationBanner notification={notification.notification} />
       <Box className={classes.header}>
         <Typography variant="h5">Role Mappings</Typography>
         <Box className={classes.headerActions}>
@@ -565,8 +588,17 @@ export const MappingsTab = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDeleteMapping} color="secondary">
+          <Button
+            onClick={() => setDeleteConfirmOpen(false)}
+            variant="contained"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDeleteMapping}
+            variant="outlined"
+            className={classes.deleteButton}
+          >
             Delete
           </Button>
         </DialogActions>

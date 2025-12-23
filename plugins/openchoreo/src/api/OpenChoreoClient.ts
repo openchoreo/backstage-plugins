@@ -812,9 +812,10 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return response.data;
   }
 
-  async deleteRoleMapping(mappingId: number): Promise<void> {
-    await this.apiFetch(`${API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS}/${mappingId}`, {
+  async deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void> {
+    await this.apiFetch(API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS, {
       method: 'DELETE',
+      body: mapping,
     });
   }
 
