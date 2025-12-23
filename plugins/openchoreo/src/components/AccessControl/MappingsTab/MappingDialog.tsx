@@ -3,7 +3,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Divider,
   Box,
   Typography,
   IconButton,
@@ -230,8 +229,6 @@ export const MappingDialog = ({
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-      <Divider />
-
       <DialogContent className={classes.dialogContent}>
         <Box className={classes.stepContent}>{renderStepContent()}</Box>
 
