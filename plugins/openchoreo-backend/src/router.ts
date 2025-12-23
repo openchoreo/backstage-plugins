@@ -902,13 +902,11 @@ export async function createRouter({
 
   router.delete('/authz/role-mappings', requireAuth, async (req, res) => {
     const mapping = req.body;
-    if (!mapping || !mapping.role_name || !mapping.entitlement) {
-      throw new InputError(
-        'Mapping must have role_name and entitlement fields',
-      );
+    if (!mapping || !mapping.id) {
+      throw new InputError('Mapping must have an id field');
     }
     const userToken = getUserTokenFromRequest(req);
-    await authzService.removeRoleMapping(mapping, userToken);
+    await authzService.removeRoleMapping(mapping.id, userToken);
     res.status(204).send();
   });
 

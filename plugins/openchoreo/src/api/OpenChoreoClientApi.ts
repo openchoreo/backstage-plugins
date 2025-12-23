@@ -378,8 +378,8 @@ export interface OpenChoreoClientApi {
     mapping: RoleEntitlementMapping,
   ): Promise<RoleEntitlementMapping>;
 
-  /** Delete a role mapping by ID */
-  deleteRoleMapping(mappingId: number): Promise<void>;
+  /** Delete a role mapping */
+  deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void>;
 
   /** List all available actions */
   listActions(): Promise<string[]>;
