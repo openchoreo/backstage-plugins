@@ -418,7 +418,7 @@ export const RolesTab = () => {
         {!checkingMappings && roleMappings.length === 0 && (
           <>
             <DialogTitle disableTypography>
-              <Typography variant="h6">Delete Role</Typography>
+              <Typography variant="h4">Delete Role</Typography>
             </DialogTitle>
             <DialogContent>
               <DialogContentText>
