@@ -16,7 +16,7 @@ import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
  * OPTIONAL: For large-scale deployments, use the incremental ingestion module
  *
  * ----------------------------------------------------------------------
- * INCREMENTAL INGESTION: STEP 1 of 3
+ * INCREMENTAL INGESTION: STEP 1 of 2
  * ----------------------------------------------------------------------
  */
 // UNCOMMENT this import line below.
