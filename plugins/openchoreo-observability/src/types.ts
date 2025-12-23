@@ -1,4 +1,4 @@
-import { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
 
 // Use generated types from OpenAPI spec
 type TimeValuePoint = ObservabilityComponents['schemas']['TimeValuePoint'];
@@ -72,6 +72,7 @@ export interface Filters {
   timeRange: string;
   componentIds?: string[];
   searchQuery?: string;
+  rcaStatus?: RCAStatus;
 }
 
 export interface Environment {
@@ -86,4 +87,32 @@ export interface Environment {
   dnsPrefix?: string;
   createdAt: string;
   status?: string;
+}
+
+export type RCAStatus = 'pending' | 'completed' | 'failed';
+
+export interface RCAStatusOption {
+  value: RCAStatus;
+  label: string;
+}
+
+export const RCA_STATUS_OPTIONS: RCAStatusOption[] = [
+  { value: 'completed', label: 'Completed' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'failed', label: 'Failed' },
+];
+
+export interface RCAReportSummary {
+  alertId?: string;
+  projectUid?: string;
+  reportId?: string;
+  timestamp?: string;
+  summary?: string;
+  status?: RCAStatus;
+}
+
+export interface RCAReportDetailed extends RCAReportSummary {
+  reportVersion?: number;
+  availableVersions?: number[];
+  [key: string]: unknown;
 }

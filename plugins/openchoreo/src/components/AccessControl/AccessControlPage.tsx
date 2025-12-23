@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import {
   Page,
@@ -6,7 +6,12 @@ import {
   Content,
   WarningPanel,
   HeaderTabs,
+  Progress,
 } from '@backstage/core-components';
+import {
+  useRolePermissions,
+  useRoleMappingPermissions,
+} from '@openchoreo/backstage-plugin-react';
 import { RolesTab } from './RolesTab';
 import { MappingsTab } from './MappingsTab';
 import { ActionsTab } from './ActionsTab';
@@ -16,10 +21,11 @@ import { useStyles } from './styles';
 const isAuthzDisabledError = (error: Error | null): boolean => {
   if (!error) return false;
   const msg = error.message.toLowerCase();
+  // Only check for explicit "authz disabled" messages from the backend.
+  // Do NOT treat 403 as authz disabled - 403 means authz IS enabled but user lacks permission.
   return (
     msg.includes('authorization is disabled') ||
-    msg.includes('policy management operations are not available') ||
-    (msg.includes('403') && msg.includes('forbidden'))
+    msg.includes('policy management operations are not available')
   );
 };
 
@@ -27,17 +33,51 @@ const AccessControlPageContent = () => {
   const classes = useStyles();
   const [selectedTab, setSelectedTab] = useState(0);
   const { error: rolesError, loading: rolesLoading } = useRoles();
+  const { canView: canViewRoles, loading: rolesPermissionLoading } =
+    useRolePermissions();
+  const { canView: canViewMappings, loading: mappingsPermissionLoading } =
+    useRoleMappingPermissions();
 
   const authzDisabled = !rolesLoading && isAuthzDisabledError(rolesError);
+  const permissionsLoading =
+    rolesPermissionLoading || mappingsPermissionLoading;
 
   const tabs = useMemo(
     () => [
-      { id: 'roles', label: 'Roles' },
-      { id: 'mappings', label: 'Role Mappings' },
+      {
+        id: 'roles',
+        label: 'Roles',
+        disabled: !canViewRoles,
+      },
+      {
+        id: 'mappings',
+        label: 'Role Mappings',
+        disabled: !canViewMappings,
+      },
       { id: 'actions', label: 'Actions' },
     ],
-    [],
+    [canViewRoles, canViewMappings],
   );
+
+  // Select first enabled tab when permissions are loaded and current tab is disabled
+  useEffect(() => {
+    if (!permissionsLoading) {
+      const currentTab = tabs[selectedTab];
+      if (currentTab?.disabled) {
+        const firstEnabledIndex = tabs.findIndex(tab => !tab.disabled);
+        if (firstEnabledIndex !== -1) {
+          setSelectedTab(firstEnabledIndex);
+        }
+      }
+    }
+  }, [permissionsLoading, tabs, selectedTab]);
+
+  const handleTabChange = (index: number) => {
+    const tab = tabs[index];
+    if (tab && !tab.disabled) {
+      setSelectedTab(index);
+    }
+  };
 
   const renderTabContent = () => {
     switch (selectedTab) {
@@ -51,6 +91,20 @@ const AccessControlPageContent = () => {
         return null;
     }
   };
+
+  if (permissionsLoading) {
+    return (
+      <Page themeId="tool">
+        <Header
+          title="Access Control"
+          subtitle="Manage roles, permissions, and entitlement mappings"
+        />
+        <Content className={classes.content}>
+          <Progress />
+        </Content>
+      </Page>
+    );
+  }
 
   if (authzDisabled) {
     return (
@@ -101,7 +155,7 @@ const AccessControlPageContent = () => {
         <Box className={classes.tabsWrapper}>
           <HeaderTabs
             selectedIndex={selectedTab}
-            onChange={setSelectedTab}
+            onChange={handleTabChange}
             tabs={tabs}
           />
         </Box>

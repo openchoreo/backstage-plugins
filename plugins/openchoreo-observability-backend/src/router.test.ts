@@ -61,6 +61,8 @@ describe('createRouter', () => {
       fetchMetricsByComponent: jest.fn(),
       fetchEnvironmentsByOrganization: jest.fn(),
       fetchTracesByProject: jest.fn(),
+      fetchRCAReportsByProject: jest.fn(),
+      fetchRCAReportByAlert: jest.fn(),
     };
     tokenService = {
       getUserToken: jest.fn().mockReturnValue(undefined),

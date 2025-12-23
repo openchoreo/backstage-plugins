@@ -121,6 +121,78 @@ export const openchoreoReleaseReadPermission = createPermission({
 });
 
 /**
+ * Permission to view roles.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleViewPermission = createPermission({
+  name: 'openchoreo.role.view',
+  attributes: { action: 'read' },
+});
+
+/**
+ * Permission to create a new role.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleCreatePermission = createPermission({
+  name: 'openchoreo.role.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to update an existing role.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleUpdatePermission = createPermission({
+  name: 'openchoreo.role.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a role.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleDeletePermission = createPermission({
+  name: 'openchoreo.role.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to view role mappings.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleMappingViewPermission = createPermission({
+  name: 'openchoreo.rolemapping.view',
+  attributes: { action: 'read' },
+});
+
+/**
+ * Permission to create a new role mapping.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleMappingCreatePermission = createPermission({
+  name: 'openchoreo.rolemapping.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to update an existing role mapping.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleMappingUpdatePermission = createPermission({
+  name: 'openchoreo.rolemapping.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a role mapping.
+ * Org-scoped permission.
+ */
+export const openchoreoRoleMappingDeletePermission = createPermission({
+  name: 'openchoreo.rolemapping.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
  * All OpenChoreo permissions exported as an array.
  * Useful for registering all permissions with the permission framework.
  */
@@ -137,6 +209,14 @@ export const openchoreoPermissions = [
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
+  openchoreoRoleViewPermission,
+  openchoreoRoleCreatePermission,
+  openchoreoRoleUpdatePermission,
+  openchoreoRoleDeletePermission,
+  openchoreoRoleMappingViewPermission,
+  openchoreoRoleMappingCreatePermission,
+  openchoreoRoleMappingUpdatePermission,
+  openchoreoRoleMappingDeletePermission,
 ];
 
 /**
@@ -157,6 +237,14 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
+  'openchoreo.role.view': 'role:view',
+  'openchoreo.role.create': 'role:create',
+  'openchoreo.role.update': 'role:update',
+  'openchoreo.role.delete': 'role:delete',
+  'openchoreo.rolemapping.view': 'rolemapping:view',
+  'openchoreo.rolemapping.create': 'rolemapping:create',
+  'openchoreo.rolemapping.update': 'rolemapping:update',
+  'openchoreo.rolemapping.delete': 'rolemapping:delete',
 };
 
 /**

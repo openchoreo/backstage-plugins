@@ -1,4 +1,12 @@
-import { ReactNode, FC, createContext, useContext, useMemo } from 'react';
+import {
+  ReactNode,
+  FC,
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  useCallback,
+} from 'react';
 import {
   ModelsBuild,
   ModelsWorkload,
@@ -17,6 +25,10 @@ interface WorkloadContextType {
   initialWorkload: ModelsWorkload | null;
   /** Detected changes between initial and current workload */
   changes: WorkloadChanges;
+  /** Whether any row is currently being edited (in edit buffer) */
+  isEditing: boolean;
+  /** Set editing state for a specific section */
+  setEditingSection: (section: string, isEditing: boolean) => void;
 }
 
 const WorkloadContext = createContext<WorkloadContextType | undefined>(
@@ -31,6 +43,8 @@ export const WorkloadProvider: FC<{
   isDeploying: boolean;
   /** Initial workload data for change comparison */
   initialWorkload?: ModelsWorkload | null;
+  /** Callback when editing state changes */
+  onEditingChange?: (isEditing: boolean) => void;
 }> = ({
   builds,
   workloadSpec,
@@ -38,9 +52,38 @@ export const WorkloadProvider: FC<{
   children,
   isDeploying,
   initialWorkload = null,
+  onEditingChange,
 }) => {
   // Calculate changes between initial and current workload
   const changes = useWorkloadChanges(initialWorkload, workloadSpec);
+
+  // Track which sections are currently being edited
+  const [editingSections, setEditingSections] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const setEditingSection = useCallback(
+    (section: string, editing: boolean) => {
+      setEditingSections(prev => {
+        const newSet = new Set(prev);
+        if (editing) {
+          newSet.add(section);
+        } else {
+          newSet.delete(section);
+        }
+        // Notify parent of editing state change
+        const newIsEditing = newSet.size > 0;
+        const wasEditing = prev.size > 0;
+        if (onEditingChange && newIsEditing !== wasEditing) {
+          onEditingChange(newIsEditing);
+        }
+        return newSet;
+      });
+    },
+    [onEditingChange],
+  );
+
+  const isEditing = editingSections.size > 0;
 
   const value = useMemo(
     () => ({
@@ -50,6 +93,8 @@ export const WorkloadProvider: FC<{
       isDeploying,
       initialWorkload,
       changes,
+      isEditing,
+      setEditingSection,
     }),
     [
       builds,
@@ -58,6 +103,8 @@ export const WorkloadProvider: FC<{
       isDeploying,
       initialWorkload,
       changes,
+      isEditing,
+      setEditingSection,
     ],
   );
 

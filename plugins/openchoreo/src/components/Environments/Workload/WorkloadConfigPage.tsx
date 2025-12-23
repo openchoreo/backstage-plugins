@@ -1,4 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useContext } from 'react';
+import {
+  useNavigate,
+  useLocation,
+  UNSAFE_NavigationContext as NavigationContext,
+} from 'react-router-dom';
+import type { Navigator } from 'react-router-dom';
 import { Box, Button, CircularProgress, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Alert, Skeleton } from '@material-ui/lab';
@@ -78,6 +84,18 @@ export const WorkloadConfigPage = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
+  // Track if any row is being edited in child components
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Track if we should allow navigation (when user confirms discard)
+  const allowNavigationRef = useRef(false);
+  const pendingNavigationRef = useRef<{
+    to: string;
+    action: 'push' | 'replace';
+  } | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const navigation = useContext(NavigationContext);
 
   // Calculate changes between initial and current workload
   const changes = useWorkloadChanges(initialWorkload, workloadSpec);
@@ -141,6 +159,83 @@ export const WorkloadConfigPage = ({
     fetchBuilds();
   }, [entity.metadata.name, entity.metadata.annotations, fetchApi, discovery]);
 
+  // Combined unsaved state: either applied changes or in-progress edits
+  const hasUnsavedWork = changes.hasChanges || isEditing;
+
+  // Warn user before leaving page with unsaved changes (browser navigation/tab close)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedWork && !allowNavigationRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedWork]);
+
+  // Block in-app navigation when there are unsaved changes (menu clicks, etc.)
+  useEffect(() => {
+    if (!hasUnsavedWork || !navigation) {
+      return undefined;
+    }
+
+    const navigator = navigation.navigator as Navigator;
+    const originalPush = navigator.push;
+    const originalReplace = navigator.replace;
+    const currentPathname = location.pathname;
+
+    // Check if navigation is within the same page (e.g., tab switching)
+    const isSamePageNavigation = (to: any): boolean => {
+      const targetPathname =
+        typeof to === 'string' ? to.split('?')[0] : to.pathname;
+      return targetPathname === currentPathname;
+    };
+
+    // Override push method
+    navigator.push = (to: any, state?: any) => {
+      // Allow navigation if explicitly allowed or if it's within the same page
+      if (allowNavigationRef.current || isSamePageNavigation(to)) {
+        originalPush.call(navigator, to, state);
+        return;
+      }
+
+      // Store pending navigation
+      pendingNavigationRef.current = {
+        to: typeof to === 'string' ? to : to.pathname,
+        action: 'push',
+      };
+
+      // Show confirmation dialog
+      setShowUnsavedChangesDialog(true);
+    };
+
+    // Override replace method
+    navigator.replace = (to: any, state?: any) => {
+      // Allow navigation if explicitly allowed or if it's within the same page
+      if (allowNavigationRef.current || isSamePageNavigation(to)) {
+        originalReplace.call(navigator, to, state);
+        return;
+      }
+
+      // Store pending navigation
+      pendingNavigationRef.current = {
+        to: typeof to === 'string' ? to : to.pathname,
+        action: 'replace',
+      };
+
+      // Show confirmation dialog
+      setShowUnsavedChangesDialog(true);
+    };
+
+    // Cleanup - restore original methods
+    return () => {
+      navigator.push = originalPush;
+      navigator.replace = originalReplace;
+    };
+  }, [hasUnsavedWork, navigation, location.pathname]);
+
   const handleNext = async () => {
     if (!workloadSpec) {
       return;
@@ -199,7 +294,7 @@ export const WorkloadConfigPage = ({
 
   // Handle back button click - show warning if there are unsaved changes
   const handleBackClick = () => {
-    if (changes.hasChanges) {
+    if (hasUnsavedWork) {
       setShowUnsavedChangesDialog(true);
     } else {
       onBack();
@@ -266,6 +361,7 @@ export const WorkloadConfigPage = ({
           setWorkloadSpec={setWorkloadSpec}
           isDeploying={isProcessing || isLoading}
           initialWorkload={initialWorkload}
+          onEditingChange={setIsEditing}
         >
           <WorkloadEditor
             entity={entity}
@@ -286,10 +382,34 @@ export const WorkloadConfigPage = ({
       <UnsavedChangesDialog
         open={showUnsavedChangesDialog}
         onDiscard={() => {
+          // Allow navigation to proceed
+          allowNavigationRef.current = true;
           setShowUnsavedChangesDialog(false);
-          onBack();
+
+          // Proceed with the pending navigation if any
+          if (pendingNavigationRef.current) {
+            const { to, action } = pendingNavigationRef.current;
+            if (action === 'push') {
+              navigate(to);
+            } else {
+              navigate(to, { replace: true });
+            }
+            pendingNavigationRef.current = null;
+          } else {
+            // No pending navigation, use the back button handler
+            onBack();
+          }
+
+          // Reset the flag after navigation
+          setTimeout(() => {
+            allowNavigationRef.current = false;
+          }, 100);
         }}
-        onStay={() => setShowUnsavedChangesDialog(false)}
+        onStay={() => {
+          setShowUnsavedChangesDialog(false);
+          // Clear pending navigation
+          pendingNavigationRef.current = null;
+        }}
         changeCount={changes.total}
       />
     </DetailPageLayout>

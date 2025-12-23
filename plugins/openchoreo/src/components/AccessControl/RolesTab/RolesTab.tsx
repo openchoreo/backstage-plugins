@@ -23,6 +23,7 @@ import {
   ListItem,
   ListItemText,
   CircularProgress,
+  Tooltip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -32,6 +33,7 @@ import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import WarningIcon from '@material-ui/icons/Warning';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { useRolePermissions } from '@openchoreo/backstage-plugin-react';
 import { useRoles, Role, RoleEntitlementMapping } from '../hooks';
 import { RoleDialog } from './RoleDialog';
 
@@ -80,17 +82,28 @@ const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     marginTop: theme.spacing(2),
   },
-  forceDeleteButton: {
-    backgroundColor: theme.palette.error.main,
-    color: theme.palette.error.contrastText,
+  deleteButton: {
+    borderColor: theme.palette.error.main,
+    color: theme.palette.error.main,
     '&:hover': {
-      backgroundColor: theme.palette.error.dark,
+      borderColor: theme.palette.error.dark,
+      backgroundColor: 'rgba(211, 47, 47, 0.04)',
     },
   },
 }));
 
 export const RolesTab = () => {
   const classes = useStyles();
+  const {
+    canView,
+    canCreate,
+    canUpdate,
+    canDelete,
+    loading: permissionsLoading,
+    createDeniedTooltip,
+    updateDeniedTooltip,
+    deleteDeniedTooltip,
+  } = useRolePermissions();
   const {
     roles,
     loading,
@@ -171,12 +184,22 @@ export const RolesTab = () => {
     setRoleMappings([]);
   };
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return <Progress />;
   }
 
   if (error) {
     return <ResponseErrorPanel error={error} />;
+  }
+
+  if (!canView) {
+    return (
+      <Box className={classes.emptyState}>
+        <Typography variant="body1" color="textSecondary">
+          You do not have permission to view roles.
+        </Typography>
+      </Box>
+    );
   }
 
   return (
@@ -187,14 +210,19 @@ export const RolesTab = () => {
           <IconButton onClick={fetchRoles} size="small" title="Refresh">
             <RefreshIcon />
           </IconButton>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleCreateRole}
-          >
-            New Role
-          </Button>
+          <Tooltip title={createDeniedTooltip}>
+            <span>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleCreateRole}
+                disabled={!canCreate}
+              >
+                New Role
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
       </Box>
 
@@ -265,20 +293,30 @@ export const RolesTab = () => {
                     )}
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditRole(role)}
-                      title="Edit"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteRole(role.name)}
-                      title="Delete"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    <Tooltip title={updateDeniedTooltip}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditRole(role)}
+                          title="Edit"
+                          disabled={!canUpdate}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title={deleteDeniedTooltip}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteRole(role.name)}
+                          title="Delete"
+                          disabled={!canDelete}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -346,11 +384,13 @@ export const RolesTab = () => {
               </List>
             </DialogContent>
             <DialogActions>
-              <Button onClick={closeDeleteDialog}>Cancel</Button>
+              <Button onClick={closeDeleteDialog} variant="contained">
+                Cancel
+              </Button>
               <Button
                 onClick={() => confirmDeleteRole(true)}
-                className={classes.forceDeleteButton}
-                variant="contained"
+                className={classes.deleteButton}
+                variant="outlined"
               >
                 Force Delete
               </Button>
@@ -366,10 +406,13 @@ export const RolesTab = () => {
               </DialogContentText>
             </DialogContent>
             <DialogActions>
-              <Button onClick={closeDeleteDialog}>Cancel</Button>
+              <Button onClick={closeDeleteDialog} variant="contained">
+                Cancel
+              </Button>
               <Button
                 onClick={() => confirmDeleteRole(false)}
-                color="secondary"
+                variant="outlined"
+                className={classes.deleteButton}
               >
                 Delete
               </Button>

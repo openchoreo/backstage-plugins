@@ -51,3 +51,11 @@ export const ObservabilityTraces = openchoreoObservabilityPlugin.provide(
     mountPoint: rootRouteRef,
   }),
 );
+
+export const ObservabilityRCA = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityRCA',
+    component: () => import('./components/RCA/RCAPage').then(m => m.RCAPage),
+    mountPoint: rootRouteRef,
+  }),
+);

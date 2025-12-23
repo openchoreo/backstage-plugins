@@ -9,6 +9,7 @@ import {
   AccordionDetails,
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import { JsonViewer } from '@openchoreo/backstage-design-system';
 import { ReleaseResource } from './types';
 import { ReleaseInfoStyleClasses } from './styles';
 import { formatTimestamp, getHealthChipClass } from './utils';
@@ -78,17 +79,7 @@ export const ResourceCard: FC<ResourceCardProps> = ({ resource, classes }) => (
             </Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <pre
-              style={{
-                margin: 0,
-                fontSize: '0.75rem',
-                overflowX: 'auto',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}
-            >
-              {JSON.stringify(resource.status, null, 2)}
-            </pre>
+            <JsonViewer value={resource.status} maxHeight="400px" />
           </AccordionDetails>
         </Accordion>
       </Box>

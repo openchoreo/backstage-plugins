@@ -3,7 +3,7 @@ import {
   DiscoveryApi,
   FetchApi,
 } from '@backstage/core-plugin-api';
-import { Metrics, Trace } from '../types';
+import { Metrics, Trace, RCAReportSummary, RCAReportDetailed } from '../types';
 
 export interface ObservabilityApi {
   getMetrics(
@@ -40,6 +40,37 @@ export interface ObservabilityApi {
     traces: Trace[];
     tookMs: number;
   }>;
+
+  getRCAReports(
+    projectId: string,
+    environmentId: string,
+    environmentName: string,
+    orgName: string,
+    projectName: string,
+    componentUids: string[],
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      status?: 'pending' | 'completed' | 'failed';
+      limit?: number;
+    },
+  ): Promise<{
+    reports: RCAReportSummary[];
+    totalCount?: number;
+    tookMs?: number;
+  }>;
+
+  getRCAReportByAlert(
+    alertId: string,
+    projectId: string,
+    environmentId: string,
+    environmentName: string,
+    orgName: string,
+    projectName: string,
+    options?: {
+      version?: number;
+    },
+  ): Promise<RCAReportDetailed>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -178,5 +209,110 @@ export class ObservabilityClient implements ObservabilityApi {
       traces: data.traces || [],
       tookMs: data.tookMs || 0,
     };
+  }
+
+  async getRCAReports(
+    projectId: string,
+    environmentId: string,
+    environmentName: string,
+    orgName: string,
+    projectName: string,
+    componentUids: string[],
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      status?: 'pending' | 'completed' | 'failed';
+      limit?: number;
+    },
+  ): Promise<{
+    reports: RCAReportSummary[];
+    totalCount?: number;
+    tookMs?: number;
+  }> {
+    const baseUrl = await this.discoveryApi.getBaseUrl(
+      'openchoreo-observability-backend',
+    );
+    const response = await this.fetchApi.fetch(`${baseUrl}/rca-reports`, {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId,
+        environmentId,
+        environmentName,
+        orgName,
+        projectName,
+        componentUids,
+        options,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (error.error?.includes('RCA service not available')) {
+        throw new Error('RCA service not available');
+      }
+      if (
+        error.error?.includes('Observability is not configured for component')
+      ) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(`Failed to fetch RCA reports: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return {
+      reports: data.reports || [],
+      totalCount: data.totalCount,
+      tookMs: data.tookMs,
+    };
+  }
+
+  async getRCAReportByAlert(
+    alertId: string,
+    projectId: string,
+    environmentId: string,
+    environmentName: string,
+    orgName: string,
+    projectName: string,
+    options?: {
+      version?: number;
+    },
+  ): Promise<RCAReportDetailed> {
+    const baseUrl = await this.discoveryApi.getBaseUrl(
+      'openchoreo-observability-backend',
+    );
+    const response = await this.fetchApi.fetch(
+      `${baseUrl}/rca-reports/alert/${alertId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId,
+          environmentId,
+          environmentName,
+          orgName,
+          projectName,
+          options,
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (error.error?.includes('RCA service not available')) {
+        throw new Error('RCA service not available');
+      }
+      if (error.error?.includes('RCA report not found')) {
+        throw new Error('RCA report not found');
+      }
+      throw new Error(`Failed to fetch RCA report: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
   }
 }

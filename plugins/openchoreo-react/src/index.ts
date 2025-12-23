@@ -54,6 +54,26 @@ export {
   type FileVarStatusBadgeProps,
 } from './components/FileVarStatusBadge';
 export {
+  EndpointEditor,
+  type EndpointEditorProps,
+} from './components/EndpointEditor';
+export {
+  EndpointList,
+  type EndpointListProps,
+} from './components/EndpointList';
+export {
+  ConnectionEditor,
+  type ConnectionEditorProps,
+  type ConnectionTypeOption,
+  type ProjectOption,
+  type ComponentOption,
+  type EndpointOption,
+} from './components/ConnectionEditor';
+export {
+  ConnectionList,
+  type ConnectionListProps,
+} from './components/ConnectionList';
+export {
   GroupedSection,
   type GroupedSectionProps,
   type GroupedSectionStatus,
@@ -110,6 +130,18 @@ export {
   type UseFileVarEditBufferResult,
 } from './hooks/useFileVarEditBuffer';
 export {
+  useEndpointEditBuffer,
+  type UseEndpointEditBufferOptions,
+  type UseEndpointEditBufferResult,
+  type EndpointEditingRowState,
+} from './hooks/useEndpointEditBuffer';
+export {
+  useConnectionEditBuffer,
+  type UseConnectionEditBufferOptions,
+  type UseConnectionEditBufferResult,
+  type ConnectionEditingRowState,
+} from './hooks/useConnectionEditBuffer';
+export {
   useChangeDetection,
   type UseChangeDetectionResult,
 } from './hooks/useChangeDetection';
@@ -127,6 +159,14 @@ export {
   type UseDeployPermissionResult,
 } from './hooks/useDeployPermission';
 export {
+  useRolePermissions,
+  type UseRolePermissionsResult,
+} from './hooks/useRolePermissions';
+export {
+  useRoleMappingPermissions,
+  type UseRoleMappingPermissionsResult,
+} from './hooks/useRoleMappingPermissions';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,
@@ -141,7 +181,7 @@ export {
 } from './components/ChangesList';
 
 // Utilities
-export { formatRelativeTime } from './utils/timeUtils';
+export { formatRelativeTime, calculateTimeRange } from './utils/timeUtils';
 export {
   deepCompareObjects,
   formatChangeValue,
