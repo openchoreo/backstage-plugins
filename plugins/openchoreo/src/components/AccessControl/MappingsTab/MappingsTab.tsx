@@ -24,6 +24,7 @@ import {
   DialogContentText,
   DialogActions,
   Popover,
+  Tooltip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -34,6 +35,7 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
+import { useRoleMappingPermissions } from '@openchoreo/backstage-plugin-react';
 import {
   useMappings,
   useRoles,
@@ -120,6 +122,16 @@ const formatHierarchy = (hierarchy: ResourceHierarchy): string => {
 
 export const MappingsTab = () => {
   const classes = useStyles();
+  const {
+    canView,
+    canCreate,
+    canUpdate,
+    canDelete,
+    loading: permissionsLoading,
+    createDeniedTooltip,
+    updateDeniedTooltip,
+    deleteDeniedTooltip,
+  } = useRoleMappingPermissions();
   const {
     mappings,
     loading,
@@ -261,12 +273,22 @@ export const MappingsTab = () => {
   const hasActiveFilters =
     filters.role || filters.claim || searchQuery || effectFilter !== 'all';
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return <Progress />;
   }
 
   if (error) {
     return <ResponseErrorPanel error={error} />;
+  }
+
+  if (!canView) {
+    return (
+      <Box className={classes.emptyState}>
+        <Typography variant="body1" color="textSecondary">
+          You do not have permission to view role mappings.
+        </Typography>
+      </Box>
+    );
   }
 
   return (
@@ -281,14 +303,19 @@ export const MappingsTab = () => {
           >
             <RefreshIcon />
           </IconButton>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleCreateMapping}
-          >
-            New Mapping
-          </Button>
+          <Tooltip title={createDeniedTooltip}>
+            <span>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={handleCreateMapping}
+                disabled={!canCreate}
+              >
+                New Mapping
+              </Button>
+            </span>
+          </Tooltip>
         </Box>
       </Box>
 
@@ -480,20 +507,30 @@ export const MappingsTab = () => {
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditMapping(mapping)}
-                      title="Edit"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteMapping(mapping)}
-                      title="Delete"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                    <Tooltip title={updateDeniedTooltip}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditMapping(mapping)}
+                          title="Edit"
+                          disabled={!canUpdate}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                    <Tooltip title={deleteDeniedTooltip}>
+                      <span>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteMapping(mapping)}
+                          title="Delete"
+                          disabled={!canDelete}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}

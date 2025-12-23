@@ -127,6 +127,14 @@ export {
   type UseDeployPermissionResult,
 } from './hooks/useDeployPermission';
 export {
+  useRolePermissions,
+  type UseRolePermissionsResult,
+} from './hooks/useRolePermissions';
+export {
+  useRoleMappingPermissions,
+  type UseRoleMappingPermissionsResult,
+} from './hooks/useRoleMappingPermissions';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,
