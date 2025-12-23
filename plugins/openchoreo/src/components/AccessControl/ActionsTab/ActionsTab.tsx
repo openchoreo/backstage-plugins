@@ -109,6 +109,17 @@ export const ActionsTab = () => {
   }
 
   if (error) {
+    // Check if it's a permission denied error (403)
+    const isPermissionDenied = error.message?.includes('403');
+    if (isPermissionDenied) {
+      return (
+        <Box className={classes.emptyState}>
+          <Typography variant="body1" color="textSecondary">
+            You do not have permission to view available actions.
+          </Typography>
+        </Box>
+      );
+    }
     return <ResponseErrorPanel error={error} />;
   }
 
