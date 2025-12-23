@@ -33,27 +33,45 @@ let discoveryCache: OIDCDiscoveryConfig | null = null;
 
 /**
  * Fetches OIDC discovery configuration from a metadata URL (synchronous with caching).
+ * Returns null if discovery fails.
  */
-function fetchOIDCDiscoverySync(metadataUrl: string): OIDCDiscoveryConfig {
+function fetchOIDCDiscoverySync(
+  metadataUrl: string,
+): OIDCDiscoveryConfig | null {
   if (discoveryCache) {
     return discoveryCache;
   }
 
-  const response = syncFetch(metadataUrl);
-  if (!response.ok) {
-    throw new Error(`OIDC discovery failed: HTTP ${response.status}`);
-  }
+  try {
+    const response = syncFetch(metadataUrl);
+    if (!response.ok) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[openchoreo-auth] OIDC discovery failed: HTTP ${response.status} from ${metadataUrl}`,
+      );
+      return null;
+    }
 
-  const config = response.json() as OIDCDiscoveryConfig;
+    const config = response.json() as OIDCDiscoveryConfig;
 
-  if (!config.authorization_endpoint || !config.token_endpoint) {
-    throw new Error(
-      'OIDC discovery response missing required endpoints (authorization_endpoint, token_endpoint)',
+    if (!config.authorization_endpoint || !config.token_endpoint) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[openchoreo-auth] OIDC discovery response missing required endpoints',
+      );
+      return null;
+    }
+
+    discoveryCache = config;
+    return config;
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[openchoreo-auth] OIDC discovery failed for ${metadataUrl}:`,
+      error,
     );
+    return null;
   }
-
-  discoveryCache = config;
-  return config;
 }
 
 /**
@@ -138,24 +156,27 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     let authorizationURL = config.getOptionalString('authorizationUrl');
     let tokenURL = config.getOptionalString('tokenUrl');
 
-    // Validate configuration - need either metadataUrl or explicit URLs
-    if (!metadataUrl && (!authorizationURL || !tokenURL)) {
-      throw new Error(
-        'OpenChoreo auth configuration error: Either metadataUrl or both authorizationUrl and tokenUrl must be provided',
-      );
-    }
-
-    // If metadataUrl is provided, fetch OIDC discovery configuration
+    // If metadataUrl is provided, try OIDC discovery
     if (metadataUrl) {
       const discovered = fetchOIDCDiscoverySync(metadataUrl);
 
-      // Use discovered endpoints, but explicit URLs take precedence if provided
-      if (!authorizationURL) {
-        authorizationURL = discovered.authorization_endpoint;
+      if (discovered) {
+        // Use discovered endpoints, but explicit URLs take precedence if provided
+        if (!authorizationURL) {
+          authorizationURL = discovered.authorization_endpoint;
+        }
+        if (!tokenURL) {
+          tokenURL = discovered.token_endpoint;
+        }
       }
-      if (!tokenURL) {
-        tokenURL = discovered.token_endpoint;
-      }
+      // If discovery failed, fall through to use explicit URLs if available
+    }
+
+    // Validate we have the required URLs (either from discovery or explicit config)
+    if (!authorizationURL || !tokenURL) {
+      throw new Error(
+        'OpenChoreo auth configuration error: Either metadataUrl (with valid OIDC discovery) or both authorizationUrl and tokenUrl must be provided',
+      );
     }
 
     const strategy = new OAuth2Strategy(
@@ -163,8 +184,8 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
         clientID,
         clientSecret,
         callbackURL: callbackUrl,
-        authorizationURL: authorizationURL!,
-        tokenURL: tokenURL!,
+        authorizationURL,
+        tokenURL,
         scope,
       },
       (
