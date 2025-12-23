@@ -320,6 +320,28 @@ export async function createRouter({
     );
   });
 
+  router.post('/builds', requireAuth, async (req, res) => {
+    const { componentName, projectName, organizationName, commit } = req.body;
+
+    if (!componentName || !projectName || !organizationName) {
+      throw new InputError(
+        'componentName, projectName and organizationName are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await buildInfoService.triggerBuild(
+        organizationName as string,
+        projectName as string,
+        componentName as string,
+        commit as string | undefined,
+        userToken,
+      ),
+    );
+  });
+
   router.get('/component', async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;
 
