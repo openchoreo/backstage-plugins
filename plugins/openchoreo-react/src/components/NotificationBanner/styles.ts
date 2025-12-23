@@ -16,7 +16,7 @@ export const useStyles = makeStyles(theme => ({
   },
   info: {
     borderLeftColor: theme.palette.info.main,
-    backgroundColor: theme.palette.info.light + '15',
+    backgroundColor: `${theme.palette.info.light}15`,
   },
   error: {
     borderLeftColor: theme.palette.error.main,
@@ -28,7 +28,7 @@ export const useStyles = makeStyles(theme => ({
   },
   success: {
     borderLeftColor: theme.palette.success.main,
-    backgroundColor: theme.palette.success.light + '15',
+    backgroundColor: `${theme.palette.success.light}15`,
   },
   secondary: {
     borderLeftColor: theme.palette.grey[500],
