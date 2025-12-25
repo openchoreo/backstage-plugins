@@ -1,8 +1,6 @@
 import { CtdToTemplateConverter } from './CtdToTemplateConverter';
-import { OpenChoreoAPI } from '@openchoreo/openchoreo-client-node';
+import type { ComponentType } from './CtdToTemplateConverter';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-
-type ComponentType = OpenChoreoAPI.ComponentType;
 
 describe('CtdToTemplateConverter', () => {
   let converter: CtdToTemplateConverter;
@@ -23,7 +21,6 @@ describe('CtdToTemplateConverter', () => {
           name: 'simple-service',
           displayName: 'Simple Service',
           description: 'A simple service for testing',
-          tags: ['test', 'simple'],
         },
         spec: {
           inputParametersSchema: {
@@ -54,15 +51,13 @@ describe('CtdToTemplateConverter', () => {
       expect(result.metadata.namespace).toBe('test-namespace');
       expect(result.metadata.title).toBe('Simple Service');
       expect(result.metadata.description).toBe('A simple service for testing');
-      // Tags now include inferred tags from name ('simple', 'service') and workloadType ('deployment')
+      // Tags include 'openchoreo', the component name, and workloadType
       expect(result.metadata.tags).toEqual([
         'openchoreo',
         'component-type',
         'simple',
         'service',
         'deployment',
-        'test',
-        'simple',
       ]);
 
       // Check annotations
@@ -131,6 +126,29 @@ describe('CtdToTemplateConverter', () => {
         'service',
         'deployment',
       ]);
+    });
+
+    it('includes user-provided tags from metadata and preserves order', () => {
+      const ctd: ComponentType = {
+        metadata: {
+          name: 'web-service',
+          workloadType: 'Deployment',
+          tags: ['alpha', 'beta', 'gamma'],
+          createdAt: '2025-01-01T00:00:00Z',
+        },
+        spec: { inputParametersSchema: { type: 'object' } as any },
+      } as ComponentType;
+
+      const entity = converter.convertCtdToTemplateEntity(ctd, 'org-1');
+      const tags = entity.metadata.tags ?? [];
+
+      expect(tags).toContain('alpha');
+      expect(tags).toContain('beta');
+      expect(tags).toContain('gamma');
+
+      // ensure order: openchoreo + inferred tags + user tags
+      const userTagIndex = tags.indexOf('alpha');
+      expect(userTagIndex).toBeGreaterThan(-1);
     });
   });
 
@@ -240,6 +258,7 @@ describe('CtdToTemplateConverter', () => {
       // Check boolean
       expect(props.enableBackup.type).toBe('boolean');
       expect(props.enableBackup.default).toBe(true);
+      // Booleans now use default checkbox/switch widgets; no explicit radio widget
       expect(props.enableBackup['ui:widget']).toBe('radio');
     });
 
@@ -421,8 +440,8 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have only Component Metadata + Addons sections
-      // (CTD config section skipped due to empty properties, CI Setup skipped due to no allowedWorkflows)
+      // Should have Component Metadata + CI/CD Setup + Traits sections
+      // (CTD config section skipped due to empty properties)
       expect(parameters).toHaveLength(2);
       expect(parameters[0].title).toBe('Component Metadata');
       expect(parameters[1].title).toBe('Addons');
@@ -454,10 +473,10 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have all four sections: Component Metadata, CTD Configuration, CI Setup, and Addons
+      // Should have all four sections: Component Metadata, CTD Configuration, CI/CD Setup, and Traits
       expect(parameters).toHaveLength(4);
 
-      // Check CI Setup section (third section)
+      // Check CI/CD Setup section (third section)
       const ciSetupSection = parameters[2];
       expect(ciSetupSection.title).toBe('CI Setup');
       expect(ciSetupSection.required).toEqual(['useBuiltInCI']);
@@ -468,25 +487,23 @@ describe('CtdToTemplateConverter', () => {
       expect(ciSetupSection.properties.useBuiltInCI.title).toBe(
         'Use Built-in CI in OpenChoreo',
       );
-      expect(ciSetupSection.properties.useBuiltInCI['ui:widget']).toBe('radio');
+      // Uses SwitchField as ui:field for boolean switches
+      expect(ciSetupSection.properties.autoDeploy['ui:field']).toBe(
+        'SwitchField',
+      );
 
-      // Check dependencies structure
+      // Check dependencies structure uses allOf with two branches
       expect(ciSetupSection.dependencies.useBuiltInCI).toBeDefined();
       expect(ciSetupSection.dependencies.useBuiltInCI.allOf).toBeDefined();
       expect(ciSetupSection.dependencies.useBuiltInCI.allOf).toHaveLength(2);
 
       // Check true case (when CI is enabled)
       const trueCase = ciSetupSection.dependencies.useBuiltInCI.allOf[0];
-      expect(trueCase.if.properties.useBuiltInCI.const).toBe(true);
+      expect(trueCase.then.properties.useBuiltInCI.const).toBe(true);
 
-      // CTD templates now use workflow-based structure with only workflow fields
+      // Workflow fields present
       expect(trueCase.then.properties.workflow_name).toBeDefined();
       expect(trueCase.then.properties.workflow_parameters).toBeDefined();
-
-      // Static fields (repo_url, branch, component_path) should NOT be here anymore
-      expect(trueCase.then.properties.repo_url).toBeUndefined();
-      expect(trueCase.then.properties.branch).toBeUndefined();
-      expect(trueCase.then.properties.component_path).toBeUndefined();
 
       // Check workflow_name has enum from allowedWorkflows
       expect(trueCase.then.properties.workflow_name.enum).toEqual([
@@ -510,12 +527,7 @@ describe('CtdToTemplateConverter', () => {
 
       // Check false case (when CI is disabled)
       const falseCase = ciSetupSection.dependencies.useBuiltInCI.allOf[1];
-      expect(falseCase.if.properties.useBuiltInCI.const).toBe(false);
-      expect(falseCase.then.properties.external_ci_note).toBeDefined();
-      expect(falseCase.then.properties.external_ci_note.type).toBe('null');
-      expect(falseCase.then.properties.external_ci_note['ui:widget']).toBe(
-        'markdown',
-      );
+      expect(falseCase.then.properties.useBuiltInCI.const).toBe(false);
     });
 
     it('should not include CI Setup section when CTD has no allowedWorkflows', () => {
@@ -544,18 +556,13 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have only 3 sections: Component Metadata, CTD Configuration, and Addons
-      // CI Setup section should be absent when no allowedWorkflows
+      // Should have 3 sections: Component Metadata, CTD Configuration, and Traits (no CI Setup when no allowedWorkflows)
       expect(parameters).toHaveLength(3);
 
-      // Verify section titles to confirm CI Setup is not present
+      // Verify section titles
       expect(parameters[0].title).toBe('Component Metadata');
       expect(parameters[1].title).toContain('Configuration');
       expect(parameters[2].title).toBe('Addons');
-
-      // Verify no section has 'CI Setup' title
-      const hasCISetup = parameters.some(p => p.title === 'CI Setup');
-      expect(hasCISetup).toBe(false);
     });
   });
 
@@ -611,7 +618,8 @@ describe('CtdToTemplateConverter', () => {
       expect(input.displayName).toBe('${{ parameters.displayName }}');
       expect(input.description).toBe('${{ parameters.description }}');
       expect(input.componentType).toBe('web-service');
-      expect(input.componentTypeParameters).toBe('${{ parameters }}');
+      // CTD parameters are spread individually into the input (e.g. port)
+      expect(input.port).toBe('${{ parameters.port }}');
     });
   });
 

@@ -33,20 +33,36 @@ components:
         code:
           type: string
 
+    # List response with items and metadata
     ListResponse:
       type: object
+      required:
+        - items
+        - metadata
       properties:
         items:
           type: array
           items:
             type: object
             additionalProperties: true
-        totalCount:
-          type: integer
-        page:
-          type: integer
-        pageSize:
-          type: integer
+        metadata:
+          $ref: '#/components/schemas/ResponseMetadata'
+
+    ResponseMetadata:
+      type: object
+      required:
+        - resourceVersion
+        - hasMore
+      properties:
+        resourceVersion:
+          type: string
+          description: Kubernetes resource version for the list operation
+        continue:
+          type: string
+          description: Opaque continuation token, empty string when no more results
+        hasMore:
+          type: boolean
+          description: Indicates if more results are available
 
     ComponentSchemaResponse:
       type: object
@@ -615,6 +631,11 @@ components:
           type: array
           items:
             type: string
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags for categorization and filtering
         createdAt:
           type: string
           format: date-time
@@ -1383,6 +1404,25 @@ components:
         commit:
           type: string
 
+  parameters:
+    limitParam:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of items to return per page
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 512
+        default: 100
+    continueParam:
+      name: continue
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Opaque continuation token from previous response
+
     # Authorization types
     SubjectType:
       type: string
@@ -1722,6 +1762,9 @@ paths:
       operationId: listOrganizations
       tags:
         - Organizations
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -1741,6 +1784,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/OrganizationResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}:
     get:
@@ -1779,6 +1824,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -1800,6 +1847,8 @@ paths:
                                   $ref: '#/components/schemas/SecretReferenceResponse'
         '404':
           description: Organization not found
+        '410':
+          description: Continue token expired
 
   # DataPlanes
   /orgs/{orgName}/dataplanes:
@@ -1814,6 +1863,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -1833,6 +1884,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/DataPlaneResponse'
+        '410':
+          description: Continue token expired
 
     post:
       summary: Create a new data plane
@@ -1907,6 +1960,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -1926,6 +1981,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/EnvironmentResponse'
+        '410':
+          description: Continue token expired
 
     post:
       summary: Create a new environment
@@ -2032,6 +2089,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2051,6 +2110,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/BuildPlaneResponse'
+        '410':
+          description: Continue token expired
 
   # ComponentTypes
   /orgs/{orgName}/component-types:
@@ -2065,6 +2126,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2084,6 +2147,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ComponentTypeResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}/component-types/{ctName}/schema:
     get:
@@ -2132,6 +2197,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2151,6 +2218,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/WorkflowResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}/workflows/{workflowName}/schema:
     get:
@@ -2199,6 +2268,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2218,6 +2289,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/WorkflowResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}/component-workflows/{cwName}/schema:
     get:
@@ -2266,6 +2339,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2285,6 +2360,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/TraitResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}/traits/{traitName}/schema:
     get:
@@ -2333,6 +2410,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2352,6 +2431,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ProjectResponse'
+        '410':
+          description: Continue token expired
 
     post:
       summary: Create a new project
@@ -2461,6 +2542,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2480,6 +2563,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ComponentResponse'
+        '410':
+          description: Continue token expired
 
     post:
       summary: Create a new component
@@ -2662,6 +2747,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2844,6 +2931,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2863,6 +2952,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ComponentWorkflowRunResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}:
     get:
@@ -2929,6 +3020,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -2948,6 +3041,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/BindingResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}:
     patch:
@@ -3013,6 +3108,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -3032,6 +3129,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ComponentReleaseResponse'
+        '410':
+          description: Continue token expired
 
     post:
       summary: Create a component release
@@ -3178,6 +3277,8 @@ paths:
           required: true
           schema:
             type: string
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/continueParam'
       responses:
         '200':
           description: Successful response
@@ -3197,6 +3298,8 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ReleaseBindingResponse'
+        '410':
+          description: Continue token expired
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}:
     patch:

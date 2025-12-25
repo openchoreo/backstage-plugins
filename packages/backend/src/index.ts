@@ -12,6 +12,16 @@ import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHt
 import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
 
+/**
+ * OPTIONAL: For large-scale deployments, use the incremental ingestion module
+ *
+ * ----------------------------------------------------------------------
+ * INCREMENTAL INGESTION: STEP 1 of 2
+ * ----------------------------------------------------------------------
+ */
+// UNCOMMENT this import line below.
+// import { catalogModuleOpenchoreoIncrementalProvider } from '@openchoreo/plugin-catalog-backend-module-openchoreo-incremental';
+
 const backend = createBackend();
 
 // Configure root HTTP router with IDP token header middleware
@@ -59,6 +69,21 @@ backend.add(import('@backstage/plugin-catalog-backend'));
 backend.add(
   import('@backstage/plugin-catalog-backend-module-scaffolder-entity-model'),
 );
+
+/**
+ * ----------------------------------------------------------------------
+ * INCREMENTAL INGESTION: STEP 2 of 2
+ * ----------------------------------------------------------------------
+ *
+ *  Note: You must also update app-config.yaml to use:
+ * 'openchoreo.incremental' instead of 'openchoreo.schedule'
+ */
+
+// UNCOMMENT the block below..
+// backend.add(
+//   import('@openchoreo/plugin-catalog-backend-module-openchoreo-incremental'),
+// );
+// backend.add(catalogModuleOpenchoreoIncrementalProvider);
 
 // See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
 backend.add(import('@backstage/plugin-catalog-backend-module-logs'));

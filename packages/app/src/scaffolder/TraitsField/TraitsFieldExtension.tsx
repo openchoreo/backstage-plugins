@@ -73,8 +73,13 @@ export const TraitsField = ({
   const [addedTraits, setAddedTraits] = useState<AddedTrait[]>(formData || []);
   const [selectedTrait, setSelectedTrait] = useState<string>('');
   const [loadingTraits, setLoadingTraits] = useState(false);
+  const [loadingMoreTraits, setLoadingMoreTraits] = useState(false);
   const [loadingSchema, setLoadingSchema] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMoreTraits, setHasMoreTraits] = useState(true);
+  const [continueToken, setContinueToken] = useState<string | undefined>(
+    undefined,
+  );
 
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
@@ -89,12 +94,16 @@ export const TraitsField = ({
   useEffect(() => {
     let ignore = false;
 
-    const fetchTraits = async () => {
+    const fetchTraits = async (cursor?: string, append = false) => {
       if (!organizationName) {
         return;
       }
 
-      setLoadingTraits(true);
+      if (!append) {
+        setLoadingTraits(true);
+      } else {
+        setLoadingMoreTraits(true);
+      }
       setError(null);
 
       try {
@@ -108,12 +117,17 @@ export const TraitsField = ({
 
         const orgName = extractOrgName(organizationName);
 
+        // Build URL with pagination parameters
+        const url = new URL(`${baseUrl}/traits`);
+        url.searchParams.set('organizationName', orgName);
+        url.searchParams.set('limit', '100'); // Reasonable page size for UI
+
+        if (cursor) {
+          url.searchParams.set('continue', cursor);
+        }
+
         // Use fetchApi which automatically injects Backstage + IDP tokens
-        const response = await fetchApi.fetch(
-          `${baseUrl}/traits?organizationName=${encodeURIComponent(
-            orgName,
-          )}&page=1&pageSize=100`,
-        );
+        const response = await fetchApi.fetch(url.toString());
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -122,7 +136,18 @@ export const TraitsField = ({
         const result = await response.json();
 
         if (!ignore && result.success) {
-          setAvailableTraits(result.data.items);
+          const newTraits = result.data.items || [];
+          const metadata = result.data.metadata;
+
+          if (append) {
+            setAvailableTraits(prev => [...prev, ...newTraits]);
+          } else {
+            setAvailableTraits(newTraits);
+          }
+
+          // Update pagination state
+          setHasMoreTraits(metadata?.hasMore === true);
+          setContinueToken(metadata?.continue);
         }
       } catch (err) {
         if (!ignore) {
@@ -131,9 +156,15 @@ export const TraitsField = ({
       } finally {
         if (!ignore) {
           setLoadingTraits(false);
+          setLoadingMoreTraits(false);
         }
       }
     };
+
+    // Reset pagination state when organization changes
+    setAvailableTraits([]);
+    setHasMoreTraits(true);
+    setContinueToken(undefined);
 
     fetchTraits();
 
@@ -141,6 +172,54 @@ export const TraitsField = ({
       ignore = true;
     };
   }, [organizationName, discoveryApi, fetchApi]);
+
+  // Load more traits
+  const handleLoadMoreTraits = () => {
+    if (continueToken && !loadingMoreTraits) {
+      // We need to recreate the fetchTraits function here since it's defined in useEffect
+      const loadMore = async () => {
+        if (!organizationName) return;
+
+        setLoadingMoreTraits(true);
+        setError(null);
+
+        try {
+          const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+          const extractOrgName = (fullOrgName: string): string => {
+            const parts = fullOrgName.split('/');
+            return parts[parts.length - 1];
+          };
+          const orgName = extractOrgName(organizationName);
+
+          const url = new URL(`${baseUrl}/traits`);
+          url.searchParams.set('organizationName', orgName);
+          url.searchParams.set('limit', '100');
+          url.searchParams.set('continue', continueToken);
+
+          const response = await fetchApi.fetch(url.toString());
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          if (result.success) {
+            const newTraits = result.data.items || [];
+            const metadata = result.data.metadata;
+
+            setAvailableTraits(prev => [...prev, ...newTraits]);
+            setHasMoreTraits(metadata?.hasMore === true);
+            setContinueToken(metadata?.continue);
+          }
+        } catch (err) {
+          setError(`Failed to load more traits: ${err}`);
+        } finally {
+          setLoadingMoreTraits(false);
+        }
+      };
+
+      loadMore();
+    }
+  };
 
   // Fetch schema for selected trait and add it
   const handleAddTrait = async () => {
@@ -273,6 +352,24 @@ export const TraitsField = ({
                     {trait.name}
                   </MenuItem>
                 ))}
+
+              {/* Load More Button */}
+              {!loadingTraits && hasMoreTraits && (
+                <MenuItem
+                  disabled={loadingMoreTraits}
+                  onClick={handleLoadMoreTraits}
+                  style={{ justifyContent: 'center', fontStyle: 'italic' }}
+                >
+                  {loadingMoreTraits ? (
+                    <>
+                      <CircularProgress size={20} style={{ marginRight: 8 }} />
+                      Loading more traits...
+                    </>
+                  ) : (
+                    'Load more traits...'
+                  )}
+                </MenuItem>
+              )}
             </Select>
           </FormControl>
           <Button
