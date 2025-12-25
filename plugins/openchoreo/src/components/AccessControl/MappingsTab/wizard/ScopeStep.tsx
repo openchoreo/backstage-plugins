@@ -11,6 +11,7 @@ import { Autocomplete } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import { WizardState } from './types';
 import { useOrganizations, useProjects, useComponents } from '../../hooks';
+import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -287,11 +288,11 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
         </Box>
       )}
 
-      <Box className={classes.scopeSummary}>
-        <Typography className={classes.scopeSummaryText}>
-          Scope: {getScopePath()}
-        </Typography>
-      </Box>
+      <NotificationBanner
+        variant="info"
+        showIcon
+        message={<Typography>Scope: {getScopePath()}</Typography>}
+      />
     </Box>
   );
 };

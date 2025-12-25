@@ -28,8 +28,8 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import DeleteIcon from '@material-ui/icons/Delete';
-import EditIcon from '@material-ui/icons/Edit';
+import DeleteIcon from '@material-ui/icons/DeleteOutlined';
+import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
@@ -98,12 +98,12 @@ const useStyles = makeStyles(theme => ({
     fontWeight: 600,
   },
   allowChip: {
-    backgroundColor: theme.palette.success.light,
-    color: theme.palette.success.contrastText,
+    borderColor: theme.palette.success.main,
+    color: theme.palette.success.main,
   },
   denyChip: {
-    backgroundColor: theme.palette.error.light,
-    color: theme.palette.error.contrastText,
+    borderColor: theme.palette.error.main,
+    color: theme.palette.error.main,
   },
   emptyState: {
     textAlign: 'center',
@@ -522,6 +522,7 @@ export const MappingsTab = () => {
                     <Chip
                       label={mapping.effect.toUpperCase()}
                       size="small"
+                      variant="outlined"
                       className={`${classes.effectChip} ${
                         mapping.effect === 'allow'
                           ? classes.allowChip
@@ -537,6 +538,7 @@ export const MappingsTab = () => {
                           onClick={() => handleEditMapping(mapping)}
                           title="Edit"
                           disabled={!canUpdate}
+                          color="primary"
                         >
                           <EditIcon />
                         </IconButton>
@@ -549,6 +551,7 @@ export const MappingsTab = () => {
                           onClick={() => handleDeleteMapping(mapping)}
                           title="Delete"
                           disabled={!canDelete}
+                          color="primary"
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -574,15 +577,21 @@ export const MappingsTab = () => {
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
       >
-        <DialogTitle>Delete Role Mapping</DialogTitle>
+        <DialogTitle disableTypography>
+          <Typography variant="h4">Delete Role Mapping</Typography>
+        </DialogTitle>
         <DialogContent>
           <DialogContentText>
             {mappingToDelete && (
               <>
-                Are you sure you want to delete the mapping for role "
-                {mappingToDelete.role_name}" with entitlement "
-                {mappingToDelete.entitlement.claim}=
-                {mappingToDelete.entitlement.value}"?
+                Are you sure you want to delete the mapping for role &nbsp;
+                <strong>{mappingToDelete.role_name}</strong> with entitlement
+                &nbsp;
+                <strong>
+                  {mappingToDelete.entitlement.claim}=
+                  {mappingToDelete.entitlement.value}
+                </strong>
+                ?
               </>
             )}
           </DialogContentText>

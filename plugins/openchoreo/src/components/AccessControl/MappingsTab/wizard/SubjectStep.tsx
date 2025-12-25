@@ -10,6 +10,7 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import PersonIcon from '@material-ui/icons/Person';
 import SettingsIcon from '@material-ui/icons/Settings';
+import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
 import { WizardStepProps } from './types';
 import { getEntitlementClaim } from '../../hooks';
 
@@ -32,22 +33,22 @@ const useStyles = makeStyles(theme => ({
   },
   typeCard: {
     padding: theme.spacing(2),
+    borderRadius: 12,
     cursor: 'pointer',
     transition: 'all 0.2s',
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: theme.spacing(2),
     '&:hover': {
-      backgroundColor: theme.palette.action.hover,
+      backgroundColor: theme.palette.secondary.light,
     },
   },
   typeCardSelected: {
-    backgroundColor: theme.palette.action.selected,
+    backgroundColor: theme.palette.primary.light,
     borderColor: theme.palette.primary.main,
     borderWidth: 2,
   },
   typeIcon: {
-    marginTop: theme.spacing(0.5),
     color: theme.palette.text.secondary,
   },
   typeContent: {
@@ -70,17 +71,6 @@ const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(0.5),
     color: theme.palette.text.secondary,
     fontSize: '0.75rem',
-  },
-  infoBox: {
-    marginTop: theme.spacing(3),
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.info.light,
-    borderRadius: theme.shape.borderRadius,
-    '& p': {
-      margin: 0,
-      color: theme.palette.info.contrastText,
-      fontSize: '0.875rem',
-    },
   },
 }));
 
@@ -151,7 +141,7 @@ export const SubjectStep = ({
 
   return (
     <Box className={classes.root}>
-      <Typography variant="h6" className={classes.title}>
+      <Typography variant="subtitle2" className={classes.title}>
         Who should receive the "{state.selectedRole}" role?
       </Typography>
 
@@ -225,13 +215,20 @@ export const SubjectStep = ({
       </Box>
 
       {state.subjectType && state.entitlementValue && (
-        <Box className={classes.infoBox}>
-          <Typography>
-            This will map the "{state.selectedRole}" role to any request where{' '}
-            <strong>
-              {entitlementClaim} = "{state.entitlementValue}"
-            </strong>
-          </Typography>
+        <Box mt={3}>
+          <NotificationBanner
+            variant="info"
+            showIcon
+            message={
+              <Typography>
+                This will map the "{state.selectedRole}" role to any request
+                where{' '}
+                <strong>
+                  {entitlementClaim} = "{state.entitlementValue}"
+                </strong>
+              </Typography>
+            }
+          />
         </Box>
       )}
     </Box>

@@ -949,6 +949,9 @@ components:
       properties:
         observerUrl:
           type: string
+        message:
+          type: string
+          description: Message returned when observability is not configured
 
     # ComponentRelease
     ComponentReleaseResponse:
@@ -2040,6 +2043,38 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/EnvironmentResponse'
+
+  /orgs/{orgName}/environments/{envName}/observer-url:
+    get:
+      summary: Get environment observer URL
+      operationId: getEnvironmentObserverURL
+      tags:
+        - Observability
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: envName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ObserverUrlData'
+        '404':
+          description: Environment or DataPlane not found
 
   # BuildPlanes
   /orgs/{orgName}/buildplanes:

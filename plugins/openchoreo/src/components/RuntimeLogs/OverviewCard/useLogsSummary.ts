@@ -72,7 +72,7 @@ export function useLogsSummary() {
         componentId,
         componentName,
         environmentId: selectedEnv.id,
-        environmentName: selectedEnv.name,
+        environmentName: selectedEnv.resourceName,
         logLevels: [], // Get all levels
         startTime,
         endTime,

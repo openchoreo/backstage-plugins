@@ -138,7 +138,7 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
     return this.apiFetch<RuntimeLogsResponse>('/build-logs', {
       params: {
         componentName: build.componentName,
-        buildId: build.uuid,
+        buildId: build.name,
         projectName: build.projectName,
         orgName: build.orgName,
       },

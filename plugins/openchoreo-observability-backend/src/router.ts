@@ -117,7 +117,6 @@ export async function createRouter({
         _req.body.projectId,
         _req.body.environmentId,
         _req.body.orgName,
-        _req.body.projectName,
         _req.body.environmentName,
         _req.body.componentUids || [],
         _req.body.options,
@@ -145,10 +144,7 @@ export async function createRouter({
     try {
       const report = await observabilityService.fetchRCAReportByAlert(
         alertId,
-        _req.body.projectId,
-        _req.body.environmentId,
         _req.body.orgName,
-        _req.body.projectName,
         _req.body.environmentName,
         _req.body.options,
         userToken,

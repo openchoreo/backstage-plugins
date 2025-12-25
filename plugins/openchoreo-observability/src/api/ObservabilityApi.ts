@@ -250,8 +250,8 @@ export class ObservabilityClient implements ObservabilityApi {
 
     if (!response.ok) {
       const error = await response.json();
-      if (error.error?.includes('RCA service not available')) {
-        throw new Error('RCA service not available');
+      if (error.error?.includes('RCA service is not enabled')) {
+        throw new Error('RCA service is not enabled');
       }
       if (
         error.error?.includes('Observability is not configured for component')

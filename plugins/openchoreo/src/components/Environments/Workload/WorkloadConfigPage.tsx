@@ -257,6 +257,7 @@ export const WorkloadConfigPage = ({
 
       // Step 3: Navigate to overrides page
       setIsProcessing(false);
+      allowNavigationRef.current = true;
       onNext(releaseName, lowestEnvironment);
     } catch (e: any) {
       setIsProcessing(false);
