@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { List, ListItem, ListItemText, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
 
 type ExcludedCause = ObservabilityComponents['schemas']['ExcludedCause'];
@@ -19,7 +20,7 @@ const useStyles = makeStyles(theme => ({
   },
   primary: {
     fontWeight: 600,
-    fontSize: theme.typography.body2.fontSize,
+    fontSize: theme.typography.body1.fontSize,
     color: theme.palette.text.primary,
   },
   secondary: {
@@ -42,8 +43,10 @@ export const ExcludedCausesSection = ({
         <Fragment key={idx}>
           <ListItem className={classes.listItem} disableGutters>
             <ListItemText
-              primary={cause.description}
-              secondary={cause.reason}
+              primary={<FormattedText text={cause.description || ''} />}
+              secondary={
+                cause.reason ? <FormattedText text={cause.reason} /> : undefined
+              }
               classes={{
                 primary: classes.primary,
                 secondary: classes.secondary,

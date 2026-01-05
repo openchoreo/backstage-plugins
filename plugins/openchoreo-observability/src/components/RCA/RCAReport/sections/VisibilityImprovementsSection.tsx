@@ -1,5 +1,6 @@
 import { Box, Divider, List, ListItem, ListItemText } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { FormattedText } from '../FormattedText';
 
 interface VisibilityImprovementsSectionProps {
   improvements?: string[];
@@ -15,7 +16,7 @@ const useStyles = makeStyles(theme => ({
   },
   primary: {
     fontWeight: 600,
-    fontSize: theme.typography.body2.fontSize,
+    fontSize: theme.typography.body1.fontSize,
     color: theme.palette.text.primary,
   },
 }));
@@ -35,7 +36,7 @@ export const VisibilityImprovementsSection = ({
         <Box key={idx}>
           <ListItem className={classes.listItem}>
             <ListItemText
-              primary={improvement}
+              primary={<FormattedText text={improvement} />}
               classes={{ primary: classes.primary }}
             />
           </ListItem>

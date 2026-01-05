@@ -12,6 +12,7 @@ import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ShowChartIcon from '@material-ui/icons/ShowChart';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import { useRCAReportStyles } from '../styles';
+import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
 
 type TimelineEvent = ObservabilityComponents['schemas']['TimelineEvent'];
@@ -86,7 +87,7 @@ export const SystemTimelineSection = ({
                 </Typography>
               </Box>
               <Typography variant="body2" className={classes.timelineEventText}>
-                {event.description}
+                <FormattedText text={event.description || ''} />
                 {event.aggregated_count && event.aggregated_count > 1 && (
                   <> ({event.aggregated_count}x)</>
                 )}
