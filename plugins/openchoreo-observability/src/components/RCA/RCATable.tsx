@@ -11,6 +11,7 @@ import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { StatusBadge, StatusType } from '@openchoreo/backstage-design-system';
 import { RCAReportSummary } from '../../types';
+import { FormattedText } from './RCAReport/FormattedText';
 
 const useStyles = makeStyles({
   truncateSingleLine: {
@@ -76,42 +77,43 @@ export const RCATable = ({ reports, loading = false }: RCATableProps) => {
       },
     },
     {
-      title: 'Report ID',
-      field: 'reportId',
-      width: '10%',
-      render: (row: any) => {
-        const report = row as RCAReportSummary;
-        const reportId = report.reportId || 'N/A';
-        const truncatedId =
-          reportId.length > 30 ? `${reportId.substring(0, 30)}...` : reportId;
-        return (
-          <Typography variant="body2" className={classes.truncateSingleLine}>
-            {truncatedId}
-          </Typography>
-        );
-      },
-    },
-    {
       title: 'Summary',
       field: 'summary',
-      width: '60%',
+      width: '66%',
       highlight: true,
       render: (row: any) => {
         const report = row as RCAReportSummary;
+        if (report.status === 'pending') {
+          return (
+            <Typography variant="body2">Generating RCA report...</Typography>
+          );
+        }
         return (
           <Typography variant="body2" className={classes.truncateTwoLines}>
-            {report.summary || 'No summary available'}
+            {report.summary ? (
+              <FormattedText text={report.summary} disableLinks />
+            ) : (
+              'No summary available'
+            )}
           </Typography>
         );
       },
     },
     {
-      title: 'Status',
+      title: 'Report Status',
       field: 'status',
-      width: '10%',
+      width: '14%',
       render: (row: any) => {
         const report = row as RCAReportSummary;
-        return <StatusBadge status={mapStatusToStatusType(report.status)} />;
+        const status = mapStatusToStatusType(report.status);
+        const labelMap: Record<string, string> = {
+          success: 'Available',
+          pending: 'Pending',
+          failed: 'Failed',
+        };
+        return (
+          <StatusBadge status={status} label={labelMap[status] || status} />
+        );
       },
     },
     {

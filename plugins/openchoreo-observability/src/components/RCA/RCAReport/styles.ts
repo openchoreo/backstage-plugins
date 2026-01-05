@@ -8,7 +8,6 @@ export const useRCAReportStyles = makeStyles(theme => ({
     justifyContent: 'space-between',
     padding: theme.spacing(2, 0),
     borderBottom: `1px solid ${theme.palette.divider}`,
-    flexShrink: 0,
   },
   headerLeft: {
     display: 'flex',
@@ -32,8 +31,6 @@ export const useRCAReportStyles = makeStyles(theme => ({
     gap: theme.spacing(1),
   },
   content: {
-    flex: 1,
-    overflowY: 'auto',
     paddingTop: theme.spacing(2),
   },
   cardTitle: {
@@ -84,7 +81,11 @@ export const useRCAReportStyles = makeStyles(theme => ({
   },
   summaryLabel: {
     color: theme.palette.text.secondary,
-    fontSize: theme.typography.body2.fontSize,
+    fontSize: theme.typography.caption.fontSize,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    fontWeight: 500,
+    marginBottom: theme.spacing(0.5),
   },
   summaryValue: {
     color: theme.palette.text.primary,
@@ -95,5 +96,9 @@ export const useRCAReportStyles = makeStyles(theme => ({
     whiteSpace: 'nowrap',
     maxWidth: '60%',
     textAlign: 'right',
+  },
+  overviewMetaValue: {
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
   },
 }));

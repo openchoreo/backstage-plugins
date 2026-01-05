@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Box, Typography, Button } from '@material-ui/core';
 import { RCAFilters } from './RCAFilters';
@@ -10,10 +10,14 @@ import {
   useFilters,
   useGetEnvironmentsByOrganization,
   useRCAReports,
+  extractEntityUids,
+  useEntitiesByUids,
+  type EntityRef,
 } from '../../hooks';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { RCAReport } from './RCAReport';
+import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 
 const RCAListView = () => {
   const { entity } = useEntity();
@@ -33,6 +37,20 @@ const RCAListView = () => {
     refresh,
     totalCount,
   } = useRCAReports(filters, entity);
+
+  // Extract all entity UIDs from report summaries for name resolution
+  const allEntityRefs = useMemo(() => {
+    const refs: EntityRef[] = [];
+    for (const report of reports) {
+      if (report.summary) {
+        refs.push(...extractEntityUids(report.summary));
+      }
+    }
+    return refs;
+  }, [reports]);
+
+  const { entityMap, loading: entitiesLoading } =
+    useEntitiesByUids(allEntityRefs);
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {
@@ -107,7 +125,11 @@ const RCAListView = () => {
             totalCount={totalCount}
           />
 
-          <RCATable reports={reports} loading={reportsLoading} />
+          <EntityLinkContext.Provider
+            value={{ entityMap, loading: entitiesLoading }}
+          >
+            <RCATable reports={reports} loading={reportsLoading} />
+          </EntityLinkContext.Provider>
         </>
       )}
     </Box>

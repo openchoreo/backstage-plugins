@@ -4,6 +4,7 @@ import { alpha, makeStyles } from '@material-ui/core/styles';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ShowChartIcon from '@material-ui/icons/ShowChart';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
+import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
 
 type RootCause = ObservabilityComponents['schemas']['RootCause'];
@@ -41,8 +42,8 @@ const useStyles = makeStyles(theme => ({
     paddingLeft: theme.spacing(2),
   },
   rootCauseTitle: {
-    fontSize: theme.typography.body1.fontSize,
-    fontWeight: 600,
+    fontSize: theme.typography.body2.fontSize,
+    fontWeight: 500,
     color: theme.palette.text.primary,
     flex: 1,
     lineHeight: 1.4,
@@ -373,7 +374,9 @@ const LogEvidence = ({
       >
         {evidence.log_level}
       </span>
-      <span className={classes.componentName}>{evidence.component_uid}</span>
+      <span className={classes.componentName}>
+        <FormattedText text={`{{comp:${evidence.component_uid}}}`} /> component
+      </span>
     </Box>
     <Box className={classes.logLine}>
       <span className={classes.logMessageText}>{evidence.log_message}</span>
@@ -405,12 +408,16 @@ const MetricEvidence = ({
           classes,
         )}`}
       >
-        {evidence.value} {evidence.metric_name}
+        <FormattedText text={`${evidence.value} ${evidence.metric_name}`} />
       </span>
-      <span className={classes.componentName}>{evidence.component_uid}</span>
+      <span className={classes.componentName}>
+        <FormattedText text={`{{comp:${evidence.component_uid}}}`} /> component
+      </span>
     </Box>
     <Box className={classes.metricLine}>
-      <span className={classes.metricDescription}>{evidence.description}</span>
+      <span className={classes.metricDescription}>
+        <FormattedText text={evidence.description} />
+      </span>
     </Box>
     <Box className={classes.evidenceFooter}>
       <span className={classes.metricTimestamp}>
@@ -471,7 +478,10 @@ const TraceEvidence = ({
         <span className={classes.traceDuration}>
           {evidence.total_duration_ms}ms
         </span>
-        <span className={classes.componentName}>{evidence.component_uid}</span>
+        <span className={classes.componentName}>
+          <FormattedText text={`{{comp:${evidence.component_uid}}}`} />{' '}
+          component
+        </span>
       </Box>
       <Box className={classes.traceTreeView}>
         <Box className={classes.spanTreeRoot}>
@@ -513,7 +523,7 @@ const RootCauseItem = ({
   <>
     <Box className={classes.rootCauseHeader}>
       <Typography className={classes.rootCauseTitle}>
-        {rootCause.description}
+        <FormattedText text={rootCause.description} />
       </Typography>
       <span className={getConfidenceBadgeClass(rootCause.confidence, classes)}>
         {rootCause.confidence}
@@ -522,11 +532,11 @@ const RootCauseItem = ({
     <Box className={classes.rootCauseContent}>
       {rootCause.analysis && (
         <Typography
-          variant="body2"
+          variant="body1"
           color="textSecondary"
           className={classes.analysis}
         >
-          {rootCause.analysis}
+          <FormattedText text={rootCause.analysis} />
         </Typography>
       )}
 
