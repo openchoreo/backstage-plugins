@@ -52,8 +52,8 @@ export function translateComponentToEntity(
     metadata: {
       name: component.name,
       title: component.name,
+      namespace: orgName,
       ...(component.description && { description: component.description }),
-      // namespace: orgName,
       tags: config.componentTypeUtils.generateTags(component.type || 'unknown'),
       annotations: {
         'backstage.io/managed-by-location': config.locationKey,
