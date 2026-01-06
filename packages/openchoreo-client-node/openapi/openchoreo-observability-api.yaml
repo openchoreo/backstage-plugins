@@ -354,7 +354,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/rca-reports/project/{projectUid}:
+  /api/rca-reports/project/{projectUid}: # TODO: Modify the RCA reports request body adding auth related parameters
     post:
       tags:
         - RCA Reports
@@ -402,7 +402,7 @@ paths:
                 type: string
                 example: 'RCA service not available'
 
-  /api/rca-reports/alert/{alertId}:
+  /api/rca-reports/alert/{alertId}: # TODO: Modify the RCA report request body adding auth related parameters
     get:
       tags:
         - RCA Reports
@@ -459,6 +459,9 @@ components:
       required:
         - startTime
         - endTime
+        - componentName
+        - projectName
+        - orgName
       properties:
         startTime:
           type: string
@@ -483,6 +486,18 @@ components:
           enum: [asc, desc]
           default: asc
           example: 'asc'
+        componentName:
+          type: string
+          description: Component name
+          example: 'my-component'
+        projectName:
+          type: string
+          description: Project name
+          example: 'my-project'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     ComponentLogsRequest:
       type: object
@@ -490,6 +505,10 @@ components:
         - startTime
         - endTime
         - environmentId
+        - componentName
+        - projectName
+        - orgName
+        - environmentName
         # - namespace
       properties:
         startTime:
@@ -558,6 +577,22 @@ components:
           type: string
           description: Build UUID for build logs
           example: '550e8400-e29b-41d4-a716-446655440000'
+        componentName:
+          type: string
+          description: Component name
+          example: 'my-component'
+        projectName:
+          type: string
+          description: Project name
+          example: 'my-project'
+        environmentName:
+          type: string
+          description: Environment name
+          example: 'my-environment'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     ProjectLogsRequest:
       allOf:
@@ -649,6 +684,10 @@ components:
         - projectUid
         - startTime
         - endTime
+        - projectName
+        - environmentName
+        - componentNames
+        - orgName
       properties:
         projectUid:
           type: string
@@ -708,6 +747,24 @@ components:
           enum: [asc, desc]
           default: desc
           example: 'desc'
+        componentNames:
+          type: array
+          items:
+            type: string
+          description: Component names to filter traces
+          example: ['my-component', 'my-component-2']
+        projectName:
+          type: string
+          description: Project name
+          example: 'my-project'
+        environmentName:
+          type: string
+          description: Environment name
+          example: 'my-environment'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     MetricsRequest:
       type: object
@@ -715,6 +772,10 @@ components:
         - componentId
         - environmentId
         - projectId
+        - componentName
+        - projectName
+        - orgName
+        - environmentName
       properties:
         componentId:
           type: string
@@ -738,6 +799,22 @@ components:
           format: date-time
           description: End time for metrics query in RFC3339 format
           example: '2025-01-10T23:59:59Z'
+        componentName:
+          type: string
+          description: Component name
+          example: 'my-component'
+        projectName:
+          type: string
+          description: Project name
+          example: 'my-project'
+        environmentName:
+          type: string
+          description: Environment name
+          example: 'my-environment'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     LogEntry:
       type: object

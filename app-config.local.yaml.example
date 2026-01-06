@@ -37,6 +37,13 @@ openchoreo:
   #   chunkSize: 512 # Number of items to fetch per API request
   #   restLength: 60 # Duration of rest periods between bursts in minutes
 
+  # OAuth2 Client Credentials for background tasks (Catalog Entity Provider)
+  # Required for the Catalog Provider to fetch organizations, projects, and components
+  auth:
+    clientId: openchoreo-backstage-client
+    clientSecret: backstage-portal-secret
+    tokenUrl: http://thunder.openchoreo.localhost:8080/oauth2/token
+
   # Feature flags (optional overrides)
   # All features are enabled by default. Uncomment to disable specific features:
   features:

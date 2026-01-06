@@ -94,6 +94,7 @@ export async function createRouter({
         _req.body.projectName,
         _req.body.environmentName,
         _req.body.componentUids || [],
+        _req.body.componentNames || [],
         _req.body.options,
         userToken,
       );

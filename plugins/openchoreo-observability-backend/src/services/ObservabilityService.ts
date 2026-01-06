@@ -258,6 +258,10 @@ export class ObservabilityService {
             componentId,
             environmentId,
             projectId,
+            componentName,
+            projectName,
+            orgName,
+            environmentName,
             limit: options?.limit || 100,
             offset: options?.offset || 0,
             startTime: options?.startTime,
@@ -275,6 +279,10 @@ export class ObservabilityService {
           componentId,
           environmentId,
           projectId,
+          componentName,
+          projectName,
+          orgName,
+          environmentName,
           limit: options?.limit || 100,
           offset: options?.offset || 0,
           startTime: options?.startTime,
@@ -376,6 +384,7 @@ export class ObservabilityService {
     projectName: string,
     environmentName: string,
     componentUids: string[],
+    componentNames: string[],
     options?: {
       limit?: number;
       startTime?: string;
@@ -439,6 +448,10 @@ export class ObservabilityService {
         endTime: options.endTime,
         limit: options?.limit || 100,
         sortOrder: options?.sortOrder || 'desc',
+        componentNames,
+        projectName,
+        orgName,
+        environmentName,
       };
 
       this.logger.debug(

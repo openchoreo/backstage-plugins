@@ -138,6 +138,10 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
               startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Default: 1 hour ago
             endTime: endTime || new Date().toISOString(), // Default: now
             environmentId,
+            componentName,
+            projectName,
+            orgName,
+            environmentName,
             limit,
             sortOrder: 'desc',
             ...(logLevels && logLevels.length > 0 && { logLevels }),
