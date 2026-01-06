@@ -525,7 +525,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return envData.map((env: any) => ({
       id: env.uid || env.name,
       name: env.displayName || env.name,
-      resourceName: env.name,
+      resourceName: env.resourceName || env.name,
     }));
   }
 
