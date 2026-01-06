@@ -254,6 +254,8 @@ export class BuildInfoService {
             endTime: new Date().toISOString(),
             limit: limit || 1000, // Default to 1000 until pagination is implemented
             sortOrder: sortOrder || 'asc',
+            componentName,
+            projectName,
           },
         },
       );
