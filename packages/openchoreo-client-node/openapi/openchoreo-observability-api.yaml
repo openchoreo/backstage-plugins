@@ -461,6 +461,7 @@ components:
         - endTime
         - componentName
         - projectName
+        - orgName
       properties:
         startTime:
           type: string
@@ -493,6 +494,10 @@ components:
           type: string
           description: Project name
           example: 'my-project'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     ComponentLogsRequest:
       type: object
@@ -502,6 +507,7 @@ components:
         - environmentId
         - componentName
         - projectName
+        - orgName
         - environmentName
         # - namespace
       properties:
@@ -583,6 +589,10 @@ components:
           type: string
           description: Environment name
           example: 'my-environment'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     ProjectLogsRequest:
       allOf:
@@ -677,6 +687,7 @@ components:
         - projectName
         - environmentName
         - componentNames
+        - orgName
       properties:
         projectUid:
           type: string
@@ -750,6 +761,10 @@ components:
           type: string
           description: Environment name
           example: 'my-environment'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     MetricsRequest:
       type: object
@@ -759,6 +774,7 @@ components:
         - projectId
         - componentName
         - projectName
+        - orgName
         - environmentName
       properties:
         componentId:
@@ -795,6 +811,10 @@ components:
           type: string
           description: Environment name
           example: 'my-environment'
+        orgName:
+          type: string
+          description: Organization name
+          example: 'my-org'
 
     LogEntry:
       type: object

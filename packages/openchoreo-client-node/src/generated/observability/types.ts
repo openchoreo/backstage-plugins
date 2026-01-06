@@ -264,6 +264,11 @@ export interface components {
        * @example my-project
        */
       projectName: string;
+      /**
+       * @description Organization name
+       * @example my-org
+       */
+      orgName: string;
     };
     ComponentLogsRequest: {
       /**
@@ -361,6 +366,11 @@ export interface components {
        * @example my-environment
        */
       environmentName: string;
+      /**
+       * @description Organization name
+       * @example my-org
+       */
+      orgName: string;
     };
     ProjectLogsRequest: components['schemas']['ComponentLogsRequest'] & {
       /**
@@ -523,6 +533,11 @@ export interface components {
        * @example my-environment
        */
       environmentName: string;
+      /**
+       * @description Organization name
+       * @example my-org
+       */
+      orgName: string;
     };
     MetricsRequest: {
       /**
@@ -567,6 +582,11 @@ export interface components {
        * @example my-environment
        */
       environmentName: string;
+      /**
+       * @description Organization name
+       * @example my-org
+       */
+      orgName: string;
     };
     LogEntry: {
       /**

@@ -260,6 +260,7 @@ export class ObservabilityService {
             projectId,
             componentName,
             projectName,
+            orgName,
             environmentName,
             limit: options?.limit || 100,
             offset: options?.offset || 0,
@@ -280,6 +281,7 @@ export class ObservabilityService {
           projectId,
           componentName,
           projectName,
+          orgName,
           environmentName,
           limit: options?.limit || 100,
           offset: options?.offset || 0,
@@ -448,6 +450,7 @@ export class ObservabilityService {
         sortOrder: options?.sortOrder || 'desc',
         componentNames,
         projectName,
+        orgName,
         environmentName,
       };
 
