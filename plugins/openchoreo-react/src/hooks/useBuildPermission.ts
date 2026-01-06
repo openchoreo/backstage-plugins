@@ -2,6 +2,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { usePermission } from '@backstage/plugin-permission-react';
 import { openchoreoComponentBuildPermission } from '@openchoreo/backstage-plugin-common';
+import { openchoreoComponentViewBuildsPermission } from '@openchoreo/backstage-plugin-common/src/permissions';
 
 /**
  * Result of the useBuildPermission hook.
@@ -9,10 +10,16 @@ import { openchoreoComponentBuildPermission } from '@openchoreo/backstage-plugin
 export interface UseBuildPermissionResult {
   /** Whether the user has permission to trigger builds */
   canBuild: boolean;
-  /** Whether the permission check is still loading */
-  loading: boolean;
-  /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
-  deniedTooltip: string;
+  /** Whether a user has permission to view builds */
+  canView: boolean;
+  /** Whether the trigger build permission check is still loading */
+  triggerLoading: boolean;
+  /** Whether the view build permission check is still loading */
+  viewLoading: boolean;
+  /** Tooltip message to show when trigger build permission is denied (empty string when allowed/loading) */
+  triggerBuildDeniedTooltip: string;
+  /** Tooltip message to show when trigger build permission is denied (empty string when allowed/loading) */
+  viewBuildDeniedTooltip: string;
 }
 
 /**
@@ -36,13 +43,30 @@ export interface UseBuildPermissionResult {
  */
 export const useBuildPermission = (): UseBuildPermissionResult => {
   const { entity } = useEntity();
-  const { allowed, loading } = usePermission({
+  const { allowed: canBuild, loading: triggerLoading } = usePermission({
     permission: openchoreoComponentBuildPermission,
     resourceRef: stringifyEntityRef(entity),
   });
 
-  const deniedTooltip =
-    !allowed && !loading ? 'You do not have permission to trigger builds' : '';
+  const { allowed: canView, loading: viewLoading } = usePermission({
+    permission: openchoreoComponentViewBuildsPermission,
+    resourceRef: stringifyEntityRef(entity),
+  });
 
-  return { canBuild: allowed, loading, deniedTooltip };
+  const triggerBuildDeniedTooltip =
+    !canBuild && !triggerLoading
+      ? 'You do not have permission to trigger builds'
+      : '';
+
+  const viewBuildDeniedTooltip =
+    !canView && !viewLoading ? 'You do not have permission to view builds' : '';
+
+  return {
+    canBuild,
+    triggerLoading,
+    canView,
+    viewLoading,
+    triggerBuildDeniedTooltip,
+    viewBuildDeniedTooltip,
+  };
 };

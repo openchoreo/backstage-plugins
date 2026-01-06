@@ -7,8 +7,14 @@ import {
   Divider,
   Button,
   Typography,
+  Box,
 } from '@material-ui/core';
-import { Content, Progress } from '@backstage/core-components';
+import {
+  Content,
+  EmptyState,
+  Progress,
+  WarningIcon,
+} from '@backstage/core-components';
 import { MetricsFilters } from './MetricsFilters';
 import { MetricGraphByComponent } from './MetricGraphByComponent';
 import { MetricsActions } from './MetricsActions';
@@ -28,10 +34,17 @@ import {
 } from '../../types';
 import { useObservabilityMetricsPageStyles } from './styles';
 import { Alert } from '@material-ui/lab';
+import { useMetricsPermission } from '@openchoreo/backstage-plugin-react';
 
 export const ObservabilityMetricsPage = () => {
   const classes = useObservabilityMetricsPageStyles();
   const { entity } = useEntity();
+  const {
+    canViewMetrics,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useMetricsPermission();
+
   const {
     organization,
     project,
@@ -117,6 +130,22 @@ export const ObservabilityMetricsPage = () => {
   if (environmentsError) {
     // TODO: Add a toast notification here
     return <></>;
+  }
+
+  // Show permission denied notification if user doesn't have access
+  if (!permissionLoading && !canViewMetrics) {
+    return (
+      <EmptyState
+        missing="info"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
+    );
   }
 
   const isLoading = environmentsLoading || metricsLoading;
