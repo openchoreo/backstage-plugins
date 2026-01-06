@@ -118,7 +118,7 @@ export const EnvironmentActions = ({
               variant="outlined"
               color="secondary"
               size="small"
-              disabled={suspendTracker.isActive(environmentName)}
+              disabled={suspendTracker.isActive(environmentName) || !canPromote}
               onClick={onSuspend}
             >
               {suspendTracker.isActive(environmentName)
