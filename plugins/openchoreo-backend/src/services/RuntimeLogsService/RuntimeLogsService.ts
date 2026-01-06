@@ -140,6 +140,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
             environmentId,
             componentName,
             projectName,
+            orgName,
             environmentName,
             limit,
             sortOrder: 'desc',

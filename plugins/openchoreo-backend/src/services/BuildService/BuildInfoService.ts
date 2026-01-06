@@ -256,6 +256,7 @@ export class BuildInfoService {
             sortOrder: sortOrder || 'asc',
             componentName,
             projectName,
+            orgName,
           },
         },
       );
