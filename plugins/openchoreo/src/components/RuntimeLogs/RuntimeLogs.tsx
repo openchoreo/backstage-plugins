@@ -1,16 +1,26 @@
 import { useEffect, useRef } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
+import { EmptyState, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
 import { LogsActions } from './LogsActions';
 import { useEnvironments, useRuntimeLogs, useUrlFilters } from './hooks';
-import { useInfiniteScroll } from '@openchoreo/backstage-plugin-react';
+import {
+  useInfiniteScroll,
+  useLogsPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { RuntimeLogsPagination } from './types';
 import { useRuntimeLogsStyles } from './styles';
 
 export const RuntimeLogs = () => {
   const classes = useRuntimeLogsStyles();
+  const {
+    canViewLogs,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useLogsPermission();
+
   const {
     environments,
     loading: environmentsLoading,
@@ -105,6 +115,22 @@ export const RuntimeLogs = () => {
 
   if (environmentsError) {
     return <Box>{renderError(environmentsError)}</Box>;
+  }
+
+  // Show permission denied notification if user doesn't have access
+  if (!permissionLoading && !canViewLogs) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
+    );
   }
 
   return (

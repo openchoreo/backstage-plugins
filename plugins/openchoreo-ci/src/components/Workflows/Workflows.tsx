@@ -8,6 +8,7 @@ import {
   Progress,
   ResponseErrorPanel,
   EmptyState,
+  WarningIcon,
 } from '@backstage/core-components';
 import {
   Typography,
@@ -46,8 +47,10 @@ export const Workflows = () => {
   const { getEntityDetails } = useComponentEntityDetails();
   const {
     canBuild,
-    loading: permissionLoading,
-    deniedTooltip,
+    canView,
+    triggerLoading: permissionLoading,
+    viewLoading,
+    triggerBuildDeniedTooltip: deniedTooltip,
   } = useBuildPermission();
 
   // URL-based routing
@@ -201,6 +204,23 @@ export const Workflows = () => {
         missing="data"
         title="Workflows Not Available"
         description="This component is configured to use pre-built container images. Workflows are only available for components that build from source code."
+      />
+    );
+  }
+
+  if (!canView && !viewLoading) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            <Typography>
+              You do not have permission to view workflows of this component
+            </Typography>
+          </Box>
+        }
       />
     );
   }
