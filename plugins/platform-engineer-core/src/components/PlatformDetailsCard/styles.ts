@@ -69,14 +69,8 @@ export const useStyles = makeStyles(theme => ({
     borderRadius: 8,
     border: '1px solid #e5e7eb',
     background: 'white',
-    transition: 'all 0.2s ease-in-out',
     height: '100%',
     boxShadow: theme.shadows[1],
-    '&:hover': {
-      borderColor: '#d1d5db',
-      boxShadow: theme.shadows[3],
-      transform: 'translateY(-2px)',
-    },
   },
   environmentHeader: {
     padding: theme.spacing(2),
