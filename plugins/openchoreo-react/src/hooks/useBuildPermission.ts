@@ -1,8 +1,10 @@
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { stringifyEntityRef } from '@backstage/catalog-model';
 import { usePermission } from '@backstage/plugin-permission-react';
-import { openchoreoComponentBuildPermission } from '@openchoreo/backstage-plugin-common';
-import { openchoreoComponentViewBuildsPermission } from '@openchoreo/backstage-plugin-common/src/permissions';
+import {
+  openchoreoComponentBuildPermission,
+  openchoreoComponentViewBuildsPermission,
+} from '@openchoreo/backstage-plugin-common';
 
 /**
  * Result of the useBuildPermission hook.
