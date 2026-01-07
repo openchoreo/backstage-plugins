@@ -59,3 +59,14 @@ export const ObservabilityRCA = openchoreoObservabilityPlugin.provide(
     mountPoint: rootRouteRef,
   }),
 );
+
+export const ObservabilityRuntimeLogs = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityRuntimeLogs',
+    component: () =>
+      import('./components/RuntimeLogs/ObservabilityRuntimeLogsPage').then(
+        m => m.ObservabilityRuntimeLogsPage,
+      ),
+    mountPoint: rootRouteRef,
+  }),
+);

@@ -61,7 +61,6 @@ import {
 import {
   Environments,
   CellDiagram,
-  RuntimeLogs,
   WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,
@@ -76,6 +75,7 @@ import {
   ObservabilityMetrics,
   ObservabilityTraces,
   ObservabilityRCA,
+  ObservabilityRuntimeLogs,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import { FeatureGate } from '@openchoreo/backstage-plugin-react';
@@ -178,7 +178,7 @@ const serviceEntityPage = (
 
     <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
       <FeatureGatedContent feature="observability">
-        <RuntimeLogs />
+        <ObservabilityRuntimeLogs />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -252,7 +252,7 @@ const websiteEntityPage = (
 
     <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
       <FeatureGatedContent feature="observability">
-        <RuntimeLogs />
+        <ObservabilityRuntimeLogs />
       </FeatureGatedContent>
     </EntityLayout.Route>
 

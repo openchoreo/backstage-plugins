@@ -1,19 +1,25 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
 import { EmptyState, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
 import { LogsActions } from './LogsActions';
-import { useEnvironments, useRuntimeLogs, useUrlFilters } from './hooks';
+import {
+  useRuntimeLogs,
+  useGetOrgAndProjectByEntity,
+  useGetEnvironmentsByOrganization,
+  useUrlFiltersForRuntimeLogs,
+} from '../../hooks';
 import {
   useInfiniteScroll,
   useLogsPermission,
 } from '@openchoreo/backstage-plugin-react';
-import { RuntimeLogsPagination } from './types';
 import { useRuntimeLogsStyles } from './styles';
+import { Environment as RuntimeLogsEnvironment } from './types';
 
-export const RuntimeLogs = () => {
+export const ObservabilityRuntimeLogsPage = () => {
   const classes = useRuntimeLogsStyles();
   const {
     canViewLogs,
@@ -21,22 +27,36 @@ export const RuntimeLogs = () => {
     deniedTooltip,
   } = useLogsPermission();
 
+  const { entity } = useEntity();
+
+  // Get organization and project names from entity
+  const { organization, project } = useGetOrgAndProjectByEntity(entity);
+
+  // Fetch environments from observability backend
   const {
-    environments,
+    environments: observabilityEnvironments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useEnvironments();
+  } = useGetEnvironmentsByOrganization(organization);
+
+  // Map observability Environment type to RuntimeLogs Environment type
+  const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
+    return observabilityEnvironments.map(env => ({
+      id: env.uid || env.name,
+      name: env.displayName || env.name,
+      resourceName: env.name, // Use name as resourceName for observability environments
+    }));
+  }, [observabilityEnvironments]);
 
   // URL-synced filters - must be after environments are available
-  const { filters, updateFilters } = useUrlFilters({ environments });
+  const { filters, updateFilters } = useUrlFiltersForRuntimeLogs({
+    environments,
+  });
 
-  // Pagination config
-  // (offset pagination is not supported by the backend, using timestamp-based pagination instead)
-  const pagination: RuntimeLogsPagination = {
-    hasMore: true,
-    offset: 0,
-    limit: 50,
-  };
+  // Find the selected environment to get its name
+  const selectedEnvironment = environments.find(
+    env => env.id === filters.environmentId,
+  );
 
   const {
     logs,
@@ -47,7 +67,13 @@ export const RuntimeLogs = () => {
     fetchLogs,
     loadMore,
     refresh,
-  } = useRuntimeLogs(filters, pagination, environments);
+  } = useRuntimeLogs(entity, organization || '', project || '', {
+    environmentId: filters.environmentId,
+    environmentName: selectedEnvironment?.resourceName || '',
+    timeRange: filters.timeRange,
+    logLevels: filters.logLevel,
+    limit: 50,
+  });
 
   const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
 
@@ -74,12 +100,26 @@ export const RuntimeLogs = () => {
       JSON.stringify(previousBackendFiltersRef.current) !==
       JSON.stringify(currentBackendFilters);
 
-    if (filters.environmentId && backendFiltersChanged) {
+    if (
+      filters.environmentId &&
+      selectedEnvironment &&
+      organization &&
+      project &&
+      backendFiltersChanged
+    ) {
       fetchLogs(true);
     }
 
     previousBackendFiltersRef.current = currentBackendFilters;
-  }, [filters.environmentId, filters.logLevel, filters.timeRange, fetchLogs]);
+  }, [
+    filters.environmentId,
+    filters.logLevel,
+    filters.timeRange,
+    fetchLogs,
+    selectedEnvironment,
+    organization,
+    project,
+  ]);
 
   const handleRefresh = () => {
     refresh();

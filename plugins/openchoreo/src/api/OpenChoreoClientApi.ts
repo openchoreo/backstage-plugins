@@ -5,11 +5,7 @@ import type {
   ModelsBuild,
   RuntimeLogsResponse,
 } from '@openchoreo/backstage-plugin-common';
-import type {
-  LogsResponse,
-  RuntimeLogsParams,
-  Environment,
-} from '../components/RuntimeLogs/types';
+import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
 // Response Types
@@ -285,18 +281,12 @@ export interface OpenChoreoClientApi {
     parameters: Record<string, unknown> | null,
   ): Promise<any>;
 
-  // === Runtime Logs ===
+  // === Component & Environment Info ===
 
   /** Get component details (including UID) */
   getComponentDetails(entity: Entity): Promise<{ uid?: string }>;
 
-  /** Fetch runtime logs for a component */
-  getRuntimeLogs(
-    entity: Entity,
-    params: RuntimeLogsParams,
-  ): Promise<LogsResponse>;
-
-  /** Get list of environments for runtime logs */
+  /** Get list of environments for a component */
   getEnvironments(entity: Entity): Promise<Environment[]>;
 
   // === Build Logs ===

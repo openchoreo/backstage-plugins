@@ -10,7 +10,6 @@ import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 import { OpenChoreoClient } from './api/OpenChoreoClient';
 import {
   rootCatalogEnvironmentRouteRef,
-  rootCatalogRuntimeLogsRouteRef,
   rootCatalogTraitsRouteRef,
   accessControlRouteRef,
 } from './routes';
@@ -47,16 +46,6 @@ export const CellDiagram = choreoPlugin.provide(
     component: () =>
       import('./components/CellDiagram/CellDiagram').then(m => m.CellDiagram),
     mountPoint: rootCatalogEnvironmentRouteRef,
-  }),
-);
-
-// Runtime logs page tab
-export const RuntimeLogs = choreoPlugin.provide(
-  createRoutableExtension({
-    name: 'ChoreoRuntimeLogs',
-    component: () =>
-      import('./components/RuntimeLogs/RuntimeLogs').then(m => m.RuntimeLogs),
-    mountPoint: rootCatalogRuntimeLogsRouteRef,
   }),
 );
 

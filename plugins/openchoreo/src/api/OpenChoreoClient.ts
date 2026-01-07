@@ -24,11 +24,7 @@ import type {
   ProjectSummary,
   ComponentSummary,
 } from './OpenChoreoClientApi';
-import type {
-  LogsResponse,
-  RuntimeLogsParams,
-  Environment,
-} from '../components/RuntimeLogs/types';
+import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
 // API Endpoints
@@ -39,7 +35,6 @@ const API_ENDPOINTS = {
   PROMOTE_DEPLOYMENT: '/promote-deployment',
   DELETE_RELEASE_BINDING: '/delete-release-binding',
   CELL_DIAGRAM: '/cell-diagram',
-  RUNTIME_LOGS: '/logs/component',
   DEPLOYEMNT_WORKLOAD: '/workload',
   UPDATE_BINDING: '/update-binding',
   DASHBOARD_BINDINGS_COUNT: '/dashboard/bindings-count',
@@ -179,35 +174,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     }
 
     return response.json();
-  }
-
-  private async apiFetchRaw(
-    endpoint: string,
-    options?: {
-      method?: HttpMethod;
-      body?: unknown;
-      params?: Record<string, string>;
-    },
-  ): Promise<Response> {
-    const baseUrl = await this.discovery.getBaseUrl('openchoreo');
-    const url = new URL(`${baseUrl}${endpoint}`);
-
-    if (options?.params) {
-      url.search = new URLSearchParams(options.params).toString();
-    }
-
-    const headers: HeadersInit = {};
-
-    if (options?.body !== undefined) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    return this.fetchApi.fetch(url.toString(), {
-      method: options?.method || 'GET',
-      headers: Object.keys(headers).length > 0 ? headers : undefined,
-      body:
-        options?.body !== undefined ? JSON.stringify(options.body) : undefined,
-    });
   }
 
   // ============================================
@@ -460,55 +426,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return this.apiFetch(API_ENDPOINTS.COMPONENT, {
       params: entityMetadataToParams(metadata),
     });
-  }
-
-  async getRuntimeLogs(
-    entity: Entity,
-    params: RuntimeLogsParams,
-  ): Promise<LogsResponse> {
-    const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-    const organization =
-      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
-
-    const queryParams: Record<string, string> = {};
-    if (project && organization) {
-      queryParams.orgName = organization;
-      queryParams.projectName = project;
-    }
-
-    const response = await this.apiFetchRaw(
-      `${API_ENDPOINTS.RUNTIME_LOGS}/${params.componentName}`,
-      {
-        method: 'POST',
-        params: queryParams,
-        body: {
-          componentId: params.componentId,
-          componentName: params.componentName,
-          environmentId: params.environmentId,
-          environmentName: params.environmentName,
-          logLevels: params.logLevels,
-          startTime: params.startTime,
-          endTime: params.endTime,
-          limit: params.limit,
-          offset: params.offset,
-        },
-      },
-    );
-
-    const data = await response.json();
-
-    // Check if observability is disabled
-    if (response.ok && data.message === 'observability is disabled') {
-      throw new Error('Observability is not enabled for this component');
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    return data;
   }
 
   async getEnvironments(entity: Entity): Promise<Environment[]> {

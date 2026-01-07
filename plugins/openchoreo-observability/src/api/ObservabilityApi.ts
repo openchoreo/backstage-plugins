@@ -4,8 +4,25 @@ import {
   FetchApi,
 } from '@backstage/core-plugin-api';
 import { Metrics, Trace, RCAReportSummary, RCAReportDetailed } from '../types';
+import { LogsResponse } from '../components/RuntimeLogs/types';
 
 export interface ObservabilityApi {
+  getRuntimeLogs(
+    componentId: string,
+    projectId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      logLevels?: string[];
+    },
+  ): Promise<LogsResponse>;
+
   getMetrics(
     componentId: string,
     projectId: string,
@@ -310,6 +327,64 @@ export class ObservabilityClient implements ObservabilityApi {
         throw new Error('RCA report not found');
       }
       throw new Error(`Failed to fetch RCA report: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  }
+
+  async getRuntimeLogs(
+    componentId: string,
+    projectId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      logLevels?: string[];
+    },
+  ): Promise<LogsResponse> {
+    const baseUrl = await this.discoveryApi.getBaseUrl(
+      'openchoreo-observability-backend',
+    );
+    const url = new URL(`${baseUrl}/logs/component/${componentName}`);
+    url.searchParams.set('orgName', orgName);
+    url.searchParams.set('projectName', projectName);
+
+    const response = await this.fetchApi.fetch(url.toString(), {
+      method: 'POST',
+      body: JSON.stringify({
+        componentId,
+        projectId,
+        environmentId,
+        orgName,
+        projectName,
+        environmentName,
+        componentName,
+        options: {
+          limit: options?.limit,
+          startTime: options?.startTime,
+          endTime: options?.endTime,
+          logLevels: options?.logLevels,
+        },
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      if (error.message === 'observability is disabled') {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(
+        `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
