@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { useApi } from '@backstage/core-plugin-api';
+import {
+  useApi,
+  discoveryApiRef,
+  fetchApiRef,
+} from '@backstage/core-plugin-api';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { calculateTimeRange } from '../../../api/runtimeLogs';
-import type { LogEntry, Environment } from '../types';
+import type { LogEntry, Environment, LogsResponse } from '../types';
 
 interface LogsSummaryState {
   errorCount: number;
@@ -23,6 +27,8 @@ interface LogsSummaryState {
 export function useLogsSummary() {
   const { entity } = useEntity();
   const client = useApi(openChoreoClientApiRef);
+  const discoveryApi = useApi(discoveryApiRef);
+  const fetchApi = useApi(fetchApiRef);
 
   const [state, setState] = useState<LogsSummaryState>({
     errorCount: 0,
@@ -44,6 +50,35 @@ export function useLogsSummary() {
         throw new Error('Component ID not found');
       }
 
+      // Get project ID
+      const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+      const organization =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+      if (!project || !organization) {
+        throw new Error('Project or organization not found in annotations');
+      }
+
+      // Fetch project details to get projectId
+      const projectUrl = new URL(
+        `${await discoveryApi.getBaseUrl('openchoreo')}/project`,
+      );
+      projectUrl.search = new URLSearchParams({
+        projectName: project,
+        organizationName: organization,
+      }).toString();
+
+      const projectResponse = await fetchApi.fetch(projectUrl.toString());
+      if (!projectResponse.ok) {
+        throw new Error('Failed to fetch project details');
+      }
+      const projectData = await projectResponse.json();
+      const projectId = projectData.uid;
+
+      if (!projectId) {
+        throw new Error('Project ID not found');
+      }
+
       // Get environments
       const environments: Environment[] = await client.getEnvironments(entity);
 
@@ -60,28 +95,68 @@ export function useLogsSummary() {
       const selectedEnv = environments[0];
       const componentName =
         entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
+      const projectName =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+      const orgName =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
 
-      if (!componentName) {
-        throw new Error('Component name not found in annotations');
+      if (!componentName || !projectName || !orgName) {
+        throw new Error(
+          'Component name, project, or organization not found in annotations',
+        );
       }
 
       const { startTime, endTime } = calculateTimeRange('1h');
 
-      // Fetch logs to get counts
-      const response = await client.getRuntimeLogs(entity, {
-        componentId,
-        componentName,
-        environmentId: selectedEnv.id,
-        environmentName: selectedEnv.resourceName,
-        logLevels: [], // Get all levels
-        startTime,
-        endTime,
-        limit: 100, // Limit for performance, we just need counts
-        offset: 0,
+      // Call observability backend directly
+      const baseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-observability-backend',
+      );
+      const url = new URL(
+        `${baseUrl}/logs/component/${componentName}?orgName=${encodeURIComponent(
+          orgName,
+        )}&projectName=${encodeURIComponent(projectName)}`,
+      );
+
+      const response = await fetchApi.fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          componentId,
+          projectId,
+          environmentId: selectedEnv.id,
+          environmentName: selectedEnv.resourceName,
+          componentName,
+          orgName,
+          projectName,
+          options: {
+            limit: 100, // Limit for performance, we just need counts
+            startTime,
+            endTime,
+            logLevels: [], // Get all levels
+          },
+        }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (
+          errorData.message?.includes('Observability is not enabled') ||
+          response.status === 404
+        ) {
+          throw new Error('Observability is not enabled for this component');
+        }
+        throw new Error(
+          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const data: LogsResponse = await response.json();
+
       // Count errors and warnings
-      const logs: LogEntry[] = response.logs || [];
+      const logs: LogEntry[] = data.logs || [];
       const errorCount = logs.filter(log => log.logLevel === 'ERROR').length;
       const warningCount = logs.filter(log => log.logLevel === 'WARN').length;
 
@@ -117,7 +192,7 @@ export function useLogsSummary() {
         }));
       }
     }
-  }, [entity, client]);
+  }, [entity, client, discoveryApi, fetchApi]);
 
   const refresh = useCallback(async () => {
     setState(prev => ({ ...prev, refreshing: true }));
