@@ -83,7 +83,11 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled || componentsLoading} variant="outlined">
+        <FormControl
+          fullWidth
+          disabled={disabled || componentsLoading}
+          variant="outlined"
+        >
           <InputLabel id="components-label">Components</InputLabel>
           {componentsLoading ? (
             <Skeleton variant="rect" height={56} />
@@ -124,7 +128,11 @@ export const TracesFilters: FC<TracesFiltersProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled || environmentsLoading} variant="outlined">
+        <FormControl
+          fullWidth
+          disabled={disabled || environmentsLoading}
+          variant="outlined"
+        >
           <InputLabel id="environment-label">Environment</InputLabel>
           {environmentsLoading ? (
             <Skeleton variant="rect" height={56} />

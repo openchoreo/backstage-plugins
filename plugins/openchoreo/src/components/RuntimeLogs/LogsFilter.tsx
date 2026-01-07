@@ -115,7 +115,11 @@ export const LogsFilter: FC<LogsFilterProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled || environmentsLoading} variant="outlined">
+        <FormControl
+          fullWidth
+          disabled={disabled || environmentsLoading}
+          variant="outlined"
+        >
           <InputLabel id="environment-label">Environment</InputLabel>
           {environmentsLoading ? (
             <Skeleton variant="rect" height={56} />
