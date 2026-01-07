@@ -689,7 +689,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         name: project.name,
         title: project.displayName || project.name,
         description: project.description || project.name,
-        // namespace: orgName,
+        namespace: project.orgName,
         tags: ['openchoreo', 'project'],
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,

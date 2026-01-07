@@ -303,6 +303,15 @@ export const openChoreoTheme = createUnifiedTheme({
         },
       },
     },
+    BackstageSelectInputBase: {
+      styleOverrides: {
+        input: {
+          borderColor: colors.grey[200],
+          // borderRadius: 8,
+          transition: 'border-color 0.2s ease-in-out',
+        },
+      },
+    },
     MuiTableCell: {
       styleOverrides: {
         root: {
@@ -354,11 +363,6 @@ export const openChoreoTheme = createUnifiedTheme({
         },
       },
     },
-    MuiFormControl: {
-      defaultProps: {
-        variant: 'outlined',
-      },
-    },
     MuiSelect: {
       defaultProps: {
         variant: 'outlined',
@@ -375,7 +379,7 @@ export const openChoreoTheme = createUnifiedTheme({
           backgroundColor: colors.secondary.light,
           border: `1px solid transparent`,
           transition: 'all 0.3s',
-          borderRadius: 4,
+          borderRadius: 8,
           padding: '2px 4px',
           color: 'inherit',
           fontSize: 14,
@@ -412,7 +416,7 @@ export const openChoreoTheme = createUnifiedTheme({
         },
         notchedOutline: {
           borderColor: colors.grey[200],
-          borderRadius: 8,
+          // borderRadius: 8,
           transition: 'border-color 0.2s ease-in-out',
         },
         input: {

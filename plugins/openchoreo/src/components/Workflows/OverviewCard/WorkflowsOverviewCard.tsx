@@ -31,8 +31,8 @@ export const WorkflowsOverviewCard = () => {
   } = useWorkflowsSummary();
   const {
     canBuild,
-    loading: permissionLoading,
-    deniedTooltip,
+    triggerLoading: permissionLoading,
+    triggerBuildDeniedTooltip: deniedTooltip,
   } = useBuildPermission();
 
   // Loading state

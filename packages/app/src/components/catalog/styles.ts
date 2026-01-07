@@ -114,17 +114,15 @@ export const usePersonalFilterStyles = makeStyles(theme => ({
   },
   filterItem: {
     flex: 1,
-    padding: theme.spacing(1.5),
+    padding: theme.spacing(1.2),
     backgroundColor: theme.palette.background.paper,
-    border: `1px solid ${theme.palette.grey[300]}`,
-    borderRadius: theme.spacing(1),
+    border: `1px solid ${theme.palette.grey[200]}`,
+    borderRadius: theme.spacing(0.5),
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1.5),
     cursor: 'pointer',
-    transition: theme.transitions.create(['border-color', 'background-color'], {
-      duration: theme.transitions.duration.short,
-    }),
+    transition: 'border-color 0.2s ease-in-out',
   },
   checkbox: {
     padding: 0,

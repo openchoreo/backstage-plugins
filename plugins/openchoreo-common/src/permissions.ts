@@ -37,6 +37,16 @@ export const openchoreoComponentBuildPermission = createPermission({
 });
 
 /**
+ * Permission to view builds of a component.
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoComponentViewBuildsPermission = createPermission({
+  name: 'openchoreo.component.viewbuilds',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+});
+
+/**
  * Permission to deploy a component to an environment.
  * Resource-based: requires the specific component context.
  */
@@ -193,6 +203,26 @@ export const openchoreoRoleMappingDeletePermission = createPermission({
 });
 
 /**
+ * Permission to view logs for a component.
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoLogsViewPermission = createPermission({
+  name: 'openchoreo.logs.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+});
+
+/**
+ * Permission to view metrics for a component.
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoMetricsViewPermission = createPermission({
+  name: 'openchoreo.metrics.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+});
+
+/**
  * All OpenChoreo permissions exported as an array.
  * Useful for registering all permissions with the permission framework.
  */
@@ -200,6 +230,7 @@ export const openchoreoPermissions = [
   openchoreoComponentCreatePermission,
   openchoreoComponentReadPermission,
   openchoreoComponentBuildPermission,
+  openchoreoComponentViewBuildsPermission,
   openchoreoComponentDeployPermission,
   openchoreoComponentUpdatePermission,
   openchoreoProjectCreatePermission,
@@ -217,6 +248,8 @@ export const openchoreoPermissions = [
   openchoreoRoleMappingCreatePermission,
   openchoreoRoleMappingUpdatePermission,
   openchoreoRoleMappingDeletePermission,
+  openchoreoLogsViewPermission,
+  openchoreoMetricsViewPermission,
 ];
 
 /**
@@ -229,6 +262,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.component.read': 'component:view',
   'openchoreo.component.update': 'component:update',
   'openchoreo.component.build': 'componentworkflow:create',
+  'openchoreo.component.viewbuilds': 'componentworkflow:view',
   'openchoreo.component.deploy': 'component:deploy',
   'openchoreo.project.create': 'project:create',
   'openchoreo.project.read': 'project:view',
@@ -245,6 +279,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.rolemapping.create': 'rolemapping:create',
   'openchoreo.rolemapping.update': 'rolemapping:update',
   'openchoreo.rolemapping.delete': 'rolemapping:delete',
+  'openchoreo.logs.view': 'logs:view',
+  'openchoreo.metrics.view': 'metrics:view',
 };
 
 /**

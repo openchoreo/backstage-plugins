@@ -164,6 +164,14 @@ export {
   type UseDeployPermissionResult,
 } from './hooks/useDeployPermission';
 export {
+  useLogsPermission,
+  type UseLogsPermissionResult,
+} from './hooks/useLogsPermission';
+export {
+  useMetricsPermission,
+  type UseMetricsPermissionResult,
+} from './hooks/useMetricsPermission';
+export {
   useRolePermissions,
   type UseRolePermissionsResult,
 } from './hooks/useRolePermissions';
