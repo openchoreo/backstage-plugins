@@ -51,7 +51,11 @@ export const RCAFilters = ({
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} md={4}>
-        <FormControl fullWidth disabled={disabled || environmentsLoading} variant="outlined">
+        <FormControl
+          fullWidth
+          disabled={disabled || environmentsLoading}
+          variant="outlined"
+        >
           <InputLabel id="environment-label">Environment</InputLabel>
           {environmentsLoading ? (
             <Skeleton variant="rect" height={56} />
