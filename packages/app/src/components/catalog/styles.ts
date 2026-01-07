@@ -117,7 +117,7 @@ export const usePersonalFilterStyles = makeStyles(theme => ({
     padding: theme.spacing(1.2),
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${theme.palette.grey[200]}`,
-    borderRadius: theme.spacing(0.5),
+    borderRadius: theme.spacing(1),
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1.5),
