@@ -62,11 +62,6 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
             {environment.componentCount ?? 0}
           </Box>
         </Box>
-
-        <Box className={classes.environmentDetail}>
-          <Typography className={classes.environmentLabel}>Status</Typography>
-          <StatusBadge status="unknown" label={environment.status} />
-        </Box>
       </Box>
     </Card>
   );
