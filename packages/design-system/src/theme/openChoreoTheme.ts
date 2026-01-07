@@ -307,8 +307,11 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         input: {
           borderColor: colors.grey[200],
-          // borderRadius: 8,
+          borderRadius: 8,
           transition: 'border-color 0.2s ease-in-out',
+          '&:focus': {
+            borderRadius: 8,
+          },
         },
       },
     },
@@ -416,7 +419,7 @@ export const openChoreoTheme = createUnifiedTheme({
         },
         notchedOutline: {
           borderColor: colors.grey[200],
-          // borderRadius: 8,
+          borderRadius: 8,
           transition: 'border-color 0.2s ease-in-out',
         },
         input: {
