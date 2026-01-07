@@ -1,1 +1,1 @@
-export { RuntimeLogs } from './RuntimeLogs';
+export { ObservabilityRuntimeLogsPage } from './ObservabilityRuntimeLogsPage';

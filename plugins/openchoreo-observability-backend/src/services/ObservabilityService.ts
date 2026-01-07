@@ -11,6 +11,25 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentMetricsTimeSeries, Environment } from '../types';
 
+export interface RuntimeLogsResponse {
+  logs: Array<{
+    timestamp: string;
+    log: string;
+    logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'FATAL';
+    componentId: string;
+    environmentId: string;
+    projectId: string;
+    version: string;
+    versionId: string;
+    namespace: string;
+    podId: string;
+    containerName: string;
+    labels: Record<string, string>;
+  }>;
+  totalCount: number;
+  tookMs: number;
+}
+
 /**
  * Error thrown when observability is not configured for a component
  */
@@ -157,6 +176,155 @@ export class ObservabilityService {
         error as Error,
       );
       return [];
+    }
+  }
+
+  /**
+   * Fetches runtime logs for a specific component.
+   *
+   * @param componentId - The ID of the component
+   * @param projectId - The ID of the project
+   * @param environmentId - The ID of the environment
+   * @param orgName - The organization name
+   * @param projectName - The project name
+   * @param environmentName - The name of the environment
+   * @param componentName - The name of the component
+   * @param options - Optional parameters for filtering runtime logs
+   * @param options.limit - The maximum number of runtime logs to return
+   * @param options.startTime - The start time of the runtime logs
+   * @param options.endTime - The end time of the runtime logs
+   * @param options.logLevels - The log levels to filter by
+   * @param userToken - Optional user token for authentication (takes precedence over default token)
+   * @returns Promise<RuntimeLogsResponse> - The runtime logs data
+   */
+  async fetchRuntimeLogsByComponent(
+    componentId: string,
+    projectId: string,
+    environmentId: string,
+    orgName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      logLevels?: string[];
+    },
+    userToken?: string,
+  ): Promise<RuntimeLogsResponse> {
+    const startTime = Date.now();
+    try {
+      this.logger.info(
+        `Fetching runtime logs for component ${componentName} in organization ${orgName} and environment ${environmentName}`,
+      );
+
+      const observerUrl = await this.resolveObserverUrl(
+        orgName,
+        environmentName,
+        userToken,
+      );
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        userToken,
+        this.logger,
+      );
+
+      this.logger.debug(
+        `Sending runtime logs request for component ${componentId} with limit: ${
+          options?.limit || 100
+        }`,
+      );
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/logs/component/{componentId}',
+        {
+          params: {
+            path: { componentId },
+          },
+          body: {
+            startTime:
+              options?.startTime ||
+              new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Default: 1 hour ago
+            endTime: options?.endTime || new Date().toISOString(), // Default: now
+            environmentId,
+            componentName,
+            projectName,
+            orgName,
+            environmentName,
+            limit: options?.limit || 100,
+            sortOrder: 'desc',
+            ...(options?.logLevels &&
+              options.logLevels.length > 0 && { logLevels: options.logLevels }),
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to fetch runtime logs for component ${componentId}: ${response.status} ${response.statusText}`,
+          { error: errorText },
+        );
+        throw new Error(
+          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully fetched ${
+          data.logs?.length || 0
+        } runtime logs for component ${componentId}`,
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Runtime logs fetch completed for component ${componentId} (${totalTime}ms)`,
+      );
+
+      return {
+        logs:
+          data.logs?.map(rawLog => {
+            const log = rawLog as any;
+            return {
+              timestamp: log.timestamp || '',
+              log: log.log || '',
+              logLevel: (log.logLevel || log.level || 'INFO') as
+                | 'ERROR'
+                | 'WARN'
+                | 'INFO'
+                | 'DEBUG'
+                | 'TRACE'
+                | 'FATAL',
+              componentId: log.componentId || componentId,
+              environmentId: log.environmentId || environmentId,
+              projectId: log.projectId || projectId,
+              version: log.version?.toString() || '',
+              versionId: log.versionId?.toString() || '',
+              namespace: log.namespace?.toString() || '',
+              podId: log.podId?.toString() || '',
+              containerName: log.containerName?.toString() || '',
+              labels: (log.labels as Record<string, string>) || {},
+            };
+          }) || [],
+        totalCount: data.totalCount || 0,
+        tookMs: data.tookMs || 0,
+      };
+    } catch (error: unknown) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        this.logger.info(
+          `Observability not configured for component ${componentId}`,
+        );
+        throw error;
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching runtime logs for component ${componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
     }
   }
 

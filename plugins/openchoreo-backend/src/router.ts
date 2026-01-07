@@ -13,10 +13,6 @@ import {
 } from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
-import {
-  RuntimeLogsInfoService,
-  ObservabilityNotConfiguredError as RuntimeObservabilityNotConfiguredError,
-} from './services/RuntimeLogsService/RuntimeLogsService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { AuthzService } from './services/AuthzService/AuthzService';
@@ -33,7 +29,6 @@ export async function createRouter({
   buildInfoService,
   componentInfoService,
   projectInfoService,
-  runtimeLogsInfoService,
   workloadInfoService,
   dashboardInfoService,
   traitInfoService,
@@ -47,7 +42,6 @@ export async function createRouter({
   buildInfoService: BuildInfoService;
   componentInfoService: ComponentInfoService;
   projectInfoService: ProjectInfoService;
-  runtimeLogsInfoService: RuntimeLogsInfoService;
   workloadInfoService: WorkloadService;
   dashboardInfoService: DashboardInfoService;
   traitInfoService: TraitInfoService;
@@ -462,90 +456,6 @@ export async function createRouter({
       throw error;
     }
   });
-
-  // Runtime logs
-  router.post(
-    '/logs/component/:componentName',
-    async (req: express.Request, res: express.Response) => {
-      const { componentName } = req.params;
-      const { orgName, projectName } = req.query;
-      const {
-        componentId,
-        environmentName,
-        environmentId,
-        logLevels,
-        startTime,
-        endTime,
-        limit,
-      } = req.body;
-
-      if (
-        !componentName ||
-        !componentId ||
-        !environmentName ||
-        !environmentId
-      ) {
-        return res.status(422).json({
-          error: 'Missing Parameter',
-          message:
-            'Component Name, Component ID or Environment Name or Environment ID is missing from request',
-        });
-      }
-
-      const userToken = getUserTokenFromRequest(req);
-
-      try {
-        const result = await runtimeLogsInfoService.fetchRuntimeLogs(
-          {
-            componentId,
-            componentName,
-            environmentId,
-            environmentName,
-            logLevels,
-            startTime,
-            endTime,
-            limit,
-          },
-          orgName as string,
-          projectName as string,
-          userToken,
-        );
-
-        return res.json(result);
-      } catch (error: unknown) {
-        if (error instanceof RuntimeObservabilityNotConfiguredError) {
-          return res.status(200).json({
-            message: 'observability is disabled',
-          });
-        }
-
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error occurred';
-
-        // Check if it's a fetch error with status code info
-        if (errorMessage.includes('Failed to fetch runtime logs: ')) {
-          const statusMatch = errorMessage.match(
-            /Failed to fetch runtime logs: (\d+)/,
-          );
-          if (statusMatch) {
-            const statusCode = parseInt(statusMatch[1], 10);
-            return res
-              .status(statusCode >= 400 && statusCode < 600 ? statusCode : 500)
-              .json({
-                error: 'Failed to fetch runtime logs',
-                message: errorMessage,
-              });
-          }
-        }
-
-        // Default to 500 for other errors
-        return res.status(500).json({
-          error: 'Internal server error',
-          message: errorMessage,
-        });
-      }
-    },
-  );
 
   router.get('/workload', async (req, res) => {
     const { componentName, projectName, organizationName } = req.query;

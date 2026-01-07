@@ -9,7 +9,6 @@ import { CellDiagramInfoService } from './services/CellDiagramService/CellDiagra
 import { BuildInfoService } from './services/BuildService/BuildInfoService';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
-import { RuntimeLogsInfoService } from './services/RuntimeLogsService/RuntimeLogsService';
 import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
@@ -85,11 +84,6 @@ export const choreoPlugin = createBackendPlugin({
 
         const projectInfoService = new ProjectInfoService(logger, baseUrl);
 
-        const runtimeLogsInfoService = new RuntimeLogsInfoService(
-          logger,
-          baseUrl,
-        );
-
         const workloadInfoService = new WorkloadInfoService(logger, baseUrl);
 
         const dashboardInfoService = new DashboardInfoService(logger, baseUrl);
@@ -144,7 +138,6 @@ export const choreoPlugin = createBackendPlugin({
             buildInfoService,
             componentInfoService,
             projectInfoService,
-            runtimeLogsInfoService,
             workloadInfoService,
             dashboardInfoService,
             traitInfoService,

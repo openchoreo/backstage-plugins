@@ -69,6 +69,10 @@ describe('plugin', () => {
               reports: [],
             }),
             fetchRCAReportByAlert: jest.fn().mockResolvedValue({}),
+            fetchRuntimeLogsByComponent: jest.fn().mockResolvedValue({
+              logs: [],
+              totalCount: 0,
+            }),
           }),
         }),
       ],
@@ -114,6 +118,9 @@ describe('plugin', () => {
             fetchRCAReportByAlert: jest
               .fn()
               .mockRejectedValue(new Error('Failed to fetch RCA report')),
+            fetchRuntimeLogsByComponent: jest
+              .fn()
+              .mockRejectedValue(new Error('Failed to fetch runtime logs')),
           }),
         }),
       ],
