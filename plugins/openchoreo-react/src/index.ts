@@ -172,6 +172,10 @@ export {
   type UseMetricsPermissionResult,
 } from './hooks/useMetricsPermission';
 export {
+  useTraitsPermission,
+  type UseTraitsPermissionResult,
+} from './hooks/useTraitsPermission';
+export {
   useRolePermissions,
   type UseRolePermissionsResult,
 } from './hooks/useRolePermissions';
