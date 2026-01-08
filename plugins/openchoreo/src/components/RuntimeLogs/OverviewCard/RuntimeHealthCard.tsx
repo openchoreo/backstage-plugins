@@ -15,12 +15,17 @@ import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import VisibilityOffIcon from '@material-ui/icons/VisibilityOff';
 import { Card } from '@openchoreo/backstage-design-system';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import {
+  formatRelativeTime,
+  useLogsPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { useLogsSummary } from './useLogsSummary';
 import { useOverviewCardStyles } from './styles';
+import BlockIcon from '@material-ui/icons/Block';
 
 export const RuntimeHealthCard = () => {
   const classes = useOverviewCardStyles();
+  const { canViewLogs, loading: permissionLoading } = useLogsPermission();
   const {
     errorCount,
     warningCount,
@@ -31,6 +36,24 @@ export const RuntimeHealthCard = () => {
     refreshing,
     refresh,
   } = useLogsSummary();
+
+  // Permission denied state
+  if (!permissionLoading && !canViewLogs) {
+    return (
+      <Card padding={16} className={classes.card}>
+        <Box className={classes.cardHeader}>
+          <Typography className={classes.cardTitle}>Runtime Health</Typography>
+        </Box>
+        <Box className={classes.disabledState}>
+          <BlockIcon className={classes.disabledIcon} />
+          <Typography variant="body2">Permission Denied</Typography>
+          <Typography variant="caption" color="textSecondary">
+            You do not have permission to view runtime logs
+          </Typography>
+        </Box>
+      </Card>
+    );
+  }
 
   // Loading state
   if (loading) {

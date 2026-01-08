@@ -31,9 +31,29 @@ export const WorkflowsOverviewCard = () => {
   } = useWorkflowsSummary();
   const {
     canBuild,
+    canView,
     triggerLoading: permissionLoading,
+    viewLoading: viewPermissionLoading,
     triggerBuildDeniedTooltip: deniedTooltip,
   } = useBuildPermission();
+
+  // Permission denied state
+  if (!viewPermissionLoading && !canView) {
+    return (
+      <Card padding={16} className={classes.card}>
+        <Box className={classes.cardHeader}>
+          <Typography className={classes.cardTitle}>Workflows</Typography>
+        </Box>
+        <Box className={classes.disabledState}>
+          <BlockIcon className={classes.disabledIcon} />
+          <Typography variant="body2">Permission Denied</Typography>
+          <Typography variant="caption" color="textSecondary">
+            You do not have permission to view workflows
+          </Typography>
+        </Box>
+      </Card>
+    );
+  }
 
   // Loading state
   if (loading) {
