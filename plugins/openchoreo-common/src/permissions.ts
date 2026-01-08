@@ -223,6 +223,16 @@ export const openchoreoMetricsViewPermission = createPermission({
 });
 
 /**
+ * Permission to view traits for a component.
+ * Resource-based: requires the specific component context.
+ */
+export const openchoreoTraitsViewPermission = createPermission({
+  name: 'openchoreo.traits.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+});
+
+/**
  * All OpenChoreo permissions exported as an array.
  * Useful for registering all permissions with the permission framework.
  */
@@ -250,6 +260,7 @@ export const openchoreoPermissions = [
   openchoreoRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
   openchoreoMetricsViewPermission,
+  openchoreoTraitsViewPermission,
 ];
 
 /**
@@ -281,6 +292,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.rolemapping.delete': 'rolemapping:delete',
   'openchoreo.logs.view': 'logs:view',
   'openchoreo.metrics.view': 'metrics:view',
+  'openchoreo.traits.view': 'trait:view',
 };
 
 /**

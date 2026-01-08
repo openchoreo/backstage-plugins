@@ -17,7 +17,11 @@ import WarningRounded from '@material-ui/icons/WarningRounded';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { UnsavedChangesDialog } from '@openchoreo/backstage-plugin-react';
+import { EmptyState, WarningIcon } from '@backstage/core-components';
+import {
+  UnsavedChangesDialog,
+  useTraitsPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { useTraitsData } from './hooks/useTraitsData';
 import { usePendingChanges } from './hooks/usePendingChanges';
@@ -36,6 +40,11 @@ import { NotificationBanner } from '../Environments/components';
 export const Traits = () => {
   const classes = useTraitsStyles();
   const { entity } = useEntity();
+  const {
+    canViewTraits,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useTraitsPermission();
   const openChoreoClient = useApi(openChoreoClientApiRef);
   const notification = useNotification();
   const { traits, loading, error, refetch } = useTraitsData();
@@ -232,6 +241,22 @@ export const Traits = () => {
           Failed to load traits: {error.message || 'Unknown error'}
         </Alert>
       </Box>
+    );
+  }
+
+  // Show permission denied notification if user doesn't have access
+  if (!permissionLoading && !canViewTraits) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
     );
   }
 

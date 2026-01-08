@@ -27,6 +27,7 @@ export {
   openchoreoRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
   openchoreoMetricsViewPermission,
+  openchoreoTraitsViewPermission,
   openchoreoPermissions,
   OPENCHOREO_PERMISSION_TO_ACTION,
   CATALOG_PERMISSION_TO_ACTION,
