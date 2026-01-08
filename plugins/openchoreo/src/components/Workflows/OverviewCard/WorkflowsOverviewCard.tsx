@@ -32,6 +32,7 @@ export const WorkflowsOverviewCard = () => {
   const {
     canBuild,
     canView,
+    viewBuildDeniedTooltip,
     triggerLoading: permissionLoading,
     viewLoading: viewPermissionLoading,
     triggerBuildDeniedTooltip: deniedTooltip,
@@ -48,7 +49,7 @@ export const WorkflowsOverviewCard = () => {
           <BlockIcon className={classes.disabledIcon} />
           <Typography variant="body2">Permission Denied</Typography>
           <Typography variant="caption" color="textSecondary">
-            You do not have permission to view workflows
+            {viewBuildDeniedTooltip}
           </Typography>
         </Box>
       </Card>

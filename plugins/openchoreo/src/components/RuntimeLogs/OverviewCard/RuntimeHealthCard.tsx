@@ -25,7 +25,11 @@ import BlockIcon from '@material-ui/icons/Block';
 
 export const RuntimeHealthCard = () => {
   const classes = useOverviewCardStyles();
-  const { canViewLogs, loading: permissionLoading } = useLogsPermission();
+  const {
+    canViewLogs,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useLogsPermission();
   const {
     errorCount,
     warningCount,
@@ -48,7 +52,7 @@ export const RuntimeHealthCard = () => {
           <BlockIcon className={classes.disabledIcon} />
           <Typography variant="body2">Permission Denied</Typography>
           <Typography variant="caption" color="textSecondary">
-            You do not have permission to view runtime logs
+            {deniedTooltip}
           </Typography>
         </Box>
       </Card>
