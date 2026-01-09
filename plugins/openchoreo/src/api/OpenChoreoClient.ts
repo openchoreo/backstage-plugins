@@ -785,7 +785,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     dataplaneName: string,
   ): Promise<any> {
     const response = await this.apiFetch<any>(
-      `/dataplanes/${encodeURIComponent(dataplaneName)}?organizationName=${encodeURIComponent(organizationName)}`,
+      `/dataplanes/${encodeURIComponent(
+        dataplaneName,
+      )}?organizationName=${encodeURIComponent(organizationName)}`,
     );
     return response;
   }

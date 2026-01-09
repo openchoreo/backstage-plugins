@@ -5,8 +5,7 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated types from OpenAPI spec
-type DataPlaneResponse =
-  OpenChoreoComponents['schemas']['DataPlaneResponse'];
+type DataPlaneResponse = OpenChoreoComponents['schemas']['DataPlaneResponse'];
 
 /**
  * Service for managing and retrieving data plane information.
@@ -22,10 +21,7 @@ export class DataPlaneInfoService {
     this.baseUrl = baseUrl;
   }
 
-  static create(
-    logger: LoggerService,
-    baseUrl: string,
-  ): DataPlaneInfoService {
+  static create(logger: LoggerService, baseUrl: string): DataPlaneInfoService {
     return new DataPlaneInfoService(logger, baseUrl);
   }
 
