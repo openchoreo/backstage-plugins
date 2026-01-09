@@ -52,9 +52,8 @@ export function useInvokeUrl(
             ) {
               port = dataPlaneDetails.publicHTTPPort;
             }
-          } catch (error) {
+          } catch {
             // Fall back to default port if fetching dataplane details fails
-            console.warn('Failed to fetch dataplane details, using default port:', error);
           }
         }
 
@@ -74,7 +73,15 @@ export function useInvokeUrl(
     };
 
     fetchInvokeUrl();
-  }, [releaseName, status, environmentName, resourceName, dataPlaneRef, entity, client]);
+  }, [
+    releaseName,
+    status,
+    environmentName,
+    resourceName,
+    dataPlaneRef,
+    entity,
+    client,
+  ]);
 
   return { invokeUrl, loading };
 }
