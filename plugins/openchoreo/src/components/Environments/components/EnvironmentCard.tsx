@@ -15,6 +15,7 @@ export const EnvironmentCard = ({
   resourceName,
   bindingName,
   hasComponentTypeOverrides,
+  dataPlaneRef,
   deployment,
   endpoints,
   promotionTargets,
@@ -52,6 +53,7 @@ export const EnvironmentCard = ({
               lastDeployed={deployment.lastDeployed}
               image={deployment.image}
               releaseName={deployment.releaseName}
+              dataPlaneRef={dataPlaneRef}
               endpoints={endpoints}
               onOpenReleaseDetails={onOpenReleaseDetails}
             />

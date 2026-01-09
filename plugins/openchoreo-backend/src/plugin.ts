@@ -14,6 +14,7 @@ import { DashboardInfoService } from './services/DashboardService/DashboardInfoS
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { AuthzService } from './services/AuthzService/AuthzService';
+import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
 import {
@@ -97,6 +98,8 @@ export const choreoPlugin = createBackendPlugin({
 
         const authzService = new AuthzService(logger, baseUrl);
 
+        const dataPlaneInfoService = new DataPlaneInfoService(logger, baseUrl);
+
         // Register OpenChoreo component permissions with the permissions registry
         // This enables CONDITIONAL permission checks against catalog entities
         const componentPermissions = openchoreoPermissions.filter(
@@ -143,6 +146,7 @@ export const choreoPlugin = createBackendPlugin({
             traitInfoService,
             secretReferencesInfoService,
             authzService,
+            dataPlaneInfoService,
             tokenService,
             authEnabled,
           }),

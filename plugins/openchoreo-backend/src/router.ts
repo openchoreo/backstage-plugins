@@ -16,6 +16,7 @@ import { ProjectInfoService } from './services/ProjectService/ProjectInfoService
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { AuthzService } from './services/AuthzService/AuthzService';
+import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,
@@ -34,6 +35,7 @@ export async function createRouter({
   traitInfoService,
   secretReferencesInfoService,
   authzService,
+  dataPlaneInfoService,
   tokenService,
   authEnabled,
 }: {
@@ -47,6 +49,7 @@ export async function createRouter({
   traitInfoService: TraitInfoService;
   secretReferencesInfoService: SecretReferencesService;
   authzService: AuthzService;
+  dataPlaneInfoService: DataPlaneInfoService;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
 }): Promise<express.Router> {
@@ -881,6 +884,28 @@ export async function createRouter({
       );
     },
   );
+
+  // DataPlane endpoint
+  router.get('/dataplanes/:dpName', async (req, res) => {
+    const { dpName } = req.params;
+    const { organizationName } = req.query;
+
+    if (!organizationName) {
+      throw new InputError('organizationName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await dataPlaneInfoService.fetchDataPlaneDetails(
+        {
+          organizationName: organizationName as string,
+          dataplaneName: dpName,
+        },
+        userToken,
+      ),
+    );
+  });
 
   return router;
 }

@@ -23,6 +23,7 @@ export const EnvironmentCardContent = ({
   lastDeployed,
   image,
   releaseName,
+  dataPlaneRef,
   endpoints,
   onOpenReleaseDetails,
 }: EnvironmentCardContentProps) => {
@@ -39,6 +40,7 @@ export const EnvironmentCardContent = ({
     resourceName,
     releaseName,
     status,
+    dataPlaneRef,
   );
 
   // Handle copy invoke URL
