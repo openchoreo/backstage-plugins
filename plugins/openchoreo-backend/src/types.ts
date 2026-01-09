@@ -44,6 +44,7 @@ export interface Environment {
   resourceName?: string;
   bindingName?: string;
   hasComponentTypeOverrides?: boolean;
+  dataPlaneRef?: string;
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed' | undefined;
     lastDeployed?: string;

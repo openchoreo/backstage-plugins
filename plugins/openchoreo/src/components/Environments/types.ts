@@ -88,6 +88,7 @@ export interface EnvironmentCardContentProps {
   lastDeployed?: string;
   image?: string;
   releaseName?: string;
+  dataPlaneRef?: string;
   endpoints: Array<{
     name: string;
     type: string;
@@ -124,6 +125,7 @@ export interface EnvironmentCardProps {
   resourceName?: string;
   bindingName?: string;
   hasComponentTypeOverrides?: boolean;
+  dataPlaneRef?: string;
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed';
     lastDeployed?: string;

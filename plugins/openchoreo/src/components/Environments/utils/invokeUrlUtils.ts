@@ -4,9 +4,12 @@ import { ReleaseData } from '../ReleaseDataRenderer/types';
  * Extracts the invoke URL from release data by finding HTTPRoute resources
  * and constructing the URL from hostname and path prefix.
  *
+ * @param releaseData - The release data containing HTTPRoute information
+ * @param port - The HTTP port to use (defaults to 19080)
  */
 export function extractInvokeUrl(
   releaseData: ReleaseData | null,
+  port: number = 19080,
 ): string | null {
   if (!releaseData?.data) {
     return null;
@@ -39,10 +42,10 @@ export function extractInvokeUrl(
     }
 
     // Construct the invoke URL
-    // Format: http://{hostname}:19080{path} or just http://{hostname}:19080 if no path
+    // Format: http://{hostname}:{port}{path} or just http://{hostname}:{port} if no path
     const url = pathValue
-      ? `http://${hostname}:19080${pathValue}`
-      : `http://${hostname}:19080`;
+      ? `http://${hostname}:${port}${pathValue}`
+      : `http://${hostname}:${port}`;
     return url;
   } catch (error) {
     // If there's any error parsing the structure, return null

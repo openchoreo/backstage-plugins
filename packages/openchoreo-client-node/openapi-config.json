@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "8a827ae92a7f5399defb5745904cc87edfc2703b",
-  "lastSyncDate": "2025-12-19T09:24:36+05:30",
-  "lastSyncDescription": "Updated component workflow endpoints: renamed POST /component-workflows to POST /workflow-runs, added GET /workflow-runs/{runName}, renamed PATCH /component-workflow-schema to PATCH /workflow-parameters ."
+  "lastSyncCommit": "43b0c9d2bf2d4e69156953b467225f31e46c4833",
+  "lastSyncDate": "2026-01-07T18:53:05+05:30",
+  "lastSyncDescription": "Updated DataPlane schemas with HTTP port fields and observabilityPlaneRef"
 }

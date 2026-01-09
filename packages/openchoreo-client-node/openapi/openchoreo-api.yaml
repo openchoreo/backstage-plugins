@@ -428,10 +428,12 @@ components:
       required:
         - name
         - namespace
-        - kubernetesClusterName
-        - apiServerURL
         - publicVirtualHost
         - organizationVirtualHost
+        - publicHTTPPort
+        - publicHTTPSPort
+        - organizationHTTPPort
+        - organizationHTTPSPort
         - createdAt
       properties:
         name:
@@ -448,17 +450,23 @@ components:
             type: string
         secretStoreRef:
           type: string
-        kubernetesClusterName:
-          type: string
-        apiServerURL:
-          type: string
         publicVirtualHost:
           type: string
         organizationVirtualHost:
           type: string
-        observerURL:
-          type: string
-        observerUsername:
+        publicHTTPPort:
+          type: integer
+          format: int32
+        publicHTTPSPort:
+          type: integer
+          format: int32
+        organizationHTTPPort:
+          type: integer
+          format: int32
+        organizationHTTPSPort:
+          type: integer
+          format: int32
+        observabilityPlaneRef:
           type: string
         createdAt:
           type: string
@@ -470,11 +478,7 @@ components:
       type: object
       required:
         - name
-        - kubernetesClusterName
-        - apiServerURL
-        - caCert
-        - clientCert
-        - clientKey
+        - clusterAgentClientCA
         - publicVirtualHost
         - organizationVirtualHost
       properties:
@@ -484,25 +488,25 @@ components:
           type: string
         description:
           type: string
-        kubernetesClusterName:
-          type: string
-        apiServerURL:
-          type: string
-        caCert:
-          type: string
-        clientCert:
-          type: string
-        clientKey:
+        clusterAgentClientCA:
           type: string
         publicVirtualHost:
           type: string
         organizationVirtualHost:
           type: string
-        observerURL:
-          type: string
-        observerUsername:
-          type: string
-        observerPassword:
+        publicHTTPPort:
+          type: integer
+          format: int32
+        publicHTTPSPort:
+          type: integer
+          format: int32
+        organizationHTTPPort:
+          type: integer
+          format: int32
+        organizationHTTPSPort:
+          type: integer
+          format: int32
+        observabilityPlaneRef:
           type: string
 
     # BuildPlane

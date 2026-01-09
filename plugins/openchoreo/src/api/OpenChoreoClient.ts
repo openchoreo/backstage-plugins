@@ -779,4 +779,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     );
     return response.data || [];
   }
+
+  async fetchDataPlaneDetails(
+    organizationName: string,
+    dataplaneName: string,
+  ): Promise<any> {
+    const response = await this.apiFetch<any>(
+      `/dataplanes/${encodeURIComponent(dataplaneName)}?organizationName=${encodeURIComponent(organizationName)}`,
+    );
+    return response;
+  }
 }

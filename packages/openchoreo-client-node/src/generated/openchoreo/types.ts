@@ -1118,12 +1118,17 @@ export interface components {
       description?: string;
       imagePullSecretRefs?: string[];
       secretStoreRef?: string;
-      kubernetesClusterName: string;
-      apiServerURL: string;
       publicVirtualHost: string;
       organizationVirtualHost: string;
-      observerURL?: string;
-      observerUsername?: string;
+      /** Format: int32 */
+      publicHTTPPort: number;
+      /** Format: int32 */
+      publicHTTPSPort: number;
+      /** Format: int32 */
+      organizationHTTPPort: number;
+      /** Format: int32 */
+      organizationHTTPSPort: number;
+      observabilityPlaneRef?: string;
       /** Format: date-time */
       createdAt: string;
       status?: string;
@@ -1132,16 +1137,18 @@ export interface components {
       name: string;
       displayName?: string;
       description?: string;
-      kubernetesClusterName: string;
-      apiServerURL: string;
-      caCert: string;
-      clientCert: string;
-      clientKey: string;
+      clusterAgentClientCA: string;
       publicVirtualHost: string;
       organizationVirtualHost: string;
-      observerURL?: string;
-      observerUsername?: string;
-      observerPassword?: string;
+      /** Format: int32 */
+      publicHTTPPort?: number;
+      /** Format: int32 */
+      publicHTTPSPort?: number;
+      /** Format: int32 */
+      organizationHTTPPort?: number;
+      /** Format: int32 */
+      organizationHTTPSPort?: number;
+      observabilityPlaneRef?: string;
     };
     BuildPlaneResponse: {
       name: string;

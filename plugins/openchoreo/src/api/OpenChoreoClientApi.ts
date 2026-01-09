@@ -390,6 +390,14 @@ export interface OpenChoreoClientApi {
     orgName: string,
     projectName: string,
   ): Promise<ComponentSummary[]>;
+
+  // === DataPlane Operations ===
+
+  /** Fetch data plane details */
+  fetchDataPlaneDetails(
+    organizationName: string,
+    dataplaneName: string,
+  ): Promise<any>;
 }
 
 // ============================================
