@@ -31,14 +31,6 @@ export interface DataplaneEntityV1alpha1 extends Entity {
      */
     domain?: string;
     /**
-     * Kubernetes cluster name for this dataplane
-     */
-    kubernetesClusterName?: string;
-    /**
-     * API Server URL for this dataplane
-     */
-    apiServerURL?: string;
-    /**
      * Registry prefix for this dataplane
      */
     registryPrefix?: string;
@@ -51,8 +43,24 @@ export interface DataplaneEntityV1alpha1 extends Entity {
      */
     organizationVirtualHost?: string;
     /**
-     * Observer URL for this dataplane
+     * Public HTTP port
      */
-    observerURL?: string;
+    publicHTTPPort?: number;
+    /**
+     * Public HTTPS port
+     */
+    publicHTTPSPort?: number;
+    /**
+     * Organization HTTP port
+     */
+    organizationHTTPPort?: number;
+    /**
+     * Organization HTTPS port
+     */
+    organizationHTTPSPort?: number;
+    /**
+     * Observability plane reference
+     */
+    observabilityPlaneRef?: string;
   };
 }

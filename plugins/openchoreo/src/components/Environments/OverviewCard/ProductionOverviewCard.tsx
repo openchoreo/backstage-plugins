@@ -63,6 +63,7 @@ export const ProductionOverviewCard = () => {
     productionEnv?.resourceName,
     productionEnv?.deployment?.releaseName,
     productionEnv?.deployment?.status,
+    productionEnv?.dataPlaneRef,
   );
 
   // Handle copy invoke URL
