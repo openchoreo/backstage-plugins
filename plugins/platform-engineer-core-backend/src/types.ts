@@ -20,12 +20,13 @@ export interface DataPlane {
   organization: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
-  kubernetesClusterName?: string;
-  apiServerURL?: string;
   publicVirtualHost?: string;
   organizationVirtualHost?: string;
-  observerURL?: string;
-  observerUsername?: string;
+  publicHTTPPort?: number;
+  publicHTTPSPort?: number;
+  organizationHTTPPort?: number;
+  organizationHTTPSPort?: number;
+  observabilityPlaneRef?: string;
   createdAt?: string;
   status?: string;
 }

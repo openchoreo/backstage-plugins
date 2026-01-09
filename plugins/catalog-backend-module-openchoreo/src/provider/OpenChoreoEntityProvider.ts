@@ -714,15 +714,20 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.NAMESPACE]: dataplane.namespace || '',
           [CHOREO_ANNOTATIONS.CREATED_AT]: dataplane.createdAt || '',
           [CHOREO_ANNOTATIONS.STATUS]: dataplane.status || '',
-          'openchoreo.io/kubernetes-cluster-name':
-            dataplane.kubernetesClusterName || '',
-          'openchoreo.io/api-server-url': dataplane.apiServerURL || '',
           'openchoreo.io/public-virtual-host':
             dataplane.publicVirtualHost || '',
           'openchoreo.io/organization-virtual-host':
             dataplane.organizationVirtualHost || '',
-          'openchoreo.io/observer-url': dataplane.observerURL || '',
-          'openchoreo.io/observer-username': dataplane.observerUsername || '',
+          'openchoreo.io/public-http-port':
+            dataplane.publicHTTPPort?.toString() || '',
+          'openchoreo.io/public-https-port':
+            dataplane.publicHTTPSPort?.toString() || '',
+          'openchoreo.io/organization-http-port':
+            dataplane.organizationHTTPPort?.toString() || '',
+          'openchoreo.io/organization-https-port':
+            dataplane.organizationHTTPSPort?.toString() || '',
+          'openchoreo.io/observability-plane-ref':
+            dataplane.observabilityPlaneRef || '',
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -733,11 +738,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         type: 'kubernetes',
         owner: 'guests', // This could be configured or mapped from dataplane metadata
         domain: orgName, // Link to the parent domain (organization)
-        kubernetesClusterName: dataplane.kubernetesClusterName,
-        apiServerURL: dataplane.apiServerURL,
         publicVirtualHost: dataplane.publicVirtualHost,
         organizationVirtualHost: dataplane.organizationVirtualHost,
-        observerURL: dataplane.observerURL,
+        publicHTTPPort: dataplane.publicHTTPPort,
+        publicHTTPSPort: dataplane.publicHTTPSPort,
+        organizationHTTPPort: dataplane.organizationHTTPPort,
+        organizationHTTPSPort: dataplane.organizationHTTPSPort,
+        observabilityPlaneRef: dataplane.observabilityPlaneRef,
       },
     };
 
