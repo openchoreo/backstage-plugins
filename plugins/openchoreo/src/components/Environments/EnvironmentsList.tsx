@@ -127,6 +127,7 @@ export const EnvironmentsList = () => {
               resourceName={env.resourceName}
               bindingName={env.bindingName}
               hasComponentTypeOverrides={env.hasComponentTypeOverrides}
+              dataPlaneRef={env.dataPlaneRef}
               deployment={env.deployment}
               endpoints={env.endpoints}
               promotionTargets={env.promotionTargets}

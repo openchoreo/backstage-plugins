@@ -1,7 +1,6 @@
 import { Box, Typography, Card, Chip } from '@material-ui/core';
 import AppsIcon from '@material-ui/icons/Apps';
 import { useStyles } from './styles';
-import { StatusBadge } from '@openchoreo/backstage-design-system';
 
 interface Environment {
   organization: string;
@@ -61,11 +60,6 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
             <AppsIcon className={classes.componentCountIcon} />
             {environment.componentCount ?? 0}
           </Box>
-        </Box>
-
-        <Box className={classes.environmentDetail}>
-          <Typography className={classes.environmentLabel}>Status</Typography>
-          <StatusBadge status="unknown" label={environment.status} />
         </Box>
       </Box>
     </Card>

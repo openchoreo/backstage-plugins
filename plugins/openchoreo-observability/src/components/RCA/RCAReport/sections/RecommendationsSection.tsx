@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { List, ListItem, ListItemText, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
 
 type Action = ObservabilityComponents['schemas']['Action'];
@@ -19,7 +20,7 @@ const useStyles = makeStyles(theme => ({
   },
   primary: {
     fontWeight: 600,
-    fontSize: theme.typography.body2.fontSize,
+    fontSize: theme.typography.body1.fontSize,
     color: theme.palette.text.primary,
   },
   secondary: {
@@ -42,8 +43,12 @@ export const RecommendationsSection = ({
         <Fragment key={idx}>
           <ListItem className={classes.listItem} disableGutters>
             <ListItemText
-              primary={action.description}
-              secondary={action.rationale}
+              primary={<FormattedText text={action.description || ''} />}
+              secondary={
+                action.rationale ? (
+                  <FormattedText text={action.rationale} />
+                ) : undefined
+              }
               classes={{
                 primary: classes.primary,
                 secondary: classes.secondary,

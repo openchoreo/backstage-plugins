@@ -19,6 +19,7 @@ import Filter8Icon from '@material-ui/icons/Filter8';
 import Filter9Icon from '@material-ui/icons/Filter9';
 import Filter9PlusIcon from '@material-ui/icons/Filter9Plus';
 import { useRCAReportStyles } from '../styles';
+import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
 
 const numberIcons = [
@@ -75,16 +76,18 @@ export const InvestigationPathSection = ({
               <Box className={classes.timelineHeaderRow}>
                 {getNumberIcon(idx + 1)}
                 <Typography variant="body2" style={{ fontWeight: 600 }}>
-                  {step.action}
+                  <FormattedText text={step.action || ''} />
                 </Typography>
               </Box>
               {step.rationale && (
                 <Typography className={classes.stepRationale}>
-                  {step.rationale}
+                  <FormattedText text={step.rationale} />
                 </Typography>
               )}
               <Box className={classes.stepOutcomeBox}>
-                <Typography variant="body2">{step.outcome}</Typography>
+                <Typography variant="body2">
+                  <FormattedText text={step.outcome || ''} />
+                </Typography>
               </Box>
             </TimelineContent>
           </TimelineItem>

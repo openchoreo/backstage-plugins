@@ -4,6 +4,7 @@ export const CHOREO_ANNOTATIONS = {
   DEPLOYMENT: 'openchoreo.io/deployment',
   ENDPOINT: 'openchoreo.io/endpoint',
   ENVIRONMENT: 'openchoreo.io/environment',
+  ENVIRONMENT_UID: 'openchoreo.io/environment-uid',
   COMPONENT: 'openchoreo.io/component',
   COMPONENT_UID: 'openchoreo.io/component-uid',
   BRANCH: 'openchoreo.io/branch',

@@ -53,7 +53,7 @@ export const MetricsFilters = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="environment-label">Environment</InputLabel>
           <Select
             value={filters.environment?.uid || ''}
@@ -71,7 +71,7 @@ export const MetricsFilters = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="time-range-label">Time Range</InputLabel>
           <Select
             value={filters.timeRange}

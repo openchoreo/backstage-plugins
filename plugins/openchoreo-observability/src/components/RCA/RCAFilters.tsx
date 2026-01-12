@@ -51,7 +51,11 @@ export const RCAFilters = ({
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} md={4}>
-        <FormControl fullWidth disabled={disabled || environmentsLoading}>
+        <FormControl
+          fullWidth
+          disabled={disabled || environmentsLoading}
+          variant="outlined"
+        >
           <InputLabel id="environment-label">Environment</InputLabel>
           {environmentsLoading ? (
             <Skeleton variant="rect" height={56} />
@@ -73,7 +77,7 @@ export const RCAFilters = ({
       </Grid>
 
       <Grid item xs={12} md={4}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="status-label">Status</InputLabel>
           <Select
             value={filters.rcaStatus || ''}
@@ -92,7 +96,7 @@ export const RCAFilters = ({
       </Grid>
 
       <Grid item xs={12} md={4}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="time-range-label">Time Range</InputLabel>
           <Select
             value={filters.timeRange}

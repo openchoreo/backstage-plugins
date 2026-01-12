@@ -9,12 +9,12 @@ import { CellDiagramInfoService } from './services/CellDiagramService/CellDiagra
 import { BuildInfoService } from './services/BuildService/BuildInfoService';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
-import { RuntimeLogsInfoService } from './services/RuntimeLogsService/RuntimeLogsService';
 import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { AuthzService } from './services/AuthzService/AuthzService';
+import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
 import {
@@ -85,11 +85,6 @@ export const choreoPlugin = createBackendPlugin({
 
         const projectInfoService = new ProjectInfoService(logger, baseUrl);
 
-        const runtimeLogsInfoService = new RuntimeLogsInfoService(
-          logger,
-          baseUrl,
-        );
-
         const workloadInfoService = new WorkloadInfoService(logger, baseUrl);
 
         const dashboardInfoService = new DashboardInfoService(logger, baseUrl);
@@ -102,6 +97,8 @@ export const choreoPlugin = createBackendPlugin({
         );
 
         const authzService = new AuthzService(logger, baseUrl);
+
+        const dataPlaneInfoService = new DataPlaneInfoService(logger, baseUrl);
 
         // Register OpenChoreo component permissions with the permissions registry
         // This enables CONDITIONAL permission checks against catalog entities
@@ -144,12 +141,12 @@ export const choreoPlugin = createBackendPlugin({
             buildInfoService,
             componentInfoService,
             projectInfoService,
-            runtimeLogsInfoService,
             workloadInfoService,
             dashboardInfoService,
             traitInfoService,
             secretReferencesInfoService,
             authzService,
+            dataPlaneInfoService,
             tokenService,
             authEnabled,
           }),

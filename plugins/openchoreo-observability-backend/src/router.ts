@@ -53,6 +53,33 @@ export async function createRouter({
     }
   });
 
+  router.post('/logs/component/:componentName', async (_req, res) => {
+    // Only enforce user auth when auth feature is enabled
+    // When auth is disabled (guest mode), skip httpAuth check
+    if (authEnabled) {
+      await httpAuth.credentials(_req, { allow: ['user'] });
+    }
+    const userToken = getUserTokenFromRequest(_req);
+    try {
+      const logs = await observabilityService.fetchRuntimeLogsByComponent(
+        _req.body.componentId,
+        _req.body.projectId,
+        _req.body.environmentId,
+        _req.body.orgName,
+        _req.body.projectName,
+        _req.body.environmentName,
+        _req.body.componentName,
+        _req.body.options,
+        userToken,
+      );
+      return res.status(200).json(logs);
+    } catch (error) {
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to fetch logs',
+      });
+    }
+  });
+
   router.get('/environments', async (req, res) => {
     // Only enforce user auth when auth feature is enabled
     if (authEnabled) {

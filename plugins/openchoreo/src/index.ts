@@ -3,7 +3,6 @@ export { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 export { Environments } from './components/Environments/Environments';
 export { CellDiagram } from './components/CellDiagram/CellDiagram';
 export {
-  RuntimeLogs,
   Traits,
   WorkflowsOverviewCard,
   ProductionOverviewCard,

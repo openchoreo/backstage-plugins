@@ -66,7 +66,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   return (
     <Grid container spacing={3}>
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="log-levels-label">Log Levels</InputLabel>
           <Select
             multiple
@@ -87,7 +87,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
           <Select
             multiple
@@ -115,7 +115,11 @@ export const LogsFilter: FC<LogsFilterProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled || environmentsLoading}>
+        <FormControl
+          fullWidth
+          disabled={disabled || environmentsLoading}
+          variant="outlined"
+        >
           <InputLabel id="environment-label">Environment</InputLabel>
           {environmentsLoading ? (
             <Skeleton variant="rect" height={56} />
@@ -137,7 +141,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
       </Grid>
 
       <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="time-range-label">Time Range</InputLabel>
           <Select
             value={filters.timeRange}

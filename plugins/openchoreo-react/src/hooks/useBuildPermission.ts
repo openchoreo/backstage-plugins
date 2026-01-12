@@ -61,7 +61,9 @@ export const useBuildPermission = (): UseBuildPermissionResult => {
       : '';
 
   const viewBuildDeniedTooltip =
-    !canView && !viewLoading ? 'You do not have permission to view builds' : '';
+    !canView && !viewLoading
+      ? 'You do not have permission to view builds of this component'
+      : '';
 
   return {
     canBuild,

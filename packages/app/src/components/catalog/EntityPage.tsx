@@ -61,7 +61,6 @@ import {
 import {
   Environments,
   CellDiagram,
-  RuntimeLogs,
   WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,
@@ -76,6 +75,7 @@ import {
   ObservabilityMetrics,
   ObservabilityTraces,
   ObservabilityRCA,
+  ObservabilityRuntimeLogs,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import { FeatureGate } from '@openchoreo/backstage-plugin-react';
@@ -161,7 +161,7 @@ function OverviewContent() {
  * - Metrics tab: shows empty state when observability feature is disabled
  */
 const serviceEntityPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
     </EntityLayout.Route>
@@ -178,7 +178,7 @@ const serviceEntityPage = (
 
     <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
       <FeatureGatedContent feature="observability">
-        <RuntimeLogs />
+        <ObservabilityRuntimeLogs />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -235,7 +235,7 @@ const serviceEntityPage = (
  * - Metrics tab: shows empty state when observability feature is disabled
  */
 const websiteEntityPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
     </EntityLayout.Route>
@@ -252,7 +252,7 @@ const websiteEntityPage = (
 
     <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
       <FeatureGatedContent feature="observability">
-        <RuntimeLogs />
+        <ObservabilityRuntimeLogs />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -299,7 +299,7 @@ const websiteEntityPage = (
  */
 
 const defaultEntityPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
     </EntityLayout.Route>
@@ -358,7 +358,7 @@ const componentPage = (
 );
 
 const apiPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3}>
         {entityWarningContent}
@@ -393,7 +393,7 @@ const apiPage = (
 );
 
 const userPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3}>
         {entityWarningContent}
@@ -409,7 +409,7 @@ const userPage = (
 );
 
 const groupPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3}>
         {entityWarningContent}
@@ -435,7 +435,7 @@ const groupPage = (
  * - Traces tab: shows empty state when observability feature is disabled
  */
 const systemPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -492,7 +492,7 @@ const systemPage = (
 );
 
 const domainPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -511,7 +511,7 @@ const domainPage = (
 );
 
 const resourcePage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -533,7 +533,7 @@ const resourcePage = (
 );
 
 const environmentPage = (
-  <EntityLayout>
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
