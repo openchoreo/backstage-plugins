@@ -35,9 +35,9 @@ backend:
   # Supports both SQLite (default) and PostgreSQL via environment variables
   # Set by Helm chart based on backstage.database.type (sqlite or postgresql)
   #
-  # For SQLite (default):
+  # For SQLite:
   #   DATABASE_CLIENT=better-sqlite3
-  #   SQLITE_STORAGE_DIR=/app/.config/backstage (mounted directory)
+  #   SQLITE_STORAGE_DIR=/app/.config/backstage (directory for per-plugin db files)
   #
   # For PostgreSQL:
   #   DATABASE_CLIENT=pg
@@ -46,7 +46,8 @@ backend:
     client: ${DATABASE_CLIENT}
     connection:
       # SQLite settings (used when DATABASE_CLIENT=better-sqlite3)
-      filename: ${SQLITE_STORAGE_DIR}/backstage.db
+      # Uses directory for per-plugin database files
+      directory: ${SQLITE_STORAGE_DIR}
       # PostgreSQL settings (used when DATABASE_CLIENT=pg)
       host: ${POSTGRES_HOST}
       port: ${POSTGRES_PORT}
