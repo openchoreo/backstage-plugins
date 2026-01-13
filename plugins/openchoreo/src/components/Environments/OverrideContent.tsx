@@ -12,7 +12,7 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(0),
   },
   formCard: {
-    padding: theme.spacing(2),
+    padding: theme.spacing(3),
     backgroundColor: theme.palette.common.white,
     borderRadius: theme.spacing(1),
     border: `1px solid ${theme.palette.divider}`,
