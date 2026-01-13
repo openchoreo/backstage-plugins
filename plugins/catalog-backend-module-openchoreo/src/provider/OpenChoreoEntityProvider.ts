@@ -292,8 +292,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               );
 
               for (const component of components) {
-                // If the component is a Service, fetch complete details and create both component and API entities
-                if (component.type === '') {
+                // If the component is a Service (has endpoints), fetch complete details and create both component and API entities
+                const pageVariant = this.componentTypeUtils.getPageVariant(
+                  component.type || '',
+                );
+                if (pageVariant === 'service') {
                   try {
                     const {
                       data: detailData,
@@ -307,6 +310,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                             orgName: org.name!,
                             projectName: project.name!,
                             componentName: component.name!,
+                          },
+                          query: {
+                            include: 'workload',
                           },
                         },
                       },
