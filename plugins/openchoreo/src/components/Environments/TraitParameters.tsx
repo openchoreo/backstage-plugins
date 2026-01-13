@@ -5,7 +5,6 @@ import { makeStyles } from '@material-ui/core/styles';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -30,31 +29,21 @@ const useStyles = makeStyles(theme => ({
     fontSize: 11,
     fontWeight: 500,
   },
-  parametersGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-    gap: theme.spacing(2),
+  jsonContainer: {
     marginTop: theme.spacing(2),
-  },
-  parameterItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(0.5),
-  },
-  parameterKey: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: theme.palette.text.primary,
-  },
-  parameterValue: {
-    fontSize: 13,
-    color: theme.palette.text.secondary,
-    fontFamily: 'monospace',
     backgroundColor:
       theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#f5f5f5',
-    padding: theme.spacing(0.5, 1),
     borderRadius: theme.shape.borderRadius,
-    wordBreak: 'break-all',
+    padding: theme.spacing(2),
+    overflow: 'auto',
+    maxHeight: 400,
+  },
+  jsonContent: {
+    fontFamily: 'monospace',
+    fontSize: 13,
+    color: theme.palette.text.secondary,
+    whiteSpace: 'pre',
+    margin: 0,
   },
   noParameters: {
     fontSize: 13,
@@ -116,13 +105,6 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
     fetchTraitParameters();
   }, [client, entity, traitInstanceName]);
 
-  const renderValue = (value: unknown): string => {
-    if (value === null) return 'null';
-    if (value === undefined) return 'undefined';
-    if (typeof value === 'boolean') return value.toString();
-    if (typeof value === 'object') return JSON.stringify(value, null, 2);
-    return String(value);
-  };
 
   if (loading) {
     return null; // Silent loading to avoid flicker
@@ -158,17 +140,10 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
       </Box>
       <Collapse in={expanded}>
         {hasParameters ? (
-          <Box className={classes.parametersGrid}>
-            {Object.entries(parameters).map(([key, value]) => (
-              <Box key={key} className={classes.parameterItem}>
-                <Typography className={classes.parameterKey}>
-                  {sanitizeLabel(key)}
-                </Typography>
-                <Typography className={classes.parameterValue}>
-                  {renderValue(value)}
-                </Typography>
-              </Box>
-            ))}
+          <Box className={classes.jsonContainer}>
+            <pre className={classes.jsonContent}>
+              {JSON.stringify(parameters, null, 2)}
+            </pre>
           </Box>
         ) : (
           <Typography className={classes.noParameters}>
