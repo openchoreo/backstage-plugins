@@ -112,4 +112,30 @@ export const useStyles = makeStyles((theme: Theme) => ({
     overflowY: 'auto',
     padding: theme.spacing(2),
   },
+  tabItemGroup: {
+    fontWeight: 600,
+    '&:hover': {
+      backgroundColor:
+        theme.palette.type === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#fafbfc',
+    },
+  },
+  tabItemNested: {
+    fontSize: 13,
+    '& $tabLabel': {
+      fontSize: 13,
+    },
+  },
+  expandIcon: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: theme.palette.text.secondary,
+    transition: 'transform 0.2s ease-in-out',
+    '& svg': {
+      fontSize: 18,
+    },
+  },
+  expandIconExpanded: {
+    transform: 'rotate(180deg)',
+  },
 }));

@@ -64,7 +64,8 @@ export const VerticalTabNav: React.FC<VerticalTabNavProps> = ({
             key={tab.id}
             tab={tab}
             isActive={activeTabId === tab.id}
-            onClick={() => onChange(tab.id)}
+            onClick={onChange}
+            activeTabId={activeTabId}
           />
         ))}
       </Box>

@@ -8,6 +8,18 @@ import {
   Box,
   Typography,
 } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
+
+const useStyles = makeStyles(theme => ({
+  deleteButton: {
+    color: theme.palette.error.dark,
+    borderColor: theme.palette.error.dark,
+    '&:hover': {
+      borderColor: theme.palette.error.dark,
+      backgroundColor: `${theme.palette.error.dark}0A`, // 4% opacity
+    },
+  },
+}));
 
 interface DeleteConfirmationDialogProps {
   open: boolean;
@@ -28,6 +40,7 @@ export const DeleteConfirmationDialog: FC<DeleteConfirmationDialogProps> = ({
   initialTraitFormDataMap,
   deleting,
 }) => {
+  const classes = useStyles();
   const hasInitialComponentTypeOverrides =
     initialComponentTypeFormData &&
     Object.keys(initialComponentTypeFormData).length > 0;
@@ -88,19 +101,19 @@ export const DeleteConfirmationDialog: FC<DeleteConfirmationDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle>Delete Overrides?</DialogTitle>
+      <DialogTitle disableTypography><Typography variant="h4">Delete Overrides?</Typography></DialogTitle>
 
-      <DialogContent dividers>{getDeleteMessage()}</DialogContent>
+      <DialogContent>{getDeleteMessage()}</DialogContent>
 
       <DialogActions>
-        <Button onClick={onCancel} disabled={deleting}>
+        <Button onClick={onCancel} disabled={deleting} variant="contained">
           Cancel
         </Button>
         <Button
           onClick={onConfirm}
-          color="secondary"
-          variant="contained"
+          variant="outlined"
           disabled={deleting}
+          className={classes.deleteButton}
         >
           {deleting ? 'Deleting...' : 'Confirm Delete'}
         </Button>

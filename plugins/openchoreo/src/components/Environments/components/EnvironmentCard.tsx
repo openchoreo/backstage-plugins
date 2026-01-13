@@ -31,7 +31,7 @@ export const EnvironmentCard = ({
   const classes = useEnvironmentCardStyles();
 
   return (
-    <Card interactive style={{ minHeight: '300px' }}>
+    <Card style={{ minHeight: '300px' }}>
       <CardContent className={classes.cardContent}>
         <EnvironmentCardHeader
           environmentName={environmentName}
