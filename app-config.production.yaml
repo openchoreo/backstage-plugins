@@ -31,11 +31,28 @@ backend:
     origin: ${BACKSTAGE_BASE_URL}
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
-  # This is for local development only, it is not recommended to use this in production
-  # The production database configuration is stored in app-config.production.yaml
+  # Database configuration
+  # Supports both SQLite (default) and PostgreSQL via environment variables
+  # Set by Helm chart based on backstage.database.type (sqlite or postgresql)
+  #
+  # For SQLite (default):
+  #   DATABASE_CLIENT=better-sqlite3
+  #   SQLITE_STORAGE_DIR=/app/.config/backstage (mounted directory)
+  #
+  # For PostgreSQL:
+  #   DATABASE_CLIENT=pg
+  #   POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
   database:
-    client: better-sqlite3
-    connection: ':memory:'
+    client: ${DATABASE_CLIENT}
+    connection:
+      # SQLite settings (used when DATABASE_CLIENT=better-sqlite3)
+      filename: ${SQLITE_STORAGE_DIR}/backstage.db
+      # PostgreSQL settings (used when DATABASE_CLIENT=pg)
+      host: ${POSTGRES_HOST}
+      port: ${POSTGRES_PORT}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      database: ${POSTGRES_DB}
   # workingDirectory: /tmp # Use this to configure a working directory for the scaffolder, defaults to the OS temp-dir
 
 # Reference documentation http://backstage.io/docs/features/techdocs/configuration
