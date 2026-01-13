@@ -49,7 +49,7 @@ export const SetupCard = ({
 
   return (
     <>
-      <Card interactive style={{ minHeight: '300px' }}>
+      <Card style={{ minHeight: '300px' }}>
         <Box className={classes.setupCard}>
           <CardContent className={classes.cardContent}>
             <Typography variant="h6" component="h4">
