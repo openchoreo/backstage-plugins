@@ -87,6 +87,7 @@ export function getRepositoryUrl(
  */
 const KNOWN_ACRONYMS = new Set([
   'cpu',
+  'ai',
   'gpu',
   'ram',
   'api',
