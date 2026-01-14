@@ -858,7 +858,7 @@ export const EnvironmentOverridesPage = ({
             title={`${traitName} Trait`}
             contentTitle={
               <>
-                <Box display="flex" alignItems="center" gridGap={4} mb={2}>
+                <Box display="flex" alignItems="center" gridGap={4} mb={4}>
                   <Typography variant="h4">{traitName}</Typography>
                   <Typography variant="h4" color="textSecondary">
                     ({traitType})
