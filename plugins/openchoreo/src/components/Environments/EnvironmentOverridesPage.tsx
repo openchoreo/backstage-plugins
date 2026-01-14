@@ -118,7 +118,6 @@ export const EnvironmentOverridesPage = ({
         setTraitTypeMap(typeMap);
       } catch (err) {
         // Silently fail - trait types are nice to have but not critical
-        console.warn('Failed to fetch trait types:', err);
       }
     };
     fetchTraitTypes();
@@ -864,7 +863,10 @@ export const EnvironmentOverridesPage = ({
                     ({traitType})
                   </Typography>
                 </Box>
-                <TraitParameters entity={entity} traitInstanceName={traitName} />
+                <TraitParameters
+                  entity={entity}
+                  traitInstanceName={traitName}
+                />
               </>
             }
             sectionTitle={

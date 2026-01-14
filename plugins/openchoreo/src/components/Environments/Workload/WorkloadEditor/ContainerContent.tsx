@@ -336,10 +336,7 @@ export function ContainerContent({
 
             {/* Environment Variables */}
             <Box mt={3}>
-              <Typography
-                variant="h5"
-                gutterBottom
-              >
+              <Typography variant="h5" gutterBottom>
                 Environment Variables
               </Typography>
               {showEnvVarStatus && baseWorkloadData ? (
@@ -379,10 +376,7 @@ export function ContainerContent({
 
             {/* File Mounts */}
             <Box mt={3}>
-              <Typography
-                variant="h5"
-                gutterBottom
-              >
+              <Typography variant="h5" gutterBottom>
                 File Mounts
               </Typography>
               {showEnvVarStatus && baseWorkloadData ? (

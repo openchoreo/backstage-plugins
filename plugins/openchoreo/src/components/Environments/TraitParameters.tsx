@@ -105,7 +105,6 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
     fetchTraitParameters();
   }, [client, entity, traitInstanceName]);
 
-
   if (loading) {
     return null; // Silent loading to avoid flicker
   }
@@ -123,7 +122,9 @@ export const TraitParameters: React.FC<TraitParametersProps> = ({
   return (
     <Box className={classes.container}>
       <Box className={classes.header} onClick={() => setExpanded(!expanded)}>
-        <Typography variant='h5' color='textSecondary'>Configured Parameters</Typography>
+        <Typography variant="h5" color="textSecondary">
+          Configured Parameters
+        </Typography>
         <Chip
           label="Read Only"
           size="small"
