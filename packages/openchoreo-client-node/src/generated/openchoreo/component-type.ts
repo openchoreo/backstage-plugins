@@ -8,15 +8,10 @@ import type { components } from './types';
 
 /**
  * Component Type metadata
- * Extends ComponentTypeResponse to include optional tags field
+ * Direct type alias from ComponentTypeResponse
  */
 export type ComponentTypeMetadata =
-  components['schemas']['ComponentTypeResponse'] & {
-    /**
-     * Tags for categorization and filtering (optional)
-     */
-    tags?: string[];
-  };
+  components['schemas']['ComponentTypeResponse'];
 
 /**
  * Component Type specification

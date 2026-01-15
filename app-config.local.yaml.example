@@ -35,6 +35,12 @@ backend:
 openchoreo:
   baseUrl: http://api.openchoreo.localhost:8080/api/v1
   # token: ""  # Optional: uncomment if you need API authentication
+  # OPTIONAL: For large-scale local testing, enable incremental ingestion
+  # incremental:
+  #   burstLength: 16 # Duration of each burst of processing activity in seconds
+  #   burstInterval: 8 # Interval between bursts of processing activity in seconds
+  #   chunkSize: 512 # Number of items to fetch per API request
+  #   restLength: 60 # Duration of rest periods between bursts in minutes
 
   # OAuth2 Client Credentials for background tasks (Catalog Entity Provider)
   # Required for the Catalog Provider to fetch organizations, projects, and components
