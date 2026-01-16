@@ -67,6 +67,8 @@ export const ObservabilityRuntimeLogsPage = () => {
     fetchLogs,
     loadMore,
     refresh,
+    componentId,
+    projectId,
   } = useRuntimeLogs(entity, organization || '', project || '', {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
@@ -77,44 +79,53 @@ export const ObservabilityRuntimeLogsPage = () => {
 
   const { loadingRef } = useInfiniteScroll(loadMore, hasMore, logsLoading);
 
-  // Track previous backend-relevant filters to avoid unnecessary fetches
-  const previousBackendFiltersRef = useRef({
-    environmentId: filters.environmentId,
-    logLevel: filters.logLevel,
-    timeRange: filters.timeRange,
-  });
+  // Track previous filter values to detect changes
+  // Initialize with null to ensure initial fetch happens when all conditions are ready
+  const previousFiltersRef = useRef<{
+    environmentId: string;
+    logLevel: string[];
+    timeRange: string;
+    componentId: string | null;
+    projectId: string | null;
+  } | null>(null);
 
   // Note: Auto-selection of first environment is handled by useUrlFilters hook
 
-  // Fetch logs when backend-relevant filters change
+  // Fetch logs when filters change or when component/project IDs become available
   useEffect(() => {
-    const currentBackendFilters = {
+    const currentFilters = {
       environmentId: filters.environmentId,
       logLevel: filters.logLevel,
       timeRange: filters.timeRange,
+      componentId: componentId,
+      projectId: projectId,
       // TODO: Sort filter will be added here later
     };
 
-    // Only fetch if backend-relevant filters changed
-    const backendFiltersChanged =
-      JSON.stringify(previousBackendFiltersRef.current) !==
-      JSON.stringify(currentBackendFilters);
+    // Only fetch if filters changed (null means first load)
+    const filtersChanged =
+      previousFiltersRef.current === null ||
+      JSON.stringify(previousFiltersRef.current) !==
+        JSON.stringify(currentFilters);
 
     if (
       filters.environmentId &&
       selectedEnvironment &&
       organization &&
       project &&
-      backendFiltersChanged
+      componentId &&
+      projectId &&
+      filtersChanged
     ) {
       fetchLogs(true);
+      previousFiltersRef.current = currentFilters;
     }
-
-    previousBackendFiltersRef.current = currentBackendFilters;
   }, [
     filters.environmentId,
     filters.logLevel,
     filters.timeRange,
+    componentId,
+    projectId,
     fetchLogs,
     selectedEnvironment,
     organization,
