@@ -7,9 +7,17 @@
     [
       "@openchoreo/backstage-plugin",
       "@openchoreo/backstage-plugin-backend",
-      "@openchoreo/backstage-plugin-api",
       "@openchoreo/backstage-plugin-catalog-backend-module",
-      "@openchoreo/backstage-plugin-scaffolder-backend-module"
+      "@openchoreo/backstage-plugin-scaffolder-backend-module",
+      "@openchoreo/backstage-plugin-common",
+      "@openchoreo/backstage-plugin-react",
+      "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy",
+      "@openchoreo/backstage-plugin-platform-engineer-core",
+      "@openchoreo/backstage-plugin-platform-engineer-core-backend",
+      "@openchoreo/backstage-design-system",
+      "@openchoreo/openapi-client-generator-node",
+      "@openchoreo/openchoreo-auth",
+      "@openchoreo/openchoreo-client-node"
     ]
   ],
   "access": "restricted",
