@@ -32,7 +32,7 @@ export class WorkloadInfoService implements WorkloadService {
    * @param {Object} request - The request parameters
    * @param {string} request.projectName - Name of the project containing the component
    * @param {string} request.componentName - Name of the component to fetch workload info for
-   * @param {string} request.organizationName - Name of the organization owning the project
+   * @param {string} request.namespaceName - Name of the namespace owning the project
    * @returns {Promise<ModelsWorkload>} The workload configuration
    * @throws {Error} When there's an error fetching data from the API
    */
@@ -40,15 +40,15 @@ export class WorkloadInfoService implements WorkloadService {
     request: {
       projectName: string;
       componentName: string;
-      organizationName: string;
+      namespaceName: string;
     },
     token?: string,
   ): Promise<ModelsWorkload> {
-    const { projectName, componentName, organizationName } = request;
+    const { projectName, componentName, namespaceName } = request;
 
     try {
       this.logger.info(
-        `Fetching workload info for component: ${componentName} in project: ${projectName}, org: ${organizationName}`,
+        `Fetching workload info for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -58,11 +58,11 @@ export class WorkloadInfoService implements WorkloadService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workloads',
         {
           params: {
             path: {
-              orgName: organizationName,
+              namespaceName,
               projectName,
               componentName,
             },
@@ -93,7 +93,7 @@ export class WorkloadInfoService implements WorkloadService {
    * @param {Object} request - The request parameters
    * @param {string} request.projectName - Name of the project containing the component
    * @param {string} request.componentName - Name of the component to apply workload for
-   * @param {string} request.organizationName - Name of the organization owning the project
+   * @param {string} request.namespaceName - Name of the namespace owning the project
    * @param {ModelsWorkload} request.workloadSpec - The workload specification to apply
    * @returns {Promise<any>} The result of the apply operation
    * @throws {Error} When there's an error applying the workload
@@ -102,17 +102,16 @@ export class WorkloadInfoService implements WorkloadService {
     request: {
       projectName: string;
       componentName: string;
-      organizationName: string;
+      namespaceName: string;
       workloadSpec: ModelsWorkload;
     },
     token?: string,
   ): Promise<any> {
-    const { projectName, componentName, organizationName, workloadSpec } =
-      request;
+    const { projectName, componentName, namespaceName, workloadSpec } = request;
 
     try {
       this.logger.info(
-        `Applying workload for component: ${componentName} in project: ${projectName}, org: ${organizationName}`,
+        `Applying workload for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -122,11 +121,11 @@ export class WorkloadInfoService implements WorkloadService {
       });
 
       const { data, error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workloads',
         {
           params: {
             path: {
-              orgName: organizationName,
+              namespaceName,
               projectName,
               componentName,
             },

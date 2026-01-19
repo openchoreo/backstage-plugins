@@ -20,19 +20,19 @@ export class ComponentInfoService {
   /**
    * Fetches component details from OpenChoreo API.
    *
-   * @param orgName - Organization name
+   * @param namespaceName - Namespace name
    * @param projectName - Project name
    * @param componentName - Component name
    * @param token - Optional user token (overrides default token if provided)
    */
   async fetchComponentDetails(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     token?: string,
   ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
-      `Fetching component details for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching component details for: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -43,10 +43,10 @@ export class ComponentInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
         },
       );
@@ -78,21 +78,21 @@ export class ComponentInfoService {
   /**
    * Patches a component in OpenChoreo API.
    *
-   * @param orgName - Organization name
+   * @param namespaceName - Namespace name
    * @param projectName - Project name
    * @param componentName - Component name
    * @param autoDeploy - Auto deploy setting
    * @param token - Optional user token (overrides default token if provided)
    */
   async patchComponent(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     autoDeploy: boolean,
     token?: string,
   ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
-      `Patching component: ${componentName} in project: ${projectName}, organization: ${orgName} with autoDeploy: ${autoDeploy}`,
+      `Patching component: ${componentName} in project: ${projectName}, namespace: ${namespaceName} with autoDeploy: ${autoDeploy}`,
     );
 
     try {
@@ -103,10 +103,10 @@ export class ComponentInfoService {
       });
 
       const { data, error, response } = await client.PATCH(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
           body: {
             autoDeploy,

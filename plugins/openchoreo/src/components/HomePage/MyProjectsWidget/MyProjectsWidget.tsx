@@ -42,12 +42,12 @@ export const MyProjectsWidget = () => {
       const componentInfoList = componentsResponse.items
         .map(component => {
           const annotations = component.metadata.annotations || {};
-          const orgName = annotations[CHOREO_ANNOTATIONS.ORGANIZATION];
+          const namespaceName = annotations[CHOREO_ANNOTATIONS.NAMESPACE];
           const projectName = annotations[CHOREO_ANNOTATIONS.PROJECT];
           const componentName = annotations[CHOREO_ANNOTATIONS.COMPONENT];
 
-          if (orgName && projectName && componentName) {
-            return { orgName, projectName, componentName };
+          if (namespaceName && projectName && componentName) {
+            return { namespaceName, projectName, componentName };
           }
           return null;
         })
@@ -55,7 +55,7 @@ export const MyProjectsWidget = () => {
           (
             info,
           ): info is {
-            orgName: string;
+            namespaceName: string;
             projectName: string;
             componentName: string;
           } => info !== null,

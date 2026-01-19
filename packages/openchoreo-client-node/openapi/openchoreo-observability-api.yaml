@@ -461,7 +461,7 @@ components:
         - endTime
         - componentName
         - projectName
-        - orgName
+        - namespaceName
       properties:
         startTime:
           type: string
@@ -494,10 +494,10 @@ components:
           type: string
           description: Project name
           example: 'my-project'
-        orgName:
+        namespaceName:
           type: string
-          description: Organization name
-          example: 'my-org'
+          description: Namespace name
+          example: 'my-namespace'
 
     ComponentLogsRequest:
       type: object
@@ -507,7 +507,7 @@ components:
         - environmentId
         - componentName
         - projectName
-        - orgName
+        - namespaceName
         - environmentName
         # - namespace
       properties:
@@ -589,10 +589,10 @@ components:
           type: string
           description: Environment name
           example: 'my-environment'
-        orgName:
+        namespaceName:
           type: string
-          description: Organization name
-          example: 'my-org'
+          description: Namespace name
+          example: 'my-namespace'
 
     ProjectLogsRequest:
       allOf:
@@ -687,7 +687,7 @@ components:
         - projectName
         - environmentName
         - componentNames
-        - orgName
+        - namespaceName
       properties:
         projectUid:
           type: string
@@ -761,10 +761,10 @@ components:
           type: string
           description: Environment name
           example: 'my-environment'
-        orgName:
+        namespaceName:
           type: string
-          description: Organization name
-          example: 'my-org'
+          description: Namespace name
+          example: 'my-namespace'
 
     MetricsRequest:
       type: object
@@ -774,7 +774,7 @@ components:
         - projectId
         - componentName
         - projectName
-        - orgName
+        - namespaceName
         - environmentName
       properties:
         componentId:
@@ -811,10 +811,10 @@ components:
           type: string
           description: Environment name
           example: 'my-environment'
-        orgName:
+        namespaceName:
           type: string
-          description: Organization name
-          example: 'my-org'
+          description: Namespace name
+          example: 'my-namespace'
 
     LogEntry:
       type: object

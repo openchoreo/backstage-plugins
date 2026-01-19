@@ -46,13 +46,13 @@ export class WorkflowService {
   // ==================== Build Operations ====================
 
   async fetchBuilds(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     token?: string,
   ): Promise<ModelsBuild[]> {
     this.logger.debug(
-      `Fetching component workflow runs for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching component workflow runs for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -63,10 +63,10 @@ export class WorkflowService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
         },
       );
@@ -96,14 +96,14 @@ export class WorkflowService {
   }
 
   async getWorkflowRun(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     runName: string,
     token?: string,
   ): Promise<any> {
     this.logger.debug(
-      `Fetching workflow run: ${runName} for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching workflow run: ${runName} for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -114,10 +114,10 @@ export class WorkflowService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
         {
           params: {
-            path: { orgName, projectName, componentName, runName },
+            path: { namespaceName, projectName, componentName, runName },
           },
         },
       );
@@ -143,14 +143,14 @@ export class WorkflowService {
   }
 
   async triggerBuild(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     commit?: string,
     token?: string,
   ): Promise<ModelsBuild> {
     this.logger.info(
-      `Triggering component workflow for component: ${componentName} in project: ${projectName}, organization: ${orgName}${
+      `Triggering component workflow for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}${
         commit ? ` with commit: ${commit}` : ''
       }`,
     );
@@ -163,10 +163,10 @@ export class WorkflowService {
       });
 
       const { data, error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
             query: commit ? { commit } : undefined,
           },
         },
@@ -195,7 +195,7 @@ export class WorkflowService {
   }
 
   async fetchBuildLogs(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     buildId: string,
@@ -220,11 +220,11 @@ export class WorkflowService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/observer-url',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url',
         {
           params: {
             path: {
-              orgName,
+              namespaceName,
               projectName,
               componentName,
             },
@@ -275,7 +275,7 @@ export class WorkflowService {
             sortOrder: sortOrder || 'asc',
             componentName,
             projectName,
-            orgName,
+            namespaceName,
           },
         },
       );
@@ -321,13 +321,15 @@ export class WorkflowService {
   // ==================== Workflow Schema Operations ====================
 
   /**
-   * Fetch list of component workflows for an organization
+   * Fetch list of component workflows for a namespace
    */
   async fetchWorkflows(
-    orgName: string,
+    namespaceName: string,
     token?: string,
   ): Promise<WorkflowListResponse> {
-    this.logger.debug(`Fetching component workflows for org: ${orgName}`);
+    this.logger.debug(
+      `Fetching component workflows for namespace: ${namespaceName}`,
+    );
 
     try {
       const client = createOpenChoreoApiClient({
@@ -337,10 +339,10 @@ export class WorkflowService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/component-workflows',
+        '/namespaces/{namespaceName}/component-workflows',
         {
           params: {
-            path: { orgName },
+            path: { namespaceName },
           },
         },
       );
@@ -358,12 +360,12 @@ export class WorkflowService {
       const workflowList: WorkflowListResponse = data as WorkflowListResponse;
 
       this.logger.debug(
-        `Successfully fetched ${workflowList.data.items.length} component workflows for org: ${orgName}`,
+        `Successfully fetched ${workflowList.data.items.length} component workflows for namespace: ${namespaceName}`,
       );
       return workflowList;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch component workflows for org ${orgName}: ${error}`,
+        `Failed to fetch component workflows for namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
@@ -373,12 +375,12 @@ export class WorkflowService {
    * Fetch JSONSchema for a specific component workflow
    */
   async fetchWorkflowSchema(
-    orgName: string,
+    namespaceName: string,
     workflowName: string,
     token?: string,
   ): Promise<WorkflowSchemaResponse> {
     this.logger.debug(
-      `Fetching schema for component workflow: ${workflowName} in org: ${orgName}`,
+      `Fetching schema for component workflow: ${workflowName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -389,10 +391,10 @@ export class WorkflowService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/component-workflows/{cwName}/schema',
+        '/namespaces/{namespaceName}/component-workflows/{cwName}/schema',
         {
           params: {
-            path: { orgName, cwName: workflowName },
+            path: { namespaceName, cwName: workflowName },
           },
         },
       );
@@ -416,7 +418,7 @@ export class WorkflowService {
       return workflowSchema;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch schema for component workflow ${workflowName} in org ${orgName}: ${error}`,
+        `Failed to fetch schema for component workflow ${workflowName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
@@ -426,7 +428,7 @@ export class WorkflowService {
    * Update component workflow parameters (PATCH)
    */
   async updateComponentWorkflowParameters(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     systemParameters: { [key: string]: unknown },
@@ -434,7 +436,7 @@ export class WorkflowService {
     token?: string,
   ): Promise<OpenChoreoComponents['schemas']['APIResponse']> {
     this.logger.debug(
-      `Updating workflow parameters for component: ${componentName} in project: ${projectName}, org: ${orgName}`,
+      `Updating workflow parameters for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -445,10 +447,10 @@ export class WorkflowService {
       });
 
       const { data, error, response } = await client.PATCH(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-parameters',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-parameters',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
           body: {
             systemParameters: systemParameters as any,

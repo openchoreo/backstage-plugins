@@ -11,7 +11,7 @@ export interface ComponentResourceInput {
   componentName: string;
   displayName?: string;
   description?: string;
-  organizationName: string;
+  namespaceName: string;
   projectName: string;
 
   // Section 2: Component Type Configuration
@@ -49,7 +49,7 @@ export function buildComponentResource(
     kind: 'Component',
     metadata: {
       name: input.componentName,
-      namespace: input.organizationName,
+      namespace: input.namespaceName,
       annotations: {},
     },
     spec: {

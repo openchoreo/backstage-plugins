@@ -14,8 +14,7 @@ import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 // Use generated types from OpenAPI spec
 type ModelsProject = OpenChoreoComponents['schemas']['ProjectResponse'];
-type ModelsOrganization =
-  OpenChoreoComponents['schemas']['OrganizationResponse'];
+type ModelsNamespace = OpenChoreoComponents['schemas']['NamespaceResponse'];
 type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
@@ -102,9 +101,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     }
 
     try {
-      this.logger.info(
-        'Fetching organizations and projects from OpenChoreo API',
-      );
+      this.logger.info('Fetching namespaces and projects from OpenChoreo API');
 
       // Get service token for background task (client credentials flow)
       let token: string | undefined;
@@ -126,52 +123,52 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         logger: this.logger,
       });
 
-      // First, get all organizations
+      // First, get all namespaces
       const {
-        data: orgData,
-        error: orgError,
-        response: orgResponse,
-      } = await client.GET('/orgs');
+        data: nsData,
+        error: nsError,
+        response: nsResponse,
+      } = await client.GET('/namespaces');
 
-      if (orgError || !orgResponse.ok) {
+      if (nsError || !nsResponse.ok) {
         throw new Error(
-          `Failed to fetch organizations: ${orgResponse.status} ${orgResponse.statusText}`,
+          `Failed to fetch namespaces: ${nsResponse.status} ${nsResponse.statusText}`,
         );
       }
 
-      if (!orgData.success || !orgData.data?.items) {
-        throw new Error('Failed to retrieve organization list');
+      if (!nsData.success || !nsData.data?.items) {
+        throw new Error('Failed to retrieve namespace list');
       }
 
-      const organizations = orgData.data.items as ModelsOrganization[];
+      const namespaces = nsData.data.items as ModelsNamespace[];
       this.logger.debug(
-        `Found ${organizations.length} organizations from OpenChoreo`,
+        `Found ${namespaces.length} namespaces from OpenChoreo`,
       );
 
       const allEntities: Entity[] = [];
 
-      // Create Domain entities for each organization
-      const domainEntities: Entity[] = organizations.map(org =>
-        this.translateOrganizationToDomain(org),
+      // Create Domain entities for each namespace
+      const domainEntities: Entity[] = namespaces.map(ns =>
+        this.translateNamespaceToDomain(ns),
       );
       allEntities.push(...domainEntities);
 
-      // Get environments for each organization and create Environment entities
-      for (const org of organizations) {
+      // Get environments for each namespace and create Environment entities
+      for (const ns of namespaces) {
         try {
           const {
             data: envData,
             error: envError,
             response: envResponse,
-          } = await client.GET('/orgs/{orgName}/environments', {
+          } = await client.GET('/namespaces/{namespaceName}/environments', {
             params: {
-              path: { orgName: org.name! },
+              path: { namespaceName: ns.name! },
             },
           });
 
           if (envError || !envResponse.ok) {
             this.logger.warn(
-              `Failed to fetch environments for organization ${org.name}: ${envResponse.status}`,
+              `Failed to fetch environments for namespace ${ns.name}: ${envResponse.status}`,
             );
             continue;
           }
@@ -181,36 +178,36 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               ? (envData.data.items as ModelsEnvironment[])
               : [];
           this.logger.debug(
-            `Found ${environments.length} environments in organization: ${org.name}`,
+            `Found ${environments.length} environments in namespace: ${ns.name}`,
           );
 
           const environmentEntities: Entity[] = environments.map(environment =>
-            this.translateEnvironmentToEntity(environment, org.name!),
+            this.translateEnvironmentToEntity(environment, ns.name!),
           );
           allEntities.push(...environmentEntities);
         } catch (error) {
           this.logger.warn(
-            `Failed to fetch environments for organization ${org.name}: ${error}`,
+            `Failed to fetch environments for namespace ${ns.name}: ${error}`,
           );
         }
       }
 
-      // Get dataplanes for each organization and create Dataplane entities
-      for (const org of organizations) {
+      // Get dataplanes for each namespace and create Dataplane entities
+      for (const ns of namespaces) {
         try {
           const {
             data: dpData,
             error: dpError,
             response: dpResponse,
-          } = await client.GET('/orgs/{orgName}/dataplanes', {
+          } = await client.GET('/namespaces/{namespaceName}/dataplanes', {
             params: {
-              path: { orgName: org.name! },
+              path: { namespaceName: ns.name! },
             },
           });
 
           if (dpError || !dpResponse.ok) {
             this.logger.warn(
-              `Failed to fetch dataplanes for organization ${org.name}: ${dpResponse.status}`,
+              `Failed to fetch dataplanes for namespace ${ns.name}: ${dpResponse.status}`,
             );
             continue;
           }
@@ -220,36 +217,36 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               ? (dpData.data.items as ModelsDataPlane[])
               : [];
           this.logger.debug(
-            `Found ${dataplanes.length} dataplanes in organization: ${org.name}`,
+            `Found ${dataplanes.length} dataplanes in namespace: ${ns.name}`,
           );
 
           const dataplaneEntities: Entity[] = dataplanes.map(dataplane =>
-            this.translateDataplaneToEntity(dataplane, org.name!),
+            this.translateDataplaneToEntity(dataplane, ns.name!),
           );
           allEntities.push(...dataplaneEntities);
         } catch (error) {
           this.logger.warn(
-            `Failed to fetch dataplanes for organization ${org.name}: ${error}`,
+            `Failed to fetch dataplanes for namespace ${ns.name}: ${error}`,
           );
         }
       }
 
-      // Get projects for each organization and create System entities
-      for (const org of organizations) {
+      // Get projects for each namespace and create System entities
+      for (const ns of namespaces) {
         try {
           const {
             data: projData,
             error: projError,
             response: projResponse,
-          } = await client.GET('/orgs/{orgName}/projects', {
+          } = await client.GET('/namespaces/{namespaceName}/projects', {
             params: {
-              path: { orgName: org.name! },
+              path: { namespaceName: ns.name! },
             },
           });
 
           if (projError || !projResponse.ok) {
             this.logger.warn(
-              `Failed to fetch projects for organization ${org.name}: ${projResponse.status}`,
+              `Failed to fetch projects for namespace ${ns.name}: ${projResponse.status}`,
             );
             continue;
           }
@@ -259,11 +256,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               ? (projData.data.items as ModelsProject[])
               : [];
           this.logger.debug(
-            `Found ${projects.length} projects in organization: ${org.name}`,
+            `Found ${projects.length} projects in namespace: ${ns.name}`,
           );
 
           const systemEntities: Entity[] = projects.map(project =>
-            this.translateProjectToEntity(project, org.name!),
+            this.translateProjectToEntity(project, ns.name!),
           );
           allEntities.push(...systemEntities);
 
@@ -317,10 +314,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 error: compError,
                 response: compResponse,
               } = await client.GET(
-                '/orgs/{orgName}/projects/{projectName}/components',
+                '/namespaces/{namespaceName}/projects/{projectName}/components',
                 {
                   params: {
-                    path: { orgName: org.name!, projectName: project.name! },
+                    path: {
+                      namespaceName: ns.name!,
+                      projectName: project.name!,
+                    },
                   },
                 },
               );
@@ -352,11 +352,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                       error: detailError,
                       response: detailResponse,
                     } = await client.GET(
-                      '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+                      '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
                       {
                         params: {
                           path: {
-                            orgName: org.name!,
+                            namespaceName: ns.name!,
                             projectName: project.name!,
                             componentName: component.name!,
                           },
@@ -379,7 +379,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                       // Fallback to basic component entity
                       const componentEntity = this.translateComponentToEntity(
                         component,
-                        org.name!,
+                        ns.name!,
                         project.name!,
                       );
                       allEntities.push(componentEntity);
@@ -392,7 +392,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     const componentEntity =
                       this.translateServiceComponentToEntity(
                         completeComponent,
-                        org.name!,
+                        ns.name!,
                         project.name!,
                       );
                     allEntities.push(componentEntity);
@@ -401,7 +401,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     if (completeComponent.workload?.endpoints) {
                       const apiEntities = this.createApiEntitiesFromWorkload(
                         completeComponent,
-                        org.name!,
+                        ns.name!,
                         project.name!,
                       );
                       allEntities.push(...apiEntities);
@@ -413,7 +413,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     // Fallback to basic component entity
                     const componentEntity = this.translateComponentToEntity(
                       component,
-                      org.name!,
+                      ns.name!,
                       project.name!,
                     );
                     allEntities.push(componentEntity);
@@ -422,7 +422,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   // Create basic component entity for non-Service components
                   const componentEntity = this.translateComponentToEntity(
                     component,
-                    org.name!,
+                    ns.name!,
                     project.name!,
                   );
                   allEntities.push(componentEntity);
@@ -430,23 +430,23 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               }
             } catch (error) {
               this.logger.warn(
-                `Failed to fetch components for project ${project.name} in organization ${org.name}: ${error}`,
+                `Failed to fetch components for project ${project.name} in namespace ${ns.name}: ${error}`,
               );
             }
           }
         } catch (error) {
           this.logger.warn(
-            `Failed to fetch projects for organization ${org.name}: ${error}`,
+            `Failed to fetch projects for namespace ${ns.name}: ${error}`,
           );
         }
       }
 
       // Fetch Component Type Definitions and generate Template entities
       // Use the new two-step API: list + schema for each CTD
-      for (const org of organizations) {
+      for (const ns of namespaces) {
         try {
           this.logger.info(
-            `Fetching Component Type Definitions from OpenChoreo API for org: ${org.name}`,
+            `Fetching Component Type Definitions from OpenChoreo API for namespace: ${ns.name}`,
           );
 
           // Step 1: List CTDs (complete metadata including allowedWorkflows)
@@ -454,9 +454,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             data: listData,
             error: listError,
             response: listResponse,
-          } = await client.GET('/orgs/{orgName}/component-types', {
+          } = await client.GET('/namespaces/{namespaceName}/component-types', {
             params: {
-              path: { orgName: org.name! },
+              path: { namespaceName: ns.name! },
             },
           });
 
@@ -467,7 +467,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             !listData.data?.items
           ) {
             this.logger.warn(
-              `Failed to fetch component types for org ${org.name}: ${listResponse.status}`,
+              `Failed to fetch component types for namespace ${ns.name}: ${listResponse.status}`,
             );
             continue;
           }
@@ -475,7 +475,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           const componentTypeItems = listData.data
             .items as OpenChoreoComponents['schemas']['ComponentTypeResponse'][];
           this.logger.debug(
-            `Found ${componentTypeItems.length} CTDs in organization: ${org.name} (total: ${listData.data.totalCount})`,
+            `Found ${componentTypeItems.length} CTDs in namespace: ${ns.name} (total: ${listData.data.totalCount})`,
           );
 
           // Step 2: Fetch schemas in parallel for better performance
@@ -487,10 +487,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   error: schemaError,
                   response: schemaResponse,
                 } = await client.GET(
-                  '/orgs/{orgName}/component-types/{ctName}/schema',
+                  '/namespaces/{namespaceName}/component-types/{ctName}/schema',
                   {
                     params: {
-                      path: { orgName: org.name!, ctName: listItem.name! },
+                      path: { namespaceName: ns.name!, ctName: listItem.name! },
                     },
                   },
                 );
@@ -502,7 +502,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   !schemaData?.data
                 ) {
                   this.logger.warn(
-                    `Failed to fetch schema for CTD ${listItem.name} in org ${org.name}: ${schemaResponse.status}`,
+                    `Failed to fetch schema for CTD ${listItem.name} in namespace ${ns.name}: ${schemaResponse.status}`,
                   );
                   return null;
                 }
@@ -525,7 +525,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 return fullComponentType;
               } catch (error) {
                 this.logger.warn(
-                  `Failed to fetch schema for CTD ${listItem.name} in org ${org.name}: ${error}`,
+                  `Failed to fetch schema for CTD ${listItem.name} in namespace ${ns.name}: ${error}`,
                 );
                 return null;
               }
@@ -542,7 +542,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             .map(ctd => {
               try {
                 const templateEntity =
-                  this.ctdConverter.convertCtdToTemplateEntity(ctd, org.name!);
+                  this.ctdConverter.convertCtdToTemplateEntity(ctd, ns.name!);
                 // Add the required Backstage catalog annotations
                 if (!templateEntity.metadata.annotations) {
                   templateEntity.metadata.annotations = {};
@@ -565,11 +565,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
           allEntities.push(...templateEntities);
           this.logger.info(
-            `Successfully generated ${templateEntities.length} template entities from CTDs in org: ${org.name}`,
+            `Successfully generated ${templateEntities.length} template entities from CTDs in namespace: ${ns.name}`,
           );
         } catch (error) {
           this.logger.warn(
-            `Failed to fetch Component Type Definitions for org ${org.name}: ${error}`,
+            `Failed to fetch Component Type Definitions for namespace ${ns.name}: ${error}`,
           );
         }
       }
@@ -605,32 +605,27 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   /**
-   * Translates a ModelsOrganization from OpenChoreo API to a Backstage Domain entity
+   * Translates a ModelsNamespace from OpenChoreo API to a Backstage Domain entity
    */
-  private translateOrganizationToDomain(
-    organization: ModelsOrganization,
-  ): Entity {
+  private translateNamespaceToDomain(namespace: ModelsNamespace): Entity {
     const domainEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Domain',
       metadata: {
-        name: organization.name,
-        title: organization.displayName || organization.name,
-        description: organization.description || organization.name,
+        name: namespace.name,
+        title: namespace.displayName || namespace.name,
+        description: namespace.description || namespace.name,
         // namespace: 'default',
-        tags: ['openchoreo', 'organization', 'domain'],
+        tags: ['openchoreo', 'namespace', 'domain'],
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.ORGANIZATION]: organization.name,
-          ...(organization.namespace && {
-            [CHOREO_ANNOTATIONS.NAMESPACE]: organization.namespace,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespace.name,
+          ...(namespace.createdAt && {
+            [CHOREO_ANNOTATIONS.CREATED_AT]: namespace.createdAt,
           }),
-          ...(organization.createdAt && {
-            [CHOREO_ANNOTATIONS.CREATED_AT]: organization.createdAt,
-          }),
-          ...(organization.status && {
-            [CHOREO_ANNOTATIONS.STATUS]: organization.status,
+          ...(namespace.status && {
+            [CHOREO_ANNOTATIONS.STATUS]: namespace.status,
           }),
         },
         labels: {
@@ -650,7 +645,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    */
   private translateProjectToEntity(
     project: ModelsProject,
-    orgName: string,
+    namespaceName: string,
   ): Entity {
     const systemEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
@@ -659,7 +654,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         name: project.name,
         title: project.displayName || project.name,
         description: project.description || project.name,
-        namespace: project.orgName,
+        namespace: project.namespaceName,
         tags: ['openchoreo', 'project'],
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
@@ -668,7 +663,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           ...(project.uid && {
             [CHOREO_ANNOTATIONS.PROJECT_UID]: project.uid,
           }),
-          [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           ...(project.deletionTimestamp && {
             [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
           }),
@@ -680,7 +675,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         owner: this.defaultOwner,
-        domain: orgName,
+        domain: namespaceName,
       },
     };
 
@@ -692,7 +687,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    */
   private translateEnvironmentToEntity(
     environment: ModelsEnvironment,
-    orgName: string,
+    namespaceName: string,
   ): EnvironmentEntityV1alpha1 {
     const environmentEntity: EnvironmentEntityV1alpha1 = {
       apiVersion: 'backstage.io/v1alpha1',
@@ -711,12 +706,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.ENVIRONMENT]: environment.name,
-          [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           ...(environment.uid && {
             [CHOREO_ANNOTATIONS.ENVIRONMENT_UID]: environment.uid,
-          }),
-          ...(environment.namespace && {
-            [CHOREO_ANNOTATIONS.NAMESPACE]: environment.namespace,
           }),
           ...(environment.createdAt && {
             [CHOREO_ANNOTATIONS.CREATED_AT]: environment.createdAt,
@@ -745,7 +737,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: environment.isProduction ? 'production' : 'non-production',
-        domain: orgName, // Link to the parent domain (organization)
+        domain: namespaceName, // Link to the parent domain (namespace)
         isProduction: environment.isProduction,
         dataPlaneRef: environment.dataPlaneRef,
         dnsPrefix: environment.dnsPrefix,
@@ -760,7 +752,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    */
   private translateDataplaneToEntity(
     dataplane: ModelsDataPlane,
-    orgName: string,
+    namespaceName: string,
   ): DataplaneEntityV1alpha1 {
     const dataplaneEntity: DataplaneEntityV1alpha1 = {
       apiVersion: 'backstage.io/v1alpha1',
@@ -773,22 +765,21 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: dataplane.namespace || '',
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: dataplane.createdAt || '',
           [CHOREO_ANNOTATIONS.STATUS]: dataplane.status || '',
           'openchoreo.io/public-virtual-host':
             dataplane.publicVirtualHost || '',
-          'openchoreo.io/organization-virtual-host':
-            dataplane.organizationVirtualHost || '',
+          'openchoreo.io/namespace-virtual-host':
+            dataplane.namespaceVirtualHost || '',
           'openchoreo.io/public-http-port':
             dataplane.publicHTTPPort?.toString() || '',
           'openchoreo.io/public-https-port':
             dataplane.publicHTTPSPort?.toString() || '',
-          'openchoreo.io/organization-http-port':
-            dataplane.organizationHTTPPort?.toString() || '',
-          'openchoreo.io/organization-https-port':
-            dataplane.organizationHTTPSPort?.toString() || '',
+          'openchoreo.io/namespace-http-port':
+            dataplane.namespaceHTTPPort?.toString() || '',
+          'openchoreo.io/namespace-https-port':
+            dataplane.namespaceHTTPSPort?.toString() || '',
           'openchoreo.io/observability-plane-ref':
             dataplane.observabilityPlaneRef || '',
         },
@@ -799,13 +790,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: 'kubernetes',
-        domain: orgName, // Link to the parent domain (organization)
+        domain: namespaceName, // Link to the parent domain (namespace)
         publicVirtualHost: dataplane.publicVirtualHost,
-        organizationVirtualHost: dataplane.organizationVirtualHost,
+        namespaceVirtualHost: dataplane.namespaceVirtualHost,
         publicHTTPPort: dataplane.publicHTTPPort,
         publicHTTPSPort: dataplane.publicHTTPSPort,
-        organizationHTTPPort: dataplane.organizationHTTPPort,
-        organizationHTTPSPort: dataplane.organizationHTTPSPort,
+        namespaceHTTPPort: dataplane.namespaceHTTPPort,
+        namespaceHTTPSPort: dataplane.namespaceHTTPSPort,
         observabilityPlaneRef: dataplane.observabilityPlaneRef,
       },
     };
@@ -877,13 +868,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    */
   private translateComponentToEntity(
     component: ModelsComponent,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     providesApis?: string[],
   ): Entity {
     return translateComponent(
       component,
-      orgName,
+      namespaceName,
       projectName,
       {
         defaultOwner: this.defaultOwner,
@@ -899,7 +890,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    */
   private translateServiceComponentToEntity(
     completeComponent: ModelsCompleteComponent,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
   ): Entity {
     // Generate API names for providesApis
@@ -915,7 +906,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     // Reuse the base translateComponentToEntity method
     return this.translateComponentToEntity(
       completeComponent,
-      orgName,
+      namespaceName,
       projectName,
       providesApis,
     );
@@ -926,7 +917,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    */
   private createApiEntitiesFromWorkload(
     completeComponent: ModelsCompleteComponent,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
   ): Entity[] {
     const apiEntities: Entity[] = [];
@@ -953,7 +944,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               [CHOREO_ANNOTATIONS.ENDPOINT_TYPE]: endpoint.type,
               [CHOREO_ANNOTATIONS.ENDPOINT_PORT]: endpoint.port.toString(),
               [CHOREO_ANNOTATIONS.PROJECT]: projectName,
-              [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+              [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
             },
             labels: {
               'openchoreo.io/managed': 'true',

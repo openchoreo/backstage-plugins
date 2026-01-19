@@ -40,7 +40,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The request parameters
    * @param {string} request.projectName - Name of the project containing the component
    * @param {string} request.componentName - Name of the component to fetch deployment info for
-   * @param {string} request.organizationName - Name of the organization owning the project
+   * @param {string} request.namespaceName - Name of the namespace owning the project
    * @returns {Promise<Environment[]>} Array of environments with their deployment information
    * @throws {Error} When there's an error fetching data from the API
    */
@@ -48,7 +48,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       projectName: string;
       componentName: string;
-      organizationName: string;
+      namespaceName: string;
     },
     token?: string,
   ): Promise<Environment[]> {
@@ -93,9 +93,9 @@ export class EnvironmentInfoService implements EnvironmentService {
       const environmentsPromise = createTimedPromise(
         (async () => {
           const { data, error, response } = await client.GET(
-            '/orgs/{orgName}/environments',
+            '/namespaces/{namespaceName}/environments',
             {
-              params: { path: { orgName: request.organizationName } },
+              params: { path: { namespaceName: request.namespaceName } },
             },
           );
           if (error || !response.ok) {
@@ -109,11 +109,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       const bindingsPromise = createTimedPromise(
         (async () => {
           const { data, error, response } = await client.GET(
-            '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+            '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
             {
               params: {
                 path: {
-                  orgName: request.organizationName,
+                  namespaceName: request.namespaceName,
                   projectName: request.projectName,
                   componentName: request.componentName,
                 },
@@ -133,11 +133,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       const pipelinePromise = createTimedPromise(
         (async () => {
           const { data, error, response } = await client.GET(
-            '/orgs/{orgName}/projects/{projectName}/deployment-pipeline',
+            '/namespaces/{namespaceName}/projects/{projectName}/deployment-pipeline',
             {
               params: {
                 path: {
-                  orgName: request.organizationName,
+                  namespaceName: request.namespaceName,
                   projectName: request.projectName,
                 },
               },
@@ -174,7 +174,7 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       if (!environmentsResponse.ok) {
         this.logger.error(
-          `Failed to fetch environments for organization ${request.organizationName}`,
+          `Failed to fetch environments for namespace ${request.namespaceName}`,
         );
         return [];
       }
@@ -505,7 +505,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {string} request.targetEnvironment - Target environment name
    * @param {string} request.componentName - Name of the component to promote
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization owning the project
+   * @param {string} request.namespaceName - Name of the namespace owning the project
    * @returns {Promise<Environment[]>} Array of environments with updated deployment information
    * @throws {Error} When there's an error promoting the component
    */
@@ -515,7 +515,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       targetEnvironment: string;
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
     },
     token?: string,
   ): Promise<Environment[]> {
@@ -533,11 +533,11 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       // Call the promotion API
       const { data, error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/promote',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/promote',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
             },
@@ -565,7 +565,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         {
           componentName: request.componentName,
           projectName: request.projectName,
-          organizationName: request.organizationName,
+          namespaceName: request.namespaceName,
         },
         token,
       );
@@ -593,7 +593,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The delete request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization owning the project
+   * @param {string} request.namespaceName - Name of the namespace owning the project
    * @param {string} request.environment - Environment to unpromote from
    * @returns {Promise<Environment[]>} Array of environments with updated deployment information
    * @throws {Error} When there's an error deleting the binding
@@ -602,7 +602,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
       environment: string;
     },
     token?: string,
@@ -629,7 +629,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           kind: 'ReleaseBinding',
           metadata: {
             name: bindingName,
-            namespace: request.organizationName,
+            namespace: request.namespaceName,
           },
         },
       });
@@ -647,7 +647,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         {
           componentName: request.componentName,
           projectName: request.projectName,
-          organizationName: request.organizationName,
+          namespaceName: request.namespaceName,
         },
         token,
       );
@@ -675,7 +675,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The update request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization owning the project
+   * @param {string} request.namespaceName - Name of the namespace owning the project
    * @param {string} request.bindingName - Name of the binding to update
    * @param {'Active' | 'Suspend' | 'Undeploy'} request.releaseState - The new release state
    * @returns {Promise<Environment[]>} Array of environments with updated deployment information
@@ -685,7 +685,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
       bindingName: string;
       releaseState: 'Active' | 'Suspend' | 'Undeploy';
     },
@@ -705,11 +705,11 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       // Call the update binding API
       const { error, response } = await client.PATCH(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
               bindingName: request.bindingName,
@@ -734,7 +734,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         {
           componentName: request.componentName,
           projectName: request.projectName,
-          organizationName: request.organizationName,
+          namespaceName: request.namespaceName,
         },
         token,
       );
@@ -762,7 +762,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The create release request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.namespaceName - Name of the namespace
    * @param {string} [request.releaseName] - Optional release name (auto-generated if omitted)
    * @returns {Promise<any>} Response from the OpenChoreo API
    */
@@ -770,7 +770,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
       releaseName?: string;
     },
     token?: string,
@@ -793,11 +793,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       }
 
       const { data, error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
             },
@@ -834,7 +834,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The deploy request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.namespaceName - Name of the namespace
    * @param {string} request.releaseName - Name of the release to deploy
    * @returns {Promise<Environment[]>} Updated environment information
    */
@@ -842,7 +842,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
       releaseName: string;
     },
     token?: string,
@@ -860,15 +860,15 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       this.logger.debug(
-        `Deploy release request: org=${request.organizationName}, project=${request.projectName}, component=${request.componentName}, release=${request.releaseName}`,
+        `Deploy release request: namespace=${request.namespaceName}, project=${request.projectName}, component=${request.componentName}, release=${request.releaseName}`,
       );
 
       const { error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/deploy',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/deploy',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
             },
@@ -894,7 +894,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         {
           componentName: request.componentName,
           projectName: request.projectName,
-          organizationName: request.organizationName,
+          namespaceName: request.namespaceName,
         },
         token,
       );
@@ -922,7 +922,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.namespaceName - Name of the namespace
    * @param {string} request.releaseName - Name of the release to get schema for
    * @returns {Promise<any>} JSON Schema for the release's override configuration
    */
@@ -930,7 +930,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
       releaseName: string;
     },
     token?: string,
@@ -948,11 +948,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
               releaseName: request.releaseName,
@@ -989,14 +989,14 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.namespaceName - Name of the namespace
    * @returns {Promise<any>} List of release bindings
    */
   async fetchReleaseBindings(
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
     },
     token?: string,
   ) {
@@ -1013,11 +1013,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
             },
@@ -1054,7 +1054,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.namespaceName - Name of the namespace
    * @param {string} request.environment - Environment to patch binding for
    * @param {any} request.componentTypeEnvOverrides - Component type environment overrides to apply
    * @param {any} request.traitOverrides - Trait-specific overrides to apply
@@ -1065,7 +1065,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
       environment: string;
       componentTypeEnvOverrides: any;
       traitOverrides?: any;
@@ -1090,11 +1090,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       const bindingName = `${request.componentName}-${request.environment}`;
 
       const { data, error, response } = await client.PATCH(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
               bindingName: bindingName,
@@ -1139,7 +1139,7 @@ export class EnvironmentInfoService implements EnvironmentService {
    * @param {Object} request - The request parameters
    * @param {string} request.componentName - Name of the component
    * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.organizationName - Name of the organization
+   * @param {string} request.namespaceName - Name of the namespace
    * @param {string} request.environmentName - Name of the environment
    * @returns {Promise<any>} Release information including spec and status
    */
@@ -1147,7 +1147,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     request: {
       componentName: string;
       projectName: string;
-      organizationName: string;
+      namespaceName: string;
       environmentName: string;
     },
     token?: string,
@@ -1165,11 +1165,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               projectName: request.projectName,
               componentName: request.componentName,
               environmentName: request.environmentName,

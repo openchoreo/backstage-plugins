@@ -15,13 +15,13 @@ export class DashboardInfoService {
   }
 
   async fetchDashboardMetrics(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     token?: string,
   ): Promise<number> {
     this.logger.info(
-      `Fetching bindings count for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching bindings count for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -33,11 +33,11 @@ export class DashboardInfoService {
 
       // Fetch bindings for the component
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings',
         {
           params: {
             path: {
-              orgName,
+              namespaceName,
               projectName,
               componentName,
             },
@@ -71,7 +71,7 @@ export class DashboardInfoService {
 
   async fetchComponentsBindingsCount(
     components: Array<{
-      orgName: string;
+      namespaceName: string;
       projectName: string;
       componentName: string;
     }>,
@@ -84,9 +84,9 @@ export class DashboardInfoService {
     try {
       // Fetch bindings for all components in parallel
       const bindingsCounts = await Promise.all(
-        components.map(({ orgName, projectName, componentName }) =>
+        components.map(({ namespaceName, projectName, componentName }) =>
           this.fetchDashboardMetrics(
-            orgName,
+            namespaceName,
             projectName,
             componentName,
             token,

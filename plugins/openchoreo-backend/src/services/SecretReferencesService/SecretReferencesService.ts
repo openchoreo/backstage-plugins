@@ -18,11 +18,11 @@ export class SecretReferencesService {
   }
 
   async fetchSecretReferences(
-    orgName: string,
+    namespaceName: string,
     token?: string,
   ): Promise<ModelsSecretReferences> {
     this.logger.debug(
-      `Fetching secret references for organization: ${orgName}`,
+      `Fetching secret references for namespace: ${namespaceName}`,
     );
 
     try {
@@ -33,10 +33,10 @@ export class SecretReferencesService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/secret-references',
+        '/namespaces/{namespaceName}/secret-references',
         {
           params: {
-            path: { orgName },
+            path: { namespaceName },
           },
         },
       );
@@ -56,12 +56,12 @@ export class SecretReferencesService {
       const secretReferences: ModelsSecretReferences =
         data as ModelsSecretReferences;
       this.logger.debug(
-        `Successfully fetched secret references for organization: ${orgName}`,
+        `Successfully fetched secret references for namespace: ${namespaceName}`,
       );
       return secretReferences;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch secret references for ${orgName}: ${error}`,
+        `Failed to fetch secret references for ${namespaceName}: ${error}`,
       );
       throw error;
     }

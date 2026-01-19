@@ -128,7 +128,7 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
       !build.name ||
       !build.uuid ||
       !build.projectName ||
-      !build.orgName
+      !build.namespaceName
     ) {
       throw new Error(
         'Build object is missing required fields for fetching logs',
@@ -140,7 +140,7 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
         componentName: build.componentName,
         buildId: build.name,
         projectName: build.projectName,
-        orgName: build.orgName,
+        namespaceName: build.namespaceName,
       },
     });
   }

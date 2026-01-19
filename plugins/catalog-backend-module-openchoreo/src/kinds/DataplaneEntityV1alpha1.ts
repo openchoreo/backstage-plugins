@@ -35,9 +35,9 @@ export interface DataplaneEntityV1alpha1 extends Entity {
      */
     publicVirtualHost?: string;
     /**
-     * Organization virtual host for this dataplane
+     * Namespace virtual host for this dataplane
      */
-    organizationVirtualHost?: string;
+    namespaceVirtualHost?: string;
     /**
      * Public HTTP port
      */
@@ -47,13 +47,13 @@ export interface DataplaneEntityV1alpha1 extends Entity {
      */
     publicHTTPSPort?: number;
     /**
-     * Organization HTTP port
+     * Namespace HTTP port
      */
-    organizationHTTPPort?: number;
+    namespaceHTTPPort?: number;
     /**
-     * Organization HTTPS port
+     * Namespace HTTPS port
      */
-    organizationHTTPSPort?: number;
+    namespaceHTTPSPort?: number;
     /**
      * Observability plane reference
      */

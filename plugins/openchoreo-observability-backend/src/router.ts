@@ -85,15 +85,15 @@ export async function createRouter({
     if (authEnabled) {
       await httpAuth.credentials(req, { allow: ['user'] });
     }
-    const { organization } = req.query;
-    if (!organization) {
-      return res.status(400).json({ error: 'Organization is required' });
+    const { namespace } = req.query;
+    if (!namespace) {
+      return res.status(400).json({ error: 'Namespace is required' });
     }
     const userToken = getUserTokenFromRequest(req);
     try {
       const environments =
-        await observabilityService.fetchEnvironmentsByOrganization(
-          organization as string,
+        await observabilityService.fetchEnvironmentsByNamespace(
+          namespace as string,
           userToken,
         );
       return res.status(200).json({ environments });

@@ -27,13 +27,13 @@ export class BuildInfoService {
   }
 
   async fetchBuilds(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     token?: string,
   ): Promise<ModelsBuild[]> {
     this.logger.debug(
-      `Fetching component workflow runs for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching component workflow runs for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -44,10 +44,10 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
         },
       );
@@ -77,14 +77,14 @@ export class BuildInfoService {
   }
 
   async getWorkflowRun(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     runName: string,
     token?: string,
   ): Promise<any> {
     this.logger.debug(
-      `Fetching workflow run: ${runName} for component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching workflow run: ${runName} for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -95,10 +95,10 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
         {
           params: {
-            path: { orgName, projectName, componentName, runName },
+            path: { namespaceName, projectName, componentName, runName },
           },
         },
       );
@@ -124,14 +124,14 @@ export class BuildInfoService {
   }
 
   async triggerBuild(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     commit?: string,
     token?: string,
   ): Promise<ModelsBuild> {
     this.logger.info(
-      `Triggering component workflow for component: ${componentName} in project: ${projectName}, organization: ${orgName}${
+      `Triggering component workflow for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}${
         commit ? ` with commit: ${commit}` : ''
       }`,
     );
@@ -144,10 +144,10 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.POST(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
             query: commit ? { commit } : undefined,
           },
         },
@@ -176,7 +176,7 @@ export class BuildInfoService {
   }
 
   async fetchBuildLogs(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     buildId: string,
@@ -201,11 +201,11 @@ export class BuildInfoService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/observer-url',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url',
         {
           params: {
             path: {
-              orgName,
+              namespaceName,
               projectName,
               componentName,
             },
@@ -256,7 +256,7 @@ export class BuildInfoService {
             sortOrder: sortOrder || 'asc',
             componentName,
             projectName,
-            orgName,
+            namespaceName,
           },
         },
       );

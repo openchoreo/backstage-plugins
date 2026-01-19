@@ -67,11 +67,11 @@ export async function createRouter({
   const requireAuth = createRequireAuthMiddleware(tokenService, authEnabled);
 
   router.get('/deploy', async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -82,7 +82,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
         },
         userToken,
       ),
@@ -90,7 +90,7 @@ export async function createRouter({
   });
 
   router.post('/promote-deployment', requireAuth, async (req, res) => {
-    const { sourceEnv, targetEnv, componentName, projectName, orgName } =
+    const { sourceEnv, targetEnv, componentName, projectName, namespaceName } =
       req.body;
 
     if (
@@ -98,10 +98,10 @@ export async function createRouter({
       !targetEnv ||
       !componentName ||
       !projectName ||
-      !orgName
+      !namespaceName
     ) {
       throw new InputError(
-        'sourceEnv, targetEnv, componentName, projectName and orgName are required in request body',
+        'sourceEnv, targetEnv, componentName, projectName and namespaceName are required in request body',
       );
     }
 
@@ -114,7 +114,7 @@ export async function createRouter({
           targetEnvironment: targetEnv,
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: orgName as string,
+          namespaceName: namespaceName as string,
         },
         userToken,
       ),
@@ -122,11 +122,11 @@ export async function createRouter({
   });
 
   router.delete('/delete-release-binding', requireAuth, async (req, res) => {
-    const { componentName, projectName, orgName, environment } = req.body;
+    const { componentName, projectName, namespaceName, environment } = req.body;
 
-    if (!componentName || !projectName || !orgName || !environment) {
+    if (!componentName || !projectName || !namespaceName || !environment) {
       throw new InputError(
-        'componentName, projectName, orgName and environment are required in request body',
+        'componentName, projectName, namespaceName and environment are required in request body',
       );
     }
 
@@ -137,7 +137,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: orgName as string,
+          namespaceName: namespaceName as string,
           environment: environment as string,
         },
         userToken,
@@ -146,18 +146,23 @@ export async function createRouter({
   });
 
   router.patch('/update-binding', requireAuth, async (req, res) => {
-    const { componentName, projectName, orgName, bindingName, releaseState } =
-      req.body;
+    const {
+      componentName,
+      projectName,
+      namespaceName,
+      bindingName,
+      releaseState,
+    } = req.body;
 
     if (
       !componentName ||
       !projectName ||
-      !orgName ||
+      !namespaceName ||
       !bindingName ||
       !releaseState
     ) {
       throw new InputError(
-        'componentName, projectName, orgName, bindingName and releaseState are required in request body',
+        'componentName, projectName, namespaceName, bindingName and releaseState are required in request body',
       );
     }
 
@@ -174,7 +179,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: orgName as string,
+          namespaceName: namespaceName as string,
           bindingName: bindingName as string,
           releaseState: releaseState as 'Active' | 'Suspend' | 'Undeploy',
         },
@@ -186,11 +191,11 @@ export async function createRouter({
   router.get(
     '/cell-diagram',
     async (req: express.Request, res: express.Response) => {
-      const { projectName, organizationName } = req.query;
+      const { projectName, namespaceName } = req.query;
 
-      if (!projectName || !organizationName) {
+      if (!projectName || !namespaceName) {
         throw new InputError(
-          'projectName and organizationName are required query parameters',
+          'projectName and namespaceName are required query parameters',
         );
       }
 
@@ -200,7 +205,7 @@ export async function createRouter({
         await cellDiagramInfoService.fetchProjectInfo(
           {
             projectName: projectName as string,
-            orgName: organizationName as string,
+            namespaceName: namespaceName as string,
           },
           userToken,
         ),
@@ -210,17 +215,17 @@ export async function createRouter({
 
   // Endpoint for listing traits
   router.get('/traits', async (req, res) => {
-    const { organizationName, page, pageSize } = req.query;
+    const { namespaceName, page, pageSize } = req.query;
 
-    if (!organizationName) {
-      throw new InputError('organizationName is a required query parameter');
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
     }
 
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
       await traitInfoService.fetchTraits(
-        organizationName as string,
+        namespaceName as string,
         page ? parseInt(page as string, 10) : undefined,
         pageSize ? parseInt(pageSize as string, 10) : undefined,
         userToken,
@@ -230,10 +235,10 @@ export async function createRouter({
 
   // Endpoint for fetching addon schema
   router.get('/trait-schema', async (req, res) => {
-    const { organizationName, traitName } = req.query;
+    const { namespaceName, traitName } = req.query;
 
-    if (!organizationName) {
-      throw new InputError('organizationName is a required query parameter');
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
     }
 
     if (!traitName) {
@@ -244,7 +249,7 @@ export async function createRouter({
 
     res.json(
       await traitInfoService.fetchTraitSchema(
-        organizationName as string,
+        namespaceName as string,
         traitName as string,
         userToken,
       ),
@@ -253,11 +258,11 @@ export async function createRouter({
 
   // Endpoint for listing component traits
   router.get('/component-traits', async (req, res) => {
-    const { organizationName, projectName, componentName } = req.query;
+    const { namespaceName, projectName, componentName } = req.query;
 
-    if (!organizationName || !projectName || !componentName) {
+    if (!namespaceName || !projectName || !componentName) {
       throw new InputError(
-        'organizationName, projectName and componentName are required query parameters',
+        'namespaceName, projectName and componentName are required query parameters',
       );
     }
 
@@ -265,7 +270,7 @@ export async function createRouter({
 
     res.json(
       await traitInfoService.fetchComponentTraits(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         userToken,
@@ -275,11 +280,11 @@ export async function createRouter({
 
   // Endpoint for updating component traits
   router.put('/component-traits', requireAuth, async (req, res) => {
-    const { organizationName, projectName, componentName, traits } = req.body;
+    const { namespaceName, projectName, componentName, traits } = req.body;
 
-    if (!organizationName || !projectName || !componentName) {
+    if (!namespaceName || !projectName || !componentName) {
       throw new InputError(
-        'organizationName, projectName and componentName are required in request body',
+        'namespaceName, projectName and componentName are required in request body',
       );
     }
 
@@ -291,7 +296,7 @@ export async function createRouter({
 
     res.json(
       await traitInfoService.updateComponentTraits(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         { traits },
@@ -300,11 +305,11 @@ export async function createRouter({
     );
   });
   router.get('/builds', async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -312,7 +317,7 @@ export async function createRouter({
 
     res.json(
       await buildInfoService.fetchBuilds(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         userToken,
@@ -321,11 +326,11 @@ export async function createRouter({
   });
 
   router.post('/builds', requireAuth, async (req, res) => {
-    const { componentName, projectName, organizationName, commit } = req.body;
+    const { componentName, projectName, namespaceName, commit } = req.body;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required in request body',
+        'componentName, projectName and namespaceName are required in request body',
       );
     }
 
@@ -333,7 +338,7 @@ export async function createRouter({
 
     res.json(
       await buildInfoService.triggerBuild(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         commit as string | undefined,
@@ -343,11 +348,11 @@ export async function createRouter({
   });
 
   router.get('/component', async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -355,7 +360,7 @@ export async function createRouter({
 
     res.json(
       await componentInfoService.fetchComponentDetails(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         userToken,
@@ -364,12 +369,11 @@ export async function createRouter({
   });
 
   router.patch('/component', requireAuth, async (req, res) => {
-    const { componentName, projectName, organizationName, autoDeploy } =
-      req.body;
+    const { componentName, projectName, namespaceName, autoDeploy } = req.body;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required in request body',
+        'componentName, projectName and namespaceName are required in request body',
       );
     }
 
@@ -381,7 +385,7 @@ export async function createRouter({
 
     res.json(
       await componentInfoService.patchComponent(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         autoDeploy as boolean,
@@ -391,11 +395,11 @@ export async function createRouter({
   });
 
   router.get('/project', async (req, res) => {
-    const { projectName, organizationName } = req.query;
+    const { projectName, namespaceName } = req.query;
 
-    if (!projectName || !organizationName) {
+    if (!projectName || !namespaceName) {
       throw new InputError(
-        'projectName and organizationName are required query parameters',
+        'projectName and namespaceName are required query parameters',
       );
     }
 
@@ -403,7 +407,7 @@ export async function createRouter({
 
     res.json(
       await projectInfoService.fetchProjectDetails(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         userToken,
       ),
@@ -411,11 +415,11 @@ export async function createRouter({
   });
 
   router.get('/deployment-pipeline', async (req, res) => {
-    const { projectName, organizationName } = req.query;
+    const { projectName, namespaceName } = req.query;
 
-    if (!projectName || !organizationName) {
+    if (!projectName || !namespaceName) {
       throw new InputError(
-        'projectName and organizationName are required query parameters',
+        'projectName and namespaceName are required query parameters',
       );
     }
 
@@ -423,7 +427,7 @@ export async function createRouter({
 
     res.json(
       await projectInfoService.fetchProjectDeploymentPipeline(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         userToken,
       ),
@@ -431,7 +435,7 @@ export async function createRouter({
   });
 
   router.get('/build-logs', async (req, res) => {
-    const { componentName, buildId, buildUuid, projectName, orgName } =
+    const { componentName, buildId, buildUuid, projectName, namespaceName } =
       req.query;
 
     if (!componentName || !buildId || !buildUuid) {
@@ -444,7 +448,7 @@ export async function createRouter({
 
     try {
       const result = await buildInfoService.fetchBuildLogs(
-        orgName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         buildId as string,
@@ -464,11 +468,11 @@ export async function createRouter({
   });
 
   router.get('/workload', async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -479,7 +483,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
         },
         userToken,
       );
@@ -497,12 +501,12 @@ export async function createRouter({
   });
 
   router.post('/workload', requireAuth, async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
     const workloadSpec = req.body;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -519,7 +523,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
           workloadSpec,
         },
         userToken,
@@ -565,12 +569,12 @@ export async function createRouter({
   });
 
   router.post('/create-release', requireAuth, async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
     const { releaseName } = req.body;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -581,7 +585,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
           releaseName: releaseName as string | undefined,
         },
         userToken,
@@ -590,12 +594,12 @@ export async function createRouter({
   });
 
   router.post('/deploy-release', requireAuth, async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
     const { releaseName } = req.body;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -610,7 +614,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
           releaseName: releaseName as string,
         },
         userToken,
@@ -619,12 +623,12 @@ export async function createRouter({
   });
 
   router.get('/component-release-schema', async (req, res) => {
-    const { componentName, projectName, organizationName, releaseName } =
+    const { componentName, projectName, namespaceName, releaseName } =
       req.query;
 
-    if (!componentName || !projectName || !organizationName || !releaseName) {
+    if (!componentName || !projectName || !namespaceName || !releaseName) {
       throw new InputError(
-        'componentName, projectName, organizationName and releaseName are required query parameters',
+        'componentName, projectName, namespaceName and releaseName are required query parameters',
       );
     }
 
@@ -635,7 +639,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
           releaseName: releaseName as string,
         },
         userToken,
@@ -644,11 +648,11 @@ export async function createRouter({
   });
 
   router.get('/release-bindings', async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -659,7 +663,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
         },
         userToken,
       ),
@@ -670,7 +674,7 @@ export async function createRouter({
     const {
       componentName,
       projectName,
-      orgName,
+      namespaceName,
       environment,
       componentTypeEnvOverrides,
       traitOverrides,
@@ -678,9 +682,9 @@ export async function createRouter({
       releaseName,
     } = req.body;
 
-    if (!componentName || !projectName || !orgName || !environment) {
+    if (!componentName || !projectName || !namespaceName || !environment) {
       throw new InputError(
-        'componentName, projectName, orgName and environment are required in request body',
+        'componentName, projectName, namespaceName and environment are required in request body',
       );
     }
 
@@ -691,7 +695,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: orgName as string,
+          namespaceName: namespaceName as string,
           environment: environment as string,
           componentTypeEnvOverrides: componentTypeEnvOverrides,
           traitOverrides: traitOverrides,
@@ -704,17 +708,12 @@ export async function createRouter({
   });
 
   router.get('/environment-release', async (req, res) => {
-    const { componentName, projectName, organizationName, environmentName } =
+    const { componentName, projectName, namespaceName, environmentName } =
       req.query;
 
-    if (
-      !componentName ||
-      !projectName ||
-      !organizationName ||
-      !environmentName
-    ) {
+    if (!componentName || !projectName || !namespaceName || !environmentName) {
       throw new InputError(
-        'componentName, projectName, organizationName and environmentName are required query parameters',
+        'componentName, projectName, namespaceName and environmentName are required query parameters',
       );
     }
 
@@ -725,7 +724,7 @@ export async function createRouter({
         {
           componentName: componentName as string,
           projectName: projectName as string,
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
           environmentName: environmentName as string,
         },
         userToken,
@@ -735,17 +734,17 @@ export async function createRouter({
 
   // Endpoint for listing secret references
   router.get('/secret-references', async (req, res) => {
-    const { organizationName } = req.query;
+    const { namespaceName } = req.query;
 
-    if (!organizationName) {
-      throw new InputError('organizationName is a required query parameter');
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
     }
 
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
       await secretReferencesInfoService.fetchSecretReferences(
-        organizationName as string,
+        namespaceName as string,
         userToken,
       ),
     );
@@ -863,27 +862,31 @@ export async function createRouter({
   // Hierarchy Data Endpoints (for Access Control autocomplete)
   // =====================
 
-  // Organizations
-  router.get('/orgs', async (req, res) => {
+  // Namespaces
+  router.get('/namespaces', async (req, res) => {
     const userToken = getUserTokenFromRequest(req);
-    res.json(await authzService.listOrganizations(userToken));
+    res.json(await authzService.listNamespaces(userToken));
   });
 
-  // Projects (for a given organization)
-  router.get('/orgs/:orgName/projects', async (req, res) => {
-    const { orgName } = req.params;
+  // Projects (for a given namespace)
+  router.get('/namespaces/:namespaceName/projects', async (req, res) => {
+    const { namespaceName } = req.params;
     const userToken = getUserTokenFromRequest(req);
-    res.json(await authzService.listProjects(orgName, userToken));
+    res.json(await authzService.listProjects(namespaceName, userToken));
   });
 
-  // Components (for a given organization and project)
+  // Components (for a given namespace and project)
   router.get(
-    '/orgs/:orgName/projects/:projectName/components',
+    '/namespaces/:namespaceName/projects/:projectName/components',
     async (req, res) => {
-      const { orgName, projectName } = req.params;
+      const { namespaceName, projectName } = req.params;
       const userToken = getUserTokenFromRequest(req);
       res.json(
-        await authzService.listComponents(orgName, projectName, userToken),
+        await authzService.listComponents(
+          namespaceName,
+          projectName,
+          userToken,
+        ),
       );
     },
   );
@@ -934,10 +937,10 @@ export async function createRouter({
   // DataPlane endpoint
   router.get('/dataplanes/:dpName', async (req, res) => {
     const { dpName } = req.params;
-    const { organizationName } = req.query;
+    const { namespaceName } = req.query;
 
-    if (!organizationName) {
-      throw new InputError('organizationName is a required query parameter');
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
     }
 
     const userToken = getUserTokenFromRequest(req);
@@ -945,7 +948,7 @@ export async function createRouter({
     res.json(
       await dataPlaneInfoService.fetchDataPlaneDetails(
         {
-          organizationName: organizationName as string,
+          namespaceName: namespaceName as string,
           dataplaneName: dpName,
         },
         userToken,

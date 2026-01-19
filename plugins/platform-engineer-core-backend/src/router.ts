@@ -41,14 +41,14 @@ export async function createRouter(
     }
   });
 
-  // Get environments for a specific organization
-  router.get('/environments/:orgName', async (req, res) => {
+  // Get environments for a specific namespace
+  router.get('/environments/:namespaceName', async (req, res) => {
     try {
-      const { orgName } = req.params;
+      const { namespaceName } = req.params;
       const userToken = getUserTokenFromRequest(req);
       const environments =
-        await platformEnvironmentService.fetchEnvironmentsByOrganization(
-          orgName,
+        await platformEnvironmentService.fetchEnvironmentsByNamespace(
+          namespaceName,
           userToken,
         );
       res.json({
@@ -82,14 +82,14 @@ export async function createRouter(
     }
   });
 
-  // Get dataplanes for a specific organization
-  router.get('/dataplanes/:orgName', async (req, res) => {
+  // Get dataplanes for a specific namespace
+  router.get('/dataplanes/:namespaceName', async (req, res) => {
     try {
-      const { orgName } = req.params;
+      const { namespaceName } = req.params;
       const userToken = getUserTokenFromRequest(req);
       const dataplanes =
-        await platformEnvironmentService.fetchDataplanesByOrganization(
-          orgName,
+        await platformEnvironmentService.fetchDataplanesByNamespace(
+          namespaceName,
           userToken,
         );
       res.json({
@@ -156,7 +156,7 @@ export async function createRouter(
         return res.status(400).json({
           success: false,
           error:
-            'Invalid request body. Expected { components: Array<{orgName, projectName, componentName}> }',
+            'Invalid request body. Expected { components: Array<{namespaceName, projectName, componentName}> }',
         });
       }
 
@@ -191,7 +191,7 @@ export async function createRouter(
         return res.status(400).json({
           success: false,
           error:
-            'Invalid request body. Expected { components: Array<{orgName, projectName, componentName}> }',
+            'Invalid request body. Expected { components: Array<{namespaceName, projectName, componentName}> }',
         });
       }
 
@@ -223,7 +223,7 @@ export async function createRouter(
         return res.status(400).json({
           success: false,
           error:
-            'Invalid request body. Expected { components: Array<{orgName, projectName, componentName}> }',
+            'Invalid request body. Expected { components: Array<{namespaceName, projectName, componentName}> }',
         });
       }
 

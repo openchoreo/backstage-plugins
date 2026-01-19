@@ -66,16 +66,16 @@ export class CellDiagramInfoService implements CellDiagramService {
    * Fetches project information including its components and their configurations.
    * @param {Object} request - The request object
    * @param {string} request.projectName - Name of the project to fetch
-   * @param {string} request.orgName - Name of the organization the project belongs to
+   * @param {string} request.namespaceName - Name of the namespace the project belongs to
    * @returns {Promise<Project | undefined>} Project information if found, undefined otherwise
    */
   async fetchProjectInfo(
     {
       projectName,
-      orgName,
+      namespaceName,
     }: {
       projectName: string;
-      orgName: string;
+      namespaceName: string;
     },
     token?: string,
   ): Promise<Project | undefined> {
@@ -91,10 +91,10 @@ export class CellDiagramInfoService implements CellDiagramService {
         error: listError,
         response: listResponse,
       } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components',
+        '/namespaces/{namespaceName}/projects/{projectName}/components',
         {
           params: {
-            path: { orgName, projectName },
+            path: { namespaceName, projectName },
           },
         },
       );
@@ -123,11 +123,11 @@ export class CellDiagramInfoService implements CellDiagramService {
             error: componentError,
             response: componentResponse,
           } = await client.GET(
-            '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+            '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
             {
               params: {
                 path: {
-                  orgName,
+                  namespaceName,
                   projectName,
                   componentName,
                 },
@@ -170,7 +170,7 @@ export class CellDiagramInfoService implements CellDiagramService {
             component.workload?.connections as
               | { [key: string]: WorkloadConnection }
               | undefined,
-            orgName,
+            namespaceName,
             projectName,
             completeComponents,
           );
@@ -268,7 +268,7 @@ export class CellDiagramInfoService implements CellDiagramService {
 
   private generateConnections(
     connections: { [key: string]: WorkloadConnection } | undefined,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     completeComponents: ModelsCompleteComponent[],
   ): CellDiagramConnection[] {
@@ -290,8 +290,8 @@ export class CellDiagramInfoService implements CellDiagramService {
 
         const connectionId =
           isInternal && dependentComponent
-            ? `${orgName}:${projectName}:${dependentComponent.name}:${connection.params.endpoint}`
-            : `${orgName}:${dependentProjectName}:${dependentComponentName}:${connection.params.endpoint}`;
+            ? `${namespaceName}:${projectName}:${dependentComponent.name}:${connection.params.endpoint}`
+            : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${connection.params.endpoint}`;
 
         conns.push({
           id: connectionId,

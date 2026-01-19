@@ -38,6 +38,74 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/version': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get server version information */
+    get: operations['getVersion'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/webhooks/github': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Handle GitHub webhook events */
+    post: operations['handleGitHubWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/webhooks/gitlab': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Handle GitLab webhook events */
+    post: operations['handleGitLabWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/webhooks/bitbucket': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Handle Bitbucket webhook events */
+    post: operations['handleBitbucketWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/apply': {
     parameters: {
       query?: never;
@@ -72,15 +140,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs': {
+  '/namespaces': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List all organizations */
-    get: operations['listOrganizations'];
+    /** List all namespaces */
+    get: operations['listNamespaces'];
     put?: never;
     post?: never;
     delete?: never;
@@ -89,15 +157,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}': {
+  '/namespaces/{namespaceName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get a specific organization */
-    get: operations['getOrganization'];
+    /** Get a specific namespace */
+    get: operations['getNamespace'];
     put?: never;
     post?: never;
     delete?: never;
@@ -106,14 +174,14 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/secret-references': {
+  '/namespaces/{namespaceName}/secret-references': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List secret references for an organization */
+    /** List secret references for a namespace */
     get: operations['listSecretReferences'];
     put?: never;
     post?: never;
@@ -123,7 +191,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/dataplanes': {
+  '/namespaces/{namespaceName}/dataplanes': {
     parameters: {
       query?: never;
       header?: never;
@@ -141,7 +209,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/dataplanes/{dpName}': {
+  '/namespaces/{namespaceName}/dataplanes/{dpName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -158,7 +226,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/environments': {
+  '/namespaces/{namespaceName}/environments': {
     parameters: {
       query?: never;
       header?: never;
@@ -176,7 +244,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/environments/{envName}': {
+  '/namespaces/{namespaceName}/environments/{envName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -193,7 +261,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/environments/{envName}/observer-url': {
+  '/namespaces/{namespaceName}/environments/{envName}/observer-url': {
     parameters: {
       query?: never;
       header?: never;
@@ -210,7 +278,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/buildplanes': {
+  '/namespaces/{namespaceName}/buildplanes': {
     parameters: {
       query?: never;
       header?: never;
@@ -227,7 +295,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/component-types': {
+  '/namespaces/{namespaceName}/component-types': {
     parameters: {
       query?: never;
       header?: never;
@@ -244,7 +312,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/component-types/{ctName}/schema': {
+  '/namespaces/{namespaceName}/component-types/{ctName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -261,7 +329,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/workflows': {
+  '/namespaces/{namespaceName}/workflows': {
     parameters: {
       query?: never;
       header?: never;
@@ -278,7 +346,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/workflows/{workflowName}/schema': {
+  '/namespaces/{namespaceName}/workflows/{workflowName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -295,7 +363,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/component-workflows': {
+  '/namespaces/{namespaceName}/component-workflows': {
     parameters: {
       query?: never;
       header?: never;
@@ -312,7 +380,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/component-workflows/{cwName}/schema': {
+  '/namespaces/{namespaceName}/component-workflows/{cwName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -329,7 +397,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/traits': {
+  '/namespaces/{namespaceName}/traits': {
     parameters: {
       query?: never;
       header?: never;
@@ -346,7 +414,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/traits/{traitName}/schema': {
+  '/namespaces/{namespaceName}/traits/{traitName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -363,7 +431,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects': {
+  '/namespaces/{namespaceName}/projects': {
     parameters: {
       query?: never;
       header?: never;
@@ -381,7 +449,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}': {
+  '/namespaces/{namespaceName}/projects/{projectName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -399,7 +467,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/deployment-pipeline': {
+  '/namespaces/{namespaceName}/projects/{projectName}/deployment-pipeline': {
     parameters: {
       query?: never;
       header?: never;
@@ -416,7 +484,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components': {
     parameters: {
       query?: never;
       header?: never;
@@ -434,7 +502,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -453,7 +521,7 @@ export interface paths {
     patch: operations['patchComponent'];
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/schema': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -470,7 +538,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/traits': {
     parameters: {
       query?: never;
       header?: never;
@@ -488,7 +556,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-parameters': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-parameters': {
     parameters: {
       query?: never;
       header?: never;
@@ -505,7 +573,7 @@ export interface paths {
     patch: operations['updateComponentWorkflowParameters'];
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs': {
     parameters: {
       query?: never;
       header?: never;
@@ -523,7 +591,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -540,7 +608,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings': {
     parameters: {
       query?: never;
       header?: never;
@@ -557,7 +625,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -574,7 +642,7 @@ export interface paths {
     patch: operations['updateComponentBinding'];
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases': {
     parameters: {
       query?: never;
       header?: never;
@@ -592,7 +660,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -609,7 +677,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -626,7 +694,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings': {
     parameters: {
       query?: never;
       header?: never;
@@ -643,7 +711,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -660,7 +728,7 @@ export interface paths {
     patch: operations['patchReleaseBinding'];
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/deploy': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/deploy': {
     parameters: {
       query?: never;
       header?: never;
@@ -677,7 +745,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/promote': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/promote': {
     parameters: {
       query?: never;
       header?: never;
@@ -694,7 +762,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url': {
     parameters: {
       query?: never;
       header?: never;
@@ -711,7 +779,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/observer-url': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url': {
     parameters: {
       query?: never;
       header?: never;
@@ -728,7 +796,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release': {
     parameters: {
       query?: never;
       header?: never;
@@ -745,7 +813,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/orgs/{orgName}/projects/{projectName}/components/{componentName}/workloads': {
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workloads': {
     parameters: {
       query?: never;
       header?: never;
@@ -983,11 +1051,10 @@ export interface components {
       property?: string;
       version?: string;
     };
-    OrganizationResponse: {
+    NamespaceResponse: {
       name: string;
       displayName?: string;
       description?: string;
-      namespace?: string;
       /** Format: date-time */
       createdAt: string;
       status?: string;
@@ -995,7 +1062,7 @@ export interface components {
     ProjectResponse: {
       uid: string;
       name: string;
-      orgName: string;
+      namespaceName: string;
       displayName?: string;
       description?: string;
       deploymentPipeline?: string;
@@ -1018,7 +1085,7 @@ export interface components {
       name: string;
       displayName?: string;
       description?: string;
-      orgName: string;
+      namespaceName: string;
       /** Format: date-time */
       createdAt: string;
       status?: string;
@@ -1040,14 +1107,14 @@ export interface components {
       description?: string;
       type: string;
       projectName: string;
-      orgName: string;
+      namespaceName: string;
       /** Format: date-time */
       createdAt: string;
       /**
        * Format: date-time
        * @description Timestamp when the component was marked for deletion
        */
-      deletionTimestamp?: string;
+      deletionTimestamp?: string | null;
       status?: string;
       autoDeploy?: boolean;
       service?: {
@@ -1131,15 +1198,15 @@ export interface components {
       imagePullSecretRefs?: string[];
       secretStoreRef?: string;
       publicVirtualHost: string;
-      organizationVirtualHost: string;
+      namespaceVirtualHost: string;
       /** Format: int32 */
       publicHTTPPort: number;
       /** Format: int32 */
       publicHTTPSPort: number;
       /** Format: int32 */
-      organizationHTTPPort: number;
+      namespaceHTTPPort: number;
       /** Format: int32 */
-      organizationHTTPSPort: number;
+      namespaceHTTPSPort: number;
       observabilityPlaneRef?: string;
       /** Format: date-time */
       createdAt: string;
@@ -1180,7 +1247,7 @@ export interface components {
       uuid: string;
       componentName: string;
       projectName: string;
-      orgName: string;
+      namespaceName: string;
       commit?: string;
       status?: string;
       /** Format: date-time */
@@ -1218,7 +1285,7 @@ export interface components {
       uuid: string;
       componentName: string;
       projectName: string;
-      orgName: string;
+      namespaceName: string;
       commit?: string;
       status?: string;
       /** Format: date-time */
@@ -1258,7 +1325,7 @@ export interface components {
       type: string;
       componentName: string;
       projectName: string;
-      orgName: string;
+      namespaceName: string;
       environment: string;
       status: components['schemas']['BindingStatus'];
       serviceBinding?: components['schemas']['ServiceBinding'];
@@ -1296,7 +1363,7 @@ export interface components {
       name: string;
       type: string;
       project?: components['schemas']['ExposedEndpoint'];
-      organization?: components['schemas']['ExposedEndpoint'];
+      namespace?: components['schemas']['ExposedEndpoint'];
       public?: components['schemas']['ExposedEndpoint'];
     };
     ExposedEndpoint: {
@@ -1351,18 +1418,19 @@ export interface components {
       /** @description Message returned when observability is not configured */
       message?: string;
     };
-    /** @description Immutable snapshot of component configuration.
+    /**
+     * @description Immutable snapshot of component configuration.
      *     Note: The following fields are immutable after creation and cannot be modified:
      *     - componentType
      *     - traits
      *     - componentProfile
      *     - workload
-     *      */
+     */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
       projectName: string;
-      orgName: string;
+      namespaceName: string;
       /** Format: date-time */
       createdAt: string;
       status?: string;
@@ -1374,7 +1442,7 @@ export interface components {
       name: string;
       componentName: string;
       projectName: string;
-      orgName: string;
+      namespaceName: string;
       environment: string;
       releaseName: string;
       componentTypeEnvOverrides?: {
@@ -1650,6 +1718,21 @@ export interface components {
       /** Format: date-time */
       evaluatedAt?: string;
     };
+    WebhookEventResponse: {
+      success: boolean;
+      message: string;
+      affectedComponents?: string[];
+      triggeredBuilds: number;
+    };
+    VersionResponse: {
+      name: string;
+      version: string;
+      gitRevision: string;
+      buildTime: string;
+      goOS: string;
+      goArch: string;
+      goVersion: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -1695,6 +1778,110 @@ export interface operations {
         };
         content: {
           'text/plain': string;
+        };
+      };
+    };
+  };
+  getVersion: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Server version information */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['VersionResponse'];
+        };
+      };
+    };
+  };
+  handleGitHubWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Webhook processed successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['WebhookEventResponse'];
+          };
+        };
+      };
+    };
+  };
+  handleGitLabWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Webhook processed successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['WebhookEventResponse'];
+          };
+        };
+      };
+    };
+  };
+  handleBitbucketWebhook: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Webhook processed successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['WebhookEventResponse'];
+          };
         };
       };
     };
@@ -1760,7 +1947,7 @@ export interface operations {
       };
     };
   };
-  listOrganizations: {
+  listNamespaces: {
     parameters: {
       query?: never;
       header?: never;
@@ -1777,19 +1964,19 @@ export interface operations {
         content: {
           'application/json': components['schemas']['APIResponse'] & {
             data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['OrganizationResponse'][];
+              items?: components['schemas']['NamespaceResponse'][];
             };
           };
         };
       };
     };
   };
-  getOrganization: {
+  getNamespace: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -1802,9 +1989,16 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['OrganizationResponse'];
+            data?: components['schemas']['NamespaceResponse'];
           };
         };
+      };
+      /** @description Namespace not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -1813,7 +2007,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -1832,7 +2026,7 @@ export interface operations {
           };
         };
       };
-      /** @description Organization not found */
+      /** @description Namespace not found */
       404: {
         headers: {
           [name: string]: unknown;
@@ -1846,7 +2040,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -1872,7 +2066,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -1900,7 +2094,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         dpName: string;
       };
       cookie?: never;
@@ -1925,7 +2119,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -1951,7 +2145,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -1979,7 +2173,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         envName: string;
       };
       cookie?: never;
@@ -2004,7 +2198,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         envName: string;
       };
       cookie?: never;
@@ -2036,7 +2230,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -2062,7 +2256,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -2088,7 +2282,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         ctName: string;
       };
       cookie?: never;
@@ -2123,7 +2317,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -2149,7 +2343,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         workflowName: string;
       };
       cookie?: never;
@@ -2184,7 +2378,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -2210,7 +2404,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         cwName: string;
       };
       cookie?: never;
@@ -2245,7 +2439,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -2271,7 +2465,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         traitName: string;
       };
       cookie?: never;
@@ -2306,7 +2500,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -2332,7 +2526,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
       };
       cookie?: never;
     };
@@ -2360,7 +2554,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
       };
       cookie?: never;
@@ -2385,7 +2579,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
       };
       cookie?: never;
@@ -2404,9 +2598,7 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
+        content?: never;
       };
     };
   };
@@ -2415,7 +2607,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
       };
       cookie?: never;
@@ -2440,7 +2632,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
       };
       cookie?: never;
@@ -2467,7 +2659,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
       };
       cookie?: never;
@@ -2499,7 +2691,7 @@ export interface operations {
       };
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2525,7 +2717,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2545,9 +2737,7 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
+        content?: never;
       };
     };
   };
@@ -2556,7 +2746,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2607,7 +2797,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2640,7 +2830,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2690,7 +2880,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2744,7 +2934,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2774,7 +2964,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2805,7 +2995,7 @@ export interface operations {
       };
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2838,7 +3028,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
         runName: string;
@@ -2872,7 +3062,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2900,7 +3090,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
         bindingName: string;
@@ -2929,7 +3119,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2957,7 +3147,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -2987,7 +3177,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
         releaseName: string;
@@ -3014,7 +3204,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
         releaseName: string;
@@ -3048,7 +3238,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -3076,7 +3266,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
         bindingName: string;
@@ -3105,7 +3295,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -3133,7 +3323,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -3165,7 +3355,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
         environmentName: string;
@@ -3192,7 +3382,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -3218,7 +3408,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
         environmentName: string;
@@ -3252,7 +3442,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };
@@ -3278,7 +3468,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        orgName: string;
+        namespaceName: string;
         projectName: string;
         componentName: string;
       };

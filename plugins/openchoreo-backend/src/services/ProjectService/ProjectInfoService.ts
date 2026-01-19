@@ -19,12 +19,12 @@ export class ProjectInfoService {
   }
 
   async fetchProjectDetails(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     token?: string,
   ): Promise<ModelsProject> {
     this.logger.debug(
-      `Fetching project details for: ${projectName} in organization: ${orgName}`,
+      `Fetching project details for: ${projectName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -35,10 +35,10 @@ export class ProjectInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}',
+        '/namespaces/{namespaceName}/projects/{projectName}',
         {
           params: {
-            path: { orgName, projectName },
+            path: { namespaceName, projectName },
           },
         },
       );
@@ -68,12 +68,12 @@ export class ProjectInfoService {
   }
 
   async fetchProjectDeploymentPipeline(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     token?: string,
   ): Promise<ModelsDeploymentPipeline> {
     this.logger.debug(
-      `Fetching deployment pipeline for project: ${projectName} in organization: ${orgName}`,
+      `Fetching deployment pipeline for project: ${projectName} in namespace: ${namespaceName}`,
     );
     try {
       const client = createOpenChoreoApiClient({
@@ -83,10 +83,10 @@ export class ProjectInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/deployment-pipeline',
+        '/namespaces/{namespaceName}/projects/{projectName}/deployment-pipeline',
         {
           params: {
-            path: { orgName, projectName },
+            path: { namespaceName, projectName },
           },
         },
       );
