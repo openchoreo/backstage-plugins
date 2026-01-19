@@ -33,7 +33,7 @@ export interface ComponentEntityTranslationConfig {
  * and immediate insertion (scaffolder action) to ensure consistency.
  *
  * @param component - Component from OpenChoreo API
- * @param orgName - Organization name
+ * @param namespaceName - Namespace name
  * @param projectName - Project name
  * @param config - Translation configuration
  * @param providesApis - Optional list of API entity refs this component provides
@@ -41,7 +41,7 @@ export interface ComponentEntityTranslationConfig {
  */
 export function translateComponentToEntity(
   component: ModelsComponent,
-  orgName: string,
+  namespaceName: string,
   projectName: string,
   config: ComponentEntityTranslationConfig,
   providesApis?: string[],
@@ -52,7 +52,7 @@ export function translateComponentToEntity(
     metadata: {
       name: component.name,
       title: component.name,
-      namespace: orgName,
+      namespace: namespaceName,
       ...(component.description && { description: component.description }),
       tags: config.componentTypeUtils.generateTags(component.type || 'unknown'),
       annotations: {
@@ -66,7 +66,7 @@ export function translateComponentToEntity(
           [CHOREO_ANNOTATIONS.COMPONENT_TYPE]: component.type,
         }),
         [CHOREO_ANNOTATIONS.PROJECT]: projectName,
-        [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         ...(component.createdAt && {
           [CHOREO_ANNOTATIONS.CREATED_AT]: component.createdAt,
         }),

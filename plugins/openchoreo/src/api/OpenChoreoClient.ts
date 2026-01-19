@@ -20,7 +20,7 @@ import type {
   RoleEntitlementMapping,
   RoleMappingFilters,
   UserTypeConfig,
-  OrganizationSummary,
+  NamespaceSummary,
   ProjectSummary,
   ComponentSummary,
 } from './OpenChoreoClientApi';
@@ -59,9 +59,9 @@ const API_ENDPOINTS = {
   // Configuration endpoints
   USER_TYPES: '/user-types',
   // Hierarchy data endpoints
-  ORGANIZATIONS: '/orgs',
-  PROJECTS: '/projects', // GET /orgs/{orgName}/projects
-  COMPONENTS: '/components', // GET /orgs/{orgName}/projects/{projectName}/components
+  NAMESPACES: '/namespaces',
+  PROJECTS: '/projects', // GET /namespaces/{namespaceName}/projects
+  COMPONENTS: '/components', // GET /namespaces/{namespaceName}/projects/{projectName}/components
 } as const;
 
 // ============================================
@@ -71,36 +71,34 @@ const API_ENDPOINTS = {
 interface EntityMetadata {
   component: string;
   project: string;
-  organization: string;
+  namespace: string;
 }
 
 function extractEntityMetadata(entity: Entity): EntityMetadata {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!component || !project || !organization) {
+  if (!component || !project || !namespace) {
     throw new Error(
       'Missing required OpenChoreo annotations in entity. ' +
-        `Required: ${CHOREO_ANNOTATIONS.COMPONENT}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.ORGANIZATION}`,
+        `Required: ${CHOREO_ANNOTATIONS.COMPONENT}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
     );
   }
 
-  return { component, project, organization };
+  return { component, project, namespace };
 }
 
 function tryExtractEntityMetadata(entity: Entity): EntityMetadata | null {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!component || !project || !organization) {
+  if (!component || !project || !namespace) {
     return null;
   }
 
-  return { component, project, organization };
+  return { component, project, namespace };
 }
 
 function entityMetadataToParams(
@@ -109,7 +107,7 @@ function entityMetadataToParams(
   return {
     componentName: metadata.component,
     projectName: metadata.project,
-    organizationName: metadata.organization,
+    namespaceName: metadata.namespace,
   };
 }
 
@@ -196,7 +194,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     sourceEnvironment: string,
     targetEnvironment: string,
   ): Promise<any> {
-    const { component, project, organization } = extractEntityMetadata(entity);
+    const { component, project, namespace } = extractEntityMetadata(entity);
 
     return this.apiFetch(API_ENDPOINTS.PROMOTE_DEPLOYMENT, {
       method: 'POST',
@@ -205,7 +203,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         targetEnv: targetEnvironment,
         componentName: component,
         projectName: project,
-        orgName: organization,
+        namespaceName: namespace,
       },
     });
   }
@@ -214,12 +212,12 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     entity: Entity,
     environment: string,
   ): Promise<any> {
-    const { component, project, organization } = extractEntityMetadata(entity);
+    const { component, project, namespace } = extractEntityMetadata(entity);
 
     return this.apiFetch(API_ENDPOINTS.DELETE_RELEASE_BINDING, {
       method: 'DELETE',
       body: {
-        orgName: organization,
+        namespaceName: namespace,
         projectName: project,
         componentName: component,
         environment,
@@ -232,12 +230,12 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     bindingName: string,
     releaseState: 'Active' | 'Suspend' | 'Undeploy',
   ): Promise<any> {
-    const { component, project, organization } = extractEntityMetadata(entity);
+    const { component, project, namespace } = extractEntityMetadata(entity);
 
     return this.apiFetch(API_ENDPOINTS.UPDATE_BINDING, {
       method: 'PATCH',
       body: {
-        orgName: organization,
+        namespaceName: namespace,
         projectName: project,
         componentName: component,
         bindingName,
@@ -247,12 +245,12 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   }
 
   async patchComponent(entity: Entity, autoDeploy: boolean): Promise<any> {
-    const { component, project, organization } = extractEntityMetadata(entity);
+    const { component, project, namespace } = extractEntityMetadata(entity);
 
     return this.apiFetch(API_ENDPOINTS.COMPONENT, {
       method: 'PATCH',
       body: {
-        organizationName: organization,
+        namespaceName: namespace,
         projectName: project,
         componentName: component,
         autoDeploy,
@@ -316,10 +314,10 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     workloadOverrides?: any,
     releaseName?: string,
   ): Promise<any> {
-    const { component, project, organization } = extractEntityMetadata(entity);
+    const { component, project, namespace } = extractEntityMetadata(entity);
 
     const patchReq: Record<string, unknown> = {
-      orgName: organization,
+      namespaceName: namespace,
       projectName: project,
       componentName: component,
       environment,
@@ -388,14 +386,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // ============================================
 
   async fetchWorkflowSchema(
-    organizationName: string,
+    namespaceName: string,
     workflowName: string,
   ): Promise<WorkflowSchemaResponse> {
     return this.apiFetch<WorkflowSchemaResponse>(
       API_ENDPOINTS.WORKFLOW_SCHEMA,
       {
         params: {
-          organizationName,
+          namespaceName,
           workflowName,
         },
       },
@@ -495,7 +493,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
           limit: (params.limit || 100).toString(),
           sortOrder: params.sortOrder || 'desc',
           projectName: params.projectName,
-          orgName: params.orgName,
+          namespaceName: params.namespaceName,
         },
       },
     );
@@ -520,10 +518,10 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       !build.name ||
       !build.uuid ||
       !build.projectName ||
-      !build.orgName
+      !build.namespaceName
     ) {
       throw new Error(
-        'Component name, Build ID, UUID, Project name, or Organization name not available',
+        'Component name, Build ID, UUID, Project name, or Namespace name not available',
       );
     }
 
@@ -532,7 +530,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       buildId: build.name,
       buildUuid: build.uuid,
       projectName: build.projectName,
-      orgName: build.orgName,
+      namespaceName: build.namespaceName,
       limit: 100,
       sortOrder: 'desc',
     });
@@ -541,14 +539,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async fetchBuilds(
     componentName: string,
     projectName: string,
-    organizationName: string,
+    namespaceName: string,
   ): Promise<any[]> {
     try {
       return await this.apiFetch<any[]>(API_ENDPOINTS.BUILDS, {
         params: {
           componentName,
           projectName,
-          organizationName,
+          namespaceName,
         },
       });
     } catch {
@@ -562,17 +560,17 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
   async getCellDiagramInfo(entity: Entity): Promise<any> {
     const project = entity.metadata.name;
-    const organization =
-      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    const namespace =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-    if (!project || !organization) {
+    if (!project || !namespace) {
       return [];
     }
 
     return this.apiFetch(API_ENDPOINTS.CELL_DIAGRAM, {
       params: {
         projectName: project,
-        organizationName: organization,
+        namespaceName: namespace,
       },
     });
   }
@@ -592,29 +590,29 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async fetchSecretReferences(
     entity: Entity,
   ): Promise<SecretReferencesResponse> {
-    const organizationName =
-      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    const namespaceName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-    if (!organizationName) {
-      throw new Error('Missing organization annotation');
+    if (!namespaceName) {
+      throw new Error('Missing namespace annotation');
     }
 
     return this.apiFetch<SecretReferencesResponse>(
       API_ENDPOINTS.SECRET_REFERENCES,
       {
-        params: { organizationName },
+        params: { namespaceName },
       },
     );
   }
 
   async fetchDeploymentPipeline(
     projectName: string,
-    organizationName: string,
+    namespaceName: string,
   ): Promise<any> {
     return this.apiFetch(API_ENDPOINTS.DEPLOYMENT_PIPELINE, {
       params: {
         projectName,
-        organizationName,
+        namespaceName,
       },
     });
   }
@@ -640,7 +638,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return this.apiFetch<ComponentTrait[]>(API_ENDPOINTS.COMPONENT_TRAITS, {
       method: 'PUT',
       body: {
-        organizationName: metadata.organization,
+        namespaceName: metadata.namespace,
         projectName: metadata.project,
         componentName: metadata.component,
         traits,
@@ -778,40 +776,40 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Hierarchy Data Operations
   // ============================================
 
-  async listOrganizations(): Promise<OrganizationSummary[]> {
-    const response = await this.apiFetch<{ data: OrganizationSummary[] }>(
-      API_ENDPOINTS.ORGANIZATIONS,
+  async listNamespaces(): Promise<NamespaceSummary[]> {
+    const response = await this.apiFetch<{ data: NamespaceSummary[] }>(
+      API_ENDPOINTS.NAMESPACES,
     );
     return response.data || [];
   }
 
-  async listProjects(orgName: string): Promise<ProjectSummary[]> {
+  async listProjects(namespaceName: string): Promise<ProjectSummary[]> {
     const response = await this.apiFetch<{ data: ProjectSummary[] }>(
-      `/orgs/${encodeURIComponent(orgName)}/projects`,
+      `/namespaces/${encodeURIComponent(namespaceName)}/projects`,
     );
     return response.data || [];
   }
 
   async listComponents(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
   ): Promise<ComponentSummary[]> {
     const response = await this.apiFetch<{ data: ComponentSummary[] }>(
-      `/orgs/${encodeURIComponent(orgName)}/projects/${encodeURIComponent(
-        projectName,
-      )}/components`,
+      `/namespaces/${encodeURIComponent(
+        namespaceName,
+      )}/projects/${encodeURIComponent(projectName)}/components`,
     );
     return response.data || [];
   }
 
   async fetchDataPlaneDetails(
-    organizationName: string,
+    namespaceName: string,
     dataplaneName: string,
   ): Promise<any> {
     const response = await this.apiFetch<any>(
       `/dataplanes/${encodeURIComponent(
         dataplaneName,
-      )}?organizationName=${encodeURIComponent(organizationName)}`,
+      )}?namespaceName=${encodeURIComponent(namespaceName)}`,
     );
     return response;
   }

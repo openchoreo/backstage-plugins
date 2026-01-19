@@ -265,10 +265,10 @@ export interface components {
        */
       projectName: string;
       /**
-       * @description Organization name
-       * @example my-org
+       * @description Namespace name
+       * @example my-namespace
        */
-      orgName: string;
+      namespaceName: string;
     };
     ComponentLogsRequest: {
       /**
@@ -367,10 +367,10 @@ export interface components {
        */
       environmentName: string;
       /**
-       * @description Organization name
-       * @example my-org
+       * @description Namespace name
+       * @example my-namespace
        */
-      orgName: string;
+      namespaceName: string;
     };
     ProjectLogsRequest: components['schemas']['ComponentLogsRequest'] & {
       /**
@@ -486,7 +486,6 @@ export interface components {
        *     - Prefix match: `63d7c3065ab2537*`
        *     - Suffix match: `*135a77db`
        *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
-       *
        * @example 63d7c3065ab25375*
        */
       traceId?: string;
@@ -534,10 +533,10 @@ export interface components {
        */
       environmentName: string;
       /**
-       * @description Organization name
-       * @example my-org
+       * @description Namespace name
+       * @example my-namespace
        */
-      orgName: string;
+      namespaceName: string;
     };
     MetricsRequest: {
       /**
@@ -583,10 +582,10 @@ export interface components {
        */
       environmentName: string;
       /**
-       * @description Organization name
-       * @example my-org
+       * @description Namespace name
+       * @example my-namespace
        */
-      orgName: string;
+      namespaceName: string;
     };
     LogEntry: {
       /**
@@ -629,7 +628,8 @@ export interface components {
        */
       tookMs?: number;
     };
-    /** @example {
+    /**
+     * @example {
      *       "traces": [
      *         {
      *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
@@ -648,7 +648,8 @@ export interface components {
      *         }
      *       ],
      *       "tookMs": 15
-     *     } */
+     *     }
+     */
     TraceResponse: {
       /** @description Array of traces with their spans */
       traces?: components['schemas']['Trace'][];
@@ -728,7 +729,8 @@ export interface components {
        */
       value?: number;
     };
-    /** @example {
+    /**
+     * @example {
      *       "cpuUsage": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -789,7 +791,8 @@ export interface components {
      *           "value": 2147483648
      *         }
      *       ]
-     *     } */
+     *     }
+     */
     ResourceMetricsTimeSeries: {
       /** @description CPU usage time series (in cores) */
       cpuUsage?: components['schemas']['TimeValuePoint'][];
@@ -804,7 +807,8 @@ export interface components {
       /** @description Memory limits time series (in bytes) */
       memoryLimits?: components['schemas']['TimeValuePoint'][];
     };
-    /** @example {
+    /**
+     * @example {
      *       "requestCount": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -875,7 +879,8 @@ export interface components {
      *           "value": 0.52
      *         }
      *       ]
-     *     } */
+     *     }
+     */
     HTTPMetricsTimeSeries: {
       /** @description Total HTTP request count time series (requests per second) */
       requestCount?: components['schemas']['TimeValuePoint'][];
@@ -1146,11 +1151,12 @@ export interface components {
        */
       log_message: string;
     };
-    /** @description Evidence from metrics - rendered as a styled value
+    /**
+     * @description Evidence from metrics - rendered as a styled value
      *
      *     Example- metric_name="RAM usage", value="95.5%", severity=CRITICAL
      *     renders as "95.5% RAM usage" with value in red
-     *      */
+     */
     MetricEvidenceItem: {
       /**
        * @description Evidence type discriminator (enum property replaced by openapi-typescript)

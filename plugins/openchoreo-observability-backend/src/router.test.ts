@@ -59,7 +59,7 @@ describe('createRouter', () => {
   beforeEach(async () => {
     observabilityService = {
       fetchMetricsByComponent: jest.fn(),
-      fetchEnvironmentsByOrganization: jest.fn(),
+      fetchEnvironmentsByNamespace: jest.fn(),
       fetchTracesByProject: jest.fn(),
       fetchRCAReportsByProject: jest.fn(),
       fetchRCAReportByAlert: jest.fn(),

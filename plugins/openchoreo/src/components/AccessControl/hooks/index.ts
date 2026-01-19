@@ -20,8 +20,4 @@ export type {
   EntitlementConfig,
   AuthMechanismConfig,
 } from './useUserTypes';
-export {
-  useOrganizations,
-  useProjects,
-  useComponents,
-} from './useHierarchyData';
+export { useNamespaces, useProjects, useComponents } from './useHierarchyData';

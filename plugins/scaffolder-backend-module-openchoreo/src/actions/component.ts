@@ -37,10 +37,10 @@ export const createComponentAction = (
         zImpl
           .object({
             // Keep existing validation for required fields
-            orgName: zImpl
+            namespaceName: zImpl
               .string()
               .describe(
-                'The name of the organization where the component will be created',
+                'The name of the namespace where the component will be created',
               ),
             projectName: zImpl
               .string()
@@ -81,9 +81,9 @@ export const createComponentAction = (
           projectName: zImpl
             .string()
             .describe('The project where the component was created'),
-          organizationName: zImpl
+          namespaceName: zImpl
             .string()
-            .describe('The organization where the component was created'),
+            .describe('The namespace where the component was created'),
         }),
     },
     async handler(ctx) {
@@ -91,9 +91,9 @@ export const createComponentAction = (
         `Creating component with parameters: ${JSON.stringify(ctx.input)}`,
       );
 
-      // Extract organization name from domain format (e.g., "domain:default/default-org" -> "default-org")
-      const extractOrgName = (fullOrgName: string): string => {
-        const parts = fullOrgName.split('/');
+      // Extract namespace name from domain format (e.g., "domain:default/default-ns" -> "default-ns")
+      const extractNamespaceName = (fullNamespaceName: string): string => {
+        const parts = fullNamespaceName.split('/');
         return parts[parts.length - 1];
       };
 
@@ -103,11 +103,11 @@ export const createComponentAction = (
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(ctx.input.orgName);
+      const namespaceName = extractNamespaceName(ctx.input.namespaceName);
       const projectName = extractProjectName(ctx.input.projectName);
 
       ctx.logger.info(
-        `Extracted organization name: ${orgName} from ${ctx.input.orgName}`,
+        `Extracted namespace name: ${namespaceName} from ${ctx.input.namespaceName}`,
       );
       ctx.logger.info(
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
@@ -127,23 +127,22 @@ export const createComponentAction = (
           },
         });
 
-        // Filter components by organization annotation and check if name exists
-        const existsInOrg = items.some(
+        // Filter components by namespace annotation and check if name exists
+        const existsInNamespace = items.some(
           component =>
-            component.metadata.annotations?.[
-              CHOREO_ANNOTATIONS.ORGANIZATION
-            ] === orgName &&
+            component.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ===
+              namespaceName &&
             component.metadata.name === ctx.input.componentName,
         );
 
-        if (existsInOrg) {
+        if (existsInNamespace) {
           throw new Error(
-            `A component named "${ctx.input.componentName}" already exists in organization "${orgName}". Please choose a different name.`,
+            `A component named "${ctx.input.componentName}" already exists in namespace "${namespaceName}". Please choose a different name.`,
           );
         }
 
         ctx.logger.debug(
-          `Component name "${ctx.input.componentName}" is available in organization "${orgName}"`,
+          `Component name "${ctx.input.componentName}" is available in namespace "${namespaceName}"`,
         );
       } catch (error) {
         // If it's our duplicate error, rethrow it
@@ -178,7 +177,7 @@ export const createComponentAction = (
 
         // Extract CTD-specific parameters by filtering out known scaffolder fields
         const knownScaffolderFields = new Set([
-          'orgName',
+          'namespaceName',
           'projectName',
           'componentName',
           'displayName',
@@ -211,7 +210,7 @@ export const createComponentAction = (
           componentName: ctx.input.componentName,
           displayName: ctx.input.displayName,
           description: ctx.input.description,
-          organizationName: orgName,
+          namespaceName: namespaceName,
           projectName: projectName,
           componentType: ctx.input.componentType,
           componentTypeWorkloadType:
@@ -311,7 +310,7 @@ export const createComponentAction = (
             description: ctx.input.description,
             type: fullComponentType, // Use full type format: deployment/service
             projectName: projectName,
-            orgName: orgName,
+            namespaceName: namespaceName,
             status: 'Active', // New components are active by default
             createdAt: new Date().toISOString(),
             autoDeploy: autoDeploy,
@@ -341,7 +340,7 @@ export const createComponentAction = (
           // Use the shared translation utility for consistency with scheduled sync
           const entity = translateComponentToEntity(
             component,
-            orgName,
+            namespaceName,
             projectName,
             {
               defaultOwner,
@@ -372,7 +371,7 @@ export const createComponentAction = (
         // Set outputs for the scaffolder
         ctx.output('componentName', ctx.input.componentName);
         ctx.output('projectName', projectName);
-        ctx.output('organizationName', orgName);
+        ctx.output('namespaceName', namespaceName);
 
         ctx.logger.info(
           `Component '${ctx.input.componentName}' created successfully in project '${projectName}'`,

@@ -11,7 +11,7 @@ export interface EnvironmentService {
   fetchDeploymentInfo(request: {
     projectName: string;
     componentName: string;
-    organizationName: string;
+    namespaceName: string;
   }): Promise<Environment[]>;
 
   promoteComponent(request: {
@@ -19,13 +19,13 @@ export interface EnvironmentService {
     targetEnvironment: string;
     componentName: string;
     projectName: string;
-    organizationName: string;
+    namespaceName: string;
   }): Promise<Environment[]>;
 
   updateComponentBinding(request: {
     componentName: string;
     projectName: string;
-    organizationName: string;
+    namespaceName: string;
     bindingName: string;
     releaseState: 'Active' | 'Suspend' | 'Undeploy';
   }): Promise<Environment[]>;
@@ -112,7 +112,7 @@ export interface CellDiagramService {
   fetchProjectInfo(
     request: {
       projectName: string;
-      orgName: string;
+      namespaceName: string;
     },
     token?: string,
   ): Promise<Project | undefined>;
@@ -123,7 +123,7 @@ export interface WorkloadService {
     request: {
       projectName: string;
       componentName: string;
-      organizationName: string;
+      namespaceName: string;
     },
     token?: string,
   ): Promise<any>;
@@ -132,7 +132,7 @@ export interface WorkloadService {
     request: {
       projectName: string;
       componentName: string;
-      organizationName: string;
+      namespaceName: string;
       workloadSpec: any;
     },
     token?: string,
@@ -152,7 +152,7 @@ export interface RuntimeLogsService {
       limit?: number;
       offset?: number;
     },
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     token?: string,
   ): Promise<RuntimeLogsResponse>;
@@ -160,7 +160,7 @@ export interface RuntimeLogsService {
 
 export interface SecretReferencesService {
   fetchSecretReferences(
-    orgName: string,
+    namespaceName: string,
     token?: string,
   ): Promise<ModelsSecretReferences>;
 }

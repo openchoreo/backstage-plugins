@@ -60,7 +60,7 @@ describe('plugin', () => {
             fetchMetricsByComponent: jest
               .fn()
               .mockResolvedValue(mockResourceMetricsTimeSeries),
-            fetchEnvironmentsByOrganization: jest.fn().mockResolvedValue([]),
+            fetchEnvironmentsByNamespace: jest.fn().mockResolvedValue([]),
             fetchTracesByProject: jest.fn().mockResolvedValue({
               traces: [],
               tookMs: 0,
@@ -83,7 +83,7 @@ describe('plugin', () => {
       .send({
         componentId: 'component-1',
         environmentId: 'environment-1',
-        orgName: 'org-1',
+        namespaceName: 'namespace-1',
         projectName: 'project-1',
         options: {
           limit: 100,
@@ -106,7 +106,7 @@ describe('plugin', () => {
             fetchMetricsByComponent: jest
               .fn()
               .mockRejectedValue(new Error('Failed to fetch metrics')),
-            fetchEnvironmentsByOrganization: jest
+            fetchEnvironmentsByNamespace: jest
               .fn()
               .mockRejectedValue(new Error('Failed to fetch environments')),
             fetchTracesByProject: jest
@@ -131,7 +131,7 @@ describe('plugin', () => {
       .send({
         componentId: 'component-1',
         environmentId: 'environment-1',
-        orgName: 'org-1',
+        namespaceName: 'namespace-1',
         projectName: 'project-1',
         options: {
           limit: 100,

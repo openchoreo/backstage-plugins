@@ -54,15 +54,15 @@ export class ObservabilityService {
   }
 
   /**
-   * Resolves the observability URL for a given organization and environment.
+   * Resolves the observability URL for a given namespace and environment.
    *
-   * @param orgName - The organization name
+   * @param namespaceName - The namespace name
    * @param environmentName - The environment name
    * @param userToken - Optional user token for authentication
    * @returns The resolved observer URL
    */
   private async resolveObserverUrl(
-    orgName: string,
+    namespaceName: string,
     environmentName: string,
     userToken?: string,
   ): Promise<string> {
@@ -81,11 +81,11 @@ export class ObservabilityService {
       error: urlError,
       response: urlResponse,
     } = await mainClient.GET(
-      '/orgs/{orgName}/environments/{envName}/observer-url',
+      '/namespaces/{namespaceName}/environments/{envName}/observer-url',
       {
         params: {
           path: {
-            orgName,
+            namespaceName,
             envName: environmentName,
           },
         },
@@ -106,11 +106,11 @@ export class ObservabilityService {
 
     const observerUrl = urlData.data.observerUrl;
     if (!observerUrl) {
-      throw new ObservabilityNotConfiguredError(orgName);
+      throw new ObservabilityNotConfiguredError(namespaceName);
     }
 
     this.logger.debug(
-      `Resolved observer URL: ${observerUrl} for org ${orgName}, environment ${environmentName}`,
+      `Resolved observer URL: ${observerUrl} for namespace ${namespaceName}, environment ${environmentName}`,
     );
 
     return observerUrl;
@@ -119,17 +119,17 @@ export class ObservabilityService {
   /**
    * Fetches environments for observability filtering purposes.
    *
-   * @param organizationName - The organization name
+   * @param namespaceName - The namespace name
    * @param userToken - Optional user token for authentication (takes precedence over default token)
    */
-  async fetchEnvironmentsByOrganization(
-    organizationName: string,
+  async fetchEnvironmentsByNamespace(
+    namespaceName: string,
     userToken?: string,
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Starting environment fetch for organization: ${organizationName}`,
+        `Starting environment fetch for namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -139,24 +139,24 @@ export class ObservabilityService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/environments',
+        '/namespaces/{namespaceName}/environments',
         {
           params: {
-            path: { orgName: organizationName },
+            path: { namespaceName },
           },
         },
       );
 
       if (error || !response.ok) {
         this.logger.error(
-          `Failed to fetch environments for organization ${organizationName}: ${response.status} ${response.statusText}`,
+          `Failed to fetch environments for namespace ${namespaceName}: ${response.status} ${response.statusText}`,
         );
         return [];
       }
 
       if (!data.success || !data.data?.items) {
         this.logger.warn(
-          `No environments found for organization ${organizationName}`,
+          `No environments found for namespace ${namespaceName}`,
         );
         return [];
       }
@@ -172,7 +172,7 @@ export class ObservabilityService {
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching environments for organization ${organizationName} (${totalTime}ms):`,
+        `Error fetching environments for namespace ${namespaceName} (${totalTime}ms):`,
         error as Error,
       );
       return [];
@@ -185,7 +185,7 @@ export class ObservabilityService {
    * @param componentId - The ID of the component
    * @param projectId - The ID of the project
    * @param environmentId - The ID of the environment
-   * @param orgName - The organization name
+   * @param namespaceName - The namespace name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
    * @param componentName - The name of the component
@@ -201,7 +201,7 @@ export class ObservabilityService {
     componentId: string,
     projectId: string,
     environmentId: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     environmentName: string,
     componentName: string,
@@ -216,11 +216,11 @@ export class ObservabilityService {
     const startTime = Date.now();
     try {
       this.logger.info(
-        `Fetching runtime logs for component ${componentName} in organization ${orgName} and environment ${environmentName}`,
+        `Fetching runtime logs for component ${componentName} in namespace ${namespaceName} and environment ${environmentName}`,
       );
 
       const observerUrl = await this.resolveObserverUrl(
-        orgName,
+        namespaceName,
         environmentName,
         userToken,
       );
@@ -251,7 +251,7 @@ export class ObservabilityService {
             environmentId,
             componentName,
             projectName,
-            orgName,
+            namespaceName,
             environmentName,
             limit: options?.limit || 100,
             sortOrder: 'desc',
@@ -336,7 +336,7 @@ export class ObservabilityService {
    * @param componentId - The ID of the component
    * @param projectId - The ID of the project
    * @param environmentId - The ID of the environment
-   * @param orgName - The organization name
+   * @param namespaceName - The namespace name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
    * @param componentName - The name of the component
@@ -352,7 +352,7 @@ export class ObservabilityService {
     componentId: string,
     projectId: string,
     environmentId: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     environmentName: string,
     componentName: string,
@@ -381,10 +381,15 @@ export class ObservabilityService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
         {
           params: {
-            path: { orgName, projectName, componentName, environmentName },
+            path: {
+              namespaceName,
+              projectName,
+              componentName,
+              environmentName,
+            },
           },
         },
       );
@@ -428,7 +433,7 @@ export class ObservabilityService {
             projectId,
             componentName,
             projectName,
-            orgName,
+            namespaceName,
             environmentName,
             limit: options?.limit || 100,
             offset: options?.offset || 0,
@@ -449,7 +454,7 @@ export class ObservabilityService {
           projectId,
           componentName,
           projectName,
-          orgName,
+          namespaceName,
           environmentName,
           limit: options?.limit || 100,
           offset: options?.offset || 0,
@@ -532,7 +537,7 @@ export class ObservabilityService {
    *
    * @param projectId - The ID of the project
    * @param environmentId - The ID of the environment
-   * @param orgName - The organization name
+   * @param namespaceName - The namespace name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
    * @param componentUids - Array of component UIDs to filter traces (optional)
@@ -548,7 +553,7 @@ export class ObservabilityService {
   async fetchTracesByProject(
     projectId: string,
     environmentId: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     environmentName: string,
     componentUids: string[],
@@ -585,7 +590,7 @@ export class ObservabilityService {
 
       // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
-        orgName,
+        namespaceName,
         environmentName,
         userToken,
       );
@@ -618,7 +623,7 @@ export class ObservabilityService {
         sortOrder: options?.sortOrder || 'desc',
         componentNames,
         projectName,
-        orgName,
+        namespaceName,
         environmentName,
       };
 
@@ -689,7 +694,7 @@ export class ObservabilityService {
    *
    * @param projectId - The ID of the project
    * @param environmentId - The ID of the environment
-   * @param orgName - The organization name
+   * @param namespaceName - The namespace name
    * @param environmentName - The name of the environment
    * @param componentUids - Array of component UIDs to filter reports (optional)
    * @param options - Parameters for filtering reports
@@ -703,7 +708,7 @@ export class ObservabilityService {
   async fetchRCAReportsByProject(
     projectId: string,
     environmentId: string,
-    orgName: string,
+    namespaceName: string,
     environmentName: string,
     componentUids: string[],
     options: {
@@ -733,7 +738,7 @@ export class ObservabilityService {
 
       // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
-        orgName,
+        namespaceName,
         environmentName,
         userToken,
       );
@@ -819,7 +824,7 @@ export class ObservabilityService {
    * then fetches the RCA report from the observability service.
    *
    * @param alertId - The ID of the alert
-   * @param orgName - The organization name
+   * @param namespaceName - The namespace name
    * @param environmentName - The name of the environment
    * @param options - Optional parameters
    * @param options.version - Specific version number of the report to retrieve
@@ -828,7 +833,7 @@ export class ObservabilityService {
    */
   async fetchRCAReportByAlert(
     alertId: string,
-    orgName: string,
+    namespaceName: string,
     environmentName: string,
     options?: {
       version?: number;
@@ -852,7 +857,7 @@ export class ObservabilityService {
 
       // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
-        orgName,
+        namespaceName,
         environmentName,
         userToken,
       );

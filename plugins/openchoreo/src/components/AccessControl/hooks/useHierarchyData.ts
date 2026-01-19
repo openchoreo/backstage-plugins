@@ -2,24 +2,24 @@ import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   openChoreoClientApiRef,
-  OrganizationSummary,
+  NamespaceSummary,
   ProjectSummary,
   ComponentSummary,
 } from '../../../api/OpenChoreoClientApi';
 
 // ============================================
-// useOrganizations Hook
+// useNamespaces Hook
 // ============================================
 
-interface UseOrganizationsResult {
-  organizations: OrganizationSummary[];
+interface UseNamespacesResult {
+  namespaces: NamespaceSummary[];
   loading: boolean;
   error: Error | null;
   refresh: () => Promise<void>;
 }
 
-export function useOrganizations(): UseOrganizationsResult {
-  const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
+export function useNamespaces(): UseNamespacesResult {
+  const [namespaces, setNamespaces] = useState<NamespaceSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -29,11 +29,11 @@ export function useOrganizations(): UseOrganizationsResult {
     try {
       setLoading(true);
       setError(null);
-      const result = await client.listOrganizations();
-      setOrganizations(result);
+      const result = await client.listNamespaces();
+      setNamespaces(result);
     } catch (err) {
       setError(
-        err instanceof Error ? err : new Error('Failed to fetch organizations'),
+        err instanceof Error ? err : new Error('Failed to fetch namespaces'),
       );
     } finally {
       setLoading(false);
@@ -45,7 +45,7 @@ export function useOrganizations(): UseOrganizationsResult {
   }, [refresh]);
 
   return {
-    organizations,
+    namespaces,
     loading,
     error,
     refresh,
@@ -63,7 +63,9 @@ interface UseProjectsResult {
   refresh: () => Promise<void>;
 }
 
-export function useProjects(orgName: string | undefined): UseProjectsResult {
+export function useProjects(
+  namespaceName: string | undefined,
+): UseProjectsResult {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -71,7 +73,7 @@ export function useProjects(orgName: string | undefined): UseProjectsResult {
   const client = useApi(openChoreoClientApiRef);
 
   const refresh = useCallback(async () => {
-    if (!orgName) {
+    if (!namespaceName) {
       setProjects([]);
       return;
     }
@@ -79,7 +81,7 @@ export function useProjects(orgName: string | undefined): UseProjectsResult {
     try {
       setLoading(true);
       setError(null);
-      const result = await client.listProjects(orgName);
+      const result = await client.listProjects(namespaceName);
       setProjects(result);
     } catch (err) {
       setError(
@@ -88,7 +90,7 @@ export function useProjects(orgName: string | undefined): UseProjectsResult {
     } finally {
       setLoading(false);
     }
-  }, [client, orgName]);
+  }, [client, namespaceName]);
 
   useEffect(() => {
     refresh();
@@ -114,7 +116,7 @@ interface UseComponentsResult {
 }
 
 export function useComponents(
-  orgName: string | undefined,
+  namespaceName: string | undefined,
   projectName: string | undefined,
 ): UseComponentsResult {
   const [components, setComponents] = useState<ComponentSummary[]>([]);
@@ -124,7 +126,7 @@ export function useComponents(
   const client = useApi(openChoreoClientApiRef);
 
   const refresh = useCallback(async () => {
-    if (!orgName || !projectName) {
+    if (!namespaceName || !projectName) {
       setComponents([]);
       return;
     }
@@ -132,7 +134,7 @@ export function useComponents(
     try {
       setLoading(true);
       setError(null);
-      const result = await client.listComponents(orgName, projectName);
+      const result = await client.listComponents(namespaceName, projectName);
       setComponents(result);
     } catch (err) {
       setError(
@@ -141,7 +143,7 @@ export function useComponents(
     } finally {
       setLoading(false);
     }
-  }, [client, orgName, projectName]);
+  }, [client, namespaceName, projectName]);
 
   useEffect(() => {
     refresh();

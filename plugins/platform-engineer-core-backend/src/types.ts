@@ -3,7 +3,7 @@ export interface Environment {
   namespace: string;
   displayName: string;
   description: string;
-  organization: string;
+  namespaceName: string;
   dataPlaneRef: string;
   isProduction: boolean;
   dnsPrefix: string;
@@ -17,15 +17,15 @@ export interface DataPlane {
   namespace?: string;
   displayName?: string;
   description?: string;
-  organization: string;
+  namespaceName: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
   publicVirtualHost?: string;
-  organizationVirtualHost?: string;
+  namespaceVirtualHost?: string;
   publicHTTPPort?: number;
   publicHTTPSPort?: number;
-  organizationHTTPPort?: number;
-  organizationHTTPSPort?: number;
+  namespaceHTTPPort?: number;
+  namespaceHTTPSPort?: number;
   observabilityPlaneRef?: string;
   createdAt?: string;
   status?: string;
@@ -37,28 +37,28 @@ export interface DataPlaneWithEnvironments extends DataPlane {
 
 export interface PlatformEnvironmentService {
   /**
-   * Fetches all environments across all organizations
+   * Fetches all environments across all namespaces
    */
   fetchAllEnvironments(userToken?: string): Promise<Environment[]>;
 
   /**
-   * Fetches environments for a specific organization
+   * Fetches environments for a specific namespace
    */
-  fetchEnvironmentsByOrganization(
-    organizationName: string,
+  fetchEnvironmentsByNamespace(
+    namespaceName: string,
     userToken?: string,
   ): Promise<Environment[]>;
 
   /**
-   * Fetches all dataplanes across all organizations
+   * Fetches all dataplanes across all namespaces
    */
   fetchAllDataplanes(userToken?: string): Promise<DataPlane[]>;
 
   /**
-   * Fetches dataplanes for a specific organization
+   * Fetches dataplanes for a specific namespace
    */
-  fetchDataplanesByOrganization(
-    organizationName: string,
+  fetchDataplanesByNamespace(
+    namespaceName: string,
     userToken?: string,
   ): Promise<DataPlane[]>;
 
@@ -81,7 +81,7 @@ export interface PlatformEnvironmentService {
    */
   fetchComponentCountsPerEnvironment(
     components: Array<{
-      orgName: string;
+      namespaceName: string;
       projectName: string;
       componentName: string;
     }>,
@@ -93,7 +93,7 @@ export interface PlatformEnvironmentService {
    */
   fetchDistinctDeployedComponentsCount(
     components: Array<{
-      orgName: string;
+      namespaceName: string;
       projectName: string;
       componentName: string;
     }>,
@@ -106,7 +106,7 @@ export interface PlatformEnvironmentService {
    */
   fetchHealthyWorkloadCount(
     components: Array<{
-      orgName: string;
+      namespaceName: string;
       projectName: string;
       componentName: string;
     }>,

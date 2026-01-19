@@ -10,9 +10,9 @@ export const createProjectAction = (config: Config) => {
     schema: {
       input: (zImpl: typeof z) =>
         zImpl.object({
-          orgName: zImpl
+          namespaceName: zImpl
             .string()
-            .describe('The name of the organization to create the project in'),
+            .describe('The name of the namespace to create the project in'),
           projectName: zImpl
             .string()
             .describe('The name of the project to create'),
@@ -34,9 +34,9 @@ export const createProjectAction = (config: Config) => {
           projectName: zImpl
             .string()
             .describe('The name of the created project'),
-          organizationName: zImpl
+          namespaceName: zImpl
             .string()
-            .describe('The organization where the project was created'),
+            .describe('The namespace where the project was created'),
         }),
     },
     async handler(ctx) {
@@ -44,15 +44,15 @@ export const createProjectAction = (config: Config) => {
         `Creating project with parameters: ${JSON.stringify(ctx.input)}`,
       );
 
-      // Extract organization name from domain format (e.g., "domain:default/default-org" -> "default-org")
-      const extractOrgName = (fullOrgName: string): string => {
-        const parts = fullOrgName.split('/');
+      // Extract namespace name from domain format (e.g., "domain:default/default-ns" -> "default-ns")
+      const extractNamespaceName = (fullNamespaceName: string): string => {
+        const parts = fullNamespaceName.split('/');
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(ctx.input.orgName);
+      const namespaceName = extractNamespaceName(ctx.input.namespaceName);
       ctx.logger.debug(
-        `Extracted organization name: ${orgName} from ${ctx.input.orgName}`,
+        `Extracted namespace name: ${namespaceName} from ${ctx.input.namespaceName}`,
       );
 
       // Get the base URL from configuration
@@ -89,10 +89,10 @@ export const createProjectAction = (config: Config) => {
 
       try {
         const { data, error, response } = await client.POST(
-          '/orgs/{orgName}/projects',
+          '/namespaces/{namespaceName}/projects',
           {
             params: {
-              path: { orgName },
+              path: { namespaceName },
             },
             body: {
               name: ctx.input.projectName,
@@ -119,7 +119,7 @@ export const createProjectAction = (config: Config) => {
 
         // Set outputs for the scaffolder
         ctx.output('projectName', data.data.name || ctx.input.projectName);
-        ctx.output('organizationName', orgName);
+        ctx.output('namespaceName', namespaceName);
       } catch (error) {
         ctx.logger.error(`Error creating project: ${error}`);
         throw new Error(`Failed to create project: ${error}`);

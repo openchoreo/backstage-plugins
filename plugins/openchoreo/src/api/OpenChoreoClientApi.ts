@@ -66,7 +66,7 @@ export interface WorkflowSchemaResponse {
 
 /** Component info for dashboard */
 export interface ComponentInfo {
-  orgName: string;
+  namespaceName: string;
   projectName: string;
   componentName: string;
 }
@@ -156,8 +156,8 @@ export interface UserTypeConfig {
   authMechanisms: AuthMechanismConfig[];
 }
 
-/** Organization summary for listing */
-export interface OrganizationSummary {
+/** Namespace summary for listing */
+export interface NamespaceSummary {
   name: string;
   displayName?: string;
 }
@@ -178,7 +178,7 @@ export interface ComponentSummary {
 export interface BuildLogsParams {
   componentName: string;
   projectName: string;
-  orgName: string;
+  namespaceName: string;
   buildId: string;
   buildUuid: string;
   limit?: number;
@@ -277,7 +277,7 @@ export interface OpenChoreoClientApi {
 
   /** Fetch workflow schema */
   fetchWorkflowSchema(
-    organizationName: string,
+    namespaceName: string,
     workflowName: string,
   ): Promise<WorkflowSchemaResponse>;
 
@@ -315,7 +315,7 @@ export interface OpenChoreoClientApi {
   fetchBuilds(
     componentName: string,
     projectName: string,
-    organizationName: string,
+    namespaceName: string,
   ): Promise<any[]>;
 
   // === Other ===
@@ -332,7 +332,7 @@ export interface OpenChoreoClientApi {
   /** Fetch deployment pipeline for a project */
   fetchDeploymentPipeline(
     projectName: string,
-    organizationName: string,
+    namespaceName: string,
   ): Promise<any>;
 
   // === Traits Operations ===
@@ -393,15 +393,15 @@ export interface OpenChoreoClientApi {
 
   // === Hierarchy Data Operations ===
 
-  /** List all organizations */
-  listOrganizations(): Promise<OrganizationSummary[]>;
+  /** List all namespaces */
+  listNamespaces(): Promise<NamespaceSummary[]>;
 
-  /** List projects for an organization */
-  listProjects(orgName: string): Promise<ProjectSummary[]>;
+  /** List projects for a namespace */
+  listProjects(namespaceName: string): Promise<ProjectSummary[]>;
 
   /** List components for a project */
   listComponents(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
   ): Promise<ComponentSummary[]>;
 
@@ -409,7 +409,7 @@ export interface OpenChoreoClientApi {
 
   /** Fetch data plane details */
   fetchDataPlaneDetails(
-    organizationName: string,
+    namespaceName: string,
     dataplaneName: string,
   ): Promise<any>;
 

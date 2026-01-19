@@ -10,7 +10,8 @@ import {
 import { Autocomplete } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import { WizardState } from './types';
-import { useOrganizations, useProjects, useComponents } from '../../hooks';
+import { useNamespaces, useProjects, useComponents } from '../../hooks';
+import type { NamespaceSummary } from '../../../../api/OpenChoreoClientApi';
 import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
 
 const useStyles = makeStyles(theme => ({
@@ -77,7 +78,7 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
   const classes = useStyles();
 
   // Hierarchy data hooks
-  const { organizations, loading: orgsLoading } = useOrganizations();
+  const { namespaces, loading: orgsLoading } = useNamespaces();
   const { projects, loading: projectsLoading } = useProjects(
     state.organization || undefined,
   );
@@ -171,7 +172,7 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
             <Typography className={classes.fieldLabel}>Organization</Typography>
             <Autocomplete
               freeSolo
-              options={organizations.map(o => o.name)}
+              options={namespaces.map((ns: NamespaceSummary) => ns.name)}
               value={state.organization}
               onChange={(_, value) => handleOrganizationChange(value)}
               onInputChange={(_, value, reason) => {

@@ -39,13 +39,13 @@ export class TraitInfoService {
   }
 
   async fetchTraits(
-    orgName: string,
+    namespaceName: string,
     page: number = 1,
     pageSize: number = 100,
     token?: string,
   ): Promise<TraitListResponse> {
     this.logger.debug(
-      `Fetching traits (traits) for organization: ${orgName} (page: ${page}, pageSize: ${pageSize})`,
+      `Fetching traits (traits) for namespace: ${namespaceName} (page: ${page}, pageSize: ${pageSize})`,
     );
 
     try {
@@ -56,10 +56,10 @@ export class TraitInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/traits',
+        '/namespaces/{namespaceName}/traits',
         {
           params: {
-            path: { orgName },
+            path: { namespaceName },
           },
         },
       );
@@ -79,22 +79,24 @@ export class TraitInfoService {
       this.logger.debug(
         `Successfully fetched ${
           traitListResponse.data?.items?.length || 0
-        } traits for org: ${orgName}`,
+        } traits for namespace: ${namespaceName}`,
       );
       return traitListResponse;
     } catch (error) {
-      this.logger.error(`Failed to fetch traits for org ${orgName}: ${error}`);
+      this.logger.error(
+        `Failed to fetch traits for namespace ${namespaceName}: ${error}`,
+      );
       throw error;
     }
   }
 
   async fetchTraitSchema(
-    orgName: string,
+    namespaceName: string,
     traitName: string,
     token?: string,
   ): Promise<TraitSchemaResponse> {
     this.logger.debug(
-      `Fetching schema for trait (trait): ${traitName} in org: ${orgName}`,
+      `Fetching schema for trait (trait): ${traitName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -105,10 +107,10 @@ export class TraitInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/traits/{traitName}/schema',
+        '/namespaces/{namespaceName}/traits/{traitName}/schema',
         {
           params: {
-            path: { orgName, traitName: traitName },
+            path: { namespaceName, traitName: traitName },
           },
         },
       );
@@ -129,20 +131,20 @@ export class TraitInfoService {
       return schemaResponse;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch schema for trait ${traitName} in org ${orgName}: ${error}`,
+        `Failed to fetch schema for trait ${traitName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
   }
 
   async fetchComponentTraits(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     userToken?: string,
   ): Promise<ComponentTrait[]> {
     this.logger.debug(
-      `Fetching component traits for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Fetching component traits for: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -153,10 +155,10 @@ export class TraitInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/traits',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
         },
       );
@@ -188,14 +190,14 @@ export class TraitInfoService {
   }
 
   async updateComponentTraits(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     traits: UpdateComponentTraitsRequest,
     userToken?: string,
   ): Promise<ComponentTrait[]> {
     this.logger.debug(
-      `Updating component traits for: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Updating component traits for: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -206,10 +208,10 @@ export class TraitInfoService {
       });
 
       const { data, error, response } = await client.PUT(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/traits',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/traits',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
           body: traits,
         },

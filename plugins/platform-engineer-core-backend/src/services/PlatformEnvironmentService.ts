@@ -19,7 +19,7 @@ import {
 
 /**
  * Service for managing platform-wide environment information.
- * This service provides a platform engineer's view of all environments across organizations.
+ * This service provides a platform engineer's view of all environments across namespaces.
  */
 export class PlatformEnvironmentInfoService
   implements PlatformEnvironmentService
@@ -40,7 +40,7 @@ export class PlatformEnvironmentInfoService
   }
 
   /**
-   * Fetches all environments across all organizations.
+   * Fetches all environments across all namespaces.
    * This provides a platform-wide view for platform engineers.
    */
   async fetchAllEnvironments(userToken?: string): Promise<Environment[]> {
@@ -54,14 +54,14 @@ export class PlatformEnvironmentInfoService
         logger: this.logger,
       });
 
-      // For now, we'll fetch environments from a default organization
-      // In a real implementation, you might need to fetch from multiple organizations
+      // For now, we'll fetch environments from a default namespace
+      // In a real implementation, you might need to fetch from multiple namespaces
       // or have a platform-wide API endpoint
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/environments',
+        '/namespaces/{namespaceName}/environments',
         {
           params: {
-            path: { orgName: 'default' }, // This should be configurable or fetched from a platform API
+            path: { namespaceName: 'default' }, // This should be configurable or fetched from a platform API
           },
         },
       );
@@ -98,16 +98,16 @@ export class PlatformEnvironmentInfoService
   }
 
   /**
-   * Fetches environments for a specific organization.
+   * Fetches environments for a specific namespace.
    */
-  async fetchEnvironmentsByOrganization(
-    organizationName: string,
+  async fetchEnvironmentsByNamespace(
+    namespaceName: string,
     userToken?: string,
   ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Starting environment fetch for organization: ${organizationName}`,
+        `Starting environment fetch for namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -117,44 +117,41 @@ export class PlatformEnvironmentInfoService
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/environments',
+        '/namespaces/{namespaceName}/environments',
         {
           params: {
-            path: { orgName: organizationName },
+            path: { namespaceName: namespaceName },
           },
         },
       );
 
       if (error || !response.ok) {
         this.logger.error(
-          `Failed to fetch environments for organization ${organizationName}: ${response.status} ${response.statusText}`,
+          `Failed to fetch environments for namespace ${namespaceName}: ${response.status} ${response.statusText}`,
         );
         return [];
       }
 
       if (!data.success || !data.data?.items) {
         this.logger.warn(
-          `No environments found for organization ${organizationName}`,
+          `No environments found for namespace ${namespaceName}`,
         );
         return [];
       }
 
       const environments = data.data.items;
-      const result = this.transformEnvironmentData(
-        environments,
-        organizationName,
-      );
+      const result = this.transformEnvironmentData(environments, namespaceName);
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Environment fetch completed for ${organizationName}: ${result.length} environments found (${totalTime}ms)`,
+        `Environment fetch completed for ${namespaceName}: ${result.length} environments found (${totalTime}ms)`,
       );
 
       return result;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching environments for organization ${organizationName} (${totalTime}ms):`,
+        `Error fetching environments for namespace ${namespaceName} (${totalTime}ms):`,
         error as Error,
       );
       return [];
@@ -162,7 +159,7 @@ export class PlatformEnvironmentInfoService
   }
 
   /**
-   * Fetches all dataplanes across all organizations.
+   * Fetches all dataplanes across all namespaces.
    * This provides a platform-wide view for platform engineers.
    */
   async fetchAllDataplanes(userToken?: string): Promise<DataPlane[]> {
@@ -176,14 +173,14 @@ export class PlatformEnvironmentInfoService
         logger: this.logger,
       });
 
-      // For now, we'll fetch dataplanes from a default organization
-      // In a real implementation, you might need to fetch from multiple organizations
+      // For now, we'll fetch dataplanes from a default namespace
+      // In a real implementation, you might need to fetch from multiple namespaces
       // or have a platform-wide API endpoint
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/dataplanes',
+        '/namespaces/{namespaceName}/dataplanes',
         {
           params: {
-            path: { orgName: 'default' }, // This should be configurable or fetched from a platform API
+            path: { namespaceName: 'default' }, // This should be configurable or fetched from a platform API
           },
         },
       );
@@ -220,16 +217,16 @@ export class PlatformEnvironmentInfoService
   }
 
   /**
-   * Fetches dataplanes for a specific organization.
+   * Fetches dataplanes for a specific namespace.
    */
-  async fetchDataplanesByOrganization(
-    organizationName: string,
+  async fetchDataplanesByNamespace(
+    namespaceName: string,
     userToken?: string,
   ): Promise<DataPlane[]> {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Starting dataplane fetch for organization: ${organizationName}`,
+        `Starting dataplane fetch for namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -239,41 +236,39 @@ export class PlatformEnvironmentInfoService
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/dataplanes',
+        '/namespaces/{namespaceName}/dataplanes',
         {
           params: {
-            path: { orgName: organizationName },
+            path: { namespaceName: namespaceName },
           },
         },
       );
 
       if (error || !response.ok) {
         this.logger.error(
-          `Failed to fetch dataplanes for organization ${organizationName}: ${response.status} ${response.statusText}`,
+          `Failed to fetch dataplanes for namespace ${namespaceName}: ${response.status} ${response.statusText}`,
         );
         return [];
       }
 
       if (!data.success || !data.data?.items) {
-        this.logger.warn(
-          `No dataplanes found for organization ${organizationName}`,
-        );
+        this.logger.warn(`No dataplanes found for namespace ${namespaceName}`);
         return [];
       }
 
       const dataplanes = data.data.items;
-      const result = this.transformDataPlaneData(dataplanes, organizationName);
+      const result = this.transformDataPlaneData(dataplanes, namespaceName);
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Dataplane fetch completed for ${organizationName}: ${result.length} dataplanes found (${totalTime}ms)`,
+        `Dataplane fetch completed for ${namespaceName}: ${result.length} dataplanes found (${totalTime}ms)`,
       );
 
       return result;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching dataplanes for organization ${organizationName} (${totalTime}ms):`,
+        `Error fetching dataplanes for namespace ${namespaceName} (${totalTime}ms):`,
         error as Error,
       );
       return [];
@@ -381,7 +376,7 @@ export class PlatformEnvironmentInfoService
    */
   async fetchComponentCountsPerEnvironment(
     components: Array<{
-      orgName: string;
+      namespaceName: string;
       projectName: string;
       componentName: string;
     }>,
@@ -411,11 +406,11 @@ export class PlatformEnvironmentInfoService
           try {
             // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
               {
                 params: {
                   path: {
-                    orgName: component.orgName,
+                    namespaceName: component.namespaceName,
                     projectName: component.projectName,
                     componentName: component.componentName,
                   },
@@ -437,7 +432,7 @@ export class PlatformEnvironmentInfoService
             }
           } catch (error) {
             this.logger.warn(
-              `Failed to fetch bindings for component ${component.orgName}/${component.projectName}/${component.componentName}:`,
+              `Failed to fetch bindings for component ${component.namespaceName}/${component.projectName}/${component.componentName}:`,
               error instanceof Error ? error : new Error(String(error)),
             );
           }
@@ -468,7 +463,7 @@ export class PlatformEnvironmentInfoService
    */
   async fetchDistinctDeployedComponentsCount(
     components: Array<{
-      orgName: string;
+      namespaceName: string;
       projectName: string;
       componentName: string;
     }>,
@@ -498,11 +493,11 @@ export class PlatformEnvironmentInfoService
           try {
             // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
               {
                 params: {
                   path: {
-                    orgName: component.orgName,
+                    namespaceName: component.namespaceName,
                     projectName: component.projectName,
                     componentName: component.componentName,
                   },
@@ -518,12 +513,12 @@ export class PlatformEnvironmentInfoService
               data.data.items.length > 0
             ) {
               // If component has at least one binding, count it as deployed
-              const componentKey = `${component.orgName}/${component.projectName}/${component.componentName}`;
+              const componentKey = `${component.namespaceName}/${component.projectName}/${component.componentName}`;
               deployedComponents.add(componentKey);
             }
           } catch (error) {
             this.logger.warn(
-              `Failed to fetch bindings for component ${component.orgName}/${component.projectName}/${component.componentName}:`,
+              `Failed to fetch bindings for component ${component.namespaceName}/${component.projectName}/${component.componentName}:`,
               error instanceof Error ? error : new Error(String(error)),
             );
           }
@@ -555,7 +550,7 @@ export class PlatformEnvironmentInfoService
    */
   async fetchHealthyWorkloadCount(
     components: Array<{
-      orgName: string;
+      namespaceName: string;
       projectName: string;
       componentName: string;
     }>,
@@ -585,11 +580,11 @@ export class PlatformEnvironmentInfoService
           try {
             // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/orgs/{orgName}/projects/{projectName}/components/{componentName}/release-bindings',
+              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
               {
                 params: {
                   path: {
-                    orgName: component.orgName,
+                    namespaceName: component.namespaceName,
                     projectName: component.projectName,
                     componentName: component.componentName,
                   },
@@ -608,7 +603,7 @@ export class PlatformEnvironmentInfoService
             return 0;
           } catch (error) {
             this.logger.warn(
-              `Failed to fetch bindings for component ${component.orgName}/${component.projectName}/${component.componentName}:`,
+              `Failed to fetch bindings for component ${component.namespaceName}/${component.projectName}/${component.componentName}:`,
               error instanceof Error ? error : new Error(String(error)),
             );
             return 0;
@@ -641,7 +636,7 @@ export class PlatformEnvironmentInfoService
 
   private transformEnvironmentData(
     environmentData: ModelsEnvironment[],
-    organizationName: string,
+    namespaceName: string,
   ): Environment[] {
     return environmentData.map(env => {
       const transformedEnv: Environment = {
@@ -649,7 +644,7 @@ export class PlatformEnvironmentInfoService
         namespace: env.namespace || '',
         displayName: env.displayName || env.name,
         description: env.description || '',
-        organization: organizationName,
+        namespaceName: namespaceName,
         dataPlaneRef: env.dataPlaneRef || '',
         isProduction: env.isProduction ?? false,
         dnsPrefix: env.dnsPrefix || '',
@@ -663,7 +658,7 @@ export class PlatformEnvironmentInfoService
 
   private transformDataPlaneData(
     dataplaneData: ModelsDataPlane[],
-    organizationName: string,
+    namespaceName: string,
   ): DataPlane[] {
     return dataplaneData.map(dp => {
       const transformedDataPlane: DataPlane = {
@@ -671,15 +666,15 @@ export class PlatformEnvironmentInfoService
         namespace: dp.namespace,
         displayName: dp.displayName,
         description: dp.description,
-        organization: organizationName,
+        namespaceName: namespaceName,
         imagePullSecretRefs: dp.imagePullSecretRefs,
         secretStoreRef: dp.secretStoreRef,
         publicVirtualHost: dp.publicVirtualHost,
-        organizationVirtualHost: dp.organizationVirtualHost,
+        namespaceVirtualHost: dp.namespaceVirtualHost,
         publicHTTPPort: dp.publicHTTPPort,
         publicHTTPSPort: dp.publicHTTPSPort,
-        organizationHTTPPort: dp.organizationHTTPPort,
-        organizationHTTPSPort: dp.organizationHTTPSPort,
+        namespaceHTTPPort: dp.namespaceHTTPPort,
+        namespaceHTTPSPort: dp.namespaceHTTPSPort,
         observabilityPlaneRef: dp.observabilityPlaneRef,
         createdAt: dp.createdAt,
         status: dp.status,

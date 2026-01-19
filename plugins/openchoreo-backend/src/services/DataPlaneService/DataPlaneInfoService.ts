@@ -29,7 +29,7 @@ export class DataPlaneInfoService {
    * Fetches details for a specific data plane.
    *
    * @param {Object} request - The request parameters
-   * @param {string} request.organizationName - Name of the organization owning the data plane
+   * @param {string} request.namespaceName - Name of the namespace owning the data plane
    * @param {string} request.dataplaneName - Name of the data plane to fetch
    * @param {string} [token] - Optional user token for authentication
    * @returns {Promise<DataPlaneResponse>} Data plane details
@@ -37,7 +37,7 @@ export class DataPlaneInfoService {
    */
   async fetchDataPlaneDetails(
     request: {
-      organizationName: string;
+      namespaceName: string;
       dataplaneName: string;
     },
     token?: string,
@@ -45,7 +45,7 @@ export class DataPlaneInfoService {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Fetching data plane details for: ${request.dataplaneName} in organization: ${request.organizationName}`,
+        `Fetching data plane details for: ${request.dataplaneName} in namespace: ${request.namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -55,11 +55,11 @@ export class DataPlaneInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/dataplanes/{dpName}',
+        '/namespaces/{namespaceName}/dataplanes/{dpName}',
         {
           params: {
             path: {
-              orgName: request.organizationName,
+              namespaceName: request.namespaceName,
               dpName: request.dataplaneName,
             },
           },

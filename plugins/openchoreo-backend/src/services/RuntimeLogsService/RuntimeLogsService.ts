@@ -54,7 +54,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       endTime?: string;
       limit?: number;
     },
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     token?: string,
   ): Promise<RuntimeLogsResponse> {
@@ -86,11 +86,11 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
         {
           params: {
             path: {
-              orgName,
+              namespaceName,
               projectName,
               componentName,
               environmentName,
@@ -140,7 +140,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
             environmentId,
             componentName,
             projectName,
-            orgName,
+            namespaceName,
             environmentName,
             limit,
             sortOrder: 'desc',

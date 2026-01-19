@@ -458,52 +458,52 @@ export class AuthzService {
   // Hierarchy Data Methods (for Access Control autocomplete)
   // =====================
 
-  // Organizations
-  async listOrganizations(
+  // Namespaces
+  async listNamespaces(
     userToken?: string,
   ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
-    this.logger.debug('Fetching all organizations');
+    this.logger.debug('Fetching all namespaces');
 
     try {
       const client = this.createClient(userToken);
-      const { data, error, response } = await client.GET('/orgs');
+      const { data, error, response } = await client.GET('/namespaces');
 
       if (error || !response.ok) {
         const errorMsg = extractErrorMessage(
           error,
           response,
-          'Failed to fetch organizations',
+          'Failed to fetch namespaces',
         );
         throw new Error(errorMsg);
       }
 
       // OpenChoreo API returns { data: { items: [...] } }
-      const orgsResponse = data as {
+      const nsResponse = data as {
         data?: { items?: Array<{ name: string }> };
       };
-      const items = orgsResponse.data?.items || [];
-      this.logger.debug(`Successfully fetched ${items.length} organizations`);
+      const items = nsResponse.data?.items || [];
+      this.logger.debug(`Successfully fetched ${items.length} namespaces`);
 
       return { data: items };
     } catch (err) {
-      this.logger.error(`Failed to fetch organizations: ${err}`);
+      this.logger.error(`Failed to fetch namespaces: ${err}`);
       throw err;
     }
   }
 
   // Projects
   async listProjects(
-    orgName: string,
+    namespaceName: string,
     userToken?: string,
   ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
-    this.logger.debug(`Fetching projects for organization: ${orgName}`);
+    this.logger.debug(`Fetching projects for namespace: ${namespaceName}`);
 
     try {
       const client = this.createClient(userToken);
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects',
+        '/namespaces/{namespaceName}/projects',
         {
-          params: { path: { orgName } },
+          params: { path: { namespaceName } },
         },
       );
 
@@ -522,32 +522,34 @@ export class AuthzService {
       };
       const items = projectsResponse.data?.items || [];
       this.logger.debug(
-        `Successfully fetched ${items.length} projects for org ${orgName}`,
+        `Successfully fetched ${items.length} projects for namespace ${namespaceName}`,
       );
 
       return { data: items };
     } catch (err) {
-      this.logger.error(`Failed to fetch projects for org ${orgName}: ${err}`);
+      this.logger.error(
+        `Failed to fetch projects for namespace ${namespaceName}: ${err}`,
+      );
       throw err;
     }
   }
 
   // Components
   async listComponents(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     userToken?: string,
   ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
     this.logger.debug(
-      `Fetching components for org: ${orgName}, project: ${projectName}`,
+      `Fetching components for namespace: ${namespaceName}, project: ${projectName}`,
     );
 
     try {
       const client = this.createClient(userToken);
       const { data, error, response } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components',
+        '/namespaces/{namespaceName}/projects/{projectName}/components',
         {
-          params: { path: { orgName, projectName } },
+          params: { path: { namespaceName, projectName } },
         },
       );
 
@@ -566,13 +568,13 @@ export class AuthzService {
       };
       const items = componentsResponse.data?.items || [];
       this.logger.debug(
-        `Successfully fetched ${items.length} components for ${orgName}/${projectName}`,
+        `Successfully fetched ${items.length} components for ${namespaceName}/${projectName}`,
       );
 
       return { data: items };
     } catch (err) {
       this.logger.error(
-        `Failed to fetch components for ${orgName}/${projectName}: ${err}`,
+        `Failed to fetch components for ${namespaceName}/${projectName}: ${err}`,
       );
       throw err;
     }
