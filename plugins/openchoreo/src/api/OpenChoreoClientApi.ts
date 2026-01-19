@@ -106,7 +106,7 @@ export interface Entitlement {
 }
 
 export interface ResourceHierarchy {
-  organization?: string;
+  namespace?: string;
   organization_units?: string[];
   project?: string;
   component?: string;
@@ -116,11 +116,16 @@ export type PolicyEffect = 'allow' | 'deny';
 
 export interface RoleEntitlementMapping {
   id?: number;
-  role_name: string;
+  role: RoleEntitlementMappingRoleRef;
   entitlement: Entitlement;
   hierarchy: ResourceHierarchy;
   effect: PolicyEffect;
   context?: Record<string, unknown>;
+}
+
+export interface RoleEntitlementMappingRoleRef {
+  name: string;
+  namespace?: string;
 }
 
 /** Filters for listing role mappings */

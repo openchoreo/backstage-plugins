@@ -1559,11 +1559,17 @@ export interface components {
     RoleEntitlementMapping: {
       /** @description Unique identifier for the mapping */
       id?: number;
-      role_name: string;
+      role: components['schemas']['RoleRef'];
       entitlement: components['schemas']['Entitlement'];
       hierarchy: components['schemas']['AuthzResourceHierarchy'];
       effect: components['schemas']['PolicyEffectType'];
       context?: Record<string, never>;
+    };
+    RoleRef: {
+      /** @description Name of the role */
+      name: string;
+      /** @description Optional namespace for the role */
+      namespace?: string;
     };
     UpdateRoleRequest: {
       /** @description List of actions to assign to the role */
