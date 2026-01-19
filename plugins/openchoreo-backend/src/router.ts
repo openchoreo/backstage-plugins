@@ -804,9 +804,9 @@ export async function createRouter({
 
   router.post('/authz/role-mappings', requireAuth, async (req, res) => {
     const mapping = req.body;
-    if (!mapping || !mapping.role_name || !mapping.entitlement) {
+    if (!mapping || !mapping.role.name || !mapping.entitlement) {
       throw new InputError(
-        'Mapping must have role_name and entitlement fields',
+        'Mapping must have role name and entitlement fields',
       );
     }
     const userToken = getUserTokenFromRequest(req);
@@ -822,9 +822,9 @@ export async function createRouter({
         throw new InputError('Invalid mapping ID');
       }
       const mapping = req.body;
-      if (!mapping || !mapping.role_name || !mapping.entitlement) {
+      if (!mapping || !mapping.role.name || !mapping.entitlement) {
         throw new InputError(
-          'Mapping must have role_name and entitlement fields',
+          'Mapping must have role name and entitlement fields',
         );
       }
       const userToken = getUserTokenFromRequest(req);

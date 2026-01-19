@@ -121,7 +121,7 @@ const useStyles = makeStyles(theme => ({
 
 const formatHierarchy = (hierarchy: ResourceHierarchy): string => {
   const parts: string[] = [];
-  if (hierarchy.organization) parts.push(`org/${hierarchy.organization}`);
+  if (hierarchy.namespace) parts.push(`org/${hierarchy.namespace}`);
   if (hierarchy.organization_units?.length) {
     parts.push(`units/${hierarchy.organization_units.join('/')}`);
   }
@@ -228,7 +228,7 @@ export const MappingsTab = () => {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const searchFields = [
-          mapping.role_name,
+          mapping.role.name,
           mapping.entitlement.claim,
           mapping.entitlement.value,
           formatHierarchy(mapping.hierarchy),
@@ -264,7 +264,7 @@ export const MappingsTab = () => {
     try {
       await deleteMapping(mappingToDelete.id);
       notification.showSuccess(
-        `Mapping for role "${mappingToDelete.role_name}" deleted successfully`,
+        `Mapping for role "${mappingToDelete.role.name}" deleted successfully`,
       );
       setDeleteConfirmOpen(false);
       setMappingToDelete(null);
@@ -504,9 +504,9 @@ export const MappingsTab = () => {
             </TableHead>
             <TableBody>
               {filteredMappings.map((mapping, index) => (
-                <TableRow key={mapping.id ?? `${mapping.role_name}-${index}`}>
+                <TableRow key={mapping.id ?? `${mapping.role.name}-${index}`}>
                   <TableCell>
-                    <Typography variant="body2">{mapping.role_name}</Typography>
+                    <Typography variant="body2">{mapping.role.name}</Typography>
                   </TableCell>
                   <TableCell className={classes.entitlementCell}>
                     <Typography variant="body2">
@@ -585,7 +585,7 @@ export const MappingsTab = () => {
             {mappingToDelete && (
               <>
                 Are you sure you want to delete the mapping for role &nbsp;
-                <strong>{mappingToDelete.role_name}</strong> with entitlement
+                <strong>{mappingToDelete.role.name}</strong> with entitlement
                 &nbsp;
                 <strong>
                   {mappingToDelete.entitlement.claim}=

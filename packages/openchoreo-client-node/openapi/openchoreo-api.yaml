@@ -1441,7 +1441,7 @@ components:
     RoleEntitlementMapping:
       type: object
       required:
-        - role_name
+        - role
         - entitlement
         - hierarchy
         - effect
@@ -1449,8 +1449,8 @@ components:
         id:
           type: integer
           description: Unique identifier for the mapping
-        role_name:
-          type: string
+        role:
+          $ref: '#/components/schemas/RoleRef'
         entitlement:
           $ref: '#/components/schemas/Entitlement'
         hierarchy:
@@ -1459,6 +1459,18 @@ components:
           $ref: '#/components/schemas/PolicyEffectType'
         context:
           type: object
+
+    RoleRef:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the role
+        namespace:
+          type: string
+          description: Optional namespace for the role
 
     UpdateRoleRequest:
       type: object

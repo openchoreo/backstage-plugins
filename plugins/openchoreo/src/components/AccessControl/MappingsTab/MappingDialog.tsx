@@ -95,16 +95,16 @@ export const MappingDialog = ({
         );
 
         setWizardState({
-          selectedRole: editingMapping.role_name,
+          selectedRole: editingMapping.role.name,
           subjectType: matchingUserType?.type || userTypes[0]?.type || '',
           entitlementValue: editingMapping.entitlement.value,
           scopeType:
-            editingMapping.hierarchy.organization ||
+            editingMapping.hierarchy.namespace ||
             editingMapping.hierarchy.project ||
             editingMapping.hierarchy.component
               ? 'specific'
               : 'global',
-          organization: editingMapping.hierarchy.organization || '',
+          organization: editingMapping.hierarchy.namespace || '',
           orgUnits: editingMapping.hierarchy.organization_units || [],
           project: editingMapping.hierarchy.project || '',
           component: editingMapping.hierarchy.component || '',
@@ -165,7 +165,7 @@ export const MappingDialog = ({
       setError(null);
 
       const mapping: RoleEntitlementMapping = {
-        role_name: wizardState.selectedRole,
+        role: { name: wizardState.selectedRole },
         entitlement: {
           claim: entitlementClaim,
           value: wizardState.entitlementValue.trim(),
@@ -174,7 +174,7 @@ export const MappingDialog = ({
           wizardState.scopeType === 'global'
             ? {}
             : {
-                organization: wizardState.organization || undefined,
+                namespace: wizardState.organization || undefined,
                 organization_units:
                   wizardState.orgUnits.filter(u => u.trim()) || undefined,
                 project: wizardState.project || undefined,
