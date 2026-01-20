@@ -23,8 +23,7 @@ interface EntityMetadata {
 function extractEntityMetadata(entity: Entity): EntityMetadata {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   if (!component || !project || !namespace) {
     throw new Error(

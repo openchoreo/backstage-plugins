@@ -81,8 +81,8 @@ export interface OpenChoreoObservabilityClientConfig {
  *   token: 'your-auth-token'
  * });
  *
- * const { data, error } = await client.GET('/orgs/{orgName}/projects', {
- *   params: { path: { orgName: 'my-org' } }
+ * const { data, error } = await client.GET('/namespaces/{namespaceName}/projects', {
+ *   params: { path: { namespaceName: 'my-namespace' } }
  * });
  * ```
  */
@@ -175,8 +175,8 @@ export function createOpenChoreoObservabilityApiClient(
  * ```typescript
  * // In your Backstage backend module
  * const client = createOpenChoreoClientFromConfig(config, logger);
- * const { data: projects } = await client.GET('/orgs/{orgName}/projects', {
- *   params: { path: { orgName: 'my-org' } }
+ * const { data: projects } = await client.GET('/namespaces/{namespaceName}/projects', {
+ *   params: { path: { namespaceName: 'my-namespace' } }
  * });
  * ```
  *

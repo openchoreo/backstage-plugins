@@ -17,8 +17,7 @@ async function getComponentDetails(
 ): Promise<{ uid?: string }> {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   if (!component || !project || !namespace) {
     throw new Error(
@@ -56,8 +55,7 @@ async function getProjectDetails(
   fetchApi: any,
 ): Promise<{ uid?: string }> {
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   if (!project || !namespace) {
     throw new Error(

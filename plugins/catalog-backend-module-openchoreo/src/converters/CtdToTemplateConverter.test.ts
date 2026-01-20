@@ -156,12 +156,12 @@ describe('CtdToTemplateConverter', () => {
       // First section should be Component Metadata
       expect(parameters[0].title).toBe('Component Metadata');
       expect(parameters[0].required).toEqual([
-        'organization_name',
+        'namespace_name',
         'project_name',
         'component_name',
       ]);
       expect(parameters[0].properties.component_name).toBeDefined();
-      expect(parameters[0].properties.organization_name).toBeDefined();
+      expect(parameters[0].properties.namespace_name).toBeDefined();
       expect(parameters[0].properties.project_name).toBeDefined();
       expect(parameters[0].properties.displayName).toBeDefined();
       expect(parameters[0].properties.description).toBeDefined();
@@ -170,9 +170,7 @@ describe('CtdToTemplateConverter', () => {
       expect(parameters[0].properties.component_name['ui:field']).toBe(
         'EntityNamePicker',
       );
-      expect(parameters[0].properties.organization_name['ui:disabled']).toBe(
-        true,
-      ); // Organization is fixed from CTD
+      expect(parameters[0].properties.namespace_name['ui:disabled']).toBe(true); // Organization is fixed from CTD
       expect(parameters[0].properties.project_name['ui:field']).toBe(
         'EntityPicker',
       );
@@ -605,7 +603,7 @@ describe('CtdToTemplateConverter', () => {
       const steps = result.spec?.steps as any[];
       const input = steps[0].input;
 
-      expect(input.orgName).toBe('${{ parameters.organization_name }}');
+      expect(input.namespaceName).toBe('${{ parameters.namespace_name }}');
       expect(input.projectName).toBe('${{ parameters.project_name }}');
       expect(input.componentName).toBe('${{ parameters.component_name }}');
       expect(input.displayName).toBe('${{ parameters.displayName }}');

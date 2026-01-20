@@ -53,10 +53,10 @@ export const BuildWorkflowParameters = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get the selected workflow and organization from form data
+  // Get the selected workflow and namespace from form data
   // The workflow_name is a sibling field in the same section
   const selectedWorkflowName = formContext?.formData?.workflow_name;
-  const namespaceName = formContext?.formData?.organization_name;
+  const namespaceName = formContext?.formData?.namespace_name;
 
   // Increment resetKey only when workflow actually changes
   // This forces Form remount only on workflow change, not on every render
@@ -87,7 +87,7 @@ export const BuildWorkflowParameters = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(namespaceName);
+      const nsName = extractOrgName(namespaceName);
 
       setLoading(true);
       setError(null);
@@ -97,7 +97,7 @@ export const BuildWorkflowParameters = ({
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
           `${baseUrl}/workflow-schema?namespaceName=${encodeURIComponent(
-            orgName,
+            nsName,
           )}&workflowName=${encodeURIComponent(selectedWorkflowName)}`,
         );
 

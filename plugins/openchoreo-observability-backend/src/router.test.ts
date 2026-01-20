@@ -94,7 +94,7 @@ describe('createRouter', () => {
       .send({
         componentId: 'component-1',
         environmentId: 'environment-1',
-        orgName: 'org-1',
+        namespaceName: 'org-1',
         projectName: 'project-1',
         options: {
           limit: 100,
@@ -122,7 +122,7 @@ describe('createRouter', () => {
       .send({
         componentId: 'component-1',
         environmentId: 'environment-1',
-        orgName: 'org-1',
+        namespaceName: 'org-1',
         projectName: 'project-1',
         options: {
           limit: 100,

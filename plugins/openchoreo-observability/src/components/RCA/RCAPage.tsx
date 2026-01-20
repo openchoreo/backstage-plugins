@@ -21,8 +21,7 @@ import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 
 const RCAListView = () => {
   const { entity } = useEntity();
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const {
     environments,
     loading: environmentsLoading,

@@ -45,8 +45,8 @@ export const ComponentNamePicker = ({
   const [touched, setTouched] = useState(false);
   const catalogApi = useApi(catalogApiRef);
 
-  // Get the organization name from form context
-  const namespaceName = formContext.formData?.organization_name;
+  // Get the namespace name from form context
+  const namespaceName = formContext.formData?.namespace_name;
 
   // Extract organization name from entity reference format
   const extractOrgName = useCallback((fullOrgName: string): string => {
@@ -84,8 +84,8 @@ export const ComponentNamePicker = ({
 
   // Check if component already exists in the organization
   const checkComponentExists = useCallback(
-    async (componentName: string, orgName: string): Promise<boolean> => {
-      if (!componentName || !orgName) {
+    async (componentName: string, nsName: string): Promise<boolean> => {
+      if (!componentName || !nsName) {
         return false;
       }
 
@@ -100,9 +100,8 @@ export const ComponentNamePicker = ({
         // Filter components by namespace annotation and check if name exists
         const existsInOrg = items.some(
           component =>
-            component.metadata.annotations?.[
-              CHOREO_ANNOTATIONS.NAMESPACE
-            ] === orgName && component.metadata.name === componentName,
+            component.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ===
+              nsName && component.metadata.name === componentName,
         );
 
         return existsInOrg;
@@ -131,8 +130,8 @@ export const ComponentNamePicker = ({
         return;
       }
 
-      const orgName = extractOrgName(namespaceName);
-      if (!orgName) {
+      const nsName = extractOrgName(namespaceName);
+      if (!nsName) {
         setValidationState({ error: null, isValidating: false });
         return;
       }
@@ -141,11 +140,11 @@ export const ComponentNamePicker = ({
       setValidationState({ error: null, isValidating: true });
 
       // Check if component exists
-      const exists = await checkComponentExists(componentName, orgName);
+      const exists = await checkComponentExists(componentName, nsName);
 
       if (exists) {
         setValidationState({
-          error: `A component named "${componentName}" already exists in organization "${orgName}"`,
+          error: `A component named "${componentName}" already exists in organization "${nsName}"`,
           isValidating: false,
         });
       } else {

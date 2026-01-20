@@ -60,9 +60,9 @@ export const BuildTemplateParameters = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get the selected build template and organization from form context
+  // Get the selected build template and namespace from form context
   const selectedTemplateName = formContext?.formData?.build_template_name;
-  const namespaceName = formContext?.formData?.organization_name;
+  const namespaceName = formContext?.formData?.namespace_name;
 
   // Fetch build templates when organization changes
   useEffect(() => {
@@ -79,7 +79,7 @@ export const BuildTemplateParameters = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(namespaceName);
+      const nsName = extractOrgName(namespaceName);
 
       setLoading(true);
 
@@ -88,7 +88,7 @@ export const BuildTemplateParameters = ({
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
           `${baseUrl}/build-templates?namespaceName=${encodeURIComponent(
-            orgName,
+            nsName,
           )}`,
         );
 

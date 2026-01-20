@@ -3,7 +3,7 @@ import { CatalogApi } from '@backstage/catalog-client';
 import { DataPlane, Environment } from '../types';
 
 interface ComponentInfo {
-  orgName: string;
+  namespaceName: string;
   projectName: string;
   componentName: string;
 }
@@ -63,7 +63,7 @@ export async function fetchPlatformOverview(
       const annotations = component.metadata.annotations || {};
 
       // Extract org, project, and component name from annotations or metadata
-      const orgName =
+      const namespaceName =
         annotations['openchoreo.io/namespace'] ||
         annotations['backstage.io/managed-by-location']?.split('/')[3] ||
         'default'; // fallback
@@ -75,9 +75,9 @@ export async function fetchPlatformOverview(
 
       const componentName = component.metadata.name;
 
-      if (orgName && projectName && componentName) {
+      if (namespaceName && projectName && componentName) {
         componentInfos.push({
-          orgName,
+          namespaceName,
           projectName,
           componentName,
         });
