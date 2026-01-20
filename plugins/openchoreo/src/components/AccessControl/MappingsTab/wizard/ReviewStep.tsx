@@ -82,7 +82,7 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
     }
 
     const parts: string[] = [];
-    if (state.organization) parts.push(state.organization);
+    if (state.namespace) parts.push(state.namespace);
     if (state.project) parts.push(state.project);
     if (state.component) {
       parts.push(state.component);
@@ -107,7 +107,7 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
       if (state.component) return `the "${state.component}" component`;
       if (state.project)
         return `all components in the "${state.project}" project`;
-      return `all resources in "${state.organization}"`;
+      return `all resources in "${state.namespace}"`;
     };
 
     return `${action} ${subject} with ${entitlementClaim}="${

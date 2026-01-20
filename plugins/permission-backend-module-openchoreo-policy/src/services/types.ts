@@ -27,12 +27,12 @@ export type CapabilityResource =
  * Scope for permission evaluation.
  */
 export interface OpenChoreoScope {
-  /** Organization name (required) */
-  org: string;
+  /** Namespace name (required) */
+  namespace: string;
   /** Project name (optional) */
   project?: string;
   /** Component name (optional) */
   component?: string;
-  /** Organization units (optional) */
-  orgUnits?: string[];
+  /** Namespace units (optional) */
+  namespaceUnits?: string[];
 }

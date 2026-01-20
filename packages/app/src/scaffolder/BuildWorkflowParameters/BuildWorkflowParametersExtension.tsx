@@ -81,13 +81,13 @@ export const BuildWorkflowParameters = ({
         return;
       }
 
-      // Extract the actual organization name from the entity reference format
-      const extractOrgName = (fullOrgName: string): string => {
-        const parts = fullOrgName.split('/');
+      // Extract the actual namespace name from the entity reference format
+      const extractNsName = (fullNsName: string): string => {
+        const parts = fullNsName.split('/');
         return parts[parts.length - 1];
       };
 
-      const nsName = extractOrgName(namespaceName);
+      const nsName = extractNsName(namespaceName);
 
       setLoading(true);
       setError(null);

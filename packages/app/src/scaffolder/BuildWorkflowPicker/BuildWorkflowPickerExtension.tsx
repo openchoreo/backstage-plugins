@@ -66,7 +66,7 @@ export const BuildWorkflowPicker = ({
 
       // Otherwise, fetch from API
       if (!namespaceName) {
-        setError('Organization name is required to fetch workflows');
+        setError('Namespace name is required to fetch workflows');
         return;
       }
 
@@ -76,13 +76,13 @@ export const BuildWorkflowPicker = ({
       try {
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
 
-        // Extract organization name if it's in entity reference format
-        const extractOrgName = (fullOrgName: string): string => {
-          const parts = fullOrgName.split('/');
+        // Extract namespace name if it's in entity reference format
+        const extractNsName = (fullNsName: string): string => {
+          const parts = fullNsName.split('/');
           return parts[parts.length - 1];
         };
 
-        const nsName = extractOrgName(namespaceName);
+        const nsName = extractNsName(namespaceName);
 
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(

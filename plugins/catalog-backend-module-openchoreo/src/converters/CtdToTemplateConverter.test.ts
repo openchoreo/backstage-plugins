@@ -170,7 +170,7 @@ describe('CtdToTemplateConverter', () => {
       expect(parameters[0].properties.component_name['ui:field']).toBe(
         'EntityNamePicker',
       );
-      expect(parameters[0].properties.namespace_name['ui:disabled']).toBe(true); // Organization is fixed from CTD
+      expect(parameters[0].properties.namespace_name['ui:disabled']).toBe(true); // Namespace is fixed from CTD
       expect(parameters[0].properties.project_name['ui:field']).toBe(
         'EntityPicker',
       );

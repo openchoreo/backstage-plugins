@@ -23,7 +23,7 @@ export async function fetchAllEnvironments(
   return data.data || [];
 }
 
-export async function fetchEnvironmentsByOrganization(
+export async function fetchEnvironmentsByNamespace(
   namespaceName: string,
   discovery: DiscoveryApi,
   fetchApi: FetchApi,

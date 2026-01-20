@@ -83,19 +83,19 @@ export class AuthzProfileService {
    * Fetches user capabilities, optionally filtered by scope.
    *
    * @param userToken - The user's OpenChoreo IDP token
-   * @param scope - Optional scope (org, project, component) to filter capabilities
+   * @param scope - Optional scope (namespace, project, component) to filter capabilities
    * @returns The user's capabilities (global if no scope provided)
    */
   async getCapabilities(
     userToken: string,
     scope?: OpenChoreoScope,
   ): Promise<UserCapabilitiesResponse> {
-    const org = scope?.org;
+    const namespace = scope?.namespace;
     const project = scope?.project;
     const component = scope?.component;
 
-    // Check cache first (use 'global' as key when no org specified)
-    const cacheKey = org ?? 'global';
+    // Check cache first (use 'global' as key when no namespace specified)
+    const cacheKey = namespace ?? 'global';
     if (this.cache) {
       const cached = await this.cache.get(
         userToken,
@@ -106,7 +106,7 @@ export class AuthzProfileService {
       if (cached) {
         this.logger.debug(
           `Cache hit for capabilities: org=${
-            org ?? 'global'
+            namespace ?? 'global'
           } project=${project} component=${component}`,
         );
         return cached;
@@ -115,7 +115,7 @@ export class AuthzProfileService {
 
     this.logger.debug(
       `Fetching capabilities from API: org=${
-        org ?? 'global'
+        namespace ?? 'global'
       } project=${project} component=${component}`,
     );
 
@@ -123,19 +123,19 @@ export class AuthzProfileService {
       const client = this.createClient(userToken);
 
       // Build query parameters - only include if provided
-      // TODO: Remove hardcoded org once API supports optional org
+      // TODO: Remove hardcoded namespace once API supports optional namespace
       const query: {
         org?: string;
         project?: string;
         component?: string;
         ou?: string[];
       } = {
-        org: org ?? 'default',
+        org: namespace ?? 'default',
       };
 
       if (project) query.project = project;
       if (component) query.component = component;
-      if (scope?.orgUnits?.length) query.ou = scope.orgUnits;
+      if (scope?.namespaceUnits?.length) query.ou = scope.namespaceUnits;
 
       const { data, error, response } = await client.GET('/authz/profile', {
         params: { query },
@@ -178,7 +178,7 @@ export class AuthzProfileService {
     } catch (err) {
       this.logger.error(
         `Failed to fetch capabilities for org=${
-          org ?? 'global'
+          namespace ?? 'global'
         } project=${project} component=${component}: ${err}`,
       );
       throw err;
@@ -205,7 +205,7 @@ export class AuthzProfileService {
     userToken?: string,
     scope?: OpenChoreoScope,
   ): Promise<UserCapabilitiesResponse> {
-    const cacheKey = scope?.org ?? 'global';
+    const cacheKey = scope?.namespace ?? 'global';
 
     // Try cache by userEntityRef first (works without token)
     if (this.cache) {

@@ -60,7 +60,7 @@ export function useComponentEntityDetails() {
       const projectName =
         typeof systemValue === 'string' ? systemValue : String(systemValue);
 
-      // Fetch the project entity to get the organization
+      // Fetch the project entity to get the namespace
       const projectEntityRef = `system:default/${projectName}`;
       const projectEntity = await catalogApi.getEntityByRef(projectEntityRef);
 
@@ -68,7 +68,7 @@ export function useComponentEntityDetails() {
         throw new Error(`Project entity not found: ${projectEntityRef}`);
       }
 
-      // Get organization from the project entity's spec.domain or annotations
+      // Get namespace from the project entity's spec.domain or annotations
       let namespaceValue = projectEntity.spec?.domain;
       if (!namespaceValue) {
         namespaceValue =
@@ -81,7 +81,7 @@ export function useComponentEntityDetails() {
         );
       }
 
-      // Convert organization value to string (it could be string or object)
+      // Convert namespace value to string (it could be string or object)
       const namespaceName =
         typeof namespaceValue === 'string'
           ? namespaceValue
@@ -119,7 +119,7 @@ export async function extractComponentEntityDetails(
   const projectName =
     typeof systemValue === 'string' ? systemValue : String(systemValue);
 
-  // Fetch the project entity to get the organization
+  // Fetch the project entity to get the namespace
   const projectEntityRef = `system:default/${projectName}`;
   const projectEntity = await catalogApi.getEntityByRef(projectEntityRef);
 
@@ -127,7 +127,7 @@ export async function extractComponentEntityDetails(
     throw new Error(`Project entity not found: ${projectEntityRef}`);
   }
 
-  // Get organization from the project entity's spec.domain or annotations
+  // Get namespace from the project entity's spec.domain or annotations
   let namespaceValue = projectEntity.spec?.domain;
   if (!namespaceValue) {
     namespaceValue =

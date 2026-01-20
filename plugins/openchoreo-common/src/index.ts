@@ -21,7 +21,7 @@ export {
   openchoreoComponentUpdatePermission,
   openchoreoProjectCreatePermission,
   openchoreoProjectReadPermission,
-  openchoreoOrganizationReadPermission,
+  openchoreoNamespaceReadPermission,
   openchoreoEnvironmentCreatePermission,
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,

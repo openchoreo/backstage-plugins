@@ -3,7 +3,7 @@ import { EnvironmentCard } from './EnvironmentCard';
 import { useStyles } from './styles';
 
 interface Environment {
-  organization: string;
+  namespaceName: string;
   name: string;
   displayName?: string;
   isProduction: boolean;
@@ -29,7 +29,7 @@ export const EnvironmentsGrid = ({ environments }: EnvironmentsGridProps) => {
         })
         .map(environment => (
           <EnvironmentCard
-            key={`${environment.organization}-${environment.name}`}
+            key={`${environment.namespaceName}-${environment.name}`}
             environment={environment}
           />
         ))}

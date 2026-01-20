@@ -46,7 +46,7 @@ export class AuthzProfileCache {
    * Retrieves cached capabilities for the given user and scope.
    *
    * @param userToken - The user's OpenChoreo token
-   * @param org - Organization name
+   * @param org - Namespace name
    * @param project - Optional project name
    * @param component - Optional component name
    * @returns Cached capabilities or undefined if not found
@@ -65,7 +65,7 @@ export class AuthzProfileCache {
    * Stores capabilities in the cache.
    *
    * @param userToken - The user's OpenChoreo token
-   * @param org - Organization name
+   * @param org - Namespace name
    * @param capabilities - The capabilities response to cache
    * @param ttlMs - TTL in milliseconds (derived from token expiration)
    * @param project - Optional project name
@@ -87,7 +87,7 @@ export class AuthzProfileCache {
    * Deletes cached capabilities for the given user and scope.
    *
    * @param userToken - The user's OpenChoreo token
-   * @param org - Organization name
+   * @param org - Namespace name
    * @param project - Optional project name
    * @param component - Optional component name
    */
@@ -116,7 +116,7 @@ export class AuthzProfileCache {
    * This is used when the token is not available (e.g., internal permission calls).
    *
    * @param userEntityRef - The user's entity reference (e.g., "user:default/email@example.com")
-   * @param org - Optional organization name
+   * @param org - Optional namespace name
    * @returns Cached capabilities or undefined if not found
    */
   async getByUser(
@@ -134,7 +134,7 @@ export class AuthzProfileCache {
    * @param userEntityRef - The user's entity reference
    * @param capabilities - The capabilities response to cache
    * @param ttlMs - TTL in milliseconds (derived from token expiration)
-   * @param org - Optional organization name
+   * @param org - Optional namespace name
    */
   async setByUser(
     userEntityRef: string,

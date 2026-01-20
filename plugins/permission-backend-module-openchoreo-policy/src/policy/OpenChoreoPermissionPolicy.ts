@@ -208,7 +208,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
    * Different entity kinds map to different OpenChoreo resources:
    * - Component → component:* actions
    * - System → project:* actions
-   * - Domain → organization:* actions
+   * - Domain → namespace:* actions
    */
   private async handleCatalogPermission(
     request: PolicyQuery,
@@ -386,7 +386,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
    * Allows if user has ANY create capability:
    * - component:create
    * - project:create
-   * - organization:create
+   * - namespace:create
    *
    * This is a global check - the actual scope validation happens
    * when the entity is registered and its annotations are checked.
@@ -414,16 +414,16 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       const hasProjectCreate =
         (capabilities.capabilities?.['project:create']?.allowed?.length ?? 0) >
         0;
-      const hasOrgCreate =
-        (capabilities.capabilities?.['organization:create']?.allowed?.length ??
+      const hasNamespaceCreate =
+        (capabilities.capabilities?.['namespace:create']?.allowed?.length ??
           0) > 0;
 
       const hasAnyCreate =
-        hasComponentCreate || hasProjectCreate || hasOrgCreate;
+        hasComponentCreate || hasProjectCreate || hasNamespaceCreate;
 
       this.logger.debug(
         `catalog.entity.create: ${hasAnyCreate ? 'ALLOW' : 'DENY'} ` +
-          `(component:${hasComponentCreate}, project:${hasProjectCreate}, org:${hasOrgCreate})`,
+          `(component:${hasComponentCreate}, project:${hasProjectCreate}, namespace:${hasNamespaceCreate})`,
       );
 
       return {

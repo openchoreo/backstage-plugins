@@ -72,7 +72,7 @@ export interface UseSecretReferencesResult {
 }
 
 /**
- * Hook to fetch secret references for the current entity's organization.
+ * Hook to fetch secret references for the current entity's namespace.
  * Automatically fetches on mount and cleans up on unmount.
  *
  * @returns Object containing secretReferences array, isLoading flag, and error message

@@ -55,21 +55,21 @@ export const BuildTemplatePicker = ({
     const fetchBuildTemplates = async () => {
       if (!namespaceName) {
         setBuildTemplates([]);
-        // Clear templates from form context when no organization
+        // Clear templates from form context when no namespace
         if (formContext.buildTemplates) {
           delete formContext.buildTemplates;
         }
         return;
       }
 
-      // Extract the actual organization name from the entity reference format
-      // e.g., "domain:default/my-org" -> "my-org"
-      const extractOrgName = (fullOrgName: string): string => {
-        const parts = fullOrgName.split('/');
+      // Extract the actual namespace name from the entity reference format
+      // e.g., "domain:default/my-namespace" -> "my-namespace"
+      const extractNsName = (fullNsName: string): string => {
+        const parts = fullNsName.split('/');
         return parts[parts.length - 1];
       };
 
-      const nsName = extractOrgName(namespaceName);
+      const nsName = extractNsName(namespaceName);
 
       setLoading(true);
       setError(null);
@@ -144,7 +144,7 @@ export const BuildTemplatePicker = ({
           <MenuItem disabled>
             {namespaceName
               ? 'No build templates available'
-              : 'Select an organization first'}
+              : 'Select a namespace first'}
           </MenuItem>
         )}
         {!loading &&

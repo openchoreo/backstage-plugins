@@ -326,7 +326,7 @@ export interface OpenChoreoClientApi {
   /** Fetch total bindings count for dashboard */
   fetchTotalBindingsCount(components: ComponentInfo[]): Promise<number>;
 
-  /** Fetch secret references for an organization */
+  /** Fetch secret references for a namespace */
   fetchSecretReferences(entity: Entity): Promise<SecretReferencesResponse>;
 
   /** Fetch deployment pipeline for a project */

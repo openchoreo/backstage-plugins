@@ -13,8 +13,8 @@ export interface WizardState {
 
   // Step 3: Scope
   scopeType: 'global' | 'specific';
-  organization: string;
-  orgUnits: string[];
+  namespace: string;
+  namespaceUnits: string[];
   project: string;
   component: string;
 
@@ -62,8 +62,8 @@ export function createInitialWizardState(
     subjectType: userTypes[0]?.type || '',
     entitlementValue: '',
     scopeType: 'global',
-    organization: '',
-    orgUnits: [],
+    namespace: '',
+    namespaceUnits: [],
     project: '',
     component: '',
     effect: 'allow',
@@ -80,10 +80,10 @@ export function isStepValid(stepId: WizardStepId, state: WizardState): boolean {
     case 'subject':
       return !!state.subjectType && !!state.entitlementValue.trim();
     case 'scope':
-      // Global is always valid; specific needs at least organization
+      // Global is always valid; specific needs at least namespace
       return (
         state.scopeType === 'global' ||
-        (state.scopeType === 'specific' && !!state.organization)
+        (state.scopeType === 'specific' && !!state.namespace)
       );
     case 'effect':
       return state.effect === 'allow' || state.effect === 'deny';
