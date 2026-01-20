@@ -28,7 +28,7 @@ export const openchoreoComponentResourceRef = createPermissionResourceRef<
 const paramsSchema = z.object({
   /** The OpenChoreo action to check (e.g., 'component:deploy') */
   action: z.string(),
-  /** Allowed paths from user's capabilities (e.g., ['org/*', 'org/project/*']) */
+  /** Allowed paths from user's capabilities (e.g., ['ns/*', 'ns/project/*']) */
   allowedPaths: z.array(z.string()),
   /** Denied paths from user's capabilities */
   deniedPaths: z.array(z.string()),
@@ -39,27 +39,28 @@ export type MatchesCapabilityParams = z.infer<typeof paramsSchema>;
 /**
  * Parses capability path from backend format.
  *
- * Backend format: "org/{orgName}/project/{projectName}/component/{componentName}"
- * or wildcards like "org/*", "org/{orgName}/project/*", etc.
+ * Backend format: "ns/{namespaceName}/project/{projectName}/component/{componentName}"
+ * or wildcards like "ns/*", "ns/{namespaceName}/project/*", etc.
  *
- * Returns parsed { org, project, component } values.
+ * Returns parsed { namespace, project, component } values.
  */
 function parseCapabilityPath(path: string): {
-  org?: string;
+  namespace?: string;
   project?: string;
   component?: string;
 } {
   // Handle global wildcard
   if (path === '*') {
-    return { org: '*', project: '*', component: '*' };
+    return { namespace: '*', project: '*', component: '*' };
   }
 
-  const result: { org?: string; project?: string; component?: string } = {};
+  const result: { namespace?: string; project?: string; component?: string } =
+    {};
 
-  // Parse org/orgName pattern
-  const orgMatch = path.match(/^org\/([^/]+)/);
-  if (orgMatch) {
-    result.org = orgMatch[1];
+  // Parse namespace/namespaceName pattern
+  const namespaceMatch = path.match(/^ns\/([^/]+)/);
+  if (namespaceMatch) {
+    result.namespace = namespaceMatch[1];
   }
 
   // Parse project/projectName pattern
@@ -82,13 +83,13 @@ function parseCapabilityPath(path: string): {
  *
  * Paths from backend are in format:
  * - "*" - matches everything
- * - "org/{orgName}/*" - matches all resources in the org
- * - "org/{orgName}/project/{projectName}/*" - matches all resources in the project
- * - "org/{orgName}/project/{projectName}/component/{componentName}" - matches specific component
+ * - "ns/{namespaceName}/*" - matches all resources in the namespace
+ * - "ns/{namespaceName}/project/{projectName}/*" - matches all resources in the project
+ * - "ns/{namespaceName}/project/{projectName}/component/{componentName}" - matches specific component
  */
 function matchesScope(
   path: string,
-  scope: { org?: string; project?: string; component?: string },
+  scope: { namespace?: string; project?: string; component?: string },
 ): boolean {
   // Wildcard matches everything
   if (path === '*') {
@@ -97,13 +98,17 @@ function matchesScope(
 
   const parsed = parseCapabilityPath(path);
 
-  // Check organization
-  if (parsed.org && parsed.org !== '*' && parsed.org !== scope.org) {
+  // Check namespace
+  if (
+    parsed.namespace &&
+    parsed.namespace !== '*' &&
+    parsed.namespace !== scope.namespace
+  ) {
     return false;
   }
 
-  // If org is wildcard or path only specifies org, it matches
-  if (parsed.org === '*' || (!parsed.project && !parsed.component)) {
+  // If namespace is wildcard or path only specifies namespace, it matches
+  if (parsed.namespace === '*' || (!parsed.project && !parsed.component)) {
     return true;
   }
 
@@ -137,7 +142,7 @@ function matchesScope(
  * Permission rule that checks if a user's OpenChoreo capabilities
  * allow a specific action on a catalog entity.
  *
- * The rule extracts the scope (org/project/component) from entity
+ * The rule extracts the scope (namespace/project/component) from entity
  * annotations and matches it against the user's capability patterns.
  */
 export const matchesCapability = createPermissionRule({
@@ -150,17 +155,19 @@ export const matchesCapability = createPermissionRule({
     const { allowedPaths, deniedPaths } = params;
 
     // Extract scope from entity annotations
-    const org = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    // TODO: need to handle annotation change from org to namespace
+    const namespace =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
     const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
     const component =
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
 
-    // If no org annotation, we can't check - deny
-    if (!org) {
+    // If no namespace annotation, we can't check - deny
+    if (!namespace) {
       return false;
     }
 
-    const scope = { org, project, component };
+    const scope = { namespace, project, component };
 
     // Check if explicitly denied at this scope
     for (const deniedPath of deniedPaths) {
