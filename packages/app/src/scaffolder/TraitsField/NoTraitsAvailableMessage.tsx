@@ -24,7 +24,7 @@ export const NoTraitsAvailableMessage = () => {
     <Card variant="outlined" className={classes.card}>
       <CardContent>
         <Typography variant="h6" gutterBottom className={classes.heading}>
-          No Traits Available for This Organization
+          No Traits Available for This Namespace
         </Typography>
         <Typography variant="body2" paragraph>
           Traits are cross-cutting capabilities that extend components without

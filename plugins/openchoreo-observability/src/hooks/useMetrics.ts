@@ -89,7 +89,7 @@ async function getProjectDetails(
 export function useMetrics(
   filters: Filters,
   entity: Entity,
-  organization: string,
+  namespaceName: string,
   project: string,
 ) {
   const observabilityApi = useApi(observabilityApiRef);
@@ -154,7 +154,7 @@ export function useMetrics(
           filters.environment.uid,
           filters.environment.name,
           componentName,
-          organization,
+          namespaceName,
           project,
           {
             limit: 100,
@@ -180,7 +180,7 @@ export function useMetrics(
       filters.environment,
       filters.timeRange,
       metrics,
-      organization,
+      namespaceName,
       project,
       componentId,
       projectId,

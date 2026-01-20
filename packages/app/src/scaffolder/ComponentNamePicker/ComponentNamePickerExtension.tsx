@@ -48,10 +48,10 @@ export const ComponentNamePicker = ({
   // Get the namespace name from form context
   const namespaceName = formContext.formData?.namespace_name;
 
-  // Extract organization name from entity reference format
-  const extractOrgName = useCallback((fullOrgName: string): string => {
-    if (!fullOrgName) return '';
-    const parts = fullOrgName.split('/');
+  // Extract namespace name from entity reference format
+  const extractNsName = useCallback((fullNsName: string): string => {
+    if (!fullNsName) return '';
+    const parts = fullNsName.split('/');
     return parts[parts.length - 1];
   }, []);
 
@@ -82,7 +82,7 @@ export const ComponentNamePicker = ({
     return null;
   }, []);
 
-  // Check if component already exists in the organization
+  // Check if component already exists in the namespace
   const checkComponentExists = useCallback(
     async (componentName: string, nsName: string): Promise<boolean> => {
       if (!componentName || !nsName) {
@@ -130,7 +130,7 @@ export const ComponentNamePicker = ({
         return;
       }
 
-      const nsName = extractOrgName(namespaceName);
+      const nsName = extractNsName(namespaceName);
       if (!nsName) {
         setValidationState({ error: null, isValidating: false });
         return;
@@ -144,7 +144,7 @@ export const ComponentNamePicker = ({
 
       if (exists) {
         setValidationState({
-          error: `A component named "${componentName}" already exists in organization "${nsName}"`,
+          error: `A component named "${componentName}" already exists in namespace "${nsName}"`,
           isValidating: false,
         });
       } else {
@@ -161,7 +161,7 @@ export const ComponentNamePicker = ({
     namespaceName,
     validateFormat,
     checkComponentExists,
-    extractOrgName,
+    extractNsName,
   ]);
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {

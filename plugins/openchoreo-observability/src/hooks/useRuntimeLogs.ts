@@ -113,14 +113,14 @@ export interface UseRuntimeLogsResult {
  * then calls the observability API with all required parameters.
  *
  * @param entity - The Backstage entity
- * @param organization - Organization name
+ * @param namespaceName - Namespace name
  * @param project - Project name
  * @param options - Runtime logs options (environment, time range, log levels, etc.)
  * @returns Runtime logs data and control functions
  */
 export function useRuntimeLogs(
   entity: Entity,
-  organization: string,
+  namespaceName: string,
   project: string,
   options: UseRuntimeLogsOptions,
 ): UseRuntimeLogsResult {
@@ -195,7 +195,7 @@ export function useRuntimeLogs(
           componentId,
           projectId,
           options.environmentId,
-          organization,
+          namespaceName,
           project,
           options.environmentName,
           componentName,
@@ -229,7 +229,7 @@ export function useRuntimeLogs(
       options.logLevels,
       options.limit,
       logs,
-      organization,
+      namespaceName,
       project,
       componentId,
       projectId,

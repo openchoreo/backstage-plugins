@@ -78,12 +78,12 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
   const classes = useStyles();
 
   // Hierarchy data hooks
-  const { namespaces, loading: orgsLoading } = useNamespaces();
+  const { namespaces, loading: namespacesLoading } = useNamespaces();
   const { projects, loading: projectsLoading } = useProjects(
-    state.organization || undefined,
+    state.namespace || undefined,
   );
   const { components, loading: componentsLoading } = useComponents(
-    state.organization || undefined,
+    state.namespace || undefined,
     state.project || undefined,
   );
 
@@ -92,17 +92,17 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
       scopeType,
       // Reset hierarchy when switching to global
       ...(scopeType === 'global' && {
-        organization: '',
-        orgUnits: [],
+        namespace: '',
+        namespaceUnits: [],
         project: '',
         component: '',
       }),
     });
   };
 
-  const handleOrganizationChange = (value: string | null) => {
+  const handleNamespaceChange = (value: string | null) => {
     onChange({
-      organization: value || '',
+      namespace: value || '',
       project: '',
       component: '',
     });
@@ -125,7 +125,7 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
     }
 
     const parts: string[] = [];
-    if (state.organization) parts.push(state.organization);
+    if (state.namespace) parts.push(state.namespace);
     if (state.project) parts.push(state.project);
     if (state.component) {
       parts.push(state.component);
@@ -161,7 +161,7 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
           <FormControlLabel
             value="specific"
             control={<Radio color="primary" size="small" />}
-            label="Specific scope (organization, project, or component)"
+            label="Specific scope (namespace, project, or component)"
           />
         </RadioGroup>
       </Box>
@@ -169,29 +169,29 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
       {state.scopeType === 'specific' && (
         <Box className={classes.hierarchySection}>
           <Box className={classes.fieldGroup}>
-            <Typography className={classes.fieldLabel}>Organization</Typography>
+            <Typography className={classes.fieldLabel}>Namespace</Typography>
             <Autocomplete
               freeSolo
               options={namespaces.map((ns: NamespaceSummary) => ns.name)}
-              value={state.organization}
-              onChange={(_, value) => handleOrganizationChange(value)}
+              value={state.namespace}
+              onChange={(_, value) => handleNamespaceChange(value)}
               onInputChange={(_, value, reason) => {
                 if (reason === 'input') {
-                  handleOrganizationChange(value);
+                  handleNamespaceChange(value);
                 }
               }}
-              loading={orgsLoading}
+              loading={namespacesLoading}
               renderInput={params => (
                 <TextField
                   {...params}
                   variant="outlined"
                   size="small"
-                  placeholder="Select or type organization"
+                  placeholder="Select or type namespace"
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
                       <>
-                        {orgsLoading && (
+                        {namespacesLoading && (
                           <CircularProgress color="inherit" size={20} />
                         )}
                         {params.InputProps.endAdornment}
@@ -206,9 +206,9 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
           <Box className={classes.fieldGroup}>
             <Typography className={classes.fieldLabel}>Project</Typography>
             <Typography className={classes.fieldHint}>
-              {state.organization
+              {state.namespace
                 ? 'Leave empty to apply to all projects'
-                : 'Select an organization first'}
+                : 'Select a namespace first'}
             </Typography>
             <Autocomplete
               freeSolo
@@ -220,16 +220,14 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
                   handleProjectChange(value);
                 }
               }}
-              disabled={!state.organization}
+              disabled={!state.namespace}
               loading={projectsLoading}
               renderInput={params => (
                 <TextField
                   {...params}
                   variant="outlined"
                   size="small"
-                  placeholder={
-                    state.organization ? 'Select or type project' : ''
-                  }
+                  placeholder={state.namespace ? 'Select or type project' : ''}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (

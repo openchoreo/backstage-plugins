@@ -69,7 +69,7 @@ export interface ComponentSpec {
 export interface ComponentMetadata {
   /** Component name */
   name: string;
-  /** Organization namespace */
+  /** Namespace */
   namespace: string;
   /** Annotations for display name and description */
   annotations?: {

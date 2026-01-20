@@ -79,7 +79,7 @@ export const TraitsField = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get organization name from ui:options
+  // Get namespace name from ui:options
   const namespaceName =
     typeof uiSchema?.['ui:options']?.namespaceName === 'string'
       ? uiSchema['ui:options'].namespaceName
@@ -100,13 +100,13 @@ export const TraitsField = ({
       try {
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        // Extract organization name if it's in entity reference format
-        const extractOrgName = (fullOrgName: string): string => {
-          const parts = fullOrgName.split('/');
+        // Extract namespace name if it's in entity reference format
+        const extractNsName = (fullNsName: string): string => {
+          const parts = fullNsName.split('/');
           return parts[parts.length - 1];
         };
 
-        const nsName = extractOrgName(namespaceName);
+        const nsName = extractNsName(namespaceName);
 
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
@@ -154,13 +154,13 @@ export const TraitsField = ({
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      // Extract organization name
-      const extractOrgName = (fullOrgName: string): string => {
-        const parts = fullOrgName.split('/');
+      // Extract namespace name
+      const extractNsName = (fullNsName: string): string => {
+        const parts = fullNsName.split('/');
         return parts[parts.length - 1];
       };
 
-      const nsName = extractOrgName(namespaceName);
+      const nsName = extractNsName(namespaceName);
 
       // Use fetchApi which automatically injects Backstage + IDP tokens
       const response = await fetchApi.fetch(
@@ -264,7 +264,7 @@ export const TraitsField = ({
                 <MenuItem disabled>
                   {namespaceName
                     ? 'No traits available'
-                    : 'Select an organization first'}
+                    : 'Select a namespace first'}
                 </MenuItem>
               )}
               {!loadingTraits &&

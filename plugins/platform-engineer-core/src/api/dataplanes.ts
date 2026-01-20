@@ -23,7 +23,7 @@ export async function fetchAllDataplanes(
   return data.data || [];
 }
 
-export async function fetchDataplanesByOrganization(
+export async function fetchDataplanesByNamespace(
   namespaceName: string,
   discovery: DiscoveryApi,
   fetchApi: FetchApi,

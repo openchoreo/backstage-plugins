@@ -113,7 +113,7 @@ export const createComponentAction = (
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
       );
 
-      // Check if component with the same name already exists in this organization
+      // Check if component with the same name already exists in this namespace
       // Note: This requires catalog-backend to be accessible
       try {
         const catalogApi = new CatalogClient({

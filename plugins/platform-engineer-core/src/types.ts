@@ -3,7 +3,7 @@ export interface Environment {
   namespace: string;
   displayName: string;
   description: string;
-  organization: string;
+  namespaceName: string;
   dataPlaneRef: string;
   isProduction: boolean;
   dnsPrefix: string;
@@ -17,7 +17,7 @@ export interface DataPlane {
   namespace?: string;
   displayName?: string;
   description?: string;
-  organization: string;
+  namespaceName: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
   kubernetesClusterName?: string;
