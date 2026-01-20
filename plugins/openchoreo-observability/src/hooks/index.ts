@@ -1,5 +1,5 @@
-export { useGetOrgAndProjectByEntity } from './useGetOrgAndProjectByEntity';
-export { useGetEnvironmentsByOrganization } from './useGetEnvironmentsByOrganization';
+export { useGetNamespaceAndProjectByEntity } from './useGetNamespaceAndProjectByEntity';
+export { useGetEnvironmentsByNamespace } from './useGetEnvironmentsByNamespace';
 export { useFilters } from './useFilters';
 export { useUrlFilters } from './useUrlFilters';
 export { useMetrics } from './useMetrics';

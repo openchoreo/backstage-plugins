@@ -25,7 +25,7 @@ export type ChoreoCatalogFiltersProps = {
 
 /**
  * Choreo Catalog Filters with Choreo entity kind names
- * - Domain is displayed as "Organization"
+ * - Domain is displayed as "Namespace"
  * - System is displayed as "Project"
  *
  * @public

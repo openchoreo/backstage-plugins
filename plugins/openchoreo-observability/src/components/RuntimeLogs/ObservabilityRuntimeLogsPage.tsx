@@ -8,8 +8,8 @@ import { LogsTable } from './LogsTable';
 import { LogsActions } from './LogsActions';
 import {
   useRuntimeLogs,
-  useGetOrgAndProjectByEntity,
-  useGetEnvironmentsByOrganization,
+  useGetNamespaceAndProjectByEntity,
+  useGetEnvironmentsByNamespace,
   useUrlFiltersForRuntimeLogs,
 } from '../../hooks';
 import {
@@ -29,15 +29,15 @@ export const ObservabilityRuntimeLogsPage = () => {
 
   const { entity } = useEntity();
 
-  // Get organization and project names from entity
-  const { organization, project } = useGetOrgAndProjectByEntity(entity);
+  // Get namespace and project names from entity
+  const { namespace, project } = useGetNamespaceAndProjectByEntity(entity);
 
   // Fetch environments from observability backend
   const {
     environments: observabilityEnvironments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByOrganization(organization);
+  } = useGetEnvironmentsByNamespace(namespace);
 
   // Map observability Environment type to RuntimeLogs Environment type
   const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
@@ -69,7 +69,7 @@ export const ObservabilityRuntimeLogsPage = () => {
     refresh,
     componentId,
     projectId,
-  } = useRuntimeLogs(entity, organization || '', project || '', {
+  } = useRuntimeLogs(entity, namespace || '', project || '', {
     environmentId: filters.environmentId,
     environmentName: selectedEnvironment?.resourceName || '',
     timeRange: filters.timeRange,
@@ -111,7 +111,7 @@ export const ObservabilityRuntimeLogsPage = () => {
     if (
       filters.environmentId &&
       selectedEnvironment &&
-      organization &&
+      namespace &&
       project &&
       componentId &&
       projectId &&
@@ -128,7 +128,7 @@ export const ObservabilityRuntimeLogsPage = () => {
     projectId,
     fetchLogs,
     selectedEnvironment,
-    organization,
+    namespace,
     project,
   ]);
 

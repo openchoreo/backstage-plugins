@@ -11,7 +11,7 @@ import { useUserGroups } from '../../hooks';
 
 // Mapping of internal kind names to Choreo entity kind names
 const kindDisplayNames: Record<string, string> = {
-  domain: 'Domain (Organization)',
+  domain: 'Domain (Namespace)',
   system: 'System (Project)',
   component: 'Component',
   api: 'API',
@@ -26,7 +26,7 @@ const kindDisplayNames: Record<string, string> = {
 };
 
 // Custom order for displaying entity kinds in the dropdown
-// Organization first, then Project, then Component, then others alphabetically
+// Namespace first, then Project, then Component, then others alphabetically
 const kindDisplayOrder: string[] = [
   'domain',
   'system',

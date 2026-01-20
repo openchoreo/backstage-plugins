@@ -15,7 +15,7 @@ spec:
   parameters:
     - title: Component Metadata
       required:
-        - organization_name
+        - namespace_name
         - project_name
         - component_name
         - component_type
@@ -41,8 +41,8 @@ spec:
           ui:options:
             catalogFilter:
               - kind: System
-        organization_name:
-          title: Organization Name
+        namespace_name:
+          title: Namespace Name
           type: string
           description: Help others understand what this project is for.
           ui:field: EntityPicker
@@ -133,7 +133,7 @@ spec:
       name: Create OpenChoreo Component
       action: openchoreo:component:create
       input:
-        orgName: ${{ parameters.organization_name }}
+        namespaceName: ${{ parameters.namespace_name }}
         projectName: ${{ parameters.project_name }}
         componentName: ${{ parameters.component_name }}
         displayName: ${{ parameters.displayName }}
