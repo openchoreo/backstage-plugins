@@ -11,7 +11,7 @@ export interface ObservabilityApi {
     componentId: string,
     projectId: string,
     environmentId: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     environmentName: string,
     componentName: string,
@@ -29,7 +29,7 @@ export interface ObservabilityApi {
     environmentId: string,
     environmentName: string,
     componentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     options?: {
       limit?: number;
@@ -43,7 +43,7 @@ export interface ObservabilityApi {
     projectId: string,
     environmentId: string,
     environmentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentUids: string[],
     options?: {
@@ -62,7 +62,7 @@ export interface ObservabilityApi {
     projectId: string,
     environmentId: string,
     environmentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentUids: string[],
     options?: {
@@ -82,7 +82,7 @@ export interface ObservabilityApi {
     projectId: string,
     environmentId: string,
     environmentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     options?: {
       version?: number;
@@ -109,7 +109,7 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentId: string,
     environmentName: string,
     componentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     options?: {
       limit?: number;
@@ -129,7 +129,7 @@ export class ObservabilityClient implements ObservabilityApi {
         environmentId,
         environmentName,
         componentName,
-        orgName,
+        namespaceName,
         projectName,
         options,
       }),
@@ -178,7 +178,7 @@ export class ObservabilityClient implements ObservabilityApi {
     projectId: string,
     environmentId: string,
     environmentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentUids: string[],
     options?: {
@@ -201,7 +201,7 @@ export class ObservabilityClient implements ObservabilityApi {
         projectId,
         environmentId,
         environmentName,
-        orgName,
+        namespaceName,
         projectName,
         componentUids,
         options,
@@ -232,7 +232,7 @@ export class ObservabilityClient implements ObservabilityApi {
     projectId: string,
     environmentId: string,
     environmentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentUids: string[],
     options?: {
@@ -255,7 +255,7 @@ export class ObservabilityClient implements ObservabilityApi {
         projectId,
         environmentId,
         environmentName,
-        orgName,
+        namespaceName,
         projectName,
         componentUids,
         options,
@@ -291,7 +291,7 @@ export class ObservabilityClient implements ObservabilityApi {
     projectId: string,
     environmentId: string,
     environmentName: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     options?: {
       version?: number;
@@ -308,7 +308,7 @@ export class ObservabilityClient implements ObservabilityApi {
           projectId,
           environmentId,
           environmentName,
-          orgName,
+          namespaceName,
           projectName,
           options,
         }),
@@ -337,7 +337,7 @@ export class ObservabilityClient implements ObservabilityApi {
     componentId: string,
     projectId: string,
     environmentId: string,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     environmentName: string,
     componentName: string,
@@ -352,7 +352,7 @@ export class ObservabilityClient implements ObservabilityApi {
       'openchoreo-observability-backend',
     );
     const url = new URL(`${baseUrl}/logs/component/${componentName}`);
-    url.searchParams.set('orgName', orgName);
+    url.searchParams.set('namespaceName', namespaceName);
     url.searchParams.set('projectName', projectName);
 
     const response = await this.fetchApi.fetch(url.toString(), {
@@ -361,7 +361,7 @@ export class ObservabilityClient implements ObservabilityApi {
         componentId,
         projectId,
         environmentId,
-        orgName,
+        namespaceName,
         projectName,
         environmentName,
         componentName,

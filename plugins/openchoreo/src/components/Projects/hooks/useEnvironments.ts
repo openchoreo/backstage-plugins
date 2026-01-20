@@ -42,8 +42,7 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
       const { items } = await catalogApi.getEntities({
         filter: {
           kind: 'Environment',
-          [`metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`]:
-            namespace,
+          [`metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`]: namespace,
         },
       });
 

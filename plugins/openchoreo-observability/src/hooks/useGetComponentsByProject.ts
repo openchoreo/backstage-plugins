@@ -29,8 +29,7 @@ export const useGetComponentsByProject = (
   entity: Entity,
 ): UseGetComponentsByProjectResult => {
   const catalogApi = useApi(catalogApiRef);
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const project = entity.metadata.name;
   const [components, setComponents] = useState<Component[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,9 +39,7 @@ export const useGetComponentsByProject = (
     const fetchComponents = async () => {
       if (!namespace || !project) {
         setLoading(false);
-        setError(
-          'Namespace or project name not found in entity annotations',
-        );
+        setError('Namespace or project name not found in entity annotations');
         setComponents([]);
         return;
       }
@@ -81,9 +78,8 @@ export const useGetComponentsByProject = (
               component.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ||
               project,
             namespace:
-              component.metadata.annotations?.[
-                CHOREO_ANNOTATIONS.NAMESPACE
-              ] || namespace,
+              component.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
+              namespace,
           }));
 
         setComponents(projectComponents);

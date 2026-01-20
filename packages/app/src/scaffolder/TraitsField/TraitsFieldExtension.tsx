@@ -106,12 +106,12 @@ export const TraitsField = ({
           return parts[parts.length - 1];
         };
 
-        const orgName = extractOrgName(namespaceName);
+        const nsName = extractOrgName(namespaceName);
 
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
           `${baseUrl}/traits?namespaceName=${encodeURIComponent(
-            orgName,
+            nsName,
           )}&page=1&pageSize=100`,
         );
 
@@ -160,12 +160,12 @@ export const TraitsField = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(namespaceName);
+      const nsName = extractOrgName(namespaceName);
 
       // Use fetchApi which automatically injects Backstage + IDP tokens
       const response = await fetchApi.fetch(
         `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
-          orgName,
+          nsName,
         )}&traitName=${encodeURIComponent(selectedTrait)}`,
       );
 

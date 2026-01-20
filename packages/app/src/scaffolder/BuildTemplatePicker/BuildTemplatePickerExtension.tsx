@@ -47,8 +47,8 @@ export const BuildTemplatePicker = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get the organization name from form context
-  const namespaceName = formContext.formData?.organization_name;
+  // Get the namespace name from form context
+  const namespaceName = formContext.formData?.namespace_name;
 
   useEffect(() => {
     let ignore = false;
@@ -69,7 +69,7 @@ export const BuildTemplatePicker = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(namespaceName);
+      const nsName = extractOrgName(namespaceName);
 
       setLoading(true);
       setError(null);
@@ -79,7 +79,7 @@ export const BuildTemplatePicker = ({
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
           `${baseUrl}/build-templates?namespaceName=${encodeURIComponent(
-            orgName,
+            nsName,
           )}`,
         );
 

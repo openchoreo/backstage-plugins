@@ -154,7 +154,7 @@ export class CtdToTemplateConverter {
     // Section 1: Component Metadata (standard fields)
     parameters.push({
       title: 'Component Metadata',
-      required: ['organization_name', 'project_name', 'component_name'],
+      required: ['namespace_name', 'project_name', 'component_name'],
       properties: {
         component_name: {
           title: 'Component Name',
@@ -172,8 +172,8 @@ export class CtdToTemplateConverter {
           type: 'string',
           description: 'Brief description of what this component does',
         },
-        organization_name: {
-          title: 'Organization',
+        namespace_name: {
+          title: 'Namespace',
           type: 'string',
           description: 'Auto selected based on Component Type',
           default: namespaceName,
@@ -211,9 +211,7 @@ export class CtdToTemplateConverter {
     }
 
     // Section 3: CI/CD Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
-    parameters.push(
-      this.generateCISetupSection(componentType, namespaceName),
-    );
+    parameters.push(this.generateCISetupSection(componentType, namespaceName));
 
     // Section 4: Traits
     parameters.push(this.generateTraitsSection(namespaceName));
@@ -569,8 +567,8 @@ export class CtdToTemplateConverter {
         name: 'Create OpenChoreo Component',
         action: 'openchoreo:component:create',
         input: {
-          // Section 1: Component Metadata (use old field names for backward compatibility)
-          orgName: '${{ parameters.organization_name }}',
+          // Section 1: Component Metadata
+          namespaceName: '${{ parameters.namespace_name }}',
           projectName: '${{ parameters.project_name }}',
           componentName: '${{ parameters.component_name }}',
           displayName: '${{ parameters.displayName }}',

@@ -82,13 +82,11 @@ export const BuildWorkflowPicker = ({
           return parts[parts.length - 1];
         };
 
-        const orgName = extractOrgName(namespaceName);
+        const nsName = extractOrgName(namespaceName);
 
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/workflows?namespaceName=${encodeURIComponent(
-            orgName,
-          )}`,
+          `${baseUrl}/workflows?namespaceName=${encodeURIComponent(nsName)}`,
         );
 
         if (!response.ok) {

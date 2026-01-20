@@ -103,10 +103,7 @@ export async function createRouter({
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
-      await workflowService.fetchWorkflows(
-        namespaceName as string,
-        userToken,
-      ),
+      await workflowService.fetchWorkflows(namespaceName as string, userToken),
     );
   });
 
@@ -155,11 +152,11 @@ export async function createRouter({
   });
 
   router.get('/build-logs', async (req, res) => {
-    const { componentName, buildId, projectName, orgName } = req.query;
+    const { componentName, buildId, projectName, namespaceName } = req.query;
 
-    if (!componentName || !buildId || !projectName || !orgName) {
+    if (!componentName || !buildId || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, buildId, projectName and orgName are required query parameters',
+        'componentName, buildId, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -167,7 +164,7 @@ export async function createRouter({
 
     try {
       const logs = await workflowService.fetchBuildLogs(
-        orgName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         buildId as string,

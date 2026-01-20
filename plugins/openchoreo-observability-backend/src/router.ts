@@ -37,7 +37,7 @@ export async function createRouter({
         _req.body.componentId,
         _req.body.projectId,
         _req.body.environmentId,
-        _req.body.orgName,
+        _req.body.namespaceName,
         _req.body.projectName,
         _req.body.environmentName,
         _req.body.componentName,
@@ -65,7 +65,7 @@ export async function createRouter({
         _req.body.componentId,
         _req.body.projectId,
         _req.body.environmentId,
-        _req.body.orgName,
+        _req.body.namespaceName,
         _req.body.projectName,
         _req.body.environmentName,
         _req.body.componentName,
@@ -117,7 +117,7 @@ export async function createRouter({
       const traces = await observabilityService.fetchTracesByProject(
         _req.body.projectId,
         _req.body.environmentId,
-        _req.body.orgName,
+        _req.body.namespaceName,
         _req.body.projectName,
         _req.body.environmentName,
         _req.body.componentUids || [],
@@ -144,7 +144,7 @@ export async function createRouter({
       const reports = await observabilityService.fetchRCAReportsByProject(
         _req.body.projectId,
         _req.body.environmentId,
-        _req.body.orgName,
+        _req.body.namespaceName,
         _req.body.environmentName,
         _req.body.componentUids || [],
         _req.body.options,
@@ -172,7 +172,7 @@ export async function createRouter({
     try {
       const report = await observabilityService.fetchRCAReportByAlert(
         alertId,
-        _req.body.orgName,
+        _req.body.namespaceName,
         _req.body.environmentName,
         _req.body.options,
         userToken,

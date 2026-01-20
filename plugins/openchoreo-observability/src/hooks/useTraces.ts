@@ -15,8 +15,7 @@ async function getProjectDetails(
   fetchApi: any,
 ): Promise<{ uid?: string }> {
   const project = entity.metadata.name as string;
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   if (!project || !namespace) {
     throw new Error(
@@ -56,8 +55,7 @@ export function useTraces(filters: Filters, entity: Entity) {
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
 
-  const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   // Memoize componentIds string for dependency array
   const componentIdsKey = useMemo(
