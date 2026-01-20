@@ -6,7 +6,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useRCAReportByAlert,
   useFilters,
-  useGetEnvironmentsByOrganization,
+  useGetEnvironmentsByNamespace,
 } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RCAReportView } from './RCAReport/RCAReportView';
@@ -16,11 +16,11 @@ export const RCAReport = () => {
   const navigate = useNavigate();
   const { entity } = useEntity();
   const { filters } = useFilters();
-  const organization =
+  const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
 
   // Get environments to ensure we have environment data
-  const { environments } = useGetEnvironmentsByOrganization(organization);
+  const { environments } = useGetEnvironmentsByNamespace(namespace);
   const environment = filters.environment || environments[0];
 
   const {

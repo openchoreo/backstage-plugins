@@ -8,7 +8,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import {
   useFilters,
-  useGetEnvironmentsByOrganization,
+  useGetEnvironmentsByNamespace,
   useRCAReports,
   extractEntityUids,
   useEntitiesByUids,
@@ -21,13 +21,13 @@ import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 
 const RCAListView = () => {
   const { entity } = useEntity();
-  const organization =
+  const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
   const {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByOrganization(organization);
+  } = useGetEnvironmentsByNamespace(namespace);
   const { filters, updateFilters } = useFilters();
 
   const {

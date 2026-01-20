@@ -9,7 +9,7 @@ import { convertToTableFormat } from './utils';
 import {
   useUrlFilters,
   useTraces,
-  useGetEnvironmentsByOrganization,
+  useGetEnvironmentsByNamespace,
   useGetComponentsByProject,
 } from '../../hooks';
 import { Trace, Environment } from '../../types';
@@ -18,13 +18,13 @@ import { Alert } from '@material-ui/lab';
 
 export const ObservabilityTracesPage = () => {
   const { entity } = useEntity();
-  const organization =
+  const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
   const {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByOrganization(organization);
+  } = useGetEnvironmentsByNamespace(namespace);
   const {
     components,
     loading: componentsLoading,

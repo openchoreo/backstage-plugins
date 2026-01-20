@@ -3,21 +3,21 @@ import { useApi } from '@backstage/core-plugin-api';
 import { discoveryApiRef, fetchApiRef } from '@backstage/core-plugin-api';
 import { Environment } from '../types';
 
-export interface UseGetEnvironmentsByOrganizationResult {
+export interface UseGetEnvironmentsByNamespaceResult {
   environments: Environment[];
   loading: boolean;
   error: string | null;
 }
 
 /**
- * Hook to fetch environments for a specific organization from the observability backend.
+ * Hook to fetch environments for a specific namespace from the observability backend.
  *
- * @param organizationName - The name of the organization to fetch environments for
+ * @param namespaceName - The name of the namespace to fetch environments for
  * @returns Object containing environments array, loading state, and error
  */
-export const useGetEnvironmentsByOrganization = (
-  organizationName: string | undefined,
-): UseGetEnvironmentsByOrganizationResult => {
+export const useGetEnvironmentsByNamespace = (
+  namespaceName: string | undefined,
+): UseGetEnvironmentsByNamespaceResult => {
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
   const [environments, setEnvironments] = useState<Environment[]>([]);
@@ -26,9 +26,9 @@ export const useGetEnvironmentsByOrganization = (
 
   useEffect(() => {
     const fetchEnvironments = async () => {
-      if (!organizationName) {
+      if (!namespaceName) {
         setLoading(false);
-        setError('Organization name is required');
+        setError('Namespace name is required');
         setEnvironments([]);
         return;
       }
@@ -41,8 +41,8 @@ export const useGetEnvironmentsByOrganization = (
           'openchoreo-observability-backend',
         );
         const response = await fetchApi.fetch(
-          `${baseUrl}/environments?organization=${encodeURIComponent(
-            organizationName,
+          `${baseUrl}/environments?namespace=${encodeURIComponent(
+            namespaceName,
           )}`,
         );
 
@@ -65,7 +65,7 @@ export const useGetEnvironmentsByOrganization = (
     };
 
     fetchEnvironments();
-  }, [organizationName, discoveryApi, fetchApi]);
+  }, [namespaceName, discoveryApi, fetchApi]);
 
   return { environments, loading, error };
 };

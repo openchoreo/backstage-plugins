@@ -15,7 +15,7 @@ spec:
   parameters:
     - title: OpenChoreo Project Details
       required:
-        - organization_name
+        - namespace_name
         - project_name
       properties:
         project_name:
@@ -31,10 +31,10 @@ spec:
           title: Description
           type: string
           description: Help others understand what this project is for.
-        organization_name:
-          title: Organization Name
+        namespace_name:
+          title: Namespace Name
           type: string
-          description: Organization where the project will be created
+          description: Namespace where the project will be created
           ui:field: EntityPicker
           ui:options:
             catalogFilter:
@@ -53,7 +53,7 @@ spec:
       name: Create OpenChoreo Project
       action: openchoreo:project:create
       input:
-        orgName: ${{ parameters.organization_name }}
+        namespaceName: ${{ parameters.namespace_name }}
         projectName: ${{ parameters.project_name }}
         displayName: ${{ parameters.displayName }}
         description: ${{ parameters.description }}

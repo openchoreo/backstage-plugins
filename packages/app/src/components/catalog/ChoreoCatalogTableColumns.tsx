@@ -80,7 +80,7 @@ function createProjectColumn(): TableColumn<CatalogTableRow> {
 /**
  * Custom catalog table columns function with Choreo naming:
  * - System → Project
- * - Domain → Organization (handled by entity kind picker)
+ * - Domain → Namespace (handled by entity kind picker)
  * - Name column with deletion badge support
  */
 export const choreoCatalogTableColumns: CatalogTableColumnsFunc =

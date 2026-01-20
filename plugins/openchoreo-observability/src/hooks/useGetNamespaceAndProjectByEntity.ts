@@ -2,52 +2,52 @@ import { Entity } from '@backstage/catalog-model';
 import { useMemo } from 'react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
-export interface UseGetOrgAndProjectByEntityResult {
-  organization: string | undefined;
+export interface UseGetNamespaceAndProjectByEntityResult {
+  namespace: string | undefined;
   project: string | undefined;
   error: string | null;
 }
 
 /**
- * Hook to extract the organization and project name from an entity's annotations.
+ * Hook to extract the namespace and project name from an entity's annotations.
  *
- * @param entity - The Backstage entity to extract the organization and project from
- * @returns Object containing organization name, project name, and error
+ * @param entity - The Backstage entity to extract the namespace and project from
+ * @returns Object containing namespace name, project name, and error
  */
-export const useGetOrgAndProjectByEntity = (
+export const useGetNamespaceAndProjectByEntity = (
   entity: Entity,
-): UseGetOrgAndProjectByEntityResult => {
+): UseGetNamespaceAndProjectByEntityResult => {
   const result = useMemo(() => {
     try {
-      const organization =
+      const namespace =
         entity?.metadata?.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
       const project =
         entity?.metadata?.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
 
-      if (!organization) {
+      if (!namespace) {
         return {
-          organization: undefined,
+          namespace: undefined,
           project: undefined,
-          error: `Organization annotation '${CHOREO_ANNOTATIONS.ORGANIZATION}' not found in entity`,
+          error: `Namespace annotation '${CHOREO_ANNOTATIONS.ORGANIZATION}' not found in entity`,
         };
       }
 
       if (!project) {
         return {
-          organization,
+          namespace,
           project: undefined,
           error: `Project annotation '${CHOREO_ANNOTATIONS.PROJECT}' not found in entity`,
         };
       }
 
       return {
-        organization,
+        namespace,
         project,
         error: null,
       };
     } catch (err) {
       return {
-        organization: undefined,
+        namespace: undefined,
         project: undefined,
         error: err instanceof Error ? err.message : 'Unknown error',
       };

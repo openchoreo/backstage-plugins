@@ -19,8 +19,8 @@ import { MetricsFilters } from './MetricsFilters';
 import { MetricGraphByComponent } from './MetricGraphByComponent';
 import { MetricsActions } from './MetricsActions';
 import {
-  useGetOrgAndProjectByEntity,
-  useGetEnvironmentsByOrganization,
+  useGetNamespaceAndProjectByEntity,
+  useGetEnvironmentsByNamespace,
   useUrlFilters,
   useMetrics,
 } from '../../hooks';
@@ -46,15 +46,15 @@ export const ObservabilityMetricsPage = () => {
   } = useMetricsPermission();
 
   const {
-    organization,
+    namespace,
     project,
-    error: organizationError,
-  } = useGetOrgAndProjectByEntity(entity);
+    error: namespaceError,
+  } = useGetNamespaceAndProjectByEntity(entity);
   const {
     environments,
     loading: environmentsLoading,
     error: environmentsError,
-  } = useGetEnvironmentsByOrganization(organization);
+  } = useGetEnvironmentsByNamespace(namespace);
 
   // URL-synced filters - must be after environments are available
   const { filters, updateFilters } = useUrlFilters({
@@ -70,7 +70,7 @@ export const ObservabilityMetricsPage = () => {
     refresh,
     componentId,
     projectId,
-  } = useMetrics(filters, entity, organization as string, project as string);
+  } = useMetrics(filters, entity, namespace as string, project as string);
 
   // Track previous filter values to detect changes
   const previousFiltersRef = useRef({
@@ -122,7 +122,7 @@ export const ObservabilityMetricsPage = () => {
     refresh();
   };
 
-  if (organizationError) {
+  if (namespaceError) {
     // TODO: Add a toast notification here
     return <></>;
   }
