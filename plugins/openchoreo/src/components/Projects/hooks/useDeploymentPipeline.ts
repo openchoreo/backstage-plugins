@@ -31,18 +31,18 @@ export const useDeploymentPipeline = () => {
         setLoading(true);
         setError(null);
 
-        // Get project and organization from system entity
+        // Get project and namespace from system entity
         const projectName = entity.metadata.name;
-        const organization =
-          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+        const namespace =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-        if (!projectName || !organization) {
-          throw new Error('Missing project or organization information');
+        if (!projectName || !namespace) {
+          throw new Error('Missing project or namespace information');
         }
 
         // Fetch deployment pipeline from Backstage backend
         const pipelineData: DeploymentPipelineResponse =
-          await client.fetchDeploymentPipeline(projectName, organization);
+          await client.fetchDeploymentPipeline(projectName, namespace);
 
         // Extract environments from promotion paths in order
         // The promotion paths define the deployment flow: source -> targets

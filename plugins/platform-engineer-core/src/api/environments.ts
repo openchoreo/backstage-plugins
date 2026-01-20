@@ -24,19 +24,19 @@ export async function fetchAllEnvironments(
 }
 
 export async function fetchEnvironmentsByOrganization(
-  organizationName: string,
+  namespaceName: string,
   discovery: DiscoveryApi,
   fetchApi: FetchApi,
 ): Promise<Environment[]> {
   const backendUrl = `${await discovery.getBaseUrl(
     'platform-engineer-core',
-  )}/environments/${organizationName}`;
+  )}/environments/${namespaceName}`;
 
   const res = await fetchApi.fetch(backendUrl);
 
   if (!res.ok) {
     throw new Error(
-      `Failed to fetch environments for ${organizationName}: ${res.statusText}`,
+      `Failed to fetch environments for ${namespaceName}: ${res.statusText}`,
     );
   }
 

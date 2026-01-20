@@ -34,7 +34,7 @@ export interface WorkflowSchemaResponse {
 export interface OpenChoreoCiClientApi {
   /** Fetch workflow schema for configuration */
   fetchWorkflowSchema(
-    organizationName: string,
+    namespaceName: string,
     workflowName: string,
   ): Promise<WorkflowSchemaResponse>;
 

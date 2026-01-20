@@ -75,15 +75,15 @@ export const WorkflowConfigPage = ({
     setError(null);
 
     try {
-      const organization =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+      const namespace =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-      if (!organization) {
-        throw new Error('Organization not found in entity');
+      if (!namespace) {
+        throw new Error('Namespace not found in entity');
       }
 
       const schemaResponse = await client.fetchWorkflowSchema(
-        organization,
+        namespace,
         workflowName,
       );
 

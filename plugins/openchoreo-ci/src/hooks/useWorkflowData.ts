@@ -35,7 +35,7 @@ export function useWorkflowData() {
 
   const fetchComponentDetails = useCallback(async () => {
     try {
-      const { componentName, projectName, organizationName } =
+      const { componentName, projectName, namespaceName } =
         await getEntityDetails();
 
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
@@ -45,7 +45,7 @@ export function useWorkflowData() {
           componentName,
         )}&projectName=${encodeURIComponent(
           projectName,
-        )}&organizationName=${encodeURIComponent(organizationName)}`,
+        )}&namespaceName=${encodeURIComponent(namespaceName)}`,
       );
 
       if (!response.ok) {
@@ -61,7 +61,7 @@ export function useWorkflowData() {
 
   const fetchBuilds = useCallback(async () => {
     try {
-      const { componentName, projectName, organizationName } =
+      const { componentName, projectName, namespaceName } =
         await getEntityDetails();
 
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
@@ -71,7 +71,7 @@ export function useWorkflowData() {
           componentName,
         )}&projectName=${encodeURIComponent(
           projectName,
-        )}&organizationName=${encodeURIComponent(organizationName)}`,
+        )}&namespaceName=${encodeURIComponent(namespaceName)}`,
       );
 
       if (!response.ok) {

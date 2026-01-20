@@ -158,8 +158,8 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
         const response = await fetchApi.fetch(
-          `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(
-            metadata.organization,
+          `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
+            metadata.namespace,
           )}&traitName=${encodeURIComponent(trait.name)}`,
         );
 
@@ -192,7 +192,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [trait, open, metadata.organization, discoveryApi, fetchApi]);
+  }, [trait, open, metadata.namespace, discoveryApi, fetchApi]);
 
   // Validate instance name
   useEffect(() => {

@@ -6,18 +6,18 @@ import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 export interface ComponentEntityDetails {
   componentName: string;
   projectName: string;
-  organizationName: string;
+  namespaceName: string;
 }
 
 /**
- * Custom hook to extract OpenChoreo component entity details (component, project, organization)
+ * Custom hook to extract OpenChoreo component entity details (component, project, namespace)
  * from the current Backstage entity context by traversing entity relationships.
  *
  * This hook internally calls useEntity() to get the current entity and navigates
  * the Backstage catalog to find:
  * - Component name from the current entity
  * - Project name from entity.spec.system
- * - Organization name from the project entity's spec.domain or annotations
+ * - Namespace name from the project entity's spec.domain or annotations
  *
  * @returns An object with getEntityDetails callback function
  *
@@ -28,7 +28,7 @@ export interface ComponentEntityDetails {
  * useEffect(() => {
  *   const fetchData = async () => {
  *     try {
- *       const { componentName, projectName, organizationName } = await getEntityDetails();
+ *       const { componentName, projectName, namespaceName } = await getEntityDetails();
  *       // Use the details...
  *     } catch (error) {
  *       console.error('Failed to get entity details:', error);
@@ -69,25 +69,25 @@ export function useComponentEntityDetails() {
       }
 
       // Get organization from the project entity's spec.domain or annotations
-      let organizationValue = projectEntity.spec?.domain;
-      if (!organizationValue) {
-        organizationValue =
-          projectEntity.metadata.annotations?.['openchoreo.io/organization'];
+      let namespaceValue = projectEntity.spec?.domain;
+      if (!namespaceValue) {
+        namespaceValue =
+          projectEntity.metadata.annotations?.['openchoreo.io/namespace'];
       }
 
-      if (!organizationValue) {
+      if (!namespaceValue) {
         throw new Error(
-          `Organization name not found in project entity: ${projectEntityRef}`,
+          `Namespace name not found in project entity: ${projectEntityRef}`,
         );
       }
 
       // Convert organization value to string (it could be string or object)
-      const organizationName =
-        typeof organizationValue === 'string'
-          ? organizationValue
-          : String(organizationValue);
+      const namespaceName =
+        typeof namespaceValue === 'string'
+          ? namespaceValue
+          : String(namespaceValue);
 
-      return { componentName, projectName, organizationName };
+      return { componentName, projectName, namespaceName };
     }, [entity, catalogApi]);
 
   return { getEntityDetails };
@@ -128,22 +128,22 @@ export async function extractComponentEntityDetails(
   }
 
   // Get organization from the project entity's spec.domain or annotations
-  let organizationValue = projectEntity.spec?.domain;
-  if (!organizationValue) {
-    organizationValue =
-      projectEntity.metadata.annotations?.['openchoreo.io/organization'];
+  let namespaceValue = projectEntity.spec?.domain;
+  if (!namespaceValue) {
+    namespaceValue =
+      projectEntity.metadata.annotations?.['openchoreo.io/namespace'];
   }
 
-  if (!organizationValue) {
+  if (!namespaceValue) {
     throw new Error(
-      `Organization name not found in project entity: ${projectEntityRef}`,
+      `Namespace name not found in project entity: ${projectEntityRef}`,
     );
   }
 
-  const organizationName =
-    typeof organizationValue === 'string'
-      ? organizationValue
-      : String(organizationValue);
+  const namespaceName =
+    typeof namespaceValue === 'string'
+      ? namespaceValue
+      : String(namespaceValue);
 
-  return { componentName, projectName, organizationName };
+  return { componentName, projectName, namespaceName };
 }

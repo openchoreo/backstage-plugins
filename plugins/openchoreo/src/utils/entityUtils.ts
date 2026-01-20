@@ -4,7 +4,7 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 export interface EntityMetadata {
   component: string;
   project: string;
-  organization: string;
+  namespace: string;
 }
 
 /**
@@ -12,22 +12,22 @@ export interface EntityMetadata {
  * Throws if required annotations are missing.
  *
  * @example
- * const { component, project, organization } = extractEntityMetadata(entity);
+ * const { component, project, namespace } = extractEntityMetadata(entity);
  */
 export function extractEntityMetadata(entity: Entity): EntityMetadata {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!component || !project || !organization) {
+  if (!component || !project || !namespace) {
     throw new Error(
       'Missing required OpenChoreo annotations in entity. ' +
-        `Required: ${CHOREO_ANNOTATIONS.COMPONENT}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.ORGANIZATION}`,
+        `Required: ${CHOREO_ANNOTATIONS.COMPONENT}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
     );
   }
 
-  return { component, project, organization };
+  return { component, project, namespace };
 }
 
 /**
@@ -45,19 +45,19 @@ export function tryExtractEntityMetadata(
 ): EntityMetadata | null {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!component || !project || !organization) {
+  if (!component || !project || !namespace) {
     return null;
   }
 
-  return { component, project, organization };
+  return { component, project, namespace };
 }
 
 /**
  * Creates standard query params from entity metadata.
- * Useful for API calls that require component/project/organization params.
+ * Useful for API calls that require component/project/namespace params.
  */
 export function entityMetadataToParams(
   metadata: EntityMetadata,
@@ -65,6 +65,6 @@ export function entityMetadataToParams(
   return {
     componentName: metadata.component,
     projectName: metadata.project,
-    organizationName: metadata.organization,
+    namespaceName: metadata.namespace,
   };
 }

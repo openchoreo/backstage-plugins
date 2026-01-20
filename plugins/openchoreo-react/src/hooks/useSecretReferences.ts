@@ -37,11 +37,11 @@ async function fetchSecretReferences(
   discovery: DiscoveryApi,
   fetchApi: FetchApi,
 ): Promise<SecretReferencesResponse> {
-  const organizationName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!organizationName) {
-    throw new Error('Missing organization annotation');
+  if (!namespaceName) {
+    throw new Error('Missing namespace annotation');
   }
 
   const backendUrl = new URL(
@@ -49,7 +49,7 @@ async function fetchSecretReferences(
   );
 
   const params = new URLSearchParams({
-    organizationName,
+    namespaceName,
   });
   backendUrl.search = params.toString();
 

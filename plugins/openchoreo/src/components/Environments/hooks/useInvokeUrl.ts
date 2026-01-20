@@ -33,16 +33,16 @@ export function useInvokeUrl(
 
       setLoading(true);
       try {
-        // Extract organization name from entity
-        const organizationName =
-          entity.metadata.annotations?.['openchoreo.dev/organization'];
+        // Extract namespace name from entity
+        const namespaceName =
+          entity.metadata.annotations?.['openchoreo.io/namespace'];
 
         // Fetch dataplane details if dataPlaneRef is provided
         let port = DEFAULT_HTTP_PORT;
-        if (dataPlaneRef && organizationName) {
+        if (dataPlaneRef && namespaceName) {
           try {
             const dataPlaneDetails = await client.fetchDataPlaneDetails(
-              organizationName,
+              namespaceName,
               dataPlaneRef,
             );
             // Use publicHTTPPort if available and not 0

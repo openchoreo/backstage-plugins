@@ -24,19 +24,19 @@ export async function fetchAllDataplanes(
 }
 
 export async function fetchDataplanesByOrganization(
-  organizationName: string,
+  namespaceName: string,
   discovery: DiscoveryApi,
   fetchApi: FetchApi,
 ): Promise<DataPlane[]> {
   const backendUrl = `${await discovery.getBaseUrl(
     'platform-engineer-core',
-  )}/dataplanes/${organizationName}`;
+  )}/dataplanes/${namespaceName}`;
 
   const res = await fetchApi.fetch(backendUrl);
 
   if (!res.ok) {
     throw new Error(
-      `Failed to fetch dataplanes for ${organizationName}: ${res.statusText}`,
+      `Failed to fetch dataplanes for ${namespaceName}: ${res.statusText}`,
     );
   }
 

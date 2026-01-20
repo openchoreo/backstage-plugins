@@ -1,6 +1,5 @@
 export const CHOREO_ANNOTATIONS = {
   PROJECT: 'openchoreo.io/project',
-  ORGANIZATION: 'openchoreo.io/organization',
   DEPLOYMENT: 'openchoreo.io/deployment',
   ENDPOINT: 'openchoreo.io/endpoint',
   ENVIRONMENT: 'openchoreo.io/environment',

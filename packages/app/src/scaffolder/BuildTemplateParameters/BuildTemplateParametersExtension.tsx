@@ -62,13 +62,13 @@ export const BuildTemplateParameters = ({
 
   // Get the selected build template and organization from form context
   const selectedTemplateName = formContext?.formData?.build_template_name;
-  const organizationName = formContext?.formData?.organization_name;
+  const namespaceName = formContext?.formData?.organization_name;
 
   // Fetch build templates when organization changes
   useEffect(() => {
     let ignore = false;
     const fetchBuildTemplates = async () => {
-      if (!organizationName) {
+      if (!namespaceName) {
         setBuildTemplates([]);
         return;
       }
@@ -79,7 +79,7 @@ export const BuildTemplateParameters = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(organizationName);
+      const orgName = extractOrgName(namespaceName);
 
       setLoading(true);
 
@@ -87,7 +87,7 @@ export const BuildTemplateParameters = ({
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/build-templates?organizationName=${encodeURIComponent(
+          `${baseUrl}/build-templates?namespaceName=${encodeURIComponent(
             orgName,
           )}`,
         );
@@ -109,7 +109,7 @@ export const BuildTemplateParameters = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, discoveryApi, fetchApi]);
+  }, [namespaceName, discoveryApi, fetchApi]);
 
   // Update parameters when template selection or templates change
   useEffect(() => {

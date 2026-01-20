@@ -15,12 +15,12 @@ async function getProjectDetails(
   fetchApi: any,
 ): Promise<{ uid?: string }> {
   const project = entity.metadata.name as string;
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!project || !organization) {
+  if (!project || !namespace) {
     throw new Error(
-      'Project name or organization name not found in entity annotations',
+      'Project name or namespace name not found in entity annotations',
     );
   }
 
@@ -30,7 +30,7 @@ async function getProjectDetails(
 
   const params = new URLSearchParams({
     projectName: project,
-    organizationName: organization,
+    namespaceName: namespace,
   });
 
   backendUrl.search = params.toString();
@@ -56,8 +56,8 @@ export function useTraces(filters: Filters, entity: Entity) {
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
 
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   // Memoize componentIds string for dependency array
   const componentIdsKey = useMemo(
@@ -101,7 +101,7 @@ export function useTraces(filters: Filters, entity: Entity) {
           projectId,
           filters.environment.uid,
           filters.environment.name,
-          organization || '',
+          namespace || '',
           entity.metadata.name as string,
           componentUids,
           {
@@ -127,7 +127,7 @@ export function useTraces(filters: Filters, entity: Entity) {
       filters.timeRange,
       filters.componentIds,
       traces,
-      organization,
+      namespace,
       projectId,
       entity,
     ],

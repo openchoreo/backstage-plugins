@@ -37,7 +37,7 @@ export function useWorkflowsSummary() {
 
   const fetchData = useCallback(async () => {
     try {
-      const { componentName, projectName, organizationName } =
+      const { componentName, projectName, namespaceName } =
         await getEntityDetails();
 
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
@@ -49,14 +49,14 @@ export function useWorkflowsSummary() {
             componentName,
           )}&projectName=${encodeURIComponent(
             projectName,
-          )}&organizationName=${encodeURIComponent(organizationName)}`,
+          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
         ),
         fetchApi.fetch(
           `${baseUrl}/builds?componentName=${encodeURIComponent(
             componentName,
           )}&projectName=${encodeURIComponent(
             projectName,
-          )}&organizationName=${encodeURIComponent(organizationName)}`,
+          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
         ),
       ]);
 
@@ -99,7 +99,7 @@ export function useWorkflowsSummary() {
   const triggerBuild = useCallback(async () => {
     setState(prev => ({ ...prev, triggeringBuild: true }));
     try {
-      const { componentName, projectName, organizationName } =
+      const { componentName, projectName, namespaceName } =
         await getEntityDetails();
 
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
@@ -112,7 +112,7 @@ export function useWorkflowsSummary() {
         body: JSON.stringify({
           componentName,
           projectName,
-          organizationName,
+          namespaceName,
         }),
       });
 
