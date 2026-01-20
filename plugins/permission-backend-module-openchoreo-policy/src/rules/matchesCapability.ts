@@ -157,7 +157,7 @@ export const matchesCapability = createPermissionRule({
     // Extract scope from entity annotations
     // TODO: need to handle annotation change from org to namespace
     const namespace =
-      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
     const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
     const component =
       entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];

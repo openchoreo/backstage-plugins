@@ -48,12 +48,12 @@ export const BuildTemplatePicker = ({
   const fetchApi = useApi(fetchApiRef);
 
   // Get the organization name from form context
-  const organizationName = formContext.formData?.organization_name;
+  const namespaceName = formContext.formData?.organization_name;
 
   useEffect(() => {
     let ignore = false;
     const fetchBuildTemplates = async () => {
-      if (!organizationName) {
+      if (!namespaceName) {
         setBuildTemplates([]);
         // Clear templates from form context when no organization
         if (formContext.buildTemplates) {
@@ -69,7 +69,7 @@ export const BuildTemplatePicker = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(organizationName);
+      const orgName = extractOrgName(namespaceName);
 
       setLoading(true);
       setError(null);
@@ -78,7 +78,7 @@ export const BuildTemplatePicker = ({
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/build-templates?organizationName=${encodeURIComponent(
+          `${baseUrl}/build-templates?namespaceName=${encodeURIComponent(
             orgName,
           )}`,
         );
@@ -108,7 +108,7 @@ export const BuildTemplatePicker = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, discoveryApi, formContext, fetchApi]);
+  }, [namespaceName, discoveryApi, formContext, fetchApi]);
 
   const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
     onChange(event.target.value as string);
@@ -132,7 +132,7 @@ export const BuildTemplatePicker = ({
         labelId={`${idSchema?.$id}-label`}
         value={formData || ''}
         onChange={handleChange}
-        disabled={loading || !organizationName}
+        disabled={loading || !namespaceName}
       >
         {loading && (
           <MenuItem disabled>
@@ -142,7 +142,7 @@ export const BuildTemplatePicker = ({
         )}
         {!loading && buildTemplates.length === 0 && !error && (
           <MenuItem disabled>
-            {organizationName
+            {namespaceName
               ? 'No build templates available'
               : 'Select an organization first'}
           </MenuItem>

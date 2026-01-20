@@ -17,7 +17,7 @@ export const RCAReport = () => {
   const { entity } = useEntity();
   const { filters } = useFilters();
   const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   // Get environments to ensure we have environment data
   const { environments } = useGetEnvironmentsByNamespace(namespace);

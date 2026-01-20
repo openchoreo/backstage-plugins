@@ -46,11 +46,11 @@ export const BuildWorkflowPicker = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get workflows from enum (if provided) or organizationName from ui:options
+  // Get workflows from enum (if provided) or namespaceName from ui:options
   const enumWorkflows = (schema.enum as string[]) || null;
-  const organizationName =
-    typeof uiSchema?.['ui:options']?.organizationName === 'string'
-      ? uiSchema['ui:options'].organizationName
+  const namespaceName =
+    typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+      ? uiSchema['ui:options'].namespaceName
       : '';
 
   // Fetch workflows from API if enum is not provided
@@ -65,7 +65,7 @@ export const BuildWorkflowPicker = ({
       }
 
       // Otherwise, fetch from API
-      if (!organizationName) {
+      if (!namespaceName) {
         setError('Organization name is required to fetch workflows');
         return;
       }
@@ -82,11 +82,11 @@ export const BuildWorkflowPicker = ({
           return parts[parts.length - 1];
         };
 
-        const orgName = extractOrgName(organizationName);
+        const orgName = extractOrgName(namespaceName);
 
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/workflows?organizationName=${encodeURIComponent(
+          `${baseUrl}/workflows?namespaceName=${encodeURIComponent(
             orgName,
           )}`,
         );
@@ -117,7 +117,7 @@ export const BuildWorkflowPicker = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, enumWorkflows, discoveryApi, fetchApi]);
+  }, [namespaceName, enumWorkflows, discoveryApi, fetchApi]);
 
   const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedWorkflow = event.target.value as string;

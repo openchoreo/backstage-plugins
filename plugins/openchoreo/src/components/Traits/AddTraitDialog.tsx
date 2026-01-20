@@ -155,8 +155,8 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
         const response = await fetchApi.fetch(
-          `${baseUrl}/traits?organizationName=${encodeURIComponent(
-            metadata.organization,
+          `${baseUrl}/traits?namespaceName=${encodeURIComponent(
+            metadata.namespace,
           )}&page=1&pageSize=100`,
         );
 
@@ -185,7 +185,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [open, metadata.organization, discoveryApi, fetchApi]);
+  }, [open, metadata.namespace, discoveryApi, fetchApi]);
 
   // Fetch schema when trait is selected
   useEffect(() => {
@@ -207,8 +207,8 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
         const response = await fetchApi.fetch(
-          `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(
-            metadata.organization,
+          `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
+            metadata.namespace,
           )}&traitName=${encodeURIComponent(selectedTrait)}`,
         );
 
@@ -246,7 +246,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [selectedTrait, metadata.organization, discoveryApi, fetchApi]);
+  }, [selectedTrait, metadata.namespace, discoveryApi, fetchApi]);
 
   // Validate instance name
   useEffect(() => {

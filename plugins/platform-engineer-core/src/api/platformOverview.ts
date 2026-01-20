@@ -64,7 +64,7 @@ export async function fetchPlatformOverview(
 
       // Extract org, project, and component name from annotations or metadata
       const orgName =
-        annotations['openchoreo.io/organization'] ||
+        annotations['openchoreo.io/namespace'] ||
         annotations['backstage.io/managed-by-location']?.split('/')[3] ||
         'default'; // fallback
 

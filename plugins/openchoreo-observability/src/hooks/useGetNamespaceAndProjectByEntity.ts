@@ -20,7 +20,7 @@ export const useGetNamespaceAndProjectByEntity = (
   const result = useMemo(() => {
     try {
       const namespace =
-        entity?.metadata?.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+        entity?.metadata?.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
       const project =
         entity?.metadata?.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
 
@@ -28,7 +28,7 @@ export const useGetNamespaceAndProjectByEntity = (
         return {
           namespace: undefined,
           project: undefined,
-          error: `Namespace annotation '${CHOREO_ANNOTATIONS.ORGANIZATION}' not found in entity`,
+          error: `Namespace annotation '${CHOREO_ANNOTATIONS.NAMESPACE}' not found in entity`,
         };
       }
 

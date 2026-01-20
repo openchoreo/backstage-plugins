@@ -29,11 +29,11 @@ export async function createRouter({
   const requireAuth = createRequireAuthMiddleware(tokenService, authEnabled);
 
   router.get('/builds', async (req, res) => {
-    const { componentName, projectName, organizationName } = req.query;
+    const { componentName, projectName, namespaceName } = req.query;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required query parameters',
+        'componentName, projectName and namespaceName are required query parameters',
       );
     }
 
@@ -41,7 +41,7 @@ export async function createRouter({
 
     res.json(
       await workflowService.fetchBuilds(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         userToken,
@@ -50,11 +50,11 @@ export async function createRouter({
   });
 
   router.post('/builds', requireAuth, async (req, res) => {
-    const { componentName, projectName, organizationName, commit } = req.body;
+    const { componentName, projectName, namespaceName, commit } = req.body;
 
-    if (!componentName || !projectName || !organizationName) {
+    if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
-        'componentName, projectName and organizationName are required in request body',
+        'componentName, projectName and namespaceName are required in request body',
       );
     }
 
@@ -62,7 +62,7 @@ export async function createRouter({
 
     res.json(
       await workflowService.triggerBuild(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         commit as string | undefined,
@@ -72,11 +72,11 @@ export async function createRouter({
   });
 
   router.get('/workflow-run', async (req, res) => {
-    const { componentName, projectName, organizationName, runName } = req.query;
+    const { componentName, projectName, namespaceName, runName } = req.query;
 
-    if (!componentName || !projectName || !organizationName || !runName) {
+    if (!componentName || !projectName || !namespaceName || !runName) {
       throw new InputError(
-        'componentName, projectName, organizationName and runName are required query parameters',
+        'componentName, projectName, namespaceName and runName are required query parameters',
       );
     }
 
@@ -84,7 +84,7 @@ export async function createRouter({
 
     res.json(
       await workflowService.getWorkflowRun(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         runName as string,
@@ -94,28 +94,28 @@ export async function createRouter({
   });
 
   router.get('/workflows', async (req, res) => {
-    const { organizationName } = req.query;
+    const { namespaceName } = req.query;
 
-    if (!organizationName) {
-      throw new InputError('organizationName is required query parameter');
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
     }
 
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
       await workflowService.fetchWorkflows(
-        organizationName as string,
+        namespaceName as string,
         userToken,
       ),
     );
   });
 
   router.get('/workflow-schema', async (req, res) => {
-    const { organizationName, workflowName } = req.query;
+    const { namespaceName, workflowName } = req.query;
 
-    if (!organizationName || !workflowName) {
+    if (!namespaceName || !workflowName) {
       throw new InputError(
-        'organizationName and workflowName are required query parameters',
+        'namespaceName and workflowName are required query parameters',
       );
     }
 
@@ -123,7 +123,7 @@ export async function createRouter({
 
     res.json(
       await workflowService.fetchWorkflowSchema(
-        organizationName as string,
+        namespaceName as string,
         workflowName as string,
         userToken,
       ),
@@ -131,11 +131,11 @@ export async function createRouter({
   });
 
   router.patch('/workflow-parameters', requireAuth, async (req, res) => {
-    const { organizationName, projectName, componentName } = req.query;
+    const { namespaceName, projectName, componentName } = req.query;
 
-    if (!organizationName || !projectName || !componentName) {
+    if (!namespaceName || !projectName || !componentName) {
       throw new InputError(
-        'organizationName, projectName and componentName are required query parameters',
+        'namespaceName, projectName and componentName are required query parameters',
       );
     }
 
@@ -144,7 +144,7 @@ export async function createRouter({
 
     res.json(
       await workflowService.updateComponentWorkflowParameters(
-        organizationName as string,
+        namespaceName as string,
         projectName as string,
         componentName as string,
         systemParameters,

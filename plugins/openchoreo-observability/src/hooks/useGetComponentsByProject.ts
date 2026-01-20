@@ -10,7 +10,7 @@ export interface Component {
   displayName?: string;
   description?: string;
   project?: string;
-  organization?: string;
+  namespace?: string;
 }
 
 export interface UseGetComponentsByProjectResult {
@@ -29,8 +29,8 @@ export const useGetComponentsByProject = (
   entity: Entity,
 ): UseGetComponentsByProjectResult => {
   const catalogApi = useApi(catalogApiRef);
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const project = entity.metadata.name;
   const [components, setComponents] = useState<Component[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +38,10 @@ export const useGetComponentsByProject = (
 
   useEffect(() => {
     const fetchComponents = async () => {
-      if (!organization || !project) {
+      if (!namespace || !project) {
         setLoading(false);
         setError(
-          'Organization or project name not found in entity annotations',
+          'Namespace or project name not found in entity annotations',
         );
         setComponents([]);
         return;
@@ -52,22 +52,22 @@ export const useGetComponentsByProject = (
         setError(null);
 
         // Fetch components from Backstage catalog API
-        // Filter by kind=Component and matching organization/project annotations
+        // Filter by kind=Component and matching namespace/project annotations
         const catalogEntities = await catalogApi.getEntities({
           filter: {
             kind: 'Component',
           },
         });
 
-        // Filter components that belong to this project and organization
+        // Filter components that belong to this project and namespace
         const projectComponents = catalogEntities.items
           .filter(component => {
-            const compOrg =
-              component.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+            const compNamespace =
+              component.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
             const compProject =
               component.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
 
-            return compOrg === organization && compProject === project;
+            return compNamespace === namespace && compProject === project;
           })
           .map(component => ({
             uid:
@@ -80,10 +80,10 @@ export const useGetComponentsByProject = (
             project:
               component.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ||
               project,
-            organization:
+            namespace:
               component.metadata.annotations?.[
-                CHOREO_ANNOTATIONS.ORGANIZATION
-              ] || organization,
+                CHOREO_ANNOTATIONS.NAMESPACE
+              ] || namespace,
           }));
 
         setComponents(projectComponents);
@@ -98,7 +98,7 @@ export const useGetComponentsByProject = (
     };
 
     fetchComponents();
-  }, [organization, project, catalogApi]);
+  }, [namespace, project, catalogApi]);
 
   return { components, loading, error };
 };

@@ -56,7 +56,7 @@ export const BuildWorkflowParameters = ({
   // Get the selected workflow and organization from form data
   // The workflow_name is a sibling field in the same section
   const selectedWorkflowName = formContext?.formData?.workflow_name;
-  const organizationName = formContext?.formData?.organization_name;
+  const namespaceName = formContext?.formData?.organization_name;
 
   // Increment resetKey only when workflow actually changes
   // This forces Form remount only on workflow change, not on every render
@@ -75,7 +75,7 @@ export const BuildWorkflowParameters = ({
     let ignore = false;
 
     const fetchWorkflowSchema = async () => {
-      if (!selectedWorkflowName || !organizationName) {
+      if (!selectedWorkflowName || !namespaceName) {
         setWorkflowSchema(null);
         setError(null);
         return;
@@ -87,7 +87,7 @@ export const BuildWorkflowParameters = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(organizationName);
+      const orgName = extractOrgName(namespaceName);
 
       setLoading(true);
       setError(null);
@@ -96,7 +96,7 @@ export const BuildWorkflowParameters = ({
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/workflow-schema?organizationName=${encodeURIComponent(
+          `${baseUrl}/workflow-schema?namespaceName=${encodeURIComponent(
             orgName,
           )}&workflowName=${encodeURIComponent(selectedWorkflowName)}`,
         );
@@ -154,7 +154,7 @@ export const BuildWorkflowParameters = ({
     return () => {
       ignore = true;
     };
-  }, [selectedWorkflowName, organizationName, discoveryApi, fetchApi]);
+  }, [selectedWorkflowName, namespaceName, discoveryApi, fetchApi]);
 
   // Sync schema to formData when workflow changes (not just when schema loads)
   useEffect(() => {

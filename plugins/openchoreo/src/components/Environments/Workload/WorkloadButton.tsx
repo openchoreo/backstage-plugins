@@ -62,18 +62,18 @@ export const WorkloadButton = ({
         const componentName = entity.metadata.name;
         const projectName =
           entity.metadata.annotations?.['openchoreo.io/project'];
-        const organizationName =
-          entity.metadata.annotations?.['openchoreo.io/organization'];
+        const namespaceName =
+          entity.metadata.annotations?.['openchoreo.io/namespace'];
 
         const baseUrl = await discovery.getBaseUrl('openchoreo');
 
-        if (projectName && organizationName && componentName) {
+        if (projectName && namespaceName && componentName) {
           const response = await fetchApi.fetch(
             `${baseUrl}/builds?componentName=${encodeURIComponent(
               componentName,
             )}&projectName=${encodeURIComponent(
               projectName,
-            )}&organizationName=${encodeURIComponent(organizationName)}`,
+            )}&namespaceName=${encodeURIComponent(namespaceName)}`,
           );
 
           if (!response.ok) {

@@ -84,7 +84,7 @@ export const Workflows = () => {
   const triggerWorkflowOp = useAsyncOperation(
     useCallback(
       async (commit?: string) => {
-        const { componentName, projectName, organizationName } =
+        const { componentName, projectName, namespaceName } =
           await getEntityDetails();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
 
@@ -96,7 +96,7 @@ export const Workflows = () => {
           body: JSON.stringify({
             componentName,
             projectName,
-            organizationName,
+            namespaceName,
             commit,
           }),
         });

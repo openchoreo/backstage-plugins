@@ -39,7 +39,7 @@ export class CtdToTemplateConverter {
    */
   convertCtdToTemplateEntity(
     componentType: ComponentType,
-    organizationName: string,
+    namespaceName: string,
   ): Entity {
     const templateName = this.generateTemplateName(componentType.metadata.name);
     const title =
@@ -76,7 +76,7 @@ export class CtdToTemplateConverter {
         type: 'Component Type', // All component type templates use 'Component Type' type
         // Enable user token injection for user-based authorization at OpenChoreo API
         EXPERIMENTAL_formDecorators: [{ id: 'openchoreo:inject-user-token' }],
-        parameters: this.generateParameters(componentType, organizationName),
+        parameters: this.generateParameters(componentType, namespaceName),
         steps: this.generateSteps(componentType),
         output: {
           links: [
@@ -147,7 +147,7 @@ export class CtdToTemplateConverter {
    */
   private generateParameters(
     componentType: ComponentType,
-    organizationName: string,
+    namespaceName: string,
   ): any[] {
     const parameters: any[] = [];
 
@@ -176,7 +176,7 @@ export class CtdToTemplateConverter {
           title: 'Organization',
           type: 'string',
           description: 'Auto selected based on Component Type',
-          default: organizationName,
+          default: namespaceName,
           'ui:disabled': true,
         },
         project_name: {
@@ -212,11 +212,11 @@ export class CtdToTemplateConverter {
 
     // Section 3: CI/CD Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
     parameters.push(
-      this.generateCISetupSection(componentType, organizationName),
+      this.generateCISetupSection(componentType, namespaceName),
     );
 
     // Section 4: Traits
-    parameters.push(this.generateTraitsSection(organizationName));
+    parameters.push(this.generateTraitsSection(namespaceName));
 
     return parameters;
   }
@@ -228,7 +228,7 @@ export class CtdToTemplateConverter {
    */
   private generateCISetupSection(
     componentType: ComponentType,
-    organizationName: string,
+    namespaceName: string,
   ): any {
     const hasAllowedWorkflows =
       componentType.metadata.allowedWorkflows &&
@@ -241,7 +241,7 @@ export class CtdToTemplateConverter {
       description: 'Select the build workflow to use for this component',
       'ui:field': 'BuildWorkflowPicker',
       'ui:options': {
-        organizationName: organizationName,
+        namespaceName: namespaceName,
       },
     };
 
@@ -306,7 +306,7 @@ export class CtdToTemplateConverter {
    * Generate Traits section
    * Allows users to add multiple traits to the component
    */
-  private generateTraitsSection(organizationName: string): any {
+  private generateTraitsSection(namespaceName: string): any {
     return {
       title: 'Traits',
       description:
@@ -319,7 +319,7 @@ export class CtdToTemplateConverter {
             'Select and configure traits for your component. You can add multiple traits.',
           'ui:field': 'TraitsField',
           'ui:options': {
-            organizationName: organizationName,
+            namespaceName: namespaceName,
           },
           items: {
             type: 'object',

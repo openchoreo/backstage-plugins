@@ -19,7 +19,7 @@ import { Alert } from '@material-ui/lab';
 export const ObservabilityTracesPage = () => {
   const { entity } = useEntity();
   const namespace =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const {
     environments,
     loading: environmentsLoading,

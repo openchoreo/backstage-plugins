@@ -46,7 +46,7 @@ export const ComponentNamePicker = ({
   const catalogApi = useApi(catalogApiRef);
 
   // Get the organization name from form context
-  const organizationName = formContext.formData?.organization_name;
+  const namespaceName = formContext.formData?.organization_name;
 
   // Extract organization name from entity reference format
   const extractOrgName = useCallback((fullOrgName: string): string => {
@@ -97,11 +97,11 @@ export const ComponentNamePicker = ({
           },
         });
 
-        // Filter components by organization annotation and check if name exists
+        // Filter components by namespace annotation and check if name exists
         const existsInOrg = items.some(
           component =>
             component.metadata.annotations?.[
-              CHOREO_ANNOTATIONS.ORGANIZATION
+              CHOREO_ANNOTATIONS.NAMESPACE
             ] === orgName && component.metadata.name === componentName,
         );
 
@@ -126,12 +126,12 @@ export const ComponentNamePicker = ({
         return;
       }
 
-      if (!componentName || !organizationName) {
+      if (!componentName || !namespaceName) {
         setValidationState({ error: null, isValidating: false });
         return;
       }
 
-      const orgName = extractOrgName(organizationName);
+      const orgName = extractOrgName(namespaceName);
       if (!orgName) {
         setValidationState({ error: null, isValidating: false });
         return;
@@ -159,7 +159,7 @@ export const ComponentNamePicker = ({
     return () => clearTimeout(timeoutId);
   }, [
     formData,
-    organizationName,
+    namespaceName,
     validateFormat,
     checkComponentExists,
     extractOrgName,

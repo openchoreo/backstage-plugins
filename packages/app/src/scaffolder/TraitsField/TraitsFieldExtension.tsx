@@ -80,9 +80,9 @@ export const TraitsField = ({
   const fetchApi = useApi(fetchApiRef);
 
   // Get organization name from ui:options
-  const organizationName =
-    typeof uiSchema?.['ui:options']?.organizationName === 'string'
-      ? uiSchema['ui:options'].organizationName
+  const namespaceName =
+    typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+      ? uiSchema['ui:options'].namespaceName
       : '';
 
   // Fetch available traits on mount
@@ -90,7 +90,7 @@ export const TraitsField = ({
     let ignore = false;
 
     const fetchTraits = async () => {
-      if (!organizationName) {
+      if (!namespaceName) {
         return;
       }
 
@@ -106,11 +106,11 @@ export const TraitsField = ({
           return parts[parts.length - 1];
         };
 
-        const orgName = extractOrgName(organizationName);
+        const orgName = extractOrgName(namespaceName);
 
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/traits?organizationName=${encodeURIComponent(
+          `${baseUrl}/traits?namespaceName=${encodeURIComponent(
             orgName,
           )}&page=1&pageSize=100`,
         );
@@ -140,11 +140,11 @@ export const TraitsField = ({
     return () => {
       ignore = true;
     };
-  }, [organizationName, discoveryApi, fetchApi]);
+  }, [namespaceName, discoveryApi, fetchApi]);
 
   // Fetch schema for selected trait and add it
   const handleAddTrait = async () => {
-    if (!selectedTrait || !organizationName) {
+    if (!selectedTrait || !namespaceName) {
       return;
     }
 
@@ -160,11 +160,11 @@ export const TraitsField = ({
         return parts[parts.length - 1];
       };
 
-      const orgName = extractOrgName(organizationName);
+      const orgName = extractOrgName(namespaceName);
 
       // Use fetchApi which automatically injects Backstage + IDP tokens
       const response = await fetchApi.fetch(
-        `${baseUrl}/trait-schema?organizationName=${encodeURIComponent(
+        `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
           orgName,
         )}&traitName=${encodeURIComponent(selectedTrait)}`,
       );
@@ -235,7 +235,7 @@ export const TraitsField = ({
       )}
 
       {/* No Traits Available - Prominent Message */}
-      {!loadingTraits && availableTraits.length === 0 && organizationName && (
+      {!loadingTraits && availableTraits.length === 0 && namespaceName && (
         <NoTraitsAvailableMessage />
       )}
 
@@ -262,7 +262,7 @@ export const TraitsField = ({
               )}
               {!loadingTraits && availableTraits.length === 0 && (
                 <MenuItem disabled>
-                  {organizationName
+                  {namespaceName
                     ? 'No traits available'
                     : 'Select an organization first'}
                 </MenuItem>

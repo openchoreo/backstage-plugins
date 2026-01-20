@@ -17,23 +17,23 @@ import type {
 interface EntityMetadata {
   component: string;
   project: string;
-  organization: string;
+  namespace: string;
 }
 
 function extractEntityMetadata(entity: Entity): EntityMetadata {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!component || !project || !organization) {
+  if (!component || !project || !namespace) {
     throw new Error(
       'Missing required OpenChoreo annotations in entity. ' +
-        `Required: ${CHOREO_ANNOTATIONS.COMPONENT}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.ORGANIZATION}`,
+        `Required: ${CHOREO_ANNOTATIONS.COMPONENT}, ${CHOREO_ANNOTATIONS.PROJECT}, ${CHOREO_ANNOTATIONS.NAMESPACE}`,
     );
   }
 
-  return { component, project, organization };
+  return { component, project, namespace };
 }
 
 function entityMetadataToParams(
@@ -42,7 +42,7 @@ function entityMetadataToParams(
   return {
     componentName: metadata.component,
     projectName: metadata.project,
-    organizationName: metadata.organization,
+    namespaceName: metadata.namespace,
   };
 }
 
@@ -95,12 +95,12 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
   }
 
   async fetchWorkflowSchema(
-    organizationName: string,
+    namespaceName: string,
     workflowName: string,
   ): Promise<WorkflowSchemaResponse> {
     return this.apiFetch<WorkflowSchemaResponse>('/workflow-schema', {
       params: {
-        organizationName,
+        namespaceName,
         workflowName,
       },
     });

@@ -25,10 +25,10 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchEnvironments = useCallback(async () => {
-    const organization =
-      systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    const namespace =
+      systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-    if (!organization) {
+    if (!namespace) {
       setEnvironments([]);
       setLoading(false);
       return;
@@ -42,8 +42,8 @@ export function useEnvironments(systemEntity: Entity): UseEnvironmentsResult {
       const { items } = await catalogApi.getEntities({
         filter: {
           kind: 'Environment',
-          [`metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`]:
-            organization,
+          [`metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`]:
+            namespace,
         },
       });
 

@@ -64,7 +64,7 @@ export function useWorkflowRun(runName?: string): UseWorkflowRunResult {
         setLoading(true);
         setError(null);
 
-        const { componentName, projectName, organizationName } =
+        const { componentName, projectName, namespaceName } =
           await getEntityDetails();
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
 
@@ -73,8 +73,8 @@ export function useWorkflowRun(runName?: string): UseWorkflowRunResult {
             componentName,
           )}&projectName=${encodeURIComponent(
             projectName,
-          )}&organizationName=${encodeURIComponent(
-            organizationName,
+          )}&namespaceName=${encodeURIComponent(
+            namespaceName,
           )}&runName=${encodeURIComponent(runName)}`,
         );
 

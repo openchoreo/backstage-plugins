@@ -44,10 +44,10 @@ export function useComponentsWithDeployment(
 
   const fetchComponents = useCallback(async () => {
     const projectName = systemEntity.metadata.name;
-    const organization =
-      systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    const namespace =
+      systemEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-    if (!projectName || !organization) {
+    if (!projectName || !namespace) {
       setComponents([]);
       setLoading(false);
       return;
@@ -80,7 +80,7 @@ export function useComponentsWithDeployment(
               // Fetch release bindings and builds in parallel
               const [releaseBindingsData, buildsData] = await Promise.all([
                 client.fetchReleaseBindings(component as Entity),
-                client.fetchBuilds(componentName, projectName, organization),
+                client.fetchBuilds(componentName, projectName, namespace),
               ]);
 
               // Parse deployment status from release bindings

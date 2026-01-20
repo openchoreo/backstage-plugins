@@ -52,11 +52,11 @@ export function useLogsSummary() {
 
       // Get project ID
       const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-      const organization =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+      const namespace =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-      if (!project || !organization) {
-        throw new Error('Project or organization not found in annotations');
+      if (!project || !namespace) {
+        throw new Error('Project or namespace not found in annotations');
       }
 
       // Fetch project details to get projectId
@@ -65,7 +65,7 @@ export function useLogsSummary() {
       );
       projectUrl.search = new URLSearchParams({
         projectName: project,
-        organizationName: organization,
+        namespaceName: namespace,
       }).toString();
 
       const projectResponse = await fetchApi.fetch(projectUrl.toString());
@@ -97,12 +97,12 @@ export function useLogsSummary() {
         entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
       const projectName =
         entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-      const orgName =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+      const namespaceName =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-      if (!componentName || !projectName || !orgName) {
+      if (!componentName || !projectName || !namespaceName) {
         throw new Error(
-          'Component name, project, or organization not found in annotations',
+          'Component name, project, or namespace not found in annotations',
         );
       }
 
@@ -113,8 +113,8 @@ export function useLogsSummary() {
         'openchoreo-observability-backend',
       );
       const url = new URL(
-        `${baseUrl}/logs/component/${componentName}?orgName=${encodeURIComponent(
-          orgName,
+        `${baseUrl}/logs/component/${componentName}?namespaceName=${encodeURIComponent(
+          namespaceName,
         )}&projectName=${encodeURIComponent(projectName)}`,
       );
 
@@ -129,7 +129,7 @@ export function useLogsSummary() {
           environmentId: selectedEnv.id,
           environmentName: selectedEnv.resourceName,
           componentName,
-          orgName,
+          namespaceName,
           projectName,
           options: {
             limit: 100, // Limit for performance, we just need counts

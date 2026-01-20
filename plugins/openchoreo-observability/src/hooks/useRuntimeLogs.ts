@@ -17,12 +17,12 @@ async function getComponentDetails(
 ): Promise<{ uid?: string }> {
   const component = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!component || !project || !organization) {
+  if (!component || !project || !namespace) {
     throw new Error(
-      'Component name, project name, or organization name not found in entity annotations',
+      'Component name, project name, or namespace name not found in entity annotations',
     );
   }
 
@@ -33,7 +33,7 @@ async function getComponentDetails(
   const params = new URLSearchParams({
     componentName: component,
     projectName: project,
-    organizationName: organization,
+    namespaceName: namespace,
   });
 
   backendUrl.search = params.toString();
@@ -56,12 +56,12 @@ async function getProjectDetails(
   fetchApi: any,
 ): Promise<{ uid?: string }> {
   const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!project || !organization) {
+  if (!project || !namespace) {
     throw new Error(
-      'Project name or organization name not found in entity annotations',
+      'Project name or namespace name not found in entity annotations',
     );
   }
 
@@ -71,7 +71,7 @@ async function getProjectDetails(
 
   const params = new URLSearchParams({
     projectName: project,
-    organizationName: organization,
+    namespaceName: namespace,
   });
 
   backendUrl.search = params.toString();

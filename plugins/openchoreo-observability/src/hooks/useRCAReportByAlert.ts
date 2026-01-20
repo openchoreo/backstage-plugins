@@ -15,12 +15,12 @@ async function getProjectDetails(
   fetchApi: any,
 ): Promise<{ uid?: string }> {
   const project = entity.metadata.name as string;
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-  if (!project || !organization) {
+  if (!project || !namespace) {
     throw new Error(
-      'Project name or organization name not found in entity annotations',
+      'Project name or namespace name not found in entity annotations',
     );
   }
 
@@ -30,7 +30,7 @@ async function getProjectDetails(
 
   const params = new URLSearchParams({
     projectName: project,
-    organizationName: organization,
+    namespaceName: namespace,
   });
 
   backendUrl.search = params.toString();
@@ -61,8 +61,8 @@ export function useRCAReportByAlert(
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
 
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   const fetchReport = useCallback(
     async (version?: number) => {
@@ -79,7 +79,7 @@ export function useRCAReportByAlert(
           projectId,
           environmentId,
           environmentName,
-          organization || '',
+          namespace || '',
           entity.metadata.name as string,
           version ? { version } : undefined,
         );
@@ -98,7 +98,7 @@ export function useRCAReportByAlert(
       alertId,
       environmentId,
       environmentName,
-      organization,
+      namespace,
       projectId,
       entity,
     ],
