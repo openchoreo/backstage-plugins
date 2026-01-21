@@ -67,6 +67,13 @@ import {
   DeploymentPipelineCard,
   ProjectComponentsCard,
   Traits,
+  EnvironmentStatusSummaryCard,
+  EnvironmentDeployedComponentsCard,
+  EnvironmentPromotionCard,
+  DataplaneStatusCard,
+  DataplaneEnvironmentsCard,
+  DeploymentPipelineVisualization,
+  PromotionPathsCard,
 } from '@openchoreo/backstage-plugin';
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
@@ -534,17 +541,71 @@ const environmentPage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        <Grid item md={6}>
+        {/* Row 1: Deployment Health + Promotion Pipeline */}
+        <Grid item md={6} xs={12}>
+          <EnvironmentStatusSummaryCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EnvironmentPromotionCard />
+        </Grid>
+        {/* Row 2: Deployed Components */}
+        <Grid item xs={12}>
+          <EnvironmentDeployedComponentsCard />
+        </Grid>
+        {/* Row 3: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard variant="gridItem" height={400} />
         </Grid>
-        <Grid item md={4} xs={12}>
-          <EntityLinksCard />
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const dataplanePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Status + Hosted Environments */}
+        <Grid item md={6} xs={12}>
+          <DataplaneStatusCard />
         </Grid>
-        <Grid item md={8}>
-          <EntityHasComponentsCard variant="gridItem" />
+        <Grid item md={6} xs={12}>
+          <DataplaneEnvironmentsCard />
+        </Grid>
+        {/* Row 2: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard variant="gridItem" height={400} />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const deploymentPipelinePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Pipeline Visualization + Promotion Paths (side by side) */}
+        <Grid item md={6} xs={12}>
+          <DeploymentPipelineVisualization />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <PromotionPathsCard />
+        </Grid>
+        {/* Row 2: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard variant="gridItem" height={400} />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -561,6 +622,11 @@ export const entityPage = (
     <EntitySwitch.Case if={isKind('domain')} children={domainPage} />
     <EntitySwitch.Case if={isKind('resource')} children={resourcePage} />
     <EntitySwitch.Case if={isKind('environment')} children={environmentPage} />
+    <EntitySwitch.Case if={isKind('dataplane')} children={dataplanePage} />
+    <EntitySwitch.Case
+      if={isKind('deploymentpipeline')}
+      children={deploymentPipelinePage}
+    />
 
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
   </EntitySwitch>

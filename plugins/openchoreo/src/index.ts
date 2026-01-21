@@ -21,3 +21,16 @@ export {
   isMarkedForDeletion,
   getDeletionTimestamp,
 } from './components/DeleteEntity';
+export {
+  EnvironmentStatusSummaryCard,
+  EnvironmentDeployedComponentsCard,
+  EnvironmentPromotionCard,
+} from './components/EnvironmentOverview';
+export {
+  DataplaneStatusCard,
+  DataplaneEnvironmentsCard,
+} from './components/DataplaneOverview';
+export {
+  DeploymentPipelineVisualization,
+  PromotionPathsCard,
+} from './components/DeploymentPipelineOverview';

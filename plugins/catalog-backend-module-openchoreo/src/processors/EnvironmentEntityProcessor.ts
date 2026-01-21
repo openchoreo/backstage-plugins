@@ -4,7 +4,11 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import { RELATION_OWNED_BY, RELATION_PART_OF } from '@backstage/catalog-model';
+import {
+  RELATION_OWNED_BY,
+  RELATION_PART_OF,
+  RELATION_DEPENDS_ON,
+} from '@backstage/catalog-model';
 import { EnvironmentEntityV1alpha1 } from '../kinds/EnvironmentEntityV1alpha1';
 
 /**
@@ -68,6 +72,21 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
               name: entity.spec.owner,
             },
             type: RELATION_OWNED_BY,
+          }),
+        );
+      }
+
+      // Emit dependsOn relationship to DataPlane
+      if (entity.spec.dataPlaneRef) {
+        emit(
+          processingResult.relation({
+            source: sourceRef,
+            target: {
+              kind: 'dataplane',
+              namespace: 'default',
+              name: entity.spec.dataPlaneRef,
+            },
+            type: RELATION_DEPENDS_ON,
           }),
         );
       }

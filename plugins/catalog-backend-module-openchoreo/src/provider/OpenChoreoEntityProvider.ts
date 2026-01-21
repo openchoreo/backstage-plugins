@@ -21,6 +21,8 @@ type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
 type ModelsCompleteComponent =
   OpenChoreoComponents['schemas']['ComponentResponse'];
+type ModelsDeploymentPipeline =
+  OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
 
 // WorkloadEndpoint is part of the workload.endpoints structure
 // Since Workload uses additionalProperties, we define this locally
@@ -36,7 +38,11 @@ import {
   CHOREO_LABELS,
   ComponentTypeUtils,
 } from '@openchoreo/backstage-plugin-common';
-import { EnvironmentEntityV1alpha1, DataplaneEntityV1alpha1 } from '../kinds';
+import {
+  EnvironmentEntityV1alpha1,
+  DataplaneEntityV1alpha1,
+  DeploymentPipelineEntityV1alpha1,
+} from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { translateComponentToEntity as translateComponent } from '../utils/entityTranslation';
 
@@ -260,8 +266,50 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
           allEntities.push(...systemEntities);
 
-          // Get components for each project and create Component entities
+          // Get deployment pipelines and components for each project
           for (const project of projects) {
+            // Fetch deployment pipeline for the project
+            try {
+              const {
+                data: pipelineData,
+                error: pipelineError,
+                response: pipelineResponse,
+              } = await client.GET(
+                '/orgs/{orgName}/projects/{projectName}/deployment-pipeline',
+                {
+                  params: {
+                    path: { orgName: org.name!, projectName: project.name! },
+                  },
+                },
+              );
+
+              if (
+                !pipelineError &&
+                pipelineResponse.ok &&
+                pipelineData?.success &&
+                pipelineData?.data
+              ) {
+                const pipelineEntity = this.translateDeploymentPipelineToEntity(
+                  pipelineData.data as ModelsDeploymentPipeline,
+                  org.name!,
+                  project.name!,
+                );
+                allEntities.push(pipelineEntity);
+                this.logger.debug(
+                  `Created deployment pipeline entity for project: ${project.name}`,
+                );
+              } else {
+                this.logger.debug(
+                  `No deployment pipeline found for project ${project.name}`,
+                );
+              }
+            } catch (error) {
+              this.logger.debug(
+                `Failed to fetch deployment pipeline for project ${project.name}: ${error}`,
+              );
+            }
+
+            // Get components for the project and create Component entities
             try {
               const {
                 data: compData,
@@ -541,8 +589,14 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       const environmentCount = allEntities.filter(
         e => e.kind === 'Environment',
       ).length;
+      const dataplaneCount = allEntities.filter(
+        e => e.kind === 'Dataplane',
+      ).length;
+      const pipelineCount = allEntities.filter(
+        e => e.kind === 'DeploymentPipeline',
+      ).length;
       this.logger.info(
-        `Successfully processed ${allEntities.length} entities (${domainEntities.length} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments)`,
+        `Successfully processed ${allEntities.length} entities (${domainEntities.length} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${pipelineCount} deployment pipelines)`,
       );
     } catch (error) {
       this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
@@ -758,6 +812,65 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     };
 
     return dataplaneEntity;
+  }
+
+  /**
+   * Translates a ModelsDeploymentPipeline from OpenChoreo API to a Backstage DeploymentPipeline entity
+   */
+  private translateDeploymentPipelineToEntity(
+    pipeline: ModelsDeploymentPipeline,
+    orgName: string,
+    projectName: string,
+  ): DeploymentPipelineEntityV1alpha1 {
+    // Transform promotion paths from API format to entity format
+    const promotionPaths =
+      pipeline.promotionPaths?.map(path => ({
+        sourceEnvironment: path.sourceEnvironmentRef,
+        targetEnvironments:
+          path.targetEnvironmentRefs?.map(target => ({
+            name: target.name,
+            requiresApproval: target.requiresApproval,
+            isManualApprovalRequired: target.isManualApprovalRequired,
+          })) || [],
+      })) || [];
+
+    const pipelineEntity: DeploymentPipelineEntityV1alpha1 = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'DeploymentPipeline',
+      metadata: {
+        name: pipeline.name,
+        namespace: orgName,
+        title: pipeline.displayName || pipeline.name,
+        description:
+          pipeline.description || `Deployment pipeline for ${projectName}`,
+        tags: ['openchoreo', 'deployment-pipeline', 'platform-engineering'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+          [CHOREO_ANNOTATIONS.PROJECT]: projectName,
+          ...(pipeline.createdAt && {
+            [CHOREO_ANNOTATIONS.CREATED_AT]: pipeline.createdAt,
+          }),
+          ...(pipeline.status && {
+            [CHOREO_ANNOTATIONS.STATUS]: pipeline.status,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/deployment-pipeline': 'true',
+        },
+      },
+      spec: {
+        type: 'promotion-pipeline',
+        owner: this.defaultOwner,
+        projectRef: projectName,
+        organization: orgName,
+        promotionPaths,
+      },
+    };
+
+    return pipelineEntity;
   }
 
   /**

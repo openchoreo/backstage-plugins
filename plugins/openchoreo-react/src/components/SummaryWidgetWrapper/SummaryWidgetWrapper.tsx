@@ -1,16 +1,22 @@
 import { ReactNode } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
+import { Link } from '@backstage/core-components';
 import { useStyles } from './styles';
 import ErrorIcon from '@material-ui/icons/Error';
+import clsx from 'clsx';
+
+interface Metric {
+  label: string;
+  value: number;
+  link?: string; // Optional link to navigate when clicking on the metric
+}
 
 interface SummaryWidgetWrapperProps {
   icon: ReactNode;
   title: string;
-  metrics: {
-    label: string;
-    value: number;
-  }[];
+  titleLink?: string; // Optional link for the widget title
+  metrics: Metric[];
   loading?: boolean;
   errorMessage?: string;
 }
@@ -18,6 +24,7 @@ interface SummaryWidgetWrapperProps {
 export const SummaryWidgetWrapper = ({
   icon,
   title,
+  titleLink,
   metrics,
   loading = false,
   errorMessage,
@@ -49,20 +56,56 @@ export const SummaryWidgetWrapper = ({
     }
 
     // Show metrics when not loading and no error
-    return metrics.map(metric => (
-      <Box key={metric.label} className={classes.metricRow}>
-        <Typography variant="body1">{metric.label}</Typography>
-        <Typography variant="h4">{metric.value}</Typography>
-      </Box>
-    ));
+    return metrics.map(metric => {
+      const content = (
+        <Box
+          key={metric.label}
+          className={clsx(
+            classes.metricRow,
+            metric.link && classes.metricRowClickable,
+          )}
+          style={metric.link ? { cursor: 'pointer' } : undefined}
+        >
+          <Typography variant="body1">{metric.label}</Typography>
+          <Typography variant="h4">{metric.value}</Typography>
+        </Box>
+      );
+
+      if (metric.link) {
+        return (
+          <Link
+            key={metric.label}
+            to={metric.link}
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
+            {content}
+          </Link>
+        );
+      }
+
+      return content;
+    });
   };
+
+  const titleContent = (
+    <Box className={classes.widgetHeader}>
+      {icon}
+      <Typography variant="h4">{title}</Typography>
+    </Box>
+  );
 
   return (
     <Box className={classes.widget}>
-      <Box className={classes.widgetHeader}>
-        {icon}
-        <Typography variant="h4">{title}</Typography>
-      </Box>
+      {titleLink ? (
+        <Link
+          to={titleLink}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          {titleContent}
+        </Link>
+      ) : (
+        titleContent
+      )}
       {renderContent()}
     </Box>
   );

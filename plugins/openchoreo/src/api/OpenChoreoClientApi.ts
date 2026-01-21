@@ -27,9 +27,11 @@ export interface ComponentSchemaResponse {
 export interface ReleaseBinding {
   name: string;
   environment: string;
+  releaseName?: string;
   componentTypeEnvOverrides?: unknown;
   traitOverrides?: unknown;
   workloadOverrides?: unknown;
+  endpoints?: { url: string }[];
   status?: string;
 }
 
