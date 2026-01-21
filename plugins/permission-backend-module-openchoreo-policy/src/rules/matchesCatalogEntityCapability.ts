@@ -53,23 +53,23 @@ export type MatchesCatalogEntityCapabilityParams = z.infer<typeof paramsSchema>;
 /**
  * Parses capability path from backend format.
  *
- * Backend format: "org/{orgName}/project/{projectName}/component/{componentName}"
- * or wildcards like "org/*", "org/{orgName}/project/*", etc.
+ * Backend format: "ns/{nsName}/project/{projectName}/component/{componentName}"
+ * or wildcards like "ns/*", "ns/{nsName}/project/*", etc.
  */
 function parseCapabilityPath(path: string): {
-  org?: string;
+  ns?: string;
   project?: string;
   component?: string;
 } {
   if (path === '*') {
-    return { org: '*', project: '*', component: '*' };
+    return { ns: '*', project: '*', component: '*' };
   }
 
-  const result: { org?: string; project?: string; component?: string } = {};
+  const result: { ns?: string; project?: string; component?: string } = {};
 
-  const orgMatch = path.match(/^org\/([^/]+)/);
-  if (orgMatch) {
-    result.org = orgMatch[1];
+  const nsMatch = path.match(/^ns\/([^/]+)/);
+  if (nsMatch) {
+    result.ns = nsMatch[1];
   }
 
   const projectMatch = path.match(/project\/([^/]+)/);
@@ -102,7 +102,7 @@ type EntityLevel = 'domain' | 'system' | 'component';
  */
 function matchesScope(
   path: string,
-  scope: { org?: string; project?: string; component?: string },
+  scope: { ns?: string; project?: string; component?: string },
   entityLevel: EntityLevel,
 ): boolean {
   if (path === '*') {
@@ -126,13 +126,13 @@ function matchesScope(
     }
   }
 
-  // Check organization
-  if (parsed.org && parsed.org !== '*' && parsed.org !== scope.org) {
+  // Check namespace
+  if (parsed.ns && parsed.ns !== '*' && parsed.ns !== scope.ns) {
     return false;
   }
 
-  // If org is wildcard or path only specifies org, it matches
-  if (parsed.org === '*' || (!parsed.project && !parsed.component)) {
+  // If ns is wildcard or path only specifies ns, it matches
+  if (parsed.ns === '*' || (!parsed.project && !parsed.component)) {
     return true;
   }
 
@@ -223,30 +223,30 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
     // - Domain: only organization
     // - System: organization + project-id
     // - Component: organization + project + component
-    let scope: { org?: string; project?: string; component?: string };
+    let scope: { ns?: string; project?: string; component?: string };
 
     if (entityKind === 'domain') {
       // Domain only has organization
       scope = {
-        org: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
+        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
       };
     } else if (entityKind === 'system') {
       // System has organization and project-id
       scope = {
-        org: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
+        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
         project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT_ID],
       };
     } else {
       // Component has organization, project, and component
       scope = {
-        org: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
+        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
         project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT],
         component: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT],
       };
     }
 
-    // If no org annotation, this isn't an OpenChoreo entity - allow by default
-    if (!scope.org) {
+    // If no namespace annotation, this isn't an OpenChoreo entity - allow by default
+    if (!scope.ns) {
       return true;
     }
 
@@ -345,7 +345,7 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
 
       // Check for wildcard access for this kind (only considering valid paths)
       const hasWildcardAccess = validPaths.some(
-        path => path === '*' || parseCapabilityPath(path).org === '*',
+        path => path === '*' || parseCapabilityPath(path).ns === '*',
       );
 
       if (hasWildcardAccess) {
@@ -370,11 +370,11 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
           singleKindFilter,
         ];
 
-        // Add org filter if specific (not wildcard)
-        if (parsed.org && parsed.org !== '*') {
+        // Add namespace filter if specific (not wildcard)
+        if (parsed.ns && parsed.ns !== '*') {
           conditions.push({
             key: `metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`,
-            values: [parsed.org],
+            values: [parsed.ns],
           });
         }
 
