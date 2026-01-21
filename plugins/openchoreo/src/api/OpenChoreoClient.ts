@@ -420,11 +420,35 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Runtime Logs
   // ============================================
 
-  async getComponentDetails(entity: Entity): Promise<{ uid?: string }> {
+  async getComponentDetails(
+    entity: Entity,
+  ): Promise<{ uid?: string; deletionTimestamp?: string }> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch(API_ENDPOINTS.COMPONENT, {
       params: entityMetadataToParams(metadata),
+    });
+  }
+
+  async getProjectDetails(
+    entity: Entity,
+  ): Promise<{ uid?: string; deletionTimestamp?: string }> {
+    const projectName = entity.metadata.name;
+    const organization =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+    if (!projectName || !organization) {
+      throw new Error(
+        'Missing required OpenChoreo annotations for project details. ' +
+          `Required: project name and ${CHOREO_ANNOTATIONS.ORGANIZATION}`,
+      );
+    }
+
+    return this.apiFetch('/project', {
+      params: {
+        projectName,
+        organizationName: organization,
+      },
     });
   }
 
@@ -790,5 +814,44 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       )}?organizationName=${encodeURIComponent(organizationName)}`,
     );
     return response;
+  }
+
+  // ============================================
+  // Entity Delete Operations
+  // ============================================
+
+  async deleteComponent(entity: Entity): Promise<void> {
+    const { component, project, organization } = extractEntityMetadata(entity);
+
+    await this.apiFetch(
+      `/orgs/${encodeURIComponent(organization)}/projects/${encodeURIComponent(
+        project,
+      )}/components/${encodeURIComponent(component)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  }
+
+  async deleteProject(entity: Entity): Promise<void> {
+    const project = entity.metadata.name;
+    const organization =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+
+    if (!project || !organization) {
+      throw new Error(
+        'Missing required OpenChoreo annotations for project deletion. ' +
+          `Required: project name and ${CHOREO_ANNOTATIONS.ORGANIZATION}`,
+      );
+    }
+
+    await this.apiFetch(
+      `/orgs/${encodeURIComponent(organization)}/projects/${encodeURIComponent(
+        project,
+      )}`,
+      {
+        method: 'DELETE',
+      },
+    );
   }
 }

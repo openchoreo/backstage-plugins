@@ -68,8 +68,9 @@ import {
   ProjectComponentsCard,
   Traits,
 } from '@openchoreo/backstage-plugin';
+import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
-import { WorkflowsPage as Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
+import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 
 import {
   ObservabilityMetrics,
@@ -155,13 +156,11 @@ function OverviewContent() {
 }
 
 /**
- * Service entity page with feature-gated routes.
- * - Workflows tab: shows empty state when workflows feature is disabled
- * - Runtime Logs tab: shows empty state when observability feature is disabled
- * - Metrics tab: shows empty state when observability feature is disabled
+ * Service entity page with delete menu support.
+ * Routes are defined as static JSX children so routable extensions are discoverable.
  */
 const serviceEntityPage = (
-  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+  <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
     </EntityLayout.Route>
@@ -225,17 +224,15 @@ const serviceEntityPage = (
     <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 /**
- * Website entity page with feature-gated routes.
- * - Workflows tab: shows empty state when workflows feature is disabled
- * - Runtime Logs tab: shows empty state when observability feature is disabled
- * - Metrics tab: shows empty state when observability feature is disabled
+ * Website entity page with delete menu support.
+ * Routes are defined as static JSX children so routable extensions are discoverable.
  */
 const websiteEntityPage = (
-  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+  <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
     </EntityLayout.Route>
@@ -288,7 +285,7 @@ const websiteEntityPage = (
     <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 /**
@@ -431,11 +428,11 @@ const groupPage = (
 );
 
 /**
- * System page with feature-gated Traces route.
- * - Traces tab: shows empty state when observability feature is disabled
+ * System page (for Projects) with delete menu support.
+ * Routes are defined as static JSX children so routable extensions are discoverable.
  */
 const systemPage = (
-  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+  <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -488,7 +485,7 @@ const systemPage = (
         <ObservabilityRCA />
       </FeatureGatedContent>
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const domainPage = (

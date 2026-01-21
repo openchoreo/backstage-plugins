@@ -392,7 +392,8 @@ export interface paths {
     get: operations['getProject'];
     put?: never;
     post?: never;
-    delete?: never;
+    /** Delete a project */
+    delete: operations['deleteProject'];
     options?: never;
     head?: never;
     patch?: never;
@@ -444,7 +445,8 @@ export interface paths {
     get: operations['getComponent'];
     put?: never;
     post?: never;
-    delete?: never;
+    /** Delete a component */
+    delete: operations['deleteComponent'];
     options?: never;
     head?: never;
     /** Patch a component */
@@ -1000,6 +1002,11 @@ export interface components {
       /** Format: date-time */
       createdAt: string;
       status?: string;
+      /**
+       * Format: date-time
+       * @description Timestamp when the project was marked for deletion
+       */
+      deletionTimestamp?: string;
     };
     CreateProjectRequest: {
       name: string;
@@ -1036,6 +1043,11 @@ export interface components {
       orgName: string;
       /** Format: date-time */
       createdAt: string;
+      /**
+       * Format: date-time
+       * @description Timestamp when the component was marked for deletion
+       */
+      deletionTimestamp?: string;
       status?: string;
       autoDeploy?: boolean;
       service?: {
@@ -2368,6 +2380,36 @@ export interface operations {
       };
     };
   };
+  deleteProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Project not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
+        };
+      };
+    };
+  };
   getProjectDeploymentPipeline: {
     parameters: {
       query?: never;
@@ -2474,6 +2516,37 @@ export interface operations {
           'application/json': components['schemas']['APIResponse'] & {
             data?: components['schemas']['ComponentResponse'];
           };
+        };
+      };
+    };
+  };
+  deleteComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        orgName: string;
+        projectName: string;
+        componentName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Component or project not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'];
         };
       };
     };

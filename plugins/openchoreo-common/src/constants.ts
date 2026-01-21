@@ -23,6 +23,8 @@ export const CHOREO_ANNOTATIONS = {
   CTD_NAME: 'openchoreo.io/ctd-name',
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
   CTD_GENERATED: 'openchoreo.io/ctd-generated',
+  // Deletion tracking
+  DELETION_TIMESTAMP: 'openchoreo.io/deletion-timestamp',
 } as const;
 
 export const CHOREO_LABELS = {
