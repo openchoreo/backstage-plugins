@@ -22,8 +22,18 @@ export const useStyles = makeStyles(theme => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing(2),
+    padding: theme.spacing(1),
+    marginLeft: theme.spacing(-1),
+    marginRight: theme.spacing(-1),
+    borderRadius: theme.spacing(0.5),
+    transition: 'background-color 0.15s ease-in-out',
     '&:last-child': {
       marginBottom: 0,
+    },
+  },
+  metricRowClickable: {
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
     },
   },
   metricLabel: {

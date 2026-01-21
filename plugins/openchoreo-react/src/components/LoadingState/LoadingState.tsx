@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, CircularProgress, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
@@ -42,11 +41,11 @@ export interface LoadingStateProps {
  * }
  * ```
  */
-export const LoadingState: React.FC<LoadingStateProps> = ({
+export const LoadingState = ({
   message = 'Loading...',
   size = 40,
   minHeight,
-}) => {
+}: LoadingStateProps) => {
   const classes = useStyles();
 
   return (

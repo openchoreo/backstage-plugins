@@ -12,6 +12,7 @@ import { ScaffolderEntityProvider } from './provider/ScaffolderEntityProvider';
 import {
   EnvironmentEntityProcessor,
   DataplaneEntityProcessor,
+  DeploymentPipelineEntityProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -66,6 +67,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the Dataplane entity processor
         catalog.addProcessor(new DataplaneEntityProcessor());
+
+        // Register the DeploymentPipeline entity processor
+        catalog.addProcessor(new DeploymentPipelineEntityProcessor());
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(

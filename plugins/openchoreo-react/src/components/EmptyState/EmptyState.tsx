@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import InboxIcon from '@material-ui/icons/Inbox';
@@ -72,13 +72,13 @@ export interface EmptyStateProps {
  * }
  * ```
  */
-export const EmptyState: React.FC<EmptyStateProps> = ({
+export const EmptyState = ({
   title,
   description,
   icon,
   action,
   minHeight,
-}) => {
+}: EmptyStateProps) => {
   const classes = useStyles();
 
   return (

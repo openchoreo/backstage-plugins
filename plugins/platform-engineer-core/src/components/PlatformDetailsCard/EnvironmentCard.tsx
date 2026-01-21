@@ -1,5 +1,14 @@
-import { Box, Typography, Card, Chip } from '@material-ui/core';
+import {
+  Box,
+  Typography,
+  Card,
+  Chip,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core';
 import AppsIcon from '@material-ui/icons/Apps';
+import LaunchIcon from '@material-ui/icons/Launch';
+import { Link } from '@backstage/core-components';
 import { useStyles } from './styles';
 
 interface Environment {
@@ -28,17 +37,33 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
     >
       {/* Environment Header */}
       <Box className={classes.environmentHeader}>
-        <Typography className={classes.environmentName} variant="h5">
-          {environment.displayName || environment.name}
-        </Typography>
-        <Chip
-          label={isProduction ? 'Prod' : 'Non-Prod'}
-          className={`${classes.environmentChip} ${
-            isProduction ? classes.productionChip : classes.nonProductionChip
-          }`}
-          size="small"
-          variant="outlined"
-        />
+        <Link
+          to={`/catalog/default/environment/${environment.name}`}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <Typography className={classes.environmentName} variant="h5">
+            {environment.displayName || environment.name}
+          </Typography>
+        </Link>
+        <Box display="flex" alignItems="center" gridGap={4}>
+          <Chip
+            label={isProduction ? 'Prod' : 'Non-Prod'}
+            className={`${classes.environmentChip} ${
+              isProduction ? classes.productionChip : classes.nonProductionChip
+            }`}
+            size="small"
+            variant="outlined"
+          />
+          <Tooltip title="View Environment Details">
+            <IconButton
+              size="small"
+              component={Link}
+              to={`/catalog/default/environment/${environment.name}`}
+            >
+              <LaunchIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {/* Environment Content */}
