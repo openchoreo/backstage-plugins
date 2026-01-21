@@ -27,6 +27,10 @@ import {
 import { openChoreoTokenDecorator } from './scaffolder/openChoreoTokenDecorator';
 // Import from separate file to avoid circular dependency with form decorators
 import { openChoreoAuthApiRef } from './apis/authRefs';
+import {
+  openChoreoCiClientApiRef,
+  OpenChoreoCiClient,
+} from '@openchoreo/backstage-plugin-openchoreo-ci';
 
 // Re-export for use by App.tsx and other components
 export { openChoreoAuthApiRef };
@@ -124,5 +128,16 @@ export const apis: AnyApiFactory[] = [
       DefaultScaffolderFormDecoratorsApi.create({
         decorators: [openChoreoTokenDecorator],
       }),
+  }),
+
+  // OpenChoreo CI client - provides API for workflow/build operations
+  createApiFactory({
+    api: openChoreoCiClientApiRef,
+    deps: {
+      discoveryApi: discoveryApiRef,
+      fetchApi: fetchApiRef,
+    },
+    factory: ({ discoveryApi, fetchApi }) =>
+      new OpenChoreoCiClient(discoveryApi, fetchApi),
   }),
 ];
