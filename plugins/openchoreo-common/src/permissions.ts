@@ -277,7 +277,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.component.deploy': 'component:deploy',
   'openchoreo.project.create': 'project:create',
   'openchoreo.project.read': 'project:view',
-  'openchoreo.organization.read': 'organization:view',
+  'openchoreo.organization.read': 'namespace:view',
   'openchoreo.environment.create': 'environment:create',
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',
@@ -340,6 +340,6 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
     'catalog.entity.read': 'project:view',
   },
   domain: {
-    'catalog.entity.read': 'organization:view',
+    'catalog.entity.read': 'namespace:view',
   },
 };
