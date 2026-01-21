@@ -3,7 +3,7 @@ import {
   createBackendPlugin,
 } from '@backstage/backend-plugin-api';
 import { createRouter } from './router';
-import { catalogServiceRef } from '@backstage/plugin-catalog-node/alpha';
+import { catalogServiceRef } from '@backstage/plugin-catalog-node';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
 import { CellDiagramInfoService } from './services/CellDiagramService/CellDiagramInfoService';
 import { BuildInfoService } from './services/BuildService/BuildInfoService';
@@ -149,6 +149,7 @@ export const choreoPlugin = createBackendPlugin({
             dataPlaneInfoService,
             tokenService,
             authEnabled,
+            logger,
           }),
         );
       },

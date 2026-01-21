@@ -185,6 +185,10 @@ components:
           format: date-time
         status:
           type: string
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the project was marked for deletion
 
     CreateProjectRequest:
       type: object
@@ -279,6 +283,10 @@ components:
         createdAt:
           type: string
           format: date-time
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the component was marked for deletion
         status:
           type: string
         autoDeploy:
@@ -2428,6 +2436,31 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/ProjectResponse'
+    delete:
+      summary: Delete a project
+      operationId: deleteProject
+      tags:
+        - Projects
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Project deleted successfully
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
 
   /orgs/{orgName}/projects/{projectName}/deployment-pipeline:
     get:
@@ -2618,6 +2651,36 @@ paths:
           description: Component or project not found
         '500':
           description: Internal server error
+    delete:
+      summary: Delete a component
+      operationId: deleteComponent
+      tags:
+        - Components
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Component deleted successfully
+        '404':
+          description: Component or project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/schema:
     get:

@@ -73,6 +73,9 @@ export function translateComponentToEntity(
         ...(component.status && {
           [CHOREO_ANNOTATIONS.STATUS]: component.status,
         }),
+        ...(component.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: component.deletionTimestamp,
+        }),
         ...(() => {
           const repoInfo = getRepositoryInfo(component);
           return {

@@ -288,8 +288,15 @@ export interface OpenChoreoClientApi {
 
   // === Component & Environment Info ===
 
-  /** Get component details (including UID) */
-  getComponentDetails(entity: Entity): Promise<{ uid?: string }>;
+  /** Get component details (including UID and deletionTimestamp) */
+  getComponentDetails(
+    entity: Entity,
+  ): Promise<{ uid?: string; deletionTimestamp?: string }>;
+
+  /** Get project details (including UID and deletionTimestamp) */
+  getProjectDetails(
+    entity: Entity,
+  ): Promise<{ uid?: string; deletionTimestamp?: string }>;
 
   /** Get list of environments for a component */
   getEnvironments(entity: Entity): Promise<Environment[]>;
@@ -403,6 +410,14 @@ export interface OpenChoreoClientApi {
     organizationName: string,
     dataplaneName: string,
   ): Promise<any>;
+
+  // === Entity Delete Operations ===
+
+  /** Delete a component */
+  deleteComponent(entity: Entity): Promise<void>;
+
+  /** Delete a project */
+  deleteProject(entity: Entity): Promise<void>;
 }
 
 // ============================================

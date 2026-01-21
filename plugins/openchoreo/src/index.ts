@@ -13,3 +13,11 @@ export {
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
 export { ProjectComponentsCard } from './components/Projects/ProjectComponentsCard';
+export {
+  useDeleteEntityMenuItems,
+  useEntityExistsCheck,
+  DeletionBadge,
+  DeletionWarning,
+  isMarkedForDeletion,
+  getDeletionTimestamp,
+} from './components/DeleteEntity';

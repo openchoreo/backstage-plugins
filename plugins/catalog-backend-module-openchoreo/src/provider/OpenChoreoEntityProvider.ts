@@ -614,6 +614,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             [CHOREO_ANNOTATIONS.PROJECT_UID]: project.uid,
           }),
           [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+          ...(project.deletionTimestamp && {
+            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
+          }),
         },
         labels: {
           'openchoreo.io/managed': 'true',
