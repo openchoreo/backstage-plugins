@@ -8,12 +8,15 @@ import {
   Entity,
   RELATION_OWNED_BY,
   RELATION_PART_OF,
-  RELATION_DEPENDS_ON,
 } from '@backstage/catalog-model';
 import {
   DeploymentPipelineEntityV1alpha1,
   PromotionPath,
 } from '../kinds/DeploymentPipelineEntityV1alpha1';
+import {
+  RELATION_PROMOTES_TO,
+  RELATION_PROMOTED_BY,
+} from '@openchoreo/backstage-plugin-common';
 
 /**
  * Type guard to check if an entity is a DeploymentPipeline
@@ -90,7 +93,8 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
       );
     }
 
-    // Emit dependsOn relationships to all referenced environments
+    // Emit promotesTo relationships to all referenced environments
+    // We emit both directions so the inverse relation appears on the Environment entity
     if (entity.spec.promotionPaths) {
       const emittedEnvironments = new Set<string>();
       const promotionPaths = entity.spec.promotionPaths as PromotionPath[];
@@ -101,15 +105,25 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
           path.sourceEnvironment &&
           !emittedEnvironments.has(path.sourceEnvironment)
         ) {
+          const envRef = {
+            kind: 'environment',
+            namespace: 'default',
+            name: path.sourceEnvironment,
+          };
+          // Pipeline promotesTo Environment
           emit(
             processingResult.relation({
               source: sourceRef,
-              target: {
-                kind: 'environment',
-                namespace: 'default',
-                name: path.sourceEnvironment,
-              },
-              type: RELATION_DEPENDS_ON,
+              target: envRef,
+              type: RELATION_PROMOTES_TO,
+            }),
+          );
+          // Environment promotedBy Pipeline (inverse)
+          emit(
+            processingResult.relation({
+              source: envRef,
+              target: sourceRef,
+              type: RELATION_PROMOTED_BY,
             }),
           );
           emittedEnvironments.add(path.sourceEnvironment);
@@ -118,15 +132,25 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
         // Target environments
         for (const target of path.targetEnvironments || []) {
           if (target.name && !emittedEnvironments.has(target.name)) {
+            const envRef = {
+              kind: 'environment',
+              namespace: 'default',
+              name: target.name,
+            };
+            // Pipeline promotesTo Environment
             emit(
               processingResult.relation({
                 source: sourceRef,
-                target: {
-                  kind: 'environment',
-                  namespace: 'default',
-                  name: target.name,
-                },
-                type: RELATION_DEPENDS_ON,
+                target: envRef,
+                type: RELATION_PROMOTES_TO,
+              }),
+            );
+            // Environment promotedBy Pipeline (inverse)
+            emit(
+              processingResult.relation({
+                source: envRef,
+                target: sourceRef,
+                type: RELATION_PROMOTED_BY,
               }),
             );
             emittedEnvironments.add(target.name);

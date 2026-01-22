@@ -30,3 +30,20 @@ export const CHOREO_ANNOTATIONS = {
 export const CHOREO_LABELS = {
   MANAGED: 'openchoreo.io/managed',
 } as const;
+
+/**
+ * Custom relation types for OpenChoreo entities.
+ * These extend the standard Backstage relations.
+ */
+
+/**
+ * A relation indicating that a DeploymentPipeline promotes deployments to an Environment.
+ * The source is the pipeline, the target is the environment.
+ */
+export const RELATION_PROMOTES_TO = 'promotesTo';
+
+/**
+ * A relation indicating that an Environment receives promotions from a DeploymentPipeline.
+ * This is the inverse of RELATION_PROMOTES_TO.
+ */
+export const RELATION_PROMOTED_BY = 'promotedBy';
