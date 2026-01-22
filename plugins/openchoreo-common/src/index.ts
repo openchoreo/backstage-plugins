@@ -1,4 +1,9 @@
-export { CHOREO_ANNOTATIONS, CHOREO_LABELS } from './constants';
+export {
+  CHOREO_ANNOTATIONS,
+  CHOREO_LABELS,
+  RELATION_PROMOTES_TO,
+  RELATION_PROMOTED_BY,
+} from './constants';
 
 // Permissions
 export {
