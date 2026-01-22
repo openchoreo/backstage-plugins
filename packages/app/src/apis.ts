@@ -31,6 +31,14 @@ import {
   openChoreoCiClientApiRef,
   OpenChoreoCiClient,
 } from '@openchoreo/backstage-plugin-openchoreo-ci';
+import {
+  catalogApiRef,
+  entityPresentationApiRef,
+} from '@backstage/plugin-catalog-react';
+import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
+import CloudIcon from '@material-ui/icons/Cloud';
+import DnsIcon from '@material-ui/icons/Dns';
+import AccountTreeIcon from '@material-ui/icons/AccountTree';
 
 // Re-export for use by App.tsx and other components
 export { openChoreoAuthApiRef };
@@ -139,5 +147,21 @@ export const apis: AnyApiFactory[] = [
     },
     factory: ({ discoveryApi, fetchApi }) =>
       new OpenChoreoCiClient(discoveryApi, fetchApi),
+  }),
+
+  // Custom EntityPresentationApi with icons for custom entity kinds
+  // This enables icons for Environment, DataPlane, and DeploymentPipeline in the catalog graph
+  createApiFactory({
+    api: entityPresentationApiRef,
+    deps: { catalogApi: catalogApiRef },
+    factory: ({ catalogApi }) =>
+      DefaultEntityPresentationApi.create({
+        catalogApi,
+        kindIcons: {
+          environment: CloudIcon,
+          dataplane: DnsIcon,
+          deploymentpipeline: AccountTreeIcon,
+        },
+      }),
   }),
 ];

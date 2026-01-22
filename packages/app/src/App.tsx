@@ -50,6 +50,9 @@ import {
   OpenChoreoIcon,
   openChoreoTheme,
 } from '@openchoreo/backstage-design-system';
+import CloudIcon from '@material-ui/icons/Cloud';
+import DnsIcon from '@material-ui/icons/Dns';
+import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import { AccessControlPage } from '@openchoreo/backstage-plugin';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
@@ -94,6 +97,11 @@ function DynamicSignInPage(props: any) {
 
 const app = createApp({
   apis,
+  icons: {
+    'kind:environment': CloudIcon,
+    'kind:dataplane': DnsIcon,
+    'kind:deploymentpipeline': AccountTreeIcon,
+  },
   bindRoutes({ bind }) {
     bind(catalogPlugin.externalRoutes, {
       createComponent: scaffolderPlugin.routes.root,
