@@ -69,9 +69,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.logger = logger;
     this.baseUrl = config.getString('openchoreo.baseUrl');
     this.tokenService = tokenService;
-    // Default owner for all entities - configurable via app-config.yaml
+    // Default owner for built-in Backstage entities (Domain, System, Component, API)
+    // These kinds require owner field per Backstage schema validation
     this.defaultOwner =
-      config.getOptionalString('openchoreo.defaultOwner') || 'developers';
+      config.getOptionalString('openchoreo.defaultOwner') || 'guests';
     // Initialize CTD to Template converter
     this.ctdConverter = new CtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
@@ -744,7 +745,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: environment.isProduction ? 'production' : 'non-production',
-        owner: 'guests', // This could be configured or mapped from environment metadata
         domain: orgName, // Link to the parent domain (organization)
         isProduction: environment.isProduction,
         dataPlaneRef: environment.dataPlaneRef,
@@ -799,7 +799,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: 'kubernetes',
-        owner: 'guests', // This could be configured or mapped from dataplane metadata
         domain: orgName, // Link to the parent domain (organization)
         publicVirtualHost: dataplane.publicVirtualHost,
         organizationVirtualHost: dataplane.organizationVirtualHost,
@@ -863,7 +862,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: 'promotion-pipeline',
-        owner: this.defaultOwner,
         projectRef: projectName,
         organization: orgName,
         promotionPaths,

@@ -4,7 +4,7 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import { Entity, RELATION_OWNED_BY } from '@backstage/catalog-model';
+import { Entity } from '@backstage/catalog-model';
 import {
   DeploymentPipelineEntityV1alpha1,
   PromotionPath,
@@ -50,9 +50,6 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
     if (!entity.spec?.type) {
       throw new Error('DeploymentPipeline entity must have spec.type');
     }
-    if (!entity.spec?.owner) {
-      throw new Error('DeploymentPipeline entity must have spec.owner');
-    }
 
     // Emit relationships based on spec fields
     const sourceRef = {
@@ -82,21 +79,6 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
           source: sourceRef,
           target: systemRef,
           type: RELATION_PIPELINE_USED_BY,
-        }),
-      );
-    }
-
-    // Emit ownedBy relationship to owner
-    if (entity.spec.owner) {
-      emit(
-        processingResult.relation({
-          source: sourceRef,
-          target: {
-            kind: 'group',
-            namespace: 'default',
-            name: entity.spec.owner,
-          },
-          type: RELATION_OWNED_BY,
         }),
       );
     }
