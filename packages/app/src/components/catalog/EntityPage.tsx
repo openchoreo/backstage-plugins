@@ -52,6 +52,10 @@ import {
 import {
   RELATION_PROMOTES_TO,
   RELATION_PROMOTED_BY,
+  RELATION_USES_PIPELINE,
+  RELATION_PIPELINE_USED_BY,
+  RELATION_HOSTED_ON,
+  RELATION_HOSTS,
 } from '@openchoreo/backstage-plugin-common';
 
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
@@ -569,6 +573,8 @@ const environmentPage = (
               RELATION_HAS_PART,
               RELATION_PROMOTES_TO,
               RELATION_PROMOTED_BY,
+              RELATION_HOSTED_ON,
+              RELATION_HOSTS,
             ]}
           />
         </Grid>
@@ -594,7 +600,11 @@ const dataplanePage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[RELATION_HOSTED_ON, RELATION_HOSTS]}
+          />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -622,10 +632,10 @@ const deploymentPipelinePage = (
             variant="gridItem"
             height={400}
             relations={[
-              RELATION_PART_OF,
-              RELATION_HAS_PART,
               RELATION_PROMOTES_TO,
               RELATION_PROMOTED_BY,
+              RELATION_USES_PIPELINE,
+              RELATION_PIPELINE_USED_BY,
             ]}
           />
         </Grid>

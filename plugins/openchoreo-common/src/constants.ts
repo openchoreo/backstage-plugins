@@ -47,3 +47,27 @@ export const RELATION_PROMOTES_TO = 'promotesTo';
  * This is the inverse of RELATION_PROMOTES_TO.
  */
 export const RELATION_PROMOTED_BY = 'promotedBy';
+
+/**
+ * A relation indicating that a System (Project) uses a DeploymentPipeline.
+ * The source is the project, the target is the pipeline.
+ */
+export const RELATION_USES_PIPELINE = 'usesPipeline';
+
+/**
+ * A relation indicating that a DeploymentPipeline is used by a System (Project).
+ * This is the inverse of RELATION_USES_PIPELINE.
+ */
+export const RELATION_PIPELINE_USED_BY = 'pipelineUsedBy';
+
+/**
+ * A relation indicating that an Environment is hosted on a DataPlane.
+ * The source is the environment, the target is the dataplane.
+ */
+export const RELATION_HOSTED_ON = 'hostedOn';
+
+/**
+ * A relation indicating that a DataPlane hosts Environments.
+ * This is the inverse of RELATION_HOSTED_ON.
+ */
+export const RELATION_HOSTS = 'hosts';
