@@ -4,11 +4,7 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import {
-  Entity,
-  RELATION_OWNED_BY,
-  RELATION_PART_OF,
-} from '@backstage/catalog-model';
+import { Entity, RELATION_OWNED_BY } from '@backstage/catalog-model';
 import {
   DeploymentPipelineEntityV1alpha1,
   PromotionPath,
@@ -16,6 +12,8 @@ import {
 import {
   RELATION_PROMOTES_TO,
   RELATION_PROMOTED_BY,
+  RELATION_USES_PIPELINE,
+  RELATION_PIPELINE_USED_BY,
 } from '@openchoreo/backstage-plugin-common';
 
 /**
@@ -63,17 +61,27 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
       name: entity.metadata.name,
     };
 
-    // Emit partOf relationship to project/system
+    // Emit usesPipeline/pipelineUsedBy relationship between project and pipeline
     if (entity.spec.projectRef) {
+      const systemRef = {
+        kind: 'system',
+        namespace: entity.spec.organization || 'default',
+        name: entity.spec.projectRef,
+      };
+      // System (Project) usesPipeline DeploymentPipeline
+      emit(
+        processingResult.relation({
+          source: systemRef,
+          target: sourceRef,
+          type: RELATION_USES_PIPELINE,
+        }),
+      );
+      // DeploymentPipeline pipelineUsedBy System (inverse)
       emit(
         processingResult.relation({
           source: sourceRef,
-          target: {
-            kind: 'system',
-            namespace: entity.spec.organization || 'default',
-            name: entity.spec.projectRef,
-          },
-          type: RELATION_PART_OF,
+          target: systemRef,
+          type: RELATION_PIPELINE_USED_BY,
         }),
       );
     }
