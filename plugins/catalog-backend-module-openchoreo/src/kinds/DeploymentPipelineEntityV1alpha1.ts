@@ -69,10 +69,6 @@ export interface DeploymentPipelineEntityV1alpha1 extends Entity {
      */
     type: string;
     /**
-     * The owner of the deployment pipeline (team/group)
-     */
-    owner: string;
-    /**
      * Reference to the parent project/system
      */
     projectRef?: string;

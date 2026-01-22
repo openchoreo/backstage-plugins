@@ -13,7 +13,7 @@ type ComponentType = OpenChoreoAPI.ComponentType;
  */
 export interface CtdConverterConfig {
   /**
-   * Default owner for generated templates
+   * Default owner for generated templates (required by Backstage Template kind schema)
    */
   defaultOwner?: string;
   /**

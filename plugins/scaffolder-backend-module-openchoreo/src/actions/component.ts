@@ -335,7 +335,7 @@ export const createComponentAction = (
 
           // Get configuration values
           const defaultOwner =
-            config.getOptionalString('openchoreo.defaultOwner') || 'developers';
+            config.getOptionalString('openchoreo.defaultOwner') || 'guests';
           const componentTypeUtils = ComponentTypeUtils.fromConfig(config);
 
           // Use the shared translation utility for consistency with scheduled sync

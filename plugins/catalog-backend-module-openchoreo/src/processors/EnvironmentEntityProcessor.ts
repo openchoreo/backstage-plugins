@@ -4,7 +4,7 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import { RELATION_OWNED_BY, RELATION_PART_OF } from '@backstage/catalog-model';
+import { RELATION_PART_OF } from '@backstage/catalog-model';
 import { EnvironmentEntityV1alpha1 } from '../kinds/EnvironmentEntityV1alpha1';
 import {
   RELATION_HOSTED_ON,
@@ -35,9 +35,6 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
       if (!entity.spec?.type) {
         throw new Error('Environment entity must have spec.type');
       }
-      if (!entity.spec?.owner) {
-        throw new Error('Environment entity must have spec.owner');
-      }
 
       // Emit relationships based on spec fields
       const sourceRef = {
@@ -57,21 +54,6 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
               name: entity.spec.domain,
             },
             type: RELATION_PART_OF,
-          }),
-        );
-      }
-
-      // Emit ownedBy relationship to owner
-      if (entity.spec.owner) {
-        emit(
-          processingResult.relation({
-            source: sourceRef,
-            target: {
-              kind: 'group',
-              namespace: 'default',
-              name: entity.spec.owner,
-            },
-            type: RELATION_OWNED_BY,
           }),
         );
       }

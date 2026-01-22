@@ -14,7 +14,7 @@ type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
  */
 export interface ComponentEntityTranslationConfig {
   /**
-   * Default owner for the component entity
+   * Default owner for the component entity (required by Backstage Component kind schema)
    */
   defaultOwner: string;
   /**

@@ -23,10 +23,6 @@ export interface EnvironmentEntityV1alpha1 extends Entity {
      */
     type: string;
     /**
-     * The owner of the environment
-     */
-    owner: string;
-    /**
      * The domain this environment belongs to
      */
     domain?: string;

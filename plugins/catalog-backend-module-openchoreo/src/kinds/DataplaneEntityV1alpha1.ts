@@ -23,10 +23,6 @@ export interface DataplaneEntityV1alpha1 extends Entity {
      */
     type: string;
     /**
-     * The owner of the dataplane
-     */
-    owner: string;
-    /**
      * The domain this dataplane belongs to
      */
     domain?: string;
