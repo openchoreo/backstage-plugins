@@ -14,6 +14,7 @@ interface DeploymentPipelineData {
   name: string;
   environments: string[];
   dataPlane?: string;
+  pipelineEntityRef?: string;
 }
 
 export const useDeploymentPipeline = () => {
@@ -81,6 +82,7 @@ export const useDeploymentPipeline = () => {
               ? environments
               : ['development', 'staging', 'production'],
           dataPlane: undefined, // Not included in the response schema
+          pipelineEntityRef: `deploymentpipeline:default/${pipelineData.name}`,
         });
       } catch (err) {
         setError(err as Error);

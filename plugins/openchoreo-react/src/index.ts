@@ -91,6 +91,10 @@ export {
   type NotificationBannerProps,
   type NotificationVariant,
 } from './components/NotificationBanner';
+export {
+  PipelineFlowVisualization,
+  type PipelineFlowVisualizationProps,
+} from './components/PipelineFlowVisualization';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';

@@ -1,16 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Box, Typography, Button } from '@material-ui/core';
+import { Box, Typography } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
-import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
-import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useEnvironmentOverviewStyles } from './styles';
+import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
 
 interface PipelinePosition {
   pipelineName: string;
@@ -170,29 +168,6 @@ export const EnvironmentPromotionCard = () => {
     );
   }
 
-  const capitalizeFirst = (str: string) => {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
-
-  // Convert entity ref (kind:namespace/name) to catalog URL (/catalog/namespace/kind/name)
-  const entityRefToUrl = (entityRef: string): string => {
-    // Format: deploymentpipeline:namespace/name
-    const colonIndex = entityRef.indexOf(':');
-    if (colonIndex === -1) return `/catalog/default/${entityRef}`;
-
-    const kind = entityRef.substring(0, colonIndex);
-    const rest = entityRef.substring(colonIndex + 1);
-    const slashIndex = rest.indexOf('/');
-
-    if (slashIndex === -1) {
-      return `/catalog/default/${kind}/${rest}`;
-    }
-
-    const namespace = rest.substring(0, slashIndex);
-    const name = rest.substring(slashIndex + 1);
-    return `/catalog/${namespace}/${kind}/${name}`;
-  };
-
   return (
     <Card padding={24} className={classes.card}>
       <Box className={classes.cardHeader}>
@@ -207,60 +182,12 @@ export const EnvironmentPromotionCard = () => {
           </Typography>
         </Box>
 
-        <Box className={classes.pipelineFlow}>
-          {pipelinePosition.environments.map((env, index) => {
-            const isCurrentEnv = index === pipelinePosition.currentIndex;
-            const chipContent = (
-              <Typography
-                className={clsx(
-                  classes.environmentChip,
-                  isCurrentEnv
-                    ? classes.currentEnvironment
-                    : classes.otherEnvironment,
-                )}
-              >
-                {capitalizeFirst(env)}
-              </Typography>
-            );
-
-            return (
-              <Box
-                key={env}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                {isCurrentEnv ? (
-                  chipContent
-                ) : (
-                  <Link
-                    to={`/catalog/default/environment/${env.toLowerCase()}`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    {chipContent}
-                  </Link>
-                )}
-                {index < pipelinePosition.environments.length - 1 && (
-                  <ArrowForwardIcon className={classes.arrow} />
-                )}
-              </Box>
-            );
-          })}
-        </Box>
-
-        {pipelinePosition.pipelineEntityRef && (
-          <Link
-            to={entityRefToUrl(pipelinePosition.pipelineEntityRef)}
-            style={{ textDecoration: 'none' }}
-          >
-            <Button
-              variant="text"
-              color="primary"
-              size="small"
-              className={classes.linkButton}
-            >
-              View Pipeline Details
-            </Button>
-          </Link>
-        )}
+        <PipelineFlowVisualization
+          environments={pipelinePosition.environments}
+          highlightedEnvironment={environmentName}
+          pipelineEntityRef={pipelinePosition.pipelineEntityRef}
+          showPipelineLink
+        />
       </Box>
     </Card>
   );

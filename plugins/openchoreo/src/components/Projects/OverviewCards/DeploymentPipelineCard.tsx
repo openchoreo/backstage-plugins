@@ -1,15 +1,11 @@
 import { Box, Typography } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
-import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useDeploymentPipeline } from '../hooks';
 import { useProjectOverviewCardStyles } from './styles';
-
-const capitalizeFirst = (str: string) => {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-};
+import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
 
 export const DeploymentPipelineCard = () => {
   const classes = useProjectOverviewCardStyles();
@@ -84,23 +80,12 @@ export const DeploymentPipelineCard = () => {
 
           <Box>
             <Typography className={classes.infoLabel}>Environments</Typography>
-            <Box
-              className={classes.environmentFlow}
-              style={{ marginTop: '8px' }}
-            >
-              {data.environments.map((env, index) => (
-                <Box
-                  key={env}
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                  <Typography className={classes.environmentChip}>
-                    {capitalizeFirst(env)}
-                  </Typography>
-                  {index < data.environments.length - 1 && (
-                    <ArrowForwardIcon className={classes.arrow} />
-                  )}
-                </Box>
-              ))}
+            <Box style={{ marginTop: '8px' }}>
+              <PipelineFlowVisualization
+                environments={data.environments}
+                pipelineEntityRef={data.pipelineEntityRef}
+                showPipelineLink
+              />
             </Box>
           </Box>
 
