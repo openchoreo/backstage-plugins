@@ -1,4 +1,6 @@
-import { Box, Typography } from '@material-ui/core';
+import { useState } from 'react';
+import { Box, Typography, Collapse, ButtonBase } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 import {
   Timeline,
   TimelineItem,
@@ -8,37 +10,10 @@ import {
   TimelineContent,
   TimelineOppositeContent,
 } from '@material-ui/lab';
-import Filter1Icon from '@material-ui/icons/Filter1';
-import Filter2Icon from '@material-ui/icons/Filter2';
-import Filter3Icon from '@material-ui/icons/Filter3';
-import Filter4Icon from '@material-ui/icons/Filter4';
-import Filter5Icon from '@material-ui/icons/Filter5';
-import Filter6Icon from '@material-ui/icons/Filter6';
-import Filter7Icon from '@material-ui/icons/Filter7';
-import Filter8Icon from '@material-ui/icons/Filter8';
-import Filter9Icon from '@material-ui/icons/Filter9';
-import Filter9PlusIcon from '@material-ui/icons/Filter9Plus';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { useRCAReportStyles } from '../styles';
 import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
-
-const numberIcons = [
-  Filter1Icon,
-  Filter2Icon,
-  Filter3Icon,
-  Filter4Icon,
-  Filter5Icon,
-  Filter6Icon,
-  Filter7Icon,
-  Filter8Icon,
-  Filter9Icon,
-  Filter9PlusIcon,
-];
-
-const getNumberIcon = (num: number) => {
-  const IconComponent = num <= 9 ? numberIcons[num - 1] : Filter9PlusIcon;
-  return <IconComponent style={{ fontSize: '0.875rem' }} color="primary" />;
-};
 
 type InvestigationStep =
   ObservabilityComponents['schemas']['InvestigationStep'];
@@ -46,6 +21,107 @@ type InvestigationStep =
 interface InvestigationPathSectionProps {
   investigationPath?: InvestigationStep[];
 }
+
+const useStyles = makeStyles(theme => ({
+  stepCard: {
+    borderRadius: theme.shape.borderRadius,
+    overflow: 'hidden',
+    marginBottom: theme.spacing(0.5),
+  },
+  stepHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1),
+    padding: theme.spacing(1.5),
+    width: '100%',
+    textAlign: 'left',
+    backgroundColor: 'transparent',
+    transition: 'background-color 0.15s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
+  stepHeaderContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  stepAction: {
+    fontWeight: 600,
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
+    marginBottom: theme.spacing(0.25),
+  },
+  stepRationale: {
+    fontStyle: 'italic',
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.caption.fontSize,
+  },
+  expandIcon: {
+    color: theme.palette.text.secondary,
+    transition: 'transform 0.2s ease',
+    flexShrink: 0,
+    marginTop: theme.spacing(0.25),
+  },
+  expandIconOpen: {
+    transform: 'rotate(180deg)',
+  },
+  stepOutcomeContainer: {
+    padding: theme.spacing(1.5),
+    paddingTop: theme.spacing(1),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    backgroundColor: theme.palette.action.hover,
+  },
+  stepOutcome: {
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
+  },
+}));
+
+const InvestigationStepCard = ({ step }: { step: InvestigationStep }) => {
+  const classes = useStyles();
+  const [expanded, setExpanded] = useState(false);
+
+  const hasOutcome = !!step.outcome;
+
+  return (
+    <Box className={classes.stepCard}>
+      <ButtonBase
+        className={classes.stepHeader}
+        onClick={() => hasOutcome && setExpanded(!expanded)}
+        disabled={!hasOutcome}
+        disableRipple
+      >
+        <Box className={classes.stepHeaderContent}>
+          <Typography className={classes.stepAction}>
+            <FormattedText text={step.action || ''} />
+          </Typography>
+          {step.rationale && (
+            <Typography className={classes.stepRationale}>
+              <FormattedText text={step.rationale} />
+            </Typography>
+          )}
+        </Box>
+        {hasOutcome && (
+          <ExpandMoreIcon
+            className={`${classes.expandIcon} ${
+              expanded ? classes.expandIconOpen : ''
+            }`}
+          />
+        )}
+      </ButtonBase>
+      {hasOutcome && (
+        <Collapse in={expanded}>
+          <Box className={classes.stepOutcomeContainer}>
+            <Typography className={classes.stepOutcome}>
+              <FormattedText text={step.outcome || ''} />
+            </Typography>
+          </Box>
+        </Collapse>
+      )}
+    </Box>
+  );
+};
 
 export const InvestigationPathSection = ({
   investigationPath,
@@ -69,26 +145,13 @@ export const InvestigationPathSection = ({
               }}
             />
             <TimelineSeparator>
-              <TimelineDot color="primary" />
+              <TimelineDot color="primary" className={classes.numberedDot}>
+                <Typography className={classes.dotNumber}>{idx + 1}</Typography>
+              </TimelineDot>
               {idx < investigationPath.length - 1 && <TimelineConnector />}
             </TimelineSeparator>
             <TimelineContent>
-              <Box className={classes.timelineHeaderRow}>
-                {getNumberIcon(idx + 1)}
-                <Typography variant="body2" style={{ fontWeight: 600 }}>
-                  <FormattedText text={step.action || ''} />
-                </Typography>
-              </Box>
-              {step.rationale && (
-                <Typography className={classes.stepRationale}>
-                  <FormattedText text={step.rationale} />
-                </Typography>
-              )}
-              <Box className={classes.stepOutcomeBox}>
-                <Typography variant="body2">
-                  <FormattedText text={step.outcome || ''} />
-                </Typography>
-              </Box>
+              <InvestigationStepCard step={step} />
             </TimelineContent>
           </TimelineItem>
         ))}

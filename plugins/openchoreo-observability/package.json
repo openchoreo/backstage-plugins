@@ -36,8 +36,11 @@
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@openchoreo/backstage-plugin-react": "workspace:^",
+    "react-markdown": "^9.0.1",
     "react-use": "17.6.0",
-    "recharts": "3.4.1"
+    "recharts": "3.4.1",
+    "remark-gfm": "^4.0.1",
+    "remend": "^1.0.0"
   },
   "peerDependencies": {
     "react": "^18.0.0",

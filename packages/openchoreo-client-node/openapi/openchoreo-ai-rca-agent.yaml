@@ -1,0 +1,273 @@
+openapi: 3.1.0
+info:
+  title: OpenChoreo RCA Agent API
+  description: |
+    The OpenChoreo RCA Agent API provides conversational chat capabilities for
+    Root Cause Analysis reports. Users can ask follow-up questions about RCA reports
+    and optionally amend reports with new insights discovered during conversation.
+  version: 1.0.0
+  contact:
+    name: OpenChoreo Team
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+tags:
+  - name: Chat
+    description: Conversational Q&A endpoints for RCA reports
+
+paths:
+  /chat:
+    post:
+      tags:
+        - Chat
+      summary: Chat about an RCA report
+      description: |
+        Conversational Q&A about an RCA report with streaming NDJSON response.
+
+        The agent can query observability data (logs, traces, metrics) to answer
+        follow-up questions about the report.
+
+        **Streaming Response Format (NDJSON):**
+        Each line is a JSON object with a `type` field indicating the event type.
+        Events are streamed in order: `message_chunk`* → `tool_call`* → `actions`? → `done`
+      operationId: chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Streaming NDJSON response with chat events
+          content:
+            application/x-ndjson:
+              schema:
+                $ref: '#/components/schemas/StreamEvent'
+              examples:
+                message_chunk:
+                  summary: Message chunk event
+                  value: '{"type": "message_chunk", "content": "Based on the logs"}'
+                tool_call:
+                  summary: Tool call event
+                  value: '{"type": "tool_call", "tool": "get_component_logs", "args": "{\"componentUid\": \"...\"}"}'
+                actions:
+                  summary: Actions event
+                  value: '{"type": "actions", "actions": [{"type": "suggest_amend", "reason": "Found new root cause"}]}'
+                done:
+                  summary: Done event
+                  value: '{"type": "done", "message": "The issue was caused by..."}'
+                error:
+                  summary: Error event
+                  value: '{"type": "error", "message": "Failed to fetch logs"}'
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - reportId
+        - projectUid
+        - environmentUid
+        - messages
+      properties:
+        reportId:
+          type: string
+          description: The ID of the RCA report to chat about
+          example: 'alert-789_1704067200'
+        version:
+          type: integer
+          description: Specific report version to fetch. If not provided, fetches the latest version.
+          minimum: 1
+          example: 1
+        projectUid:
+          type: string
+          format: uuid
+          description: The project UUID
+          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
+        environmentUid:
+          type: string
+          format: uuid
+          description: The environment UUID
+          example: '2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c'
+        componentUid:
+          type: string
+          format: uuid
+          description: The component UUID
+          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
+        messages:
+          type: array
+          description: Chat message history
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          example:
+            - role: 'user'
+              content: 'What caused the memory spike at 08:15?'
+            - role: 'assistant'
+              content: 'The memory spike was caused by a memory leak in the connection pool.'
+            - role: 'user'
+              content: 'Can you show me the relevant logs?'
+
+    ChatMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+          description: The role of the message sender
+          example: 'user'
+        content:
+          type: string
+          description: The message content
+          example: 'What caused the database connection errors?'
+
+    StreamEvent:
+      description: |
+        A streaming event. Events are sent as newline-delimited JSON (NDJSON).
+        Use the `type` field to determine the event type.
+      oneOf:
+        - $ref: '#/components/schemas/MessageChunkEvent'
+        - $ref: '#/components/schemas/ToolCallEvent'
+        - $ref: '#/components/schemas/ActionsEvent'
+        - $ref: '#/components/schemas/DoneEvent'
+        - $ref: '#/components/schemas/ErrorEvent'
+      discriminator:
+        propertyName: type
+        mapping:
+          message_chunk: '#/components/schemas/MessageChunkEvent'
+          tool_call: '#/components/schemas/ToolCallEvent'
+          actions: '#/components/schemas/ActionsEvent'
+          done: '#/components/schemas/DoneEvent'
+          error: '#/components/schemas/ErrorEvent'
+
+    MessageChunkEvent:
+      type: object
+      description: A chunk of the streamed message content
+      required:
+        - type
+        - content
+      properties:
+        type:
+          type: string
+          enum: [message_chunk]
+          description: Event type discriminator
+        content:
+          type: string
+          description: A chunk of the streamed message content
+          example: 'Based on the logs, '
+
+    ToolCallEvent:
+      type: object
+      description: Indicates a tool is being called by the agent
+      required:
+        - type
+        - tool
+      properties:
+        type:
+          type: string
+          enum: [tool_call]
+          description: Event type discriminator
+        tool:
+          type: string
+          description: Name of the tool being called
+          example: 'get_component_logs'
+        args:
+          type: string
+          description: JSON-encoded arguments for the tool call
+          example: '{"componentUid": "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b", "startTime": "2025-01-10T08:00:00Z"}'
+
+    ActionsEvent:
+      type: object
+      description: Structured actions suggested by the agent for the UI to render (e.g., suggest amend, citations)
+      required:
+        - type
+        - actions
+      properties:
+        type:
+          type: string
+          enum: [actions]
+          description: Event type discriminator
+        actions:
+          type: array
+          description: Structured actions for the UI to render
+          items:
+            type: object
+            additionalProperties: true
+          example:
+            - type: 'suggest_amend'
+              reason: 'Discovered additional root cause related to memory leak'
+
+    DoneEvent:
+      type: object
+      description: Indicates the stream has completed successfully
+      required:
+        - type
+        - message
+      properties:
+        type:
+          type: string
+          enum: [done]
+          description: Event type discriminator
+        message:
+          type: string
+          description: The complete response message
+          example: 'The database connection errors were caused by connection pool exhaustion.'
+
+    ErrorEvent:
+      type: object
+      description: Indicates an error occurred during streaming
+      required:
+        - type
+        - message
+      properties:
+        type:
+          type: string
+          enum: [error]
+          description: Event type discriminator
+        message:
+          type: string
+          description: Error message describing what went wrong
+          example: 'Failed to fetch component logs: connection timeout'
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: 'Invalid request parameters'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+security:
+  - bearerAuth: []

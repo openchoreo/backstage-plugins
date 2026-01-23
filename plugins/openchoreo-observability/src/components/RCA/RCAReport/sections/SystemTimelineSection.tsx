@@ -8,9 +8,6 @@ import {
   TimelineContent,
   TimelineOppositeContent,
 } from '@material-ui/lab';
-import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
-import ShowChartIcon from '@material-ui/icons/ShowChart';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import { useRCAReportStyles } from '../styles';
 import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
@@ -33,24 +30,6 @@ const formatTimelineTimestamp = (timestamp?: string): string => {
     });
   } catch {
     return timestamp;
-  }
-};
-
-const iconStyle = { fontSize: '0.875rem' }; // Matches body2
-
-const getSourceTypeIcon = (sourceType: string) => {
-  switch (sourceType.toLowerCase()) {
-    case 'log':
-    case 'logs':
-      return <DescriptionOutlinedIcon style={iconStyle} color="primary" />;
-    case 'metric':
-    case 'metrics':
-      return <ShowChartIcon style={iconStyle} color="primary" />;
-    case 'trace':
-    case 'traces':
-      return <AccountTreeIcon style={iconStyle} color="primary" />;
-    default:
-      return null;
   }
 };
 
@@ -81,16 +60,21 @@ export const SystemTimelineSection = ({
             </TimelineSeparator>
             <TimelineContent>
               <Box className={classes.timelineHeaderRow}>
-                {event.source_type && getSourceTypeIcon(event.source_type)}
                 <Typography variant="caption" color="textSecondary">
                   {formatTimelineTimestamp(event.timestamp)}
                 </Typography>
+                {event.component_uid && (
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    style={{ marginLeft: 8 }}
+                  >
+                    <FormattedText text={`{{comp:${event.component_uid}}}`} />
+                  </Typography>
+                )}
               </Box>
               <Typography variant="body2" className={classes.timelineEventText}>
-                <FormattedText text={event.description || ''} />
-                {event.aggregated_count && event.aggregated_count > 1 && (
-                  <> ({event.aggregated_count}x)</>
-                )}
+                <FormattedText text={event.event || ''} />
               </Typography>
             </TimelineContent>
           </TimelineItem>

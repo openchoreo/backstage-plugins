@@ -10,10 +10,12 @@
 export {
   createOpenChoreoApiClient,
   createOpenChoreoObservabilityApiClient,
+  createOpenChoreoAIRCAAgentApiClient,
   createOpenChoreoClientFromConfig,
   createObservabilityClientWithUrl,
   type OpenChoreoClientConfig,
   type OpenChoreoObservabilityClientConfig,
+  type OpenChoreoAIRCAAgentClientConfig,
 } from './factory';
 
 // Export tracing utilities
@@ -26,10 +28,12 @@ export {
 // Export generated types as namespaces
 export * as OpenChoreoAPI from './generated/openchoreo';
 export * as ObservabilityAPI from './generated/observability';
+export * as AIRCAAgentAPI from './generated/ai-rca-agent';
 
 // Re-export component types for convenience
 export type { components as OpenChoreoComponents } from './generated/openchoreo/types';
 export type { components as ObservabilityComponents } from './generated/observability/types';
+export type { components as AIRCAAgentComponents } from './generated/ai-rca-agent/types';
 
 // Export version
 export { API_VERSION } from './version';

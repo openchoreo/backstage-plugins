@@ -8,6 +8,7 @@ import request from 'supertest';
 
 import { createRouter } from './router';
 import { observabilityServiceRef } from './services/ObservabilityService';
+import { rcaAgentServiceRef } from './services/RCAAgentService';
 import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 const mockResourceMetricsTimeSeries = {
@@ -54,6 +55,7 @@ const mockResourceMetricsTimeSeries = {
 describe('createRouter', () => {
   let app: express.Express;
   let observabilityService: jest.Mocked<typeof observabilityServiceRef.T>;
+  let rcaAgentService: jest.Mocked<typeof rcaAgentServiceRef.T>;
   let tokenService: jest.Mocked<OpenChoreoTokenService>;
 
   beforeEach(async () => {
@@ -64,6 +66,11 @@ describe('createRouter', () => {
       fetchRCAReportsByProject: jest.fn(),
       fetchRCAReportByAlert: jest.fn(),
       fetchRuntimeLogsByComponent: jest.fn(),
+    };
+    rcaAgentService = {
+      resolveRCAAgentUrl: jest.fn(),
+      createClient: jest.fn(),
+      streamChat: jest.fn(),
     };
     tokenService = {
       getUserToken: jest.fn().mockReturnValue(undefined),
@@ -76,6 +83,7 @@ describe('createRouter', () => {
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),
       observabilityService,
+      rcaAgentService,
       tokenService,
       authEnabled: true, // Test with auth enabled
     });

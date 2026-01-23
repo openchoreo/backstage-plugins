@@ -11,6 +11,7 @@ import {
   observabilityApiRef,
   ObservabilityClient,
 } from './api/ObservabilityApi';
+import { rcaAgentApiRef, RCAAgentClient } from './api/RCAAgentApi';
 
 const openchoreoObservabilityPlugin = createPlugin({
   id: 'openchoreo-observability',
@@ -26,6 +27,15 @@ const openchoreoObservabilityPlugin = createPlugin({
       },
       factory: ({ discoveryApi, fetchApi }) =>
         new ObservabilityClient({ discoveryApi, fetchApi }),
+    }),
+    createApiFactory({
+      api: rcaAgentApiRef,
+      deps: {
+        discoveryApi: discoveryApiRef,
+        fetchApi: fetchApiRef,
+      },
+      factory: ({ discoveryApi, fetchApi }) =>
+        new RCAAgentClient({ discoveryApi, fetchApi }),
     }),
   ],
 });

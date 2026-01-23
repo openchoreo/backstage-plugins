@@ -1259,49 +1259,158 @@ components:
       type: object
       description: Complete Root Cause Analysis Report for OpenChoreo incidents
       required:
+        - alert_context
         - summary
         - result
+        - investigation_path
       properties:
+        alert_context:
+          $ref: '#/components/schemas/ReportAlertContext'
+          description: The alert that triggered this RCA
         summary:
           type: string
-          description: Concise summary of the investigation and outcome
+          description: Concise summary of the investigation outcome (1 sentence)
           example: 'Database connection pool exhaustion caused analytics service errors. RCA identified memory leak in connection handling.'
         result:
-          description: The result of the RCA - either issues identified with root causes, or explanation of why RCA was not performed
+          description: The RCA result - either root causes identified, or explanation of why not
           discriminator:
             propertyName: type
             mapping:
-              issue_identified: '#/components/schemas/IssueIdentified'
-              rca_not_performed: '#/components/schemas/RCANotPerformed'
+              root_cause_identified: '#/components/schemas/RootCauseIdentified'
+              no_root_cause_identified: '#/components/schemas/NoRootCauseIdentified'
           oneOf:
-            - $ref: '#/components/schemas/IssueIdentified'
-            - $ref: '#/components/schemas/RCANotPerformed'
+            - $ref: '#/components/schemas/RootCauseIdentified'
+            - $ref: '#/components/schemas/NoRootCauseIdentified'
         investigation_path:
           type: array
+          minItems: 1
           items:
             $ref: '#/components/schemas/InvestigationStep'
-          description: Sequential steps the agent took during investigation. Include only significant investigative actions
+          description: Sequential steps the agent took during investigation
 
-    IssueIdentified:
+    AlertCondition:
       type: object
-      description: RCA was performed and issues were identified
+      description: Structured alert condition that triggered the alert
+      required:
+        - window
+        - interval
+        - operator
+        - threshold
+      properties:
+        window:
+          type: string
+          description: Time window for the condition
+          example: '5m'
+        interval:
+          type: string
+          description: Evaluation interval
+          example: '1m'
+        operator:
+          type: string
+          description: Comparison operator
+          example: '>'
+        threshold:
+          type: integer
+          description: Threshold value that was exceeded
+          example: 2000
+
+    ReportAlertContext:
+      type: object
+      description: Context about the alert that triggered this RCA
+      required:
+        - alert_id
+        - alert_name
+        - triggered_at
+        - trigger_value
+        - condition
+        - component_uid
+        - project_uid
+        - environment_uid
+      properties:
+        alert_id:
+          type: string
+          description: Unique identifier of the alert
+          example: 'alert-12345'
+        alert_name:
+          type: string
+          description: Name of the alert rule
+          example: 'High Error Rate'
+        alert_description:
+          type: string
+          nullable: true
+          description: Optional description of the alert
+          example: 'Triggers when error rate exceeds threshold'
+        severity:
+          type: string
+          nullable: true
+          description: Alert severity level
+          example: 'critical'
+        namespace:
+          type: string
+          nullable: true
+          description: Kubernetes namespace
+          example: 'production'
+        triggered_at:
+          type: string
+          format: date-time
+          description: ISO timestamp when alert fired
+          example: '2025-01-10T08:15:00Z'
+        trigger_value:
+          type: number
+          description: The value that triggered the alert
+          example: 47
+        source_type:
+          type: string
+          nullable: true
+          description: Alert source type (log, metric)
+          example: 'metric'
+        source_query:
+          type: string
+          nullable: true
+          description: The query used to detect the alert condition
+          example: 'sum(rate(http_errors_total[5m])) > 10'
+        source_metric:
+          type: string
+          nullable: true
+          description: The metric name if source type is metric
+          example: 'http_request_duration_seconds'
+        condition:
+          $ref: '#/components/schemas/AlertCondition'
+        component_uid:
+          type: string
+          description: Component UID this alert relates to
+          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
+        project_uid:
+          type: string
+          description: Project UID this alert relates to
+          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
+        environment_uid:
+          type: string
+          description: Environment UID
+          example: 'e1a7f0fd-f4d7-4d76-80c1-1dabba9d95db'
+
+    RootCauseIdentified:
+      type: object
+      description: RCA was performed and root causes were identified
       required:
         - root_causes
+        - timeline
         - recommendations
       properties:
         type:
           type: string
-          enum: [issue_identified]
-          default: issue_identified
-          description: Discriminator value for issue identified result
+          enum: [root_cause_identified]
+          default: root_cause_identified
+          description: Discriminator value for root cause identified result
         root_causes:
           type: array
           minItems: 1
           items:
             $ref: '#/components/schemas/RootCause'
-          description: Identified root causes in order of significance. Each contains its own supporting evidence.
+          description: Identified root causes in order of significance. Each contains its own supporting findings.
         timeline:
           type: array
+          minItems: 1
           items:
             $ref: '#/components/schemas/TimelineEvent'
           description: Chronological sequence of significant system events discovered through analysis
@@ -1313,59 +1422,97 @@ components:
         recommendations:
           $ref: '#/components/schemas/Recommendations'
 
-    RCANotPerformed:
+    NoRootCauseIdentified:
       type: object
-      description: RCA was not performed due to insufficient data or other reasons
+      description: RCA was performed but no root cause was identified
       required:
-        - reason
+        - outcome
+        - explanation
       properties:
         type:
           type: string
-          enum: [rca_not_performed]
-          default: rca_not_performed
-          description: Discriminator value for RCA not performed result
-        reason:
+          enum: [no_root_cause_identified]
+          default: no_root_cause_identified
+          description: Discriminator value for no root cause identified result
+        outcome:
+          $ref: '#/components/schemas/NoRootCauseOutcome'
+        explanation:
           type: string
-          description: Explanation of why RCA was not performed (e.g., insufficient telemetry data, false positive, no issue detected)
-          example: 'Insufficient telemetry data available for the time period'
+          description: Detailed explanation of why no root cause was identified
+          example: 'The alert appears to be a false positive. System metrics remained within normal parameters throughout the time period.'
         recommendations:
           nullable: true
           allOf:
             - $ref: '#/components/schemas/Recommendations'
           description: Recommendations for improving tracing, observability, monitoring, or alerting to enable better RCA in the future
 
+    NoRootCauseOutcome:
+      type: string
+      description: Categorized outcome when no root cause is identified
+      enum:
+        - no_anomaly_detected
+        - insufficient_data
+        - transient
+        - external_dependency
+
     RootCause:
       type: object
-      description: An identified root cause with its supporting evidence
+      description: An identified root cause with its supporting findings
       required:
-        - description
+        - summary
         - confidence
+        - analysis
+        - supporting_findings
       properties:
-        description:
+        summary:
           type: string
           description: Detailed description of the root cause. Be specific about what failed and why.
           example: 'Database connection pool exhausted due to connections not being properly released after query completion'
         confidence:
           $ref: '#/components/schemas/ConfidenceLevel'
-        evidences:
+        supporting_findings:
           type: array
+          minItems: 1
           items:
-            discriminator:
-              propertyName: type
-              mapping:
-                log: '#/components/schemas/LogEvidenceItem'
-                metric: '#/components/schemas/MetricEvidenceItem'
-                trace: '#/components/schemas/TraceEvidenceItem'
-            oneOf:
-              - $ref: '#/components/schemas/LogEvidenceItem'
-              - $ref: '#/components/schemas/MetricEvidenceItem'
-              - $ref: '#/components/schemas/TraceEvidenceItem'
-          description: Specific evidence supporting this root cause (logs, metrics, traces). Each entry should be significant for RCA
+            $ref: '#/components/schemas/Finding'
+          description: Findings that support this root cause determination. Each finding contains an observation and evidence.
         analysis:
           type: string
-          nullable: true
-          description: Explains how the evidences correlate with each other and collectively support this root cause determination
+          description: Explains how the findings correlate with each other and collectively support this root cause determination
           example: 'Error logs showing connection timeouts correlate with metric spikes in connection pool usage, and traces reveal slow database queries at the same timestamp'
+
+    Finding:
+      type: object
+      description: A finding that supports a root cause, wrapping evidence with context
+      required:
+        - observation
+        - component_uid
+        - time_range
+        - evidence
+      properties:
+        observation:
+          type: string
+          description: Human-readable summary of what was found
+          example: 'Connection pool saturated'
+        component_uid:
+          type: string
+          description: Component UID this finding relates to
+          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
+        time_range:
+          $ref: '#/components/schemas/TimeRange'
+          description: Time range for deep-dive linking
+        evidence:
+          description: The actual evidence (log, metric, or trace)
+          discriminator:
+            propertyName: type
+            mapping:
+              log: '#/components/schemas/LogEvidence'
+              metric: '#/components/schemas/MetricEvidence'
+              trace: '#/components/schemas/TraceEvidence'
+          oneOf:
+            - $ref: '#/components/schemas/LogEvidence'
+            - $ref: '#/components/schemas/MetricEvidence'
+            - $ref: '#/components/schemas/TraceEvidence'
 
     ConfidenceLevel:
       type: string
@@ -1375,178 +1522,153 @@ components:
         - medium
         - low
 
-    LogEvidenceItem:
+    LogEvidence:
       type: object
-      description: Evidence from application logs showing significant issues. Contains the actual log message that implies a root cause.
+      description: Evidence from application logs showing significant issues
       required:
         - type
-        - component_uid
-        - project_uid
-        - log_level
-        - timestamp
-        - log_message
+        - log_lines
       properties:
         type:
           type: string
           enum: [log]
           default: log
           description: Evidence type discriminator
-        component_uid:
+        log_lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/LogLine'
+          description: Relevant log lines (can be 1 or multiple related lines)
+        repetition:
           type: string
-          description: Component UID this evidence relates to
-          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
-        project_uid:
-          type: string
-          description: Project UID this evidence relates to
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        log_level:
-          $ref: '#/components/schemas/LogLevel'
+          nullable: true
+          description: Descriptive repetition pattern
+          example: 'This error repeated 47 times over 5 minutes'
+
+    LogLine:
+      type: object
+      description: A single log line within log evidence
+      required:
+        - timestamp
+        - level
+        - message
+      properties:
         timestamp:
           type: string
           format: date-time
           description: ISO 8601 timestamp when log occurred
           example: '2025-01-10T08:15:23.456Z'
-        log_message:
+        level:
+          $ref: '#/components/schemas/LogLevel'
+        message:
           type: string
-          description: The significant log message implying root cause
+          description: The log message
           example: 'ERROR: Database connection timeout after 30s'
 
-    MetricEvidenceItem:
+    MetricEvidence:
       type: object
-      description: |
-        Evidence from metrics - rendered as a styled value
-
-        Example- metric_name="RAM usage", value="95.5%", severity=CRITICAL
-        renders as "95.5% RAM usage" with value in red
+      description: Evidence from metrics showing anomalous values
       required:
         - type
-        - component_uid
-        - project_uid
-        - metric_name
-        - value
-        - description
+        - name
+        - summary
         - severity
-        - time_range
       properties:
         type:
           type: string
           enum: [metric]
           default: metric
           description: Evidence type discriminator
-        component_uid:
+        name:
           type: string
-          description: Component UID this evidence relates to
-          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
-        project_uid:
-          type: string
-          description: Project UID this evidence relates to
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        metric_name:
-          type: string
-          description: Human-readable name of the metric (e.g., 'RAM usage', 'CPU utilization', 'Request latency p99')
+          description: Human-readable name of the metric
           example: 'RAM usage'
-        value:
+        summary:
           type: string
-          description: Formatted metric value with unit (e.g., '95.5%', '1.2 cores', '64 req/s', '2.5 GB/s')
-          example: '95.5%'
-        description:
-          type: string
-          description: Self-contained explanation of the anomaly and its RCA relevance (e.g., 'RAM usage at 95.5% exceeds 90% threshold, causing OOM kills')
+          description: Self-contained explanation of the anomaly and its RCA relevance
           example: 'RAM usage at 95.5% exceeds 90% threshold, causing OOM kills'
         severity:
-          $ref: '#/components/schemas/MetricSeverity'
-        time_range:
-          $ref: '#/components/schemas/TimeRange'
+          $ref: '#/components/schemas/Severity'
+        highlights:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricHighlight'
+          description: Highlighted values with severity for UI coloring
 
-    TraceEvidenceItem:
+    MetricHighlight:
       type: object
-      description: Evidence from distributed traces showing request flow patterns. Context and analysis provided by root cause description.
+      description: A highlighted metric value with severity
+      required:
+        - value
+        - severity
+      properties:
+        value:
+          type: string
+          description: Formatted metric value with unit
+          example: '95.5%'
+        severity:
+          $ref: '#/components/schemas/Severity'
+
+    TraceEvidence:
+      type: object
+      description: Evidence from distributed traces showing request flow patterns
       required:
         - type
-        - component_uid
-        - project_uid
         - trace_id
-        - total_duration_ms
+        - span_id
+        - summary
       properties:
         type:
           type: string
           enum: [trace]
           default: trace
           description: Evidence type discriminator
-        component_uid:
-          type: string
-          description: Component UID this evidence relates to
-          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
-        project_uid:
-          type: string
-          description: Project UID this evidence relates to
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
         trace_id:
           type: string
           description: Unique trace identifier for reference
           example: 'f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8'
-        total_duration_ms:
-          type: number
-          description: Total trace duration in milliseconds
-          example: 5200.0
-        significant_spans:
-          type: array
-          items:
-            $ref: '#/components/schemas/SpanInfo'
-          description: Key spans that are significant for RCA (e.g., slowest spans, error spans, bottlenecks)
-
-    SpanInfo:
-      type: object
-      description: Information about a significant span within a trace
-      required:
-        - span_id
-        - name
-        - component_uid
-        - duration_ms
-        - start_time
-        - end_time
-      properties:
         span_id:
           type: string
-          description: Unique span identifier
+          description: Specific span ID within the trace
           example: 'ad3537e3f48207d0'
-        name:
+        summary:
           type: string
-          description: Span operation name (e.g., 'GET /api/users', 'db.query', 'redis.get')
-          example: 'database-query'
-        component_uid:
-          type: string
-          description: Component that executed this span
-          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
-        duration_ms:
-          type: number
-          description: Span duration in milliseconds
-          example: 4800.0
-        start_time:
-          type: string
-          format: date-time
-          description: ISO 8601 timestamp when span started
-          example: '2025-01-10T08:15:23.100Z'
-        end_time:
-          type: string
-          format: date-time
-          description: ISO 8601 timestamp when span ended
-          example: '2025-01-10T08:15:27.900Z'
+          description: Text description of what the trace shows
+          example: 'Request to /api/users took 5.2s, with 4.8s spent in database query'
         is_error:
           type: boolean
-          nullable: true
+          default: false
           description: Whether this span had an error
-          example: false
         error_message:
           type: string
           nullable: true
-          description: Error message if is_error is True
+          description: Error message if is_error is true
           example: 'Connection timeout'
-        parent_span_id:
+        highlights:
+          type: array
+          items:
+            $ref: '#/components/schemas/TraceHighlight'
+          description: Highlighted values with severity for UI coloring
+        repetition:
           type: string
           nullable: true
-          description: Parent span ID to show request flow hierarchy
-          example: 'b72e731db5edfd1d'
+          description: Descriptive repetition pattern
+          example: 'Similar slow spans seen in 23 traces'
+
+    TraceHighlight:
+      type: object
+      description: A highlighted trace value with severity
+      required:
+        - value
+        - severity
+      properties:
+        value:
+          type: string
+          description: Formatted trace value
+          example: '5200ms'
+        severity:
+          $ref: '#/components/schemas/Severity'
 
     LogLevel:
       type: string
@@ -1557,9 +1679,9 @@ components:
         - INFO
         - DEBUG
 
-    MetricSeverity:
+    Severity:
       type: string
-      description: Severity level for metric values - used for color coding in UI
+      description: Severity level for highlighted values - used for color coding in UI
       enum:
         - critical
         - warning
@@ -1588,13 +1710,13 @@ components:
       description: A potential cause that was investigated and ruled out
       required:
         - description
-        - reason
+        - rationale
       properties:
         description:
           type: string
           description: The potential cause that was investigated and excluded
           example: 'Network connectivity issues'
-        reason:
+        rationale:
           type: string
           description: Why this was ruled out as a root cause based on evidence
           example: 'Network latency metrics remained stable throughout the incident period'
@@ -1604,33 +1726,22 @@ components:
       description: A significant system event observed in telemetry data. Represents actual system behavior, not agent investigation actions.
       required:
         - timestamp
-        - description
-        - source_type
+        - event
       properties:
         timestamp:
           type: string
           format: date-time
           description: ISO 8601 timestamp when the event occurred
           example: '2025-01-10T08:15:00Z'
-        description:
+        event:
           type: string
-          description: Description of what happened in the system (e.g., 'analytics-service started returning 500 errors')
+          description: Description of what happened in the system
           example: 'analytics-service started returning 500 errors'
-        source_type:
-          $ref: '#/components/schemas/EvidenceType'
-        aggregated_count:
-          type: integer
+        component_uid:
+          type: string
           nullable: true
-          description: If this event represents multiple similar occurrences, how many times did it occur
-          example: 47
-
-    EvidenceType:
-      type: string
-      description: Types of evidence that can support a root cause
-      enum:
-        - log
-        - metric
-        - trace
+          description: Optional component UID this event relates to
+          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
 
     InvestigationStep:
       type: object
@@ -1657,21 +1768,16 @@ components:
       type: object
       description: Actionable recommendations to prevent recurrence
       properties:
-        actions:
+        recommended_actions:
           type: array
           items:
             $ref: '#/components/schemas/Action'
           description: Prioritized actions sorted by priority
-        monitoring_improvements:
+        observability_recommendations:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Action'
           description: Suggestions for additional monitoring, alerting, or observability improvements
-          example:
-            [
-              'Add alerting for database connection pool usage above 80%',
-              'Implement distributed tracing for database queries',
-            ]
 
     Action:
       type: object

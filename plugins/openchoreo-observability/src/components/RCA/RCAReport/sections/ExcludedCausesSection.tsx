@@ -45,7 +45,9 @@ export const ExcludedCausesSection = ({
             <ListItemText
               primary={<FormattedText text={cause.description || ''} />}
               secondary={
-                cause.reason ? <FormattedText text={cause.reason} /> : undefined
+                cause.rationale ? (
+                  <FormattedText text={cause.rationale} />
+                ) : undefined
               }
               classes={{
                 primary: classes.primary,

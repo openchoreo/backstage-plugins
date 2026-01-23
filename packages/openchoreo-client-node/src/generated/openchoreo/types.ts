@@ -278,6 +278,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/namespaces/{namespaceName}/environments/{envName}/rca-agent-url': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get RCA agent URL
+     * @description Returns the RCA agent URL for AI-powered root cause analysis for this environment.
+     */
+    get: operations['getRCAAgentURL'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/namespaces/{namespaceName}/buildplanes': {
     parameters: {
       query?: never;
@@ -319,7 +339,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List all component types for an organization */
+    /** List all component types for a namespace */
     get: operations['listComponentTypes'];
     put?: never;
     post?: never;
@@ -353,7 +373,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List all workflows for an organization */
+    /** List all workflows for a namespace */
     get: operations['listWorkflows'];
     put?: never;
     post?: never;
@@ -387,7 +407,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List all component workflows for an organization */
+    /** List all component workflows for a namespace */
     get: operations['listComponentWorkflows'];
     put?: never;
     post?: never;
@@ -421,7 +441,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List all traits for an organization */
+    /** List all traits for a namespace */
     get: operations['listTraits'];
     put?: never;
     post?: never;
@@ -455,7 +475,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List all projects in an organization */
+    /** List all projects in a namespace */
     get: operations['listProjects'];
     put?: never;
     /** Create a new project */
@@ -1456,14 +1476,19 @@ export interface components {
       /** @description Message returned when observability is not configured */
       message?: string;
     };
-    /**
-     * @description Immutable snapshot of component configuration.
+    RCAAgentUrlData: {
+      /** @description URL to the RCA agent service for AI-powered root cause analysis */
+      rcaAgentUrl?: string;
+      /** @description Additional information or status message */
+      message?: string;
+    };
+    /** @description Immutable snapshot of component configuration.
      *     Note: The following fields are immutable after creation and cannot be modified:
      *     - componentType
      *     - traits
      *     - componentProfile
      *     - workload
-     */
+     *      */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
@@ -1665,8 +1690,7 @@ export interface components {
       value: string;
     };
     AuthzResourceHierarchy: {
-      organization?: string;
-      organization_units?: string[];
+      namespace?: string;
       project?: string;
       component?: string;
     };
@@ -2255,6 +2279,38 @@ export interface operations {
         };
       };
       /** @description Environment or DataPlane not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getRCAAgentURL: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        envName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description RCA agent URL information */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['RCAAgentUrlData'];
+          };
+        };
+      };
+      /** @description Environment or RCA agent not found */
       404: {
         headers: {
           [name: string]: unknown;
@@ -3941,13 +3997,13 @@ export interface operations {
   getSubjectProfile: {
     parameters: {
       query?: {
-        /** @description Organization name (optional, omit for global profile) */
-        org?: string;
+        /** @description Namespace scope (optional, omit for global profile) */
+        namespace?: string;
         /** @description Project name (optional) */
         project?: string;
         /** @description Component name (optional) */
         component?: string;
-        /** @description Organization units (optional) */
+        /** @description Namespace units scope (optional) */
         ou?: string[];
       };
       header?: never;

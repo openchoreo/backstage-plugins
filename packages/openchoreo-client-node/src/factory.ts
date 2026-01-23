@@ -9,6 +9,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import createClient, { type ClientOptions } from 'openapi-fetch';
 import type { paths as OpenChoreoPaths } from './generated/openchoreo/types';
 import type { paths as ObservabilityPaths } from './generated/observability/types';
+import type { paths as AIRCAAgentPaths } from './generated/ai-rca-agent/types';
 import { isTracingEnabled, createTracingMiddleware } from './tracing';
 
 /**
@@ -47,6 +48,34 @@ export interface OpenChoreoObservabilityClientConfig {
    * Base URL for the OpenChoreo Observability API
    * This URL is typically dynamically resolved from the main API
    * @example 'https://observability.openchoreo.example.com'
+   */
+  baseUrl: string;
+
+  /**
+   * Authentication token (passed as Authorization header)
+   * If not provided, requests will be made without authentication
+   */
+  token?: string;
+
+  /**
+   * Custom fetch implementation
+   * Useful for testing or using a specific fetch polyfill
+   */
+  fetchApi?: typeof fetch;
+
+  /**
+   * Optional logger for debugging
+   */
+  logger?: LoggerService;
+}
+
+/**
+ * Configuration options for OpenChoreo AI RCA Agent API clients
+ */
+export interface OpenChoreoAIRCAAgentClientConfig {
+  /**
+   * Base URL for the OpenChoreo AI RCA Agent API
+   * @example 'https://ai-rca-agent.openchoreo.example.com'
    */
   baseUrl: string;
 
@@ -159,6 +188,59 @@ export function createOpenChoreoObservabilityApiClient(
   if (isTracingEnabled()) {
     client.use(createTracingMiddleware(logger));
     logger?.info('OpenChoreo Observability API client tracing enabled');
+  }
+
+  return client;
+}
+
+/**
+ * Creates an OpenChoreo AI RCA Agent API client
+ *
+ * @param config - Configuration options for the client
+ * @returns Configured AI RCA Agent API client instance
+ *
+ * @example
+ * ```typescript
+ * const client = createOpenChoreoAIRCAAgentApiClient({
+ *   baseUrl: 'https://ai-rca-agent.openchoreo.example.com',
+ *   token: 'your-auth-token'
+ * });
+ *
+ * const response = await client.POST('/chat', {
+ *   body: {
+ *     reportId: 'alert-789_1704067200',
+ *     projectUid: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b',
+ *     environmentUid: '2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c',
+ *     messages: [{ role: 'user', content: 'What caused this issue?' }]
+ *   }
+ * });
+ * ```
+ */
+export function createOpenChoreoAIRCAAgentApiClient(
+  config: OpenChoreoAIRCAAgentClientConfig,
+) {
+  const { baseUrl, token, fetchApi, logger } = config;
+
+  logger?.debug(
+    `Creating OpenChoreo AI RCA Agent API client with baseUrl: ${baseUrl}`,
+  );
+
+  const clientOptions: ClientOptions = {
+    baseUrl: baseUrl,
+    fetch: fetchApi,
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : undefined,
+  };
+
+  const client = createClient<AIRCAAgentPaths>(clientOptions);
+
+  // Register tracing middleware if enabled via CHOREO_CLIENT_TRACE_ENABLED env var
+  if (isTracingEnabled()) {
+    client.use(createTracingMiddleware(logger));
+    logger?.info('OpenChoreo AI RCA Agent API client tracing enabled');
   }
 
   return client;
