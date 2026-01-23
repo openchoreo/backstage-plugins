@@ -1,47 +1,64 @@
-import { Box, Divider, List, ListItem, ListItemText } from '@material-ui/core';
+import { Fragment } from 'react';
+import { List, ListItem, ListItemText, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { FormattedText } from '../FormattedText';
+import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+
+type Action = ObservabilityComponents['schemas']['Action'];
 
 interface VisibilityImprovementsSectionProps {
-  improvements?: string[];
+  recommendations?: Action[];
 }
 
 const useStyles = makeStyles(theme => ({
   list: {
     padding: 0,
+    margin: 0,
   },
   listItem: {
-    paddingLeft: 0,
-    paddingRight: 0,
+    padding: theme.spacing(1, 0),
   },
   primary: {
     fontWeight: 600,
     fontSize: theme.typography.body1.fontSize,
     color: theme.palette.text.primary,
   },
+  secondary: {
+    fontSize: theme.typography.caption.fontSize,
+  },
 }));
 
 export const VisibilityImprovementsSection = ({
-  improvements,
+  recommendations,
 }: VisibilityImprovementsSectionProps) => {
   const classes = useStyles();
 
-  if (!improvements || improvements.length === 0) {
+  if (!recommendations || recommendations.length === 0) {
     return null;
   }
 
   return (
-    <List className={classes.list}>
-      {improvements.map((improvement, idx) => (
-        <Box key={idx}>
-          <ListItem className={classes.listItem}>
+    <List className={classes.list} disablePadding>
+      {recommendations.map((recommendation, idx) => (
+        <Fragment key={idx}>
+          <ListItem className={classes.listItem} disableGutters>
             <ListItemText
-              primary={<FormattedText text={improvement} />}
-              classes={{ primary: classes.primary }}
+              primary={
+                <FormattedText text={recommendation.description || ''} />
+              }
+              secondary={
+                recommendation.rationale ? (
+                  <FormattedText text={recommendation.rationale} />
+                ) : undefined
+              }
+              classes={{
+                primary: classes.primary,
+                secondary: classes.secondary,
+              }}
             />
           </ListItem>
-          {idx < improvements.length - 1 && <Divider />}
-        </Box>
+          {idx < recommendations.length - 1 && <Divider component="li" />}
+        </Fragment>
       ))}
     </List>
   );

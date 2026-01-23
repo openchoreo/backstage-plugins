@@ -2,6 +2,7 @@ import { HttpAuthService } from '@backstage/backend-plugin-api';
 import express from 'express';
 import Router from 'express-promise-router';
 import { observabilityServiceRef } from './services/ObservabilityService';
+import { rcaAgentServiceRef } from './services/RCAAgentService';
 import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,
@@ -11,11 +12,13 @@ import {
 export async function createRouter({
   httpAuth,
   observabilityService,
+  rcaAgentService,
   tokenService,
   authEnabled,
 }: {
   httpAuth: HttpAuthService;
   observabilityService: typeof observabilityServiceRef.T;
+  rcaAgentService: typeof rcaAgentServiceRef.T;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
 }): Promise<express.Router> {
@@ -183,6 +186,108 @@ export async function createRouter({
         error:
           error instanceof Error ? error.message : 'Failed to fetch RCA report',
       });
+    }
+  });
+
+  // Streaming chat endpoint for RCA agent
+  router.post('/chat', async (_req, res): Promise<void> => {
+    // Only enforce user auth when auth feature is enabled
+    if (authEnabled) {
+      await httpAuth.credentials(_req, { allow: ['user'] });
+    }
+    const userToken = getUserTokenFromRequest(_req);
+
+    const {
+      namespaceName,
+      environmentName,
+      reportId,
+      projectUid,
+      environmentUid,
+      componentUid,
+      messages,
+      version,
+    } = _req.body;
+
+    if (
+      !namespaceName ||
+      !environmentName ||
+      !reportId ||
+      !projectUid ||
+      !environmentUid ||
+      !messages
+    ) {
+      res.status(400).json({
+        error:
+          'Missing required fields: namespaceName, environmentName, reportId, projectUid, environmentUid, messages',
+      });
+      return;
+    }
+
+    try {
+      // Stream chat via RCA agent service
+      const response = await rcaAgentService.streamChat(
+        namespaceName,
+        environmentName,
+        {
+          reportId,
+          projectUid,
+          environmentUid,
+          componentUid,
+          messages,
+          version,
+        },
+        userToken,
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        res.status(response.status).json({
+          error: `RCA chat failed: ${response.status} ${response.statusText} - ${errorText}`,
+        });
+        return;
+      }
+
+      if (!response.body) {
+        res.status(500).json({ error: 'No response body from RCA agent' });
+        return;
+      }
+
+      // Set headers for streaming NDJSON response
+      res.setHeader('Content-Type', 'application/x-ndjson');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      // Stream the response
+      const reader = response.body.getReader();
+
+      // Handle client disconnect
+      _req.on('close', () => {
+        reader.cancel();
+      });
+
+      try {
+        let done = false;
+        while (!done) {
+          const result = await reader.read();
+          done = result.done;
+          if (done) break;
+          res.write(result.value);
+        }
+        res.end();
+      } catch {
+        // Client likely disconnected
+        reader.cancel();
+      }
+    } catch (error) {
+      // Only send error response if headers haven't been sent
+      if (!res.headersSent) {
+        res.status(500).json({
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to stream RCA chat',
+        });
+      }
     }
   });
 

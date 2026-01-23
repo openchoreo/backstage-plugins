@@ -10,12 +10,15 @@ import {
 } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RCAReportView } from './RCAReport/RCAReportView';
+import { useApi } from '@backstage/core-plugin-api';
+import { rcaAgentApiRef } from '../../api/RCAAgentApi';
 
 export const RCAReport = () => {
   const { alertId } = useParams<{ alertId: string }>();
   const navigate = useNavigate();
   const { entity } = useEntity();
   const { filters } = useFilters();
+  const rcaAgentApi = useApi(rcaAgentApiRef);
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   // Get environments to ensure we have environment data
@@ -27,6 +30,15 @@ export const RCAReport = () => {
     loading,
     error,
   } = useRCAReportByAlert(alertId, environment?.uid, environment?.name, entity);
+
+  // Chat context for RCAReportView
+  const chatContext = {
+    namespaceName: namespace || '',
+    environmentName: environment?.name || '',
+    environmentUid: environment?.uid || '',
+    projectUid: detailedReport?.projectUid || '',
+    rcaAgentApi,
+  };
 
   if (loading) {
     return <Progress />;
@@ -74,6 +86,7 @@ export const RCAReport = () => {
       report={detailedReport}
       alertId={alertId}
       onBack={handleBack}
+      chatContext={chatContext}
     />
   );
 };

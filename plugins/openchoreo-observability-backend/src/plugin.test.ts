@@ -78,7 +78,7 @@ describe('plugin', () => {
       ],
     });
 
-    await request(server)
+    const response = await request(server)
       .post('/api/openchoreo-observability-backend/metrics')
       .send({
         componentId: 'component-1',
@@ -91,8 +91,9 @@ describe('plugin', () => {
           startTime: '2025-01-01T00:00:00Z',
           endTime: '2025-12-31T23:59:59Z',
         },
-      })
-      .expect(200, mockResourceMetricsTimeSeries);
+      });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockResourceMetricsTimeSeries);
   });
 
   it('should forward errors from the ObservabilityService', async () => {

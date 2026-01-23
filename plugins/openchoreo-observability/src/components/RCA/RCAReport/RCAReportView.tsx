@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
-import { Typography, Grid, Box, Tooltip, IconButton } from '@material-ui/core';
+import { useMemo, useState } from 'react';
+import { Typography, Grid, Box, IconButton, Button } from '@material-ui/core';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
+import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
 import { InfoCard } from '@backstage/core-components';
-import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import BugReportOutlinedIcon from '@material-ui/icons/BugReportOutlined';
 import TimelineOutlinedIcon from '@material-ui/icons/TimelineOutlined';
 import ExploreOutlinedIcon from '@material-ui/icons/ExploreOutlined';
@@ -15,30 +15,44 @@ import { InvestigationPathSection } from './sections/InvestigationPathSection';
 import { ExcludedCausesSection } from './sections/ExcludedCausesSection';
 import { RecommendationsSection } from './sections/RecommendationsSection';
 import { VisibilityImprovementsSection } from './sections/VisibilityImprovementsSection';
+import { IncidentOverviewSection } from './sections/IncidentOverviewSection';
+import { AssessmentSection } from './sections/AssessmentSection';
+import { ChatPanelSection } from './sections/ChatPanelSection';
 import { useRCAReportStyles } from './styles';
 import { EntityLinkContext } from './EntityLinkContext';
-import { FormattedText } from './FormattedText';
 import {
   useEntitiesByUids,
   extractEntityUids,
 } from '../../../hooks/useEntitiesByUids';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { RCAAgentApi } from '../../../api/RCAAgentApi';
 
 type RCAReportDetailed =
   ObservabilityComponents['schemas']['RCAReportDetailed'];
+
+interface ChatContext {
+  namespaceName: string;
+  environmentName: string;
+  environmentUid: string;
+  projectUid: string;
+  rcaAgentApi: RCAAgentApi;
+}
 
 interface RCAReportViewProps {
   report: RCAReportDetailed;
   alertId: string;
   onBack: () => void;
+  chatContext: ChatContext;
 }
 
 export const RCAReportView = ({
   report,
   alertId,
   onBack,
+  chatContext,
 }: RCAReportViewProps) => {
   const classes = useRCAReportStyles();
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Extract all entity UIDs from the report by stringifying and regex matching
   const entityUids = useMemo(() => {
@@ -103,37 +117,40 @@ export const RCAReportView = ({
     );
   }
 
-  const isRcaNotPerformed = rcaReport.result?.type === 'rca_not_performed';
+  const isNoRootCauseIdentified =
+    rcaReport.result?.type === 'no_root_cause_identified';
 
   const timeline =
-    rcaReport.result?.type === 'issue_identified'
+    rcaReport.result?.type === 'root_cause_identified'
       ? rcaReport.result.timeline
       : undefined;
 
   const rootCauses =
-    rcaReport.result?.type === 'issue_identified'
+    rcaReport.result?.type === 'root_cause_identified'
       ? rcaReport.result.root_causes
       : undefined;
 
   const excludedCauses =
-    rcaReport.result?.type === 'issue_identified'
+    rcaReport.result?.type === 'root_cause_identified'
       ? rcaReport.result.excluded_causes
       : undefined;
 
   const recommendations = (() => {
-    if (rcaReport.result?.type === 'issue_identified') {
+    if (rcaReport.result?.type === 'root_cause_identified') {
       return rcaReport.result.recommendations;
     }
-    if (rcaReport.result?.type === 'rca_not_performed') {
+    if (rcaReport.result?.type === 'no_root_cause_identified') {
       return rcaReport.result.recommendations;
     }
     return undefined;
   })();
 
-  const notPerformedReason =
-    rcaReport.result?.type === 'rca_not_performed'
-      ? rcaReport.result.reason
+  const noRootCauseResult =
+    rcaReport.result?.type === 'no_root_cause_identified'
+      ? rcaReport.result
       : undefined;
+
+  const alertContext = rcaReport.alert_context;
 
   const investigationPath = rcaReport.investigation_path;
 
@@ -161,56 +178,29 @@ export const RCAReportView = ({
               )}
             </Box>
           </Box>
+          <Button
+            variant={isChatOpen ? 'contained' : 'outlined'}
+            color="primary"
+            size="small"
+            startIcon={<ChatOutlinedIcon />}
+            onClick={() => setIsChatOpen(!isChatOpen)}
+          >
+            Chat
+          </Button>
         </Box>
         <Box className={classes.content}>
-          <Grid container spacing={3}>
+          <Grid container spacing={1}>
             <Grid item xs={12} md={8}>
-              <Box className={classes.infoCardSpacing}>
-                <InfoCard
-                  title={
-                    <span className={classes.cardTitle}>
-                      <InfoOutlinedIcon className={classes.cardTitleIcon} />
-                      Overview
-                    </span>
-                  }
-                >
-                  <Box display="flex" style={{ marginBottom: 16 }}>
-                    <Box style={{ flex: 1 }}>
-                      <Typography className={classes.summaryLabel}>
-                        Alert ID
-                      </Typography>
-                      <Tooltip title={alertId} placement="top">
-                        <Typography className={classes.overviewMetaValue}>
-                          {alertId}
-                        </Typography>
-                      </Tooltip>
-                    </Box>
-                    {report.timestamp && (
-                      <Box style={{ flex: 1 }}>
-                        <Typography className={classes.summaryLabel}>
-                          Report Generated At
-                        </Typography>
-                        <Typography className={classes.overviewMetaValue}>
-                          {formatTimestamp(report.timestamp)}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Box>
-                  <Box>
-                    <Typography className={classes.summaryLabel}>
-                      Summary
-                    </Typography>
-                    <Typography variant="body1">
-                      <FormattedText text={rcaReport.summary || ''} />
-                    </Typography>
-                    {isRcaNotPerformed && notPerformedReason && (
-                      <Typography variant="body1" style={{ marginTop: 8 }}>
-                        <FormattedText text={notPerformedReason} />
-                      </Typography>
-                    )}
-                  </Box>
-                </InfoCard>
-              </Box>
+              <IncidentOverviewSection
+                summary={rcaReport.summary || ''}
+                alertContext={alertContext}
+                alertId={alertId}
+                reportTimestamp={report.timestamp}
+                formatTimestamp={formatTimestamp}
+              />
+              {isNoRootCauseIdentified && noRootCauseResult && (
+                <AssessmentSection noRootCauseResult={noRootCauseResult} />
+              )}
               {rootCauses && (
                 <Box className={classes.infoCardSpacing}>
                   <InfoCard
@@ -243,8 +233,8 @@ export const RCAReportView = ({
                   </InfoCard>
                 </Box>
               )}
-              {recommendations?.actions &&
-                recommendations.actions.length > 0 && (
+              {recommendations?.recommended_actions &&
+                recommendations.recommended_actions.length > 0 && (
                   <Box className={classes.infoCardSpacing}>
                     <InfoCard
                       title={
@@ -257,13 +247,13 @@ export const RCAReportView = ({
                       }
                     >
                       <RecommendationsSection
-                        actions={recommendations.actions}
+                        actions={recommendations.recommended_actions}
                       />
                     </InfoCard>
                   </Box>
                 )}
-              {recommendations?.monitoring_improvements &&
-                recommendations.monitoring_improvements.length > 0 && (
+              {recommendations?.observability_recommendations &&
+                recommendations.observability_recommendations.length > 0 && (
                   <InfoCard
                     title={
                       <span className={classes.cardTitle}>
@@ -275,13 +265,21 @@ export const RCAReportView = ({
                     }
                   >
                     <VisibilityImprovementsSection
-                      improvements={recommendations.monitoring_improvements}
+                      recommendations={
+                        recommendations.observability_recommendations
+                      }
                     />
                   </InfoCard>
                 )}
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={4} className={classes.sidebarColumn}>
+              {isChatOpen && (
+                <ChatPanelSection
+                  reportId={report.reportId || ''}
+                  chatContext={chatContext}
+                />
+              )}
               {timeline && timeline.length > 0 && (
                 <Box className={classes.infoCardSpacing}>
                   <InfoCard

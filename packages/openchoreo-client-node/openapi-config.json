@@ -10,6 +10,11 @@
       "name": "observability",
       "input": "openapi/openchoreo-observability-api.yaml",
       "description": "OpenChoreo Observability API"
+    },
+    {
+      "name": "ai-rca-agent",
+      "input": "openapi/openchoreo-ai-rca-agent.yaml",
+      "description": "OpenChoreo AI RCA Agent API"
     }
   ],
   "versionField": "openChoreoVersion",

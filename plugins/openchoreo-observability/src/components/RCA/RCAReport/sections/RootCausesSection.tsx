@@ -1,23 +1,26 @@
-import React from 'react';
-import { Box, Typography, Divider, List, ListItem } from '@material-ui/core';
+import { Fragment, useState } from 'react';
+import {
+  Box,
+  Typography,
+  Divider,
+  List,
+  ListItem,
+  Collapse,
+  ButtonBase,
+} from '@material-ui/core';
 import { alpha, makeStyles } from '@material-ui/core/styles';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import ShowChartIcon from '@material-ui/icons/ShowChart';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { FormattedText } from '../FormattedText';
 import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
 
 type RootCause = ObservabilityComponents['schemas']['RootCause'];
-type LogEvidenceItem = ObservabilityComponents['schemas']['LogEvidenceItem'];
-type MetricEvidenceItem =
-  ObservabilityComponents['schemas']['MetricEvidenceItem'];
-type TraceEvidenceItem =
-  ObservabilityComponents['schemas']['TraceEvidenceItem'];
-type SpanInfo = ObservabilityComponents['schemas']['SpanInfo'];
-
-interface SpanTreeNode extends SpanInfo {
-  children: SpanTreeNode[];
-}
+type Finding = ObservabilityComponents['schemas']['Finding'];
+type LogEvidence = ObservabilityComponents['schemas']['LogEvidence'];
+type MetricEvidence = ObservabilityComponents['schemas']['MetricEvidence'];
+type TraceEvidence = ObservabilityComponents['schemas']['TraceEvidence'];
 
 interface RootCausesSectionProps {
   rootCauses?: RootCause[];
@@ -72,32 +75,105 @@ const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(1),
     marginBottom: theme.spacing(2),
   },
-  evidenceContainer: {
+  findingsContainer: {
     marginTop: theme.spacing(2),
   },
-  evidenceHeader: {
+  findingsHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1),
     marginBottom: theme.spacing(1),
-    color: theme.palette.primary.main,
+    color: theme.palette.text.secondary,
     fontSize: theme.typography.body2.fontSize,
     fontWeight: 600,
   },
+  findingCard: {
+    marginBottom: theme.spacing(1.5),
+    marginTop: theme.spacing(1.5),
+    borderRadius: theme.shape.borderRadius,
+    overflow: 'hidden',
+  },
+  findingHeader: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1),
+    padding: theme.spacing(1.5),
+    width: '100%',
+    textAlign: 'left',
+    backgroundColor: 'transparent',
+    transition: 'background-color 0.15s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
+  findingHeaderContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  findingObservation: {
+    fontWeight: 600,
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
+    marginBottom: theme.spacing(0.5),
+    lineHeight: 1.4,
+  },
+  findingMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(2),
+    flexWrap: 'wrap' as const,
+  },
+  evidenceTypeBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    fontSize: theme.typography.caption.fontSize,
+    fontWeight: 500,
+    color: theme.palette.text.secondary,
+    marginTop: theme.spacing(0.5),
+    '& a': {
+      color: theme.palette.primary.main,
+      fontWeight: 600,
+    },
+  },
+  evidenceTypeBadgeIcon: {
+    fontSize: '0.875rem',
+    color: theme.palette.primary.main,
+  },
+  expandIcon: {
+    color: theme.palette.text.secondary,
+    transition: 'transform 0.2s ease',
+    flexShrink: 0,
+    marginTop: theme.spacing(0.25),
+  },
+  expandIconOpen: {
+    transform: 'rotate(180deg)',
+  },
+  findingEvidenceContainer: {
+    padding: theme.spacing(0, 1.5, 1.5, 1.5),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    backgroundColor: alpha(theme.palette.background.default, 0.5),
+  },
+  componentName: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.palette.text.secondary,
+    fontWeight: 500,
+    marginBottom: theme.spacing(1),
+    marginTop: theme.spacing(1),
+  },
+  timeRange: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.palette.text.secondary,
+  },
   evidenceCard: {
-    marginBottom: theme.spacing(2),
-    marginTop: theme.spacing(2),
+    marginTop: theme.spacing(1),
   },
   evidenceTopRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: theme.spacing(1),
-  },
-  componentName: {
-    fontSize: theme.typography.caption.fontSize,
-    color: theme.palette.text.secondary,
-    fontWeight: 500,
   },
   evidenceFooter: {
     display: 'flex',
@@ -130,6 +206,29 @@ const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     borderLeft: `3px solid ${theme.palette.success.main}`,
   },
+  logLinesContainer: {
+    marginTop: theme.spacing(0.75),
+  },
+  logLinesScrollContainer: {
+    overflowX: 'auto',
+    marginLeft: theme.spacing(-1.5),
+    marginRight: theme.spacing(-1.5),
+    paddingLeft: theme.spacing(1.5),
+    paddingRight: theme.spacing(1.5),
+  },
+  logLineItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1.5),
+    fontFamily: 'monospace',
+    fontSize: theme.typography.caption.fontSize,
+    whiteSpace: 'nowrap',
+    padding: theme.spacing(0.5, 0),
+  },
+  logLineDivider: {
+    marginLeft: theme.spacing(-1.5),
+    marginRight: theme.spacing(-1.5),
+  },
   timestamp: {
     color: theme.palette.text.secondary,
     fontSize: theme.typography.overline.fontSize,
@@ -154,9 +253,10 @@ const useStyles = makeStyles(theme => ({
     flex: 1,
     wordBreak: 'break-word',
   },
-  evidenceDescription: {
-    fontSize: theme.typography.caption.fontSize,
+  repetitionText: {
+    fontStyle: 'italic',
     color: theme.palette.text.secondary,
+    fontSize: theme.typography.caption.fontSize,
     marginTop: theme.spacing(0.5),
   },
   metricLine: {
@@ -171,125 +271,80 @@ const useStyles = makeStyles(theme => ({
     borderRadius: theme.shape.borderRadius,
     borderLeft: `3px solid ${theme.palette.success.main}`,
   },
-  metricTimestamp: {
-    color: theme.palette.text.secondary,
-    fontSize: theme.typography.overline.fontSize,
-  },
-  metricValue: {
+  metricName: {
     fontWeight: 600,
-    fontSize: theme.typography.caption.fontSize,
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
   },
-  criticalMetric: {
-    color: theme.palette.error.main,
-  },
-  warningMetric: {
-    color: theme.palette.warning.main,
-  },
-  normalMetric: {
-    color: theme.palette.success.main,
-  },
-  metricDescription: {
-    flex: 1,
-    wordBreak: 'break-word',
-  },
-  traceIdLabel: {
-    color: theme.palette.primary.main,
-    fontWeight: 600,
-    fontSize: theme.typography.caption.fontSize,
-  },
-  traceId: {
-    fontWeight: 600,
-    color: theme.palette.info.main,
-  },
-  spansContainer: {
-    marginTop: theme.spacing(1),
+  highlightsContainer: {
     display: 'flex',
     flexWrap: 'wrap' as const,
     gap: theme.spacing(0.5),
+    marginTop: theme.spacing(0.5),
   },
-  spanItem: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: theme.spacing(0.5),
+  highlightBadge: {
     padding: theme.spacing(0.25, 0.75),
-    backgroundColor:
-      theme.palette.type === 'dark'
-        ? 'rgba(255, 255, 255, 0.08)'
-        : 'rgba(0, 0, 0, 0.06)',
     borderRadius: theme.shape.borderRadius,
+    fontWeight: 600,
     fontSize: theme.typography.caption.fontSize,
   },
-  spanName: {
-    color: theme.palette.text.primary,
+  criticalHighlight: {
+    backgroundColor: theme.palette.error.light,
+    color: theme.palette.error.dark,
   },
-  spanDuration: {
-    color: theme.palette.text.secondary,
+  warningHighlight: {
+    backgroundColor: theme.palette.warning.light,
+    color: theme.palette.warning.dark,
   },
-  spanError: {
-    color: theme.palette.error.main,
-    fontWeight: 600,
+  normalHighlight: {
+    backgroundColor: theme.palette.success.light,
+    color: theme.palette.success.dark,
   },
-  traceDuration: {
-    fontSize: theme.typography.caption.fontSize,
-    fontWeight: 600,
-    color: theme.palette.primary.main,
+  metricSummary: {
+    flex: 1,
+    wordBreak: 'break-word',
   },
-  traceTreeView: {
-    marginTop: theme.spacing(1),
-  },
-  spanTreeLabel: {
+  tracePropertyRow: {
     display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-    padding: theme.spacing(0.25, 0),
-    fontFamily: 'monospace',
-    fontSize: theme.typography.caption.fontSize,
+    alignItems: 'baseline',
+    gap: theme.spacing(2),
+    marginBottom: theme.spacing(0.5),
   },
-  spanTreeName: {
-    color: theme.palette.text.primary,
-  },
-  spanTreeDuration: {
+  tracePropertyKey: {
+    fontWeight: 500,
     color: theme.palette.text.secondary,
+    fontSize: theme.typography.body2.fontSize,
+    minWidth: 50,
+    flexShrink: 0,
   },
-  spanTreeError: {
-    color: theme.palette.error.main,
-    fontWeight: 600,
+  tracePropertyValue: {
+    fontFamily: 'monospace',
+    color: theme.palette.text.primary,
+    fontSize: theme.typography.body2.fontSize,
+    wordBreak: 'break-word',
   },
-  spanTreeChildren: {
-    paddingLeft: theme.spacing(3),
-  },
-  spanTreeRoot: {
+  traceInfoBox: {
     padding: theme.spacing(0.75, 1),
     backgroundColor: alpha(theme.palette.text.primary, 0.03),
     borderRadius: theme.shape.borderRadius,
     borderLeft: `3px solid ${theme.palette.success.main}`,
   },
-  spanTreeChild: {
-    padding: theme.spacing(0.75, 1),
-    backgroundColor: alpha(theme.palette.text.primary, 0.03),
-    borderLeft: `3px solid ${theme.palette.divider}`,
+  traceSummary: {
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
+    marginTop: theme.spacing(0.5),
+  },
+  traceError: {
+    color: theme.palette.error.main,
+    fontWeight: 600,
+    marginTop: theme.spacing(0.5),
+  },
+  spanInfo: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.palette.text.secondary,
+    marginTop: theme.spacing(0.5),
   },
 }));
-
-const buildSpanTree = (spans: SpanInfo[]): SpanTreeNode[] => {
-  const spanMap = new Map<string, SpanTreeNode>();
-  const roots: SpanTreeNode[] = [];
-
-  spans.forEach(span => {
-    spanMap.set(span.span_id, { ...span, children: [] });
-  });
-
-  spans.forEach(span => {
-    const node = spanMap.get(span.span_id)!;
-    if (span.parent_span_id && spanMap.has(span.parent_span_id)) {
-      spanMap.get(span.parent_span_id)!.children.push(node);
-    } else {
-      roots.push(node);
-    }
-  });
-
-  return roots;
-};
 
 const getLogLevelColorClass = (
   level: string,
@@ -341,174 +396,211 @@ const formatTimestamp = (timestamp: string): string => {
   }
 };
 
-const getMetricSeverityClass = (
-  severity: 'critical' | 'warning' | 'normal',
-  classes: ReturnType<typeof useStyles>,
-): string => {
-  switch (severity) {
-    case 'critical':
-      return classes.criticalMetric;
-    case 'warning':
-      return classes.warningMetric;
-    case 'normal':
-      return classes.normalMetric;
-    default:
-      return '';
-  }
-};
-
-const LogEvidence = ({
+const LogEvidenceComponent = ({
   evidence,
   classes,
 }: {
-  evidence: LogEvidenceItem;
+  evidence: LogEvidence;
   classes: ReturnType<typeof useStyles>;
 }) => (
   <Box className={classes.evidenceCard}>
-    <Box className={classes.evidenceTopRow}>
-      <span
-        className={`${classes.logLevel} ${getLogLevelColorClass(
-          evidence.log_level,
-          classes,
-        )}`}
-      >
-        {evidence.log_level}
-      </span>
-      <span className={classes.componentName}>
-        <FormattedText text={`{{comp:${evidence.component_uid}}}`} /> component
-      </span>
+    <Box className={classes.logLinesScrollContainer}>
+      {evidence.log_lines?.map((line, idx) => (
+        <Fragment key={idx}>
+          <Box className={classes.logLineItem}>
+            <span className={classes.timestamp}>
+              {formatTimestamp(line.timestamp)}
+            </span>
+            <span
+              className={`${classes.logLevel} ${getLogLevelColorClass(
+                line.level,
+                classes,
+              )}`}
+            >
+              {line.level}
+            </span>
+            <span className={classes.logMessageText}>{line.message}</span>
+          </Box>
+          <Divider className={classes.logLineDivider} />
+        </Fragment>
+      ))}
     </Box>
-    <Box className={classes.logLine}>
-      <span className={classes.logMessageText}>{evidence.log_message}</span>
-    </Box>
-    <Box className={classes.evidenceFooter}>
-      <span className={classes.timestamp}>
-        {formatTimestamp(evidence.timestamp)}
-      </span>
-      <Box className={classes.evidenceTypeLabel}>
-        <DescriptionOutlinedIcon className={classes.evidenceIcon} />
-        <span>Log</span>
-      </Box>
-    </Box>
-  </Box>
-);
-
-const MetricEvidence = ({
-  evidence,
-  classes,
-}: {
-  evidence: MetricEvidenceItem;
-  classes: ReturnType<typeof useStyles>;
-}) => (
-  <Box className={classes.evidenceCard}>
-    <Box className={classes.evidenceTopRow}>
-      <span
-        className={`${classes.metricValue} ${getMetricSeverityClass(
-          evidence.severity,
-          classes,
-        )}`}
-      >
-        <FormattedText text={`${evidence.value} ${evidence.metric_name}`} />
-      </span>
-      <span className={classes.componentName}>
-        <FormattedText text={`{{comp:${evidence.component_uid}}}`} /> component
-      </span>
-    </Box>
-    <Box className={classes.metricLine}>
-      <span className={classes.metricDescription}>
-        <FormattedText text={evidence.description} />
-      </span>
-    </Box>
-    <Box className={classes.evidenceFooter}>
-      <span className={classes.metricTimestamp}>
-        {formatTimestamp(evidence.time_range.start)} -{' '}
-        {formatTimestamp(evidence.time_range.end)}
-      </span>
-      <Box className={classes.evidenceTypeLabel}>
-        <ShowChartIcon className={classes.evidenceIcon} />
-        <span>Metric</span>
-      </Box>
-    </Box>
-  </Box>
-);
-
-const SpanTreeItem = ({
-  node,
-  classes,
-  isRoot = false,
-}: {
-  node: SpanTreeNode;
-  classes: ReturnType<typeof useStyles>;
-  isRoot?: boolean;
-}) => (
-  <Box>
-    <Box
-      className={`${classes.spanTreeLabel} ${
-        isRoot ? classes.spanTreeRoot : classes.spanTreeChild
-      }`}
-    >
-      <span className={classes.spanTreeName}>{node.name}</span>
-      <span className={classes.spanTreeDuration}>{node.duration_ms}ms</span>
-      {node.is_error && <span className={classes.spanTreeError}>Error</span>}
-    </Box>
-    {node.children.length > 0 && (
-      <Box className={classes.spanTreeChildren}>
-        {node.children.map(child => (
-          <SpanTreeItem key={child.span_id} node={child} classes={classes} />
-        ))}
-      </Box>
+    {evidence.repetition && (
+      <Typography className={classes.repetitionText}>
+        {evidence.repetition}
+      </Typography>
     )}
   </Box>
 );
 
-const TraceEvidence = ({
+const MetricEvidenceComponent = ({
   evidence,
   classes,
 }: {
-  evidence: TraceEvidenceItem;
+  evidence: MetricEvidence;
   classes: ReturnType<typeof useStyles>;
-}) => {
-  const spanTree = evidence.significant_spans
-    ? buildSpanTree(evidence.significant_spans)
-    : [];
+}) => (
+  <Box className={classes.evidenceCard}>
+    <Typography className={classes.metricSummary}>
+      <FormattedText text={evidence.summary} highlights={evidence.highlights} />
+    </Typography>
+  </Box>
+);
+
+const TraceEvidenceComponent = ({
+  evidence,
+  classes,
+}: {
+  evidence: TraceEvidence;
+  classes: ReturnType<typeof useStyles>;
+}) => (
+  <Box className={classes.evidenceCard}>
+    <Box className={classes.tracePropertyRow}>
+      <span className={classes.tracePropertyKey}>Trace</span>
+      <span className={classes.tracePropertyValue}>{evidence.trace_id}</span>
+    </Box>
+    {evidence.span_id && (
+      <Box className={classes.tracePropertyRow}>
+        <span className={classes.tracePropertyKey}>Span</span>
+        <span className={classes.tracePropertyValue}>{evidence.span_id}</span>
+      </Box>
+    )}
+    <Typography className={classes.traceSummary}>
+      <FormattedText text={evidence.summary} highlights={evidence.highlights} />
+    </Typography>
+    {evidence.is_error && evidence.error_message && (
+      <Typography className={classes.traceError}>
+        Error: {evidence.error_message}
+      </Typography>
+    )}
+    {evidence.repetition && (
+      <>
+        <Divider className={classes.logLineDivider} />
+        <Typography className={classes.repetitionText}>
+          {evidence.repetition}
+        </Typography>
+      </>
+    )}
+  </Box>
+);
+
+const getEvidenceTypeWithComponent = (
+  type: string | undefined,
+  componentUid: string | undefined,
+  classes: ReturnType<typeof useStyles>,
+) => {
+  let icon = null;
+  let label = '';
+
+  switch (type) {
+    case 'log':
+      icon = (
+        <DescriptionOutlinedIcon className={classes.evidenceTypeBadgeIcon} />
+      );
+      label = 'Logs';
+      break;
+    case 'metric':
+      icon = <ShowChartIcon className={classes.evidenceTypeBadgeIcon} />;
+      label = 'Metrics';
+      break;
+    case 'trace':
+      icon = <AccountTreeIcon className={classes.evidenceTypeBadgeIcon} />;
+      label = 'Traces';
+      break;
+    default:
+      return null;
+  }
 
   return (
-    <Box className={classes.evidenceCard}>
-      <Box className={classes.evidenceTopRow}>
-        <span className={classes.traceDuration}>
-          {evidence.total_duration_ms}ms
-        </span>
-        <span className={classes.componentName}>
-          <FormattedText text={`{{comp:${evidence.component_uid}}}`} />{' '}
-          component
-        </span>
-      </Box>
-      <Box className={classes.traceTreeView}>
-        <Box className={classes.spanTreeRoot}>
-          <span className={classes.traceIdLabel}>Trace ID</span>{' '}
-          <span className={classes.spanTreeName}>{evidence.trace_id}</span>
+    <span className={classes.evidenceTypeBadge}>
+      {icon}
+      {label}
+      {componentUid && (
+        <>
+          {' in '}
+          <FormattedText text={`{{comp:${componentUid}}}`} />
+        </>
+      )}
+    </span>
+  );
+};
+
+const FindingCard = ({
+  finding,
+  classes,
+}: {
+  finding: Finding;
+  classes: ReturnType<typeof useStyles>;
+}) => {
+  const [expanded, setExpanded] = useState(false);
+  const evidence = finding.evidence;
+
+  let evidenceComponent = null;
+  if (evidence?.type === 'log') {
+    evidenceComponent = (
+      <LogEvidenceComponent
+        evidence={evidence as LogEvidence}
+        classes={classes}
+      />
+    );
+  } else if (evidence?.type === 'metric') {
+    evidenceComponent = (
+      <MetricEvidenceComponent
+        evidence={evidence as MetricEvidence}
+        classes={classes}
+      />
+    );
+  } else if (evidence?.type === 'trace') {
+    evidenceComponent = (
+      <TraceEvidenceComponent
+        evidence={evidence as TraceEvidence}
+        classes={classes}
+      />
+    );
+  }
+
+  const hasEvidence = evidenceComponent !== null;
+
+  return (
+    <Box className={classes.findingCard}>
+      <ButtonBase
+        className={classes.findingHeader}
+        onClick={() => hasEvidence && setExpanded(!expanded)}
+        disabled={!hasEvidence}
+        disableRipple
+      >
+        <Box className={classes.findingHeaderContent}>
+          <Typography className={classes.findingObservation}>
+            <FormattedText text={finding.observation} />
+          </Typography>
+          {evidence?.type &&
+            getEvidenceTypeWithComponent(
+              evidence.type,
+              finding.component_uid,
+              classes,
+            )}
+          {finding.time_range && (
+            <span className={classes.timeRange}>
+              {formatTimestamp(finding.time_range.start)} -{' '}
+              {formatTimestamp(finding.time_range.end)}
+            </span>
+          )}
         </Box>
-        {spanTree.length > 0 && (
-          <Box className={classes.spanTreeChildren}>
-            {spanTree.map(node => (
-              <SpanTreeItem key={node.span_id} node={node} classes={classes} />
-            ))}
-          </Box>
+        {hasEvidence && (
+          <ExpandMoreIcon
+            className={`${classes.expandIcon} ${
+              expanded ? classes.expandIconOpen : ''
+            }`}
+          />
         )}
-      </Box>
-      <Box className={classes.evidenceFooter}>
-        <span className={classes.timestamp}>
-          {evidence.significant_spans && evidence.significant_spans.length > 0
-            ? `${evidence.significant_spans.length} span${
-                evidence.significant_spans.length > 1 ? 's' : ''
-              }`
-            : ''}
-        </span>
-        <Box className={classes.evidenceTypeLabel}>
-          <AccountTreeIcon className={classes.evidenceIcon} />
-          <span>Trace</span>
-        </Box>
-      </Box>
+      </ButtonBase>
+      {hasEvidence && (
+        <Collapse in={expanded}>
+          <Box className={classes.findingEvidenceContainer}>
+            {evidenceComponent}
+          </Box>
+        </Collapse>
+      )}
     </Box>
   );
 };
@@ -523,10 +615,10 @@ const RootCauseItem = ({
   <>
     <Box className={classes.rootCauseHeader}>
       <Typography className={classes.rootCauseTitle}>
-        <FormattedText text={rootCause.description} />
+        <FormattedText text={rootCause.summary} />
       </Typography>
       <span className={getConfidenceBadgeClass(rootCause.confidence, classes)}>
-        {rootCause.confidence}
+        {rootCause.confidence} confidence
       </span>
     </Box>
     <Box className={classes.rootCauseContent}>
@@ -540,45 +632,17 @@ const RootCauseItem = ({
         </Typography>
       )}
 
-      {rootCause.evidences && rootCause.evidences.length > 0 && (
-        <Box className={classes.evidenceContainer}>
-          <Typography className={classes.evidenceHeader}>
-            Supporting Evidence
-          </Typography>
-          {rootCause.evidences.map((evidence, idx) => {
-            let evidenceComponent = null;
-            if (evidence.type === 'log') {
-              evidenceComponent = (
-                <LogEvidence
-                  evidence={evidence as LogEvidenceItem}
-                  classes={classes}
-                />
-              );
-            } else if (evidence.type === 'metric') {
-              evidenceComponent = (
-                <MetricEvidence
-                  evidence={evidence as MetricEvidenceItem}
-                  classes={classes}
-                />
-              );
-            } else if (evidence.type === 'trace') {
-              evidenceComponent = (
-                <TraceEvidence
-                  evidence={evidence as TraceEvidenceItem}
-                  classes={classes}
-                />
-              );
-            }
-
-            return (
-              <Box key={idx}>
-                {evidenceComponent}
-                {idx < rootCause.evidences!.length - 1 && <Divider />}
-              </Box>
-            );
-          })}
-        </Box>
-      )}
+      {rootCause.supporting_findings &&
+        rootCause.supporting_findings.length > 0 && (
+          <Box className={classes.findingsContainer}>
+            <Typography className={classes.findingsHeader}>
+              Supporting Findings
+            </Typography>
+            {rootCause.supporting_findings.map((finding, idx) => (
+              <FindingCard key={idx} finding={finding} classes={classes} />
+            ))}
+          </Box>
+        )}
     </Box>
   </>
 );
@@ -593,12 +657,12 @@ export const RootCausesSection = ({ rootCauses }: RootCausesSectionProps) => {
   return (
     <List className={classes.list} disablePadding>
       {rootCauses.map((rootCause, idx) => (
-        <React.Fragment key={idx}>
+        <Fragment key={idx}>
           <ListItem className={classes.listItem} disableGutters>
             <RootCauseItem rootCause={rootCause} classes={classes} />
           </ListItem>
           {idx < rootCauses.length - 1 && <Divider component="li" />}
-        </React.Fragment>
+        </Fragment>
       ))}
     </List>
   );

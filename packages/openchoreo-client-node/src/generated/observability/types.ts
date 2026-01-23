@@ -486,6 +486,7 @@ export interface components {
        *     - Prefix match: `63d7c3065ab2537*`
        *     - Suffix match: `*135a77db`
        *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
+       *
        * @example 63d7c3065ab25375*
        */
       traceId?: string;
@@ -628,8 +629,7 @@ export interface components {
        */
       tookMs?: number;
     };
-    /**
-     * @example {
+    /** @example {
      *       "traces": [
      *         {
      *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
@@ -648,8 +648,7 @@ export interface components {
      *         }
      *       ],
      *       "tookMs": 15
-     *     }
-     */
+     *     } */
     TraceResponse: {
       /** @description Array of traces with their spans */
       traces?: components['schemas']['Trace'][];
@@ -729,8 +728,7 @@ export interface components {
        */
       value?: number;
     };
-    /**
-     * @example {
+    /** @example {
      *       "cpuUsage": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -791,8 +789,7 @@ export interface components {
      *           "value": 2147483648
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     ResourceMetricsTimeSeries: {
       /** @description CPU usage time series (in cores) */
       cpuUsage?: components['schemas']['TimeValuePoint'][];
@@ -807,8 +804,7 @@ export interface components {
       /** @description Memory limits time series (in bytes) */
       memoryLimits?: components['schemas']['TimeValuePoint'][];
     };
-    /**
-     * @example {
+    /** @example {
      *       "requestCount": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -879,8 +875,7 @@ export interface components {
      *           "value": 0.52
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     HTTPMetricsTimeSeries: {
       /** @description Total HTTP request count time series (requests per second) */
       requestCount?: components['schemas']['TimeValuePoint'][];
@@ -1054,222 +1049,302 @@ export interface components {
     };
     /** @description Complete Root Cause Analysis Report for OpenChoreo incidents */
     RCAReport: {
+      /** @description The alert that triggered this RCA */
+      alert_context: components['schemas']['ReportAlertContext'];
       /**
-       * @description Concise summary of the investigation and outcome
+       * @description Concise summary of the investigation outcome (1 sentence)
        * @example Database connection pool exhaustion caused analytics service errors. RCA identified memory leak in connection handling.
        */
       summary: string;
-      /** @description The result of the RCA - either issues identified with root causes, or explanation of why RCA was not performed */
+      /** @description The RCA result - either root causes identified, or explanation of why not */
       result:
-        | components['schemas']['IssueIdentified']
-        | components['schemas']['RCANotPerformed'];
-      /** @description Sequential steps the agent took during investigation. Include only significant investigative actions */
-      investigation_path?: components['schemas']['InvestigationStep'][];
+        | components['schemas']['RootCauseIdentified']
+        | components['schemas']['NoRootCauseIdentified'];
+      /** @description Sequential steps the agent took during investigation */
+      investigation_path: components['schemas']['InvestigationStep'][];
     };
-    /** @description RCA was performed and issues were identified */
-    IssueIdentified: {
+    /** @description Structured alert condition that triggered the alert */
+    AlertCondition: {
       /**
-       * @description Discriminator value for issue identified result (enum property replaced by openapi-typescript)
+       * @description Time window for the condition
+       * @example 5m
+       */
+      window: string;
+      /**
+       * @description Evaluation interval
+       * @example 1m
+       */
+      interval: string;
+      /**
+       * @description Comparison operator
+       * @example >
+       */
+      operator: string;
+      /**
+       * @description Threshold value that was exceeded
+       * @example 2000
+       */
+      threshold: number;
+    };
+    /** @description Context about the alert that triggered this RCA */
+    ReportAlertContext: {
+      /**
+       * @description Unique identifier of the alert
+       * @example alert-12345
+       */
+      alert_id: string;
+      /**
+       * @description Name of the alert rule
+       * @example High Error Rate
+       */
+      alert_name: string;
+      /**
+       * @description Optional description of the alert
+       * @example Triggers when error rate exceeds threshold
+       */
+      alert_description?: string | null;
+      /**
+       * @description Alert severity level
+       * @example critical
+       */
+      severity?: string | null;
+      /**
+       * @description Kubernetes namespace
+       * @example production
+       */
+      namespace?: string | null;
+      /**
+       * Format: date-time
+       * @description ISO timestamp when alert fired
+       * @example 2025-01-10T08:15:00Z
+       */
+      triggered_at: string;
+      /**
+       * @description The value that triggered the alert
+       * @example 47
+       */
+      trigger_value: number;
+      /**
+       * @description Alert source type (log, metric)
+       * @example metric
+       */
+      source_type?: string | null;
+      /**
+       * @description The query used to detect the alert condition
+       * @example sum(rate(http_errors_total[5m])) > 10
+       */
+      source_query?: string | null;
+      /**
+       * @description The metric name if source type is metric
+       * @example http_request_duration_seconds
+       */
+      source_metric?: string | null;
+      condition: components['schemas']['AlertCondition'];
+      /**
+       * @description Component UID this alert relates to
+       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
+       */
+      component_uid: string;
+      /**
+       * @description Project UID this alert relates to
+       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
+       */
+      project_uid: string;
+      /**
+       * @description Environment UID
+       * @example e1a7f0fd-f4d7-4d76-80c1-1dabba9d95db
+       */
+      environment_uid: string;
+    };
+    /** @description RCA was performed and root causes were identified */
+    RootCauseIdentified: {
+      /**
+       * @description Discriminator value for root cause identified result (enum property replaced by openapi-typescript)
        * @enum {string}
        */
-      type: 'issue_identified';
-      /** @description Identified root causes in order of significance. Each contains its own supporting evidence. */
+      type: 'root_cause_identified';
+      /** @description Identified root causes in order of significance. Each contains its own supporting findings. */
       root_causes: components['schemas']['RootCause'][];
       /** @description Chronological sequence of significant system events discovered through analysis */
-      timeline?: components['schemas']['TimelineEvent'][];
+      timeline: components['schemas']['TimelineEvent'][];
       /** @description Potential causes that were investigated and ruled out with reasoning, helping narrow down the actual root cause. */
       excluded_causes?: components['schemas']['ExcludedCause'][];
       recommendations: components['schemas']['Recommendations'];
     };
-    /** @description RCA was not performed due to insufficient data or other reasons */
-    RCANotPerformed: {
+    /** @description RCA was performed but no root cause was identified */
+    NoRootCauseIdentified: {
       /**
-       * @description Discriminator value for RCA not performed result (enum property replaced by openapi-typescript)
+       * @description Discriminator value for no root cause identified result (enum property replaced by openapi-typescript)
        * @enum {string}
        */
-      type: 'rca_not_performed';
+      type: 'no_root_cause_identified';
+      outcome: components['schemas']['NoRootCauseOutcome'];
       /**
-       * @description Explanation of why RCA was not performed (e.g., insufficient telemetry data, false positive, no issue detected)
-       * @example Insufficient telemetry data available for the time period
+       * @description Detailed explanation of why no root cause was identified
+       * @example The alert appears to be a false positive. System metrics remained within normal parameters throughout the time period.
        */
-      reason: string;
+      explanation: string;
       /** @description Recommendations for improving tracing, observability, monitoring, or alerting to enable better RCA in the future */
       recommendations?: components['schemas']['Recommendations'] | null;
     };
-    /** @description An identified root cause with its supporting evidence */
+    /**
+     * @description Categorized outcome when no root cause is identified
+     * @enum {string}
+     */
+    NoRootCauseOutcome:
+      | 'no_anomaly_detected'
+      | 'insufficient_data'
+      | 'transient'
+      | 'external_dependency';
+    /** @description An identified root cause with its supporting findings */
     RootCause: {
       /**
        * @description Detailed description of the root cause. Be specific about what failed and why.
        * @example Database connection pool exhausted due to connections not being properly released after query completion
        */
-      description: string;
+      summary: string;
       confidence: components['schemas']['ConfidenceLevel'];
-      /** @description Specific evidence supporting this root cause (logs, metrics, traces). Each entry should be significant for RCA */
-      evidences?: (
-        | components['schemas']['LogEvidenceItem']
-        | components['schemas']['MetricEvidenceItem']
-        | components['schemas']['TraceEvidenceItem']
-      )[];
+      /** @description Findings that support this root cause determination. Each finding contains an observation and evidence. */
+      supporting_findings: components['schemas']['Finding'][];
       /**
-       * @description Explains how the evidences correlate with each other and collectively support this root cause determination
+       * @description Explains how the findings correlate with each other and collectively support this root cause determination
        * @example Error logs showing connection timeouts correlate with metric spikes in connection pool usage, and traces reveal slow database queries at the same timestamp
        */
-      analysis?: string | null;
+      analysis: string;
+    };
+    /** @description A finding that supports a root cause, wrapping evidence with context */
+    Finding: {
+      /**
+       * @description Human-readable summary of what was found
+       * @example Connection pool saturated
+       */
+      observation: string;
+      /**
+       * @description Component UID this finding relates to
+       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
+       */
+      component_uid: string;
+      /** @description Time range for deep-dive linking */
+      time_range: components['schemas']['TimeRange'];
+      /** @description The actual evidence (log, metric, or trace) */
+      evidence:
+        | components['schemas']['LogEvidence']
+        | components['schemas']['MetricEvidence']
+        | components['schemas']['TraceEvidence'];
     };
     /**
      * @description Confidence level in root cause determination
      * @enum {string}
      */
     ConfidenceLevel: 'high' | 'medium' | 'low';
-    /** @description Evidence from application logs showing significant issues. Contains the actual log message that implies a root cause. */
-    LogEvidenceItem: {
+    /** @description Evidence from application logs showing significant issues */
+    LogEvidence: {
       /**
        * @description Evidence type discriminator (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'log';
+      /** @description Relevant log lines (can be 1 or multiple related lines) */
+      log_lines: components['schemas']['LogLine'][];
       /**
-       * @description Component UID this evidence relates to
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
+       * @description Descriptive repetition pattern
+       * @example This error repeated 47 times over 5 minutes
        */
-      component_uid: string;
-      /**
-       * @description Project UID this evidence relates to
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      project_uid: string;
-      log_level: components['schemas']['LogLevel'];
+      repetition?: string | null;
+    };
+    /** @description A single log line within log evidence */
+    LogLine: {
       /**
        * Format: date-time
        * @description ISO 8601 timestamp when log occurred
        * @example 2025-01-10T08:15:23.456Z
        */
       timestamp: string;
+      level: components['schemas']['LogLevel'];
       /**
-       * @description The significant log message implying root cause
+       * @description The log message
        * @example ERROR: Database connection timeout after 30s
        */
-      log_message: string;
+      message: string;
     };
-    /**
-     * @description Evidence from metrics - rendered as a styled value
-     *
-     *     Example- metric_name="RAM usage", value="95.5%", severity=CRITICAL
-     *     renders as "95.5% RAM usage" with value in red
-     */
-    MetricEvidenceItem: {
+    /** @description Evidence from metrics showing anomalous values */
+    MetricEvidence: {
       /**
        * @description Evidence type discriminator (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'metric';
       /**
-       * @description Component UID this evidence relates to
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
-       */
-      component_uid: string;
-      /**
-       * @description Project UID this evidence relates to
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      project_uid: string;
-      /**
-       * @description Human-readable name of the metric (e.g., 'RAM usage', 'CPU utilization', 'Request latency p99')
+       * @description Human-readable name of the metric
        * @example RAM usage
        */
-      metric_name: string;
+      name: string;
       /**
-       * @description Formatted metric value with unit (e.g., '95.5%', '1.2 cores', '64 req/s', '2.5 GB/s')
+       * @description Self-contained explanation of the anomaly and its RCA relevance
+       * @example RAM usage at 95.5% exceeds 90% threshold, causing OOM kills
+       */
+      summary: string;
+      severity: components['schemas']['Severity'];
+      /** @description Highlighted values with severity for UI coloring */
+      highlights?: components['schemas']['MetricHighlight'][];
+    };
+    /** @description A highlighted metric value with severity */
+    MetricHighlight: {
+      /**
+       * @description Formatted metric value with unit
        * @example 95.5%
        */
       value: string;
-      /**
-       * @description Self-contained explanation of the anomaly and its RCA relevance (e.g., 'RAM usage at 95.5% exceeds 90% threshold, causing OOM kills')
-       * @example RAM usage at 95.5% exceeds 90% threshold, causing OOM kills
-       */
-      description: string;
-      severity: components['schemas']['MetricSeverity'];
-      time_range: components['schemas']['TimeRange'];
+      severity: components['schemas']['Severity'];
     };
-    /** @description Evidence from distributed traces showing request flow patterns. Context and analysis provided by root cause description. */
-    TraceEvidenceItem: {
+    /** @description Evidence from distributed traces showing request flow patterns */
+    TraceEvidence: {
       /**
        * @description Evidence type discriminator (enum property replaced by openapi-typescript)
        * @enum {string}
        */
       type: 'trace';
       /**
-       * @description Component UID this evidence relates to
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
-       */
-      component_uid: string;
-      /**
-       * @description Project UID this evidence relates to
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      project_uid: string;
-      /**
        * @description Unique trace identifier for reference
        * @example f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8
        */
       trace_id: string;
       /**
-       * @description Total trace duration in milliseconds
-       * @example 5200
-       */
-      total_duration_ms: number;
-      /** @description Key spans that are significant for RCA (e.g., slowest spans, error spans, bottlenecks) */
-      significant_spans?: components['schemas']['SpanInfo'][];
-    };
-    /** @description Information about a significant span within a trace */
-    SpanInfo: {
-      /**
-       * @description Unique span identifier
+       * @description Specific span ID within the trace
        * @example ad3537e3f48207d0
        */
       span_id: string;
       /**
-       * @description Span operation name (e.g., 'GET /api/users', 'db.query', 'redis.get')
-       * @example database-query
+       * @description Text description of what the trace shows
+       * @example Request to /api/users took 5.2s, with 4.8s spent in database query
        */
-      name: string;
-      /**
-       * @description Component that executed this span
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
-       */
-      component_uid: string;
-      /**
-       * @description Span duration in milliseconds
-       * @example 4800
-       */
-      duration_ms: number;
-      /**
-       * Format: date-time
-       * @description ISO 8601 timestamp when span started
-       * @example 2025-01-10T08:15:23.100Z
-       */
-      start_time: string;
-      /**
-       * Format: date-time
-       * @description ISO 8601 timestamp when span ended
-       * @example 2025-01-10T08:15:27.900Z
-       */
-      end_time: string;
+      summary: string;
       /**
        * @description Whether this span had an error
-       * @example false
+       * @default false
        */
-      is_error?: boolean | null;
+      is_error: boolean;
       /**
-       * @description Error message if is_error is True
+       * @description Error message if is_error is true
        * @example Connection timeout
        */
       error_message?: string | null;
+      /** @description Highlighted values with severity for UI coloring */
+      highlights?: components['schemas']['TraceHighlight'][];
       /**
-       * @description Parent span ID to show request flow hierarchy
-       * @example b72e731db5edfd1d
+       * @description Descriptive repetition pattern
+       * @example Similar slow spans seen in 23 traces
        */
-      parent_span_id?: string | null;
+      repetition?: string | null;
+    };
+    /** @description A highlighted trace value with severity */
+    TraceHighlight: {
+      /**
+       * @description Formatted trace value
+       * @example 5200ms
+       */
+      value: string;
+      severity: components['schemas']['Severity'];
     };
     /**
      * @description Log severity levels
@@ -1277,10 +1352,10 @@ export interface components {
      */
     LogLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
     /**
-     * @description Severity level for metric values - used for color coding in UI
+     * @description Severity level for highlighted values - used for color coding in UI
      * @enum {string}
      */
-    MetricSeverity: 'critical' | 'warning' | 'normal';
+    Severity: 'critical' | 'warning' | 'normal';
     /** @description Time range for metric observations */
     TimeRange: {
       /**
@@ -1307,7 +1382,7 @@ export interface components {
        * @description Why this was ruled out as a root cause based on evidence
        * @example Network latency metrics remained stable throughout the incident period
        */
-      reason: string;
+      rationale: string;
     };
     /** @description A significant system event observed in telemetry data. Represents actual system behavior, not agent investigation actions. */
     TimelineEvent: {
@@ -1318,22 +1393,16 @@ export interface components {
        */
       timestamp: string;
       /**
-       * @description Description of what happened in the system (e.g., 'analytics-service started returning 500 errors')
+       * @description Description of what happened in the system
        * @example analytics-service started returning 500 errors
        */
-      description: string;
-      source_type: components['schemas']['EvidenceType'];
+      event: string;
       /**
-       * @description If this event represents multiple similar occurrences, how many times did it occur
-       * @example 47
+       * @description Optional component UID this event relates to
+       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
        */
-      aggregated_count?: number | null;
+      component_uid?: string | null;
     };
-    /**
-     * @description Types of evidence that can support a root cause
-     * @enum {string}
-     */
-    EvidenceType: 'log' | 'metric' | 'trace';
     /** @description A significant step the agent took during investigation */
     InvestigationStep: {
       /**
@@ -1355,15 +1424,9 @@ export interface components {
     /** @description Actionable recommendations to prevent recurrence */
     Recommendations: {
       /** @description Prioritized actions sorted by priority */
-      actions?: components['schemas']['Action'][];
-      /**
-       * @description Suggestions for additional monitoring, alerting, or observability improvements
-       * @example [
-       *       "Add alerting for database connection pool usage above 80%",
-       *       "Implement distributed tracing for database queries"
-       *     ]
-       */
-      monitoring_improvements?: string[];
+      recommended_actions?: components['schemas']['Action'][];
+      /** @description Suggestions for additional monitoring, alerting, or observability improvements */
+      observability_recommendations?: components['schemas']['Action'][];
     };
     /** @description An actionable recommendation */
     Action: {

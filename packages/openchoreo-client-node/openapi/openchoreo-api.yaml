@@ -985,6 +985,17 @@ components:
           type: string
           description: Message returned when observability is not configured
 
+    # RCA Agent URL
+    RCAAgentUrlData:
+      type: object
+      properties:
+        rcaAgentUrl:
+          type: string
+          description: URL to the RCA agent service for AI-powered root cause analysis
+        message:
+          type: string
+          description: Additional information or status message
+
     # ComponentRelease
     ComponentReleaseResponse:
       type: object
@@ -1463,12 +1474,8 @@ components:
     AuthzResourceHierarchy:
       type: object
       properties:
-        organization:
+        namespace:
           type: string
-        organization_units:
-          type: array
-          items:
-            type: string
         project:
           type: string
         component:
@@ -2230,6 +2237,39 @@ paths:
         '404':
           description: Environment or DataPlane not found
 
+  /namespaces/{namespaceName}/environments/{envName}/rca-agent-url:
+    get:
+      summary: Get RCA agent URL
+      description: Returns the RCA agent URL for AI-powered root cause analysis for this environment.
+      operationId: getRCAAgentURL
+      tags:
+        - Environments
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: envName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: RCA agent URL information
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RCAAgentUrlData'
+        '404':
+          description: Environment or RCA agent not found
+
   # BuildPlanes
   /namespaces/{namespaceName}/buildplanes:
     get:
@@ -2289,7 +2329,7 @@ paths:
   # ComponentTypes
   /namespaces/{namespaceName}/component-types:
     get:
-      summary: List all component types for an organization
+      summary: List all component types for a namespace
       operationId: listComponentTypes
       tags:
         - ComponentTypes
@@ -2356,7 +2396,7 @@ paths:
   # Workflows (generic workflows)
   /namespaces/{namespaceName}/workflows:
     get:
-      summary: List all workflows for an organization
+      summary: List all workflows for a namespace
       operationId: listWorkflows
       tags:
         - Workflows
@@ -2423,7 +2463,7 @@ paths:
   # ComponentWorkflows (component-specific workflows)
   /namespaces/{namespaceName}/component-workflows:
     get:
-      summary: List all component workflows for an organization
+      summary: List all component workflows for a namespace
       operationId: listComponentWorkflows
       tags:
         - ComponentWorkflows
@@ -2490,7 +2530,7 @@ paths:
   # Traits
   /namespaces/{namespaceName}/traits:
     get:
-      summary: List all traits for an organization
+      summary: List all traits for a namespace
       operationId: listTraits
       tags:
         - Traits
@@ -2557,7 +2597,7 @@ paths:
   # Projects
   /namespaces/{namespaceName}/projects:
     get:
-      summary: List all projects in an organization
+      summary: List all projects in a namespace
       operationId: listProjects
       tags:
         - Projects
@@ -4139,12 +4179,12 @@ paths:
       tags:
         - Authorization
       parameters:
-        - name: org
+        - name: namespace
           in: query
           required: false
           schema:
             type: string
-          description: Organization name (optional, omit for global profile)
+          description: Namespace scope (optional, omit for global profile)
         - name: project
           in: query
           required: false
@@ -4164,7 +4204,7 @@ paths:
             type: array
             items:
               type: string
-          description: Organization units (optional)
+          description: Namespace units scope (optional)
       responses:
         '200':
           description: Successful response
