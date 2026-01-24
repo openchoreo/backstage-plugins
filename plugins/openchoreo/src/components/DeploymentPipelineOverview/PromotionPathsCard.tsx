@@ -1,7 +1,5 @@
 import { Box, Typography } from '@material-ui/core';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
-import LockIcon from '@material-ui/icons/Lock';
-import AutorenewIcon from '@material-ui/icons/Autorenew';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Card } from '@openchoreo/backstage-design-system';
@@ -69,24 +67,6 @@ export const PromotionPathsCard = () => {
               <Typography className={classes.pathTargetName}>
                 {capitalizeFirst(path.target)}
               </Typography>
-
-              {path.requiresApproval ? (
-                <Typography className={classes.approvalBadge}>
-                  <LockIcon style={{ fontSize: '0.75rem' }} />
-                  Requires Approval
-                </Typography>
-              ) : (
-                <Typography className={classes.autoBadge}>
-                  <AutorenewIcon
-                    style={{
-                      fontSize: '0.75rem',
-                      verticalAlign: 'middle',
-                      marginRight: 2,
-                    }}
-                  />
-                  Auto-promote
-                </Typography>
-              )}
             </Box>
           </li>
         ))}

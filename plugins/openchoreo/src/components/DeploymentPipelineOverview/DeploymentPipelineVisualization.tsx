@@ -1,16 +1,10 @@
 import { Box, Typography } from '@material-ui/core';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
-import LockIcon from '@material-ui/icons/Lock';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useDeploymentPipelineOverviewStyles } from './styles';
-
-interface EnvironmentInfo {
-  name: string;
-  requiresApproval: boolean;
-}
 
 export const DeploymentPipelineVisualization = () => {
   const classes = useDeploymentPipelineOverviewStyles();
@@ -20,77 +14,57 @@ export const DeploymentPipelineVisualization = () => {
   const promotionPaths = spec?.promotionPaths || [];
 
   // Build ordered list of environments from promotion paths
-  const buildEnvironmentOrder = (): EnvironmentInfo[] => {
+  const buildEnvironmentOrder = (): string[] => {
     if (!promotionPaths || promotionPaths.length === 0) {
       return [];
     }
 
-    const envMap = new Map<string, EnvironmentInfo>();
-    const edges: [string, string, boolean][] = []; // [source, target, requiresApproval]
+    const envSet = new Set<string>();
+    const edges: [string, string][] = [];
 
     // Collect all edges and environments
     for (const path of promotionPaths) {
       const source = path.sourceEnvironment;
-      if (source && !envMap.has(source)) {
-        envMap.set(source, { name: source, requiresApproval: false });
+      if (source) {
+        envSet.add(source);
       }
 
       for (const target of path.targetEnvironments || []) {
-        if (target.name && !envMap.has(target.name)) {
-          envMap.set(target.name, {
-            name: target.name,
-            requiresApproval:
-              target.requiresApproval ||
-              target.isManualApprovalRequired ||
-              false,
-          });
-        }
-        if (source && target.name) {
-          edges.push([
-            source,
-            target.name,
-            target.requiresApproval || target.isManualApprovalRequired || false,
-          ]);
+        if (target.name) {
+          envSet.add(target.name);
+          if (source) {
+            edges.push([source, target.name]);
+          }
         }
       }
     }
 
     // Find root nodes (sources that are not targets)
     const targets = new Set(edges.map(e => e[1]));
-    const roots = [...envMap.keys()].filter(e => !targets.has(e));
+    const roots = [...envSet].filter(e => !targets.has(e));
 
     // BFS to order environments
-    const ordered: EnvironmentInfo[] = [];
+    const ordered: string[] = [];
     const visited = new Set<string>();
-    const queue =
-      roots.length > 0 ? [...roots] : [...envMap.keys()].slice(0, 1);
+    const queue = roots.length > 0 ? [...roots] : [...envSet].slice(0, 1);
 
     while (queue.length > 0) {
       const current = queue.shift()!;
       if (visited.has(current)) continue;
       visited.add(current);
-
-      const env = envMap.get(current);
-      if (env) {
-        ordered.push(env);
-      }
+      ordered.push(current);
 
       // Find targets of this environment
-      for (const [src, tgt, approval] of edges) {
+      for (const [src, tgt] of edges) {
         if (src === current && !visited.has(tgt)) {
-          // Update approval status on target
-          const targetEnv = envMap.get(tgt);
-          if (targetEnv) {
-            targetEnv.requiresApproval = approval;
-          }
           queue.push(tgt);
         }
       }
     }
 
     // Add any remaining environments not yet visited
-    for (const [name, env] of envMap) {
-      if (!visited.has(name)) {
+    for (const env of envSet) {
+      if (!visited.has(env)) {
         ordered.push(env);
       }
     }
@@ -129,29 +103,24 @@ export const DeploymentPipelineVisualization = () => {
       <Box className={classes.pipelineVisualization}>
         {environments.map((env, index) => (
           <Box
-            key={env.name}
+            key={env}
             style={{ display: 'flex', alignItems: 'center', gap: '16px' }}
           >
             <Box className={classes.environmentNode}>
               <Link
-                to={`/catalog/default/environment/${env.name}`}
+                to={`/catalog/default/environment/${env}`}
                 style={{ textDecoration: 'none' }}
               >
                 <Typography
                   className={`${classes.environmentChip} ${classes.environmentChipDefault}`}
                 >
-                  {capitalizeFirst(env.name)}
+                  {capitalizeFirst(env)}
                 </Typography>
               </Link>
             </Box>
 
             {index < environments.length - 1 && (
-              <Box className={classes.arrowWithLock}>
-                <ArrowForwardIcon className={classes.arrow} />
-                {environments[index + 1]?.requiresApproval && (
-                  <LockIcon className={classes.lockIcon} />
-                )}
-              </Box>
+              <ArrowForwardIcon className={classes.arrow} />
             )}
           </Box>
         ))}
