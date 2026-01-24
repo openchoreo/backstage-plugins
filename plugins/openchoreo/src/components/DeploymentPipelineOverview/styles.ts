@@ -55,25 +55,10 @@ export const useDeploymentPipelineOverviewStyles = makeStyles(theme => ({
       boxShadow: theme.shadows[4],
     },
   },
-  productionChip: {
-    backgroundColor: theme.palette.grey[100],
-    borderColor: theme.palette.error.light,
-    color: theme.palette.error.dark,
-  },
-  stagingChip: {
-    backgroundColor: theme.palette.grey[100],
-    borderColor: theme.palette.warning.light,
-    color: theme.palette.warning.dark,
-  },
-  devChip: {
-    backgroundColor: theme.palette.grey[100],
-    borderColor: theme.palette.info.light,
-    color: theme.palette.info.dark,
-  },
-  defaultChip: {
-    backgroundColor: theme.palette.grey[50],
-    borderColor: theme.palette.grey[300],
-    color: theme.palette.grey[700],
+  environmentChipDefault: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)', // transparent green
+    borderColor: '#10b981', // success.main
+    color: '#059669', // success.dark
   },
   componentCount: {
     fontSize: theme.typography.caption.fontSize,

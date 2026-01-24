@@ -25,6 +25,7 @@ export {
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
+  EnvironmentPipelinesTab,
 } from './components/EnvironmentOverview';
 export {
   DataplaneStatusCard,

@@ -23,16 +23,16 @@ const useStyles = makeStyles(theme => ({
     borderRadius: theme.spacing(1),
     fontSize: theme.typography.body2.fontSize,
     fontWeight: 500,
-    border: `1.5px solid ${theme.palette.primary.dark}`,
   },
   currentEnvironment: {
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    border: `2px solid ${theme.palette.primary.dark}`,
+    backgroundColor: '#10b981', // success.main - green to match graph labels
+    color: '#ffffff',
+    border: '2px solid #059669', // success.dark
   },
   otherEnvironment: {
-    backgroundColor: theme.palette.primary.light,
-    color: theme.palette.primary.dark,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)', // transparent green
+    color: '#059669', // success.dark - green text
+    border: '1.5px solid #10b981', // success.main border
   },
   arrow: {
     color: theme.palette.text.secondary,

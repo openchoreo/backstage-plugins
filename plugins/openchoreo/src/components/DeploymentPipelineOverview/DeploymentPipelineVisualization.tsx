@@ -2,7 +2,6 @@ import { Box, Typography } from '@material-ui/core';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import LockIcon from '@material-ui/icons/Lock';
 import TimelineIcon from '@material-ui/icons/Timeline';
-import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
@@ -101,20 +100,6 @@ export const DeploymentPipelineVisualization = () => {
 
   const environments = buildEnvironmentOrder();
 
-  const getChipClass = (envName: string): string => {
-    const lowerName = envName.toLowerCase();
-    if (lowerName.includes('prod')) {
-      return classes.productionChip;
-    }
-    if (lowerName.includes('stag')) {
-      return classes.stagingChip;
-    }
-    if (lowerName.includes('dev')) {
-      return classes.devChip;
-    }
-    return classes.defaultChip;
-  };
-
   const capitalizeFirst = (str: string) => {
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
@@ -153,10 +138,7 @@ export const DeploymentPipelineVisualization = () => {
                 style={{ textDecoration: 'none' }}
               >
                 <Typography
-                  className={clsx(
-                    classes.environmentChip,
-                    getChipClass(env.name),
-                  )}
+                  className={`${classes.environmentChip} ${classes.environmentChipDefault}`}
                 >
                   {capitalizeFirst(env.name)}
                 </Typography>
