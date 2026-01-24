@@ -78,6 +78,7 @@ import {
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
+  EnvironmentPipelinesTab,
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
   DeploymentPipelineVisualization,
@@ -96,6 +97,7 @@ import {
 
 import { FeatureGate } from '@openchoreo/backstage-plugin-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
+import { CustomGraphNode } from './CustomGraphNode';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -164,7 +166,11 @@ function OverviewContent() {
         <EntityAboutCard variant="gridItem" />
       </Grid>
       <Grid item md={6} xs={12}>
-        <EntityCatalogGraphCard variant="gridItem" height={400} />
+        <EntityCatalogGraphCard
+          variant="gridItem"
+          height={400}
+          renderNode={CustomGraphNode}
+        />
       </Grid>
     </Grid>
   );
@@ -378,7 +384,11 @@ const apiPage = (
           <EntityAboutCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
         <Grid item md={4} xs={12}>
           <EntityLinksCard />
@@ -464,7 +474,11 @@ const systemPage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -488,6 +502,7 @@ const systemPage = (
           RELATION_DEPENDS_ON,
         ]}
         unidirectional={false}
+        renderNode={CustomGraphNode}
       />
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">
@@ -512,7 +527,11 @@ const domainPage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
         <Grid item md={6}>
           <EntityHasSystemsCard variant="gridItem" />
@@ -531,7 +550,11 @@ const resourcePage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
         <Grid item md={4} xs={12}>
           <EntityLinksCard />
@@ -549,7 +572,7 @@ const environmentPage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        {/* Row 1: Deployment Health + Promotion Pipeline */}
+        {/* Row 1: Deployment Health + Deployment Pipelines */}
         <Grid item md={6} xs={12}>
           <EnvironmentStatusSummaryCard />
         </Grid>
@@ -576,9 +599,13 @@ const environmentPage = (
               RELATION_HOSTED_ON,
               RELATION_HOSTS,
             ]}
+            renderNode={CustomGraphNode}
           />
         </Grid>
       </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/pipelines" title="Pipelines">
+      <EnvironmentPipelinesTab />
     </EntityLayout.Route>
   </EntityLayout>
 );
@@ -604,6 +631,7 @@ const dataplanePage = (
             variant="gridItem"
             height={400}
             relations={[RELATION_HOSTED_ON, RELATION_HOSTS]}
+            renderNode={CustomGraphNode}
           />
         </Grid>
       </Grid>
@@ -637,6 +665,7 @@ const deploymentPipelinePage = (
               RELATION_USES_PIPELINE,
               RELATION_PIPELINE_USED_BY,
             ]}
+            renderNode={CustomGraphNode}
           />
         </Grid>
       </Grid>

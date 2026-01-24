@@ -1,140 +1,72 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Box, Typography } from '@material-ui/core';
+import { Box, Typography, List, ListItem, Button } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
-import { useEntity } from '@backstage/plugin-catalog-react';
-import { useApi } from '@backstage/core-plugin-api';
-import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
+import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
+import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useEnvironmentOverviewStyles } from './styles';
-import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
+import { useEnvironmentPipelines } from './useEnvironmentPipelines';
+import { makeStyles } from '@material-ui/core/styles';
 
-interface PipelinePosition {
-  pipelineName: string;
-  pipelineEntityRef?: string;
-  environments: string[];
-  currentIndex: number;
-}
+const MAX_VISIBLE_PIPELINES = 3;
+
+const useLocalStyles = makeStyles(theme => ({
+  headerWithAction: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing(1),
+  },
+  viewAllButton: {
+    textTransform: 'none',
+    fontSize: theme.typography.caption.fontSize,
+  },
+  list: {
+    padding: 0,
+  },
+  listItem: {
+    padding: theme.spacing(1.5, 0),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    '&:last-child': {
+      borderBottom: 'none',
+    },
+  },
+  pipelineInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(0.5),
+    flex: 1,
+  },
+  pipelineLink: {
+    textDecoration: 'none',
+    color: theme.palette.text.primary,
+    '&:hover': {
+      color: theme.palette.primary.main,
+    },
+  },
+  pipelineName: {
+    fontWeight: 500,
+    fontSize: theme.typography.body2.fontSize,
+  },
+  pipelinePath: {
+    color: theme.palette.text.secondary,
+    fontSize: theme.typography.caption.fontSize,
+  },
+  chevron: {
+    color: theme.palette.text.secondary,
+    fontSize: '1.2rem',
+    marginTop: theme.spacing(0.5),
+  },
+}));
 
 export const EnvironmentPromotionCard = () => {
   const classes = useEnvironmentOverviewStyles();
-  const { entity } = useEntity();
-  const catalogApi = useApi(catalogApiRef);
-
-  const [pipelinePosition, setPipelinePosition] =
-    useState<PipelinePosition | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const environmentName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
-    entity.metadata.name;
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
-
-  const fetchPipelinePosition = useCallback(async () => {
-    if (!organization || !environmentName) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Find DeploymentPipeline entities that reference this environment
-      const { items: pipelineEntities } = await catalogApi.getEntities({
-        filter: {
-          kind: 'DeploymentPipeline',
-        },
-      });
-
-      // Find a pipeline that includes this environment
-      for (const pipeline of pipelineEntities) {
-        const spec = pipeline.spec as any;
-        if (!spec?.promotionPaths) continue;
-
-        const allEnvironments = new Set<string>();
-        for (const path of spec.promotionPaths) {
-          if (path.sourceEnvironment) {
-            allEnvironments.add(path.sourceEnvironment);
-          }
-          for (const target of path.targetEnvironments || []) {
-            if (target.name) {
-              allEnvironments.add(target.name);
-            }
-          }
-        }
-
-        // Check if this environment is in the pipeline
-        if (allEnvironments.has(environmentName)) {
-          // Build ordered environment list from promotion paths
-          const envOrder: string[] = [];
-          const visited = new Set<string>();
-
-          // Find the starting environment (one that's only a source, not a target)
-          const targets = new Set<string>();
-          for (const path of spec.promotionPaths) {
-            for (const target of path.targetEnvironments || []) {
-              targets.add(target.name);
-            }
-          }
-
-          // Start with environments that are sources but not targets
-          for (const path of spec.promotionPaths) {
-            if (
-              path.sourceEnvironment &&
-              !targets.has(path.sourceEnvironment) &&
-              !visited.has(path.sourceEnvironment)
-            ) {
-              envOrder.push(path.sourceEnvironment);
-              visited.add(path.sourceEnvironment);
-            }
-          }
-
-          // Add remaining environments in order
-          for (const path of spec.promotionPaths) {
-            if (
-              path.sourceEnvironment &&
-              !visited.has(path.sourceEnvironment)
-            ) {
-              envOrder.push(path.sourceEnvironment);
-              visited.add(path.sourceEnvironment);
-            }
-            for (const target of path.targetEnvironments || []) {
-              if (!visited.has(target.name)) {
-                envOrder.push(target.name);
-                visited.add(target.name);
-              }
-            }
-          }
-
-          const currentIndex = envOrder.findIndex(
-            e => e.toLowerCase() === environmentName.toLowerCase(),
-          );
-
-          setPipelinePosition({
-            pipelineName: pipeline.metadata.title || pipeline.metadata.name,
-            pipelineEntityRef: `deploymentpipeline:${
-              pipeline.metadata.namespace || 'default'
-            }/${pipeline.metadata.name}`,
-            environments: envOrder,
-            currentIndex,
-          });
-          break;
-        }
-      }
-    } catch (err) {
-      setError(err as Error);
-    } finally {
-      setLoading(false);
-    }
-  }, [organization, environmentName, catalogApi]);
-
-  useEffect(() => {
-    fetchPipelinePosition();
-  }, [fetchPipelinePosition]);
+  const localClasses = useLocalStyles();
+  const { pipelines, loading, error } = useEnvironmentPipelines();
 
   if (loading) {
     return (
@@ -148,12 +80,12 @@ export const EnvironmentPromotionCard = () => {
     );
   }
 
-  if (error || !pipelinePosition) {
+  if (error || pipelines.length === 0) {
     return (
       <Card padding={24} className={classes.card}>
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>
-            Promotion Pipeline
+            Deployment Pipelines
           </Typography>
         </Box>
         <Box className={classes.emptyState}>
@@ -168,26 +100,62 @@ export const EnvironmentPromotionCard = () => {
     );
   }
 
+  const visiblePipelines = pipelines.slice(0, MAX_VISIBLE_PIPELINES);
+
+  const formatPipelinePath = (environments: string[]) => {
+    return environments.join(' → ');
+  };
+
   return (
     <Card padding={24} className={classes.card}>
-      <Box className={classes.cardHeader}>
-        <Typography variant="h5">Promotion Pipeline</Typography>
+      <Box className={localClasses.headerWithAction}>
+        <Typography variant="h5">Deployment Pipelines</Typography>
+        <Link to="pipelines" style={{ textDecoration: 'none' }}>
+          <Button
+            size="small"
+            color="primary"
+            endIcon={<ArrowForwardIcon />}
+            className={localClasses.viewAllButton}
+          >
+            View All
+          </Button>
+        </Link>
       </Box>
 
       <Box className={classes.content}>
-        <Box className={classes.infoRow}>
-          <Typography className={classes.infoLabel}>Pipeline:</Typography>
-          <Typography className={classes.infoValue}>
-            {pipelinePosition.pipelineName}
-          </Typography>
-        </Box>
-
-        <PipelineFlowVisualization
-          environments={pipelinePosition.environments}
-          highlightedEnvironment={environmentName}
-          pipelineEntityRef={pipelinePosition.pipelineEntityRef}
-          showPipelineLink
-        />
+        <List className={localClasses.list}>
+          {visiblePipelines.map(pipeline => (
+            <ListItem
+              key={pipeline.pipelineEntityRef}
+              className={localClasses.listItem}
+              disableGutters
+            >
+              <Box className={localClasses.pipelineInfo}>
+                <Link
+                  to={`/catalog/default/deploymentpipeline/${pipeline.pipelineEntityRef
+                    .split('/')
+                    .pop()}`}
+                  className={localClasses.pipelineLink}
+                >
+                  <Typography className={localClasses.pipelineName}>
+                    {pipeline.pipelineName}
+                  </Typography>
+                </Link>
+                <Typography className={localClasses.pipelinePath}>
+                  {formatPipelinePath(pipeline.environments)}
+                </Typography>
+              </Box>
+              <Link
+                to={`/catalog/default/deploymentpipeline/${pipeline.pipelineEntityRef
+                  .split('/')
+                  .pop()}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <ChevronRightIcon className={localClasses.chevron} />
+              </Link>
+            </ListItem>
+          ))}
+        </List>
       </Box>
     </Card>
   );

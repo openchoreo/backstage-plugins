@@ -16944,6 +16944,7 @@ __metadata:
     "@testing-library/react": "npm:14.3.1"
     "@testing-library/user-event": "npm:14.6.1"
     "@types/react-dom": "npm:*"
+    clsx: "npm:^2.1.1"
     cross-env: "npm:7.0.3"
     json-schema: "npm:0.4.0"
     react: "npm:18.3.1"
