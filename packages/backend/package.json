@@ -50,6 +50,7 @@
     "@openchoreo/backstage-plugin-platform-engineer-core-backend": "workspace:^",
     "@openchoreo/backstage-plugin-scaffolder-backend-module": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",
+    "@openchoreo/plugin-catalog-backend-module-openchoreo-incremental": "workspace:^",
     "app": "link:../app",
     "better-sqlite3": "9.6.0",
     "cookie-parser": "1.4.7",

@@ -11,6 +11,10 @@ import {
   createOpenChoreoApiClient,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import {
+  fetchAllResources,
+  DEFAULT_PAGE_LIMIT,
+} from '@openchoreo/backstage-plugin-common';
 import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 
 // Use generated type from OpenAPI spec
@@ -86,34 +90,57 @@ export class CellDiagramInfoService implements CellDiagramService {
         logger: this.logger,
       });
 
-      const {
-        data: componentsListData,
-        error: listError,
-        response: listResponse,
-      } = await client.GET(
-        '/orgs/{orgName}/projects/{projectName}/components',
-        {
-          params: {
-            path: { orgName, projectName },
-          },
-        },
-      );
+      let componentsListItems: ModelsCompleteComponent[] = [];
 
-      if (listError || !listResponse.ok) {
+      try {
+        componentsListItems = await fetchAllResources(async cursor => {
+          const { data, error, response } = await client.GET(
+            '/orgs/{orgName}/projects/{projectName}/components',
+            {
+              params: {
+                path: { orgName, projectName },
+                query: {
+                  limit: DEFAULT_PAGE_LIMIT,
+                  ...(cursor && { continue: cursor }),
+                },
+              },
+            },
+          );
+
+          if (error || !response.ok || !data) {
+            throw new Error(
+              `Failed to fetch components for project ${projectName}: ${response.status} ${response.statusText}`,
+            );
+          }
+
+          if (!data.success || !data.data?.items) {
+            // Treat empty list as no components
+            return {
+              items: [] as ModelsCompleteComponent[],
+              metadata: data.data?.metadata,
+            };
+          }
+
+          return {
+            items: data.data.items as ModelsCompleteComponent[],
+            metadata: data.data?.metadata,
+          };
+        });
+      } catch (err) {
         this.logger.error(
-          `Failed to fetch components for project ${projectName}`,
+          `Failed to fetch components for project ${projectName}: ${err}`,
         );
         return undefined;
       }
 
-      if (!componentsListData.success || !componentsListData.data?.items) {
+      if (!componentsListItems || componentsListItems.length === 0) {
         this.logger.warn('No components found in API response');
         return undefined;
       }
 
       const completeComponents: ModelsCompleteComponent[] = [];
 
-      for (const component of componentsListData.data.items) {
+      for (const component of componentsListItems) {
         const componentName = (component as { name?: string }).name;
         if (!componentName) continue;
 

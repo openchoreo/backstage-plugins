@@ -1,12 +1,37 @@
 import { Entity } from '@backstage/catalog-model';
-import { OpenChoreoAPI } from '@openchoreo/openchoreo-client-node';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import {
   CHOREO_ANNOTATIONS,
   sanitizeLabel,
 } from '@openchoreo/backstage-plugin-common';
+import { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 
-type ComponentType = OpenChoreoAPI.ComponentType;
+/**
+ * Type definition for Component Type data structure used by the converter.
+ * This is assembled from ComponentTypeResponse metadata + schema data.
+ */
+type ComponentTypeResponse =
+  OpenChoreoComponents['schemas']['ComponentTypeResponse'];
+
+export interface ComponentType {
+  metadata: Pick<
+    ComponentTypeResponse,
+    | 'name'
+    | 'displayName'
+    | 'description'
+    | 'workloadType'
+    | 'tags'
+    | 'allowedWorkflows'
+    | 'createdAt'
+  > & {
+    name: NonNullable<ComponentTypeResponse['name']>;
+    workloadType: NonNullable<ComponentTypeResponse['workloadType']>;
+    createdAt: NonNullable<ComponentTypeResponse['createdAt']>;
+  };
+  spec: {
+    inputParametersSchema: JSONSchema7;
+  };
+}
 
 /**
  * Configuration for the Component Type to Template converter
@@ -41,6 +66,16 @@ export class CtdToTemplateConverter {
     componentType: ComponentType,
     organizationName: string,
   ): Entity {
+    // Validate required fields
+    if (!componentType.metadata?.name) {
+      throw new Error('ComponentType metadata.name is required');
+    }
+    if (!componentType.metadata?.workloadType) {
+      throw new Error(
+        `ComponentType ${componentType.metadata.name} is missing required field: workloadType`,
+      );
+    }
+
     const templateName = this.generateTemplateName(componentType.metadata.name);
     const title =
       componentType.metadata.displayName ||
@@ -50,11 +85,9 @@ export class CtdToTemplateConverter {
 
     // Infer tags from component type name and workloadType
     const inferredTags = this.inferTagsFromCtd(componentType);
-    const tags = [
-      'openchoreo',
-      ...inferredTags,
-      ...(componentType.metadata.tags || []),
-    ].filter(tag => tag && tag.trim().length > 0); // Filter out empty/whitespace-only tags
+    const tags = ['openchoreo', ...inferredTags].filter(
+      tag => tag && tag.trim().length > 0,
+    ); // Filter out empty/whitespace-only tags
 
     // Build the template entity
     const templateEntity: Entity = {
@@ -127,8 +160,12 @@ export class CtdToTemplateConverter {
   private inferTagsFromCtd(componentType: ComponentType): string[] {
     const tags: string[] = [];
 
+    // Add a stable tag indicating this is a component type
+    tags.push('component-type');
+
     // Add tags from component type name (split by hyphen)
-    tags.push(componentType.metadata.name);
+    const nameParts = componentType.metadata.name.split('-').filter(p => p);
+    tags.push(...nameParts);
 
     // Add workloadType as tag if available
     if (componentType.metadata.workloadType) {
@@ -136,6 +173,12 @@ export class CtdToTemplateConverter {
       if (!tags.includes(workloadType)) {
         tags.push(workloadType);
       }
+    }
+
+    // Append any user-provided tags from metadata (preserve order)
+    const providedTags = componentType.metadata.tags as string[] | undefined;
+    if (Array.isArray(providedTags) && providedTags.length > 0) {
+      tags.push(...providedTags.filter(t => !!t));
     }
 
     return tags;
@@ -160,7 +203,7 @@ export class CtdToTemplateConverter {
           title: 'Component Name',
           type: 'string',
           description: 'Unique name for your component',
-          'ui:field': 'ComponentNamePicker',
+          'ui:field': 'EntityNamePicker',
         },
         displayName: {
           title: 'Display Name',
@@ -210,10 +253,15 @@ export class CtdToTemplateConverter {
       });
     }
 
-    // Section 3: CI/CD Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
-    parameters.push(
-      this.generateCISetupSection(componentType, organizationName),
-    );
+    // Section 3: CI Setup (only included when allowedWorkflows are defined)
+    if (
+      componentType.metadata.allowedWorkflows &&
+      componentType.metadata.allowedWorkflows.length > 0
+    ) {
+      parameters.push(
+        this.generateCISetupSection(componentType, organizationName),
+      );
+    }
 
     // Section 4: Traits
     parameters.push(this.generateTraitsSection(organizationName));
@@ -250,10 +298,10 @@ export class CtdToTemplateConverter {
       workflowNameField.enum = componentType.metadata.allowedWorkflows;
     }
 
-    // Always show CI/CD Setup section
+    // CI Setup - exposed only when allowedWorkflows are present (caller enforces this)
     return {
-      title: 'CI/CD Setup',
-      required: ['autoDeploy', 'useBuiltInCI'],
+      title: 'CI Setup',
+      required: ['useBuiltInCI'],
       properties: {
         autoDeploy: {
           title: 'Auto Deploy',
@@ -269,30 +317,36 @@ export class CtdToTemplateConverter {
             'OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.',
           type: 'boolean',
           default: true,
-          'ui:field': 'SwitchField',
+          'ui:widget': 'radio',
         },
       },
       dependencies: {
         useBuiltInCI: {
-          oneOf: [
+          allOf: [
             {
-              properties: {
-                useBuiltInCI: {
-                  const: true,
+              if: { properties: { useBuiltInCI: { const: true } } },
+              then: {
+                properties: {
+                  useBuiltInCI: { const: true },
+                  workflow_name: workflowNameField,
+                  workflow_parameters: {
+                    title: 'Workflow Parameters',
+                    type: 'object',
+                    'ui:field': 'BuildWorkflowParameters',
+                  },
                 },
-                workflow_name: workflowNameField,
-                workflow_parameters: {
-                  title: 'Workflow Parameters',
-                  type: 'object',
-                  'ui:field': 'BuildWorkflowParameters',
-                },
+                required: ['workflow_name', 'workflow_parameters'],
               },
-              required: ['workflow_name', 'workflow_parameters'],
             },
             {
-              properties: {
-                useBuiltInCI: {
-                  const: false,
+              if: { properties: { useBuiltInCI: { const: false } } },
+              then: {
+                properties: {
+                  useBuiltInCI: { const: false },
+                  external_ci_note: {
+                    type: 'null',
+                    'ui:widget': 'markdown',
+                  },
                 },
               },
             },
@@ -308,9 +362,8 @@ export class CtdToTemplateConverter {
    */
   private generateTraitsSection(organizationName: string): any {
     return {
-      title: 'Traits',
-      description:
-        'Add optional traits to enhance your component functionality',
+      title: 'Addons',
+      description: 'Add optional addons or traits to extend your component',
       properties: {
         traits: {
           title: 'Component Traits',
@@ -439,8 +492,10 @@ export class CtdToTemplateConverter {
    * Add UI enhancements based on schema type and format
    */
   private addUIEnhancements(converted: any, schema: JSONSchema7): void {
-    // Boolean fields: use default checkbox widget
-    // (Custom switch widgets can be applied via ui:field in specific cases)
+    // Boolean fields: prefer radio widget for clearer UX
+    if (schema.type === 'boolean') {
+      converted['ui:widget'] = 'radio';
+    }
 
     // String fields with format hints
     if (schema.type === 'string') {
@@ -563,37 +618,51 @@ export class CtdToTemplateConverter {
       }
     }
 
+    // Check if CI Setup section is included
+    const hasCISetup =
+      componentType.metadata.allowedWorkflows &&
+      componentType.metadata.allowedWorkflows.length > 0;
+
+    // Build the input object dynamically
+    const stepInput: any = {
+      // Section 1: Component Metadata (use old field names for backward compatibility)
+      orgName: '${{ parameters.organization_name }}',
+      projectName: '${{ parameters.project_name }}',
+      componentName: '${{ parameters.component_name }}',
+      displayName: '${{ parameters.displayName }}',
+      description: '${{ parameters.description }}',
+
+      // Section 2: Component Type Configuration
+      componentType: componentType.metadata.name,
+      component_type_workload_type: componentType.metadata.workloadType,
+      // Spread CTD parameters dynamically
+      ...ctdParameterMappings,
+
+      // Section 4: Traits
+      traits: '${{ parameters.traits }}',
+      // All component-type specific parameters are available as the
+      // full `parameters` object to the action
+      componentTypeParameters: '${{ parameters }}',
+    };
+
+    // Only include CI Setup parameters if the CI section is present
+    if (hasCISetup) {
+      stepInput.autoDeploy = '${{ parameters.autoDeploy }}';
+      stepInput.useBuiltInCI = '${{ parameters.useBuiltInCI }}';
+      stepInput.workflow_name = '${{ parameters.workflow_name }}';
+      stepInput.workflow_parameters = '${{ parameters.workflow_parameters }}';
+    } else {
+      // Provide default values for CI parameters when CI section is not included
+      stepInput.useBuiltInCI = false;
+      stepInput.autoDeploy = false;
+    }
+
     return [
       {
         id: 'create-component',
         name: 'Create OpenChoreo Component',
         action: 'openchoreo:component:create',
-        input: {
-          // Section 1: Component Metadata (use old field names for backward compatibility)
-          orgName: '${{ parameters.organization_name }}',
-          projectName: '${{ parameters.project_name }}',
-          componentName: '${{ parameters.component_name }}',
-          displayName: '${{ parameters.displayName }}',
-          description: '${{ parameters.description }}',
-
-          // Section 2: Component Type Configuration
-          componentType: componentType.metadata.name,
-          component_type_workload_type: componentType.metadata.workloadType,
-          // Spread CTD parameters dynamically
-          ...ctdParameterMappings,
-
-          // Section 3: CI Setup
-          autoDeploy: '${{ parameters.autoDeploy }}',
-          useBuiltInCI: '${{ parameters.useBuiltInCI }}',
-          repo_url: '${{ parameters.repo_url }}',
-          branch: '${{ parameters.branch }}',
-          component_path: '${{ parameters.component_path }}',
-          workflow_name: '${{ parameters.workflow_name }}',
-          workflow_parameters: '${{ parameters.workflow_parameters }}',
-
-          // Section 4: Traits
-          traits: '${{ parameters.traits }}',
-        },
+        input: stepInput,
       },
     ];
   }

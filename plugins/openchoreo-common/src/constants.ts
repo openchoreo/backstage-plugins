@@ -32,6 +32,13 @@ export const CHOREO_LABELS = {
 } as const;
 
 /**
+ * Default page limit for API pagination requests.
+ * Set to 500 to align with the API's MaxPageLimit for optimal performance,
+ * reducing the number of HTTP requests needed for large deployments.
+ */
+export const DEFAULT_PAGE_LIMIT = 512;
+
+/**
  * Custom relation types for OpenChoreo entities.
  * These extend the standard Backstage relations.
  */

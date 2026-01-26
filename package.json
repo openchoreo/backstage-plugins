@@ -40,6 +40,7 @@
     "@backstage/e2e-test-utils": "0.1.1",
     "@changesets/cli": "2.29.7",
     "@playwright/test": "1.56.0",
+    "lint-staged": "^16.2.7",
     "node-gyp": "10.3.1",
     "prettier": "2.8.8",
     "typescript": "5.8.3"
@@ -51,11 +52,11 @@
   "prettier": "@backstage/cli/config/prettier",
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "eslint --fix",
-      "prettier --write"
+      "yarn backstage-cli package lint --fix",
+      "yarn prettier --write"
     ],
     "*.{json,md}": [
-      "prettier --write"
+      "yarn prettier --write"
     ]
   },
   "packageManager": "yarn@4.4.1"

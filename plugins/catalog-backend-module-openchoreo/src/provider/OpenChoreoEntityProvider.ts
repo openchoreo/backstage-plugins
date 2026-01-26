@@ -21,6 +21,11 @@ type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
 type ModelsCompleteComponent =
   OpenChoreoComponents['schemas']['ComponentResponse'];
+
+// Metadata used by list responses from the API
+type ResponseMetadata = OpenChoreoComponents['schemas']['ResponseMetadata'];
+
+// Deployment pipeline model (added in upstream/main)
 type ModelsDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
 
@@ -37,6 +42,8 @@ import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
   ComponentTypeUtils,
+  fetchAllResources,
+  DEFAULT_PAGE_LIMIT,
 } from '@openchoreo/backstage-plugin-common';
 import {
   EnvironmentEntityV1alpha1,
@@ -127,23 +134,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       });
 
       // First, get all organizations
-      const {
-        data: orgData,
-        error: orgError,
-        response: orgResponse,
-      } = await client.GET('/orgs');
-
-      if (orgError || !orgResponse.ok) {
-        throw new Error(
-          `Failed to fetch organizations: ${orgResponse.status} ${orgResponse.statusText}`,
-        );
-      }
-
-      if (!orgData.success || !orgData.data?.items) {
-        throw new Error('Failed to retrieve organization list');
-      }
-
-      const organizations = orgData.data.items as ModelsOrganization[];
+      const organizations = await this.fetchAllOrganizations(client);
       this.logger.debug(
         `Found ${organizations.length} organizations from OpenChoreo`,
       );
@@ -156,112 +147,35 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       );
       allEntities.push(...domainEntities);
 
-      // Get environments for each organization and create Environment entities
+      // Process organizations sequentially
       for (const org of organizations) {
         try {
-          const {
-            data: envData,
-            error: envError,
-            response: envResponse,
-          } = await client.GET('/orgs/{orgName}/environments', {
-            params: {
-              path: { orgName: org.name! },
-            },
-          });
+          // Fetch environments, dataplanes, and projects in parallel
+          const [environments, dataplanes, projects] = await Promise.all([
+            this.fetchAllEnvironments(client, org.name!),
+            this.fetchAllDataplanes(client, org.name!),
+            this.fetchAllProjects(client, org.name!),
+          ]);
 
-          if (envError || !envResponse.ok) {
-            this.logger.warn(
-              `Failed to fetch environments for organization ${org.name}: ${envResponse.status}`,
-            );
-            continue;
-          }
-
-          const environments =
-            envData.success && envData.data?.items
-              ? (envData.data.items as ModelsEnvironment[])
-              : [];
           this.logger.debug(
             `Found ${environments.length} environments in organization: ${org.name}`,
           );
-
           const environmentEntities: Entity[] = environments.map(environment =>
             this.translateEnvironmentToEntity(environment, org.name!),
           );
           allEntities.push(...environmentEntities);
-        } catch (error) {
-          this.logger.warn(
-            `Failed to fetch environments for organization ${org.name}: ${error}`,
-          );
-        }
-      }
 
-      // Get dataplanes for each organization and create Dataplane entities
-      for (const org of organizations) {
-        try {
-          const {
-            data: dpData,
-            error: dpError,
-            response: dpResponse,
-          } = await client.GET('/orgs/{orgName}/dataplanes', {
-            params: {
-              path: { orgName: org.name! },
-            },
-          });
-
-          if (dpError || !dpResponse.ok) {
-            this.logger.warn(
-              `Failed to fetch dataplanes for organization ${org.name}: ${dpResponse.status}`,
-            );
-            continue;
-          }
-
-          const dataplanes =
-            dpData.success && dpData.data?.items
-              ? (dpData.data.items as ModelsDataPlane[])
-              : [];
           this.logger.debug(
             `Found ${dataplanes.length} dataplanes in organization: ${org.name}`,
           );
-
           const dataplaneEntities: Entity[] = dataplanes.map(dataplane =>
             this.translateDataplaneToEntity(dataplane, org.name!),
           );
           allEntities.push(...dataplaneEntities);
-        } catch (error) {
-          this.logger.warn(
-            `Failed to fetch dataplanes for organization ${org.name}: ${error}`,
-          );
-        }
-      }
 
-      // Get projects for each organization and create System entities
-      for (const org of organizations) {
-        try {
-          const {
-            data: projData,
-            error: projError,
-            response: projResponse,
-          } = await client.GET('/orgs/{orgName}/projects', {
-            params: {
-              path: { orgName: org.name! },
-            },
-          });
-
-          if (projError || !projResponse.ok) {
-            this.logger.warn(
-              `Failed to fetch projects for organization ${org.name}: ${projResponse.status}`,
-            );
-            continue;
-          }
-
-          const projects =
-            projData.success && projData.data?.items
-              ? (projData.data.items as ModelsProject[])
-              : [];
           this.logger.debug(
             `Found ${projects.length} projects in organization: ${org.name}`,
           );
-
           const systemEntities: Entity[] = projects.map(project =>
             this.translateProjectToEntity(project, org.name!),
           );
@@ -324,91 +238,56 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   },
                 },
               );
+            } catch (error) {
+              this.logger.warn(
+                `Failed to fetch components for project ${project.name}: ${error}`,
+              );
+              continue;
+            }
 
-              if (compError || !compResponse.ok) {
-                this.logger.warn(
-                  `Failed to fetch components for project ${project.name}: ${compResponse.status}`,
-                );
-                continue;
-              }
+            const components =
+              compData?.success && compData?.data?.items
+                ? compData.data.items
+                : [];
+            this.logger.debug(
+              `Found ${components.length} components in project: ${project.name}`,
+            );
 
-              const components =
-                compData.success && compData.data?.items
-                  ? compData.data.items
-                  : [];
-              this.logger.debug(
-                `Found ${components.length} components in project: ${project.name}`,
+            for (const component of components) {
+              // Determine page variant to decide if we should treat this as a service
+              const pageVariant = this.componentTypeUtils.getPageVariant(
+                component.type || '',
               );
 
-              for (const component of components) {
-                // If the component is a Service (has endpoints), fetch complete details and create both component and API entities
-                const pageVariant = this.componentTypeUtils.getPageVariant(
-                  component.type || '',
-                );
-                if (pageVariant === 'service') {
-                  try {
-                    const {
-                      data: detailData,
-                      error: detailError,
-                      response: detailResponse,
-                    } = await client.GET(
-                      '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
-                      {
-                        params: {
-                          path: {
-                            orgName: org.name!,
-                            projectName: project.name!,
-                            componentName: component.name!,
-                          },
-                          query: {
-                            include: 'workload',
-                          },
+              if (pageVariant === 'service') {
+                // Service-like components may include workload/endpoints — fetch complete details with workload
+                try {
+                  const {
+                    data: detailData,
+                    error: detailError,
+                    response: detailResponse,
+                  } = await client.GET(
+                    '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+                    {
+                      params: {
+                        path: {
+                          orgName: org.name!,
+                          projectName: project.name!,
+                          componentName: component.name!,
                         },
                       },
-                    );
+                      query: { include: 'workload' },
+                    },
+                  );
 
-                    if (
-                      detailError ||
-                      !detailResponse.ok ||
-                      !detailData.success ||
-                      !detailData.data
-                    ) {
-                      this.logger.warn(
-                        `Failed to fetch complete component details for ${component.name}: ${detailResponse.status}`,
-                      );
-                      // Fallback to basic component entity
-                      const componentEntity = this.translateComponentToEntity(
-                        component,
-                        org.name!,
-                        project.name!,
-                      );
-                      allEntities.push(componentEntity);
-                      continue;
-                    }
-
-                    const completeComponent = detailData.data;
-
-                    // Create component entity with providesApis
-                    const componentEntity =
-                      this.translateServiceComponentToEntity(
-                        completeComponent,
-                        org.name!,
-                        project.name!,
-                      );
-                    allEntities.push(componentEntity);
-
-                    // Create API entities if endpoints exist
-                    if (completeComponent.workload?.endpoints) {
-                      const apiEntities = this.createApiEntitiesFromWorkload(
-                        completeComponent,
-                        org.name!,
-                        project.name!,
-                      );
-                      allEntities.push(...apiEntities);
-                    }
-                  } catch (error) {
+                  if (
+                    detailError ||
+                    !detailResponse.ok ||
+                    !detailData.success ||
+                    !detailData.data
+                  ) {
                     this.logger.warn(
-                      `Failed to fetch complete component details for ${component.name}: ${error}`,
+                      `Failed to fetch complete component details for ${component.name}: ${detailResponse?.status}`,
                     );
                     // Fallback to basic component entity
                     const componentEntity = this.translateComponentToEntity(
@@ -417,9 +296,34 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                       project.name!,
                     );
                     allEntities.push(componentEntity);
+                    continue;
                   }
-                } else {
-                  // Create basic component entity for non-Service components
+
+                  const completeComponent = detailData.data;
+
+                  // Create component entity with providesApis
+                  const componentEntity =
+                    this.translateServiceComponentToEntity(
+                      completeComponent,
+                      org.name!,
+                      project.name!,
+                    );
+                  allEntities.push(componentEntity);
+
+                  // Create API entities if endpoints exist
+                  if (completeComponent.workload?.endpoints) {
+                    const apiEntities = this.createApiEntitiesFromWorkload(
+                      completeComponent,
+                      org.name!,
+                      project.name!,
+                    );
+                    allEntities.push(...apiEntities);
+                  }
+                } catch (error) {
+                  this.logger.warn(
+                    `Failed to fetch complete component details for ${component.name}: ${error}`,
+                  );
+                  // Fallback to basic component entity
                   const componentEntity = this.translateComponentToEntity(
                     component,
                     org.name!,
@@ -427,151 +331,129 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   );
                   allEntities.push(componentEntity);
                 }
+              } else {
+                // Create basic component entity for non-Service components
+                const componentEntity = this.translateComponentToEntity(
+                  component,
+                  org.name!,
+                  project.name!,
+                );
+                allEntities.push(componentEntity);
               }
-            } catch (error) {
-              this.logger.warn(
-                `Failed to fetch components for project ${project.name} in organization ${org.name}: ${error}`,
-              );
             }
           }
         } catch (error) {
-          this.logger.warn(
-            `Failed to fetch projects for organization ${org.name}: ${error}`,
+          this.logger.error(
+            `Failed to process organization ${org.name}: ${error}`,
           );
+          // Continue processing other organizations
         }
       }
 
       // Fetch Component Type Definitions and generate Template entities
       // Use the new two-step API: list + schema for each CTD
       for (const org of organizations) {
-        try {
-          this.logger.info(
-            `Fetching Component Type Definitions from OpenChoreo API for org: ${org.name}`,
-          );
+        this.logger.info(
+          `Fetching Component Type Definitions from OpenChoreo API for org: ${org.name}`,
+        );
 
-          // Step 1: List CTDs (complete metadata including allowedWorkflows)
-          const {
-            data: listData,
-            error: listError,
-            response: listResponse,
-          } = await client.GET('/orgs/{orgName}/component-types', {
-            params: {
-              path: { orgName: org.name! },
-            },
-          });
+        // Step 1: List CTDs (complete metadata including allowedWorkflows)
+        const componentTypeItems = await this.fetchAllComponentTypes(
+          client,
+          org.name!,
+        );
+        this.logger.debug(
+          `Found ${componentTypeItems.length} CTDs in organization: ${org.name}`,
+        );
 
-          if (
-            listError ||
-            !listResponse.ok ||
-            !listData.success ||
-            !listData.data?.items
-          ) {
-            this.logger.warn(
-              `Failed to fetch component types for org ${org.name}: ${listResponse.status}`,
-            );
-            continue;
-          }
-
-          const componentTypeItems = listData.data
-            .items as OpenChoreoComponents['schemas']['ComponentTypeResponse'][];
-          this.logger.debug(
-            `Found ${componentTypeItems.length} CTDs in organization: ${org.name} (total: ${listData.data.totalCount})`,
-          );
-
-          // Step 2: Fetch schemas in parallel for better performance
-          const ctdsWithSchemas = await Promise.all(
-            componentTypeItems.map(async listItem => {
-              try {
-                const {
-                  data: schemaData,
-                  error: schemaError,
-                  response: schemaResponse,
-                } = await client.GET(
-                  '/orgs/{orgName}/component-types/{ctName}/schema',
-                  {
-                    params: {
-                      path: { orgName: org.name!, ctName: listItem.name! },
-                    },
+        // Step 2: Fetch schemas in parallel for better performance
+        const ctdsWithSchemas = await Promise.all(
+          componentTypeItems.map(async listItem => {
+            try {
+              const {
+                data: schemaData,
+                error: schemaError,
+                response: schemaResponse,
+              } = await client.GET(
+                '/orgs/{orgName}/component-types/{ctName}/schema',
+                {
+                  params: {
+                    path: { orgName: org.name!, ctName: listItem.name! },
                   },
-                );
+                },
+              );
 
-                if (
-                  schemaError ||
-                  !schemaResponse.ok ||
-                  !schemaData?.success ||
-                  !schemaData?.data
-                ) {
-                  this.logger.warn(
-                    `Failed to fetch schema for CTD ${listItem.name} in org ${org.name}: ${schemaResponse.status}`,
-                  );
-                  return null;
-                }
-
-                // Combine metadata from list item + schema into full ComponentType object
-                const fullComponentType = {
-                  metadata: {
-                    name: listItem.name!,
-                    displayName: listItem.displayName,
-                    description: listItem.description,
-                    workloadType: listItem.workloadType!,
-                    allowedWorkflows: listItem.allowedWorkflows,
-                    createdAt: listItem.createdAt!,
-                  },
-                  spec: {
-                    inputParametersSchema: schemaData!.data as any,
-                  },
-                };
-
-                return fullComponentType;
-              } catch (error) {
+              if (
+                schemaError ||
+                !schemaResponse.ok ||
+                !schemaData?.success ||
+                !schemaData?.data
+              ) {
                 this.logger.warn(
-                  `Failed to fetch schema for CTD ${listItem.name} in org ${org.name}: ${error}`,
+                  `Failed to fetch schema for CTD ${listItem.name} in org ${org.name}: ${schemaResponse.status}`,
                 );
                 return null;
               }
-            }),
-          );
 
-          // Filter out failed schema fetches
-          const validCTDs = ctdsWithSchemas.filter(
-            (ctd): ctd is NonNullable<typeof ctd> => ctd !== null,
-          );
+              // Combine metadata from list item + schema into full ComponentType object
+              const fullComponentType = {
+                metadata: {
+                  name: listItem.name!,
+                  displayName: listItem.displayName,
+                  description: listItem.description,
+                  workloadType: listItem.workloadType!,
+                  allowedWorkflows: listItem.allowedWorkflows,
+                  createdAt: listItem.createdAt!,
+                },
+                spec: {
+                  inputParametersSchema: schemaData!.data as any,
+                },
+              };
 
-          // Step 3: Convert CTDs to template entities
-          const templateEntities: Entity[] = validCTDs
-            .map(ctd => {
-              try {
-                const templateEntity =
-                  this.ctdConverter.convertCtdToTemplateEntity(ctd, org.name!);
-                // Add the required Backstage catalog annotations
-                if (!templateEntity.metadata.annotations) {
-                  templateEntity.metadata.annotations = {};
-                }
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-location'
-                ] = `provider:${this.getProviderName()}`;
-                templateEntity.metadata.annotations[
-                  'backstage.io/managed-by-origin-location'
-                ] = `provider:${this.getProviderName()}`;
-                return templateEntity;
-              } catch (error) {
-                this.logger.warn(
-                  `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
-                );
-                return null;
+              return fullComponentType;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to fetch schema for CTD ${listItem.name} in org ${org.name}: ${error}`,
+              );
+              return null;
+            }
+          }),
+        );
+
+        // Filter out failed schema fetches
+        const validCTDs = ctdsWithSchemas.filter(
+          (ctd): ctd is NonNullable<typeof ctd> => ctd !== null,
+        );
+
+        // Step 3: Convert CTDs to template entities
+        const templateEntities: Entity[] = validCTDs
+          .map(ctd => {
+            try {
+              const templateEntity =
+                this.ctdConverter.convertCtdToTemplateEntity(ctd, org.name!);
+              // Add the required Backstage catalog annotations
+              if (!templateEntity.metadata.annotations) {
+                templateEntity.metadata.annotations = {};
               }
-            })
-            .filter((entity): entity is Entity => entity !== null);
-
-          allEntities.push(...templateEntities);
-          this.logger.info(
-            `Successfully generated ${templateEntities.length} template entities from CTDs in org: ${org.name}`,
-          );
-        } catch (error) {
-          this.logger.warn(
-            `Failed to fetch Component Type Definitions for org ${org.name}: ${error}`,
-          );
-        }
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-location'
+              ] = `provider:${this.getProviderName()}`;
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-origin-location'
+              ] = `provider:${this.getProviderName()}`;
+              return templateEntity;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
+              );
+              return null;
+            }
+          })
+          .filter((entity): entity is Entity => entity !== null);
+        allEntities.push(...templateEntities);
+        this.logger.info(
+          `Successfully generated ${templateEntities.length} template entities from CTDs in org: ${org.name}`,
+        );
       }
 
       await this.connection.applyMutation({
@@ -604,6 +486,237 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     }
   }
 
+  /**
+   * Fetches all organizations
+   */
+  private async fetchAllOrganizations(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+  ): Promise<ModelsOrganization[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET('/orgs', {
+        params: {
+          query: {
+            limit: DEFAULT_PAGE_LIMIT,
+            ...(cursor && { continue: cursor }),
+          },
+        },
+      });
+
+      if (error || !response.ok || !data) {
+        if (response.status === 410) {
+          this.logger.warn(
+            'Pagination token expired (410 Gone) while fetching organizations - restarting sync required',
+          );
+        }
+        throw new Error(
+          `Failed to fetch organizations: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve organization list');
+      }
+
+      return {
+        items: data.data.items as ModelsOrganization[],
+        metadata: data.data.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  /**
+   * Fetches all environments for an organization
+   */
+  private async fetchAllEnvironments(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+  ): Promise<ModelsEnvironment[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/environments',
+        {
+          params: {
+            path: { orgName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch environments for ${orgName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve environment list');
+      }
+
+      return {
+        items: data.data.items as ModelsEnvironment[],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  /**
+   * Fetches all dataplanes for an organization
+   */
+  private async fetchAllDataplanes(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+  ): Promise<ModelsDataPlane[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/dataplanes',
+        {
+          params: {
+            path: { orgName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch dataplanes for ${orgName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve dataplane list');
+      }
+
+      return {
+        items: data.data.items as ModelsDataPlane[],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  /**
+   * Fetches all projects for an organization
+   */
+  private async fetchAllProjects(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+  ): Promise<ModelsProject[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects',
+        {
+          params: {
+            path: { orgName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch projects for ${orgName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve project list');
+      }
+
+      return {
+        items: data.data.items as ModelsProject[],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  /**
+   * Fetches all components for a project
+   */
+  private async fetchAllComponents(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+    projectName: string,
+  ): Promise<ModelsComponent[]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/projects/{projectName}/components',
+        {
+          params: {
+            path: { orgName, projectName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch components for ${orgName}/${projectName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve component list');
+      }
+
+      return {
+        items: data.data.items as ModelsComponent[],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  /**
+   * Fetches all component types for an organization
+   */
+  private async fetchAllComponentTypes(
+    client: ReturnType<typeof createOpenChoreoApiClient>,
+    orgName: string,
+  ): Promise<OpenChoreoComponents['schemas']['ComponentTypeResponse'][]> {
+    return fetchAllResources(async cursor => {
+      const { data, error, response } = await client.GET(
+        '/orgs/{orgName}/component-types',
+        {
+          params: {
+            path: { orgName },
+            query: {
+              limit: DEFAULT_PAGE_LIMIT,
+              ...(cursor && { continue: cursor }),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok || !data) {
+        throw new Error(
+          `Failed to fetch component types for ${orgName}: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data?.items) {
+        throw new Error('Failed to retrieve component type list');
+      }
+
+      return {
+        items: data.data
+          .items as OpenChoreoComponents['schemas']['ComponentTypeResponse'][],
+        metadata: data.data?.metadata as ResponseMetadata | undefined,
+      };
+    });
+  }
+
+  // --- Entity Translation Methods ---
   /**
    * Translates a ModelsOrganization from OpenChoreo API to a Backstage Domain entity
    */
