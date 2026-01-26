@@ -1,4 +1,3 @@
-import React from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import ErrorIcon from '@material-ui/icons/Error';
@@ -71,14 +70,14 @@ export interface ErrorStateProps {
  * }
  * ```
  */
-export const ErrorState: React.FC<ErrorStateProps> = ({
+export const ErrorState = ({
   title = 'Error',
   message,
   onRetry,
   retryLabel = 'Retry',
   showIcon = true,
   minHeight,
-}) => {
+}: ErrorStateProps) => {
   const classes = useStyles();
 
   return (

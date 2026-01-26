@@ -25,11 +25,13 @@ import {
   VerticalTabNav,
   TabItemData,
 } from '@openchoreo/backstage-design-system';
+import WidgetsIcon from '@material-ui/icons/Widgets';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import { ContainerContent } from './Workload/WorkloadEditor';
 import { useSecretReferences } from '@openchoreo/backstage-plugin-react';
 import type { EnvVar } from '@openchoreo/backstage-plugin-common';
+import { TraitParameters } from './TraitParameters';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -89,6 +91,7 @@ export const EnvironmentOverridesPage = ({
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
 
+  const [traitTypeMap, setTraitTypeMap] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<
@@ -102,6 +105,23 @@ export const EnvironmentOverridesPage = ({
 
   // Load secret references for workload overrides
   const { secretReferences } = useSecretReferences();
+
+  // Fetch component traits to get trait type information
+  useEffect(() => {
+    const fetchTraitTypes = async () => {
+      try {
+        const traits = await client.fetchComponentTraits(entity);
+        const typeMap: Record<string, string> = {};
+        traits.forEach(trait => {
+          typeMap[trait.instanceName] = trait.name;
+        });
+        setTraitTypeMap(typeMap);
+      } catch (err) {
+        // Silently fail - trait types are nice to have but not critical
+      }
+    };
+    fetchTraitTypes();
+  }, [client, entity]);
 
   // Use pendingAction release name when promoting/deploying, otherwise use environment's release
   const releaseNameForOverrides =
@@ -185,7 +205,7 @@ export const EnvironmentOverridesPage = ({
       tabList.push({
         id: 'component',
         label: 'Component',
-        icon: <SettingsIcon />,
+        icon: <WidgetsIcon />,
         status: getTabStatus(
           hasInitialComponentData,
           hasComponentChanges,
@@ -194,7 +214,20 @@ export const EnvironmentOverridesPage = ({
       });
     }
 
-    // Add trait tabs
+    // Add Workload tab
+    // Use hasActualWorkloadOverrides to check if backend has real overrides
+    const hasInitialWorkloadData = formState.hasActualWorkloadOverrides;
+    const hasWorkloadChanges = (changes.workload?.length || 0) > 0;
+    // Workload doesn't use JSON schema, so no required field validation
+    tabList.push({
+      id: 'workload',
+      label: 'Workload',
+      icon: <SettingsIcon />,
+      status: getTabStatus(hasInitialWorkloadData, hasWorkloadChanges, false),
+    });
+
+    // Build trait child tabs
+    const traitTabs: TabItemData[] = [];
     Object.keys(schemas.traitSchemasMap).forEach(traitName => {
       const traitSchema = schemas.traitSchemasMap[traitName];
       // Use hasActualTraitOverridesMap to check if backend has real overrides for this trait
@@ -206,10 +239,10 @@ export const EnvironmentOverridesPage = ({
         formState.traitFormDataMap[traitName],
       );
 
-      tabList.push({
+      traitTabs.push({
         id: `trait-${traitName}`,
         label: traitName,
-        icon: <ExtensionIcon />,
+        // icon: <ExtensionIcon />,
         status: getTabStatus(
           hasInitialTraitData,
           hasTraitChanges,
@@ -218,17 +251,27 @@ export const EnvironmentOverridesPage = ({
       });
     });
 
-    // Add Workload tab
-    // Use hasActualWorkloadOverrides to check if backend has real overrides
-    const hasInitialWorkloadData = formState.hasActualWorkloadOverrides;
-    const hasWorkloadChanges = (changes.workload?.length || 0) > 0;
-    // Workload doesn't use JSON schema, so no required field validation
-    tabList.push({
-      id: 'workload',
-      label: 'Workload',
-      icon: <ExtensionIcon />,
-      status: getTabStatus(hasInitialWorkloadData, hasWorkloadChanges, false),
-    });
+    // Add Traits group if there are any trait tabs
+    if (traitTabs.length > 0) {
+      // Aggregate status from child traits - prioritize error > info > success
+      let aggregatedStatus: TabItemData['status'] = undefined;
+      if (traitTabs.some(t => t.status === 'error')) {
+        aggregatedStatus = 'error';
+      } else if (traitTabs.some(t => t.status === 'info')) {
+        aggregatedStatus = 'info';
+      } else if (traitTabs.some(t => t.status === 'success')) {
+        aggregatedStatus = 'success';
+      }
+
+      tabList.push({
+        id: 'traits-group',
+        label: 'Traits',
+        icon: <ExtensionIcon />,
+        isGroup: true,
+        children: traitTabs,
+        status: aggregatedStatus,
+      });
+    }
 
     return tabList;
   }, [
@@ -806,9 +849,33 @@ export const EnvironmentOverridesPage = ({
       const traitName = activeTab.replace('trait-', '');
       const traitSchema = schemas.traitSchemasMap[traitName];
       if (traitSchema) {
+        // Get trait type from the map, fallback to generic "Trait" if not found
+        const traitType = traitTypeMap[traitName] || 'trait';
+
         return (
           <OverrideContent
             title={`${traitName} Trait`}
+            contentTitle={
+              <>
+                <Box display="flex" alignItems="center" gridGap={4} mb={4}>
+                  <Typography variant="h4">{traitName}</Typography>
+                  <Typography variant="h4" color="textSecondary">
+                    ({traitType})
+                  </Typography>
+                </Box>
+                <TraitParameters
+                  entity={entity}
+                  traitInstanceName={traitName}
+                />
+              </>
+            }
+            sectionTitle={
+              <Box mb={2}>
+                <Typography variant="h5" gutterBottom>
+                  Overrides
+                </Typography>
+              </Box>
+            }
             schema={traitSchema}
             formData={formState.traitFormDataMap[traitName] || {}}
             onChange={newData =>

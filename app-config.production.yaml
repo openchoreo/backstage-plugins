@@ -93,6 +93,11 @@ auth:
 
 catalog:
   locations:
+    # Placeholder groups for Backstage entity owner references
+    - type: file
+      target: /app/catalog-entities/org.yaml
+      rules:
+        - allow: [Group]
     - type: file
       target: /app/templates/create-openchoreo-project/template.yaml
       rules:
@@ -114,7 +119,9 @@ openchoreo:
     tokenUrl: ${OPENCHOREO_AUTH_TOKEN_URL}
     # scopes: ['openid'] # Optional: uncomment to specify scopes
 
-  defaultOwner: 'platformengineer' # Default owner for catalog entities
+  # Default owner for built-in Backstage entity kinds (Domain, System, Component, API)
+  # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
+  defaultOwner: 'guests' # Default owner for catalog entities
   # DEFAULT: Standard scheduled ingestion (recommended for most deployments)
   schedule:
     frequency: 30 # seconds between runs (default: 30)

@@ -60,9 +60,21 @@ export const InfrastructureWidget = () => {
       icon={<InfrastructureIcon fontSize="inherit" />}
       title="Infrastructure"
       metrics={[
-        { label: 'Data planes connected:', value: totalDataplanes },
-        { label: 'Environments:', value: totalEnvironments },
-        { label: 'Healthy workloads:', value: healthyWorkloadCount },
+        {
+          label: 'Data planes connected:',
+          value: totalDataplanes,
+          link: '/catalog?filters[kind]=dataplane',
+        },
+        {
+          label: 'Environments:',
+          value: totalEnvironments,
+          link: '/catalog?filters[kind]=environment',
+        },
+        {
+          label: 'Healthy workloads:',
+          value: healthyWorkloadCount,
+          link: '/catalog?filters[kind]=component',
+        },
       ]}
       loading={loading}
       errorMessage={error || undefined}

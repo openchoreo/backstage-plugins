@@ -262,7 +262,7 @@ export function ContainerContent({
                 alignItems="center"
                 justifyContent="space-between"
               >
-                <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
+                <Typography variant="h4">
                   {getContainerDisplayName(containerName)}
                 </Typography>
                 {!hideContainerFields && (
@@ -336,11 +336,7 @@ export function ContainerContent({
 
             {/* Environment Variables */}
             <Box mt={3}>
-              <Typography
-                variant="subtitle2"
-                gutterBottom
-                style={{ fontWeight: 600 }}
-              >
+              <Typography variant="h5" gutterBottom>
                 Environment Variables
               </Typography>
               {showEnvVarStatus && baseWorkloadData ? (
@@ -380,11 +376,7 @@ export function ContainerContent({
 
             {/* File Mounts */}
             <Box mt={3}>
-              <Typography
-                variant="subtitle2"
-                gutterBottom
-                style={{ fontWeight: 600 }}
-              >
+              <Typography variant="h5" gutterBottom>
                 File Mounts
               </Typography>
               {showEnvVarStatus && baseWorkloadData ? (

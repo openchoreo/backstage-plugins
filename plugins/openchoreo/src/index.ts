@@ -13,3 +13,25 @@ export {
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
 export { ProjectComponentsCard } from './components/Projects/ProjectComponentsCard';
+export {
+  useDeleteEntityMenuItems,
+  useEntityExistsCheck,
+  DeletionBadge,
+  DeletionWarning,
+  isMarkedForDeletion,
+  getDeletionTimestamp,
+} from './components/DeleteEntity';
+export {
+  EnvironmentStatusSummaryCard,
+  EnvironmentDeployedComponentsCard,
+  EnvironmentPromotionCard,
+  EnvironmentPipelinesTab,
+} from './components/EnvironmentOverview';
+export {
+  DataplaneStatusCard,
+  DataplaneEnvironmentsCard,
+} from './components/DataplaneOverview';
+export {
+  DeploymentPipelineVisualization,
+  PromotionPathsCard,
+} from './components/DeploymentPipelineOverview';

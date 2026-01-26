@@ -23,6 +23,7 @@ import {
   getUserTokenFromRequest,
   createRequireAuthMiddleware,
 } from '@openchoreo/openchoreo-auth';
+import type { LoggerService } from '@backstage/backend-plugin-api';
 
 export async function createRouter({
   environmentInfoService,
@@ -38,6 +39,7 @@ export async function createRouter({
   dataPlaneInfoService,
   tokenService,
   authEnabled,
+  logger,
 }: {
   environmentInfoService: EnvironmentInfoService;
   cellDiagramInfoService: CellDiagramService;
@@ -52,6 +54,7 @@ export async function createRouter({
   dataPlaneInfoService: DataPlaneInfoService;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
+  logger: LoggerService;
 }): Promise<express.Router> {
   const router = Router();
   router.use(express.json());
@@ -804,9 +807,9 @@ export async function createRouter({
 
   router.post('/authz/role-mappings', requireAuth, async (req, res) => {
     const mapping = req.body;
-    if (!mapping || !mapping.role_name || !mapping.entitlement) {
+    if (!mapping || !mapping.role.name || !mapping.entitlement) {
       throw new InputError(
-        'Mapping must have role_name and entitlement fields',
+        'Mapping must have role name and entitlement fields',
       );
     }
     const userToken = getUserTokenFromRequest(req);
@@ -822,9 +825,9 @@ export async function createRouter({
         throw new InputError('Invalid mapping ID');
       }
       const mapping = req.body;
-      if (!mapping || !mapping.role_name || !mapping.entitlement) {
+      if (!mapping || !mapping.role.name || !mapping.entitlement) {
         throw new InputError(
-          'Mapping must have role_name and entitlement fields',
+          'Mapping must have role name and entitlement fields',
         );
       }
       const userToken = getUserTokenFromRequest(req);
@@ -882,6 +885,49 @@ export async function createRouter({
       res.json(
         await authzService.listComponents(orgName, projectName, userToken),
       );
+    },
+  );
+
+  // Delete a component
+  router.delete(
+    '/orgs/:orgName/projects/:projectName/components/:componentName',
+    requireAuth,
+    async (req, res) => {
+      const { orgName, projectName, componentName } = req.params;
+      const userToken = getUserTokenFromRequest(req);
+
+      // Delete the component in OpenChoreo (marks for deletion)
+      await componentInfoService.deleteComponent(
+        orgName,
+        projectName,
+        componentName,
+        userToken,
+      );
+
+      logger.info(
+        `Component ${componentName} marked for deletion in OpenChoreo`,
+      );
+
+      // Return 204 No Content - the frontend uses localStorage for immediate UI feedback
+      // The next catalog sync will remove the entity from the catalog
+      res.status(204).send();
+    },
+  );
+
+  // Delete a project
+  router.delete(
+    '/orgs/:orgName/projects/:projectName',
+    requireAuth,
+    async (req, res) => {
+      const { orgName, projectName } = req.params;
+      const userToken = getUserTokenFromRequest(req);
+      await projectInfoService.deleteProject(orgName, projectName, userToken);
+
+      logger.info(`Project ${projectName} marked for deletion in OpenChoreo`);
+
+      // Return 204 No Content - the frontend uses localStorage for immediate UI feedback
+      // The next catalog sync will remove the entity from the catalog
+      res.status(204).send();
     },
   );
 

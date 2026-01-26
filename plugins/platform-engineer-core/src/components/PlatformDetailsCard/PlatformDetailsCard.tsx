@@ -1,9 +1,11 @@
-import { Box, Typography } from '@material-ui/core';
+import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
 import StorageIcon from '@material-ui/icons/Storage';
 import CloudIcon from '@material-ui/icons/Cloud';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
+import LaunchIcon from '@material-ui/icons/Launch';
+import { Link } from '@backstage/core-components';
 import { DataPlaneWithEnvironments } from '../../types';
 import { useStyles } from './styles';
 import { EmptyDataplanesState } from './EmptyDataplanesState';
@@ -49,12 +51,22 @@ export const PlatformDetailsCard = ({
                       {dataplane.displayName || dataplane.name}
                     </Typography>
                     <Typography variant="body2" color="textSecondary">
-                      {dataplane.environments.length} environments •{' '}
-                      {dataplane.organization}
+                      Data Plane • {dataplane.environments.length} environments
+                      • {dataplane.organization}
                     </Typography>
                   </Box>
                 </Box>
                 <Box display="flex" alignItems="center" gridGap={8}>
+                  <Tooltip title="View DataPlane Details">
+                    <IconButton
+                      size="small"
+                      component={Link}
+                      to={`/catalog/default/dataplane/${dataplane.name}`}
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <LaunchIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 </Box>
               </Box>

@@ -114,4 +114,49 @@ export class ProjectInfoService {
       throw error;
     }
   }
+
+  /**
+   * Deletes a project in OpenChoreo API.
+   *
+   * @param orgName - Organization name
+   * @param projectName - Project name
+   * @param token - Optional user token (overrides default token if provided)
+   */
+  async deleteProject(
+    orgName: string,
+    projectName: string,
+    token?: string,
+  ): Promise<void> {
+    this.logger.info(
+      `Deleting project: ${projectName} in organization: ${orgName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { error, response } = await client.DELETE(
+        '/orgs/{orgName}/projects/{projectName}',
+        {
+          params: {
+            path: { orgName, projectName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to delete project: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.info(`Successfully deleted project: ${projectName}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete project ${projectName}: ${error}`);
+      throw error;
+    }
+  }
 }

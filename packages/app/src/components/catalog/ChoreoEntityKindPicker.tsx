@@ -22,6 +22,7 @@ const kindDisplayNames: Record<string, string> = {
   template: 'Template',
   dataplane: 'Dataplane',
   environment: 'Environment',
+  deploymentpipeline: 'Deployment Pipeline',
 };
 
 // Custom order for displaying entity kinds in the dropdown
@@ -38,6 +39,7 @@ const kindDisplayOrder: string[] = [
   'template',
   'dataplane',
   'environment',
+  'deploymentpipeline',
 ];
 
 // Hook to fetch all available Choreo entity kinds from the catalog
@@ -216,13 +218,17 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
         )
       : customKindsMap;
 
-    // Always filter out dataplane and environment for non-platform engineers
+    // Always filter out platform engineer specific entities for non-platform engineers
     // This applies regardless of allowedKinds
     if (!isPlatformEngineer) {
       filteredKinds = new Map(
         [...filteredKinds].filter(([key]) => {
           const lowerKey = key.toLowerCase();
-          return lowerKey !== 'dataplane' && lowerKey !== 'environment';
+          return (
+            lowerKey !== 'dataplane' &&
+            lowerKey !== 'environment' &&
+            lowerKey !== 'deploymentpipeline'
+          );
         }),
       );
     }

@@ -61,10 +61,15 @@ export const DeveloperPortalWidget = () => {
       icon={<DeveloperModeIcon fontSize="inherit" />}
       title="Developer Portal"
       metrics={[
-        { label: 'Projects created:', value: projectsCount },
+        {
+          label: 'Projects created:',
+          value: projectsCount,
+          link: '/catalog?filters[kind]=system',
+        },
         {
           label: 'Components deployed:',
           value: distinctDeployedComponentsCount,
+          link: '/catalog?filters[kind]=component',
         },
       ]}
       loading={loading}

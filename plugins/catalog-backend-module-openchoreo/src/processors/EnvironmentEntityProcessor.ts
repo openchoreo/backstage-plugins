@@ -4,8 +4,12 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import { RELATION_OWNED_BY, RELATION_PART_OF } from '@backstage/catalog-model';
+import { RELATION_PART_OF } from '@backstage/catalog-model';
 import { EnvironmentEntityV1alpha1 } from '../kinds/EnvironmentEntityV1alpha1';
+import {
+  RELATION_HOSTED_ON,
+  RELATION_HOSTS,
+} from '@openchoreo/backstage-plugin-common';
 
 /**
  * Processor for Environment entities
@@ -31,9 +35,6 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
       if (!entity.spec?.type) {
         throw new Error('Environment entity must have spec.type');
       }
-      if (!entity.spec?.owner) {
-        throw new Error('Environment entity must have spec.owner');
-      }
 
       // Emit relationships based on spec fields
       const sourceRef = {
@@ -57,17 +58,27 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
         );
       }
 
-      // Emit ownedBy relationship to owner
-      if (entity.spec.owner) {
+      // Emit hostedOn/hosts relationship between Environment and DataPlane
+      if (entity.spec.dataPlaneRef) {
+        const dataplaneRef = {
+          kind: 'dataplane',
+          namespace: 'default',
+          name: entity.spec.dataPlaneRef,
+        };
+        // Environment hostedOn DataPlane
         emit(
           processingResult.relation({
             source: sourceRef,
-            target: {
-              kind: 'group',
-              namespace: 'default',
-              name: entity.spec.owner,
-            },
-            type: RELATION_OWNED_BY,
+            target: dataplaneRef,
+            type: RELATION_HOSTED_ON,
+          }),
+        );
+        // DataPlane hosts Environment (inverse)
+        emit(
+          processingResult.relation({
+            source: dataplaneRef,
+            target: sourceRef,
+            type: RELATION_HOSTS,
           }),
         );
       }

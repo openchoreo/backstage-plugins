@@ -83,6 +83,79 @@ export function getRepositoryUrl(
 }
 
 /**
+ * Common acronyms and abbreviations that should be displayed in uppercase
+ */
+const KNOWN_ACRONYMS = new Set([
+  'cpu',
+  'ai',
+  'gpu',
+  'ram',
+  'api',
+  'url',
+  'uri',
+  'http',
+  'https',
+  'ftp',
+  'ssh',
+  'ssl',
+  'tls',
+  'tcp',
+  'udp',
+  'ip',
+  'dns',
+  'html',
+  'css',
+  'json',
+  'xml',
+  'yaml',
+  'sql',
+  'db',
+  'id',
+  'uuid',
+  'jwt',
+  'oauth',
+  'smtp',
+  'imap',
+  'pop',
+  'csv',
+  'pdf',
+  'ui',
+  'ux',
+  'cli',
+  'sdk',
+  'jvm',
+  'npm',
+  'ttl',
+  'vpc',
+  'aws',
+  'gcp',
+  'iam',
+  'cidr',
+  'arn',
+  'rpc',
+  'grpc',
+  'rest',
+  'cors',
+  'csrf',
+  'xss',
+  'dos',
+  'ddos',
+  'vm',
+  'os',
+  'io',
+  'ide',
+  'gui',
+  'ascii',
+  'utf',
+  'iso',
+  'mime',
+  'sha',
+  'md',
+  'aes',
+  'rsa',
+]);
+
+/**
  * Converts camelCase or snake_case strings to Title Case for display labels
  *
  * This utility is used to generate human-readable labels from schema property keys
@@ -96,8 +169,10 @@ export function getRepositoryUrl(
  * sanitizeLabel('imagePullPolicy')      // "Image Pull Policy"
  * sanitizeLabel('image_pull_policy')    // "Image Pull Policy"
  * sanitizeLabel('CPU')                  // "CPU" (preserves acronyms)
- * sanitizeLabel('httpPort')             // "Http Port"
+ * sanitizeLabel('cpu')                  // "CPU" (converts known acronym)
+ * sanitizeLabel('httpPort')             // "HTTP Port"
  * sanitizeLabel('maxRetries3')          // "Max Retries 3"
+ * sanitizeLabel('apiUrl')               // "API URL"
  * ```
  */
 export function sanitizeLabel(key: string): string {
@@ -119,9 +194,16 @@ export function sanitizeLabel(key: string): string {
   const titleCased = words.map(word => {
     if (!word) return '';
 
+    const lowerWord = word.toLowerCase();
+
     // Keep all-caps acronyms as-is (e.g., CPU, HTTP, URL)
     if (word.length > 1 && word === word.toUpperCase()) {
       return word;
+    }
+
+    // Convert known acronyms to uppercase
+    if (KNOWN_ACRONYMS.has(lowerWord)) {
+      return word.toUpperCase();
     }
 
     // Capitalize first letter, lowercase the rest

@@ -41,7 +41,8 @@
     "@material-ui/lab": "4.0.0-alpha.61",
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
-    "@openchoreo/openchoreo-client-node": "workspace:^"
+    "@openchoreo/openchoreo-client-node": "workspace:^",
+    "clsx": "^2.1.1"
   },
   "peerDependencies": {
     "react": "^18.0.0",

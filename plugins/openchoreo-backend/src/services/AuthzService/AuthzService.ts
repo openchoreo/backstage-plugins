@@ -291,7 +291,7 @@ export class AuthzService {
     mapping: RoleEntitlementMapping,
     userToken?: string,
   ): Promise<{ data: RoleEntitlementMapping }> {
-    this.logger.debug(`Creating role mapping for role: ${mapping.role_name}`);
+    this.logger.debug(`Creating role mapping for role: ${mapping.role?.name}`);
 
     try {
       const client = this.createClient(userToken);
@@ -313,7 +313,7 @@ export class AuthzService {
 
       const mappingResponse = data as RoleMappingResponse;
       this.logger.debug(
-        `Successfully created role mapping for role: ${mapping.role_name}`,
+        `Successfully created role mapping for role: ${mapping.role.name}`,
       );
 
       return { data: mappingResponse.data! };

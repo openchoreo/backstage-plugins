@@ -14,7 +14,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "43b0c9d2bf2d4e69156953b467225f31e46c4833",
-  "lastSyncDate": "2026-01-07T18:53:05+05:30",
-  "lastSyncDescription": "Updated DataPlane schemas with HTTP port fields and observabilityPlaneRef"
+  "lastSyncCommit": "41e0e5bd871a305d63eabe6734ced147a9bdbff5",
+  "lastSyncDate": "2026-01-16T00:00:00+00:00",
+  "lastSyncDescription": "Added DELETE endpoints for projects and components, added deletionTimestamp field to ComponentResponse and ProjectResponse"
 }

@@ -1,7 +1,7 @@
+import { ReactNode } from 'react';
 import { StructuredMetadataTable } from '@backstage/core-components';
 import { Box, Button, Typography } from '@material-ui/core';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
-import React from 'react';
 import { useStyles } from './styles';
 
 // Render a nested object as formatted key-value pairs
@@ -19,7 +19,7 @@ const NestedObjectRenderer = ({
           return null;
         }
 
-        let displayValue: React.ReactNode;
+        let displayValue: ReactNode;
 
         if (typeof value === 'boolean') {
           displayValue = value ? '✓ Yes' : '✗ No';

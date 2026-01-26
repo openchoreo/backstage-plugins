@@ -133,4 +133,53 @@ export class ComponentInfoService {
       throw error;
     }
   }
+
+  /**
+   * Deletes a component in OpenChoreo API.
+   *
+   * @param orgName - Organization name
+   * @param projectName - Project name
+   * @param componentName - Component name
+   * @param token - Optional user token (overrides default token if provided)
+   */
+  async deleteComponent(
+    orgName: string,
+    projectName: string,
+    componentName: string,
+    token?: string,
+  ): Promise<void> {
+    this.logger.info(
+      `Deleting component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { error, response } = await client.DELETE(
+        '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+        {
+          params: {
+            path: { orgName, projectName, componentName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to delete component: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.info(`Successfully deleted component: ${componentName}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete component ${componentName}: ${error}`,
+      );
+      throw error;
+    }
+  }
 }

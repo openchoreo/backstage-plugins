@@ -27,9 +27,11 @@ export interface ComponentSchemaResponse {
 export interface ReleaseBinding {
   name: string;
   environment: string;
+  releaseName?: string;
   componentTypeEnvOverrides?: unknown;
   traitOverrides?: unknown;
   workloadOverrides?: unknown;
+  endpoints?: { url: string }[];
   status?: string;
 }
 
@@ -106,7 +108,7 @@ export interface Entitlement {
 }
 
 export interface ResourceHierarchy {
-  organization?: string;
+  namespace?: string;
   organization_units?: string[];
   project?: string;
   component?: string;
@@ -116,11 +118,16 @@ export type PolicyEffect = 'allow' | 'deny';
 
 export interface RoleEntitlementMapping {
   id?: number;
-  role_name: string;
+  role: RoleEntitlementMappingRoleRef;
   entitlement: Entitlement;
   hierarchy: ResourceHierarchy;
   effect: PolicyEffect;
   context?: Record<string, unknown>;
+}
+
+export interface RoleEntitlementMappingRoleRef {
+  name: string;
+  namespace?: string;
 }
 
 /** Filters for listing role mappings */
@@ -283,8 +290,15 @@ export interface OpenChoreoClientApi {
 
   // === Component & Environment Info ===
 
-  /** Get component details (including UID) */
-  getComponentDetails(entity: Entity): Promise<{ uid?: string }>;
+  /** Get component details (including UID and deletionTimestamp) */
+  getComponentDetails(
+    entity: Entity,
+  ): Promise<{ uid?: string; deletionTimestamp?: string }>;
+
+  /** Get project details (including UID and deletionTimestamp) */
+  getProjectDetails(
+    entity: Entity,
+  ): Promise<{ uid?: string; deletionTimestamp?: string }>;
 
   /** Get list of environments for a component */
   getEnvironments(entity: Entity): Promise<Environment[]>;
@@ -398,6 +412,14 @@ export interface OpenChoreoClientApi {
     organizationName: string,
     dataplaneName: string,
   ): Promise<any>;
+
+  // === Entity Delete Operations ===
+
+  /** Delete a component */
+  deleteComponent(entity: Entity): Promise<void>;
+
+  /** Delete a project */
+  deleteProject(entity: Entity): Promise<void>;
 }
 
 // ============================================

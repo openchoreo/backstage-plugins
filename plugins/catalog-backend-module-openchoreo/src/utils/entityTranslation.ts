@@ -14,7 +14,7 @@ type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
  */
 export interface ComponentEntityTranslationConfig {
   /**
-   * Default owner for the component entity
+   * Default owner for the component entity (required by Backstage Component kind schema)
    */
   defaultOwner: string;
   /**
@@ -72,6 +72,9 @@ export function translateComponentToEntity(
         }),
         ...(component.status && {
           [CHOREO_ANNOTATIONS.STATUS]: component.status,
+        }),
+        ...(component.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: component.deletionTimestamp,
         }),
         ...(() => {
           const repoInfo = getRepositoryInfo(component);

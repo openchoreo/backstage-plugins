@@ -49,6 +49,14 @@ import {
   RELATION_PART_OF,
   RELATION_PROVIDES_API,
 } from '@backstage/catalog-model';
+import {
+  RELATION_PROMOTES_TO,
+  RELATION_PROMOTED_BY,
+  RELATION_USES_PIPELINE,
+  RELATION_PIPELINE_USED_BY,
+  RELATION_HOSTED_ON,
+  RELATION_HOSTS,
+} from '@openchoreo/backstage-plugin-common';
 
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
 import { ReportIssue } from '@backstage/plugin-techdocs-module-addons-contrib';
@@ -67,9 +75,18 @@ import {
   DeploymentPipelineCard,
   ProjectComponentsCard,
   Traits,
+  EnvironmentStatusSummaryCard,
+  EnvironmentDeployedComponentsCard,
+  EnvironmentPromotionCard,
+  EnvironmentPipelinesTab,
+  DataplaneStatusCard,
+  DataplaneEnvironmentsCard,
+  DeploymentPipelineVisualization,
+  PromotionPathsCard,
 } from '@openchoreo/backstage-plugin';
+import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
-import { WorkflowsPage as Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
+import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
 
 import {
   ObservabilityMetrics,
@@ -80,6 +97,7 @@ import {
 
 import { FeatureGate } from '@openchoreo/backstage-plugin-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
+import { CustomGraphNode } from './CustomGraphNode';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -148,20 +166,22 @@ function OverviewContent() {
         <EntityAboutCard variant="gridItem" />
       </Grid>
       <Grid item md={6} xs={12}>
-        <EntityCatalogGraphCard variant="gridItem" height={400} />
+        <EntityCatalogGraphCard
+          variant="gridItem"
+          height={400}
+          renderNode={CustomGraphNode}
+        />
       </Grid>
     </Grid>
   );
 }
 
 /**
- * Service entity page with feature-gated routes.
- * - Workflows tab: shows empty state when workflows feature is disabled
- * - Runtime Logs tab: shows empty state when observability feature is disabled
- * - Metrics tab: shows empty state when observability feature is disabled
+ * Service entity page with delete menu support.
+ * Routes are defined as static JSX children so routable extensions are discoverable.
  */
 const serviceEntityPage = (
-  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+  <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
     </EntityLayout.Route>
@@ -225,17 +245,15 @@ const serviceEntityPage = (
     <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 /**
- * Website entity page with feature-gated routes.
- * - Workflows tab: shows empty state when workflows feature is disabled
- * - Runtime Logs tab: shows empty state when observability feature is disabled
- * - Metrics tab: shows empty state when observability feature is disabled
+ * Website entity page with delete menu support.
+ * Routes are defined as static JSX children so routable extensions are discoverable.
  */
 const websiteEntityPage = (
-  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+  <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
     </EntityLayout.Route>
@@ -288,7 +306,7 @@ const websiteEntityPage = (
     <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 /**
@@ -366,7 +384,11 @@ const apiPage = (
           <EntityAboutCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
         <Grid item md={4} xs={12}>
           <EntityLinksCard />
@@ -431,11 +453,11 @@ const groupPage = (
 );
 
 /**
- * System page with feature-gated Traces route.
- * - Traces tab: shows empty state when observability feature is disabled
+ * System page (for Projects) with delete menu support.
+ * Routes are defined as static JSX children so routable extensions are discoverable.
  */
 const systemPage = (
-  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+  <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
@@ -452,7 +474,11 @@ const systemPage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -476,6 +502,7 @@ const systemPage = (
           RELATION_DEPENDS_ON,
         ]}
         unidirectional={false}
+        renderNode={CustomGraphNode}
       />
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">
@@ -488,7 +515,7 @@ const systemPage = (
         <ObservabilityRCA />
       </FeatureGatedContent>
     </EntityLayout.Route>
-  </EntityLayout>
+  </EntityLayoutWithDelete>
 );
 
 const domainPage = (
@@ -500,7 +527,11 @@ const domainPage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
         <Grid item md={6}>
           <EntityHasSystemsCard variant="gridItem" />
@@ -519,7 +550,11 @@ const resourcePage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
         <Grid item md={4} xs={12}>
           <EntityLinksCard />
@@ -537,17 +572,101 @@ const environmentPage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        <Grid item md={6}>
+        {/* Row 1: Deployment Health + Deployment Pipelines */}
+        <Grid item md={6} xs={12}>
+          <EnvironmentStatusSummaryCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EnvironmentPromotionCard />
+        </Grid>
+        {/* Row 2: Deployed Components */}
+        <Grid item xs={12}>
+          <EnvironmentDeployedComponentsCard />
+        </Grid>
+        {/* Row 3: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard variant="gridItem" height={400} />
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[
+              RELATION_PART_OF,
+              RELATION_HAS_PART,
+              RELATION_PROMOTES_TO,
+              RELATION_PROMOTED_BY,
+              RELATION_HOSTED_ON,
+              RELATION_HOSTS,
+            ]}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
-        <Grid item md={4} xs={12}>
-          <EntityLinksCard />
+      </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/pipelines" title="Pipelines">
+      <EnvironmentPipelinesTab />
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const dataplanePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Status + Hosted Environments */}
+        <Grid item md={6} xs={12}>
+          <DataplaneStatusCard />
         </Grid>
-        <Grid item md={8}>
-          <EntityHasComponentsCard variant="gridItem" />
+        <Grid item md={6} xs={12}>
+          <DataplaneEnvironmentsCard />
+        </Grid>
+        {/* Row 2: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[RELATION_HOSTED_ON, RELATION_HOSTS]}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const deploymentPipelinePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Pipeline Visualization + Promotion Paths (side by side) */}
+        <Grid item md={6} xs={12}>
+          <DeploymentPipelineVisualization />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <PromotionPathsCard />
+        </Grid>
+        {/* Row 2: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[
+              RELATION_PROMOTES_TO,
+              RELATION_PROMOTED_BY,
+              RELATION_USES_PIPELINE,
+              RELATION_PIPELINE_USED_BY,
+            ]}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
       </Grid>
     </EntityLayout.Route>
@@ -564,6 +683,11 @@ export const entityPage = (
     <EntitySwitch.Case if={isKind('domain')} children={domainPage} />
     <EntitySwitch.Case if={isKind('resource')} children={resourcePage} />
     <EntitySwitch.Case if={isKind('environment')} children={environmentPage} />
+    <EntitySwitch.Case if={isKind('dataplane')} children={dataplanePage} />
+    <EntitySwitch.Case
+      if={isKind('deploymentpipeline')}
+      children={deploymentPipelinePage}
+    />
 
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>
   </EntitySwitch>

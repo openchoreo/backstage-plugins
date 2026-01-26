@@ -59,7 +59,7 @@ const ROLE_TEMPLATES = {
   },
   viewer: {
     name: 'viewer',
-    actions: ['component:view', 'project:view', 'organization:view'],
+    actions: ['component:view', 'project:view', 'namespace:view'],
   },
   admin: {
     name: 'admin',

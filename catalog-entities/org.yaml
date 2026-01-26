@@ -1,0 +1,19 @@
+# Placeholder Group entities for Backstage catalog owner references
+#
+# These groups exist to satisfy Backstage's schema validation for built-in
+# entity kinds (Domain, System, Component, API, Template) which require
+# an owner field that references an existing Group entity.
+#
+# OpenChoreo uses an entitlement-based RBAC model where authorization is
+# determined by user types and role-entitlement mappings, not entity ownership.
+# These placeholder groups are purely for Backstage compatibility.
+
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: guests
+  title: Guests
+  description: Default owner group for OpenChoreo catalog entities. This is a placeholder group for Backstage compatibility.
+spec:
+  type: team
+  children: []

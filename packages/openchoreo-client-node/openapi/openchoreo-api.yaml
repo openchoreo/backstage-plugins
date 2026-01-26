@@ -201,6 +201,10 @@ components:
           format: date-time
         status:
           type: string
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the project was marked for deletion
 
     CreateProjectRequest:
       type: object
@@ -295,6 +299,10 @@ components:
         createdAt:
           type: string
           format: date-time
+        deletionTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the component was marked for deletion
         status:
           type: string
         autoDeploy:
@@ -1481,7 +1489,7 @@ components:
     RoleEntitlementMapping:
       type: object
       required:
-        - role_name
+        - role
         - entitlement
         - hierarchy
         - effect
@@ -1489,8 +1497,8 @@ components:
         id:
           type: integer
           description: Unique identifier for the mapping
-        role_name:
-          type: string
+        role:
+          $ref: '#/components/schemas/RoleRef'
         entitlement:
           $ref: '#/components/schemas/Entitlement'
         hierarchy:
@@ -1499,6 +1507,18 @@ components:
           $ref: '#/components/schemas/PolicyEffectType'
         context:
           type: object
+
+    RoleRef:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the role
+        namespace:
+          type: string
+          description: Optional namespace for the role
 
     UpdateRoleRequest:
       type: object
@@ -2497,6 +2517,31 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/ProjectResponse'
+    delete:
+      summary: Delete a project
+      operationId: deleteProject
+      tags:
+        - Projects
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Project deleted successfully
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
 
   /orgs/{orgName}/projects/{projectName}/deployment-pipeline:
     get:
@@ -2691,6 +2736,36 @@ paths:
           description: Component or project not found
         '500':
           description: Internal server error
+    delete:
+      summary: Delete a component
+      operationId: deleteComponent
+      tags:
+        - Components
+      parameters:
+        - name: orgName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Component deleted successfully
+        '404':
+          description: Component or project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIResponse'
 
   /orgs/{orgName}/projects/{projectName}/components/{componentName}/schema:
     get:

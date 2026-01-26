@@ -23,6 +23,8 @@ export const CHOREO_ANNOTATIONS = {
   CTD_NAME: 'openchoreo.io/ctd-name',
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
   CTD_GENERATED: 'openchoreo.io/ctd-generated',
+  // Deletion tracking
+  DELETION_TIMESTAMP: 'openchoreo.io/deletion-timestamp',
 } as const;
 
 export const CHOREO_LABELS = {
@@ -35,3 +37,44 @@ export const CHOREO_LABELS = {
  * reducing the number of HTTP requests needed for large deployments.
  */
 export const DEFAULT_PAGE_LIMIT = 512;
+
+/**
+ * Custom relation types for OpenChoreo entities.
+ * These extend the standard Backstage relations.
+ */
+
+/**
+ * A relation indicating that a DeploymentPipeline promotes deployments to an Environment.
+ * The source is the pipeline, the target is the environment.
+ */
+export const RELATION_PROMOTES_TO = 'promotesTo';
+
+/**
+ * A relation indicating that an Environment receives promotions from a DeploymentPipeline.
+ * This is the inverse of RELATION_PROMOTES_TO.
+ */
+export const RELATION_PROMOTED_BY = 'promotedBy';
+
+/**
+ * A relation indicating that a System (Project) uses a DeploymentPipeline.
+ * The source is the project, the target is the pipeline.
+ */
+export const RELATION_USES_PIPELINE = 'usesPipeline';
+
+/**
+ * A relation indicating that a DeploymentPipeline is used by a System (Project).
+ * This is the inverse of RELATION_USES_PIPELINE.
+ */
+export const RELATION_PIPELINE_USED_BY = 'pipelineUsedBy';
+
+/**
+ * A relation indicating that an Environment is hosted on a DataPlane.
+ * The source is the environment, the target is the dataplane.
+ */
+export const RELATION_HOSTED_ON = 'hostedOn';
+
+/**
+ * A relation indicating that a DataPlane hosts Environments.
+ * This is the inverse of RELATION_HOSTED_ON.
+ */
+export const RELATION_HOSTS = 'hosts';
