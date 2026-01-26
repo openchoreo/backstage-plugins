@@ -33,11 +33,11 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
   const environmentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ENVIRONMENT] ||
     entity.metadata.name;
-  const organization =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   const fetchPipelines = useCallback(async () => {
-    if (!organization || !environmentName) {
+    if (!namespaceName || !environmentName) {
       setLoading(false);
       return;
     }
@@ -141,7 +141,7 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
     } finally {
       setLoading(false);
     }
-  }, [organization, environmentName, catalogApi]);
+  }, [namespaceName, environmentName, catalogApi]);
 
   useEffect(() => {
     fetchPipelines();

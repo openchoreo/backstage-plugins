@@ -273,10 +273,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 error: pipelineError,
                 response: pipelineResponse,
               } = await client.GET(
-                '/orgs/{orgName}/projects/{projectName}/deployment-pipeline',
+                '/namespaces/{namespaceName}/projects/{projectName}/deployment-pipeline',
                 {
                   params: {
-                    path: { orgName: org.name!, projectName: project.name! },
+                    path: {
+                      namespaceName: ns.name!,
+                      projectName: project.name!,
+                    },
                   },
                 },
               );
@@ -289,7 +292,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               ) {
                 const pipelineEntity = this.translateDeploymentPipelineToEntity(
                   pipelineData.data as ModelsDeploymentPipeline,
-                  org.name!,
+                  ns.name!,
                   project.name!,
                 );
                 allEntities.push(pipelineEntity);
@@ -809,7 +812,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    */
   private translateDeploymentPipelineToEntity(
     pipeline: ModelsDeploymentPipeline,
-    orgName: string,
+    namespaceName: string,
     projectName: string,
   ): DeploymentPipelineEntityV1alpha1 {
     // Transform promotion paths from API format to entity format
@@ -829,7 +832,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       kind: 'DeploymentPipeline',
       metadata: {
         name: pipeline.name,
-        namespace: orgName,
+        namespace: namespaceName,
         title: pipeline.displayName || pipeline.name,
         description:
           pipeline.description || `Deployment pipeline for ${projectName}`,
@@ -837,7 +840,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         annotations: {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.ORGANIZATION]: orgName,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.PROJECT]: projectName,
           ...(pipeline.createdAt && {
             [CHOREO_ANNOTATIONS.CREATED_AT]: pipeline.createdAt,
@@ -854,7 +857,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       spec: {
         type: 'promotion-pipeline',
         projectRef: projectName,
-        organization: orgName,
+        namespaceName: namespaceName,
         promotionPaths,
       },
     };

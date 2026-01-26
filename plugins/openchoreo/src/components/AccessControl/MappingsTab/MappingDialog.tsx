@@ -104,8 +104,8 @@ export const MappingDialog = ({
             editingMapping.hierarchy.component
               ? 'specific'
               : 'global',
-          organization: editingMapping.hierarchy.namespace || '',
-          orgUnits: editingMapping.hierarchy.organization_units || [],
+          namespace: editingMapping.hierarchy.namespace || '',
+          namespaceUnits: editingMapping.hierarchy.organization_units || [],
           project: editingMapping.hierarchy.project || '',
           component: editingMapping.hierarchy.component || '',
           effect: editingMapping.effect,
@@ -174,9 +174,10 @@ export const MappingDialog = ({
           wizardState.scopeType === 'global'
             ? {}
             : {
-                namespace: wizardState.organization || undefined,
+                namespace: wizardState.namespace || undefined,
                 organization_units:
-                  wizardState.orgUnits.filter(u => u.trim()) || undefined,
+                  wizardState.namespaceUnits.filter((u: string) => u.trim()) ||
+                  undefined,
                 project: wizardState.project || undefined,
                 component: wizardState.component || undefined,
               },

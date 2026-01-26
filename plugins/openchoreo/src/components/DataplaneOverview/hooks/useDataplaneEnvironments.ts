@@ -30,11 +30,11 @@ export function useDataplaneEnvironments(
   const [error, setError] = useState<Error | null>(null);
 
   const dataplaneName = dataplaneEntity.metadata.name;
-  const organization =
-    dataplaneEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+  const namespaceName =
+    dataplaneEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   const fetchEnvironments = useCallback(async () => {
-    if (!dataplaneName || !organization) {
+    if (!dataplaneName || !namespaceName) {
       setEnvironments([]);
       setLoading(false);
       return;
@@ -48,8 +48,8 @@ export function useDataplaneEnvironments(
       const { items: envEntities } = await catalogApi.getEntities({
         filter: {
           kind: 'Environment',
-          [`metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`]:
-            organization,
+          [`metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`]:
+            namespaceName,
         },
       });
 
@@ -82,7 +82,7 @@ export function useDataplaneEnvironments(
     } finally {
       setLoading(false);
     }
-  }, [dataplaneName, organization, catalogApi]);
+  }, [dataplaneName, namespaceName, catalogApi]);
 
   useEffect(() => {
     fetchEnvironments();

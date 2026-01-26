@@ -893,15 +893,15 @@ export async function createRouter({
 
   // Delete a component
   router.delete(
-    '/orgs/:orgName/projects/:projectName/components/:componentName',
+    '/namespaces/:namespaceName/projects/:projectName/components/:componentName',
     requireAuth,
     async (req, res) => {
-      const { orgName, projectName, componentName } = req.params;
+      const { namespaceName, projectName, componentName } = req.params;
       const userToken = getUserTokenFromRequest(req);
 
       // Delete the component in OpenChoreo (marks for deletion)
       await componentInfoService.deleteComponent(
-        orgName,
+        namespaceName,
         projectName,
         componentName,
         userToken,
@@ -919,12 +919,16 @@ export async function createRouter({
 
   // Delete a project
   router.delete(
-    '/orgs/:orgName/projects/:projectName',
+    '/namespaces/:namespaceName/projects/:projectName',
     requireAuth,
     async (req, res) => {
-      const { orgName, projectName } = req.params;
+      const { namespaceName, projectName } = req.params;
       const userToken = getUserTokenFromRequest(req);
-      await projectInfoService.deleteProject(orgName, projectName, userToken);
+      await projectInfoService.deleteProject(
+        namespaceName,
+        projectName,
+        userToken,
+      );
 
       logger.info(`Project ${projectName} marked for deletion in OpenChoreo`);
 

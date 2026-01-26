@@ -137,19 +137,19 @@ export class ComponentInfoService {
   /**
    * Deletes a component in OpenChoreo API.
    *
-   * @param orgName - Organization name
+   * @param namespaceName - Namespace name
    * @param projectName - Project name
    * @param componentName - Component name
    * @param token - Optional user token (overrides default token if provided)
    */
   async deleteComponent(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     componentName: string,
     token?: string,
   ): Promise<void> {
     this.logger.info(
-      `Deleting component: ${componentName} in project: ${projectName}, organization: ${orgName}`,
+      `Deleting component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
@@ -160,10 +160,10 @@ export class ComponentInfoService {
       });
 
       const { error, response } = await client.DELETE(
-        '/orgs/{orgName}/projects/{projectName}/components/{componentName}',
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
         {
           params: {
-            path: { orgName, projectName, componentName },
+            path: { namespaceName, projectName, componentName },
           },
         },
       );
