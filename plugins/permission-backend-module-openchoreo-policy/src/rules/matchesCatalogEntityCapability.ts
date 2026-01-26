@@ -228,18 +228,18 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
     if (entityKind === 'domain') {
       // Domain only has organization
       scope = {
-        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
+        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
       };
     } else if (entityKind === 'system') {
       // System has organization and project-id
       scope = {
-        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
+        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
         project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT_ID],
       };
     } else {
       // Component has organization, project, and component
       scope = {
-        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION],
+        ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
         project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT],
         component: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT],
       };
@@ -296,7 +296,7 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
 
     // Filter for non-OpenChoreo entities (those without org annotation)
     const noOrgAnnotationFilter: EntitiesSearchFilter = {
-      key: `metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`,
+      key: `metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`,
     };
 
     // Build filters for each managed kind
@@ -373,7 +373,7 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
         // Add namespace filter if specific (not wildcard)
         if (parsed.ns && parsed.ns !== '*') {
           conditions.push({
-            key: `metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`,
+            key: `metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`,
             values: [parsed.ns],
           });
         }

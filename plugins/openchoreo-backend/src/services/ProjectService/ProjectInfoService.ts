@@ -118,17 +118,17 @@ export class ProjectInfoService {
   /**
    * Deletes a project in OpenChoreo API.
    *
-   * @param orgName - Organization name
+   * @param namespaceName - Namespace name
    * @param projectName - Project name
    * @param token - Optional user token (overrides default token if provided)
    */
   async deleteProject(
-    orgName: string,
+    namespaceName: string,
     projectName: string,
     token?: string,
   ): Promise<void> {
     this.logger.info(
-      `Deleting project: ${projectName} in organization: ${orgName}`,
+      `Deleting project: ${projectName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -139,10 +139,10 @@ export class ProjectInfoService {
       });
 
       const { error, response } = await client.DELETE(
-        '/orgs/{orgName}/projects/{projectName}',
+        '/namespaces/{namespaceName}/projects/{projectName}',
         {
           params: {
-            path: { orgName, projectName },
+            path: { namespaceName, projectName },
           },
         },
       );

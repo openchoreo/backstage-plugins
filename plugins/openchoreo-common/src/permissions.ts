@@ -86,11 +86,11 @@ export const openchoreoProjectReadPermission = createPermission({
 });
 
 /**
- * Permission to read/view organization details.
- * Org-scoped permission.
+ * Permission to read/view namespace details.
+ * Namespace-scoped permission.
  */
-export const openchoreoOrganizationReadPermission = createPermission({
-  name: 'openchoreo.organization.read',
+export const openchoreoNamespaceReadPermission = createPermission({
+  name: 'openchoreo.namespace.read',
   attributes: { action: 'read' },
 });
 
@@ -245,7 +245,7 @@ export const openchoreoPermissions = [
   openchoreoComponentUpdatePermission,
   openchoreoProjectCreatePermission,
   openchoreoProjectReadPermission,
-  openchoreoOrganizationReadPermission,
+  openchoreoNamespaceReadPermission,
   openchoreoEnvironmentCreatePermission,
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
@@ -277,7 +277,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.component.deploy': 'component:deploy',
   'openchoreo.project.create': 'project:create',
   'openchoreo.project.read': 'project:view',
-  'openchoreo.organization.read': 'namespace:view',
+  'openchoreo.namespace.read': 'namespace:view',
   'openchoreo.environment.create': 'environment:create',
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',

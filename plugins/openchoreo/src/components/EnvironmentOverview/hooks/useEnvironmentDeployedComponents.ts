@@ -56,10 +56,10 @@ export function useEnvironmentDeployedComponents(
       environmentEntity.metadata.annotations?.[
         CHOREO_ANNOTATIONS.ENVIRONMENT
       ] || environmentEntity.metadata.name;
-    const organization =
-      environmentEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.ORGANIZATION];
+    const namespaceName =
+      environmentEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
-    if (!environmentName || !organization) {
+    if (!environmentName || !namespaceName) {
       setComponents([]);
       setLoading(false);
       return;
@@ -69,12 +69,12 @@ export function useEnvironmentDeployedComponents(
       setLoading(true);
       setError(null);
 
-      // First, get all projects in this organization
+      // First, get all projects in this namespace
       const { items: systemEntities } = await catalogApi.getEntities({
         filter: {
           kind: 'System',
-          [`metadata.annotations.${CHOREO_ANNOTATIONS.ORGANIZATION}`]:
-            organization,
+          [`metadata.annotations.${CHOREO_ANNOTATIONS.NAMESPACE}`]:
+            namespaceName,
         },
       });
 

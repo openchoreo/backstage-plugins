@@ -73,9 +73,9 @@ export interface DeploymentPipelineEntityV1alpha1 extends Entity {
      */
     projectRef?: string;
     /**
-     * The organization this pipeline belongs to
+     * The namespace this pipeline belongs to
      */
-    organization?: string;
+    namespaceName?: string;
     /**
      * Promotion paths defining how releases flow between environments
      */

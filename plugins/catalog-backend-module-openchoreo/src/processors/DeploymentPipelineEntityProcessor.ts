@@ -62,7 +62,7 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
     if (entity.spec.projectRef) {
       const systemRef = {
         kind: 'system',
-        namespace: entity.spec.organization || 'default',
+        namespace: entity.spec.namespaceName || 'default',
         name: entity.spec.projectRef,
       };
       // System (Project) usesPipeline DeploymentPipeline
