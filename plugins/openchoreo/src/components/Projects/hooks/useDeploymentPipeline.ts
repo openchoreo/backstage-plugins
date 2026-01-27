@@ -82,7 +82,9 @@ export const useDeploymentPipeline = () => {
               ? environments
               : ['development', 'staging', 'production'],
           dataPlane: undefined, // Not included in the response schema
-          pipelineEntityRef: `deploymentpipeline:default/${pipelineData.name}`,
+          pipelineEntityRef: `deploymentpipeline:${
+            entity.metadata.namespace || 'default'
+          }/${pipelineData.name}`,
         });
       } catch (err) {
         setError(err as Error);

@@ -18,6 +18,7 @@ import CloudOffIcon from '@material-ui/icons/CloudOff';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
+import { parseEntityRef } from '@backstage/catalog-model';
 import { Card } from '@openchoreo/backstage-design-system';
 import {
   useEnvironmentDeployedComponents,
@@ -184,7 +185,9 @@ export const EnvironmentDeployedComponentsCard = () => {
               <TableRow key={`${component.projectName}-${component.name}`}>
                 <TableCell>
                   <Link
-                    to={`/catalog/default/component/${component.name}`}
+                    to={`/catalog/${
+                      parseEntityRef(component.entityRef).namespace
+                    }/component/${component.name}`}
                     className={classes.componentLink}
                   >
                     {component.displayName || component.name}
@@ -213,7 +216,9 @@ export const EnvironmentDeployedComponentsCard = () => {
                     <IconButton
                       size="small"
                       component={Link}
-                      to={`/catalog/default/component/${component.name}`}
+                      to={`/catalog/${
+                        parseEntityRef(component.entityRef).namespace
+                      }/component/${component.name}`}
                     >
                       <LaunchIcon fontSize="small" />
                     </IconButton>

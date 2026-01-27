@@ -48,7 +48,11 @@ export const ProjectComponentsCard = () => {
       width: '25%',
       highlight: true,
       render: (component: ComponentWithDeployment) => (
-        <Link to={`/catalog/default/component/${component.metadata.name}`}>
+        <Link
+          to={`/catalog/${
+            component.metadata.namespace || 'default'
+          }/component/${component.metadata.name}`}
+        >
           {component.metadata.title || component.metadata.name}
         </Link>
       ),
