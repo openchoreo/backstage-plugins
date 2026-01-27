@@ -150,7 +150,10 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       if (
         isResourcePermission(permission, OPENCHOREO_RESOURCE_TYPE_COMPONENT)
       ) {
-        const actionCapability = capabilities.capabilities?.[action];
+        // Look up the specific action first, then fall back to wildcard "*"
+        const actionCapability =
+          capabilities.capabilities?.[action] ??
+          capabilities.capabilities?.['*'];
 
         // Extract paths from capability (Backstage rule params only support primitives)
         const allowedPaths =
@@ -173,7 +176,8 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       }
 
       // For basic permissions (non-resource), check if action has any allowed paths
-      const actionCapability = capabilities.capabilities?.[action];
+      const actionCapability =
+        capabilities.capabilities?.[action] ?? capabilities.capabilities?.['*'];
       const isAllowed = (actionCapability?.allowed?.length ?? 0) > 0;
 
       this.logger.debug(`${permission.name}: ${isAllowed ? 'ALLOW' : 'DENY'}`);
@@ -273,7 +277,10 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
           continue;
         }
 
-        const actionCapability = capabilities.capabilities?.[action];
+        // Look up the specific action first, then fall back to wildcard "*"
+        const actionCapability =
+          capabilities.capabilities?.[action] ??
+          capabilities.capabilities?.['*'];
 
         const allowedPaths =
           actionCapability?.allowed
@@ -357,10 +364,11 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         userToken,
       );
 
-      // Check if user has component:create for any scope
-      const hasComponentCreate =
-        (capabilities.capabilities?.['component:create']?.allowed?.length ??
-          0) > 0;
+      // Check if user has component:create for any scope (fall back to wildcard)
+      const componentCreateCap =
+        capabilities.capabilities?.['component:create'] ??
+        capabilities.capabilities?.['*'];
+      const hasComponentCreate = (componentCreateCap?.allowed?.length ?? 0) > 0;
 
       this.logger.debug(
         `scaffolder.task.create: ${hasComponentCreate ? 'ALLOW' : 'DENY'}`,
@@ -407,16 +415,17 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         userToken,
       );
 
-      // Check if user has any create capability
+      // Check if user has any create capability (fall back to wildcard)
+      const wildcardCap = capabilities.capabilities?.['*'];
       const hasComponentCreate =
-        (capabilities.capabilities?.['component:create']?.allowed?.length ??
-          0) > 0;
+        ((capabilities.capabilities?.['component:create'] ?? wildcardCap)
+          ?.allowed?.length ?? 0) > 0;
       const hasProjectCreate =
-        (capabilities.capabilities?.['project:create']?.allowed?.length ?? 0) >
-        0;
+        ((capabilities.capabilities?.['project:create'] ?? wildcardCap)?.allowed
+          ?.length ?? 0) > 0;
       const hasNamespaceCreate =
-        (capabilities.capabilities?.['namespace:create']?.allowed?.length ??
-          0) > 0;
+        ((capabilities.capabilities?.['namespace:create'] ?? wildcardCap)
+          ?.allowed?.length ?? 0) > 0;
 
       const hasAnyCreate =
         hasComponentCreate || hasProjectCreate || hasNamespaceCreate;
