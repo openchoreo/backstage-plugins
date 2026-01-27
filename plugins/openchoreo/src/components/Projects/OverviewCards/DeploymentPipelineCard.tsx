@@ -3,12 +3,14 @@ import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
 import { Card } from '@openchoreo/backstage-design-system';
+import { useEntity } from '@backstage/plugin-catalog-react';
 import { useDeploymentPipeline } from '../hooks';
 import { useProjectOverviewCardStyles } from './styles';
 import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
 
 export const DeploymentPipelineCard = () => {
   const classes = useProjectOverviewCardStyles();
+  const { entity } = useEntity();
   const { data, loading, error } = useDeploymentPipeline();
 
   // Loading state
@@ -84,6 +86,7 @@ export const DeploymentPipelineCard = () => {
               <PipelineFlowVisualization
                 environments={data.environments}
                 pipelineEntityRef={data.pipelineEntityRef}
+                environmentNamespace={entity.metadata.namespace || 'default'}
                 showPipelineLink
               />
             </Box>

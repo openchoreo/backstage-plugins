@@ -38,7 +38,7 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
       {/* Environment Header */}
       <Box className={classes.environmentHeader}>
         <Link
-          to={`/catalog/default/environment/${environment.name}`}
+          to={`/catalog/${environment.namespaceName}/environment/${environment.name}`}
           style={{ textDecoration: 'none', color: 'inherit' }}
         >
           <Typography className={classes.environmentName} variant="h5">
@@ -58,7 +58,7 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
             <IconButton
               size="small"
               component={Link}
-              to={`/catalog/default/environment/${environment.name}`}
+              to={`/catalog/${environment.namespaceName}/environment/${environment.name}`}
             >
               <LaunchIcon fontSize="small" />
             </IconButton>

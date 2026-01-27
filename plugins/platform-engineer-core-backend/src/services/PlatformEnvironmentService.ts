@@ -48,45 +48,18 @@ export class PlatformEnvironmentInfoService
     try {
       this.logger.debug('Starting platform-wide environment fetch');
 
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token: userToken,
-        logger: this.logger,
-      });
-
-      // For now, we'll fetch environments from a default namespace
-      // In a real implementation, you might need to fetch from multiple namespaces
-      // or have a platform-wide API endpoint
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/environments',
-        {
-          params: {
-            path: { namespaceName: 'default' }, // This should be configurable or fetched from a platform API
-          },
-        },
+      const namespaces = await this.fetchNamespaceNames(userToken);
+      const results = await Promise.all(
+        namespaces.map(ns => this.fetchEnvironmentsByNamespace(ns, userToken)),
       );
 
-      if (error || !response.ok) {
-        this.logger.error(
-          `Failed to fetch platform environments: ${response.status} ${response.statusText}`,
-        );
-        return [];
-      }
-
-      if (!data.success || !data.data?.items) {
-        this.logger.warn('No environments found in platform API response');
-        return [];
-      }
-
-      const environments = data.data.items;
-      const result = this.transformEnvironmentData(environments, 'default');
-
+      const allEnvironments = results.flat();
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Platform environment fetch completed: ${result.length} environments found (${totalTime}ms)`,
+        `Platform environment fetch completed: ${allEnvironments.length} environments across ${namespaces.length} namespaces (${totalTime}ms)`,
       );
 
-      return result;
+      return allEnvironments;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
@@ -167,45 +140,18 @@ export class PlatformEnvironmentInfoService
     try {
       this.logger.debug('Starting platform-wide dataplane fetch');
 
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token: userToken,
-        logger: this.logger,
-      });
-
-      // For now, we'll fetch dataplanes from a default namespace
-      // In a real implementation, you might need to fetch from multiple namespaces
-      // or have a platform-wide API endpoint
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/dataplanes',
-        {
-          params: {
-            path: { namespaceName: 'default' }, // This should be configurable or fetched from a platform API
-          },
-        },
+      const namespaces = await this.fetchNamespaceNames(userToken);
+      const results = await Promise.all(
+        namespaces.map(ns => this.fetchDataplanesByNamespace(ns, userToken)),
       );
 
-      if (error || !response.ok) {
-        this.logger.error(
-          `Failed to fetch platform dataplanes: ${response.status} ${response.statusText}`,
-        );
-        return [];
-      }
-
-      if (!data.success || !data.data?.items) {
-        this.logger.warn('No dataplanes found in platform API response');
-        return [];
-      }
-
-      const dataplanes = data.data.items;
-      const result = this.transformDataPlaneData(dataplanes, 'default');
-
+      const allDataplanes = results.flat();
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Platform dataplane fetch completed: ${result.length} dataplanes found (${totalTime}ms)`,
+        `Platform dataplane fetch completed: ${allDataplanes.length} dataplanes across ${namespaces.length} namespaces (${totalTime}ms)`,
       );
 
-      return result;
+      return allDataplanes;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
@@ -291,21 +237,26 @@ export class PlatformEnvironmentInfoService
         this.fetchAllEnvironments(userToken),
       ]);
 
-      // Group environments by dataPlaneRef
+      // Group environments by namespace-qualified dataPlaneRef key
+      // Dataplanes in different namespaces can share the same name (e.g. "default"),
+      // so we use "namespaceName/dataPlaneRef" as the composite key.
       const environmentsByDataPlane = new Map<string, Environment[]>();
       environments.forEach(env => {
-        const dataPlaneRef = env.dataPlaneRef;
-        if (!environmentsByDataPlane.has(dataPlaneRef)) {
-          environmentsByDataPlane.set(dataPlaneRef, []);
+        const key = `${env.namespaceName}/${env.dataPlaneRef}`;
+        if (!environmentsByDataPlane.has(key)) {
+          environmentsByDataPlane.set(key, []);
         }
-        environmentsByDataPlane.get(dataPlaneRef)!.push(env);
+        environmentsByDataPlane.get(key)!.push(env);
       });
 
       // Create DataPlaneWithEnvironments objects
       const dataplanesWithEnvironments: DataPlaneWithEnvironments[] =
         dataplanes.map(dataplane => ({
           ...dataplane,
-          environments: environmentsByDataPlane.get(dataplane.name) || [],
+          environments:
+            environmentsByDataPlane.get(
+              `${dataplane.namespaceName}/${dataplane.name}`,
+            ) || [],
         }));
 
       const totalTime = Date.now() - startTime;
@@ -632,6 +583,34 @@ export class PlatformEnvironmentInfoService
       );
       return 0;
     }
+  }
+
+  /**
+   * Fetches the list of namespace names from the OpenChoreo API.
+   */
+  private async fetchNamespaceNames(userToken?: string): Promise<string[]> {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      token: userToken,
+      logger: this.logger,
+    });
+
+    const { data, error, response } = await client.GET('/namespaces');
+
+    if (error || !response.ok) {
+      this.logger.error(
+        `Failed to fetch namespaces: ${response.status} ${response.statusText}`,
+      );
+      return [];
+    }
+
+    if (!data.success || !data.data?.items) {
+      this.logger.warn('No namespaces found');
+      return [];
+    }
+
+    const namespaces = data.data.items as Array<{ name: string }>;
+    return namespaces.map(ns => ns.name);
   }
 
   private transformEnvironmentData(

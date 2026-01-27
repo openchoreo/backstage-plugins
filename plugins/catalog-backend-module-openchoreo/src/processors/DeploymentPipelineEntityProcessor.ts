@@ -124,7 +124,7 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
           if (target.name && !emittedEnvironments.has(target.name)) {
             const envRef = {
               kind: 'environment',
-              namespace: 'default',
+              namespace: entity.metadata.namespace || 'default',
               name: target.name,
             };
             // Pipeline promotesTo Environment

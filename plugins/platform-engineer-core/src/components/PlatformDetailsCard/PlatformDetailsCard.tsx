@@ -61,7 +61,7 @@ export const PlatformDetailsCard = ({
                     <IconButton
                       size="small"
                       component={Link}
-                      to={`/catalog/default/dataplane/${dataplane.name}`}
+                      to={`/catalog/${dataplane.namespaceName}/dataplane/${dataplane.name}`}
                       onClick={e => e.stopPropagation()}
                     >
                       <LaunchIcon fontSize="small" />

@@ -2,6 +2,8 @@ import { Box, Typography, Grid } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import { Link, Content } from '@backstage/core-components';
+import { useEntity } from '@backstage/plugin-catalog-react';
+import { parseEntityRef } from '@backstage/catalog-model';
 import { Card } from '@openchoreo/backstage-design-system';
 import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentPipelines } from './useEnvironmentPipelines';
@@ -58,6 +60,7 @@ const useStyles = makeStyles(theme => ({
  */
 export const EnvironmentPipelinesTab = () => {
   const classes = useStyles();
+  const { entity } = useEntity();
   const { pipelines, loading, error, environmentName } =
     useEnvironmentPipelines();
 
@@ -116,9 +119,13 @@ export const EnvironmentPipelinesTab = () => {
             <Card className={classes.pipelineCard}>
               <Box className={classes.pipelineHeader}>
                 <Link
-                  to={`/catalog/default/deploymentpipeline/${pipeline.pipelineEntityRef
-                    .split('/')
-                    .pop()}`}
+                  to={(() => {
+                    const ref = parseEntityRef(pipeline.pipelineEntityRef, {
+                      defaultKind: 'deploymentpipeline',
+                      defaultNamespace: 'default',
+                    });
+                    return `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
+                  })()}
                   className={classes.pipelineName}
                 >
                   {pipeline.pipelineName}
@@ -128,6 +135,7 @@ export const EnvironmentPipelinesTab = () => {
                 environments={pipeline.environments}
                 highlightedEnvironment={environmentName}
                 pipelineEntityRef={pipeline.pipelineEntityRef}
+                environmentNamespace={entity.metadata.namespace || 'default'}
                 showPipelineLink={false}
               />
             </Card>

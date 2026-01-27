@@ -5,6 +5,7 @@ import LaunchIcon from '@material-ui/icons/Launch';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { parseEntityRef } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useDataplaneEnvironments } from './hooks';
@@ -85,7 +86,12 @@ export const DataplaneEnvironmentsCard = () => {
           <li key={env.name} className={classes.environmentItem}>
             <Box className={classes.environmentInfo}>
               <Link
-                to={`/catalog/default/environment/${env.name}`}
+                to={`/catalog/${
+                  parseEntityRef(env.entityRef, {
+                    defaultKind: 'environment',
+                    defaultNamespace: 'default',
+                  }).namespace
+                }/environment/${env.name}`}
                 className={classes.environmentName}
               >
                 {env.displayName || env.name}
@@ -107,7 +113,12 @@ export const DataplaneEnvironmentsCard = () => {
                 <IconButton
                   size="small"
                   component={Link}
-                  to={`/catalog/default/environment/${env.name}`}
+                  to={`/catalog/${
+                    parseEntityRef(env.entityRef, {
+                      defaultKind: 'environment',
+                      defaultNamespace: 'default',
+                    }).namespace
+                  }/environment/${env.name}`}
                 >
                   <LaunchIcon fontSize="small" />
                 </IconButton>
