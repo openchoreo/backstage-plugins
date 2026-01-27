@@ -4,7 +4,7 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import { RELATION_PART_OF } from '@backstage/catalog-model';
+import { RELATION_PART_OF, parseEntityRef } from '@backstage/catalog-model';
 import { EnvironmentEntityV1alpha1 } from '../kinds/EnvironmentEntityV1alpha1';
 import {
   RELATION_HOSTED_ON,
@@ -45,13 +45,17 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
 
       // Emit partOf relationship to domain
       if (entity.spec.domain) {
+        const domainRef = parseEntityRef(entity.spec.domain, {
+          defaultKind: 'domain',
+          defaultNamespace: entity.metadata.namespace || 'default',
+        });
         emit(
           processingResult.relation({
             source: sourceRef,
             target: {
-              kind: 'domain',
-              namespace: 'default',
-              name: entity.spec.domain,
+              kind: domainRef.kind,
+              namespace: domainRef.namespace,
+              name: domainRef.name,
             },
             type: RELATION_PART_OF,
           }),
