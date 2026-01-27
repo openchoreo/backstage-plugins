@@ -11,8 +11,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Group
 metadata:
-  name: guests
-  title: Guests
+  name: openchoreo-users
+  title: OpenChoreo Users
   description: Default owner group for OpenChoreo catalog entities. This is a placeholder group for Backstage compatibility.
 spec:
   type: team

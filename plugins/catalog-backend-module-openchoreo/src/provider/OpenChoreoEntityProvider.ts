@@ -70,8 +70,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     this.tokenService = tokenService;
     // Default owner for built-in Backstage entities (Domain, System, Component, API)
     // These kinds require owner field per Backstage schema validation
-    this.defaultOwner =
-      config.getOptionalString('openchoreo.defaultOwner') || 'guests';
+    const ownerName =
+      config.getOptionalString('openchoreo.defaultOwner') || 'openchoreo-users';
+    // Qualify with 'default' namespace so owner resolves correctly for entities in non-default namespaces
+    this.defaultOwner = `group:default/${ownerName}`;
     // Initialize CTD to Template converter
     this.ctdConverter = new CtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
