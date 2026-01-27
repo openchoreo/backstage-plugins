@@ -1,8 +1,8 @@
-# Local Development Configuration for Backstage with Kind Cluster
+# Local Development Configuration for Backstage with k3d Cluster
 #
 # This file contains pre-configured values for running Backstage locally
 # (at localhost:3000 and localhost:7007) while connecting to services
-# running in a Kind cluster (*.openchoreo.localhost).
+# running in a k3d cluster (*.openchoreo.localhost).
 #
 # Quick Start:
 #   1. Copy this file: cp app-config.local.yaml.example app-config.local.yaml
@@ -31,7 +31,7 @@ backend:
     client: better-sqlite3
     connection: ':memory:'
 
-# OpenChoreo API configuration (Kind cluster)
+# OpenChoreo API configuration (k3d cluster)
 openchoreo:
   baseUrl: http://api.openchoreo.localhost:8080/api/v1
   # token: ""  # Optional: uncomment if you need API authentication
@@ -55,11 +55,11 @@ openchoreo:
     authz:
       enabled: true    # Set to false to hide Access Control sidebar and pages
 
-# Thunder IDP configuration (Kind cluster)
+# Thunder IDP configuration (k3d cluster)
 thunder:
   baseUrl: http://thunder.openchoreo.localhost:8080
 
-# OAuth authentication configuration (Kind cluster)
+# OAuth authentication configuration (k3d cluster)
 # The openchoreo-auth provider works with any OAuth2/OIDC-compliant identity provider
 #
 # Two configuration modes are supported:
@@ -70,7 +70,7 @@ auth:
   providers:
     openchoreo-auth:
       development:
-        # OAuth credentials from Kind cluster helm values
+        # OAuth credentials from k3d cluster helm values
         # (see openchoreo/install/dev/openchoreo-values.yaml)
         clientId: openchoreo-backstage-client
         clientSecret: backstage-portal-secret

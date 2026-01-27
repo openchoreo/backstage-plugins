@@ -3,7 +3,7 @@
 # This file contains the base configuration with environment variable placeholders.
 # Environment variables are used in Docker builds and production deployments.
 #
-# For local development with Kind cluster:
+# For local development with k3d cluster:
 #   1. Copy the example file: cp app-config.local.yaml.example app-config.local.yaml
 #   2. Run: yarn start
 #   3. The app-config.local.yaml will automatically override values from this file
@@ -14,7 +14,7 @@
 app:
   title: OpenChoreo Portal
   # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
-  # For local Kind: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
+  # For local k3d: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
   # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
   baseUrl: ${BACKSTAGE_BASE_URL}
 
@@ -31,7 +31,7 @@ backend:
   auth:
     dangerouslyDisableDefaultAuthPolicy: true # TODO: Remove this when added auth properly
   # Environment variable is injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
-  # For local Kind: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
+  # For local k3d: http://openchoreo.localhost (set via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml)
   # For production: external ingress URL (set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.baseUrl)
   baseUrl: ${BACKSTAGE_BASE_URL}
   listen:
@@ -115,7 +115,7 @@ scaffolder:
 
 openchoreo:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
-  # For local Kind: defaults to http://openchoreo-api.openchoreo.svc.cluster.local:8080/api/v1
+  # For local k3d: defaults to http://openchoreo-api.openchoreo.svc.cluster.local:8080/api/v1
   # For production: set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.openchoreoApi.url
   baseUrl: ${OPENCHOREO_API_URL}
 
@@ -188,7 +188,7 @@ openchoreo:
 
 thunder:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)
-  # For local Kind: set THUNDER_BASE_URL via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml (defaults to internal service URL)
+  # For local k3d: set THUNDER_BASE_URL via https://github.com/openchoreo/openchoreo install/dev/openchoreo-values.yaml (defaults to internal service URL)
   # For production: set via https://github.com/openchoreo/openchoreo install/helm/openchoreo/values.yaml backstage.thunder.baseUrl
   baseUrl: ${THUNDER_BASE_URL} # e.g., http://sts.openchoreo.localhost or https://idp.example.com
   # token: ${THUNDER_TOKEN} # Optional: uncomment if you need Thunder API authentication

@@ -34,7 +34,7 @@ Add these lines:
 ```
 127.0.0.1       openchoreo.localhost
 127.0.0.1       api.openchoreo.localhost
-127.0.0.1       sts.openchoreo.localhost
+127.0.0.1       thunder.openchoreo.localhost
 ```
 
 Save and exit. The changes take effect immediately.
@@ -67,11 +67,29 @@ However, the `/etc/hosts` approach is recommended for its simplicity and reliabi
 yarn install
 ```
 
-### 2. Local Development Setup with Kind Cluster
+### 2. Local Development Setup
 
-**Quick Start (Recommended):**
+If you're running OpenChoreo locally and want to connect Backstage (running at localhost:3000/7007) to it:
 
-If you're running the OpenChoreo Kind cluster locally and want to connect Backstage (running at localhost:3000/7007) to it:
+**Note:** The following steps are for the [single cluster setup](https://openchoreo.dev/docs/next/getting-started/try-it-out/on-self-hosted-kubernetes/).
+
+```bash
+helm upgrade openchoreo-control-plane oci://ghcr.io/openchoreo/helm-charts/openchoreo-control-plane \
+  --version 0.0.0-latest-dev \
+  --namespace openchoreo-control-plane \
+  --reuse-values \
+  --set-json 'backstage.auth.redirectUrls=["http://localhost:3000/api/auth/openchoreo-auth/handler/frame","http://localhost:7007/api/auth/openchoreo-auth/handler/frame","http://openchoreo.localhost:8080/api/auth/openchoreo-auth/handler/frame"]'
+```
+
+To develop observability plane features, port-forward the observer API:
+
+```bash
+kubectl patch observabilityplane default --type='merge' -p '{"spec":{"observerURL":"http://localhost:9097"}}'
+```
+
+```bash
+kubectl port-forward -n openchoreo-observability-plane svc/observer 9097:8080
+```
 
 ```bash
 # Copy the pre-configured local development template
@@ -83,7 +101,7 @@ yarn start
 # Access at http://localhost:3000
 ```
 
-This is the **easiest way** to get started - all values are pre-configured to connect your local Backstage instance to the Kind cluster services (\*.openchoreo.localhost).
+This is the **easiest way** to get started - all values are pre-configured to connect your local Backstage instance to the OpenChoreo services (\*.openchoreo.localhost).
 
 #### What's in app-config.local.yaml?
 
@@ -91,9 +109,9 @@ The `app-config.local.yaml.example` file contains hardcoded values for:
 
 - **Frontend URL:** `http://localhost:3000`
 - **Backend URL:** `http://localhost:7007`
-- **OpenChoreo API:** `http://api.openchoreo.localhost` (Kind cluster)
-- **Thunder IDP:** `http://sts.openchoreo.localhost` (Kind cluster)
-- **OAuth Credentials:** Pre-configured from Kind cluster helm values
+- **OpenChoreo API:** `http://api.openchoreo.localhost:8080/api/v1`
+- **Thunder IDP:** `http://thunder.openchoreo.localhost:8080`
+- **OAuth Credentials:** Pre-configured from helm values
   - Client ID: `openchoreo-backstage-client`
   - Client Secret: `backstage-portal-secret`
 
@@ -114,11 +132,11 @@ integrations:
 
 The application uses three configuration files:
 
-| File                         | Purpose                                                   | Used When                                          |
-| ---------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| `app-config.yaml`            | Base configuration with environment variable placeholders | Referenced by both local and Docker builds         |
-| `app-config.local.yaml`      | Local development overrides (gitignored)                  | Local development with `yarn start`                |
-| `app-config.production.yaml` | Production configuration                                  | Docker builds, Kind cluster, production Kubernetes |
+| File                         | Purpose                                                   | Used When                                         |
+| ---------------------------- | --------------------------------------------------------- | ------------------------------------------------- |
+| `app-config.yaml`            | Base configuration with environment variable placeholders | Referenced by both local and Docker builds        |
+| `app-config.local.yaml`      | Local development overrides (gitignored)                  | Local development with `yarn start`               |
+| `app-config.production.yaml` | Production configuration                                  | Docker builds, k3d cluster, production Kubernetes |
 
 **Configuration Loading Order:**
 
@@ -134,12 +152,12 @@ If you prefer to use environment variables instead of `app-config.local.yaml`, y
 ```bash
 export BACKSTAGE_BASE_URL=http://localhost:3000
 export BACKEND_SECRET=your-secret-key-here
-export OPENCHOREO_API_URL=http://api.openchoreo.localhost
-export THUNDER_BASE_URL=http://sts.openchoreo.localhost
+export OPENCHOREO_API_URL=http://api.openchoreo.localhost:8080/api/v1
+export THUNDER_BASE_URL=http://thunder.openchoreo.localhost:8080
 export OPENCHOREO_AUTH_CLIENT_ID=openchoreo-backstage-client
 export OPENCHOREO_AUTH_CLIENT_SECRET=backstage-portal-secret
-export OPENCHOREO_AUTH_AUTHORIZATION_URL=http://sts.openchoreo.localhost/oauth2/authorize
-export OPENCHOREO_AUTH_TOKEN_URL=http://sts.openchoreo.localhost/oauth2/token
+export OPENCHOREO_AUTH_AUTHORIZATION_URL=http://thunder.openchoreo.localhost:8080/oauth2/authorize
+export OPENCHOREO_AUTH_TOKEN_URL=http://thunder.openchoreo.localhost:8080/oauth2/token
 export GITHUB_TOKEN=your-github-token  # Optional
 ```
 
@@ -239,6 +257,7 @@ OpenChoreo includes configurable feature flags that allow you to enable or disab
 | **Workflows**     | `OPENCHOREO_FEATURES_WORKFLOWS_ENABLED`     | Build plane / CI pipeline features. When disabled, hides Workflows tab and WorkflowsOverviewCard from component pages. |
 | **Observability** | `OPENCHOREO_FEATURES_OBSERVABILITY_ENABLED` | Metrics, Traces, and Runtime Logs. When disabled, hides these tabs and RuntimeHealthCard from component pages.         |
 | **Auth**          | `OPENCHOREO_FEATURES_AUTH_ENABLED`          | OAuth authentication. When disabled, users are automatically logged in as guests (demo/development mode).              |
+| **Authz**         | `OPENCHOREO_FEATURES_AUTHZ_ENABLED`         | Authorization / Access Control. When disabled, hides Access Control sidebar and pages.                                 |
 
 ### Configuration
 
@@ -253,6 +272,8 @@ openchoreo:
       enabled: true
     auth:
       enabled: false # Use guest mode for local development
+    authz:
+      enabled: true
 ```
 
 **Production (Environment Variables):**
@@ -265,6 +286,7 @@ backstage:
     workflowsEnabled: true
     observabilityEnabled: true
     authEnabled: true
+    authzEnabled: true
 ```
 
 ### Behavior When Features Are Disabled
