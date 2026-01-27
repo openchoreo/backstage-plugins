@@ -97,7 +97,7 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
         ) {
           const envRef = {
             kind: 'environment',
-            namespace: 'default',
+            namespace: entity.metadata.namespace || 'default',
             name: path.sourceEnvironment,
           };
           // Pipeline promotesTo Environment

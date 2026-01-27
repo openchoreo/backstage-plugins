@@ -697,6 +697,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       kind: 'Environment',
       metadata: {
         name: environment.name,
+        namespace: namespaceName,
         title: environment.displayName || environment.name,
         description:
           environment.description || `${environment.name} environment`,
@@ -762,6 +763,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       kind: 'Dataplane',
       metadata: {
         name: dataplane.name,
+        namespace: namespaceName,
         title: dataplane.displayName || dataplane.name,
         description: dataplane.description || `${dataplane.name} dataplane`,
         tags: ['openchoreo', 'dataplane', 'infrastructure'],

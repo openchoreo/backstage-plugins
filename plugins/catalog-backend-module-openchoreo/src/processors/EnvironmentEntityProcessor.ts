@@ -62,7 +62,7 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
       if (entity.spec.dataPlaneRef) {
         const dataplaneRef = {
           kind: 'dataplane',
-          namespace: 'default',
+          namespace: entity.metadata.namespace || 'default',
           name: entity.spec.dataPlaneRef,
         };
         // Environment hostedOn DataPlane

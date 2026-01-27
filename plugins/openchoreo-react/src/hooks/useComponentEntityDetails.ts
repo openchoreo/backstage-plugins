@@ -61,7 +61,8 @@ export function useComponentEntityDetails() {
         typeof systemValue === 'string' ? systemValue : String(systemValue);
 
       // Fetch the project entity to get the namespace
-      const projectEntityRef = `system:default/${projectName}`;
+      const entityNamespace = entity.metadata.namespace || 'default';
+      const projectEntityRef = `system:${entityNamespace}/${projectName}`;
       const projectEntity = await catalogApi.getEntityByRef(projectEntityRef);
 
       if (!projectEntity) {
@@ -120,7 +121,8 @@ export async function extractComponentEntityDetails(
     typeof systemValue === 'string' ? systemValue : String(systemValue);
 
   // Fetch the project entity to get the namespace
-  const projectEntityRef = `system:default/${projectName}`;
+  const entityNamespace = entity.metadata.namespace || 'default';
+  const projectEntityRef = `system:${entityNamespace}/${projectName}`;
   const projectEntity = await catalogApi.getEntityByRef(projectEntityRef);
 
   if (!projectEntity) {
