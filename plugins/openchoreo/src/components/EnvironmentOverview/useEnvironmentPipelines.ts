@@ -46,10 +46,11 @@ export function useEnvironmentPipelines(): UseEnvironmentPipelinesResult {
       setLoading(true);
       setError(null);
 
-      // Find DeploymentPipeline entities that reference this environment
+      // Find DeploymentPipeline entities in this namespace that reference this environment
       const { items: pipelineEntities } = await catalogApi.getEntities({
         filter: {
           kind: 'DeploymentPipeline',
+          'metadata.namespace': namespaceName,
         },
       });
 

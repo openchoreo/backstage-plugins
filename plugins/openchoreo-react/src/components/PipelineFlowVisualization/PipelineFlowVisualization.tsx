@@ -9,6 +9,7 @@ export interface PipelineFlowVisualizationProps {
   pipelineEntityRef?: string;
   pipelineName?: string;
   showPipelineLink?: boolean;
+  environmentNamespace?: string;
 }
 
 const useStyles = makeStyles(theme => ({
@@ -70,6 +71,7 @@ export const PipelineFlowVisualization = ({
   highlightedEnvironment,
   pipelineEntityRef,
   showPipelineLink = false,
+  environmentNamespace = 'default',
 }: PipelineFlowVisualizationProps) => {
   const classes = useStyles();
 
@@ -101,7 +103,7 @@ export const PipelineFlowVisualization = ({
                 chipContent
               ) : (
                 <Link
-                  to={`/catalog/default/environment/${env.toLowerCase()}`}
+                  to={`/catalog/${environmentNamespace}/environment/${env.toLowerCase()}`}
                   style={{ textDecoration: 'none' }}
                 >
                   {chipContent}

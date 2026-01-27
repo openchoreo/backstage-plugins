@@ -108,7 +108,9 @@ export const DeploymentPipelineVisualization = () => {
           >
             <Box className={classes.environmentNode}>
               <Link
-                to={`/catalog/default/environment/${env}`}
+                to={`/catalog/${
+                  entity.metadata.namespace || 'default'
+                }/environment/${env}`}
                 style={{ textDecoration: 'none' }}
               >
                 <Typography

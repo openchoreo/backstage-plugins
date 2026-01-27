@@ -4,6 +4,7 @@ import TimelineIcon from '@material-ui/icons/Timeline';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import { Link } from '@backstage/core-components';
+import { parseEntityRef } from '@backstage/catalog-model';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useEnvironmentOverviewStyles } from './styles';
 import { useEnvironmentPipelines } from './useEnvironmentPipelines';
@@ -132,9 +133,13 @@ export const EnvironmentPromotionCard = () => {
             >
               <Box className={localClasses.pipelineInfo}>
                 <Link
-                  to={`/catalog/default/deploymentpipeline/${pipeline.pipelineEntityRef
-                    .split('/')
-                    .pop()}`}
+                  to={(() => {
+                    const ref = parseEntityRef(pipeline.pipelineEntityRef, {
+                      defaultKind: 'deploymentpipeline',
+                      defaultNamespace: 'default',
+                    });
+                    return `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
+                  })()}
                   className={localClasses.pipelineLink}
                 >
                   <Typography className={localClasses.pipelineName}>
