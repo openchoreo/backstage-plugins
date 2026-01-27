@@ -154,7 +154,10 @@ export class AuthzProfileService {
 
       // Debug: Log full profile response
       this.logger.debug(
-        `Profile response: ${JSON.stringify(capabilities, null, 2)}`,
+        `[AUTHZ] Raw profile response: ${JSON.stringify(data, null, 2)}`,
+      );
+      this.logger.debug(
+        `[AUTHZ] Parsed capabilities: ${JSON.stringify(capabilities, null, 2)}`,
       );
 
       if (!capabilities) {
