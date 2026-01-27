@@ -678,7 +678,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         owner: this.defaultOwner,
-        domain: namespaceName,
+        // Domain entities (mapped from OpenChoreo namespaces) live in the Backstage 'default' namespace
+        domain: `default/${namespaceName}`,
       },
     };
 
@@ -741,7 +742,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: environment.isProduction ? 'production' : 'non-production',
-        domain: namespaceName, // Link to the parent domain (namespace)
+        // Domain entities (mapped from OpenChoreo namespaces) live in the Backstage 'default' namespace
+        domain: `default/${namespaceName}`,
         isProduction: environment.isProduction,
         dataPlaneRef: environment.dataPlaneRef,
         dnsPrefix: environment.dnsPrefix,
@@ -795,7 +797,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: 'kubernetes',
-        domain: namespaceName, // Link to the parent domain (namespace)
+        // Domain entities (mapped from OpenChoreo namespaces) live in the Backstage 'default' namespace
+        domain: `default/${namespaceName}`,
         publicVirtualHost: dataplane.publicVirtualHost,
         namespaceVirtualHost: dataplane.namespaceVirtualHost,
         publicHTTPPort: dataplane.publicHTTPPort,
@@ -938,6 +941,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           kind: 'API',
           metadata: {
             name: `${completeComponent.name}-${endpointName}`,
+            namespace: namespaceName,
             title: `${completeComponent.name} ${endpointName} API`,
             description: `${endpoint.type} endpoint for ${completeComponent.name} service on port ${endpoint.port}`,
             tags: ['openchoreo', 'api', endpoint.type.toLowerCase()],
