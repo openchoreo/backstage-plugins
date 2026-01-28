@@ -103,23 +103,6 @@ export const useStyles = makeStyles(theme => ({
   platformDetailsSection: {
     marginBottom: theme.spacing(4),
   },
-  sidebarSection: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(4), // Increased from 3 to 4 for more spacing
-  },
-  sidebarTitle: {
-    marginBottom: theme.spacing(1),
-  },
-  sidebarWidget: {
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'flex-end',
-    '& > *': {
-      height: '100%',
-      width: '100%',
-    },
-  },
   quickActionsContainer: {
     marginTop: theme.spacing(3),
   },

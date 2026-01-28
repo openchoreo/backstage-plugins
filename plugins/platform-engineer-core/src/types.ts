@@ -28,6 +28,7 @@ export interface DataPlane {
   observerUsername?: string;
   createdAt?: string;
   status?: string;
+  agentConnected?: boolean;
 }
 
 export interface DataPlaneWithEnvironments extends DataPlane {

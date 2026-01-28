@@ -46,6 +46,7 @@
     "@openchoreo/backstage-design-system": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@openchoreo/backstage-plugin-react": "workspace:^",
+    "clsx": "^2.1.1",
     "react-router-dom": "6.30.1",
     "react-use": "17.6.0"
   },
