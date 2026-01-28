@@ -62,6 +62,7 @@ export function useComponentsWithDeployment(
         filter: {
           kind: 'Component',
           'spec.system': projectName,
+          'metadata.namespace': namespace,
         },
       });
 
