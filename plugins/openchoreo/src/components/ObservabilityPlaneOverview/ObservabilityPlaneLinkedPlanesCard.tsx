@@ -159,9 +159,9 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
               )}
               <Box>
                 <Link
-                  to={`/catalog/${plane.namespace}/${plane.kind.toLowerCase()}/${
-                    plane.name
-                  }`}
+                  to={`/catalog/${
+                    plane.namespace
+                  }/${plane.kind.toLowerCase()}/${plane.name}`}
                   className={classes.environmentName}
                 >
                   {plane.displayName || plane.name}

@@ -46,7 +46,7 @@ export const PlatformDetailsCard = ({
         <Grid container spacing={3}>
           {/* Data Planes */}
           {dataplanesWithEnvironments.length > 0 && (
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <Box className={classes.planeSection}>
                 <Typography className={classes.planeSectionTitle}>
                   <StorageIcon className={classes.planeSectionIcon} />
@@ -65,15 +65,8 @@ export const PlatformDetailsCard = ({
                           <Typography variant="h6">
                             {dp.displayName || dp.name}
                           </Typography>
-                          <Box
-                            display="flex"
-                            alignItems="center"
-                            gridGap={6}
-                          >
-                            <Typography
-                              variant="body2"
-                              color="textSecondary"
-                            >
+                          <Box display="flex" alignItems="center" gridGap={6}>
+                            <Typography variant="body2" color="textSecondary">
                               {dp.namespaceName}
                             </Typography>
                             {dp.agentConnected !== undefined && (
@@ -126,7 +119,7 @@ export const PlatformDetailsCard = ({
 
           {/* Build Planes */}
           {buildPlanes.length > 0 && (
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <Box className={classes.planeSection}>
                 <Typography className={classes.planeSectionTitle}>
                   <BuildIcon className={classes.planeSectionIcon} />
@@ -145,15 +138,8 @@ export const PlatformDetailsCard = ({
                           <Typography variant="h6">
                             {bp.displayName || bp.name}
                           </Typography>
-                          <Box
-                            display="flex"
-                            alignItems="center"
-                            gridGap={6}
-                          >
-                            <Typography
-                              variant="body2"
-                              color="textSecondary"
-                            >
+                          <Box display="flex" alignItems="center" gridGap={6}>
+                            <Typography variant="body2" color="textSecondary">
                               {bp.namespaceName}
                             </Typography>
                             {bp.agentConnected !== undefined && (
@@ -206,7 +192,7 @@ export const PlatformDetailsCard = ({
 
           {/* Observability Planes */}
           {observabilityPlanes.length > 0 && (
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={4}>
               <Box className={classes.planeSection}>
                 <Typography className={classes.planeSectionTitle}>
                   <VisibilityIcon className={classes.planeSectionIcon} />
@@ -225,15 +211,8 @@ export const PlatformDetailsCard = ({
                           <Typography variant="h6">
                             {op.displayName || op.name}
                           </Typography>
-                          <Box
-                            display="flex"
-                            alignItems="center"
-                            gridGap={6}
-                          >
-                            <Typography
-                              variant="body2"
-                              color="textSecondary"
-                            >
+                          <Box display="flex" alignItems="center" gridGap={6}>
+                            <Typography variant="body2" color="textSecondary">
                               {op.namespaceName}
                             </Typography>
                             {op.agentConnected !== undefined && (

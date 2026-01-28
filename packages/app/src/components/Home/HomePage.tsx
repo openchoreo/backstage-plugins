@@ -126,7 +126,11 @@ export const HomePage = () => {
 
             {/* Recent Activity - Full-width, horizontal layout */}
             <Grid item xs={12}>
-              <Typography variant="h4" color="secondary" style={{ marginBottom: 16 }}>
+              <Typography
+                variant="h4"
+                color="secondary"
+                style={{ marginBottom: 16 }}
+              >
                 Recent Activity
               </Typography>
               <Grid container spacing={3}>

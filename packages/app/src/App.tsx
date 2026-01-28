@@ -215,7 +215,10 @@ const routes = (
         <UserSettingsPage providerSettings={<OpenChoreoProviderSettings />} />
       }
     />
-    <Route path="/catalog-graph" element={<CatalogGraphPage renderNode={CustomGraphNode} />} />
+    <Route
+      path="/catalog-graph"
+      element={<CatalogGraphPage renderNode={CustomGraphNode} />}
+    />
     <Route path="/admin/access-control" element={<AccessControlPage />} />
   </FlatRoutes>
 );
