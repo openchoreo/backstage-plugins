@@ -55,7 +55,9 @@ export function useWorkflowData() {
       const componentData = await response.json();
       setState(prev => ({ ...prev, componentDetails: componentData }));
     } catch (err) {
-      setState(prev => ({ ...prev, error: err as Error }));
+      // Don't set error state — let componentDetails remain null so the UI
+      // shows "Workflows Not Available" instead of a raw HTTP error.
+      setState(prev => ({ ...prev, componentDetails: null }));
     }
   }, [discoveryApi, fetchApi, getEntityDetails]);
 

@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, parseEntityRef } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 
@@ -69,24 +69,30 @@ export function useComponentEntityDetails() {
         throw new Error(`Project entity not found: ${projectEntityRef}`);
       }
 
-      // Get namespace from the project entity's spec.domain or annotations
-      let namespaceValue = projectEntity.spec?.domain;
-      if (!namespaceValue) {
-        namespaceValue =
+      // Get namespace from the project entity's spec.domain or annotations.
+      // spec.domain is a qualified ref (e.g. "default/team-alpha") — extract just the name.
+      let namespaceName: string | undefined;
+      if (projectEntity.spec?.domain) {
+        const domainStr =
+          typeof projectEntity.spec.domain === 'string'
+            ? projectEntity.spec.domain
+            : String(projectEntity.spec.domain);
+        const domainRef = parseEntityRef(domainStr, {
+          defaultKind: 'domain',
+          defaultNamespace: 'default',
+        });
+        namespaceName = domainRef.name;
+      }
+      if (!namespaceName) {
+        namespaceName =
           projectEntity.metadata.annotations?.['openchoreo.io/namespace'];
       }
 
-      if (!namespaceValue) {
+      if (!namespaceName) {
         throw new Error(
           `Namespace name not found in project entity: ${projectEntityRef}`,
         );
       }
-
-      // Convert namespace value to string (it could be string or object)
-      const namespaceName =
-        typeof namespaceValue === 'string'
-          ? namespaceValue
-          : String(namespaceValue);
 
       return { componentName, projectName, namespaceName };
     }, [entity, catalogApi]);
@@ -129,23 +135,30 @@ export async function extractComponentEntityDetails(
     throw new Error(`Project entity not found: ${projectEntityRef}`);
   }
 
-  // Get namespace from the project entity's spec.domain or annotations
-  let namespaceValue = projectEntity.spec?.domain;
-  if (!namespaceValue) {
-    namespaceValue =
+  // Get namespace from the project entity's spec.domain or annotations.
+  // spec.domain is a qualified ref (e.g. "default/team-alpha") — extract just the name.
+  let namespaceName: string | undefined;
+  if (projectEntity.spec?.domain) {
+    const domainStr =
+      typeof projectEntity.spec.domain === 'string'
+        ? projectEntity.spec.domain
+        : String(projectEntity.spec.domain);
+    const domainRef = parseEntityRef(domainStr, {
+      defaultKind: 'domain',
+      defaultNamespace: 'default',
+    });
+    namespaceName = domainRef.name;
+  }
+  if (!namespaceName) {
+    namespaceName =
       projectEntity.metadata.annotations?.['openchoreo.io/namespace'];
   }
 
-  if (!namespaceValue) {
+  if (!namespaceName) {
     throw new Error(
       `Namespace name not found in project entity: ${projectEntityRef}`,
     );
   }
-
-  const namespaceName =
-    typeof namespaceValue === 'string'
-      ? namespaceValue
-      : String(namespaceValue);
 
   return { componentName, projectName, namespaceName };
 }
