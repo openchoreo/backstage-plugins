@@ -49,16 +49,19 @@ const capitalizeFirst = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-const entityRefToUrl = (entityRef: string): string => {
+const entityRefToUrl = (
+  entityRef: string,
+  fallbackNamespace = 'default',
+): string => {
   const colonIndex = entityRef.indexOf(':');
-  if (colonIndex === -1) return `/catalog/default/${entityRef}`;
+  if (colonIndex === -1) return `/catalog/${fallbackNamespace}/${entityRef}`;
 
   const kind = entityRef.substring(0, colonIndex);
   const rest = entityRef.substring(colonIndex + 1);
   const slashIndex = rest.indexOf('/');
 
   if (slashIndex === -1) {
-    return `/catalog/default/${kind}/${rest}`;
+    return `/catalog/${fallbackNamespace}/${kind}/${rest}`;
   }
 
   const namespace = rest.substring(0, slashIndex);
@@ -119,7 +122,7 @@ export const PipelineFlowVisualization = ({
 
       {showPipelineLink && pipelineEntityRef && (
         <Link
-          to={entityRefToUrl(pipelineEntityRef)}
+          to={entityRefToUrl(pipelineEntityRef, environmentNamespace)}
           style={{ textDecoration: 'none' }}
         >
           <Button

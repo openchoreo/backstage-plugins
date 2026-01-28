@@ -23,7 +23,7 @@ export interface DataPlane {
   kubernetesClusterName?: string;
   apiServerURL?: string;
   publicVirtualHost?: string;
-  organizationVirtualHost?: string;
+  namespaceVirtualHost?: string;
   observerURL?: string;
   observerUsername?: string;
   createdAt?: string;
