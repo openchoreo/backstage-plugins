@@ -64,9 +64,8 @@ export const HomePagePlatformDetailsCard = () => {
         const key = `${ns}/${entity.metadata.name}`;
         dataplaneAgentMap.set(
           key,
-          entity.metadata.annotations?.[
-            CHOREO_ANNOTATIONS.AGENT_CONNECTED
-          ] === 'true',
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.AGENT_CONNECTED] ===
+            'true',
         );
       });
 

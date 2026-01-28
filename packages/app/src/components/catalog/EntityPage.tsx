@@ -654,21 +654,21 @@ const buildPlanePage = (
     <EntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
-        {/* Row 1: Status */}
+        {/* Row 1: Status + Relations */}
         <Grid item md={6} xs={12}>
           <BuildPlaneStatusCard />
         </Grid>
         <Grid item md={6} xs={12}>
-          <EntityAboutCard variant="gridItem" />
-        </Grid>
-        {/* Row 2: Catalog Graph */}
-        <Grid item md={12} xs={12}>
           <EntityCatalogGraphCard
             variant="gridItem"
             height={400}
             relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
             renderNode={CustomGraphNode}
           />
+        </Grid>
+        {/* Row 2: About */}
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
         </Grid>
       </Grid>
     </EntityLayout.Route>

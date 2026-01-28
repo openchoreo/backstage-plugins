@@ -178,9 +178,7 @@ export const SummaryWidgetWrapper = ({
         </Box>
       }
       deepLink={
-        titleLink
-          ? { title: `View ${title}`, link: titleLink }
-          : undefined
+        titleLink ? { title: `View ${title}`, link: titleLink } : undefined
       }
     >
       {renderContent()}
