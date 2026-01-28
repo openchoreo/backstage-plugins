@@ -65,6 +65,7 @@ export const DeveloperPortalWidget = () => {
           label: 'Projects created:',
           value: projectsCount,
           link: '/catalog?filters[kind]=system',
+          highlight: true,
         },
         {
           label: 'Components deployed:',

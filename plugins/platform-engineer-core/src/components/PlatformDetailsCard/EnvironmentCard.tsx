@@ -33,7 +33,6 @@ export const EnvironmentCard = ({ environment }: EnvironmentCardProps) => {
     <Card
       key={`${environment.namespaceName}-${environment.name}`}
       className={classes.environmentCard}
-      elevation={0}
     >
       {/* Environment Header */}
       <Box className={classes.environmentHeader}>

@@ -97,32 +97,50 @@ export const HomePage = () => {
               />
             </Grid>
 
-            <Grid item xs={12} md={8}>
-              {/* Platform Engineer Overview Section */}
-              {getUserRole() === 'platformengineer' && (
-                <>
-                  {/* Platform Metrics Section */}
-                  <Box className={classes.overviewSection}>
-                    <Typography variant="h3">Platform Overview</Typography>
-                    <Grid container className={classes.widgetContainer}>
-                      <Grid item xs={12} md={4} sm={12}>
-                        <InfrastructureWidget />
-                      </Grid>
-                      <Grid item xs={12} md={4} sm={12}>
-                        <DeveloperPortalWidget />
-                      </Grid>
-                      <Grid item xs={12} md={4} sm={12}>
-                        <AgentHealthWidget />
-                      </Grid>
-                    </Grid>
-                  </Box>
+            {/* Platform Engineer: Full-width metrics row */}
+            {getUserRole() === 'platformengineer' && (
+              <>
+                <Grid item xs={12}>
+                  <Typography variant="h3">Platform Overview</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <InfrastructureWidget />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <DeveloperPortalWidget />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <AgentHealthWidget />
+                </Grid>
+              </>
+            )}
 
-                  {/* Platform Details Section */}
-                  <Box className={classes.platformDetailsSection}>
-                    <HomePagePlatformDetailsCard />
-                  </Box>
-                </>
-              )}
+            {/* Platform Engineer: Full-width platform details */}
+            {getUserRole() === 'platformengineer' && (
+              <Grid item xs={12}>
+                <Box className={classes.platformDetailsSection}>
+                  <HomePagePlatformDetailsCard />
+                </Box>
+              </Grid>
+            )}
+
+            {/* Recent Activity - Full-width, horizontal layout */}
+            <Grid item xs={12}>
+              <Typography variant="h4" color="secondary" style={{ marginBottom: 16 }}>
+                Recent Activity
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <HomePageStarredEntities />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <HomePageRecentlyVisited />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Main content column */}
+            <Grid item xs={12} md={8}>
               {/* Developer Overview Section */}
               {getUserRole() === 'developer' && (
                 <Box className={classes.overviewSection}>
@@ -140,25 +158,6 @@ export const HomePage = () => {
                 userGroups.includes('developer')) && (
                 <HomePageToolkit title="Quick Actions" tools={toolkitTools} />
               )}
-            </Grid>
-
-            {/* Right Sidebar - Quick Access */}
-            <Grid item xs={12} md={4}>
-              <Grid container justifyContent="flex-end">
-                <Grid item md={10} xs={12} className={classes.sidebarSection}>
-                  <Typography variant="h4" color="secondary">
-                    Recent Activity
-                  </Typography>
-
-                  <Box className={classes.sidebarWidget}>
-                    <HomePageStarredEntities />
-                  </Box>
-
-                  <Box className={classes.sidebarWidget}>
-                    <HomePageRecentlyVisited />
-                  </Box>
-                </Grid>
-              </Grid>
             </Grid>
           </Grid>
         </Content>

@@ -26,9 +26,6 @@ export const HomePagePlatformDetailsCard = () => {
   const [observabilityPlanes, setObservabilityPlanes] = useState<
     ObservabilityPlane[]
   >([]);
-  const [expandedDataplanes, setExpandedDataplanes] = useState<Set<string>>(
-    new Set(),
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,22 +38,46 @@ export const HomePagePlatformDetailsCard = () => {
       setLoading(true);
       setError(null);
 
-      const [dataplanesData, buildPlaneResult, obsPlaneResult] =
-        await Promise.all([
-          fetchDataplanesWithEnvironmentsAndComponents(
-            discovery,
-            fetchApi,
-            catalogApi,
-          ),
-          catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
-          catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
-        ]);
+      const [
+        dataplanesData,
+        dataplaneCatalogResult,
+        buildPlaneResult,
+        obsPlaneResult,
+      ] = await Promise.all([
+        fetchDataplanesWithEnvironmentsAndComponents(
+          discovery,
+          fetchApi,
+          catalogApi,
+        ),
+        catalogApi.getEntities({ filter: { kind: 'DataPlane' } }),
+        catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
+        catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
+      ]);
 
-      setDataplanesWithEnvironments(dataplanesData);
-      setExpandedDataplanes(
-        dataplanesData.length === 1
-          ? new Set([dataplanesData[0].name])
-          : new Set(),
+      // Build lookup map for dataplane agent status from catalog
+      const dataplaneAgentMap = new Map<string, boolean>();
+      dataplaneCatalogResult.items.forEach(entity => {
+        const ns =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
+          entity.metadata.namespace ||
+          'default';
+        const key = `${ns}/${entity.metadata.name}`;
+        dataplaneAgentMap.set(
+          key,
+          entity.metadata.annotations?.[
+            CHOREO_ANNOTATIONS.AGENT_CONNECTED
+          ] === 'true',
+        );
+      });
+
+      // Enrich dataplanes with agent status
+      setDataplanesWithEnvironments(
+        dataplanesData.map(dp => ({
+          ...dp,
+          agentConnected: dataplaneAgentMap.get(
+            `${dp.namespaceName}/${dp.name}`,
+          ),
+        })),
       );
 
       setBuildPlanes(
@@ -124,18 +145,6 @@ export const HomePagePlatformDetailsCard = () => {
     fetchData();
   }, [fetchData]);
 
-  const toggleDataplaneExpansion = (dataplaneName: string) => {
-    setExpandedDataplanes(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(dataplaneName)) {
-        newSet.delete(dataplaneName);
-      } else {
-        newSet.add(dataplaneName);
-      }
-      return newSet;
-    });
-  };
-
   if (loading) {
     return (
       <Box
@@ -169,8 +178,6 @@ export const HomePagePlatformDetailsCard = () => {
       dataplanesWithEnvironments={dataplanesWithEnvironments}
       buildPlanes={buildPlanes}
       observabilityPlanes={observabilityPlanes}
-      expandedDataplanes={expandedDataplanes}
-      onToggleDataplaneExpansion={toggleDataplaneExpansion}
     />
   );
 };

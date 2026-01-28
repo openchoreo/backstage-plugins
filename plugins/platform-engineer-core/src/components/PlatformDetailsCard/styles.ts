@@ -1,76 +1,10 @@
 import { makeStyles } from '@material-ui/core/styles';
 
 export const useStyles = makeStyles(theme => ({
-  dataplaneDetailsSection: {
-    marginTop: theme.spacing(4),
-  },
-  dataplaneDetailTitle: {
-    color: '#374151',
-    marginBottom: theme.spacing(3),
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-  },
-  dataplaneCard: {
-    borderRadius: 12,
-    border: `1px solid ${theme.palette.grey[200]}`,
-    boxShadow:
-      '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    background: 'white',
-    marginBottom: theme.spacing(3),
-    overflow: 'hidden',
-  },
-  dataplaneHeader: {
-    padding: theme.spacing(2, 3),
-    borderBottom: '1px solid #f3f4f6',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    background: '#f9fafb',
-    cursor: 'pointer',
-  },
-  dataplaneTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-    fontSize: '1.125rem',
-    fontWeight: 600,
-    color: '#374151',
-  },
-  dataplaneIcon: {
-    fontSize: '1.25rem',
-    color: '#6b7280',
-  },
-  statusChip: {
-    backgroundColor: '#f3f4f6',
-    color: '#6b7280',
-    fontWeight: 500,
-    fontSize: '0.75rem',
-  },
-  environmentsSection: {
-    padding: theme.spacing(3),
-  },
-  sectionTitle: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1),
-    marginBottom: theme.spacing(2),
-    fontSize: '1rem',
-    fontWeight: 500,
-    color: '#6b7280',
-  },
-  environmentGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: theme.spacing(2),
-    marginTop: theme.spacing(2),
-  },
+  dataplaneDetailsSection: {},
   environmentCard: {
     borderRadius: 8,
-    border: '1px solid #e5e7eb',
-    background: 'white',
     height: '100%',
-    boxShadow: theme.shadows[1],
   },
   environmentHeader: {
     padding: theme.spacing(2),
@@ -130,6 +64,15 @@ export const useStyles = makeStyles(theme => ({
     fontSize: '0.75rem',
     fontWeight: 600,
   },
+  componentCountIcon: {
+    fontSize: '0.875rem',
+  },
+  environmentGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    gap: theme.spacing(2),
+    marginTop: theme.spacing(2),
+  },
   emptyState: {
     textAlign: 'center',
     padding: theme.spacing(4),
@@ -144,18 +87,53 @@ export const useStyles = makeStyles(theme => ({
   emptyStateTitle: {
     marginBottom: theme.spacing(1),
   },
-  emptyEnvironmentsIcon: {
-    fontSize: '2rem',
-    opacity: 0.3,
-    marginBottom: theme.spacing(1),
+  planeSection: {
+    marginBottom: theme.spacing(3),
   },
-  dataplaneDescription: {
+  planeSectionTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: '#6b7280',
     marginBottom: theme.spacing(2),
   },
-  sectionTitleIcon: {
-    fontSize: '1rem',
+  planeSectionIcon: {
+    fontSize: '1.1rem',
+    color: '#9ca3af',
   },
-  componentCountIcon: {
-    fontSize: '0.875rem',
+  planeColumnCards: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1.5),
+  },
+  planeCompactCard: {
+    borderRadius: 10,
+    padding: theme.spacing(2),
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  planeCompactInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1.5),
+  },
+  planeIcon: {
+    fontSize: '1.25rem',
+    color: '#6b7280',
+  },
+  agentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    display: 'inline-block',
+  },
+  agentDotConnected: {
+    backgroundColor: '#10b981',
+  },
+  agentDotDisconnected: {
+    backgroundColor: '#ef4444',
   },
 }));

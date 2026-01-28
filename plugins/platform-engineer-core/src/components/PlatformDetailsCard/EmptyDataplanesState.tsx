@@ -6,7 +6,7 @@ export const EmptyDataplanesState = () => {
   const classes = useStyles();
 
   return (
-    <Card className={classes.dataplaneCard} elevation={0}>
+    <Card elevation={0}>
       <Box className={classes.emptyState}>
         <StorageIcon className={classes.emptyStateIcon} />
         <Typography variant="h6" className={classes.emptyStateTitle}>

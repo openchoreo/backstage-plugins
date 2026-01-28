@@ -78,6 +78,7 @@ export const AgentHealthWidget = () => {
         {
           label: 'Connected planes:',
           value: connectedCount,
+          highlight: true,
         },
         {
           label: 'Disconnected planes:',
