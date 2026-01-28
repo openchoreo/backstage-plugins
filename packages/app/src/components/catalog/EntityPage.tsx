@@ -696,6 +696,7 @@ const observabilityPlanePage = (
             variant="gridItem"
             height={400}
             relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
+            unidirectional={false}
             renderNode={CustomGraphNode}
           />
         </Grid>

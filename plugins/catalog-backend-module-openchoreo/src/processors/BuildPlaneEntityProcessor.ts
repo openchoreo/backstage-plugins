@@ -59,10 +59,11 @@ export class BuildPlaneEntityProcessor implements CatalogProcessor {
       }
 
       // Emit observedBy/observes relationship to observability plane
+      // ObservabilityPlanes live in the 'default' namespace unless explicitly specified
       if (entity.spec.observabilityPlaneRef) {
         const obsRef = parseEntityRef(entity.spec.observabilityPlaneRef, {
           defaultKind: 'observabilityplane',
-          defaultNamespace: entity.metadata.namespace || 'default',
+          defaultNamespace: 'default',
         });
         emit(
           processingResult.relation({

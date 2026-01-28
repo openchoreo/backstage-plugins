@@ -157,14 +157,23 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
               ) : (
                 <BuildIcon style={{ fontSize: '1.2rem', color: 'inherit' }} />
               )}
-              <Link
-                to={`/catalog/${plane.namespace}/${plane.kind.toLowerCase()}/${
-                  plane.name
-                }`}
-                className={classes.environmentName}
-              >
-                {plane.displayName || plane.name}
-              </Link>
+              <Box>
+                <Link
+                  to={`/catalog/${plane.namespace}/${plane.kind.toLowerCase()}/${
+                    plane.name
+                  }`}
+                  className={classes.environmentName}
+                >
+                  {plane.displayName || plane.name}
+                </Link>
+                <Typography
+                  variant="caption"
+                  color="textSecondary"
+                  style={{ display: 'block' }}
+                >
+                  {plane.namespace}
+                </Typography>
+              </Box>
               <Typography
                 className={classes.environmentType}
                 style={{
