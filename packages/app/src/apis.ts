@@ -39,6 +39,8 @@ import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
 import CloudIcon from '@material-ui/icons/Cloud';
 import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import BuildIcon from '@material-ui/icons/Build';
 
 // Re-export for use by App.tsx and other components
 export { openChoreoAuthApiRef };
@@ -161,6 +163,8 @@ export const apis: AnyApiFactory[] = [
           environment: CloudIcon,
           dataplane: DnsIcon,
           deploymentpipeline: AccountTreeIcon,
+          observabilityplane: VisibilityIcon,
+          buildplane: BuildIcon,
         },
       }),
   }),
