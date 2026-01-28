@@ -18,10 +18,15 @@ type ModelsNamespace = OpenChoreoComponents['schemas']['NamespaceResponse'];
 type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
 type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
+type ModelsBuildPlane = OpenChoreoComponents['schemas']['BuildPlaneResponse'];
+type ModelsObservabilityPlane =
+  OpenChoreoComponents['schemas']['ObservabilityPlaneResponse'];
 type ModelsCompleteComponent =
   OpenChoreoComponents['schemas']['ComponentResponse'];
 type ModelsDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
+type ModelsAgentConnectionStatus =
+  OpenChoreoComponents['schemas']['AgentConnectionStatusResponse'];
 
 // WorkloadEndpoint is part of the workload.endpoints structure
 // Since Workload uses additionalProperties, we define this locally
@@ -40,6 +45,8 @@ import {
 import {
   EnvironmentEntityV1alpha1,
   DataplaneEntityV1alpha1,
+  BuildPlaneEntityV1alpha1,
+  ObservabilityPlaneEntityV1alpha1,
   DeploymentPipelineEntityV1alpha1,
 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
@@ -229,6 +236,90 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         } catch (error) {
           this.logger.warn(
             `Failed to fetch dataplanes for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get buildplanes for each namespace and create BuildPlane entities
+      for (const ns of namespaces) {
+        try {
+          const {
+            data: bpData,
+            error: bpError,
+            response: bpResponse,
+          } = await client.GET('/namespaces/{namespaceName}/buildplanes', {
+            params: {
+              path: { namespaceName: ns.name! },
+            },
+          });
+
+          if (bpError || !bpResponse.ok) {
+            this.logger.warn(
+              `Failed to fetch buildplanes for namespace ${ns.name}: ${bpResponse.status}`,
+            );
+            continue;
+          }
+
+          // BuildPlanes use writeSuccessResponse — data is direct array
+          const buildplanes =
+            bpData.success && bpData.data
+              ? (bpData.data as ModelsBuildPlane[])
+              : [];
+          this.logger.debug(
+            `Found ${buildplanes.length} buildplanes in namespace: ${ns.name}`,
+          );
+
+          const buildplaneEntities: Entity[] = buildplanes.map(buildplane =>
+            this.translateBuildPlaneToEntity(buildplane, ns.name!),
+          );
+          allEntities.push(...buildplaneEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch buildplanes for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get observabilityplanes for each namespace and create ObservabilityPlane entities
+      for (const ns of namespaces) {
+        try {
+          const {
+            data: opData,
+            error: opError,
+            response: opResponse,
+          } = await client.GET(
+            '/namespaces/{namespaceName}/observabilityplanes',
+            {
+              params: {
+                path: { namespaceName: ns.name! },
+              },
+            },
+          );
+
+          if (opError || !opResponse.ok) {
+            this.logger.warn(
+              `Failed to fetch observabilityplanes for namespace ${ns.name}: ${opResponse.status}`,
+            );
+            continue;
+          }
+
+          // ObservabilityPlanes use writeSuccessResponse — data is direct array
+          const observabilityplanes =
+            opData.success && opData.data
+              ? (opData.data as ModelsObservabilityPlane[])
+              : [];
+          this.logger.debug(
+            `Found ${observabilityplanes.length} observabilityplanes in namespace: ${ns.name}`,
+          );
+
+          const observabilityplaneEntities: Entity[] = observabilityplanes.map(
+            obsplane =>
+              this.translateObservabilityPlaneToEntity(obsplane, ns.name!),
+          );
+          allEntities.push(...observabilityplaneEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch observabilityplanes for namespace ${ns.name}: ${error}`,
           );
         }
       }
@@ -598,11 +689,17 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       const dataplaneCount = allEntities.filter(
         e => e.kind === 'Dataplane',
       ).length;
+      const buildplaneCount = allEntities.filter(
+        e => e.kind === 'BuildPlane',
+      ).length;
+      const observabilityplaneCount = allEntities.filter(
+        e => e.kind === 'ObservabilityPlane',
+      ).length;
       const pipelineCount = allEntities.filter(
         e => e.kind === 'DeploymentPipeline',
       ).length;
       this.logger.info(
-        `Successfully processed ${allEntities.length} entities (${domainEntities.length} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${pipelineCount} deployment pipelines)`,
+        `Successfully processed ${allEntities.length} entities (${domainEntities.length} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines)`,
       );
     } catch (error) {
       this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
@@ -791,6 +888,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             dataplane.namespaceHTTPSPort?.toString() || '',
           'openchoreo.io/observability-plane-ref':
             dataplane.observabilityPlaneRef || '',
+          ...this.mapAgentConnectionAnnotations(dataplane.agentConnection),
         },
         labels: {
           [CHOREO_LABELS.MANAGED]: 'true',
@@ -812,6 +910,126 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     };
 
     return dataplaneEntity;
+  }
+
+  /**
+   * Translates a ModelsBuildPlane from OpenChoreo API to a Backstage BuildPlane entity
+   */
+  private translateBuildPlaneToEntity(
+    buildplane: ModelsBuildPlane,
+    namespaceName: string,
+  ): BuildPlaneEntityV1alpha1 {
+    const buildplaneEntity: BuildPlaneEntityV1alpha1 = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'BuildPlane',
+      metadata: {
+        name: buildplane.name,
+        namespace: namespaceName,
+        title: buildplane.displayName || buildplane.name,
+        description: buildplane.description || `${buildplane.name} build plane`,
+        tags: ['openchoreo', 'buildplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: buildplane.createdAt || '',
+          [CHOREO_ANNOTATIONS.STATUS]: buildplane.status || '',
+          'openchoreo.io/observability-plane-ref':
+            buildplane.observabilityPlaneRef || '',
+          ...this.mapAgentConnectionAnnotations(buildplane.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/buildplane': 'true',
+        },
+      },
+      spec: {
+        type: 'kubernetes',
+        domain: `default/${namespaceName}`,
+        observabilityPlaneRef: buildplane.observabilityPlaneRef,
+      },
+    };
+
+    return buildplaneEntity;
+  }
+
+  /**
+   * Translates a ModelsObservabilityPlane from OpenChoreo API to a Backstage ObservabilityPlane entity
+   */
+  private translateObservabilityPlaneToEntity(
+    obsplane: ModelsObservabilityPlane,
+    namespaceName: string,
+  ): ObservabilityPlaneEntityV1alpha1 {
+    const obsplaneEntity: ObservabilityPlaneEntityV1alpha1 = {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ObservabilityPlane',
+      metadata: {
+        name: obsplane.name,
+        namespace: namespaceName,
+        title: obsplane.displayName || obsplane.name,
+        description:
+          obsplane.description || `${obsplane.name} observability plane`,
+        tags: ['openchoreo', 'observabilityplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: obsplane.createdAt || '',
+          [CHOREO_ANNOTATIONS.STATUS]: obsplane.status || '',
+          ...(obsplane.observerURL && {
+            [CHOREO_ANNOTATIONS.OBSERVER_URL]: obsplane.observerURL,
+          }),
+          ...this.mapAgentConnectionAnnotations(obsplane.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/observabilityplane': 'true',
+        },
+      },
+      spec: {
+        type: 'kubernetes',
+        domain: `default/${namespaceName}`,
+        observerURL: obsplane.observerURL,
+      },
+    };
+
+    return obsplaneEntity;
+  }
+
+  /**
+   * Maps agent connection status from the API response to Backstage entity annotations
+   */
+  private mapAgentConnectionAnnotations(
+    agentConnection?: ModelsAgentConnectionStatus,
+  ): Record<string, string> {
+    if (!agentConnection) {
+      return {};
+    }
+
+    const annotations: Record<string, string> = {
+      [CHOREO_ANNOTATIONS.AGENT_CONNECTED]:
+        agentConnection.connected?.toString() || 'false',
+      [CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT]:
+        agentConnection.connectedAgents?.toString() || '0',
+    };
+
+    if (agentConnection.lastHeartbeatTime) {
+      annotations[CHOREO_ANNOTATIONS.AGENT_LAST_HEARTBEAT] =
+        agentConnection.lastHeartbeatTime;
+    }
+    if (agentConnection.lastConnectedTime) {
+      annotations[CHOREO_ANNOTATIONS.AGENT_LAST_CONNECTED] =
+        agentConnection.lastConnectedTime;
+    }
+    if (agentConnection.lastDisconnectedTime) {
+      annotations[CHOREO_ANNOTATIONS.AGENT_LAST_DISCONNECTED] =
+        agentConnection.lastDisconnectedTime;
+    }
+    if (agentConnection.message) {
+      annotations[CHOREO_ANNOTATIONS.AGENT_MESSAGE] = agentConnection.message;
+    }
+
+    return annotations;
   }
 
   /**

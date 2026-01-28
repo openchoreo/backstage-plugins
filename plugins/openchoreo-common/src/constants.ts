@@ -24,6 +24,15 @@ export const CHOREO_ANNOTATIONS = {
   CTD_GENERATED: 'openchoreo.io/ctd-generated',
   // Deletion tracking
   DELETION_TIMESTAMP: 'openchoreo.io/deletion-timestamp',
+  // Agent connection status
+  AGENT_CONNECTED: 'openchoreo.io/agent-connected',
+  AGENT_CONNECTED_COUNT: 'openchoreo.io/agent-connected-count',
+  AGENT_LAST_HEARTBEAT: 'openchoreo.io/agent-last-heartbeat',
+  AGENT_LAST_CONNECTED: 'openchoreo.io/agent-last-connected',
+  AGENT_LAST_DISCONNECTED: 'openchoreo.io/agent-last-disconnected',
+  AGENT_MESSAGE: 'openchoreo.io/agent-message',
+  // Observability
+  OBSERVER_URL: 'openchoreo.io/observer-url',
 } as const;
 
 export const CHOREO_LABELS = {
@@ -70,3 +79,15 @@ export const RELATION_HOSTED_ON = 'hostedOn';
  * This is the inverse of RELATION_HOSTED_ON.
  */
 export const RELATION_HOSTS = 'hosts';
+
+/**
+ * A relation indicating that a DataPlane/BuildPlane is observed by an ObservabilityPlane.
+ * The source is the DataPlane/BuildPlane, the target is the ObservabilityPlane.
+ */
+export const RELATION_OBSERVED_BY = 'observedBy';
+
+/**
+ * A relation indicating that an ObservabilityPlane observes DataPlanes/BuildPlanes.
+ * This is the inverse of RELATION_OBSERVED_BY.
+ */
+export const RELATION_OBSERVES = 'observes';

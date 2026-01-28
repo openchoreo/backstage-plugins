@@ -9878,6 +9878,7 @@ __metadata:
     "@material-ui/icons": "npm:4.11.3"
     "@material-ui/lab": "npm:4.0.0-alpha.61"
     "@openchoreo/backstage-design-system": "workspace:^"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-react": "workspace:^"
     "@testing-library/dom": "npm:9.3.4"
     "@testing-library/jest-dom": "npm:6.9.1"

@@ -56,6 +56,8 @@ import {
   RELATION_PIPELINE_USED_BY,
   RELATION_HOSTED_ON,
   RELATION_HOSTS,
+  RELATION_OBSERVED_BY,
+  RELATION_OBSERVES,
 } from '@openchoreo/backstage-plugin-common';
 
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
@@ -81,6 +83,9 @@ import {
   EnvironmentPipelinesTab,
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
+  BuildPlaneStatusCard,
+  ObservabilityPlaneStatusCard,
+  ObservabilityPlaneLinkedPlanesCard,
   DeploymentPipelineVisualization,
   PromotionPathsCard,
 } from '@openchoreo/backstage-plugin';
@@ -630,7 +635,67 @@ const dataplanePage = (
           <EntityCatalogGraphCard
             variant="gridItem"
             height={400}
-            relations={[RELATION_HOSTED_ON, RELATION_HOSTS]}
+            relations={[
+              RELATION_HOSTED_ON,
+              RELATION_HOSTS,
+              RELATION_OBSERVED_BY,
+              RELATION_OBSERVES,
+            ]}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const buildPlanePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Status */}
+        <Grid item md={6} xs={12}>
+          <BuildPlaneStatusCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        {/* Row 2: Catalog Graph */}
+        <Grid item md={12} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const observabilityPlanePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Status + Linked Planes */}
+        <Grid item md={6} xs={12}>
+          <ObservabilityPlaneStatusCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <ObservabilityPlaneLinkedPlanesCard />
+        </Grid>
+        {/* Row 2: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
             renderNode={CustomGraphNode}
           />
         </Grid>
@@ -684,6 +749,11 @@ export const entityPage = (
     <EntitySwitch.Case if={isKind('resource')} children={resourcePage} />
     <EntitySwitch.Case if={isKind('environment')} children={environmentPage} />
     <EntitySwitch.Case if={isKind('dataplane')} children={dataplanePage} />
+    <EntitySwitch.Case if={isKind('buildplane')} children={buildPlanePage} />
+    <EntitySwitch.Case
+      if={isKind('observabilityplane')}
+      children={observabilityPlanePage}
+    />
     <EntitySwitch.Case
       if={isKind('deploymentpipeline')}
       children={deploymentPipelinePage}
