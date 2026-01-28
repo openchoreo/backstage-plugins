@@ -21,6 +21,8 @@ export const ENTITY_KIND_COLORS: Record<string, string> = {
   environment: '#10b981', // success.main - Green for environments
   dataplane: '#6b7280', // secondary.main - Gray for dataplanes
   deploymentpipeline: '#f59e0b', // warning.main - Orange for pipelines
+  observabilityplane: '#8b5cf6', // Purple for observability planes
+  buildplane: '#3b82f6', // Blue for build planes
 };
 
 /**
@@ -36,6 +38,8 @@ export const KIND_LABEL_PREFIXES: Record<string, string> = {
   dataplane: 'DP',
   environment: 'Env',
   deploymentpipeline: 'Pipeline',
+  observabilityplane: 'Obs',
+  buildplane: 'BP',
 };
 
 /**

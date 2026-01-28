@@ -35,6 +35,7 @@ import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 import { HomePage } from './components/Home';
+import { CustomGraphNode } from './components/catalog/CustomGraphNode';
 
 import {
   AlertDisplay,
@@ -53,6 +54,8 @@ import {
 import CloudIcon from '@material-ui/icons/Cloud';
 import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
+import VisibilityIcon from '@material-ui/icons/Visibility';
+import BuildIcon from '@material-ui/icons/Build';
 import { AccessControlPage } from '@openchoreo/backstage-plugin';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
@@ -101,6 +104,8 @@ const app = createApp({
     'kind:environment': CloudIcon,
     'kind:dataplane': DnsIcon,
     'kind:deploymentpipeline': AccountTreeIcon,
+    'kind:observabilityplane': VisibilityIcon,
+    'kind:buildplane': BuildIcon,
   },
   bindRoutes({ bind }) {
     bind(catalogPlugin.externalRoutes, {
@@ -210,7 +215,7 @@ const routes = (
         <UserSettingsPage providerSettings={<OpenChoreoProviderSettings />} />
       }
     />
-    <Route path="/catalog-graph" element={<CatalogGraphPage />} />
+    <Route path="/catalog-graph" element={<CatalogGraphPage renderNode={CustomGraphNode} />} />
     <Route path="/admin/access-control" element={<AccessControlPage />} />
   </FlatRoutes>
 );
