@@ -5,9 +5,14 @@ import {
   useApi,
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { PlatformDetailsCard } from '../PlatformDetailsCard';
 import { fetchDataplanesWithEnvironmentsAndComponents } from '../../api/dataplanesWithEnvironmentsAndComponents';
-import { DataPlaneWithEnvironments } from '../../types';
+import {
+  DataPlaneWithEnvironments,
+  BuildPlane,
+  ObservabilityPlane,
+} from '../../types';
 import { Box, CircularProgress, Typography } from '@material-ui/core';
 
 /**
@@ -16,6 +21,10 @@ import { Box, CircularProgress, Typography } from '@material-ui/core';
 export const HomePagePlatformDetailsCard = () => {
   const [dataplanesWithEnvironments, setDataplanesWithEnvironments] = useState<
     DataPlaneWithEnvironments[]
+  >([]);
+  const [buildPlanes, setBuildPlanes] = useState<BuildPlane[]>([]);
+  const [observabilityPlanes, setObservabilityPlanes] = useState<
+    ObservabilityPlane[]
   >([]);
   const [expandedDataplanes, setExpandedDataplanes] = useState<Set<string>>(
     new Set(),
@@ -32,11 +41,16 @@ export const HomePagePlatformDetailsCard = () => {
       setLoading(true);
       setError(null);
 
-      const dataplanesData = await fetchDataplanesWithEnvironmentsAndComponents(
-        discovery,
-        fetchApi,
-        catalogApi,
-      );
+      const [dataplanesData, buildPlaneResult, obsPlaneResult] =
+        await Promise.all([
+          fetchDataplanesWithEnvironmentsAndComponents(
+            discovery,
+            fetchApi,
+            catalogApi,
+          ),
+          catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
+          catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
+        ]);
 
       setDataplanesWithEnvironments(dataplanesData);
       setExpandedDataplanes(
@@ -44,11 +58,63 @@ export const HomePagePlatformDetailsCard = () => {
           ? new Set([dataplanesData[0].name])
           : new Set(),
       );
+
+      setBuildPlanes(
+        buildPlaneResult.items.map(entity => ({
+          name: entity.metadata.name,
+          namespace: entity.metadata.namespace,
+          displayName: entity.metadata.title || entity.metadata.name,
+          description: entity.metadata.description,
+          namespaceName:
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
+            entity.metadata.namespace ||
+            'default',
+          observabilityPlaneRef: (entity.spec as any)?.observabilityPlaneRef,
+          status: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.STATUS],
+          agentConnected:
+            entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.AGENT_CONNECTED
+            ] === 'true',
+          agentConnectedCount: parseInt(
+            entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT
+            ] || '0',
+            10,
+          ),
+        })),
+      );
+
+      setObservabilityPlanes(
+        obsPlaneResult.items.map(entity => ({
+          name: entity.metadata.name,
+          namespace: entity.metadata.namespace,
+          displayName: entity.metadata.title || entity.metadata.name,
+          description: entity.metadata.description,
+          namespaceName:
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
+            entity.metadata.namespace ||
+            'default',
+          observerURL: (entity.spec as any)?.observerURL,
+          status: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.STATUS],
+          agentConnected:
+            entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.AGENT_CONNECTED
+            ] === 'true',
+          agentConnectedCount: parseInt(
+            entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT
+            ] || '0',
+            10,
+          ),
+        })),
+      );
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch platform details',
       );
       setDataplanesWithEnvironments([]);
+      setBuildPlanes([]);
+      setObservabilityPlanes([]);
     } finally {
       setLoading(false);
     }
@@ -101,6 +167,8 @@ export const HomePagePlatformDetailsCard = () => {
   return (
     <PlatformDetailsCard
       dataplanesWithEnvironments={dataplanesWithEnvironments}
+      buildPlanes={buildPlanes}
+      observabilityPlanes={observabilityPlanes}
       expandedDataplanes={expandedDataplanes}
       onToggleDataplaneExpansion={toggleDataplaneExpansion}
     />

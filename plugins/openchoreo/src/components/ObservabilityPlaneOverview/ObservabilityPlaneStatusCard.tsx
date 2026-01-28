@@ -1,30 +1,26 @@
 import { Box, Typography } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import PublicIcon from '@material-ui/icons/Public';
-import VisibilityIcon from '@material-ui/icons/Visibility';
-import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
+import LinkIcon from '@material-ui/icons/Link';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Card } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { useDataplaneOverviewStyles } from './styles';
+import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 
-export const DataplaneStatusCard = () => {
+export const ObservabilityPlaneStatusCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
 
   const spec = entity.spec as any;
   const annotations = entity.metadata.annotations || {};
 
-  // Extract dataplane info from entity spec
-  const status = annotations[CHOREO_ANNOTATIONS.STATUS] || 'Active';
-  const observabilityPlaneRef = spec?.observabilityPlaneRef;
-  const publicVirtualHost = spec?.publicVirtualHost;
-  const gatewayPort = spec?.gatewayPort;
+  const status = annotations[CHOREO_ANNOTATIONS.STATUS] || 'Unknown';
+  const observerURL =
+    spec?.observerURL || annotations[CHOREO_ANNOTATIONS.OBSERVER_URL] || '';
   const agentConnected =
     annotations[CHOREO_ANNOTATIONS.AGENT_CONNECTED] === 'true';
   const agentCount = parseInt(
@@ -33,7 +29,6 @@ export const DataplaneStatusCard = () => {
   );
   const lastHeartbeat = annotations[CHOREO_ANNOTATIONS.AGENT_LAST_HEARTBEAT];
 
-  // Simulate loading for consistency
   const loading = false;
 
   if (loading) {
@@ -71,7 +66,7 @@ export const DataplaneStatusCard = () => {
   return (
     <Card padding={24} className={classes.card}>
       <Box className={classes.cardHeader}>
-        <Typography variant="h5">Data Plane Configuration</Typography>
+        <Typography variant="h5">Observability Plane Configuration</Typography>
       </Box>
 
       <Box className={classes.statusGrid}>
@@ -79,7 +74,7 @@ export const DataplaneStatusCard = () => {
           <CheckCircleIcon
             className={clsx(
               classes.statusIcon,
-              status === 'Ready' || status === 'Active'
+              status === 'Ready'
                 ? classes.statusHealthy
                 : classes.statusWarning,
             )}
@@ -110,25 +105,6 @@ export const DataplaneStatusCard = () => {
           </Box>
         </Box>
 
-        <Box className={classes.statusItem}>
-          <VisibilityIcon
-            className={clsx(
-              classes.statusIcon,
-              observabilityPlaneRef
-                ? classes.statusHealthy
-                : classes.statusWarning,
-            )}
-          />
-          <Box>
-            <Typography className={classes.statusLabel}>
-              Observability
-            </Typography>
-            <Typography className={classes.statusValue}>
-              {observabilityPlaneRef ? 'Linked' : 'Not Configured'}
-            </Typography>
-          </Box>
-        </Box>
-
         {lastHeartbeat && (
           <Box className={classes.statusItem}>
             <AccessTimeIcon className={classes.statusIcon} />
@@ -142,34 +118,16 @@ export const DataplaneStatusCard = () => {
             </Box>
           </Box>
         )}
-
-        {gatewayPort && (
-          <Box className={classes.statusItem}>
-            <SettingsInputComponentIcon
-              className={clsx(classes.statusIcon, classes.statusHealthy)}
-            />
-            <Box>
-              <Typography className={classes.statusLabel}>
-                Gateway Port
-              </Typography>
-              <Typography className={classes.statusValue}>
-                {gatewayPort}
-              </Typography>
-            </Box>
-          </Box>
-        )}
       </Box>
 
-      {publicVirtualHost && (
+      {observerURL && (
         <Box style={{ marginTop: 16 }}>
           <Box className={classes.infoRow}>
-            <PublicIcon
+            <LinkIcon
               style={{ fontSize: '1rem', marginRight: 8, color: 'inherit' }}
             />
-            <Typography className={classes.infoLabel}>Public Host:</Typography>
-            <Typography className={classes.infoValue}>
-              {publicVirtualHost}
-            </Typography>
+            <Typography className={classes.infoLabel}>Observer URL:</Typography>
+            <Typography className={classes.infoValue}>{observerURL}</Typography>
           </Box>
         </Box>
       )}

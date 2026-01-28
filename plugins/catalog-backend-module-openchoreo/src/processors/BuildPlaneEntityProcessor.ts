@@ -9,32 +9,30 @@ import {
   RELATION_OBSERVED_BY,
   RELATION_OBSERVES,
 } from '@openchoreo/backstage-plugin-common';
-import { DataplaneEntityV1alpha1 } from '../kinds/DataplaneEntityV1alpha1';
+import { BuildPlaneEntityV1alpha1 } from '../kinds/BuildPlaneEntityV1alpha1';
 
 /**
- * Processor for Dataplane entities
+ * Processor for BuildPlane entities
  */
-export class DataplaneEntityProcessor implements CatalogProcessor {
+export class BuildPlaneEntityProcessor implements CatalogProcessor {
   getProcessorName(): string {
-    return 'DataplaneEntityProcessor';
+    return 'BuildPlaneEntityProcessor';
   }
 
-  async validateEntityKind(entity: DataplaneEntityV1alpha1): Promise<boolean> {
-    return entity.kind === 'Dataplane';
+  async validateEntityKind(entity: BuildPlaneEntityV1alpha1): Promise<boolean> {
+    return entity.kind === 'BuildPlane';
   }
 
   async postProcessEntity(
-    entity: DataplaneEntityV1alpha1,
+    entity: BuildPlaneEntityV1alpha1,
     _location: LocationSpec,
     emit: CatalogProcessorEmit,
-  ): Promise<DataplaneEntityV1alpha1> {
-    // Validate required fields
-    if (entity.kind === 'Dataplane') {
+  ): Promise<BuildPlaneEntityV1alpha1> {
+    if (entity.kind === 'BuildPlane') {
       if (!entity.spec?.type) {
-        throw new Error('Dataplane entity must have spec.type');
+        throw new Error('BuildPlane entity must have spec.type');
       }
 
-      // Emit relationships based on spec fields
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -95,13 +93,11 @@ export class DataplaneEntityProcessor implements CatalogProcessor {
   }
 
   async preProcessEntity(
-    entity: DataplaneEntityV1alpha1,
+    entity: BuildPlaneEntityV1alpha1,
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
-  ): Promise<DataplaneEntityV1alpha1> {
-    // Set default values if needed
-    if (entity.kind === 'Dataplane' && entity.spec) {
-      // Set default type if not specified
+  ): Promise<BuildPlaneEntityV1alpha1> {
+    if (entity.kind === 'BuildPlane' && entity.spec) {
       if (!entity.spec.type) {
         entity.spec.type = 'kubernetes';
       }
@@ -111,16 +107,14 @@ export class DataplaneEntityProcessor implements CatalogProcessor {
   }
 
   async processEntity(
-    entity: DataplaneEntityV1alpha1,
+    entity: BuildPlaneEntityV1alpha1,
     location: LocationSpec,
     emit: CatalogProcessorEmit,
-  ): Promise<DataplaneEntityV1alpha1> {
-    // Only process Dataplane entities
-    if (entity.kind !== 'Dataplane') {
+  ): Promise<BuildPlaneEntityV1alpha1> {
+    if (entity.kind !== 'BuildPlane') {
       return entity;
     }
 
-    // Emit the processed entity
     emit(processingResult.entity(location, entity));
 
     return entity;

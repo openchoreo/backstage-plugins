@@ -7,6 +7,8 @@ export {
   RELATION_PIPELINE_USED_BY,
   RELATION_HOSTED_ON,
   RELATION_HOSTS,
+  RELATION_OBSERVED_BY,
+  RELATION_OBSERVES,
 } from './constants';
 
 // Permissions

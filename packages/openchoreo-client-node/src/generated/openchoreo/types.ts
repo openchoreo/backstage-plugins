@@ -295,6 +295,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/namespaces/{namespaceName}/observabilityplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List observability planes */
+    get: operations['listObservabilityPlanes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/namespaces/{namespaceName}/component-types': {
     parameters: {
       query?: never;
@@ -1190,6 +1207,17 @@ export interface components {
       isProduction: boolean;
       dnsPrefix?: string;
     };
+    AgentConnectionStatusResponse: {
+      connected?: boolean;
+      connectedAgents?: number;
+      /** Format: date-time */
+      lastConnectedTime?: string;
+      /** Format: date-time */
+      lastDisconnectedTime?: string;
+      /** Format: date-time */
+      lastHeartbeatTime?: string;
+      message?: string;
+    };
     DataPlaneResponse: {
       name: string;
       namespace: string;
@@ -1208,6 +1236,7 @@ export interface components {
       /** Format: int32 */
       namespaceHTTPSPort: number;
       observabilityPlaneRef?: string;
+      agentConnection?: components['schemas']['AgentConnectionStatusResponse'];
       /** Format: date-time */
       createdAt: string;
       status?: string;
@@ -1234,10 +1263,19 @@ export interface components {
       namespace: string;
       displayName?: string;
       description?: string;
-      kubernetesClusterName: string;
-      apiServerURL: string;
+      observabilityPlaneRef?: string;
+      agentConnection?: components['schemas']['AgentConnectionStatusResponse'];
+      /** Format: date-time */
+      createdAt: string;
+      status?: string;
+    };
+    ObservabilityPlaneResponse: {
+      name: string;
+      namespace: string;
+      displayName?: string;
+      description?: string;
       observerURL?: string;
-      observerUsername?: string;
+      agentConnection?: components['schemas']['AgentConnectionStatusResponse'];
       /** Format: date-time */
       createdAt: string;
       status?: string;
@@ -2243,9 +2281,31 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['BuildPlaneResponse'][];
-            };
+            data?: components['schemas']['BuildPlaneResponse'][];
+          };
+        };
+      };
+    };
+  };
+  listObservabilityPlanes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ObservabilityPlaneResponse'][];
           };
         };
       };

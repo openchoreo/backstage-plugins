@@ -14,6 +14,9 @@ import InfrastructureIcon from '@material-ui/icons/Storage';
  */
 export const InfrastructureWidget = () => {
   const [totalDataplanes, setTotalDataplanes] = useState<number>(0);
+  const [totalBuildPlanes, setTotalBuildPlanes] = useState<number>(0);
+  const [totalObservabilityPlanes, setTotalObservabilityPlanes] =
+    useState<number>(0);
   const [totalEnvironments, setTotalEnvironments] = useState<number>(0);
   const [healthyWorkloadCount, setHealthyWorkloadCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -28,15 +31,18 @@ export const InfrastructureWidget = () => {
       setLoading(true);
       setError(null);
 
-      const platformData = await fetchPlatformOverview(
-        discovery,
-        fetchApi,
-        catalogApi,
-      );
+      const [platformData, buildPlaneResult, obsPlaneResult] =
+        await Promise.all([
+          fetchPlatformOverview(discovery, fetchApi, catalogApi),
+          catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
+          catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
+        ]);
 
       setTotalDataplanes(platformData.dataplanes.length);
       setTotalEnvironments(platformData.environments.length);
       setHealthyWorkloadCount(platformData.healthyWorkloadCount);
+      setTotalBuildPlanes(buildPlaneResult.items.length);
+      setTotalObservabilityPlanes(obsPlaneResult.items.length);
     } catch (err) {
       setError(
         err instanceof Error
@@ -46,6 +52,8 @@ export const InfrastructureWidget = () => {
       setTotalDataplanes(0);
       setTotalEnvironments(0);
       setHealthyWorkloadCount(0);
+      setTotalBuildPlanes(0);
+      setTotalObservabilityPlanes(0);
     } finally {
       setLoading(false);
     }
@@ -61,9 +69,19 @@ export const InfrastructureWidget = () => {
       title="Infrastructure"
       metrics={[
         {
-          label: 'Data planes connected:',
+          label: 'Data planes:',
           value: totalDataplanes,
           link: '/catalog?filters[kind]=dataplane',
+        },
+        {
+          label: 'Build planes:',
+          value: totalBuildPlanes,
+          link: '/catalog?filters[kind]=buildplane',
+        },
+        {
+          label: 'Observability planes:',
+          value: totalObservabilityPlanes,
+          link: '/catalog?filters[kind]=observabilityplane',
         },
         {
           label: 'Environments:',

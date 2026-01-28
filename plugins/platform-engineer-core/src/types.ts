@@ -33,3 +33,27 @@ export interface DataPlane {
 export interface DataPlaneWithEnvironments extends DataPlane {
   environments: Environment[];
 }
+
+export interface BuildPlane {
+  name: string;
+  namespace?: string;
+  displayName?: string;
+  description?: string;
+  namespaceName: string;
+  observabilityPlaneRef?: string;
+  status?: string;
+  agentConnected?: boolean;
+  agentConnectedCount?: number;
+}
+
+export interface ObservabilityPlane {
+  name: string;
+  namespace?: string;
+  displayName?: string;
+  description?: string;
+  namespaceName: string;
+  observerURL?: string;
+  status?: string;
+  agentConnected?: boolean;
+  agentConnectedCount?: number;
+}

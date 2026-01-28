@@ -13,6 +13,7 @@ import {
   DeveloperPortalWidget,
   HomePagePlatformDetailsCard,
   InfrastructureWidget,
+  AgentHealthWidget,
 } from '@openchoreo/backstage-plugin-platform-engineer-core';
 import { MyProjectsWidget } from '@openchoreo/backstage-plugin';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
@@ -104,11 +105,14 @@ export const HomePage = () => {
                   <Box className={classes.overviewSection}>
                     <Typography variant="h3">Platform Overview</Typography>
                     <Grid container className={classes.widgetContainer}>
-                      <Grid item xs={12} md={5} sm={12}>
+                      <Grid item xs={12} md={4} sm={12}>
                         <InfrastructureWidget />
                       </Grid>
-                      <Grid item xs={12} md={5} sm={12}>
+                      <Grid item xs={12} md={4} sm={12}>
                         <DeveloperPortalWidget />
+                      </Grid>
+                      <Grid item xs={12} md={4} sm={12}>
+                        <AgentHealthWidget />
                       </Grid>
                     </Grid>
                   </Box>

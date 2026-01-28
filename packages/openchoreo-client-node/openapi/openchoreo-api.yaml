@@ -429,6 +429,26 @@ components:
         dnsPrefix:
           type: string
 
+    # Agent Connection Status
+    AgentConnectionStatusResponse:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        connectedAgents:
+          type: integer
+        lastConnectedTime:
+          type: string
+          format: date-time
+        lastDisconnectedTime:
+          type: string
+          format: date-time
+        lastHeartbeatTime:
+          type: string
+          format: date-time
+        message:
+          type: string
+
     # DataPlane
     DataPlaneResponse:
       type: object
@@ -475,6 +495,8 @@ components:
           format: int32
         observabilityPlaneRef:
           type: string
+        agentConnection:
+          $ref: '#/components/schemas/AgentConnectionStatusResponse'
         createdAt:
           type: string
           format: date-time
@@ -522,8 +544,6 @@ components:
       required:
         - name
         - namespace
-        - kubernetesClusterName
-        - apiServerURL
         - createdAt
       properties:
         name:
@@ -534,14 +554,36 @@ components:
           type: string
         description:
           type: string
-        kubernetesClusterName:
+        observabilityPlaneRef:
           type: string
-        apiServerURL:
+        agentConnection:
+          $ref: '#/components/schemas/AgentConnectionStatusResponse'
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+
+    # ObservabilityPlane
+    ObservabilityPlaneResponse:
+      type: object
+      required:
+        - name
+        - namespace
+        - createdAt
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        displayName:
+          type: string
+        description:
           type: string
         observerURL:
           type: string
-        observerUsername:
-          type: string
+        agentConnection:
+          $ref: '#/components/schemas/AgentConnectionStatusResponse'
         createdAt:
           type: string
           format: date-time
@@ -2212,14 +2254,37 @@ paths:
                   - type: object
                     properties:
                       data:
-                        allOf:
-                          - $ref: '#/components/schemas/ListResponse'
-                          - type: object
-                            properties:
-                              items:
-                                type: array
-                                items:
-                                  $ref: '#/components/schemas/BuildPlaneResponse'
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BuildPlaneResponse'
+
+  # ObservabilityPlanes
+  /namespaces/{namespaceName}/observabilityplanes:
+    get:
+      summary: List observability planes
+      operationId: listObservabilityPlanes
+      tags:
+        - ObservabilityPlanes
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ObservabilityPlaneResponse'
 
   # ComponentTypes
   /namespaces/{namespaceName}/component-types:

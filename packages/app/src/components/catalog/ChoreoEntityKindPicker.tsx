@@ -21,6 +21,8 @@ const kindDisplayNames: Record<string, string> = {
   location: 'Location',
   template: 'Template',
   dataplane: 'Dataplane',
+  buildplane: 'Build Plane',
+  observabilityplane: 'Observability Plane',
   environment: 'Environment',
   deploymentpipeline: 'Deployment Pipeline',
 };
@@ -38,6 +40,8 @@ const kindDisplayOrder: string[] = [
   'location',
   'template',
   'dataplane',
+  'buildplane',
+  'observabilityplane',
   'environment',
   'deploymentpipeline',
 ];
@@ -226,6 +230,8 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
           const lowerKey = key.toLowerCase();
           return (
             lowerKey !== 'dataplane' &&
+            lowerKey !== 'buildplane' &&
+            lowerKey !== 'observabilityplane' &&
             lowerKey !== 'environment' &&
             lowerKey !== 'deploymentpipeline'
           );

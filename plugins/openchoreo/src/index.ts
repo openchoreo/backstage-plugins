@@ -31,6 +31,11 @@ export {
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
 } from './components/DataplaneOverview';
+export { BuildPlaneStatusCard } from './components/BuildPlaneOverview';
+export {
+  ObservabilityPlaneStatusCard,
+  ObservabilityPlaneLinkedPlanesCard,
+} from './components/ObservabilityPlaneOverview';
 export {
   DeploymentPipelineVisualization,
   PromotionPathsCard,
