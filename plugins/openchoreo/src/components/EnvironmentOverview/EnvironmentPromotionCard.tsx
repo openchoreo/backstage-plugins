@@ -151,9 +151,13 @@ export const EnvironmentPromotionCard = () => {
                 </Typography>
               </Box>
               <Link
-                to={`/catalog/default/deploymentpipeline/${pipeline.pipelineEntityRef
-                  .split('/')
-                  .pop()}`}
+                to={(() => {
+                  const ref = parseEntityRef(pipeline.pipelineEntityRef, {
+                    defaultKind: 'deploymentpipeline',
+                    defaultNamespace: 'default',
+                  });
+                  return `/catalog/${ref.namespace}/${ref.kind}/${ref.name}`;
+                })()}
                 style={{ textDecoration: 'none' }}
               >
                 <ChevronRightIcon className={localClasses.chevron} />
