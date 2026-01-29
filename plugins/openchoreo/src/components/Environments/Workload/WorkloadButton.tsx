@@ -31,7 +31,7 @@ export const WorkloadButton = ({
   const { entity } = useEntity();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [hasWorkload, setHasWorkload] = useState(false);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
 
   // Check if user has permission to deploy
@@ -47,8 +47,9 @@ export const WorkloadButton = ({
       try {
         setIsLoading(true);
         await client.fetchWorkloadInfo(entity);
+        setHasWorkload(true);
       } catch (e) {
-        setError('Failed to fetch workload info');
+        setHasWorkload(false);
       }
       setIsLoading(false);
     };
@@ -92,18 +93,51 @@ export const WorkloadButton = ({
 
   const isFromSource = isFromSourceComponent(entity);
   const hasBuilds = builds.length > 0;
-  const enableDeploy = isFromSource
-    ? builds.some(build => build.image) && !isLoading
-    : !isLoading;
+  const hasSuccessfulBuild = builds.some(build => build.image);
 
-  const getAlertMessage = () => {
-    if (isFromSource && !hasBuilds) {
-      return 'Build your application first to generate a container image.';
+  // Determine if Configure & Deploy should be enabled
+  const enableDeploy = (() => {
+    if (isLoading) return false;
+
+    if (isFromSource) {
+      // From-source: need successful build AND workload
+      if (!hasBuilds) return false;
+      if (!hasSuccessfulBuild) return false;
+      if (!hasWorkload) return false; // Has builds but no workload - bug state
+      return true;
     }
-    return 'Configure your workload to enable deployment.';
+    // Pre-built image: always allow (user configures workload manually)
+    return true;
+  })();
+
+  const getAlertMessage = (): string | null => {
+    if (isFromSource) {
+      if (!hasBuilds) {
+        return 'Build your application first to generate a container image.';
+      }
+      if (hasSuccessfulBuild && !hasWorkload) {
+        return 'Workload configuration was not created automatically. Please re-run the build workflow or contact support.';
+      }
+    }
+    if (!hasWorkload) {
+      return 'Configure your workload to enable deployment.';
+    }
+    return null;
   };
 
-  if (isLoading && !error) {
+  const alertMessage = getAlertMessage();
+  const getAlertSeverity = (): 'error' | 'warning' | 'info' => {
+    if (isFromSource && hasSuccessfulBuild && !hasWorkload) {
+      return 'error';
+    }
+    if (isFromSource && !hasBuilds) {
+      return 'warning';
+    }
+    return 'info';
+  };
+  const alertSeverity = getAlertSeverity();
+
+  if (isLoading) {
     return (
       <Box p={2}>
         <Skeleton variant="rect" width="100%" height={40} />
@@ -119,11 +153,7 @@ export const WorkloadButton = ({
       gridGap={16}
       mt="auto"
     >
-      {!enableDeploy && (
-        <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
-          {getAlertMessage()}
-        </Alert>
-      )}
+      {alertMessage && <Alert severity={alertSeverity}>{alertMessage}</Alert>}
       <Tooltip title={deniedTooltip}>
         <span style={{ alignSelf: 'flex-end' }}>
           <Button
