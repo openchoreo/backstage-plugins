@@ -9,12 +9,7 @@ import { SearchContextProvider } from '@backstage/plugin-search-react';
 import { Grid, Typography, Box } from '@material-ui/core';
 import { useStyles } from './styles';
 import { useUserGroups } from '../../hooks';
-import {
-  DeveloperPortalWidget,
-  HomePagePlatformDetailsCard,
-  InfrastructureWidget,
-  AgentHealthWidget,
-} from '@openchoreo/backstage-plugin-platform-engineer-core';
+import { HomePagePlatformDetailsCard } from '@openchoreo/backstage-plugin-platform-engineer-core';
 import { MyProjectsWidget } from '@openchoreo/backstage-plugin';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import ViewListIcon from '@material-ui/icons/ViewList';
@@ -97,51 +92,51 @@ export const HomePage = () => {
               />
             </Grid>
 
-            {/* Platform Engineer: Full-width metrics row */}
+            {/* Platform Engineer: Starred and Recently Visited + Platform Details */}
             {getUserRole() === 'platformengineer' && (
               <>
                 <Grid item xs={12}>
-                  <Typography variant="h3">Platform Overview</Typography>
+                  <Grid container spacing={3} alignItems="stretch">
+                    <Grid item xs={12} md={6} style={{ display: 'flex' }}>
+                      <Box className={classes.starredEntitiesWrapper}>
+                        <HomePageStarredEntities />
+                      </Box>
+                    </Grid>
+                    <Grid item xs={12} md={6} style={{ display: 'flex' }}>
+                      <Box className={classes.starredEntitiesWrapper}>
+                        <HomePageRecentlyVisited />
+                      </Box>
+                    </Grid>
+                  </Grid>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <InfrastructureWidget />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <DeveloperPortalWidget />
-                </Grid>
-                <Grid item xs={12} sm={6} md={4}>
-                  <AgentHealthWidget />
+                <Grid item xs={12}>
+                  <Box className={classes.platformDetailsSection}>
+                    <HomePagePlatformDetailsCard />
+                  </Box>
                 </Grid>
               </>
             )}
 
-            {/* Platform Engineer: Full-width platform details */}
-            {getUserRole() === 'platformengineer' && (
+            {/* Recent Activity - Only for non-PE users (PEs have it above) */}
+            {getUserRole() !== 'platformengineer' && (
               <Grid item xs={12}>
-                <Box className={classes.platformDetailsSection}>
-                  <HomePagePlatformDetailsCard />
-                </Box>
+                <Typography
+                  variant="h4"
+                  color="secondary"
+                  style={{ marginBottom: 16 }}
+                >
+                  Recent Activity
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <HomePageStarredEntities />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <HomePageRecentlyVisited />
+                  </Grid>
+                </Grid>
               </Grid>
             )}
-
-            {/* Recent Activity - Full-width, horizontal layout */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h4"
-                color="secondary"
-                style={{ marginBottom: 16 }}
-              >
-                Recent Activity
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <HomePageStarredEntities />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <HomePageRecentlyVisited />
-                </Grid>
-              </Grid>
-            </Grid>
 
             {/* Main content column */}
             <Grid item xs={12} md={8}>

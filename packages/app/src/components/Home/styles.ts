@@ -103,6 +103,22 @@ export const useStyles = makeStyles(theme => ({
   platformDetailsSection: {
     marginBottom: theme.spacing(4),
   },
+  starredEntitiesWrapper: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    '& > div': {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+    },
+    '& .MuiCard-root, & .MuiPaper-root': {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+    },
+  },
   quickActionsContainer: {
     marginTop: theme.spacing(3),
   },
