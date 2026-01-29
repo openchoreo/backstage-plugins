@@ -1,8 +1,7 @@
-import { Box, Typography, List, ListItem, Button } from '@material-ui/core';
+import { Box, Typography, List, ListItem } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import TimelineIcon from '@material-ui/icons/Timeline';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
-import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import { Link } from '@backstage/core-components';
 import { parseEntityRef } from '@backstage/catalog-model';
 import { Card } from '@openchoreo/backstage-design-system';
@@ -18,10 +17,6 @@ const useLocalStyles = makeStyles(theme => ({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: theme.spacing(1),
-  },
-  viewAllButton: {
-    textTransform: 'none',
-    fontSize: theme.typography.caption.fontSize,
   },
   list: {
     padding: 0,
@@ -86,7 +81,7 @@ export const EnvironmentPromotionCard = () => {
       <Card padding={24} className={classes.card}>
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>
-            Deployment Pipelines
+            Pipelines Deploying to this Environment
           </Typography>
         </Box>
         <Box className={classes.emptyState}>
@@ -110,17 +105,9 @@ export const EnvironmentPromotionCard = () => {
   return (
     <Card padding={24} className={classes.card}>
       <Box className={localClasses.headerWithAction}>
-        <Typography variant="h5">Deployment Pipelines</Typography>
-        <Link to="pipelines" style={{ textDecoration: 'none' }}>
-          <Button
-            size="small"
-            color="primary"
-            endIcon={<ArrowForwardIcon />}
-            className={localClasses.viewAllButton}
-          >
-            View All
-          </Button>
-        </Link>
+        <Typography variant="h5">
+          Pipelines Deploying to this Environment
+        </Typography>
       </Box>
 
       <Box className={classes.content}>

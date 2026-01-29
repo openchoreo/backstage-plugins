@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -15,6 +16,7 @@ import { Skeleton } from '@material-ui/lab';
 import LaunchIcon from '@material-ui/icons/Launch';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
+import ClearIcon from '@material-ui/icons/Clear';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Link } from '@backstage/core-components';
@@ -71,15 +73,67 @@ const StatusChip = ({
   );
 };
 
+// Map status filter to component status
+const statusFilterMap: Record<string, DeployedComponent['status'][]> = {
+  healthy: ['Ready'],
+  degraded: ['NotReady'],
+  failed: ['Failed'],
+  pending: ['Pending'],
+};
+
 export const EnvironmentDeployedComponentsCard = () => {
   const classes = useEnvironmentOverviewStyles();
   const { entity } = useEntity();
   const { components, loading, error, refresh } =
     useEnvironmentDeployedComponents(entity);
 
+  // Get initial filter from URL
+  const getInitialFilter = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('status') || null;
+  };
+
+  const [statusFilter, setStatusFilter] = useState<string | null>(
+    getInitialFilter,
+  );
+
+  // Listen for status filter changes from the summary card
+  const handleStatusFilterChange = useCallback(
+    (event: CustomEvent<{ status: string }>) => {
+      setStatusFilter(event.detail.status);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    window.addEventListener(
+      'statusFilterChange',
+      handleStatusFilterChange as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        'statusFilterChange',
+        handleStatusFilterChange as EventListener,
+      );
+    };
+  }, [handleStatusFilterChange]);
+
+  // Clear filter
+  const clearFilter = () => {
+    setStatusFilter(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('status');
+    window.history.pushState({}, '', url.toString());
+  };
+
+  // Filter components based on status
+  const filteredComponents = statusFilter
+    ? components.filter(c => statusFilterMap[statusFilter]?.includes(c.status))
+    : components;
+
   if (loading) {
     return (
-      <Card padding={24} className={classes.card}>
+      <Card padding={24} className={classes.card} id="deployed-components-card">
         <Box className={classes.cardHeader}>
           <Skeleton variant="text" width={200} height={28} />
         </Box>
@@ -123,7 +177,7 @@ export const EnvironmentDeployedComponentsCard = () => {
 
   if (error) {
     return (
-      <Card padding={24} className={classes.card}>
+      <Card padding={24} className={classes.card} id="deployed-components-card">
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>
             Deployed Components
@@ -141,7 +195,7 @@ export const EnvironmentDeployedComponentsCard = () => {
 
   if (components.length === 0) {
     return (
-      <Card padding={24} className={classes.card}>
+      <Card padding={24} className={classes.card} id="deployed-components-card">
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>
             Deployed Components
@@ -158,9 +212,21 @@ export const EnvironmentDeployedComponentsCard = () => {
   }
 
   return (
-    <Card padding={24} className={classes.card}>
+    <Card padding={24} className={classes.card} id="deployed-components-card">
       <Box className={classes.cardHeader}>
-        <Typography variant="h5">Deployed Components</Typography>
+        <Box display="flex" alignItems="center" gridGap={8}>
+          <Typography variant="h5">Deployed Components</Typography>
+          {statusFilter && (
+            <Chip
+              size="small"
+              label={`Filtered: ${statusFilter}`}
+              onDelete={clearFilter}
+              deleteIcon={<ClearIcon />}
+              color="primary"
+              variant="outlined"
+            />
+          )}
+        </Box>
         <Tooltip title="Refresh">
           <IconButton size="small" onClick={refresh}>
             <RefreshIcon fontSize="small" />
@@ -181,51 +247,61 @@ export const EnvironmentDeployedComponentsCard = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {components.map(component => (
-              <TableRow key={`${component.projectName}-${component.name}`}>
-                <TableCell>
-                  <Link
-                    to={`/catalog/${
-                      parseEntityRef(component.entityRef).namespace
-                    }/component/${component.name}`}
-                    className={classes.componentLink}
-                  >
-                    {component.displayName || component.name}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {component.projectName}
+            {filteredComponents.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography variant="body2" color="textSecondary">
+                    No components match the selected filter
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {component.releaseVersion || '-'}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <StatusChip status={component.status} classes={classes} />
-                </TableCell>
-                <TableCell>
-                  <Typography variant="body2">
-                    {component.endpoints || 0} routes
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Tooltip title="View Component">
-                    <IconButton
-                      size="small"
-                      component={Link}
+              </TableRow>
+            ) : (
+              filteredComponents.map(component => (
+                <TableRow key={`${component.projectName}-${component.name}`}>
+                  <TableCell>
+                    <Link
                       to={`/catalog/${
                         parseEntityRef(component.entityRef).namespace
                       }/component/${component.name}`}
+                      className={classes.componentLink}
                     >
-                      <LaunchIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
+                      {component.displayName || component.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {component.projectName}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {component.releaseVersion || '-'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <StatusChip status={component.status} classes={classes} />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {component.endpoints || 0} routes
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip title="View Component">
+                      <IconButton
+                        size="small"
+                        component={Link}
+                        to={`/catalog/${
+                          parseEntityRef(component.entityRef).namespace
+                        }/component/${component.name}`}
+                      >
+                        <LaunchIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>

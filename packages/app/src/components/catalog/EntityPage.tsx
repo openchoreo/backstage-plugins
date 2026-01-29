@@ -80,7 +80,6 @@ import {
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
-  EnvironmentPipelinesTab,
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
   BuildPlaneStatusCard,
@@ -608,9 +607,6 @@ const environmentPage = (
           />
         </Grid>
       </Grid>
-    </EntityLayout.Route>
-    <EntityLayout.Route path="/pipelines" title="Pipelines">
-      <EnvironmentPipelinesTab />
     </EntityLayout.Route>
   </EntityLayout>
 );
