@@ -80,6 +80,7 @@ export const WorkloadConfigPage = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isNewWorkload, setIsNewWorkload] = useState(false);
   const [builds, setBuilds] = useState<ModelsBuild[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
@@ -111,8 +112,18 @@ export const WorkloadConfigPage = ({
         setInitialWorkload(
           response ? JSON.parse(JSON.stringify(response)) : null,
         );
+        setIsNewWorkload(false);
       } catch (e) {
-        setError('Failed to fetch workload info');
+        // Handle missing workload differently based on component type
+        if (isFromSourceComponent(entity)) {
+          // From-source component - workload should exist after build
+          setError(
+            'Workload configuration not found. The workload should have been created automatically after a successful build. Please re-run the build workflow.',
+          );
+        } else {
+          // Pre-built image - allow creating new workload
+          setIsNewWorkload(true);
+        }
       }
       setIsLoading(false);
     };
@@ -121,6 +132,7 @@ export const WorkloadConfigPage = ({
       setWorkloadSpec(null);
       setInitialWorkload(null);
       setError(null);
+      setIsNewWorkload(false);
     };
   }, [entity, client]);
 
@@ -347,7 +359,15 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && !error && !enableNext && (
+      {!isLoading && !error && isNewWorkload && (
+        <Box mb={2}>
+          <Alert severity="info">
+            Configure your workload below to enable deployment.
+          </Alert>
+        </Box>
+      )}
+
+      {!isLoading && !error && !isNewWorkload && !enableNext && (
         <Box mb={2}>
           <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
             {getAlertMessage()}
@@ -355,7 +375,7 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && (
+      {!isLoading && !error && (
         <WorkloadProvider
           builds={builds}
           workloadSpec={workloadSpec}
