@@ -10,6 +10,7 @@ import {
   CellDiagramService,
   WorkloadService,
   SecretReferencesService,
+  GitSecretsService,
 } from './types';
 import { ComponentInfoService } from './services/ComponentService/ComponentInfoService';
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
@@ -35,6 +36,7 @@ export async function createRouter({
   dashboardInfoService,
   traitInfoService,
   secretReferencesInfoService,
+  gitSecretsService,
   authzService,
   dataPlaneInfoService,
   tokenService,
@@ -50,6 +52,7 @@ export async function createRouter({
   dashboardInfoService: DashboardInfoService;
   traitInfoService: TraitInfoService;
   secretReferencesInfoService: SecretReferencesService;
+  gitSecretsService: GitSecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
   tokenService: OpenChoreoTokenService;
@@ -748,6 +751,69 @@ export async function createRouter({
         userToken,
       ),
     );
+  });
+
+  // =====================
+  // Git Secrets Endpoints
+  // =====================
+
+  // List git secrets for a namespace
+  router.get('/git-secrets', async (req, res) => {
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await gitSecretsService.listGitSecrets(namespaceName as string, userToken),
+    );
+  });
+
+  // Create a new git secret
+  router.post('/git-secrets', requireAuth, async (req, res) => {
+    const { namespaceName } = req.query;
+    const { secretName, token } = req.body;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+    if (!secretName || !token) {
+      throw new InputError('secretName and token are required in the request body');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.status(201).json(
+      await gitSecretsService.createGitSecret(
+        namespaceName as string,
+        secretName,
+        token,
+        userToken,
+      ),
+    );
+  });
+
+  // Delete a git secret
+  router.delete('/git-secrets/:secretName', requireAuth, async (req, res) => {
+    const { namespaceName } = req.query;
+    const { secretName } = req.params;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    await gitSecretsService.deleteGitSecret(
+      namespaceName as string,
+      secretName,
+      userToken,
+    );
+
+    res.status(204).send();
   });
 
   // =====================

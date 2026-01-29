@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import { Typography, Box } from '@material-ui/core';
 import {
@@ -11,6 +11,7 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { filterEmptyObjectProperties } from '@openchoreo/backstage-plugin-common';
+import { GitSecretField } from './GitSecretField';
 
 /*
  Schema for the Build Workflow Parameters Field
@@ -149,6 +150,20 @@ export const BuildWorkflowParameters = ({
             'ui:widget': 'hidden',
           };
 
+          // Use custom GitSecretField for secretRef field if it exists
+          if (schema.properties?.systemParameters) {
+            const sysParams = schema.properties.systemParameters as JSONSchema7;
+            if (sysParams.properties?.repository) {
+              const repo = sysParams.properties.repository as JSONSchema7;
+              if (repo.properties?.secretRef) {
+                generatedUiSchema.systemParameters.repository.secretRef = {
+                  ...generatedUiSchema.systemParameters.repository.secretRef,
+                  'ui:field': 'GitSecretField',
+                };
+              }
+            }
+          }
+
           // Set field order within systemParameters.repository
           // Order: url, revision (branch), appPath, secretRef
           generatedUiSchema.systemParameters.repository['ui:order'] = [
@@ -217,6 +232,15 @@ export const BuildWorkflowParameters = ({
     });
   };
 
+  // Custom RJSF fields for specialized input types
+  // Must be defined before any early returns to satisfy React's rules of hooks
+  const customFields = useMemo(
+    () => ({
+      GitSecretField: GitSecretField,
+    }),
+    [],
+  );
+
   if (loading) {
     return (
       <Box mt={2}>
@@ -269,6 +293,8 @@ export const BuildWorkflowParameters = ({
           showErrorList={false}
           noHtml5Validate
           tagName="div"
+          fields={customFields}
+          formContext={formContext}
         >
           {/* Hide the default submit button - we're just using this for the form fields */}
           <div style={{ display: 'none' }} />

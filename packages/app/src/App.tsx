@@ -60,6 +60,7 @@ import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import BuildIcon from '@material-ui/icons/Build';
+import { AccessControlPage, GitSecretsPage } from '@openchoreo/backstage-plugin';
 import CategoryIcon from '@material-ui/icons/Category';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
@@ -236,6 +237,7 @@ const routes = (
       element={<CatalogGraphPage renderNode={CustomGraphNode} />}
     />
     <Route path="/admin/access-control" element={<AccessControlPage />} />
+    <Route path="/admin/git-secrets" element={<GitSecretsPage />} />
   </FlatRoutes>
 );
 

@@ -191,6 +191,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/namespaces/{namespaceName}/git-secrets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List git secrets for a namespace */
+    get: operations['listGitSecrets'];
+    put?: never;
+    /** Create a new git secret */
+    post: operations['createGitSecret'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespaceName}/git-secrets/{secretName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Delete a git secret */
+    delete: operations['deleteGitSecret'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/namespaces/{namespaceName}/dataplanes': {
     parameters: {
       query?: never;
@@ -1059,6 +1094,18 @@ export interface components {
         };
       };
     };
+    GitSecretResponse: {
+      /** @description Name of the git secret */
+      name: string;
+      /** @description Namespace the secret belongs to */
+      namespace: string;
+    };
+    CreateGitSecretRequest: {
+      /** @description Name of the git secret to create */
+      secretName: string;
+      /** @description Git personal access token */
+      token: string;
+    };
     SecretReferenceResponse: {
       name: string;
       namespace: string;
@@ -1482,13 +1529,14 @@ export interface components {
       /** @description Additional information or status message */
       message?: string;
     };
-    /** @description Immutable snapshot of component configuration.
+    /**
+     * @description Immutable snapshot of component configuration.
      *     Note: The following fields are immutable after creation and cannot be modified:
      *     - componentType
      *     - traits
      *     - componentProfile
      *     - workload
-     *      */
+     */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
@@ -2089,6 +2137,109 @@ export interface operations {
         };
       };
       /** @description Namespace not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listGitSecrets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ListResponse'] & {
+              items?: components['schemas']['GitSecretResponse'][];
+            };
+          };
+        };
+      };
+      /** @description Namespace not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  createGitSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateGitSecretRequest'];
+      };
+    };
+    responses: {
+      /** @description Git secret created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['GitSecretResponse'];
+          };
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Git secret already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  deleteGitSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        secretName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Git secret deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Git secret not found */
       404: {
         headers: {
           [name: string]: unknown;
