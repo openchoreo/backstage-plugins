@@ -39,6 +39,18 @@ export const useEnvironmentOverviewStyles = makeStyles(theme => ({
     borderRadius: theme.spacing(1),
     backgroundColor: theme.palette.background.default,
   },
+  statusItemClickable: {
+    cursor: 'pointer',
+    transition: 'all 0.2s ease-in-out',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+      transform: 'translateY(-1px)',
+    },
+    '&:focus': {
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: '2px',
+    },
+  },
   statusIcon: {
     fontSize: '1.25rem',
   },
@@ -157,6 +169,29 @@ export const useEnvironmentOverviewStyles = makeStyles(theme => ({
   arrow: {
     color: theme.palette.text.secondary,
     fontSize: '1rem',
+  },
+  dataPlaneInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(2),
+    paddingTop: theme.spacing(2),
+    borderTop: `1px solid ${theme.palette.divider}`,
+  },
+  dataPlaneIcon: {
+    fontSize: '1.25rem',
+    color: theme.palette.text.secondary,
+  },
+  dataPlaneLabel: {
+    color: theme.palette.text.secondary,
+  },
+  dataPlaneLink: {
+    color: theme.palette.primary.main,
+    textDecoration: 'none',
+    fontWeight: 500,
+    '&:hover': {
+      textDecoration: 'underline',
+    },
   },
   activityList: {
     padding: 0,

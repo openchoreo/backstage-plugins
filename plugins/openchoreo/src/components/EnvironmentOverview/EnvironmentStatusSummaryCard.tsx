@@ -5,8 +5,10 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ErrorIcon from '@material-ui/icons/Error';
 import HourglassEmptyIcon from '@material-ui/icons/HourglassEmpty';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
+import StorageIcon from '@material-ui/icons/Storage';
 import clsx from 'clsx';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
 import { useEnvironmentDeployedComponents } from './hooks';
 import { useEnvironmentOverviewStyles } from './styles';
@@ -37,7 +39,7 @@ export const EnvironmentStatusSummaryCard = () => {
       <Card padding={24} className={classes.card}>
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>
-            Deployment Health
+            Component Health
           </Typography>
         </Box>
         <Box className={classes.emptyState}>
@@ -55,7 +57,7 @@ export const EnvironmentStatusSummaryCard = () => {
       <Card padding={24} className={classes.card}>
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>
-            Deployment Health
+            Component Health
           </Typography>
         </Box>
         <Box className={classes.emptyState}>
@@ -68,14 +70,43 @@ export const EnvironmentStatusSummaryCard = () => {
     );
   }
 
+  const handleStatusClick = (status: string) => {
+    // Update URL with status filter and scroll to deployed components card
+    const url = new URL(window.location.href);
+    url.searchParams.set('status', status);
+    window.history.pushState({}, '', url.toString());
+
+    // Scroll to deployed components card
+    const deployedComponentsCard = document.getElementById(
+      'deployed-components-card',
+    );
+    if (deployedComponentsCard) {
+      deployedComponentsCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Dispatch a custom event to notify the deployed components card
+    window.dispatchEvent(
+      new CustomEvent('statusFilterChange', { detail: { status } }),
+    );
+  };
+
+  // Get dataPlaneRef from entity spec
+  const dataPlaneRef = (entity.spec as { dataPlaneRef?: string })?.dataPlaneRef;
+
   return (
     <Card padding={24} className={classes.card}>
       <Box className={classes.cardHeader}>
-        <Typography variant="h5">Deployment Health</Typography>
+        <Typography variant="h5">Component Health</Typography>
       </Box>
 
       <Box className={classes.statusGrid}>
-        <Box className={classes.statusItem}>
+        <Box
+          className={clsx(classes.statusItem, classes.statusItemClickable)}
+          onClick={() => handleStatusClick('healthy')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && handleStatusClick('healthy')}
+        >
           <CheckCircleIcon
             className={clsx(classes.statusIcon, classes.statusHealthy)}
           />
@@ -87,7 +118,13 @@ export const EnvironmentStatusSummaryCard = () => {
           </Box>
         </Box>
 
-        <Box className={classes.statusItem}>
+        <Box
+          className={clsx(classes.statusItem, classes.statusItemClickable)}
+          onClick={() => handleStatusClick('degraded')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && handleStatusClick('degraded')}
+        >
           <WarningIcon
             className={clsx(classes.statusIcon, classes.statusDegraded)}
           />
@@ -99,7 +136,13 @@ export const EnvironmentStatusSummaryCard = () => {
           </Box>
         </Box>
 
-        <Box className={classes.statusItem}>
+        <Box
+          className={clsx(classes.statusItem, classes.statusItemClickable)}
+          onClick={() => handleStatusClick('failed')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && handleStatusClick('failed')}
+        >
           <ErrorIcon
             className={clsx(classes.statusIcon, classes.statusFailed)}
           />
@@ -111,7 +154,13 @@ export const EnvironmentStatusSummaryCard = () => {
           </Box>
         </Box>
 
-        <Box className={classes.statusItem}>
+        <Box
+          className={clsx(classes.statusItem, classes.statusItemClickable)}
+          onClick={() => handleStatusClick('pending')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => e.key === 'Enter' && handleStatusClick('pending')}
+        >
           <HourglassEmptyIcon
             className={clsx(classes.statusIcon, classes.statusPending)}
           />
@@ -123,6 +172,23 @@ export const EnvironmentStatusSummaryCard = () => {
           </Box>
         </Box>
       </Box>
+
+      {dataPlaneRef && (
+        <Box className={classes.dataPlaneInfo}>
+          <StorageIcon className={classes.dataPlaneIcon} />
+          <Typography variant="body2" className={classes.dataPlaneLabel}>
+            Hosted on:
+          </Typography>
+          <Link
+            to={`/catalog/${
+              entity.metadata.namespace || 'default'
+            }/dataplane/${dataPlaneRef}`}
+            className={classes.dataPlaneLink}
+          >
+            {dataPlaneRef}
+          </Link>
+        </Box>
+      )}
     </Card>
   );
 };
