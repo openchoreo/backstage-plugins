@@ -1,6 +1,10 @@
 import { Project } from '@wso2/cell-diagram';
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
+import type {
+  GitSecretResponse,
+  GitSecretListResponse,
+} from './services/GitSecretsService/GitSecretsService';
 
 // Import generated types from observability client
 export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
@@ -163,6 +167,24 @@ export interface SecretReferencesService {
     namespaceName: string,
     token?: string,
   ): Promise<ModelsSecretReferences>;
+}
+
+export interface GitSecretsService {
+  listGitSecrets(
+    namespaceName: string,
+    token?: string,
+  ): Promise<GitSecretListResponse>;
+  createGitSecret(
+    namespaceName: string,
+    secretName: string,
+    gitToken: string,
+    userToken?: string,
+  ): Promise<GitSecretResponse>;
+  deleteGitSecret(
+    namespaceName: string,
+    secretName: string,
+    userToken?: string,
+  ): Promise<void>;
 }
 
 // LogEntry and RuntimeLogsResponse are now imported from the generated observability client

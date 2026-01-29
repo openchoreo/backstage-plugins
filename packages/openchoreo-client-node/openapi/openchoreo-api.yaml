@@ -64,6 +64,33 @@ components:
             description: JSON Schema for a specific trait's environment overrides
             additionalProperties: true
 
+    # Git Secret
+    GitSecretResponse:
+      type: object
+      required:
+        - name
+        - namespace
+      properties:
+        name:
+          type: string
+          description: Name of the git secret
+        namespace:
+          type: string
+          description: Namespace the secret belongs to
+
+    CreateGitSecretRequest:
+      type: object
+      required:
+        - secretName
+        - token
+      properties:
+        secretName:
+          type: string
+          description: Name of the git secret to create
+        token:
+          type: string
+          description: Git personal access token
+
     # SecretReference
     SecretReferenceResponse:
       type: object
@@ -2018,6 +2045,98 @@ paths:
                                   $ref: '#/components/schemas/SecretReferenceResponse'
         '404':
           description: Namespace not found
+
+  # Git Secrets
+  /namespaces/{namespaceName}/git-secrets:
+    get:
+      summary: List git secrets for a namespace
+      operationId: listGitSecrets
+      tags:
+        - GitSecrets
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/ListResponse'
+                          - type: object
+                            properties:
+                              items:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/GitSecretResponse'
+        '404':
+          description: Namespace not found
+
+    post:
+      summary: Create a new git secret
+      operationId: createGitSecret
+      tags:
+        - GitSecrets
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGitSecretRequest'
+      responses:
+        '201':
+          description: Git secret created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GitSecretResponse'
+        '400':
+          description: Invalid request
+        '409':
+          description: Git secret already exists
+
+  /namespaces/{namespaceName}/git-secrets/{secretName}:
+    delete:
+      summary: Delete a git secret
+      operationId: deleteGitSecret
+      tags:
+        - GitSecrets
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: secretName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Git secret deleted successfully
+        '404':
+          description: Git secret not found
 
   # DataPlanes
   /namespaces/{namespaceName}/dataplanes:

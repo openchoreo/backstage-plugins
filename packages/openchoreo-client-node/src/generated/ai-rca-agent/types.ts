@@ -23,7 +23,6 @@ export interface paths {
      *     **Streaming Response Format (NDJSON):**
      *     Each line is a JSON object with a `type` field indicating the event type.
      *     Events are streamed in order: `message_chunk`* → `tool_call`* → `actions`? → `done`
-     *
      */
     post: operations['chat'];
     delete?: never;
@@ -97,9 +96,10 @@ export interface components {
        */
       content: string;
     };
-    /** @description A streaming event. Events are sent as newline-delimited JSON (NDJSON).
+    /**
+     * @description A streaming event. Events are sent as newline-delimited JSON (NDJSON).
      *     Use the `type` field to determine the event type.
-     *      */
+     */
     StreamEvent:
       | components['schemas']['MessageChunkEvent']
       | components['schemas']['ToolCallEvent']

@@ -486,7 +486,6 @@ export interface components {
        *     - Prefix match: `63d7c3065ab2537*`
        *     - Suffix match: `*135a77db`
        *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
-       *
        * @example 63d7c3065ab25375*
        */
       traceId?: string;
@@ -629,7 +628,8 @@ export interface components {
        */
       tookMs?: number;
     };
-    /** @example {
+    /**
+     * @example {
      *       "traces": [
      *         {
      *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
@@ -648,7 +648,8 @@ export interface components {
      *         }
      *       ],
      *       "tookMs": 15
-     *     } */
+     *     }
+     */
     TraceResponse: {
       /** @description Array of traces with their spans */
       traces?: components['schemas']['Trace'][];
@@ -728,7 +729,8 @@ export interface components {
        */
       value?: number;
     };
-    /** @example {
+    /**
+     * @example {
      *       "cpuUsage": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -789,7 +791,8 @@ export interface components {
      *           "value": 2147483648
      *         }
      *       ]
-     *     } */
+     *     }
+     */
     ResourceMetricsTimeSeries: {
       /** @description CPU usage time series (in cores) */
       cpuUsage?: components['schemas']['TimeValuePoint'][];
@@ -804,7 +807,8 @@ export interface components {
       /** @description Memory limits time series (in bytes) */
       memoryLimits?: components['schemas']['TimeValuePoint'][];
     };
-    /** @example {
+    /**
+     * @example {
      *       "requestCount": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -875,7 +879,8 @@ export interface components {
      *           "value": 0.52
      *         }
      *       ]
-     *     } */
+     *     }
+     */
     HTTPMetricsTimeSeries: {
       /** @description Total HTTP request count time series (requests per second) */
       requestCount?: components['schemas']['TimeValuePoint'][];

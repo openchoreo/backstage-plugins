@@ -11,6 +11,20 @@ import type { Environment } from '../components/RuntimeLogs/types';
 // Response Types
 // ============================================
 
+/** Git secret item */
+export interface GitSecret {
+  name: string;
+  namespace: string;
+}
+
+/** Git secrets list response */
+export interface GitSecretsListResponse {
+  items: GitSecret[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 /** Schema response containing component-type and trait environment override schemas */
 export interface ComponentSchemaResponse {
   componentTypeEnvOverrides?: {
@@ -412,6 +426,21 @@ export interface OpenChoreoClientApi {
     namespaceName: string,
     dataplaneName: string,
   ): Promise<any>;
+
+  // === Git Secrets Operations ===
+
+  /** List git secrets for a namespace */
+  listGitSecrets(namespaceName: string): Promise<GitSecretsListResponse>;
+
+  /** Create a new git secret */
+  createGitSecret(
+    namespaceName: string,
+    secretName: string,
+    token: string,
+  ): Promise<GitSecret>;
+
+  /** Delete a git secret */
+  deleteGitSecret(namespaceName: string, secretName: string): Promise<void>;
 
   // === Entity Delete Operations ===
 

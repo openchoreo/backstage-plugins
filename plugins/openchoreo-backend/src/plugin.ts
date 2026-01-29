@@ -13,6 +13,7 @@ import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoServ
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
+import { GitSecretsService } from './services/GitSecretsService/GitSecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
@@ -96,6 +97,8 @@ export const choreoPlugin = createBackendPlugin({
           baseUrl,
         );
 
+        const gitSecretsService = new GitSecretsService(logger, baseUrl);
+
         const authzService = new AuthzService(logger, baseUrl);
 
         const dataPlaneInfoService = new DataPlaneInfoService(logger, baseUrl);
@@ -145,6 +148,7 @@ export const choreoPlugin = createBackendPlugin({
             dashboardInfoService,
             traitInfoService,
             secretReferencesInfoService,
+            gitSecretsService,
             authzService,
             dataPlaneInfoService,
             tokenService,
