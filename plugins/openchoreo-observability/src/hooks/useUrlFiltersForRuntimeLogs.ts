@@ -4,6 +4,7 @@ import {
   Environment,
   RuntimeLogsFilters,
   LogEntryField,
+  SELECTED_FIELDS,
 } from '../components/RuntimeLogs/types';
 
 const DEFAULT_TIME_RANGE = '1h';
@@ -54,9 +55,13 @@ export function useUrlFiltersForRuntimeLogs({
       if (!selectedFields.includes(LogEntryField.Log)) {
         selectedFields.push(LogEntryField.Log);
       }
+      // Sort by the order of the SELECTED_FIELDS array to maintain consistent column order
+      selectedFields = SELECTED_FIELDS.filter(field =>
+        selectedFields.includes(field),
+      );
     } else {
-      // Default to just Log field
-      selectedFields = [LogEntryField.Log];
+      // Default to Timestamp and Log fields
+      selectedFields = [LogEntryField.Timestamp, LogEntryField.Log];
     }
 
     // Find environment by ID
@@ -117,8 +122,12 @@ export function useUrlFiltersForRuntimeLogs({
         if (!fields.includes(LogEntryField.Log)) {
           fields = [...fields, LogEntryField.Log];
         }
-        // Only store in URL if not just the default [Log] field
-        if (fields.length === 1 && fields[0] === LogEntryField.Log) {
+        // Only store in URL if not the default [Timestamp, Log] fields
+        const isDefaultFields =
+          fields.length === 2 &&
+          fields.includes(LogEntryField.Log) &&
+          fields.includes(LogEntryField.Timestamp);
+        if (isDefaultFields) {
           newParams.delete('fields');
         } else {
           newParams.set('fields', fields.join(','));
