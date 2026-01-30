@@ -46,7 +46,10 @@ export const ComponentNamePicker = ({
   const catalogApi = useApi(catalogApiRef);
 
   // Get the namespace name from form context
-  const namespaceName = formContext.formData?.namespace_name;
+  // Support both nested (project_namespace.namespace_name) and flat (namespace_name) formats
+  const namespaceName =
+    formContext.formData?.project_namespace?.namespace_name ||
+    formContext.formData?.namespace_name;
 
   // Extract namespace name from entity reference format
   const extractNsName = useCallback((fullNsName: string): string => {

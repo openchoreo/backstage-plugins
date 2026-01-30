@@ -75,8 +75,9 @@ export function buildComponentResource(
       input.description;
   }
 
-  // Add workflow configuration if Choreo CI is enabled
-  if (input.useBuiltInCI && input.workflowName && input.workflowParameters) {
+  // Add workflow configuration if workflow name and parameters are provided
+  // This applies when building from source (useBuiltInCI is deprecated, we check for workflow data instead)
+  if (input.workflowName && input.workflowParameters) {
     // Build workflow schema from flat workflow parameters
     // Workflow parameters come in dot-notation (e.g., "docker.context", "repository.url")
     // Need to convert to nested structure

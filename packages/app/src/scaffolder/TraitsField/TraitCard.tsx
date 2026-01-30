@@ -23,34 +23,37 @@ const useStyles = makeStyles(theme => ({
   },
   cardContent: {
     flexGrow: 1,
-    paddingBottom: theme.spacing(1),
+    padding: theme.spacing(1.5),
+    paddingBottom: theme.spacing(0.5),
   },
   header: {
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: theme.spacing(0.5),
+    marginBottom: theme.spacing(0.25),
   },
   displayName: {
     fontWeight: 500,
+    fontSize: '0.9375rem',
   },
   badge: {
     marginLeft: theme.spacing(1),
     height: 20,
   },
   traitName: {
-    marginBottom: theme.spacing(1),
+    marginBottom: theme.spacing(0.5),
   },
   description: {
     color: theme.palette.text.secondary,
+    fontSize: '0.8125rem',
     lineHeight: 1.4,
     display: '-webkit-box',
-    WebkitLineClamp: 3,
+    WebkitLineClamp: 2,
     WebkitBoxOrient: 'vertical',
     overflow: 'hidden',
   },
   actions: {
-    padding: theme.spacing(1, 2, 2),
+    padding: theme.spacing(0.5, 1.5, 1.5),
   },
   addButton: {
     textTransform: 'none',

@@ -2,15 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
   Box,
-  Card,
-  CardContent,
-  CardHeader,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   CircularProgress,
   IconButton,
   TextField,
   Typography,
+  makeStyles,
 } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import {
   useApi,
   discoveryApiRef,
@@ -23,6 +25,48 @@ import { NoTraitsAvailableMessage } from './NoTraitsAvailableMessage';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { TraitPicker } from './TraitPicker';
 import { TraitListItem } from './TraitCard';
+
+const useStyles = makeStyles(theme => ({
+  accordion: {
+    marginBottom: theme.spacing(1),
+    '&:before': {
+      display: 'none',
+    },
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    '&.Mui-expanded': {
+      margin: `0 0 ${theme.spacing(1)}px 0`,
+    },
+  },
+  accordionSummary: {
+    minHeight: 48,
+    '&.Mui-expanded': {
+      minHeight: 48,
+    },
+  },
+  summaryContent: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginRight: theme.spacing(1),
+  },
+  traitTitle: {
+    fontWeight: 500,
+  },
+  traitName: {
+    color: theme.palette.text.secondary,
+    marginLeft: theme.spacing(1),
+    fontSize: '0.875rem',
+  },
+  deleteButton: {
+    padding: theme.spacing(0.5),
+  },
+  accordionDetails: {
+    display: 'block',
+    paddingTop: 0,
+  },
+}));
 
 /**
  * Schema for the Traits Field
@@ -63,11 +107,15 @@ export const TraitsField = ({
   formData,
   uiSchema,
 }: FieldExtensionComponentProps<AddedTrait[]>) => {
+  const classes = useStyles();
   const [availableTraits, setAvailableTraits] = useState<TraitListItem[]>([]);
   const [addedTraits, setAddedTraits] = useState<AddedTrait[]>(formData || []);
   const [loadingTraits, setLoadingTraits] = useState(false);
   const [loadingTraitName, setLoadingTraitName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expandedAccordion, setExpandedAccordion] = useState<string | false>(
+    false,
+  );
 
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
@@ -190,6 +238,8 @@ export const TraitsField = ({
         const updatedTraits = [...addedTraits, newTrait];
         setAddedTraits(updatedTraits);
         onChange(updatedTraits);
+        // Auto-expand the newly added trait
+        setExpandedAccordion(newTrait.id);
       }
     } catch (err) {
       setError(`Failed to fetch trait schema: ${err}`);
@@ -197,6 +247,13 @@ export const TraitsField = ({
       setLoadingTraitName(null);
     }
   };
+
+  // Handle accordion expand/collapse
+  const handleAccordionChange =
+    (traitId: string) =>
+    (_event: React.ChangeEvent<{}>, isExpanded: boolean) => {
+      setExpandedAccordion(isExpanded ? traitId : false);
+    };
 
   // Get list of added trait names for counting
   const addedTraitNames = useMemo(
@@ -270,23 +327,39 @@ export const TraitsField = ({
             Configured Traits ({addedTraits.length})
           </Typography>
           {addedTraits.map((trait, index) => (
-            <Card
+            <Accordion
               key={trait.id}
-              variant="outlined"
-              style={{ marginBottom: 16 }}
+              expanded={expandedAccordion === trait.id}
+              onChange={handleAccordionChange(trait.id)}
+              className={classes.accordion}
+              elevation={0}
             >
-              <CardHeader
-                title={trait.instanceName || `${trait.name} #${index + 1}`}
-                action={
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                className={classes.accordionSummary}
+              >
+                <Box className={classes.summaryContent}>
+                  <Box display="flex" alignItems="center">
+                    <Typography className={classes.traitTitle}>
+                      {trait.instanceName || `${trait.name} #${index + 1}`}
+                    </Typography>
+                    <Typography className={classes.traitName}>
+                      ({trait.name})
+                    </Typography>
+                  </Box>
                   <IconButton
-                    onClick={() => handleRemoveTrait(trait.id)}
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleRemoveTrait(trait.id);
+                    }}
                     size="small"
+                    className={classes.deleteButton}
                   >
-                    <DeleteIcon />
+                    <DeleteIcon fontSize="small" />
                   </IconButton>
-                }
-              />
-              <CardContent>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails className={classes.accordionDetails}>
                 {/* Instance Name Field */}
                 <Box mb={2}>
                   <TextField
@@ -297,6 +370,8 @@ export const TraitsField = ({
                     }
                     fullWidth
                     required
+                    variant="outlined"
+                    size="small"
                     helperText="A unique name to identify this trait instance"
                   />
                 </Box>
@@ -316,8 +391,8 @@ export const TraitsField = ({
                     children={<div />} // Hide submit button
                   />
                 )}
-              </CardContent>
-            </Card>
+              </AccordionDetails>
+            </Accordion>
           ))}
         </Box>
       )}

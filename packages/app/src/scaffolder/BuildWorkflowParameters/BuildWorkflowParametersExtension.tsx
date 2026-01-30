@@ -55,8 +55,11 @@ export const BuildWorkflowParameters = ({
 
   // Get the selected workflow and namespace from form data
   // The workflow_name is a sibling field in the same section
+  // Support both nested (project_namespace.namespace_name) and flat (namespace_name) formats
   const selectedWorkflowName = formContext?.formData?.workflow_name;
-  const namespaceName = formContext?.formData?.namespace_name;
+  const namespaceName =
+    formContext?.formData?.project_namespace?.namespace_name ||
+    formContext?.formData?.namespace_name;
 
   // Increment resetKey only when workflow actually changes
   // This forces Form remount only on workflow change, not on every render
@@ -121,8 +124,14 @@ export const BuildWorkflowParameters = ({
           // Generate UI schema with sanitized titles for fields without explicit titles
           const generatedUiSchema = generateUiSchemaWithTitles(schema);
 
-          // Hide systemParameters.repository.revision.commit field from the form
-          // This field is set dynamically when triggering the workflow
+          // Set top-level ui:order to show systemParameters before parameters
+          generatedUiSchema['ui:order'] = [
+            'systemParameters',
+            'parameters',
+            '*',
+          ];
+
+          // Initialize systemParameters structure in uiSchema
           if (!generatedUiSchema.systemParameters) {
             generatedUiSchema.systemParameters = {};
           }
@@ -132,9 +141,30 @@ export const BuildWorkflowParameters = ({
           if (!generatedUiSchema.systemParameters.repository.revision) {
             generatedUiSchema.systemParameters.repository.revision = {};
           }
+
+          // Hide systemParameters.repository.revision.commit field from the form
+          // This field is set dynamically when triggering the workflow
           generatedUiSchema.systemParameters.repository.revision.commit = {
+            ...generatedUiSchema.systemParameters.repository.revision.commit,
             'ui:widget': 'hidden',
           };
+
+          // Set field order within systemParameters.repository
+          // Order: url, revision (branch), appPath, secretRef
+          generatedUiSchema.systemParameters.repository['ui:order'] = [
+            'url',
+            'revision',
+            'appPath',
+            'secretRef',
+            '*',
+          ];
+
+          // Set field order within revision (branch before commit)
+          generatedUiSchema.systemParameters.repository.revision['ui:order'] = [
+            'branch',
+            'commit',
+            '*',
+          ];
 
           setUiSchema(generatedUiSchema);
         }

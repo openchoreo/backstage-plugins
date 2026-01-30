@@ -426,7 +426,7 @@ describe('CtdToTemplateConverter', () => {
       expect(parameters[1].title).toBe('Addons');
     });
 
-    it('should generate CI Setup section with workflow configuration when CTD has allowedWorkflows', () => {
+    it('should generate Build & Deploy section with deployment source options when CTD has allowedWorkflows', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -452,71 +452,90 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have all four sections: Component Metadata, CTD Configuration, CI Setup, and Addons
+      // Should have all four sections: Component Metadata, CTD Configuration, Build & Deploy, and Addons
       expect(parameters).toHaveLength(4);
 
-      // Check CI Setup section (third section)
-      const ciSetupSection = parameters[2];
-      expect(ciSetupSection.title).toBe('CI Setup');
-      expect(ciSetupSection.required).toEqual(['useBuiltInCI']);
+      // Check Build & Deploy section (third section)
+      const buildDeploySection = parameters[2];
+      expect(buildDeploySection.title).toBe('Build & Deploy');
+      expect(buildDeploySection.required).toEqual(['deploymentSource']);
 
-      // Check useBuiltInCI property
-      expect(ciSetupSection.properties.useBuiltInCI).toBeDefined();
-      expect(ciSetupSection.properties.useBuiltInCI.type).toBe('boolean');
-      expect(ciSetupSection.properties.useBuiltInCI.title).toBe(
-        'Use Built-in CI in OpenChoreo',
+      // Check deploymentSource property
+      expect(buildDeploySection.properties.deploymentSource).toBeDefined();
+      expect(buildDeploySection.properties.deploymentSource.type).toBe(
+        'string',
       );
-      expect(ciSetupSection.properties.useBuiltInCI['ui:widget']).toBe('radio');
+      expect(buildDeploySection.properties.deploymentSource.enum).toEqual([
+        'build-from-source',
+        'deploy-from-image',
+      ]);
+      expect(buildDeploySection.properties.deploymentSource['ui:field']).toBe(
+        'DeploymentSourcePicker',
+      );
 
-      // Check dependencies structure
-      expect(ciSetupSection.dependencies.useBuiltInCI).toBeDefined();
-      expect(ciSetupSection.dependencies.useBuiltInCI.allOf).toBeDefined();
-      expect(ciSetupSection.dependencies.useBuiltInCI.allOf).toHaveLength(2);
+      // Check autoDeploy property
+      expect(buildDeploySection.properties.autoDeploy).toBeDefined();
+      expect(buildDeploySection.properties.autoDeploy.type).toBe('boolean');
+      expect(buildDeploySection.properties.autoDeploy['ui:field']).toBe(
+        'SwitchField',
+      );
 
-      // Check true case (when CI is enabled)
-      const trueCase = ciSetupSection.dependencies.useBuiltInCI.allOf[0];
-      expect(trueCase.if.properties.useBuiltInCI.const).toBe(true);
+      // Check dependencies structure uses oneOf
+      expect(buildDeploySection.dependencies.deploymentSource).toBeDefined();
+      expect(
+        buildDeploySection.dependencies.deploymentSource.oneOf,
+      ).toBeDefined();
+      expect(
+        buildDeploySection.dependencies.deploymentSource.oneOf,
+      ).toHaveLength(2);
 
-      // CTD templates now use workflow-based structure with only workflow fields
-      expect(trueCase.then.properties.workflow_name).toBeDefined();
-      expect(trueCase.then.properties.workflow_parameters).toBeDefined();
-
-      // Static fields (repo_url, branch, component_path) should NOT be here anymore
-      expect(trueCase.then.properties.repo_url).toBeUndefined();
-      expect(trueCase.then.properties.branch).toBeUndefined();
-      expect(trueCase.then.properties.component_path).toBeUndefined();
+      // Check build-from-source branch
+      const buildFromSourceBranch =
+        buildDeploySection.dependencies.deploymentSource.oneOf[0];
+      expect(buildFromSourceBranch.properties.deploymentSource.const).toBe(
+        'build-from-source',
+      );
+      expect(buildFromSourceBranch.properties.workflow_name).toBeDefined();
+      expect(
+        buildFromSourceBranch.properties.workflow_parameters,
+      ).toBeDefined();
 
       // Check workflow_name has enum from allowedWorkflows
-      expect(trueCase.then.properties.workflow_name.enum).toEqual([
+      expect(buildFromSourceBranch.properties.workflow_name.enum).toEqual([
         'nodejs-build',
         'docker-build',
       ]);
-      expect(trueCase.then.properties.workflow_name['ui:field']).toBe(
+      expect(buildFromSourceBranch.properties.workflow_name['ui:field']).toBe(
         'BuildWorkflowPicker',
       );
 
       // Check workflow_parameters uses custom UI field
-      expect(trueCase.then.properties.workflow_parameters['ui:field']).toBe(
-        'BuildWorkflowParameters',
-      );
+      expect(
+        buildFromSourceBranch.properties.workflow_parameters['ui:field'],
+      ).toBe('BuildWorkflowParameters');
 
-      // Check required fields when CI is enabled - only workflow fields now
-      expect(trueCase.then.required).toEqual([
+      // Check required fields for build-from-source
+      expect(buildFromSourceBranch.required).toEqual([
         'workflow_name',
         'workflow_parameters',
       ]);
 
-      // Check false case (when CI is disabled)
-      const falseCase = ciSetupSection.dependencies.useBuiltInCI.allOf[1];
-      expect(falseCase.if.properties.useBuiltInCI.const).toBe(false);
-      expect(falseCase.then.properties.external_ci_note).toBeDefined();
-      expect(falseCase.then.properties.external_ci_note.type).toBe('null');
-      expect(falseCase.then.properties.external_ci_note['ui:widget']).toBe(
-        'markdown',
+      // Check deploy-from-image branch
+      const deployFromImageBranch =
+        buildDeploySection.dependencies.deploymentSource.oneOf[1];
+      expect(deployFromImageBranch.properties.deploymentSource.const).toBe(
+        'deploy-from-image',
       );
+      expect(deployFromImageBranch.properties.containerImage).toBeDefined();
+      expect(deployFromImageBranch.properties.containerImage['ui:field']).toBe(
+        'ContainerImageField',
+      );
+
+      // Check required fields for deploy-from-image
+      expect(deployFromImageBranch.required).toEqual(['containerImage']);
     });
 
-    it('should not include CI Setup section when CTD has no allowedWorkflows', () => {
+    it('should not include Build & Deploy section when CTD has no allowedWorkflows', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -543,17 +562,17 @@ describe('CtdToTemplateConverter', () => {
       const parameters = result.spec?.parameters as any[];
 
       // Should have only 3 sections: Component Metadata, CTD Configuration, and Addons
-      // CI Setup section should be absent when no allowedWorkflows
+      // Build & Deploy section should be absent when no allowedWorkflows
       expect(parameters).toHaveLength(3);
 
-      // Verify section titles to confirm CI Setup is not present
+      // Verify section titles to confirm Build & Deploy is not present
       expect(parameters[0].title).toBe('Component Metadata');
       expect(parameters[1].title).toContain('Configuration');
       expect(parameters[2].title).toBe('Addons');
 
-      // Verify no section has 'CI Setup' title
-      const hasCISetup = parameters.some(p => p.title === 'CI Setup');
-      expect(hasCISetup).toBe(false);
+      // Verify no section has 'Build & Deploy' title
+      const hasBuildDeploy = parameters.some(p => p.title === 'Build & Deploy');
+      expect(hasBuildDeploy).toBe(false);
     });
   });
 

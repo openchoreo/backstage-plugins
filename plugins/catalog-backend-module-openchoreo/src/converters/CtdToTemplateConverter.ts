@@ -162,10 +162,24 @@ export class CtdToTemplateConverter {
     const parameters: any[] = [];
 
     // Section 1: Component Metadata (standard fields)
+    // Project/Namespace in two-column layout, then naming fields
     parameters.push({
       title: 'Component Metadata',
-      required: ['namespace_name', 'project_name', 'component_name'],
+      required: ['project_namespace', 'component_name'],
       properties: {
+        project_namespace: {
+          title: 'Project & Namespace',
+          type: 'object',
+          'ui:field': 'ProjectNamespaceField',
+          'ui:options': {
+            defaultNamespace: namespaceName,
+          },
+          properties: {
+            project_name: { type: 'string' },
+            namespace_name: { type: 'string' },
+          },
+          required: ['project_name', 'namespace_name'],
+        },
         component_name: {
           title: 'Component Name',
           type: 'string',
@@ -181,22 +195,6 @@ export class CtdToTemplateConverter {
           title: 'Description',
           type: 'string',
           description: 'Brief description of what this component does',
-        },
-        namespace_name: {
-          title: 'Namespace',
-          type: 'string',
-          description: 'Auto selected based on Component Type',
-          default: namespaceName,
-          'ui:disabled': true,
-        },
-        project_name: {
-          title: 'Project',
-          type: 'string',
-          description: 'Select the project',
-          'ui:field': 'EntityPicker',
-          'ui:options': {
-            catalogFilter: [{ kind: 'System' }],
-          },
         },
       },
     });
@@ -272,7 +270,7 @@ export class CtdToTemplateConverter {
     }
 
     return {
-      title: 'CI/CD Setup',
+      title: 'Build & Deploy',
       required: ['deploymentSource'],
       properties: {
         deploymentSource: {
@@ -300,15 +298,6 @@ export class CtdToTemplateConverter {
               properties: {
                 deploymentSource: {
                   const: 'build-from-source',
-                },
-                useBuiltInCI: {
-                  title: 'Use Built-in CI in OpenChoreo',
-                  description:
-                    'External CI support is coming soon. Currently, all builds use OpenChoreo built-in CI.',
-                  type: 'boolean',
-                  default: true,
-                  'ui:disabled': true,
-                  'ui:field': 'SwitchField',
                 },
                 workflow_name: workflowNameField,
                 workflow_parameters: {
@@ -348,8 +337,6 @@ export class CtdToTemplateConverter {
   private generateTraitsSection(namespaceName: string): any {
     return {
       title: 'Enhance Your Component',
-      description:
-        'Add optional traits to extend your component with additional capabilities like observability, API management, or security features.',
       properties: {
         traits: {
           title: 'Available Traits',
@@ -631,9 +618,9 @@ export class CtdToTemplateConverter {
         name: 'Create OpenChoreo Component',
         action: 'openchoreo:component:create',
         input: {
-          // Section 1: Component Metadata
-          namespaceName: '${{ parameters.namespace_name }}',
-          projectName: '${{ parameters.project_name }}',
+          // Section 1: Component Metadata (extract from nested project_namespace object)
+          namespaceName: '${{ parameters.project_namespace.namespace_name }}',
+          projectName: '${{ parameters.project_namespace.project_name }}',
           componentName: '${{ parameters.component_name }}',
           displayName: '${{ parameters.displayName }}',
           description: '${{ parameters.description }}',
@@ -648,7 +635,6 @@ export class CtdToTemplateConverter {
           deploymentSource: '${{ parameters.deploymentSource }}',
           autoDeploy: '${{ parameters.autoDeploy }}',
           containerImage: '${{ parameters.containerImage }}',
-          useBuiltInCI: '${{ parameters.useBuiltInCI }}',
           repo_url: '${{ parameters.repo_url }}',
           branch: '${{ parameters.branch }}',
           component_path: '${{ parameters.component_path }}',
