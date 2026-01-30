@@ -62,73 +62,79 @@ export const AdvancedConfigurationField = ({
   const [expanded, setExpanded] = useState(false);
 
   // Split schema properties into essential and advanced
-  const { essentialSchema, advancedSchema, essentialUiSchema, advancedUiSchema } =
-    useMemo(() => {
-      const essential: JSONSchema7 = {
-        type: 'object',
-        properties: {},
-        required: [],
-      };
-      const advanced: JSONSchema7 = {
-        type: 'object',
-        properties: {},
-        required: [],
-      };
-      const essentialUi: Record<string, any> = {};
-      const advancedUi: Record<string, any> = {};
+  const {
+    essentialSchema,
+    advancedSchema,
+    essentialUiSchema,
+    advancedUiSchema,
+  } = useMemo(() => {
+    const essential: JSONSchema7 = {
+      type: 'object',
+      properties: {},
+      required: [],
+    };
+    const advanced: JSONSchema7 = {
+      type: 'object',
+      properties: {},
+      required: [],
+    };
+    const essentialUi: Record<string, any> = {};
+    const advancedUi: Record<string, any> = {};
 
-      const schemaProperties = (schema as JSONSchema7).properties || {};
-      const schemaRequired = (schema as JSONSchema7).required || [];
+    const schemaProperties = (schema as JSONSchema7).properties || {};
+    const schemaRequired = (schema as JSONSchema7).required || [];
 
-      Object.entries(schemaProperties).forEach(([key, prop]) => {
-        if (typeof prop === 'boolean') return;
+    Object.entries(schemaProperties).forEach(([key, prop]) => {
+      if (typeof prop === 'boolean') return;
 
-        // Check if field is marked as advanced
-        const isAdvanced =
-          (prop as any)['ui:advanced'] === true ||
-          uiSchema?.[key]?.['ui:advanced'] === true;
+      // Check if field is marked as advanced
+      const isAdvanced =
+        (prop as any)['ui:advanced'] === true ||
+        uiSchema?.[key]?.['ui:advanced'] === true;
 
-        if (isAdvanced) {
-          advanced.properties![key] = prop;
-          if (schemaRequired.includes(key)) {
-            (advanced.required as string[]).push(key);
-          }
-          if (uiSchema?.[key]) {
-            advancedUi[key] = uiSchema[key];
-          }
-        } else {
-          essential.properties![key] = prop;
-          if (schemaRequired.includes(key)) {
-            (essential.required as string[]).push(key);
-          }
-          if (uiSchema?.[key]) {
-            essentialUi[key] = uiSchema[key];
-          }
+      if (isAdvanced) {
+        advanced.properties![key] = prop;
+        if (schemaRequired.includes(key)) {
+          (advanced.required as string[]).push(key);
         }
-      });
+        if (uiSchema?.[key]) {
+          advancedUi[key] = uiSchema[key];
+        }
+      } else {
+        essential.properties![key] = prop;
+        if (schemaRequired.includes(key)) {
+          (essential.required as string[]).push(key);
+        }
+        if (uiSchema?.[key]) {
+          essentialUi[key] = uiSchema[key];
+        }
+      }
+    });
 
-      // Generate UI schemas with sanitized titles
-      const generatedEssentialUi = {
-        ...generateUiSchemaWithTitles(essential),
-        ...essentialUi,
-      };
-      const generatedAdvancedUi = {
-        ...generateUiSchemaWithTitles(advanced),
-        ...advancedUi,
-      };
+    // Generate UI schemas with sanitized titles
+    const generatedEssentialUi = {
+      ...generateUiSchemaWithTitles(essential),
+      ...essentialUi,
+    };
+    const generatedAdvancedUi = {
+      ...generateUiSchemaWithTitles(advanced),
+      ...advancedUi,
+    };
 
-      return {
-        essentialSchema: essential,
-        advancedSchema: advanced,
-        essentialUiSchema: generatedEssentialUi,
-        advancedUiSchema: generatedAdvancedUi,
-      };
-    }, [schema, uiSchema]);
+    return {
+      essentialSchema: essential,
+      advancedSchema: advanced,
+      essentialUiSchema: generatedEssentialUi,
+      advancedUiSchema: generatedAdvancedUi,
+    };
+  }, [schema, uiSchema]);
 
   const essentialFieldCount = Object.keys(
     essentialSchema.properties || {},
   ).length;
-  const advancedFieldCount = Object.keys(advancedSchema.properties || {}).length;
+  const advancedFieldCount = Object.keys(
+    advancedSchema.properties || {},
+  ).length;
 
   // Handle form changes - merge both essential and advanced form data
   const handleEssentialChange = (changeEvent: any) => {

@@ -11,9 +11,14 @@ export const SwitchField = ({
   rawErrors,
   formData,
   schema,
+  uiSchema,
 }: FieldExtensionComponentProps<boolean>) => {
+  const disabled = uiSchema?.['ui:disabled'] === true;
+
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    onChange(event.target.checked);
+    if (!disabled) {
+      onChange(event.target.checked);
+    }
   };
 
   const title = schema.title || 'Toggle';
@@ -23,16 +28,23 @@ export const SwitchField = ({
     <Box mt={2}>
       <Box display="flex" alignItems="center">
         <Box style={{ marginRight: 16 }}>
-          <Typography variant="body1">{title}</Typography>
+          <Typography variant="body1" style={{ opacity: disabled ? 0.6 : 1 }}>
+            {title}
+          </Typography>
         </Box>
         <Switch
           checked={formData || false}
           onChange={handleChange}
           color="primary"
+          disabled={disabled}
         />
       </Box>
       {description && (
-        <Typography variant="body2" color="textSecondary">
+        <Typography
+          variant="body2"
+          color="textSecondary"
+          style={{ opacity: disabled ? 0.8 : 1 }}
+        >
           {description}
         </Typography>
       )}

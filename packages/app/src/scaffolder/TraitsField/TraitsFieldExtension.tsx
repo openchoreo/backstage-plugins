@@ -174,7 +174,9 @@ export const TraitsField = ({
         const generatedUiSchema = generateUiSchemaWithTitles(schema);
 
         // Count existing traits of this type for instance naming
-        const existingCount = addedTraits.filter(t => t.name === traitName).length;
+        const existingCount = addedTraits.filter(
+          t => t.name === traitName,
+        ).length;
 
         const newTrait: AddedTrait = {
           id: `${traitName}-${Date.now()}`, // Unique ID for this instance

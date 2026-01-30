@@ -124,13 +124,17 @@ export const DeploymentSourcePicker = ({
             <Card
               key={option.value}
               variant="outlined"
-              className={`${classes.card} ${isSelected ? classes.cardSelected : ''}`}
+              className={`${classes.card} ${
+                isSelected ? classes.cardSelected : ''
+              }`}
               onClick={() => onChange(option.value)}
             >
               <CardContent className={classes.cardContent}>
                 <Box className={classes.header}>
                   <Box
-                    className={`${classes.icon} ${isSelected ? classes.iconSelected : ''}`}
+                    className={`${classes.icon} ${
+                      isSelected ? classes.iconSelected : ''
+                    }`}
                   >
                     {option.icon}
                   </Box>

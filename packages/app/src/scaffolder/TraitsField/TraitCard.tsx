@@ -98,7 +98,11 @@ export const TraitCard = ({
           )}
         </Box>
         {trait.displayName && (
-          <Typography variant="caption" color="textSecondary" className={classes.traitName}>
+          <Typography
+            variant="caption"
+            color="textSecondary"
+            className={classes.traitName}
+          >
             {trait.name}
           </Typography>
         )}
