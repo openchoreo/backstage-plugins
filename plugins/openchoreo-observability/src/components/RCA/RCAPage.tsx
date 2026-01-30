@@ -38,18 +38,23 @@ const RCAListView = () => {
   } = useRCAReports(filters, entity);
 
   // Extract all entity UIDs from report summaries for name resolution
-  const allEntityRefs = useMemo(() => {
-    const refs: EntityRef[] = [];
+  const { allTagged, allOrphans } = useMemo(() => {
+    const tagged: EntityRef[] = [];
+    const orphans: string[] = [];
     for (const report of reports) {
       if (report.summary) {
-        refs.push(...extractEntityUids(report.summary));
+        const extracted = extractEntityUids(report.summary);
+        tagged.push(...extracted.tagged);
+        orphans.push(...extracted.orphans);
       }
     }
-    return refs;
+    return { allTagged: tagged, allOrphans: orphans };
   }, [reports]);
 
-  const { entityMap, loading: entitiesLoading } =
-    useEntitiesByUids(allEntityRefs);
+  const { entityMap, loading: entitiesLoading } = useEntitiesByUids(
+    allTagged,
+    allOrphans,
+  );
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {
