@@ -54,8 +54,13 @@ export const TraitPicker = ({
 
   return (
     <Box>
-      <Typography variant="body2" color="textSecondary" className={classes.description}>
-        Enhance your component with optional capabilities. You can add the same trait multiple times with different configurations.
+      <Typography
+        variant="body2"
+        color="textSecondary"
+        className={classes.description}
+      >
+        Enhance your component with optional capabilities. You can add the same
+        trait multiple times with different configurations.
       </Typography>
       <Grid container spacing={2}>
         {availableTraits.map(trait => (

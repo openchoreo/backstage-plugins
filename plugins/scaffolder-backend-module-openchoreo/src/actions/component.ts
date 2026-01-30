@@ -177,7 +177,7 @@ export const createComponentAction = (
         // Only use workflow-related fields if deploying from source
         const useBuiltInCI = isFromImage
           ? false
-          : (ctx.input.useBuiltInCI ?? false);
+          : ctx.input.useBuiltInCI ?? false;
         const autoDeploy = ctx.input.autoDeploy ?? false;
         const workflowName = isFromImage
           ? undefined

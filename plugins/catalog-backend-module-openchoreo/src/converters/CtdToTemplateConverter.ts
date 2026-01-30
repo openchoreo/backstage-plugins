@@ -304,39 +304,20 @@ export class CtdToTemplateConverter {
                 useBuiltInCI: {
                   title: 'Use Built-in CI in OpenChoreo',
                   description:
-                    'OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.',
+                    'External CI support is coming soon. Currently, all builds use OpenChoreo built-in CI.',
                   type: 'boolean',
                   default: true,
+                  'ui:disabled': true,
                   'ui:field': 'SwitchField',
                 },
-              },
-              dependencies: {
-                useBuiltInCI: {
-                  oneOf: [
-                    {
-                      properties: {
-                        useBuiltInCI: {
-                          const: true,
-                        },
-                        workflow_name: workflowNameField,
-                        workflow_parameters: {
-                          title: 'Workflow Parameters',
-                          type: 'object',
-                          'ui:field': 'BuildWorkflowParameters',
-                        },
-                      },
-                      required: ['workflow_name', 'workflow_parameters'],
-                    },
-                    {
-                      properties: {
-                        useBuiltInCI: {
-                          const: false,
-                        },
-                      },
-                    },
-                  ],
+                workflow_name: workflowNameField,
+                workflow_parameters: {
+                  title: 'Workflow Parameters',
+                  type: 'object',
+                  'ui:field': 'BuildWorkflowParameters',
                 },
               },
+              required: ['workflow_name', 'workflow_parameters'],
             },
             // Deploy from image branch
             {
