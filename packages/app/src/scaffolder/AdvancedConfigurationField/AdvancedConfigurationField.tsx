@@ -203,13 +203,17 @@ export const AdvancedConfigurationField = ({
             expandIcon={<ExpandMoreIcon />}
             className={classes.accordionSummary}
           >
-            <Typography variant="subtitle2">Advanced Configuration</Typography>
-            <Chip
-              label={advancedFieldCount}
-              size="small"
-              color="default"
-              className={classes.chip}
-            />
+            <Box display="flex" alignItems="center">
+              <Typography variant="subtitle2">
+                Advanced Configuration
+              </Typography>
+              <Chip
+                label={advancedFieldCount}
+                size="small"
+                color="default"
+                className={classes.chip}
+              />
+            </Box>
           </AccordionSummary>
           <AccordionDetails className={classes.accordionDetails}>
             <Typography variant="body2" color="textSecondary" paragraph>

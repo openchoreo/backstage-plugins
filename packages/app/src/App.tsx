@@ -21,6 +21,7 @@ import { SwitchFieldExtension } from './scaffolder/SwitchField';
 import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
 import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
 import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
+import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
@@ -192,6 +193,7 @@ const routes = (
     >
       <ScaffolderFieldExtensions>
         <ComponentNamePickerFieldExtension />
+        <ProjectNamespaceFieldExtension />
         <BuildTemplatePickerFieldExtension />
         <BuildTemplateParametersFieldExtension />
         <BuildWorkflowPickerFieldExtension />

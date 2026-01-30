@@ -6,6 +6,7 @@ import {
   Typography,
   Radio,
   makeStyles,
+  alpha,
 } from '@material-ui/core';
 import CodeIcon from '@material-ui/icons/Code';
 import ImageIcon from '@material-ui/icons/Image';
@@ -19,15 +20,15 @@ const useStyles = makeStyles(theme => ({
   card: {
     flex: 1,
     cursor: 'pointer',
-    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+    transition: 'border-color 0.2s ease, background-color 0.2s ease',
     '&:hover': {
-      borderColor: theme.palette.primary.main,
+      borderColor: theme.palette.primary.light,
     },
   },
   cardSelected: {
     borderColor: theme.palette.primary.main,
     borderWidth: 2,
-    boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
+    backgroundColor: alpha(theme.palette.primary.main, 0.04),
   },
   cardContent: {
     display: 'flex',
@@ -97,7 +98,7 @@ export const DeploymentSourcePicker = ({
       value: 'build-from-source',
       label: 'Build from Source',
       description:
-        'Connect a git repository and build your application using a workflow',
+        "Connect a git repository and build your application using OpenChoreo's built-in CI",
       icon: <CodeIcon className={classes.icon} />,
     },
     {

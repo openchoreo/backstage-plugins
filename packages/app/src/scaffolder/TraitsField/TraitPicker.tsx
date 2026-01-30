@@ -64,7 +64,7 @@ export const TraitPicker = ({
       </Typography>
       <Grid container spacing={2}>
         {availableTraits.map(trait => (
-          <Grid item xs={12} sm={6} md={4} key={trait.name}>
+          <Grid item xs={12} sm={6} md={4} lg={3} key={trait.name}>
             <TraitCard
               trait={trait}
               addedCount={traitCounts[trait.name] || 0}
