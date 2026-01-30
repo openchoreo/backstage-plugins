@@ -1,6 +1,7 @@
 import {
   ComponentResource,
   ComponentTrait,
+  WorkloadResource,
 } from './componentResourceInterface';
 
 /**
@@ -97,6 +98,60 @@ export function buildComponentResource(
         parameters: convertFlatToNested(trait.config),
       }),
     );
+  }
+
+  return resource;
+}
+
+/**
+ * Input data for building a workload resource (for deploy-from-image flow)
+ */
+export interface WorkloadResourceInput {
+  componentName: string;
+  namespaceName: string;
+  projectName: string;
+  containerImage: string;
+  port?: number;
+}
+
+/**
+ * Builds a WorkloadResource object for the deploy-from-image flow
+ *
+ * When a user chooses to deploy from a pre-built image instead of building from source,
+ * we create a Workload CR that references the component and contains the image reference.
+ * The Component controller will then use this Workload to create deployments.
+ */
+export function buildWorkloadResource(
+  input: WorkloadResourceInput,
+): WorkloadResource {
+  const resource: WorkloadResource = {
+    apiVersion: 'openchoreo.dev/v1alpha1',
+    kind: 'Workload',
+    metadata: {
+      name: `${input.componentName}-workload`,
+      namespace: input.namespaceName,
+    },
+    spec: {
+      owner: {
+        projectName: input.projectName,
+        componentName: input.componentName,
+      },
+      containers: {
+        main: {
+          image: input.containerImage,
+        },
+      },
+    },
+  };
+
+  // Add endpoint if port is provided
+  if (input.port) {
+    resource.spec.endpoints = {
+      http: {
+        type: 'HTTP',
+        port: input.port,
+      },
+    };
   }
 
   return resource;

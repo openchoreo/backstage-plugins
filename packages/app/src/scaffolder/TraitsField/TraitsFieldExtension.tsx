@@ -1,22 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
   Box,
-  Button,
   Card,
   CardContent,
   CardHeader,
   CircularProgress,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   TextField,
   Typography,
 } from '@material-ui/core';
 import DeleteIcon from '@material-ui/icons/Delete';
-import AddIcon from '@material-ui/icons/Add';
 import {
   useApi,
   discoveryApiRef,
@@ -27,6 +21,8 @@ import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
 import { NoTraitsAvailableMessage } from './NoTraitsAvailableMessage';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
+import { TraitPicker } from './TraitPicker';
+import { TraitListItem } from './TraitCard';
 
 /**
  * Schema for the Traits Field
@@ -46,10 +42,8 @@ export const TraitsFieldSchema = {
   },
 };
 
-interface TraitListItem {
-  name: string;
-  createdAt: string;
-}
+// Re-export TraitListItem from TraitCard for type consistency
+export type { TraitListItem } from './TraitCard';
 
 export interface AddedTrait {
   id: string; // Unique ID for this instance (internal tracking)
@@ -71,9 +65,8 @@ export const TraitsField = ({
 }: FieldExtensionComponentProps<AddedTrait[]>) => {
   const [availableTraits, setAvailableTraits] = useState<TraitListItem[]>([]);
   const [addedTraits, setAddedTraits] = useState<AddedTrait[]>(formData || []);
-  const [selectedTrait, setSelectedTrait] = useState<string>('');
   const [loadingTraits, setLoadingTraits] = useState(false);
-  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [loadingTraitName, setLoadingTraitName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const discoveryApi = useApi(discoveryApiRef);
@@ -142,13 +135,13 @@ export const TraitsField = ({
     };
   }, [namespaceName, discoveryApi, fetchApi]);
 
-  // Fetch schema for selected trait and add it
-  const handleAddTrait = async () => {
-    if (!selectedTrait || !namespaceName) {
+  // Fetch schema for a trait and add it
+  const handleAddTrait = async (traitName: string) => {
+    if (!traitName || !namespaceName) {
       return;
     }
 
-    setLoadingSchema(true);
+    setLoadingTraitName(traitName);
     setError(null);
 
     try {
@@ -166,7 +159,7 @@ export const TraitsField = ({
       const response = await fetchApi.fetch(
         `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
           nsName,
-        )}&traitName=${encodeURIComponent(selectedTrait)}`,
+        )}&traitName=${encodeURIComponent(traitName)}`,
       );
 
       if (!response.ok) {
@@ -180,10 +173,13 @@ export const TraitsField = ({
         // Generate UI schema with sanitized titles for fields without explicit titles
         const generatedUiSchema = generateUiSchemaWithTitles(schema);
 
+        // Count existing traits of this type for instance naming
+        const existingCount = addedTraits.filter(t => t.name === traitName).length;
+
         const newTrait: AddedTrait = {
-          id: `${selectedTrait}-${Date.now()}`, // Unique ID for this instance
-          name: selectedTrait,
-          instanceName: `${selectedTrait}-${addedTraits.length + 1}`, // Default instance name
+          id: `${traitName}-${Date.now()}`, // Unique ID for this instance
+          name: traitName,
+          instanceName: `${traitName}-${existingCount + 1}`, // Default instance name
           config: {},
           schema: schema,
           uiSchema: generatedUiSchema,
@@ -192,14 +188,19 @@ export const TraitsField = ({
         const updatedTraits = [...addedTraits, newTrait];
         setAddedTraits(updatedTraits);
         onChange(updatedTraits);
-        setSelectedTrait(''); // Reset selection
       }
     } catch (err) {
       setError(`Failed to fetch trait schema: ${err}`);
     } finally {
-      setLoadingSchema(false);
+      setLoadingTraitName(null);
     }
   };
+
+  // Get list of added trait names for counting
+  const addedTraitNames = useMemo(
+    () => addedTraits.map(t => t.name),
+    [addedTraits],
+  );
 
   // Remove a trait
   const handleRemoveTrait = (id: string) => {
@@ -234,60 +235,30 @@ export const TraitsField = ({
         </Typography>
       )}
 
+      {/* Loading state */}
+      {loadingTraits && (
+        <Box display="flex" alignItems="center" justifyContent="center" py={4}>
+          <CircularProgress size={24} style={{ marginRight: 8 }} />
+          <Typography variant="body2" color="textSecondary">
+            Loading available traits...
+          </Typography>
+        </Box>
+      )}
+
       {/* No Traits Available - Prominent Message */}
       {!loadingTraits && availableTraits.length === 0 && namespaceName && (
         <NoTraitsAvailableMessage />
       )}
 
-      {/* Trait Selection - Only show when traits are available or loading */}
-      {(loadingTraits || availableTraits.length > 0) && (
-        <Box display="flex" alignItems="center" mt={2} mb={3}>
-          <FormControl
-            fullWidth
-            variant="outlined"
-            disabled={loadingTraits || loadingSchema}
-            style={{ marginRight: 16 }}
-          >
-            <InputLabel>Select a Trait</InputLabel>
-            <Select
-              label="Select a Trait"
-              value={selectedTrait}
-              onChange={e => setSelectedTrait(e.target.value as string)}
-            >
-              {loadingTraits && (
-                <MenuItem disabled>
-                  <CircularProgress size={20} style={{ marginRight: 8 }} />
-                  Loading traits...
-                </MenuItem>
-              )}
-              {!loadingTraits && availableTraits.length === 0 && (
-                <MenuItem disabled>
-                  {namespaceName
-                    ? 'No traits available'
-                    : 'Select a namespace first'}
-                </MenuItem>
-              )}
-              {!loadingTraits &&
-                availableTraits.map(trait => (
-                  <MenuItem key={trait.name} value={trait.name}>
-                    {trait.name}
-                  </MenuItem>
-                ))}
-            </Select>
-          </FormControl>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={
-              loadingSchema ? <CircularProgress size={20} /> : <AddIcon />
-            }
-            onClick={handleAddTrait}
-            disabled={!selectedTrait || loadingSchema || loadingTraits}
-            style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-          >
-            {loadingSchema ? 'Adding...' : 'Add Trait'}
-          </Button>
-        </Box>
+      {/* Trait Picker - Card-based selection */}
+      {!loadingTraits && availableTraits.length > 0 && (
+        <TraitPicker
+          availableTraits={availableTraits}
+          addedTraitNames={addedTraitNames}
+          onAddTrait={handleAddTrait}
+          loading={loadingTraits}
+          loadingTraitName={loadingTraitName || undefined}
+        />
       )}
 
       {/* Display Added Traits */}

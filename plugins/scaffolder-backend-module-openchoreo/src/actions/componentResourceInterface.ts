@@ -94,3 +94,59 @@ export interface ComponentResource {
   /** Component specification */
   spec: ComponentSpec;
 }
+
+/**
+ * Workload owner specification
+ * @public
+ */
+export interface WorkloadOwner {
+  projectName: string;
+  componentName: string;
+}
+
+/**
+ * Workload container specification
+ * @public
+ */
+export interface WorkloadContainer {
+  image: string;
+}
+
+/**
+ * Workload endpoint specification
+ * @public
+ */
+export interface WorkloadEndpoint {
+  type: 'HTTP' | 'HTTPS' | 'TCP' | 'UDP';
+  port: number;
+}
+
+/**
+ * Workload specification
+ * @public
+ */
+export interface WorkloadSpec {
+  owner: WorkloadOwner;
+  containers: Record<string, WorkloadContainer>;
+  endpoints?: Record<string, WorkloadEndpoint>;
+}
+
+/**
+ * Workload Resource
+ * Represents the complete workload resource structure for /apply endpoint
+ * Used for "deploy from image" flow where the image is pre-built
+ * @public
+ */
+export interface WorkloadResource {
+  /** API version */
+  apiVersion: string;
+  /** Resource kind */
+  kind: string;
+  /** Workload metadata */
+  metadata: {
+    name: string;
+    namespace: string;
+  };
+  /** Workload specification */
+  spec: WorkloadSpec;
+}
