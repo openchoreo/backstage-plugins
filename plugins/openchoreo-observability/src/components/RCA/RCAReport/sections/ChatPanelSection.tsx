@@ -52,6 +52,24 @@ const markdownComponents = {
   em: ({ children }: { children?: React.ReactNode }) => (
     <em>{processChildren(children)}</em>
   ),
+  h1: ({ children }: { children?: React.ReactNode }) => (
+    <h1>{processChildren(children)}</h1>
+  ),
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h2>{processChildren(children)}</h2>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h3>{processChildren(children)}</h3>
+  ),
+  h4: ({ children }: { children?: React.ReactNode }) => (
+    <h4>{processChildren(children)}</h4>
+  ),
+  h5: ({ children }: { children?: React.ReactNode }) => (
+    <h5>{processChildren(children)}</h5>
+  ),
+  h6: ({ children }: { children?: React.ReactNode }) => (
+    <h6>{processChildren(children)}</h6>
+  ),
 };
 
 interface ChatContext {

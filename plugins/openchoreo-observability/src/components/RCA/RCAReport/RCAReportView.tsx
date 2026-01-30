@@ -54,12 +54,15 @@ export const RCAReportView = ({
   const classes = useRCAReportStyles();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Extract all entity UIDs from the report by stringifying and regex matching
-  const entityUids = useMemo(() => {
+  // Extract all entity UIDs from the report
+  const { tagged, orphans } = useMemo(() => {
     return extractEntityUids(JSON.stringify(report));
   }, [report]);
 
-  const { entityMap, loading: entitiesLoading } = useEntitiesByUids(entityUids);
+  const { entityMap, loading: entitiesLoading } = useEntitiesByUids(
+    tagged,
+    orphans,
+  );
 
   const formatTimestamp = (timestamp?: string): string => {
     if (!timestamp) return 'N/A';
