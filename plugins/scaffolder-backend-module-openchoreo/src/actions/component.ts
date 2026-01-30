@@ -5,7 +5,10 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
-import { buildComponentResource } from './componentResourceBuilder';
+import {
+  buildComponentResource,
+  buildWorkloadResource,
+} from './componentResourceBuilder';
 import { CatalogClient } from '@backstage/catalog-client';
 import {
   CHOREO_ANNOTATIONS,
@@ -167,10 +170,21 @@ export const createComponentAction = (
         }));
 
         // Extract CI/CD setup data
-        const useBuiltInCI = ctx.input.useBuiltInCI ?? false;
+        const deploymentSource =
+          (ctx.input as any).deploymentSource || 'build-from-source';
+        const isFromImage = deploymentSource === 'deploy-from-image';
+
+        // Only use workflow-related fields if deploying from source
+        const useBuiltInCI = isFromImage
+          ? false
+          : (ctx.input.useBuiltInCI ?? false);
         const autoDeploy = ctx.input.autoDeploy ?? false;
-        const workflowName = (ctx.input as any).workflow_name;
-        const workflowParametersData = (ctx.input as any).workflow_parameters;
+        const workflowName = isFromImage
+          ? undefined
+          : (ctx.input as any).workflow_name;
+        const workflowParametersData = isFromImage
+          ? undefined
+          : (ctx.input as any).workflow_parameters;
         // Extract parameters from the new structure (workflow_parameters.parameters)
         const workflowParameters =
           workflowParametersData?.parameters || workflowParametersData;
@@ -183,6 +197,8 @@ export const createComponentAction = (
           'displayName',
           'description',
           'componentType',
+          'deploymentSource',
+          'containerImage',
           'useBuiltInCI',
           'autoDeploy',
           'workflow_name',
@@ -286,6 +302,56 @@ export const createComponentAction = (
             applyData,
           )}`,
         );
+
+        // Handle deploy-from-image flow: create Workload CR with the container image
+        const containerImage = (ctx.input as any).containerImage;
+
+        if (isFromImage && containerImage) {
+          ctx.logger.info(
+            `Deploy from image flow: creating Workload with image ${containerImage}`,
+          );
+
+          // Extract port from CTD parameters if available
+          const port = ctdParameters.port as number | undefined;
+
+          const workloadResource = buildWorkloadResource({
+            componentName: ctx.input.componentName,
+            namespaceName: namespaceName,
+            projectName: projectName,
+            containerImage: containerImage,
+            port: port,
+          });
+
+          ctx.logger.debug(
+            `Creating Workload resource: ${JSON.stringify(workloadResource)}`,
+          );
+
+          const {
+            data: workloadData,
+            error: workloadError,
+            response: workloadResponse,
+          } = await client.POST('/apply', {
+            body: workloadResource as any,
+          });
+
+          if (workloadError || !workloadResponse.ok) {
+            // Log error but don't fail the whole operation - component was created
+            ctx.logger.error(
+              `Failed to create Workload: ${workloadResponse.status} ${workloadResponse.statusText}. ` +
+                `Component was created but image deployment may need manual setup.`,
+            );
+          } else if (!workloadData?.success) {
+            ctx.logger.error(
+              `Workload API request was not successful. Component was created but image deployment may need manual setup.`,
+            );
+          } else {
+            ctx.logger.info(
+              `Workload created successfully for deploy-from-image flow: ${JSON.stringify(
+                workloadData,
+              )}`,
+            );
+          }
+        }
 
         // Immediately insert the component into the catalog
         try {

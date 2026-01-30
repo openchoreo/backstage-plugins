@@ -1,0 +1,1 @@
+export { ContainerImageFieldExtension } from './extensions';

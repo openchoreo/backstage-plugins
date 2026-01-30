@@ -9,6 +9,16 @@ import {
 type ComponentType = OpenChoreoAPI.ComponentType;
 
 /**
+ * Fields that are considered "advanced" and should be hidden in a collapsible section.
+ * These are typically fields with sensible defaults that most users won't need to change.
+ */
+const ADVANCED_FIELD_NAMES = new Set([
+  'containerName',
+  'imagePullPolicy',
+  'replicas',
+]);
+
+/**
  * Configuration for the Component Type to Template converter
  */
 export interface CtdConverterConfig {
@@ -202,11 +212,25 @@ export class CtdToTemplateConverter {
         componentType.metadata.displayName ||
         this.formatTitle(componentType.metadata.name);
 
+      // Convert properties with required fields context for advanced field detection
+      const requiredFields = componentTypeSchema.required || [];
+      const convertedProperties = this.convertJsonSchemaProperties(
+        componentTypeSchema,
+        requiredFields,
+      );
+
+      // Check if there are any advanced fields to determine if we need the custom field
+      const hasAdvancedFields = Object.values(convertedProperties).some(
+        (prop: any) => prop['ui:advanced'] === true,
+      );
+
       parameters.push({
         title: `${title} Configuration`,
-        required: componentTypeSchema.required || [],
-        properties: this.convertJsonSchemaProperties(componentTypeSchema),
+        required: requiredFields,
+        properties: convertedProperties,
         dependencies: this.convertDependencies(componentTypeSchema),
+        // Use AdvancedConfigurationField if there are advanced fields
+        ...(hasAdvancedFields && { 'ui:field': 'AdvancedConfigurationField' }),
       });
     }
 
@@ -220,9 +244,8 @@ export class CtdToTemplateConverter {
   }
 
   /**
-   * Generate CI/CD Setup section with workflow configuration
-   * Always shows CI/CD Setup section. If allowedWorkflows is provided, uses them for the dropdown.
-   * Otherwise, BuildWorkflowPicker will fetch all workflows from the API.
+   * Generate CI/CD Setup section with workflow configuration or from-image deployment
+   * Allows users to choose between building from source or deploying from a pre-built image.
    */
   private generateCISetupSection(
     componentType: ComponentType,
@@ -248,51 +271,88 @@ export class CtdToTemplateConverter {
       workflowNameField.enum = componentType.metadata.allowedWorkflows;
     }
 
-    // Always show CI/CD Setup section
     return {
       title: 'CI/CD Setup',
-      required: ['autoDeploy', 'useBuiltInCI'],
+      required: ['deploymentSource'],
       properties: {
+        deploymentSource: {
+          title: 'Deployment Source',
+          type: 'string',
+          description: 'Choose how to deploy your component',
+          enum: ['build-from-source', 'deploy-from-image'],
+          default: 'build-from-source',
+          'ui:field': 'DeploymentSourcePicker',
+        },
         autoDeploy: {
           title: 'Auto Deploy',
           description:
-            'Automatically deploy the component when component configurations change.',
+            'Automatically deploy the component to the default environment.',
           type: 'boolean',
           default: false,
           'ui:field': 'SwitchField',
         },
-        useBuiltInCI: {
-          title: 'Use Built-in CI in OpenChoreo',
-          description:
-            'OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.',
-          type: 'boolean',
-          default: true,
-          'ui:field': 'SwitchField',
-        },
       },
       dependencies: {
-        useBuiltInCI: {
+        deploymentSource: {
           oneOf: [
+            // Build from source branch
             {
               properties: {
-                useBuiltInCI: {
-                  const: true,
+                deploymentSource: {
+                  const: 'build-from-source',
                 },
-                workflow_name: workflowNameField,
-                workflow_parameters: {
-                  title: 'Workflow Parameters',
-                  type: 'object',
-                  'ui:field': 'BuildWorkflowParameters',
+                useBuiltInCI: {
+                  title: 'Use Built-in CI in OpenChoreo',
+                  description:
+                    'OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.',
+                  type: 'boolean',
+                  default: true,
+                  'ui:field': 'SwitchField',
                 },
               },
-              required: ['workflow_name', 'workflow_parameters'],
+              dependencies: {
+                useBuiltInCI: {
+                  oneOf: [
+                    {
+                      properties: {
+                        useBuiltInCI: {
+                          const: true,
+                        },
+                        workflow_name: workflowNameField,
+                        workflow_parameters: {
+                          title: 'Workflow Parameters',
+                          type: 'object',
+                          'ui:field': 'BuildWorkflowParameters',
+                        },
+                      },
+                      required: ['workflow_name', 'workflow_parameters'],
+                    },
+                    {
+                      properties: {
+                        useBuiltInCI: {
+                          const: false,
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
             },
+            // Deploy from image branch
             {
               properties: {
-                useBuiltInCI: {
-                  const: false,
+                deploymentSource: {
+                  const: 'deploy-from-image',
+                },
+                containerImage: {
+                  title: 'Container Image',
+                  type: 'string',
+                  description:
+                    'Full image reference (e.g., ghcr.io/org/app:v1.0.0 or nginx:latest)',
+                  'ui:field': 'ContainerImageField',
                 },
               },
+              required: ['containerImage'],
             },
           ],
         },
@@ -306,15 +366,15 @@ export class CtdToTemplateConverter {
    */
   private generateTraitsSection(namespaceName: string): any {
     return {
-      title: 'Traits',
+      title: 'Enhance Your Component',
       description:
-        'Add optional traits to enhance your component functionality',
+        'Add optional traits to extend your component with additional capabilities like observability, API management, or security features.',
       properties: {
         traits: {
-          title: 'Component Traits',
+          title: 'Available Traits',
           type: 'array',
           description:
-            'Select and configure traits for your component. You can add multiple traits.',
+            'Select and configure traits for your component. You can add the same trait multiple times with different configurations.',
           'ui:field': 'TraitsField',
           'ui:options': {
             namespaceName: namespaceName,
@@ -330,12 +390,16 @@ export class CtdToTemplateConverter {
   /**
    * Convert JSONSchema properties to Backstage RJSF format
    */
-  private convertJsonSchemaProperties(schema: JSONSchema7): any {
+  private convertJsonSchemaProperties(
+    schema: JSONSchema7,
+    requiredFields?: string[],
+  ): any {
     if (!schema.properties) {
       return {};
     }
 
     const convertedProperties: any = {};
+    const required = requiredFields ?? schema.required ?? [];
 
     for (const [key, propDef] of Object.entries(schema.properties)) {
       if (typeof propDef === 'boolean') {
@@ -344,7 +408,11 @@ export class CtdToTemplateConverter {
       }
 
       const prop = propDef as JSONSchema7;
-      convertedProperties[key] = this.convertJsonSchemaProperty(key, prop);
+      convertedProperties[key] = this.convertJsonSchemaProperty(
+        key,
+        prop,
+        required,
+      );
     }
 
     return convertedProperties;
@@ -353,7 +421,11 @@ export class CtdToTemplateConverter {
   /**
    * Convert a single JSONSchema property to Backstage RJSF format
    */
-  private convertJsonSchemaProperty(key: string, schema: JSONSchema7): any {
+  private convertJsonSchemaProperty(
+    key: string,
+    schema: JSONSchema7,
+    requiredFields: string[] = [],
+  ): any {
     const converted: any = {
       type: schema.type,
     };
@@ -367,6 +439,17 @@ export class CtdToTemplateConverter {
     }
     if (schema.description) converted.description = schema.description;
     if (schema.default !== undefined) converted.default = schema.default;
+
+    // Mark field as advanced if:
+    // 1. It's in the ADVANCED_FIELD_NAMES set, OR
+    // 2. It has a default value AND is not required
+    const isRequired = requiredFields.includes(key);
+    const hasDefault = schema.default !== undefined;
+    const isKnownAdvanced = ADVANCED_FIELD_NAMES.has(key);
+
+    if (isKnownAdvanced || (hasDefault && !isRequired)) {
+      converted['ui:advanced'] = true;
+    }
 
     // Handle enums
     if (schema.enum) {
@@ -580,8 +663,10 @@ export class CtdToTemplateConverter {
           // Spread CTD parameters dynamically
           ...ctdParameterMappings,
 
-          // Section 3: CI Setup
+          // Section 3: CI/CD Setup
+          deploymentSource: '${{ parameters.deploymentSource }}',
           autoDeploy: '${{ parameters.autoDeploy }}',
+          containerImage: '${{ parameters.containerImage }}',
           useBuiltInCI: '${{ parameters.useBuiltInCI }}',
           repo_url: '${{ parameters.repo_url }}',
           branch: '${{ parameters.branch }}',

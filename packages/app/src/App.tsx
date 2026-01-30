@@ -18,6 +18,9 @@ import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPic
 import { BuildWorkflowParametersFieldExtension } from './scaffolder/BuildWorkflowParameters';
 import { TraitsFieldExtension } from './scaffolder/TraitsField';
 import { SwitchFieldExtension } from './scaffolder/SwitchField';
+import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
+import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
+import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
@@ -195,6 +198,9 @@ const routes = (
         <BuildWorkflowParametersFieldExtension />
         <TraitsFieldExtension />
         <SwitchFieldExtension />
+        <AdvancedConfigurationFieldExtension />
+        <DeploymentSourcePickerFieldExtension />
+        <ContainerImageFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />
