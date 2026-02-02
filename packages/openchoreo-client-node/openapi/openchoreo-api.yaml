@@ -819,6 +819,80 @@ components:
         commit:
           type: string
 
+    # ComponentWorkflowRunStatusResponse
+    ComponentWorkflowRunStatusResponse:
+      type: object
+      description: Status response for a component workflow run
+      required:
+        - status
+        - steps
+        - hasLiveObservability
+      properties:
+        status:
+          type: string
+          description: Overall workflow status
+          enum: [Pending, Running, Completed, Failed, Succeeded]
+          example: Running
+        steps:
+          type: array
+          description: Array of step-level statuses
+          items:
+            $ref: '#/components/schemas/WorkflowStepStatus'
+        hasLiveObservability:
+          type: boolean
+          description: |
+            Whether the workflow run has live observability (logs/events are available via openchoreo-api).
+            - If workflow run is recent (< TTL), returns true
+            - If workflow run is older than TTL, returns false
+            - This field is used to determine whether the workflow run logs/events should be fetched from openchoreo-api or observer-api.
+
+    # WorkflowStepStatus
+    WorkflowStepStatus:
+      type: object
+      description: Status of an individual workflow step
+      required:
+        - name
+        - phase
+      properties:
+        name:
+          type: string
+          description: Step name or template name
+          example: build-step
+        phase:
+          type: string
+          description: Step execution phase
+          enum: [Pending, Running, Succeeded, Failed, Skipped, Error]
+          example: Succeeded
+        startedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the step started (null if not started)
+          nullable: true
+          example: '2025-01-06T10:00:00Z'
+        finishedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the step finished (null if not finished)
+          nullable: true
+          example: '2025-01-06T10:05:00Z'
+
+    # ComponentWorkflowRunLogEntry
+    ComponentWorkflowRunLogEntry:
+      type: object
+      description: A single log entry from a component workflow run
+      required:
+        - log
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the log entry was generated (RFC3339 format)
+          example: '2025-01-06T10:00:00.123Z'
+        log:
+          type: string
+          description: The log message content
+          example: 'Building application...'
+
     # Trait
     TraitResponse:
       type: object
@@ -3905,6 +3979,133 @@ paths:
                         $ref: '#/components/schemas/ComponentWorkflowRunResponse'
         '404':
           description: Component workflow run not found
+
+  /namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/status:
+    get:
+      operationId: getComponentWorkflowRunStatus
+      summary: Get component workflow run status
+      description: |
+        Returns the status of a component workflow run including overall status,
+        step-level statuses, and the log URL indicating where logs should be fetched from.
+        The log URL is determined based on the workflow run age and observability configuration.
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workflow run status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ComponentWorkflowRunStatusResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Component workflow run not found
+        '500':
+          description: Internal server error
+
+  /namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs:
+    get:
+      operationId: getComponentWorkflowRunLogs
+      summary: Get component workflow run logs
+      description: |
+        Returns logs from a component workflow run. Logs are fetched from the build plane
+        through the cluster gateway. For multi-container pods, logs from all containers
+        (excluding Argo sidecar containers) are merged.
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: projectName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: componentName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: step
+          in: query
+          required: false
+          description: Filter logs by specific workflow step name
+          schema:
+            type: string
+            example: build-step
+        - name: sinceSeconds
+          in: query
+          required: false
+          description: |
+            Only return logs from the last N seconds. If not specified, all available logs are returned.
+            This is useful for getting recent logs from long-running workflows.
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            example: 300
+      responses:
+        '200':
+          description: Workflow run logs
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Array of log entries with timestamps
+                items:
+                  $ref: '#/components/schemas/ComponentWorkflowRunLogEntry'
+              example:
+                - timestamp: '2025-01-06T10:00:00.123Z'
+                  log: 'Building application...'
+                - timestamp: '2025-01-06T10:00:05.456Z'
+                  log: 'Build completed successfully'
+                - timestamp: '2025-01-06T10:00:10.789Z'
+                  log: 'Pushing image to registry...'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Component workflow run not found
+        '500':
+          description: Internal server error
 
   # Component Bindings
   /namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings:
