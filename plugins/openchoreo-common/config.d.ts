@@ -25,6 +25,13 @@ export interface Config {
     defaultOwner?: string;
 
     /**
+     * Namespace name for generic workflows.
+     * After Organization CRD removal, the hierarchy is: Namespace → Project → Component
+     * @visibility frontend
+     */
+    namespace?: string;
+
+    /**
      * Feature flags for enabling/disabling OpenChoreo functionality.
      * These flags allow operators to toggle major features without code changes.
      * @deepVisibility frontend

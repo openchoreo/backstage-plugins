@@ -1,0 +1,1 @@
+export { WorkflowDetailsPage } from './WorkflowDetailsPage';

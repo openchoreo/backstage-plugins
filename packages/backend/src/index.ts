@@ -119,4 +119,5 @@ backend.add(import('@backstage-community/plugin-jenkins-backend'));
 // For production, config is in app-config.production.yaml with Helm-injected env vars
 // backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
 
+backend.add(import('@openchoreo/backstage-plugin-openchoreo-workflows-backend'));
 backend.start();
