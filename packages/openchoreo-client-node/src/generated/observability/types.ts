@@ -44,6 +44,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get workflow run logs (stream)
+     * @description Returns logs from a workflow run stored in the observability plane.
+     *     This endpoint is used when logs are older than the TTL and have been archived to OpenSearch.
+     *     Logs are returned as a JSON array of log entries with timestamps, optionally filtered by step.
+     *
+     */
+    get: operations['getComponentWorkflowRunLogs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/logs/component/{componentId}': {
     parameters: {
       query?: never;
@@ -104,7 +127,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/logs/org/{orgId}': {
+  '/api/logs/namespace/{namespaceName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -114,10 +137,10 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get organization logs
-     * @description Retrieve logs for an entire organization
+     * Get namespace logs
+     * @description Retrieve logs for an entire namespace
      */
-    post: operations['getOrganizationLogs'];
+    post: operations['getNamespaceLogs'];
     delete?: never;
     options?: never;
     head?: never;
@@ -356,10 +379,10 @@ export interface components {
        */
       endTime: string;
       /**
-       * @description Organization identifier
-       * @example org-789
+       * @description Namespace identifier
+       * @example namespace-789
        */
-      organizationId: string;
+      namespaceName: string;
       /**
        * @description Search phrase to filter logs
        * @example error
@@ -403,7 +426,7 @@ export interface components {
        */
       logType?: 'runtime' | 'build';
     };
-    OrganizationLogsRequest: components['schemas']['ComponentLogsRequest'] & {
+    NamespaceLogsRequest: components['schemas']['ComponentLogsRequest'] & {
       /**
        * @description Kubernetes pod labels to filter logs
        * @example {
@@ -870,6 +893,20 @@ export interface components {
        */
       message: string;
     };
+    /** @description A single log entry from a component workflow run */
+    ComponentWorkflowRunLogEntry: {
+      /**
+       * Format: date-time
+       * @description Timestamp when the log entry was generated (RFC3339 format)
+       * @example 2025-01-06T10:00:00.123Z
+       */
+      timestamp?: string;
+      /**
+       * @description The log message content
+       * @example Building application...
+       */
+      log: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -943,6 +980,83 @@ export interface operations {
       };
       /** @description Bad request - invalid parameters */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getComponentWorkflowRunLogs: {
+    parameters: {
+      query?: {
+        /** @description Filter logs by a specific workflow step name */
+        step?: string;
+      };
+      header?: never;
+      path: {
+        /** @description The namespace name */
+        namespaceName: string;
+        /** @description The project name */
+        projectName: string;
+        /** @description The component name */
+        componentName: string;
+        /** @description The workflow run name */
+        runName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successfully retrieved workflow run logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Workflow run not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -1093,23 +1207,23 @@ export interface operations {
       };
     };
   };
-  getOrganizationLogs: {
+  getNamespaceLogs: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description The unique identifier of the organization */
-        orgId: string;
+        /** @description The unique identifier of the namespace */
+        namespaceName: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['OrganizationLogsRequest'];
+        'application/json': components['schemas']['NamespaceLogsRequest'];
       };
     };
     responses: {
-      /** @description Successfully retrieved organization logs */
+      /** @description Successfully retrieved namespace logs */
       200: {
         headers: {
           [name: string]: unknown;

@@ -471,18 +471,20 @@ export interface components {
       /** @description The full RCA report content (null if status is pending or failed) */
       report?: components['schemas']['RCAReport'];
     };
-    /** @description Complete Root Cause Analysis Report */
+    /** @description Complete Root Cause Analysis Report for OpenChoreo incidents */
     RCAReport: {
+      /** @description The alert that triggered this RCA */
       alert_context: components['schemas']['ReportAlertContext'];
       /**
        * @description Concise summary of the investigation outcome (1 sentence)
        * @example Database connection pool exhaustion caused by memory leak in connection handler
        */
       summary: string;
-      /** @description The RCA result - either root causes identified or explanation of why not */
+      /** @description The RCA result - either root causes identified, or explanation of why not */
       result:
         | components['schemas']['RootCauseIdentified']
         | components['schemas']['NoRootCauseIdentified'];
+      /** @description Sequential steps the agent took during investigation */
       investigation_path: components['schemas']['InvestigationStep'][];
     };
     /** @description Alert context echoed in the RCA report for reference */

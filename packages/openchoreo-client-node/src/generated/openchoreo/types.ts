@@ -756,6 +756,52 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component workflow run status
+     * @description Returns the status of a component workflow run including overall status,
+     *     step-level statuses, and the log URL indicating where logs should be fetched from.
+     *     The log URL is determined based on the workflow run age and observability configuration.
+     *
+     */
+    get: operations['getComponentWorkflowRunStatus'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component workflow run logs
+     * @description Returns logs from a component workflow run. Logs are fetched from the build plane
+     *     through the cluster gateway. For multi-container pods, logs from all containers
+     *     (excluding Argo sidecar containers) are merged.
+     *
+     */
+    get: operations['getComponentWorkflowRunLogs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings': {
     parameters: {
       query?: never;
@@ -1583,6 +1629,69 @@ export interface components {
     RepositoryRevisionResponse: {
       branch: string;
       commit?: string;
+    };
+    /** @description Status response for a component workflow run */
+    ComponentWorkflowRunStatusResponse: {
+      /**
+       * @description Overall workflow status
+       * @example Running
+       * @enum {string}
+       */
+      status: 'Pending' | 'Running' | 'Completed' | 'Failed' | 'Succeeded';
+      /** @description Array of step-level statuses */
+      steps: components['schemas']['WorkflowStepStatus'][];
+      /** @description Whether the workflow run has live observability (logs/events are available via openchoreo-api).
+       *     - If workflow run is recent (< TTL), returns true
+       *     - If workflow run is older than TTL, returns false
+       *     - This field is used to determine whether the workflow run logs/events should be fetched from openchoreo-api or observer-api.
+       *      */
+      hasLiveObservability: boolean;
+    };
+    /** @description Status of an individual workflow step */
+    WorkflowStepStatus: {
+      /**
+       * @description Step name or template name
+       * @example build-step
+       */
+      name: string;
+      /**
+       * @description Step execution phase
+       * @example Succeeded
+       * @enum {string}
+       */
+      phase:
+        | 'Pending'
+        | 'Running'
+        | 'Succeeded'
+        | 'Failed'
+        | 'Skipped'
+        | 'Error';
+      /**
+       * Format: date-time
+       * @description Timestamp when the step started (null if not started)
+       * @example 2025-01-06T10:00:00Z
+       */
+      startedAt?: string | null;
+      /**
+       * Format: date-time
+       * @description Timestamp when the step finished (null if not finished)
+       * @example 2025-01-06T10:05:00Z
+       */
+      finishedAt?: string | null;
+    };
+    /** @description A single log entry from a component workflow run */
+    ComponentWorkflowRunLogEntry: {
+      /**
+       * Format: date-time
+       * @description Timestamp when the log entry was generated (RFC3339 format)
+       * @example 2025-01-06T10:00:00.123Z
+       */
+      timestamp?: string;
+      /**
+       * @description The log message content
+       * @example Building application...
+       */
+      log: string;
     };
     TraitResponse: {
       name: string;
@@ -3951,6 +4060,121 @@ export interface operations {
       };
       /** @description Component workflow run not found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getComponentWorkflowRunStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        projectName: string;
+        componentName: string;
+        runName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run status */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ComponentWorkflowRunStatusResponse'];
+          };
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Component workflow run not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getComponentWorkflowRunLogs: {
+    parameters: {
+      query?: {
+        /** @description Filter logs by specific workflow step name */
+        step?: string;
+        /** @description Only return logs from the last N seconds. If not specified, all available logs are returned.
+         *     This is useful for getting recent logs from long-running workflows.
+         *      */
+        sinceSeconds?: number;
+      };
+      header?: never;
+      path: {
+        namespaceName: string;
+        projectName: string;
+        componentName: string;
+        runName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Component workflow run not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal server error */
+      500: {
         headers: {
           [name: string]: unknown;
         };
