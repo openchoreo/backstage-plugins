@@ -15,7 +15,7 @@ This repository contains Backstage plugins for integrating with [OpenChoreo](htt
 
 ### OpenChoreo Setup
 
-Follow the setup [guide](https://openchoreo.dev/docs/getting-started/single-cluster/)
+Follow the setup [guide](https://openchoreo.dev/docs/getting-started/quick-start-guide/)
 
 ## Local Domain Configuration
 
