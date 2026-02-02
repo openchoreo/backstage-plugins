@@ -1,0 +1,1 @@
+export { GenericWorkflowsPage } from './GenericWorkflowsPage';
