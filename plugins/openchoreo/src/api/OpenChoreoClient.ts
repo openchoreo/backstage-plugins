@@ -1,5 +1,5 @@
 import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
-import { Entity } from '@backstage/catalog-model';
+import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
   ModelsWorkload,
@@ -66,6 +66,7 @@ const API_ENDPOINTS = {
   NAMESPACES: '/namespaces',
   PROJECTS: '/projects', // GET /namespaces/{namespaceName}/projects
   COMPONENTS: '/components', // GET /namespaces/{namespaceName}/projects/{projectName}/components
+  ENTITY_ANNOTATIONS: '/entity-annotations',
 } as const;
 
 // ============================================
@@ -835,6 +836,36 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         method: 'DELETE',
       },
     );
+  }
+
+  // ============================================
+  // Custom Annotation Operations
+  // ============================================
+
+  async fetchEntityAnnotations(
+    entity: Entity,
+  ): Promise<Record<string, string>> {
+    const entityRef = stringifyEntityRef(entity);
+    const result = await this.apiFetch<{
+      annotations: Record<string, string>;
+    }>(API_ENDPOINTS.ENTITY_ANNOTATIONS, {
+      params: { entityRef },
+    });
+    return result.annotations;
+  }
+
+  async updateEntityAnnotations(
+    entity: Entity,
+    annotations: Record<string, string | null>,
+  ): Promise<Record<string, string>> {
+    const entityRef = stringifyEntityRef(entity);
+    const result = await this.apiFetch<{
+      annotations: Record<string, string>;
+    }>(API_ENDPOINTS.ENTITY_ANNOTATIONS, {
+      method: 'PATCH',
+      body: { entityRef, annotations },
+    });
+    return result.annotations;
   }
 
   async deleteProject(entity: Entity): Promise<void> {

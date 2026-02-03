@@ -22,6 +22,7 @@ import {
   matchesCapability,
   openchoreoComponentResourceRef,
 } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
+import { annotationStoreRef } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 /**
  * choreoPlugin backend plugin
@@ -43,6 +44,7 @@ export const choreoPlugin = createBackendPlugin({
         discovery: coreServices.discovery,
         config: coreServices.rootConfig,
         tokenService: openChoreoTokenServiceRef,
+        annotationStore: annotationStoreRef,
       },
       async init({
         logger,
@@ -52,6 +54,7 @@ export const choreoPlugin = createBackendPlugin({
         catalog,
         permissionsRegistry,
         auth,
+        annotationStore,
       }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
 
@@ -151,6 +154,9 @@ export const choreoPlugin = createBackendPlugin({
             gitSecretsService,
             authzService,
             dataPlaneInfoService,
+            annotationStore,
+            catalogService: catalog,
+            auth,
             tokenService,
             authEnabled,
             logger,

@@ -7,6 +7,7 @@
 export {
   catalogModuleOpenchoreo as default,
   immediateCatalogServiceFactory,
+  annotationStoreFactory,
 } from './module';
 export { OpenChoreoEntityProvider } from './provider/OpenChoreoEntityProvider';
 export { ScaffolderEntityProvider } from './provider/ScaffolderEntityProvider';
@@ -14,6 +15,10 @@ export {
   immediateCatalogServiceRef,
   type ImmediateCatalogService,
 } from './service/ImmediateCatalogService';
+export {
+  annotationStoreRef,
+  type AnnotationStore,
+} from './service/AnnotationStore';
 export {
   translateComponentToEntity,
   type ComponentEntityTranslationConfig,

@@ -450,6 +450,17 @@ export interface OpenChoreoClientApi {
 
   /** Delete a project */
   deleteProject(entity: Entity): Promise<void>;
+
+  // === Custom Annotation Operations ===
+
+  /** Fetch custom annotations for an entity */
+  fetchEntityAnnotations(entity: Entity): Promise<Record<string, string>>;
+
+  /** Update custom annotations on an entity. Use null value to delete a key. */
+  updateEntityAnnotations(
+    entity: Entity,
+    annotations: Record<string, string | null>,
+  ): Promise<Record<string, string>>;
 }
 
 // ============================================
