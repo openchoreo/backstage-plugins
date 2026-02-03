@@ -23,6 +23,10 @@ export const ENTITY_KIND_COLORS: Record<string, string> = {
   deploymentpipeline: '#f59e0b', // warning.main - Orange for pipelines
   observabilityplane: '#8b5cf6', // Purple for observability planes
   buildplane: '#3b82f6', // Blue for build planes
+  componenttype: '#f59e0b', // Orange for component types
+  traittype: '#10b981', // Green for trait types
+  workflow: '#8b5cf6', // Purple for workflows
+  componentworkflow: '#3b82f6', // Blue for component workflows
 };
 
 /**
@@ -40,6 +44,10 @@ export const KIND_LABEL_PREFIXES: Record<string, string> = {
   deploymentpipeline: 'Pipeline',
   observabilityplane: 'Obs',
   buildplane: 'BP',
+  componenttype: 'CT',
+  traittype: 'Trait',
+  workflow: 'WF',
+  componentworkflow: 'CWF',
 };
 
 /**

@@ -1,0 +1,1 @@
+export { ComponentTypeOverviewCard } from './ComponentTypeOverviewCard';

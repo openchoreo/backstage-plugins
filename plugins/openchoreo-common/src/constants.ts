@@ -91,3 +91,15 @@ export const RELATION_OBSERVED_BY = 'observedBy';
  * This is the inverse of RELATION_OBSERVED_BY.
  */
 export const RELATION_OBSERVES = 'observes';
+
+/**
+ * A relation indicating that a ComponentType uses a ComponentWorkflow (via allowedWorkflows).
+ * The source is the ComponentType, the target is the ComponentWorkflow.
+ */
+export const RELATION_USES_WORKFLOW = 'usesWorkflow';
+
+/**
+ * A relation indicating that a ComponentWorkflow is used by a ComponentType.
+ * This is the inverse of RELATION_USES_WORKFLOW.
+ */
+export const RELATION_WORKFLOW_USED_BY = 'workflowUsedBy';

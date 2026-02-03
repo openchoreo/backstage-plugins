@@ -15,6 +15,10 @@ import {
   BuildPlaneEntityProcessor,
   ObservabilityPlaneEntityProcessor,
   DeploymentPipelineEntityProcessor,
+  ComponentTypeEntityProcessor,
+  TraitTypeEntityProcessor,
+  WorkflowEntityProcessor,
+  ComponentWorkflowEntityProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -78,6 +82,18 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the DeploymentPipeline entity processor
         catalog.addProcessor(new DeploymentPipelineEntityProcessor());
+
+        // Register the ComponentType entity processor
+        catalog.addProcessor(new ComponentTypeEntityProcessor());
+
+        // Register the TraitType entity processor
+        catalog.addProcessor(new TraitTypeEntityProcessor());
+
+        // Register the Workflow entity processor
+        catalog.addProcessor(new WorkflowEntityProcessor());
+
+        // Register the ComponentWorkflow entity processor
+        catalog.addProcessor(new ComponentWorkflowEntityProcessor());
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(
