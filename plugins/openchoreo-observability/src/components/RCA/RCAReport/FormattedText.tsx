@@ -1,38 +1,28 @@
-import { Fragment } from 'react';
+import React, { Fragment, useMemo } from 'react';
 import { Link } from '@backstage/core-components';
-import { makeStyles } from '@material-ui/core/styles';
+import ReactMarkdown from 'react-markdown';
 import { useEntityLinkContext } from './EntityLinkContext';
-
-interface Highlight {
-  value: string;
-  severity: 'critical' | 'warning' | 'normal';
-}
+import { useRCAReportStyles } from './styles';
 
 interface FormattedTextProps {
   text: string;
   /** When true, renders entities as bold text instead of clickable links */
   disableLinks?: boolean;
-  /** Optional highlights to apply inline styling to matching text */
-  highlights?: Highlight[];
+  /** When true, skips markdown processing (for title-ish fields) */
+  disableMarkdown?: boolean;
 }
 
-const useStyles = makeStyles(theme => ({
-  highlightCritical: {
-    fontWeight: 600,
-    color: theme.palette.error.main,
-  },
-  highlightWarning: {
-    fontWeight: 600,
-    color: theme.palette.warning.main,
-  },
-  highlightNormal: {
-    fontWeight: 600,
-    color: theme.palette.success.main,
-  },
-}));
+// UUID pattern (case-insensitive)
+const UUID_PATTERN =
+  /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i;
 
-// Single pattern to match any {{tag:value}} format
-const TAG_PATTERN = /\{\{(\w+):([^}]+)\}\}/;
+// ISO 8601 timestamp pattern (e.g., 2023-10-05T14:48:00Z or 2023-10-05T14:48:00.123Z)
+const ISO_TIMESTAMP_PATTERN =
+  /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z/;
+
+// Combined pattern to split text by UUIDs and timestamps, keeping delimiters
+const SPLIT_PATTERN =
+  /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z)/gi;
 
 function formatTimestamp(isoString: string): string {
   try {
@@ -48,111 +38,102 @@ function formatTimestamp(isoString: string): string {
   }
 }
 
+// Strip markdown syntax from text
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1') // **bold**
+    .replace(/__(.+?)__/g, '$1') // __bold__
+    .replace(/\*(.+?)\*/g, '$1') // *italic*
+    .replace(/_(.+?)_/g, '$1') // _italic_
+    .replace(/`(.+?)`/g, '$1'); // `code`
+}
+
 /**
- * Component that renders text with:
- * - {{comp|env|proj:uuid}} patterns replaced by entity links
- * - {{ts:ISO_TIMESTAMP}} patterns replaced by formatted timestamps
- * - Optional highlights applied to matching text
+ * Renders text with:
+ * - Inline markdown: bold (**), italic (*), code (`)
+ * - UUIDs replaced by entity links (when found in catalog)
+ * - ISO 8601 timestamps replaced by formatted dates
  */
 export const FormattedText = ({
   text,
   disableLinks = false,
-  highlights,
+  disableMarkdown = false,
 }: FormattedTextProps) => {
-  const classes = useStyles();
+  const classes = useRCAReportStyles();
   const { entityMap, loading } = useEntityLinkContext();
 
-  const getHighlightClass = (severity: Highlight['severity']) => {
-    switch (severity) {
-      case 'critical':
-        return classes.highlightCritical;
-      case 'warning':
-        return classes.highlightWarning;
-      case 'normal':
-        return classes.highlightNormal;
-      default:
-        return '';
+  // Render a single text segment (UUID, timestamp, or plain text)
+  const renderSegment = (segment: string, index: number) => {
+    if (UUID_PATTERN.test(segment)) {
+      const entityInfo = entityMap.get(segment);
+      if (loading) {
+        return <Fragment key={index}>...</Fragment>;
+      }
+      const displayText = entityInfo
+        ? entityInfo.title || entityInfo.name
+        : segment;
+      if (disableLinks || !entityInfo) {
+        return <strong key={index}>{displayText}</strong>;
+      }
+      return (
+        <Link
+          key={index}
+          to={entityInfo.path}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <strong>{displayText}</strong>
+        </Link>
+      );
     }
+
+    if (ISO_TIMESTAMP_PATTERN.test(segment)) {
+      return <strong key={index}>{formatTimestamp(segment)}</strong>;
+    }
+
+    return <Fragment key={index}>{segment}</Fragment>;
   };
 
-  // Apply highlights to a plain text string
-  const applyHighlights = (plainText: string, keyPrefix: string) => {
-    if (!highlights || highlights.length === 0) {
-      return <Fragment key={keyPrefix}>{plainText}</Fragment>;
-    }
-
-    // Build a regex pattern from all highlight values
-    const escapedValues = highlights
-      .map(h => h.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-      .join('|');
-    const highlightPattern = new RegExp(`(${escapedValues})`, 'g');
-
-    const segments = plainText.split(highlightPattern);
-
-    return (
-      <Fragment key={keyPrefix}>
-        {segments.map((segment, idx) => {
-          const matchingHighlight = highlights.find(h => h.value === segment);
-          if (matchingHighlight) {
-            return (
-              <span
-                key={`${keyPrefix}-${idx}`}
-                className={getHighlightClass(matchingHighlight.severity)}
-              >
-                {segment}
-              </span>
-            );
-          }
-          return <Fragment key={`${keyPrefix}-${idx}`}>{segment}</Fragment>;
-        })}
-      </Fragment>
-    );
+  // Process React children, replacing string nodes with rendered segments
+  const processChildren = (children: React.ReactNode): React.ReactNode => {
+    return React.Children.map(children, child => {
+      if (typeof child === 'string') {
+        const parts = child.split(SPLIT_PATTERN);
+        return <>{parts.map((part, i) => renderSegment(part, i))}</>;
+      }
+      return child;
+    });
   };
 
-  // Split by any {{tag:value}} pattern, keeping delimiters
-  const parts = text.split(/(\{\{\w+:[^}]+\}\})/g);
+  // Skip markdown processing for title-ish fields, strip any markdown syntax
+  if (disableMarkdown) {
+    const stripped = stripMarkdown(text);
+    const parts = stripped.split(SPLIT_PATTERN);
+    return <>{parts.map((part, i) => renderSegment(part, i))}</>;
+  }
+
+  const markdownComponents = useMemo(
+    () => ({
+      p: ({ children }: { children?: React.ReactNode }) => (
+        <span>{processChildren(children)}</span>
+      ),
+      strong: ({ children }: { children?: React.ReactNode }) => (
+        <strong>{processChildren(children)}</strong>
+      ),
+      em: ({ children }: { children?: React.ReactNode }) => (
+        <em>{processChildren(children)}</em>
+      ),
+      code: ({ children }: { children?: React.ReactNode }) => (
+        <code>{children}</code>
+      ),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entityMap, loading, disableLinks],
+  );
 
   return (
-    <>
-      {parts.map((part, index) => {
-        const match = part.match(TAG_PATTERN);
-        if (!match) {
-          return applyHighlights(part, `part-${index}`);
-        }
-
-        const [, tag, value] = match;
-
-        switch (tag.toLowerCase()) {
-          case 'comp':
-          case 'env':
-          case 'proj': {
-            const entityInfo = entityMap.get(value);
-            if (loading) {
-              return <Fragment key={index}>...</Fragment>;
-            }
-            const displayText = entityInfo
-              ? entityInfo.title || entityInfo.name
-              : value;
-            if (disableLinks || !entityInfo) {
-              return <strong key={index}>{displayText}</strong>;
-            }
-            return (
-              <Link
-                key={index}
-                to={entityInfo.path}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <strong>{displayText}</strong>
-              </Link>
-            );
-          }
-          case 'ts':
-            return <strong key={index}>{formatTimestamp(value)}</strong>;
-          default:
-            return <Fragment key={index}>{part}</Fragment>;
-        }
-      })}
-    </>
+    <span className={classes.markdownContent}>
+      <ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>
+    </span>
   );
 };

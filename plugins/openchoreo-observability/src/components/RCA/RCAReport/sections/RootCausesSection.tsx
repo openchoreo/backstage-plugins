@@ -54,7 +54,7 @@ const useStyles = makeStyles(theme => ({
   confidenceBadge: {
     padding: theme.spacing(0.5, 1.5),
     borderRadius: theme.shape.borderRadius,
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.caption.fontSize,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
@@ -85,7 +85,7 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1),
     color: theme.palette.text.secondary,
     fontSize: theme.typography.body2.fontSize,
-    fontWeight: 600,
+    fontWeight: 500,
   },
   findingCard: {
     marginBottom: theme.spacing(1.5),
@@ -112,7 +112,7 @@ const useStyles = makeStyles(theme => ({
     minWidth: 0,
   },
   findingObservation: {
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.body2.fontSize,
     color: theme.palette.text.primary,
     marginBottom: theme.spacing(0.5),
@@ -134,7 +134,7 @@ const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(0.5),
     '& a': {
       color: theme.palette.primary.main,
-      fontWeight: 600,
+      fontWeight: 500,
     },
   },
   evidenceTypeBadgeIcon: {
@@ -186,7 +186,7 @@ const useStyles = makeStyles(theme => ({
     alignItems: 'center',
     gap: theme.spacing(0.5),
     fontSize: theme.typography.caption.fontSize,
-    fontWeight: 600,
+    fontWeight: 500,
     color: theme.palette.text.primary,
     marginRight: theme.spacing(1),
   },
@@ -235,7 +235,7 @@ const useStyles = makeStyles(theme => ({
   },
   logLevel: {
     fontSize: theme.typography.caption.fontSize,
-    fontWeight: 600,
+    fontWeight: 500,
   },
   errorLevel: {
     color: theme.palette.error.main,
@@ -272,33 +272,9 @@ const useStyles = makeStyles(theme => ({
     borderLeft: `3px solid ${theme.palette.success.main}`,
   },
   metricName: {
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.body2.fontSize,
     color: theme.palette.text.primary,
-  },
-  highlightsContainer: {
-    display: 'flex',
-    flexWrap: 'wrap' as const,
-    gap: theme.spacing(0.5),
-    marginTop: theme.spacing(0.5),
-  },
-  highlightBadge: {
-    padding: theme.spacing(0.25, 0.75),
-    borderRadius: theme.shape.borderRadius,
-    fontWeight: 600,
-    fontSize: theme.typography.caption.fontSize,
-  },
-  criticalHighlight: {
-    backgroundColor: theme.palette.error.light,
-    color: theme.palette.error.dark,
-  },
-  warningHighlight: {
-    backgroundColor: theme.palette.warning.light,
-    color: theme.palette.warning.dark,
-  },
-  normalHighlight: {
-    backgroundColor: theme.palette.success.light,
-    color: theme.palette.success.dark,
   },
   metricSummary: {
     flex: 1,
@@ -336,7 +312,7 @@ const useStyles = makeStyles(theme => ({
   },
   traceError: {
     color: theme.palette.error.main,
-    fontWeight: 600,
+    fontWeight: 500,
     marginTop: theme.spacing(0.5),
   },
   spanInfo: {
@@ -441,8 +417,8 @@ const MetricEvidenceComponent = ({
   classes: ReturnType<typeof useStyles>;
 }) => (
   <Box className={classes.evidenceCard}>
-    <Typography className={classes.metricSummary}>
-      <FormattedText text={evidence.summary} highlights={evidence.highlights} />
+    <Typography component="div" className={classes.metricSummary}>
+      <FormattedText text={evidence.summary} />
     </Typography>
   </Box>
 );
@@ -465,8 +441,8 @@ const TraceEvidenceComponent = ({
         <span className={classes.tracePropertyValue}>{evidence.span_id}</span>
       </Box>
     )}
-    <Typography className={classes.traceSummary}>
-      <FormattedText text={evidence.summary} highlights={evidence.highlights} />
+    <Typography component="div" className={classes.traceSummary}>
+      <FormattedText text={evidence.summary} />
     </Typography>
     {evidence.is_error && evidence.error_message && (
       <Typography className={classes.traceError}>
@@ -518,7 +494,7 @@ const getEvidenceTypeWithComponent = (
       {componentUid && (
         <>
           {' in '}
-          <FormattedText text={`{{comp:${componentUid}}}`} />
+          <FormattedText text={componentUid} />
         </>
       )}
     </span>
@@ -570,8 +546,8 @@ const FindingCard = ({
         disableRipple
       >
         <Box className={classes.findingHeaderContent}>
-          <Typography className={classes.findingObservation}>
-            <FormattedText text={finding.observation} />
+          <Typography component="div" className={classes.findingObservation}>
+            <FormattedText text={finding.observation} disableMarkdown />
           </Typography>
           {evidence?.type &&
             getEvidenceTypeWithComponent(
@@ -615,7 +591,7 @@ const RootCauseItem = ({
   <>
     <Box className={classes.rootCauseHeader}>
       <Typography className={classes.rootCauseTitle}>
-        <FormattedText text={rootCause.summary} />
+        <FormattedText text={rootCause.summary} disableMarkdown />
       </Typography>
       <span className={getConfidenceBadgeClass(rootCause.confidence, classes)}>
         {rootCause.confidence} confidence
@@ -624,6 +600,7 @@ const RootCauseItem = ({
     <Box className={classes.rootCauseContent}>
       {rootCause.analysis && (
         <Typography
+          component="div"
           variant="body1"
           color="textSecondary"
           className={classes.analysis}

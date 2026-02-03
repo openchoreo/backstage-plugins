@@ -19,7 +19,7 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(1, 0),
   },
   primary: {
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.body1.fontSize,
     color: theme.palette.text.primary,
   },
@@ -43,7 +43,7 @@ export const RecommendationsSection = ({
         <Fragment key={idx}>
           <ListItem className={classes.listItem} disableGutters>
             <ListItemText
-              primary={<FormattedText text={action.description || ''} />}
+              primary={<FormattedText text={action.description || ''} disableMarkdown />}
               secondary={
                 action.rationale ? (
                   <FormattedText text={action.rationale} />

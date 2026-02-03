@@ -47,7 +47,7 @@ const useStyles = makeStyles(theme => ({
     minWidth: 0,
   },
   stepAction: {
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.body2.fontSize,
     color: theme.palette.text.primary,
     marginBottom: theme.spacing(0.25),
@@ -113,7 +113,7 @@ const InvestigationStepCard = ({ step }: { step: InvestigationStep }) => {
       {hasOutcome && (
         <Collapse in={expanded}>
           <Box className={classes.stepOutcomeContainer}>
-            <Typography className={classes.stepOutcome}>
+            <Typography component="div" className={classes.stepOutcome}>
               <FormattedText text={step.outcome || ''} />
             </Typography>
           </Box>

@@ -22,7 +22,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
     flexDirection: 'column',
   },
   title: {
-    fontWeight: 600,
+    fontWeight: 500,
   },
   subtitle: {
     color: theme.palette.text.secondary,
@@ -57,7 +57,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
   },
   dotNumber: {
     fontSize: theme.typography.caption.fontSize,
-    fontWeight: 600,
+    fontWeight: 500,
     color: theme.palette.primary.contrastText,
     lineHeight: 1,
   },
@@ -248,7 +248,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
       },
     },
     '& strong': {
-      fontWeight: 600,
+      fontWeight: 500,
       color: 'inherit',
     },
     '& em': {
@@ -276,19 +276,19 @@ export const useRCAReportStyles = makeStyles(theme => ({
       fontSize: '1.1em',
       marginTop: theme.spacing(1),
       marginBottom: theme.spacing(0.5),
-      fontWeight: 600,
+      fontWeight: 500,
     },
     '& h2': {
       fontSize: '1.05em',
       marginTop: theme.spacing(1),
       marginBottom: theme.spacing(0.5),
-      fontWeight: 600,
+      fontWeight: 500,
     },
     '& h3, & h4, & h5, & h6': {
       fontSize: '1em',
       marginTop: theme.spacing(0.75),
       marginBottom: theme.spacing(0.5),
-      fontWeight: 600,
+      fontWeight: 500,
     },
     '& h1:first-child, & h2:first-child, & h3:first-child': {
       marginTop: 0,
@@ -333,7 +333,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
     },
     '& th': {
       backgroundColor: theme.palette.action.hover,
-      fontWeight: 600,
+      fontWeight: 500,
     },
     '& tr:nth-child(even)': {
       backgroundColor: theme.palette.action.hover,
@@ -348,7 +348,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
     display: 'inline-block',
     padding: theme.spacing(0.5, 1.5),
     borderRadius: theme.shape.borderRadius,
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.caption.fontSize,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
@@ -369,7 +369,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
     display: 'inline-block',
     padding: theme.spacing(0.5, 1.5),
     borderRadius: theme.shape.borderRadius,
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.caption.fontSize,
     letterSpacing: '0.5px',
   },
@@ -416,7 +416,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
   },
   outcomeTitle: {
     fontSize: theme.typography.body1.fontSize,
-    fontWeight: 600,
+    fontWeight: 500,
     color: theme.palette.text.primary,
   },
   outcomeExplanation: {
@@ -443,7 +443,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
   },
   alertContextName: {
     fontSize: theme.typography.h6.fontSize,
-    fontWeight: 600,
+    fontWeight: 500,
     color: theme.palette.text.primary,
   },
   alertContextDescriptionInline: {
@@ -476,7 +476,7 @@ export const useRCAReportStyles = makeStyles(theme => ({
     wordBreak: 'break-word',
   },
   propertyValueHighlight: {
-    fontWeight: 600,
+    fontWeight: 500,
     color: theme.palette.warning.main,
   },
   alertContextQueryBox: {

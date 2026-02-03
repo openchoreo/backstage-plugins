@@ -14,5 +14,4 @@ export {
   extractEntityUids,
   type EntityInfo,
   type EntityMap,
-  type EntityRef,
 } from './useEntitiesByUids';

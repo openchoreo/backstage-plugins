@@ -65,66 +65,60 @@ export function useRCAReports(filters: Filters, entity: Entity) {
     [filters.componentIds],
   );
 
-  const fetchReports = useCallback(
-    async (reset: boolean = false) => {
-      if (
-        !filters.environment ||
-        !filters.environment.uid ||
-        !filters.timeRange ||
-        !projectId
-      ) {
-        return;
-      }
+  const fetchReports = useCallback(async () => {
+    if (
+      !filters.environment ||
+      !filters.environment.uid ||
+      !filters.timeRange ||
+      !projectId
+    ) {
+      return;
+    }
 
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Calculate the start and end times based on the time range
-        const { startTime, endTime } = calculateTimeRange(filters.timeRange);
+      // Calculate the start and end times based on the time range
+      const { startTime, endTime } = calculateTimeRange(filters.timeRange);
 
-        // Get component UIDs from filters (empty array means all components)
-        const componentUids = filters.componentIds || [];
+      // Get component UIDs from filters (empty array means all components)
+      const componentUids = filters.componentIds || [];
 
-        const response = await observabilityApi.getRCAReports(
-          projectId,
-          filters.environment.uid,
-          filters.environment.name,
-          namespace || '',
-          entity.metadata.name as string,
-          componentUids,
-          {
-            limit: 100,
-            startTime,
-            endTime,
-            status: filters.rcaStatus,
-          },
-        );
+      const response = await observabilityApi.getRCAReports(
+        projectId,
+        filters.environment.uid,
+        filters.environment.name,
+        namespace || '',
+        entity.metadata.name as string,
+        componentUids,
+        {
+          limit: 100,
+          startTime,
+          endTime,
+          status: filters.rcaStatus,
+        },
+      );
 
-        if (reset || !reports || reports.length === 0) {
-          setReports(response.reports);
-          setTotalCount(response.totalCount);
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to fetch RCA reports',
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      observabilityApi,
-      filters.environment,
-      filters.timeRange,
-      filters.componentIds,
-      filters.rcaStatus,
-      reports,
-      namespace,
-      projectId,
-      entity,
-    ],
-  );
+      setReports(response.reports);
+      setTotalCount(response.totalCount);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to fetch RCA reports',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    observabilityApi,
+    filters.environment,
+    filters.timeRange,
+    filters.componentIds,
+    filters.rcaStatus,
+    namespace,
+    projectId,
+    entity,
+  ]);
 
   // Fetch project ID
   useEffect(() => {
@@ -149,7 +143,7 @@ export function useRCAReports(filters: Filters, entity: Entity) {
   // Auto-fetch reports when filters change
   useEffect(() => {
     if (projectId && filters.environment && filters.timeRange) {
-      fetchReports(true);
+      fetchReports();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -161,8 +155,7 @@ export function useRCAReports(filters: Filters, entity: Entity) {
   ]);
 
   const refresh = useCallback(() => {
-    setReports([]);
-    fetchReports(true);
+    fetchReports();
   }, [fetchReports]);
 
   return {

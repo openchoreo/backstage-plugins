@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -16,6 +16,11 @@ import remarkGfm from 'remark-gfm';
 import remend from 'remend';
 import { useRCAReportStyles } from '../styles';
 import { FormattedText } from '../FormattedText';
+import { EntityLinkContext, useEntityLinkContext } from '../EntityLinkContext';
+import {
+  extractEntityUids,
+  useEntitiesByUids,
+} from '../../../../hooks/useEntitiesByUids';
 import type {
   RCAAgentApi,
   ChatMessage,
@@ -32,7 +37,7 @@ function processChildren(children: React.ReactNode): React.ReactNode {
   });
 }
 
-// Custom ReactMarkdown components that process {{tag:value}} patterns
+// Custom ReactMarkdown components that process UUIDs and timestamps
 const markdownComponents = {
   p: ({ children }: { children?: React.ReactNode }) => (
     <p>{processChildren(children)}</p>
@@ -122,6 +127,30 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
     }
   }, [messages, streamingContent]);
 
+  // Extract UUIDs from chat messages and streaming content for entity resolution
+  const parentContext = useEntityLinkContext();
+  const chatUids = useMemo(() => {
+    const allContent = messages.map(m => m.content).join(' ') + ' ' + streamingContent;
+    return extractEntityUids(allContent);
+  }, [messages, streamingContent]);
+
+  const { entityMap: chatEntityMap, loading: chatEntitiesLoading } =
+    useEntitiesByUids(chatUids);
+
+  // Merge parent context entities with chat-specific entities
+  const mergedContext = useMemo(() => {
+    const mergedMap = new Map(parentContext.entityMap);
+    for (const [uid, info] of chatEntityMap) {
+      if (!mergedMap.has(uid)) {
+        mergedMap.set(uid, info);
+      }
+    }
+    return {
+      entityMap: mergedMap,
+      loading: parentContext.loading || chatEntitiesLoading,
+    };
+  }, [parentContext, chatEntityMap, chatEntitiesLoading]);
+
   const handleSendMessage = useCallback(async () => {
     if (!chatMessage.trim() || isSending) return;
 
@@ -158,11 +187,7 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
               setToolStatus(null);
               break;
             case 'tool_call':
-              setToolStatus(
-                event.tool
-                  ? `Calling ${event.tool.replace(/_/g, ' ')}`
-                  : 'Calling tools',
-              );
+              setToolStatus(event.activeForm || 'Digging deeper...');
               break;
             case 'done':
               // Finalize the assistant message
@@ -245,134 +270,136 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
   );
 
   return (
-    <Box className={classes.chatPanelWrapper}>
-      <InfoCard
-        title={
-          <span className={classes.cardTitle}>
-            <ChatOutlinedIcon className={classes.cardTitleIcon} />
-            Chat with Report
-          </span>
-        }
-        action={
-          <Box display="flex" alignItems="center" height="100%">
-            <IconButton
-              size="small"
-              onClick={handleClearChat}
-              title="Clear chat"
-              style={{ padding: 4 }}
-            >
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        }
-        className={classes.chatPanel}
-      >
-        <Box className={classes.chatContent}>
-          <div className={classes.chatMessages} ref={chatMessagesRef}>
-            {/* To push messages to bottom */}
-            <div style={{ marginTop: 'auto' }} />
-            {messages.length === 0 && !streamingContent && !toolStatus ? (
-              <Typography variant="body2" color="textSecondary" align="center">
-                Ask follow-up questions, search logs, or explore related issues
-              </Typography>
-            ) : (
-              <>
-                {messages.map((msg, index) => (
-                  <Box
-                    key={index}
-                    className={
-                      msg.role === 'user'
-                        ? classes.chatMessageUser
-                        : classes.chatMessageAssistant
-                    }
-                  >
-                    <Box className={classes.markdownContent}>
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={markdownComponents}
-                      >
-                        {msg.content}
-                      </ReactMarkdown>
+    <EntityLinkContext.Provider value={mergedContext}>
+      <Box className={classes.chatPanelWrapper}>
+        <InfoCard
+          title={
+            <span className={classes.cardTitle}>
+              <ChatOutlinedIcon className={classes.cardTitleIcon} />
+              Chat with RCA Agent
+            </span>
+          }
+          action={
+            <Box display="flex" alignItems="center" height="100%">
+              <IconButton
+                size="small"
+                onClick={handleClearChat}
+                title="Clear chat"
+                style={{ padding: 4 }}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          }
+          className={classes.chatPanel}
+        >
+          <Box className={classes.chatContent}>
+            <div className={classes.chatMessages} ref={chatMessagesRef}>
+              {/* To push messages to bottom */}
+              <div style={{ marginTop: 'auto' }} />
+              {messages.length === 0 && !streamingContent && !toolStatus ? (
+                <Typography variant="body2" color="textSecondary" align="center">
+                  Ask follow-up questions, search logs, or explore related issues
+                </Typography>
+              ) : (
+                <>
+                  {messages.map((msg, index) => (
+                    <Box
+                      key={index}
+                      className={
+                        msg.role === 'user'
+                          ? classes.chatMessageUser
+                          : classes.chatMessageAssistant
+                      }
+                    >
+                      <Box className={classes.markdownContent}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={markdownComponents}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </Box>
                     </Box>
-                  </Box>
-                ))}
-                {streamingContent && (
-                  <Box className={classes.chatMessageAssistant}>
-                    <Box className={classes.markdownContent}>
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={markdownComponents}
-                      >
-                        {remend(streamingContent)}
-                      </ReactMarkdown>
+                  ))}
+                  {streamingContent && (
+                    <Box className={classes.chatMessageAssistant}>
+                      <Box className={classes.markdownContent}>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={markdownComponents}
+                        >
+                          {remend(streamingContent)}
+                        </ReactMarkdown>
+                      </Box>
                     </Box>
-                  </Box>
-                )}
-              </>
+                  )}
+                </>
+              )}
+            </div>
+            {chatError && (
+              <Box className={classes.chatError}>
+                <Typography variant="body2" color="error">
+                  {chatError}
+                </Typography>
+              </Box>
             )}
-          </div>
-          {chatError && (
-            <Box className={classes.chatError}>
-              <Typography variant="body2" color="error">
-                {chatError}
-              </Typography>
+            {isSending && !streamingContent && (
+              <Box className={classes.statusStrip}>
+                <Typography variant="caption" className={classes.statusText}>
+                  {toolStatus || 'Thinking...'}
+                </Typography>
+              </Box>
+            )}
+            <Box className={classes.chatInputArea}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                size="small"
+                placeholder="Type your question..."
+                value={chatMessage}
+                onChange={e => setChatMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                disabled={isSending}
+                className={
+                  isSending && !streamingContent
+                    ? classes.inputPulsing
+                    : undefined
+                }
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      {isSending ? (
+                        <IconButton
+                          size="small"
+                          onClick={handleCancelSend}
+                          title="Cancel"
+                          className={
+                            isSending && !streamingContent
+                              ? classes.buttonPulsing
+                              : undefined
+                          }
+                        >
+                          <StopIcon fontSize="small" />
+                        </IconButton>
+                      ) : (
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          disabled={!chatMessage.trim()}
+                          onClick={handleSendMessage}
+                        >
+                          <SendIcon />
+                        </IconButton>
+                      )}
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
-          )}
-          {isSending && !streamingContent && (
-            <Box className={classes.statusStrip}>
-              <Typography variant="caption" className={classes.statusText}>
-                {toolStatus || 'Thinking...'}
-              </Typography>
-            </Box>
-          )}
-          <Box className={classes.chatInputArea}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              size="small"
-              placeholder="Type your question..."
-              value={chatMessage}
-              onChange={e => setChatMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              disabled={isSending}
-              className={
-                isSending && !streamingContent
-                  ? classes.inputPulsing
-                  : undefined
-              }
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {isSending ? (
-                      <IconButton
-                        size="small"
-                        onClick={handleCancelSend}
-                        title="Cancel"
-                        className={
-                          isSending && !streamingContent
-                            ? classes.buttonPulsing
-                            : undefined
-                        }
-                      >
-                        <StopIcon fontSize="small" />
-                      </IconButton>
-                    ) : (
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        disabled={!chatMessage.trim()}
-                        onClick={handleSendMessage}
-                      >
-                        <SendIcon />
-                      </IconButton>
-                    )}
-                  </InputAdornment>
-                ),
-              }}
-            />
           </Box>
-        </Box>
-      </InfoCard>
-    </Box>
+        </InfoCard>
+      </Box>
+    </EntityLinkContext.Provider>
   );
 };
