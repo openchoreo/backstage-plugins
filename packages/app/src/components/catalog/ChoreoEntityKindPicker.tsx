@@ -25,6 +25,10 @@ const kindDisplayNames: Record<string, string> = {
   observabilityplane: 'Observability Plane',
   environment: 'Environment',
   deploymentpipeline: 'Deployment Pipeline',
+  componenttype: 'Component Type',
+  traittype: 'Trait Type',
+  workflow: 'Workflow',
+  componentworkflow: 'Component Workflow',
 };
 
 // Custom order for displaying entity kinds in the dropdown
@@ -44,6 +48,10 @@ const kindDisplayOrder: string[] = [
   'observabilityplane',
   'environment',
   'deploymentpipeline',
+  'componenttype',
+  'traittype',
+  'workflow',
+  'componentworkflow',
 ];
 
 // Hook to fetch all available Choreo entity kinds from the catalog
@@ -233,7 +241,11 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
             lowerKey !== 'buildplane' &&
             lowerKey !== 'observabilityplane' &&
             lowerKey !== 'environment' &&
-            lowerKey !== 'deploymentpipeline'
+            lowerKey !== 'deploymentpipeline' &&
+            lowerKey !== 'componenttype' &&
+            lowerKey !== 'traittype' &&
+            lowerKey !== 'workflow' &&
+            lowerKey !== 'componentworkflow'
           );
         }),
       );

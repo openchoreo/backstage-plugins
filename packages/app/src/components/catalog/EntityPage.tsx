@@ -58,6 +58,8 @@ import {
   RELATION_HOSTS,
   RELATION_OBSERVED_BY,
   RELATION_OBSERVES,
+  RELATION_USES_WORKFLOW,
+  RELATION_WORKFLOW_USED_BY,
 } from '@openchoreo/backstage-plugin-common';
 
 import { TechDocsAddons } from '@backstage/plugin-techdocs-react';
@@ -87,6 +89,10 @@ import {
   ObservabilityPlaneLinkedPlanesCard,
   DeploymentPipelineVisualization,
   PromotionPathsCard,
+  ComponentTypeOverviewCard,
+  TraitTypeOverviewCard,
+  WorkflowOverviewCard,
+  ComponentWorkflowOverviewCard,
 } from '@openchoreo/backstage-plugin';
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
@@ -735,6 +741,105 @@ const deploymentPipelinePage = (
   </EntityLayout>
 );
 
+const componentTypePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ComponentTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[
+              RELATION_PART_OF,
+              RELATION_HAS_PART,
+              RELATION_USES_WORKFLOW,
+              RELATION_WORKFLOW_USED_BY,
+            ]}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const traitTypePage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <TraitTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const workflowPage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <WorkflowOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const componentWorkflowPage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ComponentWorkflowOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY]}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
 export const entityPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isKind('component')} children={componentPage} />
@@ -754,6 +859,16 @@ export const entityPage = (
     <EntitySwitch.Case
       if={isKind('deploymentpipeline')}
       children={deploymentPipelinePage}
+    />
+    <EntitySwitch.Case
+      if={isKind('componenttype')}
+      children={componentTypePage}
+    />
+    <EntitySwitch.Case if={isKind('traittype')} children={traitTypePage} />
+    <EntitySwitch.Case if={isKind('workflow')} children={workflowPage} />
+    <EntitySwitch.Case
+      if={isKind('componentworkflow')}
+      children={componentWorkflowPage}
     />
 
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>

@@ -3,3 +3,7 @@ export { DataplaneEntityProcessor } from './DataplaneEntityProcessor';
 export { BuildPlaneEntityProcessor } from './BuildPlaneEntityProcessor';
 export { ObservabilityPlaneEntityProcessor } from './ObservabilityPlaneEntityProcessor';
 export { DeploymentPipelineEntityProcessor } from './DeploymentPipelineEntityProcessor';
+export { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
+export { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
+export { WorkflowEntityProcessor } from './WorkflowEntityProcessor';
+export { ComponentWorkflowEntityProcessor } from './ComponentWorkflowEntityProcessor';

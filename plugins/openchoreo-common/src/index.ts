@@ -9,6 +9,8 @@ export {
   RELATION_HOSTS,
   RELATION_OBSERVED_BY,
   RELATION_OBSERVES,
+  RELATION_USES_WORKFLOW,
+  RELATION_WORKFLOW_USED_BY,
 } from './constants';
 
 // Permissions

@@ -1,0 +1,1 @@
+export { TraitTypeOverviewCard } from './TraitTypeOverviewCard';

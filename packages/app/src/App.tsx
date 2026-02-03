@@ -60,6 +60,10 @@ import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import BuildIcon from '@material-ui/icons/Build';
+import CategoryIcon from '@material-ui/icons/Category';
+import ExtensionIcon from '@material-ui/icons/Extension';
+import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
+import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { AccessControlPage } from '@openchoreo/backstage-plugin';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
@@ -110,6 +114,10 @@ const app = createApp({
     'kind:deploymentpipeline': AccountTreeIcon,
     'kind:observabilityplane': VisibilityIcon,
     'kind:buildplane': BuildIcon,
+    'kind:componenttype': CategoryIcon,
+    'kind:traittype': ExtensionIcon,
+    'kind:workflow': PlayCircleOutlineIcon,
+    'kind:componentworkflow': SettingsApplicationsIcon,
   },
   bindRoutes({ bind }) {
     bind(catalogPlugin.externalRoutes, {
