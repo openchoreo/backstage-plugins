@@ -19,17 +19,28 @@ import {
   TraitTypeEntityProcessor,
   WorkflowEntityProcessor,
   ComponentWorkflowEntityProcessor,
+  CustomAnnotationProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
   ImmediateCatalogService,
 } from './service/ImmediateCatalogService';
+import {
+  annotationStoreRef,
+  AnnotationStore,
+  DatabaseAnnotationStore,
+  applyAnnotationStoreMigrations,
+} from './service/AnnotationStore';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { matchesCatalogEntityCapability } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
 
 // Singleton instance of the ScaffolderEntityProvider
 // This will be shared across the module and the service
 let scaffolderProviderInstance: ScaffolderEntityProvider | undefined;
+
+// Singleton instance of the AnnotationStore
+// Shared between the catalog module (processor) and the service factory (API routes)
+let annotationStoreInstance: AnnotationStore | undefined;
 
 /**
  * OpenChoreo catalog backend module
@@ -47,6 +58,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
         config: coreServices.rootConfig,
         logger: coreServices.logger,
         scheduler: coreServices.scheduler,
+        database: coreServices.database,
         tokenService: openChoreoTokenServiceRef,
       },
       async init({
@@ -55,6 +67,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
         config,
         logger,
         scheduler,
+        database,
         tokenService,
       }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
@@ -67,6 +80,16 @@ export const catalogModuleOpenchoreo = createBackendModule({
           frequency: { seconds: frequency },
           timeout: { seconds: timeout },
         });
+
+        // Initialize the annotation store with database migration
+        const knex = await database.getClient();
+        await applyAnnotationStoreMigrations(knex);
+        annotationStoreInstance = new DatabaseAnnotationStore(knex);
+
+        // Register the custom annotation processor (merges user-defined annotations)
+        catalog.addProcessor(
+          new CustomAnnotationProcessor(annotationStoreInstance),
+        );
 
         // Register the Environment entity processor
         catalog.addProcessor(new EnvironmentEntityProcessor());
@@ -147,5 +170,29 @@ export const immediateCatalogServiceFactory = createServiceFactory({
       removeEntity: async entityRef =>
         scaffolderProviderInstance!.removeEntity(entityRef),
     };
+  },
+});
+
+/**
+ * Factory for the AnnotationStore.
+ * Provides the annotation store service to other plugins (e.g., openchoreo-backend).
+ * Uses the singleton instance created during module initialization, or creates a new one
+ * with its own database connection if the module hasn't initialized yet.
+ */
+export const annotationStoreFactory = createServiceFactory({
+  service: annotationStoreRef,
+  deps: {
+    database: coreServices.database,
+  },
+  async factory({ database }): Promise<AnnotationStore> {
+    if (annotationStoreInstance) {
+      return annotationStoreInstance;
+    }
+
+    // Fallback: create a new instance if module hasn't initialized yet
+    const knex = await database.getClient();
+    await applyAnnotationStoreMigrations(knex);
+    annotationStoreInstance = new DatabaseAnnotationStore(knex);
+    return annotationStoreInstance;
   },
 });

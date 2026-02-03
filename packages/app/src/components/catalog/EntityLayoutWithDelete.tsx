@@ -6,6 +6,7 @@ import { EmptyState, Progress } from '@backstage/core-components';
 import {
   useDeleteEntityMenuItems,
   useEntityExistsCheck,
+  useAnnotationEditorMenuItems,
 } from '@openchoreo/backstage-plugin';
 
 /**
@@ -31,9 +32,15 @@ function getEntityTypeLabel(kind: string): string {
  */
 export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
   const { entity } = useEntity();
-  const { extraMenuItems, DeleteConfirmationDialog } =
+  const { extraMenuItems: deleteMenuItems, DeleteConfirmationDialog } =
     useDeleteEntityMenuItems(entity);
+  const {
+    extraMenuItems: annotationMenuItems,
+    EditAnnotationsDialog: AnnotationEditorDialog,
+  } = useAnnotationEditorMenuItems(entity);
   const { loading, status, message } = useEntityExistsCheck(entity);
+
+  const extraMenuItems = [...annotationMenuItems, ...deleteMenuItems];
 
   // Get display label for the entity type
   const entityTypeLabel = getEntityTypeLabel(entity.kind);
@@ -100,6 +107,7 @@ export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
         {children}
       </EntityLayout>
       <DeleteConfirmationDialog />
+      <AnnotationEditorDialog />
     </>
   );
 }

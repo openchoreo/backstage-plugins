@@ -1,0 +1,137 @@
+import { Knex } from 'knex';
+import { createServiceRef } from '@backstage/backend-plugin-api';
+
+const TABLE_NAME = 'entity_custom_annotations';
+
+/**
+ * Service interface for managing custom annotations on catalog entities.
+ * Annotations are stored in a dedicated database table and survive
+ * entity provider full mutations by being re-applied via a CatalogProcessor.
+ */
+export interface AnnotationStore {
+  /**
+   * Get all custom annotations for an entity.
+   * @param entityRef - The entity reference (e.g., "component:default/my-component")
+   * @returns A record of annotation key-value pairs
+   */
+  getAnnotations(entityRef: string): Promise<Record<string, string>>;
+
+  /**
+   * Set custom annotations for an entity.
+   * Upserts the given annotations. A null value deletes that annotation key.
+   * @param entityRef - The entity reference
+   * @param annotations - Key-value pairs to set. null value means delete.
+   */
+  setAnnotations(
+    entityRef: string,
+    annotations: Record<string, string | null>,
+  ): Promise<void>;
+
+  /**
+   * Delete all custom annotations for an entity.
+   * @param entityRef - The entity reference
+   */
+  deleteAllAnnotations(entityRef: string): Promise<void>;
+}
+
+interface AnnotationRow {
+  entity_ref: string;
+  annotation_key: string;
+  annotation_value: string;
+  updated_at: string;
+}
+
+/**
+ * Creates the entity_custom_annotations table if it doesn't exist.
+ */
+export async function applyAnnotationStoreMigrations(
+  knex: Knex,
+): Promise<void> {
+  const hasTable = await knex.schema.hasTable(TABLE_NAME);
+  if (!hasTable) {
+    await knex.schema.createTable(TABLE_NAME, table => {
+      table.string('entity_ref', 255).notNullable();
+      table.string('annotation_key', 255).notNullable();
+      table.text('annotation_value').notNullable();
+      table.timestamp('updated_at').defaultTo(knex.fn.now());
+      table.primary(['entity_ref', 'annotation_key']);
+      table.index(['entity_ref'], 'idx_entity_custom_annotations_ref');
+    });
+  }
+}
+
+/**
+ * Default implementation of the AnnotationStore backed by a database table.
+ */
+export class DatabaseAnnotationStore implements AnnotationStore {
+  constructor(private readonly knex: Knex) {}
+
+  async getAnnotations(entityRef: string): Promise<Record<string, string>> {
+    const rows = await this.knex<AnnotationRow>(TABLE_NAME)
+      .where('entity_ref', entityRef)
+      .select('annotation_key', 'annotation_value');
+
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      result[row.annotation_key] = row.annotation_value;
+    }
+    return result;
+  }
+
+  async setAnnotations(
+    entityRef: string,
+    annotations: Record<string, string | null>,
+  ): Promise<void> {
+    await this.knex.transaction(async tx => {
+      for (const [key, value] of Object.entries(annotations)) {
+        if (value === null) {
+          // Delete the annotation
+          await tx<AnnotationRow>(TABLE_NAME)
+            .where({ entity_ref: entityRef, annotation_key: key })
+            .delete();
+        } else {
+          // Upsert the annotation
+          const existing = await tx<AnnotationRow>(TABLE_NAME)
+            .where({ entity_ref: entityRef, annotation_key: key })
+            .first();
+
+          if (existing) {
+            await tx<AnnotationRow>(TABLE_NAME)
+              .where({ entity_ref: entityRef, annotation_key: key })
+              .update({
+                annotation_value: value,
+                updated_at: tx.fn.now(),
+              });
+          } else {
+            await tx<AnnotationRow>(TABLE_NAME).insert({
+              entity_ref: entityRef,
+              annotation_key: key,
+              annotation_value: value,
+              updated_at: tx.fn.now() as unknown as string,
+            });
+          }
+        }
+      }
+    });
+  }
+
+  async deleteAllAnnotations(entityRef: string): Promise<void> {
+    await this.knex<AnnotationRow>(TABLE_NAME)
+      .where('entity_ref', entityRef)
+      .delete();
+  }
+}
+
+/**
+ * Service reference for the AnnotationStore.
+ * This can be injected into other backend modules/plugins.
+ */
+export const annotationStoreRef = createServiceRef<AnnotationStore>({
+  id: 'openchoreo.annotation-store',
+  scope: 'plugin',
+  defaultFactory: async () => {
+    throw new Error(
+      'AnnotationStore is not available. Make sure the catalog-backend-module-openchoreo is installed.',
+    );
+  },
+});

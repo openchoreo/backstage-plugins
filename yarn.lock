@@ -9640,6 +9640,7 @@ __metadata:
     "@backstage/plugin-kubernetes-backend": "npm:0.20.2"
     "@backstage/plugin-kubernetes-node": "npm:0.3.4"
     "@backstage/plugin-permission-common": "npm:0.9.1"
+    "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^"
     "@openchoreo/openchoreo-auth": "workspace:^"
@@ -9686,6 +9687,7 @@ __metadata:
     "@openchoreo/openchoreo-auth": "workspace:^"
     "@openchoreo/openchoreo-client-node": "workspace:^"
     json-schema: "npm:0.4.0"
+    knex: "npm:3.1.0"
   languageName: unknown
   linkType: soft
 
@@ -26589,7 +26591,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"knex@npm:3, knex@npm:^3.0.0":
+"knex@npm:3, knex@npm:3.1.0, knex@npm:^3.0.0":
   version: 3.1.0
   resolution: "knex@npm:3.1.0"
   dependencies:

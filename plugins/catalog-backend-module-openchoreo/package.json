@@ -43,7 +43,8 @@
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",
     "@openchoreo/openchoreo-client-node": "workspace:^",
-    "json-schema": "0.4.0"
+    "json-schema": "0.4.0",
+    "knex": "3.1.0"
   },
   "devDependencies": {
     "@backstage/backend-test-utils": "1.9.0",

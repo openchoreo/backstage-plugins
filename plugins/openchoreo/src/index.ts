@@ -21,6 +21,7 @@ export {
   isMarkedForDeletion,
   getDeletionTimestamp,
 } from './components/DeleteEntity';
+export { useAnnotationEditorMenuItems } from './components/AnnotationEditor';
 export {
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,

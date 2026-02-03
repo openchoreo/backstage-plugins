@@ -41,6 +41,7 @@
     "@backstage/plugin-kubernetes-backend": "0.20.2",
     "@backstage/plugin-kubernetes-node": "0.3.4",
     "@backstage/plugin-permission-common": "0.9.1",
+    "@openchoreo/backstage-plugin-catalog-backend-module": "workspace:^",
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",

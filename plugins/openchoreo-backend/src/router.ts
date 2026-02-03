@@ -24,7 +24,9 @@ import {
   getUserTokenFromRequest,
   createRequireAuthMiddleware,
 } from '@openchoreo/openchoreo-auth';
-import type { LoggerService } from '@backstage/backend-plugin-api';
+import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
+import type { CatalogService } from '@backstage/plugin-catalog-node';
+import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 export async function createRouter({
   environmentInfoService,
@@ -39,6 +41,9 @@ export async function createRouter({
   gitSecretsService,
   authzService,
   dataPlaneInfoService,
+  annotationStore,
+  catalogService,
+  auth,
   tokenService,
   authEnabled,
   logger,
@@ -55,6 +60,9 @@ export async function createRouter({
   gitSecretsService: GitSecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
+  annotationStore: AnnotationStore;
+  catalogService: CatalogService;
+  auth: AuthService;
   tokenService: OpenChoreoTokenService;
   authEnabled: boolean;
   logger: LoggerService;
@@ -1023,6 +1031,76 @@ export async function createRouter({
       res.status(204).send();
     },
   );
+
+  // === Custom Entity Annotations ===
+
+  // Blocked annotation key prefixes (system-managed, not user-editable)
+  const blockedAnnotationPrefixes = [
+    'openchoreo.io/',
+    'openchoreo.dev/',
+    'backstage.io/managed-by-',
+    'kubernetes.io/',
+    'kubectl.kubernetes.io/',
+  ];
+
+  function isBlockedAnnotationKey(key: string): boolean {
+    return blockedAnnotationPrefixes.some(prefix => key.startsWith(prefix));
+  }
+
+  // Get custom annotations for an entity
+  router.get('/entity-annotations', async (req, res) => {
+    const { entityRef } = req.query;
+
+    if (!entityRef || typeof entityRef !== 'string') {
+      throw new InputError('entityRef is a required query parameter');
+    }
+
+    const annotations = await annotationStore.getAnnotations(entityRef);
+
+    res.json({ annotations });
+  });
+
+  // Update custom annotations for an entity
+  router.patch('/entity-annotations', requireAuth, async (req, res) => {
+    const { entityRef, annotations } = req.body;
+
+    if (!entityRef || typeof entityRef !== 'string') {
+      throw new InputError('entityRef is required in request body');
+    }
+
+    if (!annotations || typeof annotations !== 'object') {
+      throw new InputError('annotations must be an object in request body');
+    }
+
+    // Validate annotation keys
+    for (const key of Object.keys(annotations)) {
+      if (isBlockedAnnotationKey(key)) {
+        throw new InputError(
+          `Annotation key "${key}" is system-managed and cannot be modified`,
+        );
+      }
+    }
+
+    await annotationStore.setAnnotations(
+      entityRef,
+      annotations as Record<string, string | null>,
+    );
+
+    // Trigger entity refresh so the processor re-applies annotations
+    try {
+      const credentials = await auth.getOwnServiceCredentials();
+      await catalogService.refreshEntity(entityRef, { credentials });
+    } catch (error) {
+      logger.warn(
+        `Failed to refresh entity ${entityRef} after annotation update: ${error}`,
+      );
+    }
+
+    // Return the current annotations after update
+    const updatedAnnotations = await annotationStore.getAnnotations(entityRef);
+
+    res.json({ annotations: updatedAnnotations });
+  });
 
   // DataPlane endpoint
   router.get('/dataplanes/:dpName', async (req, res) => {

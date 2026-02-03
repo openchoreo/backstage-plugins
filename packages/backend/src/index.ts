@@ -9,7 +9,10 @@
 import { createBackend } from '@backstage/backend-defaults';
 import { OpenChoreoAuthModule } from '@openchoreo/backstage-plugin-auth-backend-module-openchoreo-auth';
 import { rootHttpRouterServiceFactory } from '@backstage/backend-defaults/rootHttpRouter';
-import { immediateCatalogServiceFactory } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import {
+  immediateCatalogServiceFactory,
+  annotationStoreFactory,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
 import { createIdpTokenHeaderMiddleware } from '@openchoreo/openchoreo-auth';
 
 const backend = createBackend();
@@ -37,6 +40,7 @@ backend.add(
   }),
 );
 backend.add(immediateCatalogServiceFactory);
+backend.add(annotationStoreFactory);
 
 backend.add(import('@backstage/plugin-app-backend'));
 backend.add(import('@backstage/plugin-proxy-backend'));
