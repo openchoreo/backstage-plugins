@@ -1573,7 +1573,6 @@ components:
         - type
         - name
         - summary
-        - severity
       properties:
         type:
           type: string
@@ -1588,28 +1587,6 @@ components:
           type: string
           description: Self-contained explanation of the anomaly and its RCA relevance
           example: 'RAM usage at 95.5% exceeds 90% threshold, causing OOM kills'
-        severity:
-          $ref: '#/components/schemas/Severity'
-        highlights:
-          type: array
-          items:
-            $ref: '#/components/schemas/MetricHighlight'
-          description: Highlighted values with severity for UI coloring
-
-    MetricHighlight:
-      type: object
-      description: A highlighted metric value with severity
-      required:
-        - value
-        - severity
-      properties:
-        value:
-          type: string
-          description: Formatted metric value with unit
-          example: '95.5%'
-        severity:
-          $ref: '#/components/schemas/Severity'
-
     TraceEvidence:
       type: object
       description: Evidence from distributed traces showing request flow patterns
@@ -1645,30 +1622,11 @@ components:
           nullable: true
           description: Error message if is_error is true
           example: 'Connection timeout'
-        highlights:
-          type: array
-          items:
-            $ref: '#/components/schemas/TraceHighlight'
-          description: Highlighted values with severity for UI coloring
         repetition:
           type: string
           nullable: true
           description: Descriptive repetition pattern
           example: 'Similar slow spans seen in 23 traces'
-
-    TraceHighlight:
-      type: object
-      description: A highlighted trace value with severity
-      required:
-        - value
-        - severity
-      properties:
-        value:
-          type: string
-          description: Formatted trace value
-          example: '5200ms'
-        severity:
-          $ref: '#/components/schemas/Severity'
 
     LogLevel:
       type: string
@@ -1678,14 +1636,6 @@ components:
         - WARN
         - INFO
         - DEBUG
-
-    Severity:
-      type: string
-      description: Severity level for highlighted values - used for color coding in UI
-      enum:
-        - critical
-        - warning
-        - normal
 
     TimeRange:
       type: object

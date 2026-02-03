@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -11,138 +11,102 @@ export interface EntityInfo {
 
 export type EntityMap = Map<string, EntityInfo>;
 
-export interface EntityRef {
-  type: 'comp' | 'env' | 'proj';
-  uid: string;
-}
-
-const TAGGED_PATTERN = /\{\{(comp|env|proj):([a-f0-9-]{36})\}\}/gi;
 const UUID_PATTERN =
   /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/gi;
 
-const TYPE_CONFIG: Record<
-  EntityRef['type'],
-  { kind: string; annotation: string }
-> = {
-  comp: { kind: 'Component', annotation: CHOREO_ANNOTATIONS.COMPONENT_UID },
-  env: { kind: 'Environment', annotation: CHOREO_ANNOTATIONS.ENVIRONMENT_UID },
-  proj: { kind: 'System', annotation: CHOREO_ANNOTATIONS.PROJECT_UID },
+const ALL_ANNOTATIONS = [
+  CHOREO_ANNOTATIONS.COMPONENT_UID,
+  CHOREO_ANNOTATIONS.ENVIRONMENT_UID,
+  CHOREO_ANNOTATIONS.PROJECT_UID,
+];
+
+const KIND_TO_ANNOTATION: Record<string, string> = {
+  Component: CHOREO_ANNOTATIONS.COMPONENT_UID,
+  Environment: CHOREO_ANNOTATIONS.ENVIRONMENT_UID,
+  System: CHOREO_ANNOTATIONS.PROJECT_UID,
 };
 
-const KIND_TO_ANNOTATION = Object.fromEntries(
-  Object.entries(TYPE_CONFIG).map(([_, { kind, annotation }]) => [
-    kind,
-    annotation,
-  ]),
-) as Record<string, string>;
-
-const ALL_ANNOTATIONS = Object.values(TYPE_CONFIG).map(c => c.annotation);
-
 /**
- * Extracts all entity references from text.
- * Returns tagged refs (with known type) and orphan UUIDs (untagged).
+ * Extracts all UUIDs from text.
  */
-export function extractEntityUids(text: string): {
-  tagged: EntityRef[];
-  orphans: string[];
-} {
-  const tagged: EntityRef[] = [];
-  const taggedUids = new Set<string>();
-
-  // Find tagged patterns
-  for (const m of text.matchAll(TAGGED_PATTERN)) {
-    if (!taggedUids.has(m[2])) {
-      taggedUids.add(m[2]);
-      tagged.push({ type: m[1].toLowerCase() as EntityRef['type'], uid: m[2] });
-    }
-  }
-
-  // Find orphan UUIDs (not tagged)
-  const orphans: string[] = [];
+export function extractEntityUids(text: string): string[] {
+  const uids = new Set<string>();
   for (const m of text.matchAll(UUID_PATTERN)) {
-    if (!taggedUids.has(m[0])) {
-      taggedUids.add(m[0]); // prevent duplicates
-      orphans.push(m[0]);
-    }
+    uids.add(m[0]);
   }
-
-  return { tagged, orphans };
+  return Array.from(uids);
 }
 
 /**
  * Hook to batch-fetch entities from the catalog by their OpenChoreo UIDs.
+ * Caches fetched entities and only queries for new UUIDs.
  */
-export function useEntitiesByUids(
-  tagged: EntityRef[],
-  orphans: string[] = [],
-): {
+export function useEntitiesByUids(uids: string[]): {
   entityMap: EntityMap;
   loading: boolean;
   error: Error | undefined;
 } {
   const catalogApi = useApi(catalogApiRef);
   const [entityMap, setEntityMap] = useState<EntityMap>(new Map());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>();
+  // Track UUIDs we've already queried (including ones not found)
+  const queriedUidsRef = useRef<Set<string>>(new Set());
 
-  const { uniqueTagged, uniqueOrphans } = useMemo(() => {
+  // Find UUIDs we haven't queried yet
+  const newUids = useMemo(() => {
     const seen = new Set<string>();
-    const filteredTagged = tagged.filter(ref => {
-      if (!ref.uid || seen.has(ref.uid)) return false;
-      seen.add(ref.uid);
-      return true;
-    });
-    const filteredOrphans = orphans.filter(uid => {
-      if (!uid || seen.has(uid)) return false;
+    return uids.filter(uid => {
+      if (!uid || seen.has(uid) || queriedUidsRef.current.has(uid)) return false;
       seen.add(uid);
       return true;
     });
-    return { uniqueTagged: filteredTagged, uniqueOrphans: filteredOrphans };
-  }, [tagged, orphans]);
+  }, [uids]);
 
   useEffect(() => {
-    if (uniqueTagged.length === 0 && uniqueOrphans.length === 0) {
-      setEntityMap(new Map());
-      setLoading(false);
+    if (newUids.length === 0) {
       return;
     }
 
     setLoading(true);
     setError(undefined);
 
-    // Tagged: query with known type
-    const taggedFilters = uniqueTagged.map(({ type, uid }) => ({
-      kind: TYPE_CONFIG[type].kind,
-      [`metadata.annotations.${TYPE_CONFIG[type].annotation}`]: uid,
-    }));
+    // Mark these UUIDs as queried
+    for (const uid of newUids) {
+      queriedUidsRef.current.add(uid);
+    }
 
-    // Orphans: query across all annotation types
-    const orphanFilters = uniqueOrphans.flatMap(uid =>
+    // Query across all annotation types for each new UUID
+    const filters = newUids.flatMap(uid =>
       ALL_ANNOTATIONS.map(annotation => ({
         [`metadata.annotations.${annotation}`]: uid,
       })),
     );
 
     catalogApi
-      .getEntities({ filter: [...taggedFilters, ...orphanFilters] })
+      .getEntities({ filter: filters })
       .then(response => {
-        const map = new Map<string, EntityInfo>();
-        for (const entity of response.items) {
-          const annotations = entity.metadata.annotations || {};
-          const uid = annotations[KIND_TO_ANNOTATION[entity.kind]];
+        if (response.items.length > 0) {
+          setEntityMap(prevMap => {
+            const newMap = new Map(prevMap);
+            for (const entity of response.items) {
+              const annotations = entity.metadata.annotations || {};
+              const uid = annotations[KIND_TO_ANNOTATION[entity.kind]];
 
-          if (uid) {
-            const namespace = entity.metadata.namespace || 'default';
-            const kind = entity.kind.toLowerCase();
-            const name = entity.metadata.name;
-            map.set(uid, {
-              name,
-              title: entity.metadata.title,
-              path: `/catalog/${namespace}/${kind}/${name}`,
-            });
-          }
+              if (uid && !newMap.has(uid)) {
+                const namespace = entity.metadata.namespace || 'default';
+                const kind = entity.kind.toLowerCase();
+                const name = entity.metadata.name;
+                newMap.set(uid, {
+                  name,
+                  title: entity.metadata.title,
+                  path: `/catalog/${namespace}/${kind}/${name}`,
+                });
+              }
+            }
+            return newMap;
+          });
         }
-        setEntityMap(map);
       })
       .catch(err => {
         setError(err instanceof Error ? err : new Error(String(err)));
@@ -150,7 +114,7 @@ export function useEntitiesByUids(
       .finally(() => {
         setLoading(false);
       });
-  }, [uniqueTagged, uniqueOrphans, catalogApi]);
+  }, [newUids, catalogApi]);
 
   return { entityMap, loading, error };
 }

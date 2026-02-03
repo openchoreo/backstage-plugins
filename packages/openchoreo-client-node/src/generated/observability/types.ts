@@ -1289,18 +1289,6 @@ export interface components {
        * @example RAM usage at 95.5% exceeds 90% threshold, causing OOM kills
        */
       summary: string;
-      severity: components['schemas']['Severity'];
-      /** @description Highlighted values with severity for UI coloring */
-      highlights?: components['schemas']['MetricHighlight'][];
-    };
-    /** @description A highlighted metric value with severity */
-    MetricHighlight: {
-      /**
-       * @description Formatted metric value with unit
-       * @example 95.5%
-       */
-      value: string;
-      severity: components['schemas']['Severity'];
     };
     /** @description Evidence from distributed traces showing request flow patterns */
     TraceEvidence: {
@@ -1334,33 +1322,17 @@ export interface components {
        * @example Connection timeout
        */
       error_message?: string | null;
-      /** @description Highlighted values with severity for UI coloring */
-      highlights?: components['schemas']['TraceHighlight'][];
       /**
        * @description Descriptive repetition pattern
        * @example Similar slow spans seen in 23 traces
        */
       repetition?: string | null;
     };
-    /** @description A highlighted trace value with severity */
-    TraceHighlight: {
-      /**
-       * @description Formatted trace value
-       * @example 5200ms
-       */
-      value: string;
-      severity: components['schemas']['Severity'];
-    };
     /**
      * @description Log severity levels
      * @enum {string}
      */
     LogLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
-    /**
-     * @description Severity level for highlighted values - used for color coding in UI
-     * @enum {string}
-     */
-    Severity: 'critical' | 'warning' | 'normal';
     /** @description Time range for metric observations */
     TimeRange: {
       /**

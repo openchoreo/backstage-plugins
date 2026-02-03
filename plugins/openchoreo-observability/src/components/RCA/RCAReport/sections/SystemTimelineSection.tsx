@@ -69,11 +69,11 @@ export const SystemTimelineSection = ({
                     color="textSecondary"
                     style={{ marginLeft: 8 }}
                   >
-                    <FormattedText text={`{{comp:${event.component_uid}}}`} />
+                    <FormattedText text={event.component_uid} />
                   </Typography>
                 )}
               </Box>
-              <Typography variant="body2" className={classes.timelineEventText}>
+              <Typography component="div" variant="body2" className={classes.timelineEventText}>
                 <FormattedText text={event.event || ''} />
               </Typography>
             </TimelineContent>

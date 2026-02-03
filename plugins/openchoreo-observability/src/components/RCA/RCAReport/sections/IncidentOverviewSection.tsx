@@ -55,7 +55,7 @@ const useAlertStyles = makeStyles(theme => ({
     wordBreak: 'break-word',
   },
   propertyValueHighlight: {
-    fontWeight: 600,
+    fontWeight: 500,
     color: theme.palette.warning.main,
   },
   thresholdLabel: {
@@ -168,7 +168,7 @@ const AlertDetails = ({
       <Box className={classes.propertyRow}>
         <Typography className={classes.propertyKey}>Component</Typography>
         <Typography className={classes.propertyValue}>
-          <FormattedText text={`{{comp:${alertContext.component_uid}}}`} />
+          <FormattedText text={alertContext.component_uid} />
         </Typography>
       </Box>
 

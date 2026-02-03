@@ -132,6 +132,11 @@ export interface components {
        */
       tool: string;
       /**
+       * @description Human-readable present continuous description of the tool action for UI display
+       * @example Fetching component logs...
+       */
+      activeForm?: string;
+      /**
        * @description JSON-encoded arguments for the tool call
        * @example {"componentUid": "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b", "startTime": "2025-01-10T08:00:00Z"}
        */

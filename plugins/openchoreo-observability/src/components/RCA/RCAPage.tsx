@@ -12,7 +12,6 @@ import {
   useRCAReports,
   extractEntityUids,
   useEntitiesByUids,
-  type EntityRef,
 } from '../../hooks';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
@@ -38,23 +37,17 @@ const RCAListView = () => {
   } = useRCAReports(filters, entity);
 
   // Extract all entity UIDs from report summaries for name resolution
-  const { allTagged, allOrphans } = useMemo(() => {
-    const tagged: EntityRef[] = [];
-    const orphans: string[] = [];
+  const allUids = useMemo(() => {
+    const uids: string[] = [];
     for (const report of reports) {
       if (report.summary) {
-        const extracted = extractEntityUids(report.summary);
-        tagged.push(...extracted.tagged);
-        orphans.push(...extracted.orphans);
+        uids.push(...extractEntityUids(report.summary));
       }
     }
-    return { allTagged: tagged, allOrphans: orphans };
+    return uids;
   }, [reports]);
 
-  const { entityMap, loading: entitiesLoading } = useEntitiesByUids(
-    allTagged,
-    allOrphans,
-  );
+  const { entityMap, loading: entitiesLoading } = useEntitiesByUids(allUids);
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {

@@ -19,7 +19,7 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(1, 0),
   },
   primary: {
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize: theme.typography.body1.fontSize,
     color: theme.palette.text.primary,
   },
@@ -44,7 +44,7 @@ export const VisibilityImprovementsSection = ({
           <ListItem className={classes.listItem} disableGutters>
             <ListItemText
               primary={
-                <FormattedText text={recommendation.description || ''} />
+                <FormattedText text={recommendation.description || ''} disableMarkdown />
               }
               secondary={
                 recommendation.rationale ? (
