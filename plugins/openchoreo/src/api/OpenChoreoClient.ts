@@ -851,7 +851,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     name: string,
   ): Promise<NamespaceRole> {
     const response = await this.apiFetch<{ data: NamespaceRole }>(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/roles/${encodeURIComponent(name)}`,
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/roles/${encodeURIComponent(name)}`,
     );
     return response.data;
   }
@@ -873,7 +875,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     role: Partial<NamespaceRole>,
   ): Promise<NamespaceRole> {
     const response = await this.apiFetch<{ data: NamespaceRole }>(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/roles/${encodeURIComponent(name)}`,
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/roles/${encodeURIComponent(name)}`,
       {
         method: 'PUT',
         body: role,
@@ -884,7 +888,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
   async deleteNamespaceRole(namespace: string, name: string): Promise<void> {
     await this.apiFetch(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/roles/${encodeURIComponent(name)}`,
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/roles/${encodeURIComponent(name)}`,
       {
         method: 'DELETE',
       },
@@ -988,7 +994,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       params.set('effect', filters.effect);
     }
     const queryString = params.toString();
-    const baseUrl = `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings`;
+    const baseUrl = `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+      namespace,
+    )}/rolebindings`;
     const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
 
     const response = await this.apiFetch<{ data: NamespaceRoleBinding[] }>(url);
@@ -1000,7 +1008,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     name: string,
   ): Promise<NamespaceRoleBinding> {
     const response = await this.apiFetch<{ data: NamespaceRoleBinding }>(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings/${encodeURIComponent(name)}`,
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/rolebindings/${encodeURIComponent(name)}`,
     );
     return response.data;
   }
@@ -1010,7 +1020,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     binding: NamespaceRoleBindingRequest,
   ): Promise<NamespaceRoleBinding> {
     const response = await this.apiFetch<{ data: NamespaceRoleBinding }>(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings`,
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/rolebindings`,
       {
         method: 'POST',
         body: binding,
@@ -1025,7 +1037,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     binding: NamespaceRoleBindingRequest,
   ): Promise<NamespaceRoleBinding> {
     const response = await this.apiFetch<{ data: NamespaceRoleBinding }>(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings/${encodeURIComponent(name)}`,
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/rolebindings/${encodeURIComponent(name)}`,
       {
         method: 'PUT',
         body: binding,
@@ -1039,7 +1053,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     name: string,
   ): Promise<void> {
     await this.apiFetch(
-      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings/${encodeURIComponent(name)}`,
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/rolebindings/${encodeURIComponent(name)}`,
       {
         method: 'DELETE',
       },

@@ -374,9 +374,7 @@ export const ClusterRoleBindingsContent = () => {
                     <Typography variant="body2">{binding.name}</Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">
-                      {binding.role.name}
-                    </Typography>
+                    <Typography variant="body2">{binding.role.name}</Typography>
                   </TableCell>
                   <TableCell className={classes.entitlementCell}>
                     <Typography variant="body2">

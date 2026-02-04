@@ -248,9 +248,9 @@ export class AuthzService {
   // =====================
 
   // Cluster Roles
-  async listClusterRoles(
-    userToken?: string,
-  ): Promise<{ data: Array<{ name: string; actions: string[]; description?: string }> }> {
+  async listClusterRoles(userToken?: string): Promise<{
+    data: Array<{ name: string; actions: string[]; description?: string }>;
+  }> {
     this.logger.debug('Fetching cluster roles');
 
     try {
@@ -281,7 +281,9 @@ export class AuthzService {
   async getClusterRole(
     name: string,
     userToken?: string,
-  ): Promise<{ data: { name: string; actions: string[]; description?: string } }> {
+  ): Promise<{
+    data: { name: string; actions: string[]; description?: string };
+  }> {
     this.logger.debug(`Fetching cluster role: ${name}`);
 
     try {
@@ -427,7 +429,9 @@ export class AuthzService {
 
       const rolesResponse = data as { data?: Array<any> };
       this.logger.debug(
-        `Successfully fetched ${rolesResponse.data?.length || 0} namespace roles`,
+        `Successfully fetched ${
+          rolesResponse.data?.length || 0
+        } namespace roles`,
       );
 
       return { data: rolesResponse.data || [] };
@@ -465,16 +469,25 @@ export class AuthzService {
       const roleResponse = data as { data: any };
       return { data: roleResponse.data };
     } catch (err) {
-      this.logger.error(`Failed to fetch namespace role ${namespace}/${name}: ${err}`);
+      this.logger.error(
+        `Failed to fetch namespace role ${namespace}/${name}: ${err}`,
+      );
       throw err;
     }
   }
 
   async createNamespaceRole(
-    role: { name: string; namespace: string; actions: string[]; description?: string },
+    role: {
+      name: string;
+      namespace: string;
+      actions: string[];
+      description?: string;
+    },
     userToken?: string,
   ): Promise<{ data: any }> {
-    this.logger.debug(`Creating namespace role: ${role.namespace}/${role.name}`);
+    this.logger.debug(
+      `Creating namespace role: ${role.namespace}/${role.name}`,
+    );
 
     try {
       const client = this.createClient(userToken);
@@ -496,10 +509,14 @@ export class AuthzService {
       }
 
       const roleResponse = data as { data: any };
-      this.logger.debug(`Successfully created namespace role: ${role.namespace}/${role.name}`);
+      this.logger.debug(
+        `Successfully created namespace role: ${role.namespace}/${role.name}`,
+      );
       return { data: roleResponse.data };
     } catch (err) {
-      this.logger.error(`Failed to create namespace role ${role.namespace}/${role.name}: ${err}`);
+      this.logger.error(
+        `Failed to create namespace role ${role.namespace}/${role.name}: ${err}`,
+      );
       throw err;
     }
   }
@@ -532,10 +549,14 @@ export class AuthzService {
       }
 
       const roleResponse = data as { data: any };
-      this.logger.debug(`Successfully updated namespace role: ${namespace}/${name}`);
+      this.logger.debug(
+        `Successfully updated namespace role: ${namespace}/${name}`,
+      );
       return { data: roleResponse.data };
     } catch (err) {
-      this.logger.error(`Failed to update namespace role ${namespace}/${name}: ${err}`);
+      this.logger.error(
+        `Failed to update namespace role ${namespace}/${name}: ${err}`,
+      );
       throw err;
     }
   }
@@ -565,16 +586,25 @@ export class AuthzService {
         throw new Error(errorMsg);
       }
 
-      this.logger.debug(`Successfully deleted namespace role: ${namespace}/${name}`);
+      this.logger.debug(
+        `Successfully deleted namespace role: ${namespace}/${name}`,
+      );
     } catch (err) {
-      this.logger.error(`Failed to delete namespace role ${namespace}/${name}: ${err}`);
+      this.logger.error(
+        `Failed to delete namespace role ${namespace}/${name}: ${err}`,
+      );
       throw err;
     }
   }
 
   // Cluster Role Bindings
   async listClusterRoleBindings(
-    filters?: { roleName?: string; claim?: string; value?: string; effect?: string },
+    filters?: {
+      roleName?: string;
+      claim?: string;
+      value?: string;
+      effect?: string;
+    },
     userToken?: string,
   ): Promise<{ data: Array<any> }> {
     this.logger.debug('Fetching cluster role bindings', { filters });
@@ -605,7 +635,9 @@ export class AuthzService {
 
       const bindingsResponse = data as { data?: Array<any> };
       this.logger.debug(
-        `Successfully fetched ${bindingsResponse.data?.length || 0} cluster role bindings`,
+        `Successfully fetched ${
+          bindingsResponse.data?.length || 0
+        } cluster role bindings`,
       );
 
       return { data: bindingsResponse.data || [] };
@@ -672,7 +704,9 @@ export class AuthzService {
       }
 
       const bindingResponse = data as { data: any };
-      this.logger.debug(`Successfully created cluster role binding: ${binding.name}`);
+      this.logger.debug(
+        `Successfully created cluster role binding: ${binding.name}`,
+      );
       return { data: bindingResponse.data };
     } catch (err) {
       this.logger.error(`Failed to create cluster role binding: ${err}`);
@@ -710,7 +744,9 @@ export class AuthzService {
       this.logger.debug(`Successfully updated cluster role binding: ${name}`);
       return { data: bindingResponse.data };
     } catch (err) {
-      this.logger.error(`Failed to update cluster role binding ${name}: ${err}`);
+      this.logger.error(
+        `Failed to update cluster role binding ${name}: ${err}`,
+      );
       throw err;
     }
   }
@@ -741,7 +777,9 @@ export class AuthzService {
 
       this.logger.debug(`Successfully deleted cluster role binding: ${name}`);
     } catch (err) {
-      this.logger.error(`Failed to delete cluster role binding ${name}: ${err}`);
+      this.logger.error(
+        `Failed to delete cluster role binding ${name}: ${err}`,
+      );
       throw err;
     }
   }
@@ -749,10 +787,18 @@ export class AuthzService {
   // Namespace Role Bindings
   async listNamespaceRoleBindings(
     namespace: string,
-    filters?: { roleName?: string; roleNamespace?: string; claim?: string; value?: string; effect?: string },
+    filters?: {
+      roleName?: string;
+      roleNamespace?: string;
+      claim?: string;
+      value?: string;
+      effect?: string;
+    },
     userToken?: string,
   ): Promise<{ data: Array<any> }> {
-    this.logger.debug(`Fetching namespace role bindings for: ${namespace}`, { filters });
+    this.logger.debug(`Fetching namespace role bindings for: ${namespace}`, {
+      filters,
+    });
 
     try {
       const client = this.createClient(userToken);
@@ -781,7 +827,9 @@ export class AuthzService {
 
       const bindingsResponse = data as { data?: Array<any> };
       this.logger.debug(
-        `Successfully fetched ${bindingsResponse.data?.length || 0} namespace role bindings`,
+        `Successfully fetched ${
+          bindingsResponse.data?.length || 0
+        } namespace role bindings`,
       );
 
       return { data: bindingsResponse.data || [] };
@@ -819,7 +867,9 @@ export class AuthzService {
       const bindingResponse = data as { data: any };
       return { data: bindingResponse.data };
     } catch (err) {
-      this.logger.error(`Failed to fetch namespace role binding ${namespace}/${name}: ${err}`);
+      this.logger.error(
+        `Failed to fetch namespace role binding ${namespace}/${name}: ${err}`,
+      );
       throw err;
     }
   }
@@ -828,7 +878,9 @@ export class AuthzService {
     binding: any,
     userToken?: string,
   ): Promise<{ data: any }> {
-    this.logger.debug(`Creating namespace role binding: ${binding.namespace}/${binding.name}`);
+    this.logger.debug(
+      `Creating namespace role binding: ${binding.namespace}/${binding.name}`,
+    );
 
     try {
       const client = this.createClient(userToken);
@@ -850,7 +902,9 @@ export class AuthzService {
       }
 
       const bindingResponse = data as { data: any };
-      this.logger.debug(`Successfully created namespace role binding: ${binding.namespace}/${binding.name}`);
+      this.logger.debug(
+        `Successfully created namespace role binding: ${binding.namespace}/${binding.name}`,
+      );
       return { data: bindingResponse.data };
     } catch (err) {
       this.logger.error(`Failed to create namespace role binding: ${err}`);
@@ -886,10 +940,14 @@ export class AuthzService {
       }
 
       const bindingResponse = data as { data: any };
-      this.logger.debug(`Successfully updated namespace role binding: ${namespace}/${name}`);
+      this.logger.debug(
+        `Successfully updated namespace role binding: ${namespace}/${name}`,
+      );
       return { data: bindingResponse.data };
     } catch (err) {
-      this.logger.error(`Failed to update namespace role binding ${namespace}/${name}: ${err}`);
+      this.logger.error(
+        `Failed to update namespace role binding ${namespace}/${name}: ${err}`,
+      );
       throw err;
     }
   }
@@ -919,9 +977,13 @@ export class AuthzService {
         throw new Error(errorMsg);
       }
 
-      this.logger.debug(`Successfully deleted namespace role binding: ${namespace}/${name}`);
+      this.logger.debug(
+        `Successfully deleted namespace role binding: ${namespace}/${name}`,
+      );
     } catch (err) {
-      this.logger.error(`Failed to delete namespace role binding ${namespace}/${name}: ${err}`);
+      this.logger.error(
+        `Failed to delete namespace role binding ${namespace}/${name}: ${err}`,
+      );
       throw err;
     }
   }

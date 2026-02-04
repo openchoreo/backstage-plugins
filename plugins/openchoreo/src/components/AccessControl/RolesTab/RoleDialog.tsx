@@ -162,8 +162,12 @@ export const RoleDialog = ({
         <DialogTitle disableTypography>
           <Typography variant="h4">
             {editingRole
-              ? `Edit ${scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'} Role: ${editingRole.name}`
-              : `Create New ${scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'} Role`}
+              ? `Edit ${
+                  scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'
+                } Role: ${editingRole.name}`
+              : `Create New ${
+                  scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'
+                } Role`}
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -171,7 +175,9 @@ export const RoleDialog = ({
             <Typography variant="subtitle2" gutterBottom>
               Quick Start Templates
             </Typography>
-            {(Object.keys(ROLE_TEMPLATES) as (keyof typeof ROLE_TEMPLATES)[]).map(key => (
+            {(
+              Object.keys(ROLE_TEMPLATES) as (keyof typeof ROLE_TEMPLATES)[]
+            ).map(key => (
               <Button
                 key={key}
                 variant="outlined"

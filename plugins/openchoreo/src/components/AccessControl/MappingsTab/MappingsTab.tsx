@@ -20,7 +20,11 @@ const useStyles = makeStyles(() => ({
 
 const SUB_TABS: TabItemData[] = [
   { id: SCOPE_CLUSTER, label: 'Cluster Role Bindings', icon: <PublicIcon /> },
-  { id: SCOPE_NAMESPACE, label: 'Namespace Role Bindings', icon: <FolderIcon /> },
+  {
+    id: SCOPE_NAMESPACE,
+    label: 'Namespace Role Bindings',
+    icon: <FolderIcon />,
+  },
 ];
 
 interface MappingsTabProps {

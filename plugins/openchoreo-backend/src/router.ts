@@ -926,10 +926,7 @@ export async function createRouter({
     }
     const userToken = getUserTokenFromRequest(req);
     res.json(
-      await authzService.createNamespaceRole(
-        { ...role, namespace },
-        userToken,
-      ),
+      await authzService.createNamespaceRole({ ...role, namespace }, userToken),
     );
   });
 
@@ -944,7 +941,12 @@ export async function createRouter({
       }
       const userToken = getUserTokenFromRequest(req);
       res.json(
-        await authzService.updateNamespaceRole(namespace, name, role, userToken),
+        await authzService.updateNamespaceRole(
+          namespace,
+          name,
+          role,
+          userToken,
+        ),
       );
     },
   );
@@ -1028,16 +1030,13 @@ export async function createRouter({
     );
   });
 
-  router.get(
-    '/namespaces/:namespace/rolebindings/:name',
-    async (req, res) => {
-      const { namespace, name } = req.params;
-      const userToken = getUserTokenFromRequest(req);
-      res.json(
-        await authzService.getNamespaceRoleBinding(namespace, name, userToken),
-      );
-    },
-  );
+  router.get('/namespaces/:namespace/rolebindings/:name', async (req, res) => {
+    const { namespace, name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await authzService.getNamespaceRoleBinding(namespace, name, userToken),
+    );
+  });
 
   router.post(
     '/namespaces/:namespace/rolebindings',

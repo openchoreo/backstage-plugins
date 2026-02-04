@@ -102,7 +102,11 @@ function getSuggestedName(state: WizardState): string {
   return `${state.selectedRole}-${state.entitlementValue.trim()}`.toLowerCase();
 }
 
-export const EffectStep = ({ state, onChange, isEditMode = false }: EffectStepProps) => {
+export const EffectStep = ({
+  state,
+  onChange,
+  isEditMode = false,
+}: EffectStepProps) => {
   const classes = useStyles();
   const suggestedName = getSuggestedName(state);
 
@@ -185,7 +189,10 @@ export const EffectStep = ({ state, onChange, isEditMode = false }: EffectStepPr
               value={state.name}
               disabled
             />
-            <Typography className={classes.nameSuggestion} style={{ cursor: 'default' }}>
+            <Typography
+              className={classes.nameSuggestion}
+              style={{ cursor: 'default' }}
+            >
               Binding name cannot be changed after creation
             </Typography>
           </>
