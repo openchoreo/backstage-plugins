@@ -1,4 +1,6 @@
 # OpenChoreo Backstage Plugins
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenchoreo%2Fbackstage-plugins.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenchoreo%2Fbackstage-plugins?ref=badge_shield)
+
 
 This repository contains Backstage plugins for integrating with [OpenChoreo](https://openchoreo.dev), providing a developer portal for cloud-native application management, deployment visualization, and observability.
 
@@ -301,3 +303,7 @@ When a feature is disabled:
 
 - Check individual plugin README files in `plugins/` directory
 - Visit [Backstage documentation](https://backstage.io/docs) for general Backstage guidance
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fopenchoreo%2Fbackstage-plugins.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fopenchoreo%2Fbackstage-plugins?ref=badge_large)
