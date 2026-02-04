@@ -159,6 +159,8 @@ export const BuildWorkflowParameters = ({
                 generatedUiSchema.systemParameters.repository.secretRef = {
                   ...generatedUiSchema.systemParameters.repository.secretRef,
                   'ui:field': 'GitSecretField',
+                  'ui:title': 'Secret Reference',
+                  'ui:description': 'Git secret reference.',
                 };
               }
             }

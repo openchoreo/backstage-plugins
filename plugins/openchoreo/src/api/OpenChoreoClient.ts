@@ -872,12 +872,24 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async createGitSecret(
     namespaceName: string,
     secretName: string,
-    token: string,
+    secretType: 'basic-auth' | 'ssh-auth',
+    tokenOrKey: string,
   ): Promise<GitSecret> {
+    const requestBody: any = {
+      secretName,
+      secretType,
+    };
+
+    if (secretType === 'basic-auth') {
+      requestBody.token = tokenOrKey;
+    } else {
+      requestBody.sshKey = tokenOrKey;
+    }
+
     return this.apiFetch<GitSecret>(API_ENDPOINTS.GIT_SECRETS, {
       method: 'POST',
       params: { namespaceName },
-      body: { secretName, token },
+      body: requestBody,
     });
   }
 

@@ -82,14 +82,21 @@ components:
       type: object
       required:
         - secretName
-        - token
+        - secretType
       properties:
         secretName:
           type: string
           description: Name of the git secret to create
+        secretType:
+          type: string
+          enum: [basic-auth, ssh-auth]
+          description: Authentication type - "basic-auth" for token-based auth, "ssh-auth" for SSH key-based auth
         token:
           type: string
-          description: Git personal access token
+          description: Git personal access token or password (required for basic-auth)
+        sshKey:
+          type: string
+          description: SSH private key for git authentication (required for ssh-auth)
 
     # SecretReference
     SecretReferenceResponse:

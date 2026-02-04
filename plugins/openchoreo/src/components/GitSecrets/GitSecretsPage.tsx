@@ -57,8 +57,8 @@ export const GitSecretsPage: React.FC = () => {
     setSelectedNamespace(event.target.value as string);
   };
 
-  const handleCreateSecret = async (secretName: string, token: string) => {
-    await createSecret(secretName, token);
+  const handleCreateSecret = async (secretName: string, secretType: 'basic-auth' | 'ssh-auth', tokenOrKey: string) => {
+    await createSecret(secretName, secretType, tokenOrKey);
   };
 
   const handleDeleteSecret = async (secretName: string) => {

@@ -75,11 +75,13 @@ export class GitSecretsService {
   async createGitSecret(
     namespaceName: string,
     secretName: string,
-    gitToken: string,
+    secretType: 'basic-auth' | 'ssh-auth',
+    gitToken?: string,
+    sshKey?: string,
     userToken?: string,
   ): Promise<GitSecretResponse> {
     this.logger.debug(
-      `Creating git secret ${secretName} in namespace: ${namespaceName}`,
+      `Creating git secret ${secretName} (${secretType}) in namespace: ${namespaceName}`,
     );
 
     try {
@@ -97,7 +99,9 @@ export class GitSecretsService {
           },
           body: {
             secretName,
+            secretType,
             token: gitToken,
+            sshKey,
           },
         },
       );

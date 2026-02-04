@@ -2,14 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FieldProps } from '@rjsf/utils';
 import {
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   FormHelperText,
   CircularProgress,
-  Button,
   Box,
+  TextField,
+  MenuItem,
+  Divider,
+  Typography,
 } from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import AddIcon from '@material-ui/icons/Add';
 import {
   useApi,
@@ -22,6 +23,11 @@ interface GitSecret {
   name: string;
   namespace: string;
 }
+
+// Special option types
+const CREATE_NEW_SECRET = '__create_new__';
+const NO_SECRET = '__no_secret__';
+const DIVIDER = '__divider__';
 
 /**
  * Custom RJSF field for selecting or creating git secrets.
@@ -49,7 +55,10 @@ export const GitSecretField: React.FC<FieldProps> = ({
   const fetchApi = useApi(fetchApiRef);
 
   // Get namespace from form context (the parent form's data)
-  const namespaceName = formContext?.formData?.namespace_name;
+  // Support both nested (project_namespace.namespace_name) and flat (namespace_name) formats
+  const namespaceName =
+    formContext?.formData?.project_namespace?.namespace_name ||
+    formContext?.formData?.namespace_name;
 
   // Extract the actual namespace name from entity reference format if needed
   const extractNsName = (fullNsName: string): string => {
@@ -95,14 +104,26 @@ export const GitSecretField: React.FC<FieldProps> = ({
     fetchSecrets();
   }, [fetchSecrets]);
 
-  const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    const value = event.target.value as string;
-    onChange(value || undefined);
-  };
-
-  const handleCreateSecret = async (secretName: string, token: string) => {
+  const handleCreateSecret = async (
+    secretName: string,
+    secretType: 'basic-auth' | 'ssh-auth',
+    tokenOrKey: string,
+  ) => {
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+
+      // Construct request body based on secret type
+      const requestBody: any = {
+        secretName,
+        secretType,
+      };
+
+      if (secretType === 'basic-auth') {
+        requestBody.token = tokenOrKey;
+      } else {
+        requestBody.sshKey = tokenOrKey;
+      }
+
       const response = await fetchApi.fetch(
         `${baseUrl}/git-secrets?namespaceName=${encodeURIComponent(nsName)}`,
         {
@@ -110,7 +131,7 @@ export const GitSecretField: React.FC<FieldProps> = ({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ secretName, token }),
+          body: JSON.stringify(requestBody),
         },
       );
 
@@ -133,78 +154,141 @@ export const GitSecretField: React.FC<FieldProps> = ({
     }
   };
 
-  const label = schema.title || uiSchema?.['ui:title'] || 'Git Secret';
+  const label = schema.title || uiSchema?.['ui:title'] || 'Secret Reference';
   const description = schema.description || uiSchema?.['ui:description'];
+
+  // Build options array for Autocomplete
+  const options = [
+    CREATE_NEW_SECRET,
+    NO_SECRET,
+    DIVIDER,
+    ...(loading ? [] : secrets.map(s => s.name)),
+  ];
+
+  // Handle selection
+  const handleAutocompleteChange = (_event: any, value: string | null) => {
+    if (value === CREATE_NEW_SECRET) {
+      setDialogOpen(true);
+      return;
+    }
+    if (value === NO_SECRET) {
+      onChange('');
+      return;
+    }
+    if (value === DIVIDER) {
+      // Divider is not selectable, do nothing
+      return;
+    }
+    onChange(value || undefined);
+  };
+
+  // Get display value for selected option
+  const getDisplayValue = () => {
+    if (!formData || formData === '') return null;
+    return formData;
+  };
 
   return (
     <Box>
-      <Box display="flex" alignItems="flex-end" gap={1}>
-        <FormControl
-          fullWidth
-          margin="normal"
-          variant="outlined"
-          error={!!rawErrors?.length || !!error}
-          required={required}
-          disabled={disabled || readonly || loading}
-        >
-          <InputLabel id={`${id}-label`}>{label}</InputLabel>
-          <Select
-            labelId={`${id}-label`}
-            label={label}
-            value={formData || ''}
-            onChange={handleChange}
-          >
-            {/* Empty option for optional field */}
-            {!required && (
-              <MenuItem value="">
-                <em>None (public repository)</em>
-              </MenuItem>
-            )}
-
-            {loading && (
-              <MenuItem disabled>
-                <CircularProgress size={20} style={{ marginRight: 8 }} />
-                Loading secrets...
-              </MenuItem>
-            )}
-
-            {!loading && secrets.length === 0 && (
-              <MenuItem disabled>
-                {nsName
-                  ? 'No git secrets available'
-                  : 'Select a namespace first'}
-              </MenuItem>
-            )}
-
-            {!loading &&
-              secrets.map(secret => (
-                <MenuItem key={secret.name} value={secret.name}>
-                  {secret.name}
-                </MenuItem>
-              ))}
-          </Select>
-
-          {error && <FormHelperText error>{error}</FormHelperText>}
-          {rawErrors?.length ? (
-            <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
-          ) : null}
-          {description && !rawErrors?.length && !error && (
-            <FormHelperText>{description}</FormHelperText>
+      <FormControl
+        fullWidth
+        margin="normal"
+        error={!!rawErrors?.length || !!error}
+      >
+        <Autocomplete
+          id={id}
+          options={options}
+          value={getDisplayValue()}
+          onChange={handleAutocompleteChange}
+          disabled={disabled || readonly}
+          loading={loading}
+          getOptionLabel={(option) => {
+            if (option === CREATE_NEW_SECRET) return 'Create New Git Secret';
+            if (option === NO_SECRET) return 'No Secret';
+            if (option === DIVIDER) return '';
+            return option;
+          }}
+          renderOption={(option) => {
+            if (option === CREATE_NEW_SECRET) {
+              return (
+                <Box display="flex" alignItems="center" gap={1}>
+                  <AddIcon fontSize="small" color="primary" />
+                  <Typography color="primary">Create New Git Secret</Typography>
+                </Box>
+              );
+            }
+            if (option === NO_SECRET) {
+              return <Typography>No Secret</Typography>;
+            }
+            if (option === DIVIDER) {
+              return <Divider style={{ margin: 0, width: '100%' }} />;
+            }
+            return <Typography>{option}</Typography>;
+          }}
+          getOptionDisabled={(option) => option === DIVIDER}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label={label}
+              variant="outlined"
+              InputProps={{
+                ...params.InputProps,
+                endAdornment: (
+                  <>
+                    {loading ? <CircularProgress size={20} /> : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
           )}
-        </FormControl>
+          noOptionsText={
+            !nsName
+              ? 'Select a namespace first'
+              : 'No git secrets available'
+          }
+        />
 
-        <Button
-          variant="outlined"
-          color="primary"
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={() => setDialogOpen(true)}
-          disabled={disabled || readonly || !nsName}
-          style={{ marginBottom: 8, whiteSpace: 'nowrap' }}
-        >
-          Create
-        </Button>
-      </Box>
+        {error && (
+          <FormHelperText
+            error
+            style={{
+              marginLeft: 0,
+              marginTop: 8,
+              fontSize: '0.75rem',
+              fontWeight: 400,
+            }}
+          >
+            {error}
+          </FormHelperText>
+        )}
+        {rawErrors?.length ? (
+          <FormHelperText
+            error
+            style={{
+              marginLeft: 0,
+              marginTop: 8,
+              fontSize: '0.75rem',
+              fontWeight: 400,
+            }}
+          >
+            {rawErrors.join(', ')}
+          </FormHelperText>
+        ) : null}
+        {description && !rawErrors?.length && !error && (
+          <FormHelperText
+            style={{
+              marginLeft: 0,
+              marginTop: 8,
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              color: 'rgba(0, 0, 0, 0.54)',
+            }}
+          >
+            {description}
+          </FormHelperText>
+        )}
+      </FormControl>
 
       <GitSecretDialog
         open={dialogOpen}
