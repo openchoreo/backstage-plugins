@@ -34,7 +34,6 @@ export const GitSecretDialog: React.FC<GitSecretDialogProps> = ({
   open,
   onClose,
   onSubmit,
-  namespaceName,
 }) => {
   const [secretName, setSecretName] = useState('');
   const [secretType, setSecretType] = useState<SecretType>('basic-auth');
