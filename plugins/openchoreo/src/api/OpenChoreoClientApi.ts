@@ -436,7 +436,8 @@ export interface OpenChoreoClientApi {
   createGitSecret(
     namespaceName: string,
     secretName: string,
-    token: string,
+    secretType: 'basic-auth' | 'ssh-auth',
+    tokenOrKey: string,
   ): Promise<GitSecret>;
 
   /** Delete a git secret */

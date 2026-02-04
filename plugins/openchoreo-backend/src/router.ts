@@ -775,13 +775,22 @@ export async function createRouter({
   // Create a new git secret
   router.post('/git-secrets', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
-    const { secretName, token } = req.body;
+    const { secretName, secretType, token, sshKey } = req.body;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is a required query parameter');
     }
-    if (!secretName || !token) {
-      throw new InputError('secretName and token are required in the request body');
+    if (!secretName || !secretType) {
+      throw new InputError('secretName and secretType are required in the request body');
+    }
+    if (secretType !== 'basic-auth' && secretType !== 'ssh-auth') {
+      throw new InputError('secretType must be either "basic-auth" or "ssh-auth"');
+    }
+    if (secretType === 'basic-auth' && !token) {
+      throw new InputError('token is required for basic-auth type');
+    }
+    if (secretType === 'ssh-auth' && !sshKey) {
+      throw new InputError('sshKey is required for ssh-auth type');
     }
 
     const userToken = getUserTokenFromRequest(req);
@@ -790,7 +799,9 @@ export async function createRouter({
       await gitSecretsService.createGitSecret(
         namespaceName as string,
         secretName,
+        secretType,
         token,
+        sshKey,
         userToken,
       ),
     );
