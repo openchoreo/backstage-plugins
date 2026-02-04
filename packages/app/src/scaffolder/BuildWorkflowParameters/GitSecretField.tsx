@@ -6,7 +6,6 @@ import {
   CircularProgress,
   Box,
   TextField,
-  MenuItem,
   Divider,
   Typography,
 } from '@material-ui/core';
@@ -39,7 +38,6 @@ export const GitSecretField: React.FC<FieldProps> = ({
   schema,
   uiSchema,
   formData,
-  required,
   disabled,
   readonly,
   onChange,
@@ -211,7 +209,7 @@ export const GitSecretField: React.FC<FieldProps> = ({
           renderOption={(option) => {
             if (option === CREATE_NEW_SECRET) {
               return (
-                <Box display="flex" alignItems="center" gap={1}>
+                <Box display="flex" alignItems="center" style={{ gap: 8 }}>
                   <AddIcon fontSize="small" color="primary" />
                   <Typography color="primary">Create New Git Secret</Typography>
                 </Box>

@@ -177,7 +177,9 @@ export interface GitSecretsService {
   createGitSecret(
     namespaceName: string,
     secretName: string,
-    gitToken: string,
+    secretType: 'basic-auth' | 'ssh-auth',
+    gitToken?: string,
+    sshKey?: string,
     userToken?: string,
   ): Promise<GitSecretResponse>;
   deleteGitSecret(

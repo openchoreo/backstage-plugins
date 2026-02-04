@@ -65,7 +65,6 @@ import CategoryIcon from '@material-ui/icons/Category';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
 import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
-import { AccessControlPage } from '@openchoreo/backstage-plugin';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
