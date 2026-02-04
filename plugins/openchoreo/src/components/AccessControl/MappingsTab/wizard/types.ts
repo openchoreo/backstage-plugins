@@ -6,6 +6,7 @@ import { Role, PolicyEffect, UserTypeConfig } from '../../hooks';
 export interface WizardState {
   // Step 1: Role
   selectedRole: string;
+  selectedRoleNamespace: string;
 
   // Step 2: Subject
   subjectType: string;
@@ -18,8 +19,9 @@ export interface WizardState {
   project: string;
   component: string;
 
-  // Step 4: Effect
+  // Step 4: Effect + Name
   effect: PolicyEffect;
+  name: string;
 }
 
 /**
@@ -59,6 +61,7 @@ export function createInitialWizardState(
 ): WizardState {
   return {
     selectedRole: '',
+    selectedRoleNamespace: '',
     subjectType: userTypes[0]?.type || '',
     entitlementValue: '',
     scopeType: 'global',
@@ -67,6 +70,7 @@ export function createInitialWizardState(
     project: '',
     component: '',
     effect: 'allow',
+    name: '',
   };
 }
 

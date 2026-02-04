@@ -167,7 +167,7 @@ export const openchoreoRoleDeletePermission = createPermission({
 });
 
 /**
- * Permission to view role mappings.
+ * Permission to view role bindings.
  * Org-scoped permission.
  */
 export const openchoreoRoleMappingViewPermission = createPermission({

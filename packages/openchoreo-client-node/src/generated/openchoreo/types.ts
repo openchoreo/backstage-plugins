@@ -1069,6 +1069,154 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/clusterroles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all cluster roles */
+    get: operations['listClusterRoles'];
+    put?: never;
+    /** Create a new cluster role */
+    post: operations['createClusterRole'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/clusterroles/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific cluster role */
+    get: operations['getClusterRole'];
+    /** Update a cluster role */
+    put: operations['updateClusterRole'];
+    post?: never;
+    /** Delete a cluster role */
+    delete: operations['deleteClusterRole'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespace}/roles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all namespace roles */
+    get: operations['listNamespaceRoles'];
+    put?: never;
+    /** Create a new namespace role */
+    post: operations['createNamespaceRole'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespace}/roles/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific namespace role */
+    get: operations['getNamespaceRole'];
+    /** Update a namespace role */
+    put: operations['updateNamespaceRole'];
+    post?: never;
+    /** Delete a namespace role */
+    delete: operations['deleteNamespaceRole'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/clusterrolebindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all cluster role bindings */
+    get: operations['listClusterRoleBindings'];
+    put?: never;
+    /** Create a new cluster role binding */
+    post: operations['createClusterRoleBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/clusterrolebindings/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific cluster role binding */
+    get: operations['getClusterRoleBinding'];
+    /** Update a cluster role binding */
+    put: operations['updateClusterRoleBinding'];
+    post?: never;
+    /** Delete a cluster role binding */
+    delete: operations['deleteClusterRoleBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespace}/rolebindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List all namespace role bindings */
+    get: operations['listNamespaceRoleBindings'];
+    put?: never;
+    /** Create a new namespace role binding */
+    post: operations['createNamespaceRoleBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespace}/rolebindings/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a specific namespace role binding */
+    get: operations['getNamespaceRoleBinding'];
+    /** Update a namespace role binding */
+    put: operations['updateNamespaceRoleBinding'];
+    post?: never;
+    /** Delete a namespace role binding */
+    delete: operations['deleteNamespaceRoleBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/user-types': {
     parameters: {
       query?: never;
@@ -1851,6 +1999,106 @@ export interface components {
       name: string;
       /** @description Optional namespace for the role */
       namespace?: string;
+    };
+    ClusterRole: {
+      /** @description Name of the cluster role */
+      name: string;
+      /** @description List of actions granted by this role */
+      actions: string[];
+      /** @description Optional description of the role */
+      description?: string;
+    };
+    NamespaceRole: {
+      /** @description Name of the namespace role */
+      name: string;
+      /** @description Namespace this role belongs to */
+      namespace: string;
+      /** @description List of actions granted by this role */
+      actions: string[];
+      /** @description Optional description of the role */
+      description?: string;
+    };
+    ClusterRoleBinding: {
+      /** @description Name of the cluster role binding */
+      name: string;
+      role: {
+        /** @description Name of the cluster role to bind */
+        name: string;
+      };
+      entitlement: components['schemas']['Entitlement'];
+      effect: components['schemas']['PolicyEffectType'];
+    };
+    ClusterRoleBindingRequest: {
+      /** @description Name of the cluster role binding */
+      name: string;
+      /** @description Name of the cluster role to bind */
+      role: string;
+      entitlement: {
+        /** @description The claim type (e.g., 'sub', 'email') */
+        claim: string;
+        /** @description The claim value to match */
+        value: string;
+      };
+      /**
+       * @description Access control effect
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+      /** @description Optional context information */
+      context?: {
+        [key: string]: unknown;
+      };
+    };
+    NamespaceRoleBinding: {
+      /** @description Name of the namespace role binding */
+      name: string;
+      /** @description Namespace this binding belongs to */
+      namespace: string;
+      role: {
+        /** @description Name of the role to bind */
+        name: string;
+        /** @description Namespace of the role */
+        namespace?: string;
+      };
+      entitlement: components['schemas']['Entitlement'];
+      /** @description Hierarchy scope for the binding */
+      hierarchy?: {
+        /** @description Namespace scope of the binding */
+        namespace?: string;
+        /** @description Project name to scope the binding */
+        project?: string;
+        /** @description Component name to scope the binding */
+        component?: string;
+      };
+      effect: components['schemas']['PolicyEffectType'];
+    };
+    NamespaceRoleBindingRequest: {
+      /** @description Name of the namespace role binding */
+      name: string;
+      role: {
+        /** @description Name of the role to bind */
+        name: string;
+        /** @description Namespace of the role */
+        namespace: string;
+      };
+      entitlement: {
+        /** @description The claim type (e.g., 'sub', 'email') */
+        claim: string;
+        /** @description The claim value to match */
+        value: string;
+      };
+      /** @description Target path scope for the binding */
+      targetPath?: {
+        /** @description Project name to scope the binding */
+        project?: string;
+        /** @description Component name to scope the binding */
+        component?: string;
+      };
+      /**
+       * @description Access control effect
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
     };
     UpdateRoleRequest: {
       /** @description List of actions to assign to the role */
@@ -4551,6 +4799,573 @@ export interface operations {
             data?: string[];
           };
         };
+      };
+    };
+  };
+  listClusterRoles: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRole'][];
+          };
+        };
+      };
+    };
+  };
+  createClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterRole'];
+      };
+    };
+    responses: {
+      /** @description Cluster role created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRole'];
+          };
+        };
+      };
+    };
+  };
+  getClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRole'];
+          };
+        };
+      };
+      /** @description Cluster role not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          actions?: string[];
+          description?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Cluster role updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRole'];
+          };
+        };
+      };
+    };
+  };
+  deleteClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster role deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Cluster role not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listNamespaceRoles: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRole'][];
+          };
+        };
+      };
+    };
+  };
+  createNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NamespaceRole'];
+      };
+    };
+    responses: {
+      /** @description Namespace role created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRole'];
+          };
+        };
+      };
+    };
+  };
+  getNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRole'];
+          };
+        };
+      };
+      /** @description Namespace role not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          actions?: string[];
+          description?: string;
+        };
+      };
+    };
+    responses: {
+      /** @description Namespace role updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRole'];
+          };
+        };
+      };
+    };
+  };
+  deleteNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace role deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Namespace role not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listClusterRoleBindings: {
+    parameters: {
+      query?: {
+        roleName?: string;
+        claim?: string;
+        value?: string;
+        effect?: components['schemas']['PolicyEffectType'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRoleBinding'][];
+          };
+        };
+      };
+    };
+  };
+  createClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Cluster role binding created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRoleBinding'];
+          };
+        };
+      };
+    };
+  };
+  getClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRoleBinding'];
+          };
+        };
+      };
+      /** @description Cluster role binding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Cluster role binding updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ClusterRoleBinding'];
+          };
+        };
+      };
+    };
+  };
+  deleteClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster role binding deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Cluster role binding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  listNamespaceRoleBindings: {
+    parameters: {
+      query?: {
+        roleName?: string;
+        roleNamespace?: string;
+        claim?: string;
+        value?: string;
+        effect?: components['schemas']['PolicyEffectType'];
+      };
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRoleBinding'][];
+          };
+        };
+      };
+    };
+  };
+  createNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NamespaceRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Namespace role binding created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRoleBinding'];
+          };
+        };
+      };
+    };
+  };
+  getNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRoleBinding'];
+          };
+        };
+      };
+      /** @description Namespace role binding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NamespaceRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Namespace role binding updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceRoleBinding'];
+          };
+        };
+      };
+    };
+  };
+  deleteNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespace: string;
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace role binding deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Namespace role binding not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

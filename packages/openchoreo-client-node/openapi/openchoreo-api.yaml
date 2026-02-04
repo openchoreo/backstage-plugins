@@ -1578,6 +1578,203 @@ components:
           type: string
           description: Optional namespace for the role
 
+    ClusterRole:
+      type: object
+      required:
+        - name
+        - actions
+      properties:
+        name:
+          type: string
+          description: Name of the cluster role
+        actions:
+          type: array
+          items:
+            type: string
+          description: List of actions granted by this role
+        description:
+          type: string
+          description: Optional description of the role
+
+    NamespaceRole:
+      type: object
+      required:
+        - name
+        - namespace
+        - actions
+      properties:
+        name:
+          type: string
+          description: Name of the namespace role
+        namespace:
+          type: string
+          description: Namespace this role belongs to
+        actions:
+          type: array
+          items:
+            type: string
+          description: List of actions granted by this role
+        description:
+          type: string
+          description: Optional description of the role
+
+    ClusterRoleBinding:
+      type: object
+      required:
+        - name
+        - role
+        - entitlement
+        - effect
+      properties:
+        name:
+          type: string
+          description: Name of the cluster role binding
+        role:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              description: Name of the cluster role to bind
+        entitlement:
+          $ref: '#/components/schemas/Entitlement'
+        effect:
+          $ref: '#/components/schemas/PolicyEffectType'
+
+    ClusterRoleBindingRequest:
+      type: object
+      required:
+        - name
+        - role
+        - entitlement
+        - effect
+      properties:
+        name:
+          type: string
+          description: Name of the cluster role binding
+        role:
+          type: string
+          description: Name of the cluster role to bind
+        entitlement:
+          type: object
+          required:
+            - claim
+            - value
+          properties:
+            claim:
+              type: string
+              description: The claim type (e.g., 'sub', 'email')
+            value:
+              type: string
+              description: The claim value to match
+        effect:
+          type: string
+          enum:
+            - allow
+            - deny
+          description: Access control effect
+        context:
+          type: object
+          additionalProperties: true
+          description: Optional context information
+
+    NamespaceRoleBinding:
+      type: object
+      required:
+        - name
+        - namespace
+        - role
+        - entitlement
+        - effect
+      properties:
+        name:
+          type: string
+          description: Name of the namespace role binding
+        namespace:
+          type: string
+          description: Namespace this binding belongs to
+        role:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              description: Name of the role to bind
+            namespace:
+              type: string
+              description: Namespace of the role
+        entitlement:
+          $ref: '#/components/schemas/Entitlement'
+        hierarchy:
+          type: object
+          description: Hierarchy scope for the binding
+          properties:
+            namespace:
+              type: string
+              description: Namespace scope of the binding
+            project:
+              type: string
+              description: Project name to scope the binding
+            component:
+              type: string
+              description: Component name to scope the binding
+        effect:
+          $ref: '#/components/schemas/PolicyEffectType'
+
+    NamespaceRoleBindingRequest:
+      type: object
+      required:
+        - name
+        - role
+        - entitlement
+        - effect
+      properties:
+        name:
+          type: string
+          description: Name of the namespace role binding
+        role:
+          type: object
+          required:
+            - name
+            - namespace
+          properties:
+            name:
+              type: string
+              description: Name of the role to bind
+            namespace:
+              type: string
+              description: Namespace of the role
+        entitlement:
+          type: object
+          required:
+            - claim
+            - value
+          properties:
+            claim:
+              type: string
+              description: The claim type (e.g., 'sub', 'email')
+            value:
+              type: string
+              description: The claim value to match
+        targetPath:
+          type: object
+          description: Target path scope for the binding
+          properties:
+            project:
+              type: string
+              description: Project name to scope the binding
+            component:
+              type: string
+              description: Component name to scope the binding
+        effect:
+          type: string
+          enum:
+            - allow
+            - deny
+          description: Access control effect
+
     UpdateRoleRequest:
       type: object
       required:
@@ -4642,6 +4839,588 @@ paths:
                         type: array
                         items:
                           type: string
+
+  # Cluster-scoped roles
+  /clusterroles:
+    get:
+      summary: List all cluster roles
+      operationId: listClusterRoles
+      tags:
+        - Authorization
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ClusterRole'
+    post:
+      summary: Create a new cluster role
+      operationId: createClusterRole
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterRole'
+      responses:
+        '201':
+          description: Cluster role created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ClusterRole'
+
+  /clusterroles/{name}:
+    get:
+      summary: Get a specific cluster role
+      operationId: getClusterRole
+      tags:
+        - Authorization
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ClusterRole'
+        '404':
+          description: Cluster role not found
+    put:
+      summary: Update a cluster role
+      operationId: updateClusterRole
+      tags:
+        - Authorization
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actions:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Cluster role updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ClusterRole'
+    delete:
+      summary: Delete a cluster role
+      operationId: deleteClusterRole
+      tags:
+        - Authorization
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Cluster role deleted
+        '404':
+          description: Cluster role not found
+
+  # Namespace-scoped roles
+  /namespaces/{namespace}/roles:
+    get:
+      summary: List all namespace roles
+      operationId: listNamespaceRoles
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/NamespaceRole'
+    post:
+      summary: Create a new namespace role
+      operationId: createNamespaceRole
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceRole'
+      responses:
+        '201':
+          description: Namespace role created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceRole'
+
+  /namespaces/{namespace}/roles/{name}:
+    get:
+      summary: Get a specific namespace role
+      operationId: getNamespaceRole
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceRole'
+        '404':
+          description: Namespace role not found
+    put:
+      summary: Update a namespace role
+      operationId: updateNamespaceRole
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                actions:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Namespace role updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceRole'
+    delete:
+      summary: Delete a namespace role
+      operationId: deleteNamespaceRole
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Namespace role deleted
+        '404':
+          description: Namespace role not found
+
+  # Cluster role bindings
+  /clusterrolebindings:
+    get:
+      summary: List all cluster role bindings
+      operationId: listClusterRoleBindings
+      tags:
+        - Authorization
+      parameters:
+        - name: roleName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: claim
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: value
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: effect
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PolicyEffectType'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ClusterRoleBinding'
+    post:
+      summary: Create a new cluster role binding
+      operationId: createClusterRoleBinding
+      tags:
+        - Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterRoleBindingRequest'
+      responses:
+        '201':
+          description: Cluster role binding created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ClusterRoleBinding'
+
+  /clusterrolebindings/{name}:
+    get:
+      summary: Get a specific cluster role binding
+      operationId: getClusterRoleBinding
+      tags:
+        - Authorization
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ClusterRoleBinding'
+        '404':
+          description: Cluster role binding not found
+    put:
+      summary: Update a cluster role binding
+      operationId: updateClusterRoleBinding
+      tags:
+        - Authorization
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterRoleBindingRequest'
+      responses:
+        '200':
+          description: Cluster role binding updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ClusterRoleBinding'
+    delete:
+      summary: Delete a cluster role binding
+      operationId: deleteClusterRoleBinding
+      tags:
+        - Authorization
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Cluster role binding deleted
+        '404':
+          description: Cluster role binding not found
+
+  # Namespace role bindings
+  /namespaces/{namespace}/rolebindings:
+    get:
+      summary: List all namespace role bindings
+      operationId: listNamespaceRoleBindings
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: roleName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: roleNamespace
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: claim
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: value
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: effect
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PolicyEffectType'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/NamespaceRoleBinding'
+    post:
+      summary: Create a new namespace role binding
+      operationId: createNamespaceRoleBinding
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceRoleBindingRequest'
+      responses:
+        '201':
+          description: Namespace role binding created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceRoleBinding'
+
+  /namespaces/{namespace}/rolebindings/{name}:
+    get:
+      summary: Get a specific namespace role binding
+      operationId: getNamespaceRoleBinding
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceRoleBinding'
+        '404':
+          description: Namespace role binding not found
+    put:
+      summary: Update a namespace role binding
+      operationId: updateNamespaceRoleBinding
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NamespaceRoleBindingRequest'
+      responses:
+        '200':
+          description: Namespace role binding updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceRoleBinding'
+    delete:
+      summary: Delete a namespace role binding
+      operationId: deleteNamespaceRoleBinding
+      tags:
+        - Authorization
+      parameters:
+        - name: namespace
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Namespace role binding deleted
+        '404':
+          description: Namespace role binding not found
 
   /user-types:
     get:

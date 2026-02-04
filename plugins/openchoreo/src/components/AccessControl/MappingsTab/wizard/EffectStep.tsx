@@ -1,8 +1,7 @@
-import { Box, Typography, Paper } from '@material-ui/core';
+import { Box, Typography, Paper, TextField } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BlockIcon from '@material-ui/icons/Block';
-import InfoIcon from '@material-ui/icons/Info';
 import RadioButtonUncheckedIcon from '@material-ui/icons/RadioButtonUnchecked';
 import RadioButtonCheckedIcon from '@material-ui/icons/RadioButtonChecked';
 import { PolicyEffect } from '../../hooks';
@@ -74,40 +73,38 @@ const useStyles = makeStyles(theme => ({
     fontSize: '0.875rem',
     marginTop: theme.spacing(0.5),
   },
-  conditionsSection: {
-    marginTop: theme.spacing(4),
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.grey[100],
-    borderRadius: theme.shape.borderRadius,
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: theme.spacing(1.5),
+  nameSection: {
+    marginTop: theme.spacing(3),
   },
-  conditionsIcon: {
-    color: theme.palette.text.secondary,
-    marginTop: 2,
-  },
-  conditionsContent: {
-    flex: 1,
-  },
-  conditionsTitle: {
+  nameLabel: {
     fontWeight: 500,
-    color: theme.palette.text.secondary,
+    marginBottom: theme.spacing(1),
   },
-  conditionsText: {
+  nameSuggestion: {
     color: theme.palette.text.secondary,
-    fontSize: '0.875rem',
+    fontSize: '0.75rem',
     marginTop: theme.spacing(0.5),
+    cursor: 'pointer',
+    '&:hover': {
+      color: theme.palette.primary.main,
+    },
   },
 }));
 
 interface EffectStepProps {
   state: WizardState;
   onChange: (updates: Partial<WizardState>) => void;
+  isEditMode?: boolean;
 }
 
-export const EffectStep = ({ state, onChange }: EffectStepProps) => {
+function getSuggestedName(state: WizardState): string {
+  if (!state.selectedRole || !state.entitlementValue) return '';
+  return `${state.selectedRole}-${state.entitlementValue.trim()}`.toLowerCase();
+}
+
+export const EffectStep = ({ state, onChange, isEditMode = false }: EffectStepProps) => {
   const classes = useStyles();
+  const suggestedName = getSuggestedName(state);
 
   const handleEffectChange = (effect: PolicyEffect) => {
     onChange({ effect });
@@ -175,17 +172,43 @@ export const EffectStep = ({ state, onChange }: EffectStepProps) => {
         </Paper>
       </Box>
 
-      <Box className={classes.conditionsSection}>
-        <InfoIcon className={classes.conditionsIcon} />
-        <Box className={classes.conditionsContent}>
-          <Typography className={classes.conditionsTitle}>
-            Conditions (Coming Soon)
-          </Typography>
-          <Typography className={classes.conditionsText}>
-            Fine-grained conditions like environment-based rules (e.g., only
-            allow in production) will be available in a future release.
-          </Typography>
-        </Box>
+      <Box className={classes.nameSection}>
+        <Typography variant="subtitle2" className={classes.nameLabel}>
+          Binding Name
+        </Typography>
+        {isEditMode ? (
+          <>
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              value={state.name}
+              disabled
+            />
+            <Typography className={classes.nameSuggestion} style={{ cursor: 'default' }}>
+              Binding name cannot be changed after creation
+            </Typography>
+          </>
+        ) : (
+          <>
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              value={state.name}
+              onChange={e => onChange({ name: e.target.value })}
+              placeholder={suggestedName || 'e.g., admin-platform-team'}
+            />
+            {suggestedName && !state.name && (
+              <Typography
+                className={classes.nameSuggestion}
+                onClick={() => onChange({ name: suggestedName })}
+              >
+                Use suggested: "{suggestedName}"
+              </Typography>
+            )}
+          </>
+        )}
       </Box>
     </Box>
   );

@@ -114,6 +114,7 @@ export interface SecretReferencesResponse {
 export interface AuthzRole {
   name: string;
   actions: string[];
+  namespace?: string;
 }
 
 export interface Entitlement {
@@ -149,6 +150,86 @@ export interface RoleMappingFilters {
   role?: string;
   claim?: string;
   value?: string;
+}
+
+// ============================================
+// Cluster & Namespace Scoped Authorization Types
+// ============================================
+
+/** Cluster Role - cluster-wide role definition */
+export interface ClusterRole {
+  name: string;
+  actions: string[];
+  namespace?: string;
+  description?: string;
+}
+
+/** Namespace Role - namespace-scoped role definition */
+export interface NamespaceRole {
+  name: string;
+  namespace: string;
+  actions: string[];
+  description?: string;
+}
+
+/** Cluster Role Binding - binds a cluster role to an entitlement */
+export interface ClusterRoleBinding {
+  name: string;
+  role: { name: string };
+  entitlement: Entitlement;
+  effect: PolicyEffect;
+}
+
+/** Cluster Role Binding Request - request body for creating/updating cluster role bindings */
+export interface ClusterRoleBindingRequest {
+  name: string;
+  role: string;
+  entitlement: {
+    claim: string;
+    value: string;
+  };
+  effect: PolicyEffect;
+}
+
+/** Namespace Role Binding - response shape from the API */
+export interface NamespaceRoleBinding {
+  name: string;
+  namespace: string;
+  role: { name: string; namespace?: string };
+  entitlement: Entitlement;
+  hierarchy?: {
+    namespace?: string;
+    project?: string;
+    component?: string;
+  };
+  effect: PolicyEffect;
+}
+
+/** Namespace Role Binding Request - body sent for create / update */
+export interface NamespaceRoleBindingRequest {
+  name: string;
+  role: { name: string; namespace: string };
+  entitlement: {
+    claim: string;
+    value: string;
+  };
+  targetPath?: {
+    project?: string;
+  };
+  effect: PolicyEffect;
+}
+
+/** Filters for listing cluster role bindings */
+export interface ClusterRoleBindingFilters {
+  roleName?: string;
+  claim?: string;
+  value?: string;
+  effect?: PolicyEffect;
+}
+
+/** Filters for listing namespace role bindings */
+export interface NamespaceRoleBindingFilters extends ClusterRoleBindingFilters {
+  roleNamespace?: string;
 }
 
 export interface EntitlementConfig {
@@ -518,6 +599,97 @@ export interface OpenChoreoClientApi {
     namespaceName: string,
     resourceName: string,
   ): Promise<ResourceCRUDResponse>;
+  // === Cluster Roles Operations ===
+
+  /** List all cluster roles */
+  listClusterRoles(): Promise<ClusterRole[]>;
+
+  /** Get a specific cluster role */
+  getClusterRole(name: string): Promise<ClusterRole>;
+
+  /** Create a new cluster role */
+  createClusterRole(role: ClusterRole): Promise<ClusterRole>;
+
+  /** Update an existing cluster role */
+  updateClusterRole(name: string, role: Partial<ClusterRole>): Promise<ClusterRole>;
+
+  /** Delete a cluster role */
+  deleteClusterRole(name: string): Promise<void>;
+
+  // === Namespace Roles Operations ===
+
+  /** List all namespace roles for a namespace */
+  listNamespaceRoles(namespace: string): Promise<NamespaceRole[]>;
+
+  /** Get a specific namespace role */
+  getNamespaceRole(namespace: string, name: string): Promise<NamespaceRole>;
+
+  /** Create a new namespace role */
+  createNamespaceRole(role: NamespaceRole): Promise<NamespaceRole>;
+
+  /** Update an existing namespace role */
+  updateNamespaceRole(
+    namespace: string,
+    name: string,
+    role: Partial<NamespaceRole>,
+  ): Promise<NamespaceRole>;
+
+  /** Delete a namespace role */
+  deleteNamespaceRole(namespace: string, name: string): Promise<void>;
+
+  // === Cluster Role Bindings Operations ===
+
+  /** List all cluster role bindings */
+  listClusterRoleBindings(
+    filters?: ClusterRoleBindingFilters,
+  ): Promise<ClusterRoleBinding[]>;
+
+  /** Get a specific cluster role binding */
+  getClusterRoleBinding(name: string): Promise<ClusterRoleBinding>;
+
+  /** Create a new cluster role binding */
+  createClusterRoleBinding(
+    binding: ClusterRoleBindingRequest,
+  ): Promise<ClusterRoleBinding>;
+
+  /** Update an existing cluster role binding */
+  updateClusterRoleBinding(
+    name: string,
+    binding: Partial<ClusterRoleBindingRequest>,
+  ): Promise<ClusterRoleBinding>;
+
+  /** Delete a cluster role binding */
+  deleteClusterRoleBinding(name: string): Promise<void>;
+
+  // === Namespace Role Bindings Operations ===
+
+  /** List all namespace role bindings for a namespace */
+  listNamespaceRoleBindings(
+    namespace: string,
+    filters?: NamespaceRoleBindingFilters,
+  ): Promise<NamespaceRoleBinding[]>;
+
+  /** Get a specific namespace role binding */
+  getNamespaceRoleBinding(
+    namespace: string,
+    name: string,
+  ): Promise<NamespaceRoleBinding>;
+
+  /** Create a new namespace role binding */
+  createNamespaceRoleBinding(
+    namespace: string,
+    binding: NamespaceRoleBindingRequest,
+  ): Promise<NamespaceRoleBinding>;
+
+  /** Update an existing namespace role binding */
+  updateNamespaceRoleBinding(
+    namespace: string,
+    name: string,
+    binding: NamespaceRoleBindingRequest,
+  ): Promise<NamespaceRoleBinding>;
+
+  /** Delete a namespace role binding */
+  deleteNamespaceRoleBinding(namespace: string, name: string): Promise<void>;
 }
 
 // ============================================

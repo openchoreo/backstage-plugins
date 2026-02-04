@@ -129,10 +129,24 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
         </Box>
 
         <Box className={classes.summaryRow}>
-          <Typography className={classes.summaryLabel}>Role</Typography>
+          <Typography className={classes.summaryLabel}>Name</Typography>
           <Typography className={classes.summaryValue}>
-            {state.selectedRole}
+            {state.name || `${state.selectedRole}-${state.entitlementValue.trim()}`.toLowerCase()}
           </Typography>
+        </Box>
+
+        <Box className={classes.summaryRow}>
+          <Typography className={classes.summaryLabel}>Role</Typography>
+          <Box style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Typography className={classes.summaryValue}>
+              {state.selectedRole}
+            </Typography>
+            <Chip
+              label={state.selectedRoleNamespace ? 'Namespace' : 'Cluster'}
+              size="small"
+              variant="outlined"
+            />
+          </Box>
         </Box>
 
         <Box className={classes.summaryRow}>

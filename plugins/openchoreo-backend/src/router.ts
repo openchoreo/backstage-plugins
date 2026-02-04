@@ -956,6 +956,235 @@ export async function createRouter({
   });
 
   // =====================
+  // Cluster & Namespace Scoped Authorization Endpoints
+  // =====================
+
+  // Cluster Roles
+  router.get('/clusterroles', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listClusterRoles(userToken));
+  });
+
+  router.get('/clusterroles/:name', async (req, res) => {
+    const { name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.getClusterRole(name, userToken));
+  });
+
+  router.post('/clusterroles', requireAuth, async (req, res) => {
+    const role = req.body;
+    if (!role || !role.name || !role.actions) {
+      throw new InputError('Cluster role must have name and actions fields');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.createClusterRole(role, userToken));
+  });
+
+  router.put('/clusterroles/:name', requireAuth, async (req, res) => {
+    const { name } = req.params;
+    const role = req.body;
+    if (!role || !role.actions) {
+      throw new InputError('Request body must have actions field');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.updateClusterRole(name, role, userToken));
+  });
+
+  router.delete('/clusterroles/:name', requireAuth, async (req, res) => {
+    const { name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    await authzService.deleteClusterRole(name, userToken);
+    res.status(204).send();
+  });
+
+  // Namespace Roles
+  router.get('/namespaces/:namespace/roles', async (req, res) => {
+    const { namespace } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.listNamespaceRoles(namespace, userToken));
+  });
+
+  router.get('/namespaces/:namespace/roles/:name', async (req, res) => {
+    const { namespace, name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.getNamespaceRole(namespace, name, userToken));
+  });
+
+  router.post('/namespaces/:namespace/roles', requireAuth, async (req, res) => {
+    const { namespace } = req.params;
+    const role = req.body;
+    if (!role || !role.name || !role.actions) {
+      throw new InputError('Namespace role must have name and actions fields');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await authzService.createNamespaceRole(
+        { ...role, namespace },
+        userToken,
+      ),
+    );
+  });
+
+  router.put(
+    '/namespaces/:namespace/roles/:name',
+    requireAuth,
+    async (req, res) => {
+      const { namespace, name } = req.params;
+      const role = req.body;
+      if (!role || !role.actions) {
+        throw new InputError('Request body must have actions field');
+      }
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.updateNamespaceRole(namespace, name, role, userToken),
+      );
+    },
+  );
+
+  router.delete(
+    '/namespaces/:namespace/roles/:name',
+    requireAuth,
+    async (req, res) => {
+      const { namespace, name } = req.params;
+      const userToken = getUserTokenFromRequest(req);
+      await authzService.deleteNamespaceRole(namespace, name, userToken);
+      res.status(204).send();
+    },
+  );
+
+  // Cluster Role Bindings
+  router.get('/clusterrolebindings', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    const filters = {
+      roleName: req.query.roleName as string | undefined,
+      claim: req.query.claim as string | undefined,
+      value: req.query.value as string | undefined,
+      effect: req.query.effect as 'allow' | 'deny' | undefined,
+    };
+    res.json(await authzService.listClusterRoleBindings(filters, userToken));
+  });
+
+  router.get('/clusterrolebindings/:name', async (req, res) => {
+    const { name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.getClusterRoleBinding(name, userToken));
+  });
+
+  router.post('/clusterrolebindings', requireAuth, async (req, res) => {
+    const binding = req.body;
+    if (!binding || !binding.role || !binding.entitlement) {
+      throw new InputError(
+        'Cluster role binding must have role.name and entitlement fields',
+      );
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await authzService.createClusterRoleBinding(binding, userToken));
+  });
+
+  router.put('/clusterrolebindings/:name', requireAuth, async (req, res) => {
+    const { name } = req.params;
+    const binding = req.body;
+    if (!binding) {
+      throw new InputError('Request body is required');
+    }
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await authzService.updateClusterRoleBinding(name, binding, userToken),
+    );
+  });
+
+  router.delete('/clusterrolebindings/:name', requireAuth, async (req, res) => {
+    const { name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    await authzService.deleteClusterRoleBinding(name, userToken);
+    res.status(204).send();
+  });
+
+  // Namespace Role Bindings
+  router.get('/namespaces/:namespace/rolebindings', async (req, res) => {
+    const { namespace } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    const filters = {
+      roleName: req.query.roleName as string | undefined,
+      roleNamespace: req.query.roleNamespace as string | undefined,
+      claim: req.query.claim as string | undefined,
+      value: req.query.value as string | undefined,
+      effect: req.query.effect as 'allow' | 'deny' | undefined,
+    };
+    res.json(
+      await authzService.listNamespaceRoleBindings(
+        namespace,
+        filters,
+        userToken,
+      ),
+    );
+  });
+
+  router.get(
+    '/namespaces/:namespace/rolebindings/:name',
+    async (req, res) => {
+      const { namespace, name } = req.params;
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.getNamespaceRoleBinding(namespace, name, userToken),
+      );
+    },
+  );
+
+  router.post(
+    '/namespaces/:namespace/rolebindings',
+    requireAuth,
+    async (req, res) => {
+      const { namespace } = req.params;
+      const binding = req.body;
+      if (!binding || !binding.role?.name || !binding.entitlement) {
+        throw new InputError(
+          'Namespace role binding must have role.name and entitlement fields',
+        );
+      }
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.createNamespaceRoleBinding(
+          { ...binding, namespace },
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.put(
+    '/namespaces/:namespace/rolebindings/:name',
+    requireAuth,
+    async (req, res) => {
+      const { namespace, name } = req.params;
+      const binding = req.body;
+      if (!binding) {
+        throw new InputError('Request body is required');
+      }
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.updateNamespaceRoleBinding(
+          namespace,
+          name,
+          binding,
+          userToken,
+        ),
+      );
+    },
+  );
+
+  router.delete(
+    '/namespaces/:namespace/rolebindings/:name',
+    requireAuth,
+    async (req, res) => {
+      const { namespace, name } = req.params;
+      const userToken = getUserTokenFromRequest(req);
+      await authzService.deleteNamespaceRoleBinding(namespace, name, userToken);
+      res.status(204).send();
+    },
+  );
+
+  // =====================
   // Hierarchy Data Endpoints (for Access Control autocomplete)
   // =====================
 

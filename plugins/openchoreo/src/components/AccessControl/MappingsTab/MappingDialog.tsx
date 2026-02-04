@@ -14,12 +14,15 @@ import {
   getEntitlementClaim,
   Role,
   RoleEntitlementMapping,
+  ClusterRoleBinding,
+  NamespaceRoleBinding,
 } from '../hooks';
+import { ClusterRoleBindingRequest, NamespaceRoleBindingRequest } from '../../../api/OpenChoreoClientApi';
+import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import {
   WizardState,
   WizardStepId,
   WIZARD_STEPS,
-  getStepIndex,
   isStepValid,
   createInitialWizardState,
   WizardStepper,
@@ -55,12 +58,19 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+export type BindingType = 'mapping' | typeof SCOPE_CLUSTER | typeof SCOPE_NAMESPACE;
+
 interface MappingDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (mapping: RoleEntitlementMapping) => Promise<void>;
-  availableRoles: Role[];
+  onSave: (
+    mapping: RoleEntitlementMapping | ClusterRoleBinding | NamespaceRoleBinding | any,
+  ) => Promise<void>;
+  availableRoles: (Role & { isClusterRole?: boolean })[];
   editingMapping?: RoleEntitlementMapping;
+  editingBinding?: ClusterRoleBinding | NamespaceRoleBinding;
+  bindingType?: BindingType;
+  namespace?: string;
 }
 
 export const MappingDialog = ({
@@ -69,6 +79,9 @@ export const MappingDialog = ({
   onSave,
   availableRoles,
   editingMapping,
+  editingBinding,
+  bindingType,
+  namespace,
 }: MappingDialogProps) => {
   const classes = useStyles();
   const { userTypes } = useUserTypes();
@@ -80,7 +93,12 @@ export const MappingDialog = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isEditMode = !!editingMapping;
+  const isEditMode = !!editingMapping || !!editingBinding;
+
+  // steps to include based on binding type
+  const activeSteps = bindingType === SCOPE_CLUSTER
+    ? WIZARD_STEPS.filter(s => s.id !== 'scope')
+    : WIZARD_STEPS;
 
   // Initialize/reset wizard when dialog opens
   useEffect(() => {
@@ -88,34 +106,44 @@ export const MappingDialog = ({
       setCurrentStep('role');
       setError(null);
 
-      if (editingMapping) {
-        // Populate from editing mapping
+    if (editingBinding) {
         const matchingUserType = userTypes.find(
-          ut => getEntitlementClaim(ut) === editingMapping.entitlement.claim,
+          ut => getEntitlementClaim(ut) === editingBinding.entitlement.claim,
         );
 
-        setWizardState({
-          selectedRole: editingMapping.role.name,
+        // Base fields shared by both cluster and namespace bindings
+        const baseState = {
+          selectedRole: editingBinding.role.name,
+          selectedRoleNamespace: '',
           subjectType: matchingUserType?.type || userTypes[0]?.type || '',
-          entitlementValue: editingMapping.entitlement.value,
-          scopeType:
-            editingMapping.hierarchy.namespace ||
-            editingMapping.hierarchy.project ||
-            editingMapping.hierarchy.component
-              ? 'specific'
-              : 'global',
-          namespace: editingMapping.hierarchy.namespace || '',
-          namespaceUnits: editingMapping.hierarchy.organization_units || [],
-          project: editingMapping.hierarchy.project || '',
-          component: editingMapping.hierarchy.component || '',
-          effect: editingMapping.effect,
-        });
+          entitlementValue: editingBinding.entitlement.value,
+          scopeType: 'global' as const,
+          namespace: '',
+          namespaceUnits: [] as string[],
+          project: '',
+          component: '',
+          effect: editingBinding.effect,
+          name: editingBinding.name || '',
+        };
+
+        if (bindingType === SCOPE_NAMESPACE) {
+          const nsBinding = editingBinding as NamespaceRoleBinding;
+          setWizardState({
+            ...baseState,
+            selectedRoleNamespace: nsBinding.role?.namespace || '',
+            scopeType: nsBinding.hierarchy?.project ? 'specific' : 'global',
+            project: nsBinding.hierarchy?.project || '',
+          });
+        } else {
+          // Cluster binding — no namespace or scope fields needed
+          setWizardState(baseState);
+        }
       } else {
-        // Reset for new mapping
+        // Reset for new mapping/binding
         setWizardState(createInitialWizardState(userTypes));
       }
     }
-  }, [open, editingMapping, userTypes]);
+  }, [open, editingMapping, editingBinding, userTypes, bindingType]);
 
   const handleStateChange = useCallback((updates: Partial<WizardState>) => {
     setWizardState(prev => ({ ...prev, ...updates }));
@@ -126,22 +154,21 @@ export const MappingDialog = ({
   };
 
   const handleNext = () => {
-    const currentIndex = getStepIndex(currentStep);
-    if (currentIndex < WIZARD_STEPS.length - 1) {
-      setCurrentStep(WIZARD_STEPS[currentIndex + 1].id);
+    const currentIndex = activeSteps.findIndex(s => s.id === currentStep);
+    if (currentIndex < activeSteps.length - 1) {
+      setCurrentStep(activeSteps[currentIndex + 1].id);
     }
   };
 
   const handleBack = () => {
-    const currentIndex = getStepIndex(currentStep);
+    const currentIndex = activeSteps.findIndex(s => s.id === currentStep);
     if (currentIndex > 0) {
-      setCurrentStep(WIZARD_STEPS[currentIndex - 1].id);
+      setCurrentStep(activeSteps[currentIndex - 1].id);
     }
   };
 
   const handleSubmit = async () => {
-    // Validate all steps
-    for (const step of WIZARD_STEPS) {
+    for (const step of activeSteps) {
       if (!isStepValid(step.id, wizardState)) {
         setError(`Please complete the ${step.label} step`);
         setCurrentStep(step.id);
@@ -164,29 +191,61 @@ export const MappingDialog = ({
       setSaving(true);
       setError(null);
 
-      const mapping: RoleEntitlementMapping = {
-        role: { name: wizardState.selectedRole },
-        entitlement: {
-          claim: entitlementClaim,
-          value: wizardState.entitlementValue.trim(),
-        },
-        hierarchy:
-          wizardState.scopeType === 'global'
-            ? {}
-            : {
-                namespace: wizardState.namespace || undefined,
-                organization_units:
-                  wizardState.namespaceUnits.filter((u: string) => u.trim()) ||
-                  undefined,
-                project: wizardState.project || undefined,
-                component: wizardState.component || undefined,
-              },
-        effect: wizardState.effect,
-      };
+      const resolvedName = wizardState.name ||
+        `${wizardState.selectedRole}-${wizardState.entitlementValue.trim()}`.toLowerCase();
 
-      await onSave(mapping);
+      if (bindingType === SCOPE_CLUSTER) {
+        // Create cluster role binding
+        const binding: ClusterRoleBindingRequest = {
+          name: resolvedName,
+          role: wizardState.selectedRole,
+          entitlement: {
+            claim: entitlementClaim,
+            value: wizardState.entitlementValue.trim(),
+          },
+          effect: wizardState.effect,
+        };
+        await onSave(binding);
+      } else if (bindingType === SCOPE_NAMESPACE) {
+        // Create namespace role binding request
+        const binding: NamespaceRoleBindingRequest = {
+          name: resolvedName,
+          role: {
+            name: wizardState.selectedRole,
+            namespace: wizardState.selectedRoleNamespace,
+          },
+          entitlement: {
+            claim: entitlementClaim,
+            value: wizardState.entitlementValue.trim(),
+          },
+          ...(wizardState.scopeType === 'specific' && wizardState.project && {
+            targetPath: { project: wizardState.project },
+          }),
+          effect: wizardState.effect,
+        };
+        await onSave(binding);
+      } else {
+        // Create role entitlement mapping (original behavior)
+        const mapping: RoleEntitlementMapping = {
+          role: { name: wizardState.selectedRole },
+          entitlement: {
+            claim: entitlementClaim,
+            value: wizardState.entitlementValue.trim(),
+          },
+          hierarchy:
+            wizardState.scopeType === 'global'
+              ? {}
+              : {
+                  namespace: wizardState.namespace || undefined,
+                  project: wizardState.project || undefined,
+                  component: wizardState.component || undefined,
+                },
+          effect: wizardState.effect,
+        };
+        await onSave(mapping);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save mapping');
+      setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -202,13 +261,20 @@ export const MappingDialog = ({
 
     switch (currentStep) {
       case 'role':
-        return <RoleStep {...stepProps} />;
+        return <RoleStep {...stepProps} bindingType={bindingType} />;
       case 'subject':
         return <SubjectStep {...stepProps} />;
       case 'scope':
-        return <ScopeStep state={wizardState} onChange={handleStateChange} />;
+        return (
+          <ScopeStep
+            state={wizardState}
+            onChange={handleStateChange}
+            bindingType={bindingType}
+            namespace={namespace}
+          />
+        );
       case 'effect':
-        return <EffectStep state={wizardState} onChange={handleStateChange} />;
+        return <EffectStep state={wizardState} onChange={handleStateChange} isEditMode={isEditMode} />;
       case 'review':
         return <ReviewStep {...stepProps} />;
       default:
@@ -220,7 +286,15 @@ export const MappingDialog = ({
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle disableTypography className={classes.dialogTitle}>
         <Typography variant="h4">
-          {isEditMode ? 'Edit Role Mapping' : 'Create Role Mapping'}
+          {(() => {
+            let typeLabel = 'Role Mapping';
+            if (bindingType === SCOPE_CLUSTER) {
+              typeLabel = 'Cluster Role Binding';
+            } else if (bindingType === SCOPE_NAMESPACE) {
+              typeLabel = 'Namespace Role Binding';
+            }
+            return isEditMode ? `Edit ${typeLabel}` : `Create ${typeLabel}`;
+          })()}
         </Typography>
         <IconButton
           className={classes.closeButton}
@@ -240,6 +314,7 @@ export const MappingDialog = ({
         )}
 
         <WizardStepper
+          steps={activeSteps}
           currentStep={currentStep}
           state={wizardState}
           onStepClick={handleStepClick}

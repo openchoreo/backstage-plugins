@@ -9,9 +9,8 @@ import {
 import { makeStyles } from '@material-ui/core/styles';
 import {
   WizardStepId,
+  WizardStepDef,
   WizardState,
-  WIZARD_STEPS,
-  getStepIndex,
   isStepClickable,
   isStepValid,
 } from './types';
@@ -36,6 +35,7 @@ const useStyles = makeStyles(theme => ({
 }));
 
 interface WizardStepperProps {
+  steps: WizardStepDef[];
   currentStep: WizardStepId;
   state: WizardState;
   onStepClick: (stepId: WizardStepId) => void;
@@ -47,6 +47,7 @@ interface WizardStepperProps {
 }
 
 export const WizardStepper = ({
+  steps,
   currentStep,
   state,
   onStepClick,
@@ -57,9 +58,9 @@ export const WizardStepper = ({
   isEditMode = false,
 }: WizardStepperProps) => {
   const classes = useStyles();
-  const currentIndex = getStepIndex(currentStep);
-  const isLastStep = currentStep === 'review';
-  const isFirstStep = currentStep === 'role';
+  const currentIndex = steps.findIndex(s => s.id === currentStep);
+  const isLastStep = currentStep === steps[steps.length - 1].id;
+  const isFirstStep = currentStep === steps[0].id;
   const canProceed = isStepValid(currentStep, state);
 
   const handleStepClick = (stepId: WizardStepId) => {
@@ -75,9 +76,8 @@ export const WizardStepper = ({
         alternativeLabel
         className={classes.stepper}
       >
-        {WIZARD_STEPS.map(step => {
-          const stepIndex = getStepIndex(step.id);
-          const isCompleted = stepIndex < currentIndex;
+        {steps.map((step, index) => {
+          const isCompleted = index < currentIndex;
           const clickable = isStepClickable(step.id, currentStep, state);
 
           return (

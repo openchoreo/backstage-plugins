@@ -10,13 +10,13 @@ import {
  * Result of the useRoleMappingPermissions hook.
  */
 export interface UseRoleMappingPermissionsResult {
-  /** Whether the user has permission to view role mappings */
+  /** Whether the user has permission to view role bindings */
   canView: boolean;
-  /** Whether the user has permission to create role mappings */
+  /** Whether the user has permission to create role bindings */
   canCreate: boolean;
-  /** Whether the user has permission to update role mappings */
+  /** Whether the user has permission to update role bindings */
   canUpdate: boolean;
-  /** Whether the user has permission to delete role mappings */
+  /** Whether the user has permission to delete role bindings */
   canDelete: boolean;
   /** Whether any permission check is still loading */
   loading: boolean;
@@ -77,19 +77,19 @@ export const useRoleMappingPermissions =
       loading,
       viewDeniedTooltip:
         !canView && !viewLoading
-          ? 'You do not have permission to view role mappings'
+          ? 'You do not have permission to view role bindings'
           : '',
       createDeniedTooltip:
         !canCreate && !createLoading
-          ? 'You do not have permission to create role mappings'
+          ? 'You do not have permission to create role bindings'
           : '',
       updateDeniedTooltip:
         !canUpdate && !updateLoading
-          ? 'You do not have permission to edit role mappings'
+          ? 'You do not have permission to edit role bindings'
           : '',
       deleteDeniedTooltip:
         !canDelete && !deleteLoading
-          ? 'You do not have permission to delete role mappings'
+          ? 'You do not have permission to delete role bindings'
           : '',
     };
   };
