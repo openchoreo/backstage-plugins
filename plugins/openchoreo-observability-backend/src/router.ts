@@ -144,11 +144,11 @@ export async function createRouter({
     }
     const userToken = getUserTokenFromRequest(_req);
     try {
-      const reports = await observabilityService.fetchRCAReportsByProject(
-        _req.body.projectId,
-        _req.body.environmentId,
+      const reports = await rcaAgentService.fetchRCAReportsByProject(
         _req.body.namespaceName,
         _req.body.environmentName,
+        _req.body.projectId,
+        _req.body.environmentId,
         _req.body.componentUids || [],
         _req.body.options,
         userToken,
@@ -173,10 +173,10 @@ export async function createRouter({
     const { alertId } = _req.params;
 
     try {
-      const report = await observabilityService.fetchRCAReportByAlert(
-        alertId,
+      const report = await rcaAgentService.fetchRCAReportByAlert(
         _req.body.namespaceName,
         _req.body.environmentName,
+        alertId,
         _req.body.options,
         userToken,
       );

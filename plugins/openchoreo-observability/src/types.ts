@@ -1,4 +1,7 @@
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type {
+  ObservabilityComponents,
+  AIRCAAgentComponents,
+} from '@openchoreo/backstage-plugin-common';
 
 // Use generated types from OpenAPI spec
 type TimeValuePoint = ObservabilityComponents['schemas']['TimeValuePoint'];
@@ -102,17 +105,8 @@ export const RCA_STATUS_OPTIONS: RCAStatusOption[] = [
   { value: 'failed', label: 'Failed' },
 ];
 
-export interface RCAReportSummary {
-  alertId?: string;
-  projectUid?: string;
-  reportId?: string;
-  timestamp?: string;
-  summary?: string;
-  status?: RCAStatus;
-}
-
-export interface RCAReportDetailed extends RCAReportSummary {
-  reportVersion?: number;
-  availableVersions?: number[];
-  [key: string]: unknown;
-}
+// Use generated types from AI RCA Agent API
+export type RCAReportSummary =
+  AIRCAAgentComponents['schemas']['RCAReportSummary'];
+export type RCAReportDetailed =
+  AIRCAAgentComponents['schemas']['RCAReportDetailed'];

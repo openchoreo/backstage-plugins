@@ -4,12 +4,11 @@ import { InfoCard } from '@backstage/core-components';
 import AssessmentOutlinedIcon from '@material-ui/icons/AssessmentOutlined';
 import { FormattedText } from '../FormattedText';
 import { useRCAReportStyles } from '../styles';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
 type NoRootCauseIdentified =
-  ObservabilityComponents['schemas']['NoRootCauseIdentified'];
-type NoRootCauseOutcome =
-  ObservabilityComponents['schemas']['NoRootCauseOutcome'];
+  AIRCAAgentComponents['schemas']['NoRootCauseIdentified'];
+type NoRootCauseOutcome = NoRootCauseIdentified['outcome'];
 
 interface AssessmentSectionProps {
   noRootCauseResult: NoRootCauseIdentified;

@@ -13,10 +13,9 @@ import {
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { useRCAReportStyles } from '../styles';
 import { FormattedText } from '../FormattedText';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type InvestigationStep =
-  ObservabilityComponents['schemas']['InvestigationStep'];
+type InvestigationStep = AIRCAAgentComponents['schemas']['InvestigationStep'];
 
 interface InvestigationPathSectionProps {
   investigationPath?: InvestigationStep[];

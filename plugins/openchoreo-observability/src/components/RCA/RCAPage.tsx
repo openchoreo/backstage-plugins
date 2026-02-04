@@ -76,7 +76,9 @@ const RCAListView = () => {
     const isObservabilityDisabled = error.includes(
       'Observability is not enabled',
     );
-    const isRCAServiceDisabled = error.includes('RCA service is not enabled');
+    const isRCAServiceDisabled = error.includes(
+      'RCA service is not configured',
+    );
 
     const isInfoAlert = isObservabilityDisabled || isRCAServiceDisabled;
 
@@ -86,7 +88,7 @@ const RCAListView = () => {
         'Observability is not enabled for this environment. Please enable observability to view RCA reports.';
     } else if (isRCAServiceDisabled) {
       errorMessage =
-        'AI-powered RCA is not enabled. Please enable it to view RCA reports.';
+        'AI-powered RCA is not configured. Please enable it to view RCA reports.';
     }
 
     return (

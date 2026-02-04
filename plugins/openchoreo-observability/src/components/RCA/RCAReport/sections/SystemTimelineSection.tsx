@@ -10,9 +10,9 @@ import {
 } from '@material-ui/lab';
 import { useRCAReportStyles } from '../styles';
 import { FormattedText } from '../FormattedText';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type TimelineEvent = ObservabilityComponents['schemas']['TimelineEvent'];
+type TimelineEvent = AIRCAAgentComponents['schemas']['TimelineEvent'];
 
 interface SystemTimelineSectionProps {
   timeline?: TimelineEvent[];
@@ -73,7 +73,11 @@ export const SystemTimelineSection = ({
                   </Typography>
                 )}
               </Box>
-              <Typography component="div" variant="body2" className={classes.timelineEventText}>
+              <Typography
+                component="div"
+                variant="body2"
+                className={classes.timelineEventText}
+              >
                 <FormattedText text={event.event || ''} />
               </Typography>
             </TimelineContent>

@@ -1,4 +1,4 @@
-import React, { Fragment, useMemo } from 'react';
+import { Children, Fragment, useMemo, type ReactNode } from 'react';
 import { Link } from '@backstage/core-components';
 import ReactMarkdown from 'react-markdown';
 import { useEntityLinkContext } from './EntityLinkContext';
@@ -16,13 +16,12 @@ interface FormattedTextProps {
 const UUID_PATTERN =
   /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i;
 
-// ISO 8601 timestamp pattern (e.g., 2023-10-05T14:48:00Z or 2023-10-05T14:48:00.123Z)
-const ISO_TIMESTAMP_PATTERN =
-  /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z/;
+// ISO 8601 timestamp pattern (e.g., 2023-10-05T14:48:00Z or 2023-10-05T14:48:00.123456Z)
+const ISO_TIMESTAMP_PATTERN = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/;
 
 // Combined pattern to split text by UUIDs and timestamps, keeping delimiters
 const SPLIT_PATTERN =
-  /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z)/gi;
+  /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)/gi;
 
 function formatTimestamp(isoString: string): string {
   try {
@@ -95,8 +94,8 @@ export const FormattedText = ({
   };
 
   // Process React children, replacing string nodes with rendered segments
-  const processChildren = (children: React.ReactNode): React.ReactNode => {
-    return React.Children.map(children, child => {
+  const processChildren = (children: ReactNode): ReactNode => {
+    return Children.map(children, child => {
       if (typeof child === 'string') {
         const parts = child.split(SPLIT_PATTERN);
         return <>{parts.map((part, i) => renderSegment(part, i))}</>;
@@ -105,31 +104,29 @@ export const FormattedText = ({
     });
   };
 
+  const markdownComponents = useMemo(
+    () => ({
+      p: ({ children }: { children?: ReactNode }) => (
+        <span>{processChildren(children)}</span>
+      ),
+      strong: ({ children }: { children?: ReactNode }) => (
+        <strong>{processChildren(children)}</strong>
+      ),
+      em: ({ children }: { children?: ReactNode }) => (
+        <em>{processChildren(children)}</em>
+      ),
+      code: ({ children }: { children?: ReactNode }) => <code>{children}</code>,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entityMap, loading, disableLinks],
+  );
+
   // Skip markdown processing for title-ish fields, strip any markdown syntax
   if (disableMarkdown) {
     const stripped = stripMarkdown(text);
     const parts = stripped.split(SPLIT_PATTERN);
     return <>{parts.map((part, i) => renderSegment(part, i))}</>;
   }
-
-  const markdownComponents = useMemo(
-    () => ({
-      p: ({ children }: { children?: React.ReactNode }) => (
-        <span>{processChildren(children)}</span>
-      ),
-      strong: ({ children }: { children?: React.ReactNode }) => (
-        <strong>{processChildren(children)}</strong>
-      ),
-      em: ({ children }: { children?: React.ReactNode }) => (
-        <em>{processChildren(children)}</em>
-      ),
-      code: ({ children }: { children?: React.ReactNode }) => (
-        <code>{children}</code>
-      ),
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entityMap, loading, disableLinks],
-  );
 
   return (
     <span className={classes.markdownContent}>

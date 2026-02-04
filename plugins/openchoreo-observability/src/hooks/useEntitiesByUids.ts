@@ -57,7 +57,8 @@ export function useEntitiesByUids(uids: string[]): {
   const newUids = useMemo(() => {
     const seen = new Set<string>();
     return uids.filter(uid => {
-      if (!uid || seen.has(uid) || queriedUidsRef.current.has(uid)) return false;
+      if (!uid || seen.has(uid) || queriedUidsRef.current.has(uid))
+        return false;
       seen.add(uid);
       return true;
     });

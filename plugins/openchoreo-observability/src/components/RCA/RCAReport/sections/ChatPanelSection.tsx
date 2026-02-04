@@ -1,4 +1,12 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import {
+  Children,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import {
   Typography,
   Box,
@@ -28,10 +36,11 @@ import type {
 } from '../../../../api/RCAAgentApi';
 
 // Process React children, replacing string nodes with FormattedText
-function processChildren(children: React.ReactNode): React.ReactNode {
-  return React.Children.map(children, child => {
+// Use disableMarkdown since the parent ReactMarkdown already parsed the markdown
+function processChildren(children: ReactNode): ReactNode {
+  return Children.map(children, child => {
     if (typeof child === 'string') {
-      return <FormattedText text={child} />;
+      return <FormattedText text={child} disableMarkdown />;
     }
     return child;
   });
@@ -39,40 +48,40 @@ function processChildren(children: React.ReactNode): React.ReactNode {
 
 // Custom ReactMarkdown components that process UUIDs and timestamps
 const markdownComponents = {
-  p: ({ children }: { children?: React.ReactNode }) => (
+  p: ({ children }: { children?: ReactNode }) => (
     <p>{processChildren(children)}</p>
   ),
-  li: ({ children }: { children?: React.ReactNode }) => (
+  li: ({ children }: { children?: ReactNode }) => (
     <li>{processChildren(children)}</li>
   ),
-  td: ({ children }: { children?: React.ReactNode }) => (
+  td: ({ children }: { children?: ReactNode }) => (
     <td>{processChildren(children)}</td>
   ),
-  th: ({ children }: { children?: React.ReactNode }) => (
+  th: ({ children }: { children?: ReactNode }) => (
     <th>{processChildren(children)}</th>
   ),
-  strong: ({ children }: { children?: React.ReactNode }) => (
+  strong: ({ children }: { children?: ReactNode }) => (
     <strong>{processChildren(children)}</strong>
   ),
-  em: ({ children }: { children?: React.ReactNode }) => (
+  em: ({ children }: { children?: ReactNode }) => (
     <em>{processChildren(children)}</em>
   ),
-  h1: ({ children }: { children?: React.ReactNode }) => (
+  h1: ({ children }: { children?: ReactNode }) => (
     <h1>{processChildren(children)}</h1>
   ),
-  h2: ({ children }: { children?: React.ReactNode }) => (
+  h2: ({ children }: { children?: ReactNode }) => (
     <h2>{processChildren(children)}</h2>
   ),
-  h3: ({ children }: { children?: React.ReactNode }) => (
+  h3: ({ children }: { children?: ReactNode }) => (
     <h3>{processChildren(children)}</h3>
   ),
-  h4: ({ children }: { children?: React.ReactNode }) => (
+  h4: ({ children }: { children?: ReactNode }) => (
     <h4>{processChildren(children)}</h4>
   ),
-  h5: ({ children }: { children?: React.ReactNode }) => (
+  h5: ({ children }: { children?: ReactNode }) => (
     <h5>{processChildren(children)}</h5>
   ),
-  h6: ({ children }: { children?: React.ReactNode }) => (
+  h6: ({ children }: { children?: ReactNode }) => (
     <h6>{processChildren(children)}</h6>
   ),
 };
@@ -130,7 +139,9 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
   // Extract UUIDs from chat messages and streaming content for entity resolution
   const parentContext = useEntityLinkContext();
   const chatUids = useMemo(() => {
-    const allContent = messages.map(m => m.content).join(' ') + ' ' + streamingContent;
+    const allContent = `${messages
+      .map(m => m.content)
+      .join(' ')} ${streamingContent}`;
     return extractEntityUids(allContent);
   }, [messages, streamingContent]);
 
@@ -298,8 +309,13 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
               {/* To push messages to bottom */}
               <div style={{ marginTop: 'auto' }} />
               {messages.length === 0 && !streamingContent && !toolStatus ? (
-                <Typography variant="body2" color="textSecondary" align="center">
-                  Ask follow-up questions, search logs, or explore related issues
+                <Typography
+                  variant="body2"
+                  color="textSecondary"
+                  align="center"
+                >
+                  Ask follow-up questions, search logs, or explore related
+                  issues
                 </Typography>
               ) : (
                 <>

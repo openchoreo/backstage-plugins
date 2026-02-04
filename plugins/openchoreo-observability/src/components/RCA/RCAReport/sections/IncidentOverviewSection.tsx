@@ -4,10 +4,9 @@ import { InfoCard } from '@backstage/core-components';
 import ReportProblemOutlinedIcon from '@material-ui/icons/ReportProblemOutlined';
 import { FormattedText } from '../FormattedText';
 import { useRCAReportStyles } from '../styles';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type ReportAlertContext =
-  ObservabilityComponents['schemas']['ReportAlertContext'];
+type ReportAlertContext = AIRCAAgentComponents['schemas']['ReportAlertContext'];
 
 interface IncidentOverviewSectionProps {
   summary: string;
