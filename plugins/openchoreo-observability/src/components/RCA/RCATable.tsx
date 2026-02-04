@@ -91,7 +91,11 @@ export const RCATable = ({ reports, loading = false }: RCATableProps) => {
         return (
           <Typography variant="body2" className={classes.truncateTwoLines}>
             {report.summary ? (
-              <FormattedText text={report.summary} disableLinks />
+              <FormattedText
+                text={report.summary}
+                disableLinks
+                disableMarkdown
+              />
             ) : (
               'No summary available'
             )}

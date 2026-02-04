@@ -24,11 +24,10 @@ import {
   useEntitiesByUids,
   extractEntityUids,
 } from '../../../hooks/useEntitiesByUids';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 import type { RCAAgentApi } from '../../../api/RCAAgentApi';
 
-type RCAReportDetailed =
-  ObservabilityComponents['schemas']['RCAReportDetailed'];
+type RCAReportDetailed = AIRCAAgentComponents['schemas']['RCAReportDetailed'];
 
 interface ChatContext {
   namespaceName: string;

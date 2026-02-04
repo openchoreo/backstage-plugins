@@ -14,13 +14,13 @@ import ShowChartIcon from '@material-ui/icons/ShowChart';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { FormattedText } from '../FormattedText';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type RootCause = ObservabilityComponents['schemas']['RootCause'];
-type Finding = ObservabilityComponents['schemas']['Finding'];
-type LogEvidence = ObservabilityComponents['schemas']['LogEvidence'];
-type MetricEvidence = ObservabilityComponents['schemas']['MetricEvidence'];
-type TraceEvidence = ObservabilityComponents['schemas']['TraceEvidence'];
+type RootCause = AIRCAAgentComponents['schemas']['RootCause'];
+type Finding = AIRCAAgentComponents['schemas']['Finding'];
+type LogEvidence = AIRCAAgentComponents['schemas']['LogEvidence'];
+type MetricEvidence = AIRCAAgentComponents['schemas']['MetricEvidence'];
+type TraceEvidence = AIRCAAgentComponents['schemas']['TraceEvidence'];
 
 interface RootCausesSectionProps {
   rootCauses?: RootCause[];

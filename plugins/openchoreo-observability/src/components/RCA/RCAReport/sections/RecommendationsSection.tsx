@@ -2,9 +2,9 @@ import { Fragment } from 'react';
 import { List, ListItem, ListItemText, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { FormattedText } from '../FormattedText';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type Action = ObservabilityComponents['schemas']['Action'];
+type Action = AIRCAAgentComponents['schemas']['Action'];
 
 interface RecommendationsSectionProps {
   actions?: Action[];
@@ -43,7 +43,12 @@ export const RecommendationsSection = ({
         <Fragment key={idx}>
           <ListItem className={classes.listItem} disableGutters>
             <ListItemText
-              primary={<FormattedText text={action.description || ''} disableMarkdown />}
+              primary={
+                <FormattedText
+                  text={action.description || ''}
+                  disableMarkdown
+                />
+              }
               secondary={
                 action.rationale ? (
                   <FormattedText text={action.rationale} />

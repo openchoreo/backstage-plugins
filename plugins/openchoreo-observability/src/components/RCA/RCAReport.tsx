@@ -56,9 +56,9 @@ export const RCAReport = () => {
     let errorMessage = error;
     let severity: 'info' | 'error' = 'error';
 
-    if (error.includes('RCA service is not enabled')) {
+    if (error.includes('RCA service is not configured')) {
       errorMessage =
-        'AI-powered RCA is not enabled. Please enable it to view RCA reports.';
+        'AI-powered RCA is not configured. Please enable it to view RCA reports.';
       severity = 'info';
     } else if (error.includes('Observability is not enabled')) {
       errorMessage =

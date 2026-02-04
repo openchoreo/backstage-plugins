@@ -2,9 +2,9 @@ import { Fragment } from 'react';
 import { List, ListItem, ListItemText, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { FormattedText } from '../FormattedText';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type Action = ObservabilityComponents['schemas']['Action'];
+type Action = AIRCAAgentComponents['schemas']['Action'];
 
 interface VisibilityImprovementsSectionProps {
   recommendations?: Action[];
@@ -44,7 +44,10 @@ export const VisibilityImprovementsSection = ({
           <ListItem className={classes.listItem} disableGutters>
             <ListItemText
               primary={
-                <FormattedText text={recommendation.description || ''} disableMarkdown />
+                <FormattedText
+                  text={recommendation.description || ''}
+                  disableMarkdown
+                />
               }
               secondary={
                 recommendation.rationale ? (

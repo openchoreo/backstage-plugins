@@ -2,9 +2,9 @@ import { Fragment } from 'react';
 import { List, ListItem, ListItemText, Divider } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { FormattedText } from '../FormattedText';
-import type { ObservabilityComponents } from '@openchoreo/backstage-plugin-common';
+import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type ExcludedCause = ObservabilityComponents['schemas']['ExcludedCause'];
+type ExcludedCause = AIRCAAgentComponents['schemas']['ExcludedCause'];
 
 interface ExcludedCausesSectionProps {
   excludedCauses?: ExcludedCause[];
@@ -43,7 +43,9 @@ export const ExcludedCausesSection = ({
         <Fragment key={idx}>
           <ListItem className={classes.listItem} disableGutters>
             <ListItemText
-              primary={<FormattedText text={cause.description || ''} disableMarkdown />}
+              primary={
+                <FormattedText text={cause.description || ''} disableMarkdown />
+              }
               secondary={
                 cause.rationale ? (
                   <FormattedText text={cause.rationale} />

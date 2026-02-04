@@ -63,14 +63,14 @@ describe('createRouter', () => {
       fetchMetricsByComponent: jest.fn(),
       fetchEnvironmentsByNamespace: jest.fn(),
       fetchTracesByProject: jest.fn(),
-      fetchRCAReportsByProject: jest.fn(),
-      fetchRCAReportByAlert: jest.fn(),
       fetchRuntimeLogsByComponent: jest.fn(),
     };
     rcaAgentService = {
       resolveRCAAgentUrl: jest.fn(),
       createClient: jest.fn(),
       streamChat: jest.fn(),
+      fetchRCAReportsByProject: jest.fn(),
+      fetchRCAReportByAlert: jest.fn(),
     };
     tokenService = {
       getUserToken: jest.fn().mockReturnValue(undefined),
