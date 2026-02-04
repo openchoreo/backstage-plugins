@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Typography, Button, Box, IconButton, Tooltip } from '@material-ui/core';
+import {
+  Typography,
+  Button,
+  Box,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
@@ -46,7 +52,9 @@ export const ClusterRolesContent = () => {
     useClusterRoles();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<ClusterRole | undefined>(undefined);
+  const [editingRole, setEditingRole] = useState<ClusterRole | undefined>(
+    undefined,
+  );
 
   const handleCreateRole = () => {
     setEditingRole(undefined);
@@ -64,7 +72,9 @@ export const ClusterRolesContent = () => {
       notification.showSuccess(`Cluster role "${name}" deleted successfully`);
     } catch (err) {
       notification.showError(
-        `Failed to delete role: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        `Failed to delete role: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
       );
     }
   };

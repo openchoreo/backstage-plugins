@@ -152,7 +152,12 @@ export const ScopeStep = ({
       parts.push('*');
     }
 
-    return parts.join('/') || (bindingType === SCOPE_NAMESPACE && effectiveNamespace ? `${effectiveNamespace}/*` : '*');
+    return (
+      parts.join('/') ||
+      (bindingType === SCOPE_NAMESPACE && effectiveNamespace
+        ? `${effectiveNamespace}/*`
+        : '*')
+    );
   };
 
   return (

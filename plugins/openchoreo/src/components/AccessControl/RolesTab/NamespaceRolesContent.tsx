@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Typography, Button, Box, IconButton, Tooltip } from '@material-ui/core';
+import {
+  Typography,
+  Button,
+  Box,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
@@ -53,7 +59,9 @@ export const NamespaceRolesContent = () => {
     useNamespaceRoles(selectedNamespace || undefined);
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<NamespaceRole | undefined>(undefined);
+  const [editingRole, setEditingRole] = useState<NamespaceRole | undefined>(
+    undefined,
+  );
 
   const handleCreateRole = () => {
     setEditingRole(undefined);
@@ -71,7 +79,9 @@ export const NamespaceRolesContent = () => {
       notification.showSuccess(`Namespace role "${name}" deleted successfully`);
     } catch (err) {
       notification.showError(
-        `Failed to delete role: ${err instanceof Error ? err.message : 'Unknown error'}`,
+        `Failed to delete role: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
       );
     }
   };
@@ -115,7 +125,11 @@ export const NamespaceRolesContent = () => {
             <RefreshIcon />
           </IconButton>
           <Tooltip
-            title={!selectedNamespace ? 'Select a namespace first' : createDeniedTooltip}
+            title={
+              !selectedNamespace
+                ? 'Select a namespace first'
+                : createDeniedTooltip
+            }
           >
             <span>
               <Button

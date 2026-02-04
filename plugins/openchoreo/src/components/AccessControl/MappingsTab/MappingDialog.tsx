@@ -16,7 +16,10 @@ import {
   NamespaceRoleBinding,
   ClusterRole,
 } from '../hooks';
-import { ClusterRoleBindingRequest, NamespaceRoleBindingRequest } from '../../../api/OpenChoreoClientApi';
+import {
+  ClusterRoleBindingRequest,
+  NamespaceRoleBindingRequest,
+} from '../../../api/OpenChoreoClientApi';
 import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import {
   WizardState,
@@ -93,9 +96,10 @@ export const MappingDialog = ({
   const isEditMode = !!editingBinding;
 
   // steps to include based on binding type
-  const activeSteps = bindingType === SCOPE_CLUSTER
-    ? WIZARD_STEPS.filter(s => s.id !== 'scope')
-    : WIZARD_STEPS;
+  const activeSteps =
+    bindingType === SCOPE_CLUSTER
+      ? WIZARD_STEPS.filter(s => s.id !== 'scope')
+      : WIZARD_STEPS;
 
   // Initialize/reset wizard when dialog opens
   useEffect(() => {
@@ -103,7 +107,7 @@ export const MappingDialog = ({
       setCurrentStep('role');
       setError(null);
 
-    if (editingBinding) {
+      if (editingBinding) {
         const matchingUserType = userTypes.find(
           ut => getEntitlementClaim(ut) === editingBinding.entitlement.claim,
         );
@@ -187,8 +191,11 @@ export const MappingDialog = ({
       setSaving(true);
       setError(null);
 
-      const resolvedName = wizardState.name ||
-        `${wizardState.selectedRole}-${wizardState.entitlementValue.trim()}`.toLowerCase();
+      const resolvedName =
+        wizardState.name ||
+        `${
+          wizardState.selectedRole
+        }-${wizardState.entitlementValue.trim()}`.toLowerCase();
 
       if (bindingType === SCOPE_CLUSTER) {
         // Create cluster role binding
@@ -214,9 +221,10 @@ export const MappingDialog = ({
             claim: entitlementClaim,
             value: wizardState.entitlementValue.trim(),
           },
-          ...(wizardState.scopeType === 'specific' && wizardState.project && {
-            targetPath: { project: wizardState.project },
-          }),
+          ...(wizardState.scopeType === 'specific' &&
+            wizardState.project && {
+              targetPath: { project: wizardState.project },
+            }),
           effect: wizardState.effect,
         };
         await onSave(binding);
@@ -251,7 +259,13 @@ export const MappingDialog = ({
           />
         );
       case 'effect':
-        return <EffectStep state={wizardState} onChange={handleStateChange} isEditMode={isEditMode} />;
+        return (
+          <EffectStep
+            state={wizardState}
+            onChange={handleStateChange}
+            isEditMode={isEditMode}
+          />
+        );
       case 'review':
         return <ReviewStep {...stepProps} />;
       default:
@@ -264,7 +278,9 @@ export const MappingDialog = ({
       <DialogTitle disableTypography className={classes.dialogTitle}>
         <Typography variant="h4">
           {isEditMode ? 'Edit' : 'Create'}{' '}
-          {bindingType === SCOPE_CLUSTER ? 'Cluster Role Binding' : 'Namespace Role Binding'}
+          {bindingType === SCOPE_CLUSTER
+            ? 'Cluster Role Binding'
+            : 'Namespace Role Binding'}
         </Typography>
         <IconButton
           className={classes.closeButton}

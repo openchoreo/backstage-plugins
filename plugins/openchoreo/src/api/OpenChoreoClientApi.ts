@@ -540,7 +540,10 @@ export interface OpenChoreoClientApi {
   createClusterRole(role: ClusterRole): Promise<ClusterRole>;
 
   /** Update an existing cluster role */
-  updateClusterRole(name: string, role: Partial<ClusterRole>): Promise<ClusterRole>;
+  updateClusterRole(
+    name: string,
+    role: Partial<ClusterRole>,
+  ): Promise<ClusterRole>;
 
   /** Delete a cluster role */
   deleteClusterRole(name: string): Promise<void>;

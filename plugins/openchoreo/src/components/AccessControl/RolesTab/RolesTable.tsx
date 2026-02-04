@@ -167,14 +167,16 @@ export const RolesTable = ({
                         No actions
                       </Typography>
                     ) : (
-                      role.actions.slice(0, 5).map(action => (
-                        <Chip
-                          key={action}
-                          label={action}
-                          size="small"
-                          className={classes.actionsChip}
-                        />
-                      ))
+                      role.actions
+                        .slice(0, 5)
+                        .map(action => (
+                          <Chip
+                            key={action}
+                            label={action}
+                            size="small"
+                            className={classes.actionsChip}
+                          />
+                        ))
                     )}
                     {role.actions.length > 5 && (
                       <Chip
@@ -231,8 +233,8 @@ export const RolesTable = ({
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete the {scopeLabel.toLowerCase()}{' '}
-            "{roleToDelete}"?
+            Are you sure you want to delete the {scopeLabel.toLowerCase()} "
+            {roleToDelete}"?
           </DialogContentText>
         </DialogContent>
         <DialogActions>

@@ -282,7 +282,9 @@ export const NamespaceRoleBindingsContent = () => {
           </IconButton>
           <Tooltip
             title={
-              !selectedNamespace ? 'Select a namespace first' : createDeniedTooltip
+              !selectedNamespace
+                ? 'Select a namespace first'
+                : createDeniedTooltip
             }
           >
             <span>
@@ -316,190 +318,197 @@ export const NamespaceRoleBindingsContent = () => {
         </Box>
       ) : (
         <>
-          {loading || namespaceRolesLoading || clusterRolesLoading && (
-            <Progress />
-          )}
-          {!loading && !namespaceRolesLoading && !clusterRolesLoading && error && (
-            <ResponseErrorPanel error={error} />
-          )}
-          {!loading && !namespaceRolesLoading && !clusterRolesLoading && !error && (
-            <>
-              <Box className={classes.filters}>
-                <TextField
-                  className={classes.searchField}
-                  placeholder="Search..."
-                  variant="outlined"
-                  size="small"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-
-                <FormControl
-                  variant="outlined"
-                  size="small"
-                  className={classes.filterSelect}
-                >
-                  <InputLabel>Role</InputLabel>
-                  <Select
-                    value={filters.roleName || 'all'}
-                    onChange={e =>
-                      handleRoleFilterChange(e.target.value as string)
-                    }
-                    label="Role"
-                  >
-                    <MenuItem value="all">All Roles</MenuItem>
-                    {availableRoles.map(role => (
-                      <MenuItem key={`${role.name}-${role.namespace || ''}`} value={role.name}>
-                        {role.name}{' '}
-                        {role.namespace ? '(Namespace)' : '(Cluster)'}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-
-                <FormControl
-                  variant="outlined"
-                  size="small"
-                  className={classes.filterSelect}
-                >
-                  <InputLabel>Effect</InputLabel>
-                  <Select
-                    value={effectFilter}
-                    onChange={e => setEffectFilter(e.target.value as string)}
-                    label="Effect"
-                  >
-                    <MenuItem value="all">All Effects</MenuItem>
-                    <MenuItem value="allow">Allow</MenuItem>
-                    <MenuItem value="deny">Deny</MenuItem>
-                  </Select>
-                </FormControl>
-
-                {hasActiveFilters && (
-                  <Button
+          {loading ||
+            namespaceRolesLoading ||
+            (clusterRolesLoading && <Progress />)}
+          {!loading &&
+            !namespaceRolesLoading &&
+            !clusterRolesLoading &&
+            error && <ResponseErrorPanel error={error} />}
+          {!loading &&
+            !namespaceRolesLoading &&
+            !clusterRolesLoading &&
+            !error && (
+              <>
+                <Box className={classes.filters}>
+                  <TextField
+                    className={classes.searchField}
+                    placeholder="Search..."
+                    variant="outlined"
                     size="small"
-                    startIcon={<ClearIcon />}
-                    onClick={handleClearFilters}
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </Box>
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
 
-              {filteredBindings.length === 0 ? (
-                <Box className={classes.emptyState}>
-                  <Typography variant="body1" color="textSecondary">
-                    {hasActiveFilters
-                      ? 'No namespace role bindings match your filters'
-                      : 'No namespace role bindings defined yet. Create your first binding to grant permissions.'}
-                  </Typography>
-                </Box>
-              ) : (
-                <TableContainer
-                  component={Paper}
-                  className={classes.tableContainer}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Binding Name</TableCell>
-                        <TableCell>Role</TableCell>
-                        <TableCell className={classes.entitlementCell}>
-                          Entitlement (claim=value)
-                        </TableCell>
-                        <TableCell>Effect</TableCell>
-                        <TableCell align="right">Actions</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {filteredBindings.map(binding => (
-                        <TableRow key={binding.name}>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {binding.name}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {binding.role.name}
-                              {binding.role.namespace && (
-                                <Chip
-                                  label="Namespace"
-                                  size="small"
-                                  variant="outlined"
-                                  style={{ marginLeft: 8 }}
-                                />
-                              )}
-                              {!binding.role.namespace && (
-                                <Chip
-                                  label="Cluster"
-                                  size="small"
-                                  variant="outlined"
-                                  style={{ marginLeft: 8 }}
-                                />
-                              )}
-                            </Typography>
-                          </TableCell>
-                          <TableCell className={classes.entitlementCell}>
-                            <Typography variant="body2">
-                              {binding.entitlement.claim}=
-                              {binding.entitlement.value}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={binding.effect.toUpperCase()}
-                              size="small"
-                              variant="outlined"
-                              className={`${classes.effectChip} ${
-                                binding.effect === 'allow'
-                                  ? classes.allowChip
-                                  : classes.denyChip
-                              }`}
-                            />
-                          </TableCell>
-                          <TableCell align="right">
-                            <Tooltip title={updateDeniedTooltip}>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleEditBinding(binding)}
-                                  title="Edit"
-                                  disabled={!canUpdate}
-                                  color="primary"
-                                >
-                                  <EditIcon />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                            <Tooltip title={deleteDeniedTooltip}>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleDeleteBinding(binding)}
-                                  title="Delete"
-                                  disabled={!canDelete}
-                                  color="primary"
-                                >
-                                  <DeleteIcon />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
+                  <FormControl
+                    variant="outlined"
+                    size="small"
+                    className={classes.filterSelect}
+                  >
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={filters.roleName || 'all'}
+                      onChange={e =>
+                        handleRoleFilterChange(e.target.value as string)
+                      }
+                      label="Role"
+                    >
+                      <MenuItem value="all">All Roles</MenuItem>
+                      {availableRoles.map(role => (
+                        <MenuItem
+                          key={`${role.name}-${role.namespace || ''}`}
+                          value={role.name}
+                        >
+                          {role.name}{' '}
+                          {role.namespace ? '(Namespace)' : '(Cluster)'}
+                        </MenuItem>
                       ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </>
-          )}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl
+                    variant="outlined"
+                    size="small"
+                    className={classes.filterSelect}
+                  >
+                    <InputLabel>Effect</InputLabel>
+                    <Select
+                      value={effectFilter}
+                      onChange={e => setEffectFilter(e.target.value as string)}
+                      label="Effect"
+                    >
+                      <MenuItem value="all">All Effects</MenuItem>
+                      <MenuItem value="allow">Allow</MenuItem>
+                      <MenuItem value="deny">Deny</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  {hasActiveFilters && (
+                    <Button
+                      size="small"
+                      startIcon={<ClearIcon />}
+                      onClick={handleClearFilters}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </Box>
+
+                {filteredBindings.length === 0 ? (
+                  <Box className={classes.emptyState}>
+                    <Typography variant="body1" color="textSecondary">
+                      {hasActiveFilters
+                        ? 'No namespace role bindings match your filters'
+                        : 'No namespace role bindings defined yet. Create your first binding to grant permissions.'}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <TableContainer
+                    component={Paper}
+                    className={classes.tableContainer}
+                  >
+                    <Table>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Binding Name</TableCell>
+                          <TableCell>Role</TableCell>
+                          <TableCell className={classes.entitlementCell}>
+                            Entitlement (claim=value)
+                          </TableCell>
+                          <TableCell>Effect</TableCell>
+                          <TableCell align="right">Actions</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {filteredBindings.map(binding => (
+                          <TableRow key={binding.name}>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {binding.name}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {binding.role.name}
+                                {binding.role.namespace && (
+                                  <Chip
+                                    label="Namespace"
+                                    size="small"
+                                    variant="outlined"
+                                    style={{ marginLeft: 8 }}
+                                  />
+                                )}
+                                {!binding.role.namespace && (
+                                  <Chip
+                                    label="Cluster"
+                                    size="small"
+                                    variant="outlined"
+                                    style={{ marginLeft: 8 }}
+                                  />
+                                )}
+                              </Typography>
+                            </TableCell>
+                            <TableCell className={classes.entitlementCell}>
+                              <Typography variant="body2">
+                                {binding.entitlement.claim}=
+                                {binding.entitlement.value}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={binding.effect.toUpperCase()}
+                                size="small"
+                                variant="outlined"
+                                className={`${classes.effectChip} ${
+                                  binding.effect === 'allow'
+                                    ? classes.allowChip
+                                    : classes.denyChip
+                                }`}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Tooltip title={updateDeniedTooltip}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleEditBinding(binding)}
+                                    title="Edit"
+                                    disabled={!canUpdate}
+                                    color="primary"
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                              <Tooltip title={deleteDeniedTooltip}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDeleteBinding(binding)}
+                                    title="Delete"
+                                    disabled={!canDelete}
+                                    color="primary"
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </>
+            )}
         </>
       )}
 
