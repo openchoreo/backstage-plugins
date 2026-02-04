@@ -23,4 +23,8 @@ export const useStyles = makeStyles(theme => ({
       fontSize: '14px !important',
     },
   },
+  verticalTabWrapper: {
+    height: '100%',
+    minHeight: 500,
+  },
 }));

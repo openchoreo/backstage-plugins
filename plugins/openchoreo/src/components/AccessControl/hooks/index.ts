@@ -21,3 +21,20 @@ export type {
   AuthMechanismConfig,
 } from './useUserTypes';
 export { useNamespaces, useProjects, useComponents } from './useHierarchyData';
+
+// Cluster/Namespace scoped roles and bindings
+export { useClusterRoles } from './useClusterRoles';
+export { useNamespaceRoles } from './useNamespaceRoles';
+export { useClusterRoleBindings } from './useClusterRoleBindings';
+export { useNamespaceRoleBindings } from './useNamespaceRoleBindings';
+
+// Re-export types from API
+export type {
+  ClusterRole,
+  NamespaceRole,
+  ClusterRoleBinding,
+  NamespaceRoleBinding,
+  NamespaceRoleBindingRequest,
+  ClusterRoleBindingFilters,
+  NamespaceRoleBindingFilters,
+} from '../../../api/OpenChoreoClientApi';

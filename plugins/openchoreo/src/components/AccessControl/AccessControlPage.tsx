@@ -48,7 +48,7 @@ const AccessControlPageContent = () => {
       visibleTabs.push({ id: 'roles', label: 'Roles' });
     }
     if (canViewMappings) {
-      visibleTabs.push({ id: 'mappings', label: 'Role Mappings' });
+      visibleTabs.push({ id: 'mappings', label: 'Role Bindings' });
     }
     visibleTabs.push({ id: 'actions', label: 'Actions' });
     return visibleTabs;

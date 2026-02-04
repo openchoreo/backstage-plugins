@@ -12,6 +12,7 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useActions, Role } from '../hooks';
+import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import { ActionSelectionDialog } from './ActionSelectionDialog';
 import { getActionDisplayLabel } from './actionUtils';
 
@@ -49,29 +50,38 @@ const useStyles = makeStyles(theme => ({
 const ROLE_TEMPLATES = {
   developer: {
     name: 'developer',
+    label: 'Developer',
     actions: [
       'component:view',
       'component:create',
       'component:update',
       'component:deploy',
+      'namespace:view',
+      'environment:view',
       'project:view',
     ],
   },
   viewer: {
     name: 'viewer',
+    label: 'Viewer',
     actions: ['component:view', 'project:view', 'namespace:view'],
   },
   admin: {
     name: 'admin',
+    label: 'Admin (All)',
     actions: ['*'],
   },
 };
 
+export type RoleScope = typeof SCOPE_CLUSTER | typeof SCOPE_NAMESPACE;
+
 interface RoleDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (role: Role) => Promise<void>;
-  editingRole?: Role;
+  onSave: (role: Role & { namespace?: string }) => Promise<void>;
+  editingRole?: Role & { namespace?: string };
+  scope?: RoleScope;
+  namespace?: string;
 }
 
 export const RoleDialog = ({
@@ -79,6 +89,8 @@ export const RoleDialog = ({
   onClose,
   onSave,
   editingRole,
+  scope = SCOPE_CLUSTER,
+  namespace,
 }: RoleDialogProps) => {
   const classes = useStyles();
   const { actions: availableActions, loading: actionsLoading } = useActions();
@@ -122,7 +134,14 @@ export const RoleDialog = ({
     try {
       setSaving(true);
       setError(null);
-      await onSave({ name: name.trim(), actions: selectedActions });
+      const roleData: Role & { namespace?: string } = {
+        name: name.trim(),
+        actions: selectedActions,
+      };
+      if (scope === SCOPE_NAMESPACE && namespace) {
+        roleData.namespace = namespace;
+      }
+      await onSave(roleData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save role');
     } finally {
@@ -144,7 +163,9 @@ export const RoleDialog = ({
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle disableTypography>
           <Typography variant="h4">
-            {editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Role'}
+            {editingRole
+              ? `Edit ${scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'} Role: ${editingRole.name}`
+              : `Create New ${scope === SCOPE_CLUSTER ? 'Cluster' : 'Namespace'} Role`}
           </Typography>
         </DialogTitle>
         <DialogContent>
@@ -152,30 +173,17 @@ export const RoleDialog = ({
             <Typography variant="subtitle2" gutterBottom>
               Quick Start Templates
             </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              className={classes.templateButton}
-              onClick={() => handleApplyTemplate('developer')}
-            >
-              Developer
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              className={classes.templateButton}
-              onClick={() => handleApplyTemplate('viewer')}
-            >
-              Viewer
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              className={classes.templateButton}
-              onClick={() => handleApplyTemplate('admin')}
-            >
-              Admin (All)
-            </Button>
+            {(Object.keys(ROLE_TEMPLATES) as (keyof typeof ROLE_TEMPLATES)[]).map(key => (
+              <Button
+                key={key}
+                variant="outlined"
+                size="small"
+                className={classes.templateButton}
+                onClick={() => handleApplyTemplate(key)}
+              >
+                {ROLE_TEMPLATES[key].label}
+              </Button>
+            ))}
           </Box>
 
           <TextField

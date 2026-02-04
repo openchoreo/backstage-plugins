@@ -13,6 +13,8 @@ import { WizardState } from './types';
 import { useNamespaces, useProjects, useComponents } from '../../hooks';
 import type { NamespaceSummary } from '../../../../api/OpenChoreoClientApi';
 import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
+import { BindingType } from '../MappingDialog';
+import { SCOPE_NAMESPACE } from '../../constants';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -72,18 +74,29 @@ const useStyles = makeStyles(theme => ({
 interface ScopeStepProps {
   state: WizardState;
   onChange: (updates: Partial<WizardState>) => void;
+  bindingType?: BindingType;
+  namespace?: string;
 }
 
-export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
+export const ScopeStep = ({
+  state,
+  onChange,
+  bindingType = 'mapping',
+  namespace,
+}: ScopeStepProps) => {
   const classes = useStyles();
+
+  // For namespace bindings, use the passed namespace instead of state.namespace
+  const effectiveNamespace =
+    bindingType === SCOPE_NAMESPACE ? namespace : state.namespace;
 
   // Hierarchy data hooks
   const { namespaces, loading: namespacesLoading } = useNamespaces();
   const { projects, loading: projectsLoading } = useProjects(
-    state.namespace || undefined,
+    effectiveNamespace || undefined,
   );
   const { components, loading: componentsLoading } = useComponents(
-    state.namespace || undefined,
+    effectiveNamespace || undefined,
     state.project || undefined,
   );
 
@@ -121,11 +134,17 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
 
   const getScopePath = (): string => {
     if (state.scopeType === 'global') {
-      return '*';
+      return bindingType === SCOPE_NAMESPACE ? `${effectiveNamespace}/*` : '*';
     }
 
     const parts: string[] = [];
-    if (state.namespace) parts.push(state.namespace);
+    // For namespace bindings, always include the namespace from props
+    if (bindingType === SCOPE_NAMESPACE && effectiveNamespace) {
+      parts.push(effectiveNamespace);
+    } else if (state.namespace) {
+      parts.push(state.namespace);
+    }
+
     if (state.project) parts.push(state.project);
     if (state.component) {
       parts.push(state.component);
@@ -133,7 +152,7 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
       parts.push('*');
     }
 
-    return parts.join('/') || '*';
+    return parts.join('/') || (bindingType === SCOPE_NAMESPACE && effectiveNamespace ? `${effectiveNamespace}/*` : '*');
   };
 
   return (
@@ -143,7 +162,9 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
       </Typography>
 
       <Typography variant="body2" className={classes.subtitle}>
-        Define the scope of resources this mapping affects
+        {bindingType === SCOPE_NAMESPACE
+          ? `Define the scope within namespace "${effectiveNamespace}"`
+          : 'Define the scope of resources this mapping affects'}
       </Typography>
 
       <Box className={classes.scopeTypeSection}>
@@ -156,57 +177,68 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
           <FormControlLabel
             value="global"
             control={<Radio color="primary" size="small" />}
-            label="Everywhere (global scope)"
+            label={
+              bindingType === SCOPE_NAMESPACE
+                ? 'Entire namespace (all projects and components)'
+                : 'Everywhere (global scope)'
+            }
           />
           <FormControlLabel
             value="specific"
             control={<Radio color="primary" size="small" />}
-            label="Specific scope (namespace, project, or component)"
+            label={
+              bindingType === SCOPE_NAMESPACE
+                ? 'Specific project or component'
+                : 'Specific scope (namespace, project, or component)'
+            }
           />
         </RadioGroup>
       </Box>
 
       {state.scopeType === 'specific' && (
         <Box className={classes.hierarchySection}>
-          <Box className={classes.fieldGroup}>
-            <Typography className={classes.fieldLabel}>Namespace</Typography>
-            <Autocomplete
-              freeSolo
-              options={namespaces.map((ns: NamespaceSummary) => ns.name)}
-              value={state.namespace}
-              onChange={(_, value) => handleNamespaceChange(value)}
-              onInputChange={(_, value, reason) => {
-                if (reason === 'input') {
-                  handleNamespaceChange(value);
-                }
-              }}
-              loading={namespacesLoading}
-              renderInput={params => (
-                <TextField
-                  {...params}
-                  variant="outlined"
-                  size="small"
-                  placeholder="Select or type namespace"
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {namespacesLoading && (
-                          <CircularProgress color="inherit" size={20} />
-                        )}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
-          </Box>
+          {/* Only show namespace field for mappings, not for namespace bindings */}
+          {bindingType !== SCOPE_NAMESPACE && (
+            <Box className={classes.fieldGroup}>
+              <Typography className={classes.fieldLabel}>Namespace</Typography>
+              <Autocomplete
+                freeSolo
+                options={namespaces.map((ns: NamespaceSummary) => ns.name)}
+                value={state.namespace}
+                onChange={(_, value) => handleNamespaceChange(value)}
+                onInputChange={(_, value, reason) => {
+                  if (reason === 'input') {
+                    handleNamespaceChange(value);
+                  }
+                }}
+                loading={namespacesLoading}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    variant="outlined"
+                    size="small"
+                    placeholder="Select or type namespace"
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {namespacesLoading && (
+                            <CircularProgress color="inherit" size={20} />
+                          )}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </Box>
+          )}
 
           <Box className={classes.fieldGroup}>
             <Typography className={classes.fieldLabel}>Project</Typography>
             <Typography className={classes.fieldHint}>
-              {state.namespace
+              {effectiveNamespace
                 ? 'Leave empty to apply to all projects'
                 : 'Select a namespace first'}
             </Typography>
@@ -220,14 +252,16 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
                   handleProjectChange(value);
                 }
               }}
-              disabled={!state.namespace}
+              disabled={!effectiveNamespace}
               loading={projectsLoading}
               renderInput={params => (
                 <TextField
                   {...params}
                   variant="outlined"
                   size="small"
-                  placeholder={state.namespace ? 'Select or type project' : ''}
+                  placeholder={
+                    effectiveNamespace ? 'Select or type project' : ''
+                  }
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
@@ -248,7 +282,7 @@ export const ScopeStep = ({ state, onChange }: ScopeStepProps) => {
             <Typography className={classes.fieldLabel}>Component</Typography>
             <Typography className={classes.fieldHint}>
               {state.project
-                ? 'Leave empty to apply to all components'
+                ? 'Leave empty to apply to all components in the project'
                 : 'Select a project first'}
             </Typography>
             <Autocomplete

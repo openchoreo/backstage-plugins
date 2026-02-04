@@ -27,6 +27,14 @@ import type {
   GitSecretsListResponse,
   PlatformResourceKind,
   ResourceCRUDResponse,
+  ClusterRole,
+  NamespaceRole,
+  ClusterRoleBinding,
+  ClusterRoleBindingRequest,
+  NamespaceRoleBinding,
+  NamespaceRoleBindingRequest,
+  ClusterRoleBindingFilters,
+  NamespaceRoleBindingFilters,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -71,6 +79,9 @@ const API_ENDPOINTS = {
   ENTITY_ANNOTATIONS: '/entity-annotations',
   // Platform resource definition endpoint
   PLATFORM_RESOURCE_DEFINITION: '/platform-resource/definition',
+  // Cluster/Namespace scoped authorization endpoints
+  CLUSTER_ROLES: '/clusterroles',
+  CLUSTER_ROLE_BINDINGS: '/clusterrolebindings',
 } as const;
 
 // ============================================
@@ -836,6 +847,53 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       )}/projects/${encodeURIComponent(
         project,
       )}/components/${encodeURIComponent(component)}`,
+    );
+  }
+  // Cluster Roles Operations
+  // ============================================
+
+  async listClusterRoles(): Promise<ClusterRole[]> {
+    const response = await this.apiFetch<{ data: ClusterRole[] }>(
+      API_ENDPOINTS.CLUSTER_ROLES,
+    );
+    return response.data || [];
+  }
+
+  async getClusterRole(name: string): Promise<ClusterRole> {
+    const response = await this.apiFetch<{ data: ClusterRole }>(
+      `${API_ENDPOINTS.CLUSTER_ROLES}/${encodeURIComponent(name)}`,
+    );
+    return response.data;
+  }
+
+  async createClusterRole(role: ClusterRole): Promise<ClusterRole> {
+    const response = await this.apiFetch<{ data: ClusterRole }>(
+      API_ENDPOINTS.CLUSTER_ROLES,
+      {
+        method: 'POST',
+        body: role,
+      },
+    );
+    return response.data;
+  }
+
+  async updateClusterRole(
+    name: string,
+    role: Partial<ClusterRole>,
+  ): Promise<ClusterRole> {
+    const response = await this.apiFetch<{ data: ClusterRole }>(
+      `${API_ENDPOINTS.CLUSTER_ROLES}/${encodeURIComponent(name)}`,
+      {
+        method: 'PUT',
+        body: role,
+      },
+    );
+    return response.data;
+  }
+
+  async deleteClusterRole(name: string): Promise<void> {
+    await this.apiFetch(
+      `${API_ENDPOINTS.CLUSTER_ROLES}/${encodeURIComponent(name)}`,
       {
         method: 'DELETE',
       },
@@ -888,6 +946,213 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       `/namespaces/${encodeURIComponent(
         namespaceName,
       )}/projects/${encodeURIComponent(project)}`,
+    );
+  }
+  // ============================================
+  // Namespace Roles Operations
+  // ============================================
+
+  async listNamespaceRoles(namespace: string): Promise<NamespaceRole[]> {
+    const response = await this.apiFetch<{ data: NamespaceRole[] }>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/roles`,
+    );
+    return response.data || [];
+  }
+
+  async getNamespaceRole(
+    namespace: string,
+    name: string,
+  ): Promise<NamespaceRole> {
+    const response = await this.apiFetch<{ data: NamespaceRole }>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/roles/${encodeURIComponent(name)}`,
+    );
+    return response.data;
+  }
+
+  async createNamespaceRole(role: NamespaceRole): Promise<NamespaceRole> {
+    const response = await this.apiFetch<{ data: NamespaceRole }>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(role.namespace)}/roles`,
+      {
+        method: 'POST',
+        body: role,
+      },
+    );
+    return response.data;
+  }
+
+  async updateNamespaceRole(
+    namespace: string,
+    name: string,
+    role: Partial<NamespaceRole>,
+  ): Promise<NamespaceRole> {
+    const response = await this.apiFetch<{ data: NamespaceRole }>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/roles/${encodeURIComponent(name)}`,
+      {
+        method: 'PUT',
+        body: role,
+      },
+    );
+    return response.data;
+  }
+
+  async deleteNamespaceRole(namespace: string, name: string): Promise<void> {
+    await this.apiFetch(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/roles/${encodeURIComponent(name)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  }
+
+  // ============================================
+  // Cluster Role Bindings Operations
+  // ============================================
+
+  async listClusterRoleBindings(
+    filters?: ClusterRoleBindingFilters,
+  ): Promise<ClusterRoleBinding[]> {
+    const params = new URLSearchParams();
+    if (filters?.roleName) {
+      params.set('roleName', filters.roleName);
+    }
+    if (filters?.claim) {
+      params.set('claim', filters.claim);
+    }
+    if (filters?.value) {
+      params.set('value', filters.value);
+    }
+    if (filters?.effect) {
+      params.set('effect', filters.effect);
+    }
+    const queryString = params.toString();
+    const url = queryString
+      ? `${API_ENDPOINTS.CLUSTER_ROLE_BINDINGS}?${queryString}`
+      : API_ENDPOINTS.CLUSTER_ROLE_BINDINGS;
+
+    const response = await this.apiFetch<{ data: ClusterRoleBinding[] }>(url);
+    return response.data || [];
+  }
+
+  async getClusterRoleBinding(name: string): Promise<ClusterRoleBinding> {
+    const response = await this.apiFetch<{ data: ClusterRoleBinding }>(
+      `${API_ENDPOINTS.CLUSTER_ROLE_BINDINGS}/${encodeURIComponent(name)}`,
+    );
+    return response.data;
+  }
+
+  async createClusterRoleBinding(
+    binding: ClusterRoleBindingRequest,
+  ): Promise<ClusterRoleBinding> {
+    const response = await this.apiFetch<{ data: ClusterRoleBinding }>(
+      API_ENDPOINTS.CLUSTER_ROLE_BINDINGS,
+      {
+        method: 'POST',
+        body: binding,
+      },
+    );
+    return response.data;
+  }
+
+  async updateClusterRoleBinding(
+    name: string,
+    binding: Partial<ClusterRoleBindingRequest>,
+  ): Promise<ClusterRoleBinding> {
+    const response = await this.apiFetch<{ data: ClusterRoleBinding }>(
+      `${API_ENDPOINTS.CLUSTER_ROLE_BINDINGS}/${encodeURIComponent(name)}`,
+      {
+        method: 'PUT',
+        body: binding,
+      },
+    );
+    return response.data;
+  }
+
+  async deleteClusterRoleBinding(name: string): Promise<void> {
+    await this.apiFetch(
+      `${API_ENDPOINTS.CLUSTER_ROLE_BINDINGS}/${encodeURIComponent(name)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+  }
+
+  // ============================================
+  // Namespace Role Bindings Operations
+  // ============================================
+
+  async listNamespaceRoleBindings(
+    namespace: string,
+    filters?: NamespaceRoleBindingFilters,
+  ): Promise<NamespaceRoleBinding[]> {
+    const params = new URLSearchParams();
+    if (filters?.roleName) {
+      params.set('roleName', filters.roleName);
+    }
+    if (filters?.roleNamespace) {
+      params.set('roleNamespace', filters.roleNamespace);
+    }
+    if (filters?.claim) {
+      params.set('claim', filters.claim);
+    }
+    if (filters?.value) {
+      params.set('value', filters.value);
+    }
+    if (filters?.effect) {
+      params.set('effect', filters.effect);
+    }
+    const queryString = params.toString();
+    const baseUrl = `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings`;
+    const url = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+
+    const response = await this.apiFetch<{ data: NamespaceRoleBinding[] }>(url);
+    return response.data || [];
+  }
+
+  async getNamespaceRoleBinding(
+    namespace: string,
+    name: string,
+  ): Promise<NamespaceRoleBinding> {
+    const response = await this.apiFetch<{ data: NamespaceRoleBinding }>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings/${encodeURIComponent(name)}`,
+    );
+    return response.data;
+  }
+
+  async createNamespaceRoleBinding(
+    namespace: string,
+    binding: NamespaceRoleBindingRequest,
+  ): Promise<NamespaceRoleBinding> {
+    const response = await this.apiFetch<{ data: NamespaceRoleBinding }>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings`,
+      {
+        method: 'POST',
+        body: binding,
+      },
+    );
+    return response.data;
+  }
+
+  async updateNamespaceRoleBinding(
+    namespace: string,
+    name: string,
+    binding: NamespaceRoleBindingRequest,
+  ): Promise<NamespaceRoleBinding> {
+    const response = await this.apiFetch<{ data: NamespaceRoleBinding }>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings/${encodeURIComponent(name)}`,
+      {
+        method: 'PUT',
+        body: binding,
+      },
+    );
+    return response.data;
+  }
+
+  async deleteNamespaceRoleBinding(
+    namespace: string,
+    name: string,
+  ): Promise<void> {
+    await this.apiFetch(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(namespace)}/rolebindings/${encodeURIComponent(name)}`,
       {
         method: 'DELETE',
       },
