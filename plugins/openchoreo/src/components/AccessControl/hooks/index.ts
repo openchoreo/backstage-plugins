@@ -1,13 +1,3 @@
-export { useRoles } from './useRoles';
-export type { Role } from './useRoles';
-export { useMappings } from './useMappings';
-export type {
-  RoleEntitlementMapping,
-  RoleMappingFilters,
-  Entitlement,
-  ResourceHierarchy,
-  PolicyEffect,
-} from './useMappings';
 export { useActions } from './useActions';
 export {
   useUserTypes,
@@ -37,4 +27,5 @@ export type {
   NamespaceRoleBindingRequest,
   ClusterRoleBindingFilters,
   NamespaceRoleBindingFilters,
+  PolicyEffect,
 } from '../../../api/OpenChoreoClientApi';

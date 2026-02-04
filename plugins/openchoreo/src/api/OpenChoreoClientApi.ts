@@ -111,46 +111,12 @@ export interface SecretReferencesResponse {
 }
 
 /** Authorization types */
-export interface AuthzRole {
-  name: string;
-  actions: string[];
-  namespace?: string;
-}
-
 export interface Entitlement {
   claim: string;
   value: string;
 }
 
-export interface ResourceHierarchy {
-  namespace?: string;
-  organization_units?: string[];
-  project?: string;
-  component?: string;
-}
-
 export type PolicyEffect = 'allow' | 'deny';
-
-export interface RoleEntitlementMapping {
-  id?: number;
-  role: RoleEntitlementMappingRoleRef;
-  entitlement: Entitlement;
-  hierarchy: ResourceHierarchy;
-  effect: PolicyEffect;
-  context?: Record<string, unknown>;
-}
-
-export interface RoleEntitlementMappingRoleRef {
-  name: string;
-  namespace?: string;
-}
-
-/** Filters for listing role mappings */
-export interface RoleMappingFilters {
-  role?: string;
-  claim?: string;
-  value?: string;
-}
 
 // ============================================
 // Cluster & Namespace Scoped Authorization Types
@@ -456,43 +422,6 @@ export interface OpenChoreoClientApi {
   ): Promise<ComponentTrait[]>;
 
   // === Authorization Operations ===
-
-  /** List all roles */
-  listRoles(): Promise<AuthzRole[]>;
-
-  /** Get a specific role */
-  getRole(name: string): Promise<AuthzRole>;
-
-  /** Create a new role */
-  addRole(role: AuthzRole): Promise<AuthzRole>;
-
-  /** Update an existing role's actions */
-  updateRole(name: string, actions: string[]): Promise<AuthzRole>;
-
-  /** Delete a role. Use force=true to delete even if role has mappings */
-  deleteRole(name: string, force?: boolean): Promise<void>;
-
-  /** List role mappings with optional filters */
-  listRoleMappings(
-    filters?: RoleMappingFilters,
-  ): Promise<RoleEntitlementMapping[]>;
-
-  /** Get all role mappings for a specific role */
-  getRoleMappingsForRole(roleName: string): Promise<RoleEntitlementMapping[]>;
-
-  /** Create a new role mapping */
-  addRoleMapping(
-    mapping: RoleEntitlementMapping,
-  ): Promise<RoleEntitlementMapping>;
-
-  /** Update an existing role mapping */
-  updateRoleMapping(
-    mappingId: number,
-    mapping: RoleEntitlementMapping,
-  ): Promise<RoleEntitlementMapping>;
-
-  /** Delete a role mapping */
-  deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void>;
 
   /** List all available actions */
   listActions(): Promise<string[]>;
