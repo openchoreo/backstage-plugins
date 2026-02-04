@@ -6,6 +6,7 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import { Progress } from '@backstage/core-components';
 import { useRolePermissions } from '@openchoreo/backstage-plugin-react';
 import { useNamespaceRoles, NamespaceRole } from '../hooks';
+import type { RoleInput } from './RoleDialog';
 import { useNotification } from '../../../hooks';
 import { NotificationBanner } from '../../Environments/components';
 import { SCOPE_NAMESPACE } from '../constants';
@@ -60,7 +61,7 @@ export const NamespaceRolesContent = () => {
   };
 
   const handleEditRole = (role: { name: string; actions: string[] }) => {
-    setEditingRole({ ...role, namespace: selectedNamespace } as NamespaceRole);
+    setEditingRole({ ...role, namespace: selectedNamespace });
     setDialogOpen(true);
   };
 
@@ -75,11 +76,11 @@ export const NamespaceRolesContent = () => {
     }
   };
 
-  const handleSaveRole = async (role: { name: string; actions: string[]; namespace?: string }) => {
+  const handleSaveRole = async (role: RoleInput) => {
     if (editingRole) {
       await updateRole(role.name, { actions: role.actions });
     } else {
-      await addRole({ ...role, namespace: selectedNamespace } as NamespaceRole);
+      await addRole(role as NamespaceRole);
     }
     setDialogOpen(false);
     setEditingRole(undefined);

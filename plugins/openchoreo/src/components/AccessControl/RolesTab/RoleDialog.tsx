@@ -11,7 +11,7 @@ import {
   Chip,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { useActions, Role } from '../hooks';
+import { useActions, ClusterRole, NamespaceRole } from '../hooks';
 import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import { ActionSelectionDialog } from './ActionSelectionDialog';
 import { getActionDisplayLabel } from './actionUtils';
@@ -74,12 +74,13 @@ const ROLE_TEMPLATES = {
 };
 
 export type RoleScope = typeof SCOPE_CLUSTER | typeof SCOPE_NAMESPACE;
+export type RoleInput = ClusterRole | NamespaceRole;
 
 interface RoleDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (role: Role & { namespace?: string }) => Promise<void>;
-  editingRole?: Role & { namespace?: string };
+  onSave: (role: RoleInput) => Promise<void>;
+  editingRole?: RoleInput;
   scope?: RoleScope;
   namespace?: string;
 }
@@ -134,13 +135,10 @@ export const RoleDialog = ({
     try {
       setSaving(true);
       setError(null);
-      const roleData: Role & { namespace?: string } = {
-        name: name.trim(),
-        actions: selectedActions,
-      };
-      if (scope === SCOPE_NAMESPACE && namespace) {
-        roleData.namespace = namespace;
-      }
+      const roleData: RoleInput =
+        scope === SCOPE_NAMESPACE && namespace
+          ? { name: name.trim(), actions: selectedActions, namespace }
+          : { name: name.trim(), actions: selectedActions };
       await onSave(roleData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save role');

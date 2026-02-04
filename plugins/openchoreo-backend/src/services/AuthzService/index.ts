@@ -1,8 +1,2 @@
 export { AuthzService } from './AuthzService';
-export type {
-  Role,
-  Entitlement,
-  ResourceHierarchy,
-  RoleEntitlementMapping,
-  UserTypeConfig,
-} from './AuthzService';
+export type { Entitlement, UserTypeConfig } from './AuthzService';

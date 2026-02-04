@@ -81,7 +81,7 @@ interface ScopeStepProps {
 export const ScopeStep = ({
   state,
   onChange,
-  bindingType = 'mapping',
+  bindingType,
   namespace,
 }: ScopeStepProps) => {
   const classes = useStyles();

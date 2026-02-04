@@ -16,9 +16,6 @@ import type {
   SecretReferencesResponse,
   BuildLogsParams,
   ComponentTrait,
-  AuthzRole,
-  RoleEntitlementMapping,
-  RoleMappingFilters,
   UserTypeConfig,
   NamespaceSummary,
   ProjectSummary,
@@ -65,8 +62,6 @@ const API_ENDPOINTS = {
   BUILDS: '/builds',
   COMPONENT_TRAITS: '/component-traits',
   // Authorization endpoints
-  AUTHZ_ROLES: '/authz/roles',
-  AUTHZ_ROLE_MAPPINGS: '/authz/role-mappings',
   AUTHZ_ACTIONS: '/authz/actions',
   // Configuration endpoints
   USER_TYPES: '/user-types',
@@ -669,114 +664,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // ============================================
   // Authorization Operations
   // ============================================
-
-  async listRoles(): Promise<AuthzRole[]> {
-    const response = await this.apiFetch<{ data: AuthzRole[] }>(
-      API_ENDPOINTS.AUTHZ_ROLES,
-    );
-    return response.data || [];
-  }
-
-  async getRole(name: string): Promise<AuthzRole> {
-    const response = await this.apiFetch<{ data: AuthzRole }>(
-      `${API_ENDPOINTS.AUTHZ_ROLES}/${encodeURIComponent(name)}`,
-    );
-    return response.data;
-  }
-
-  async addRole(role: AuthzRole): Promise<AuthzRole> {
-    const response = await this.apiFetch<{ data: AuthzRole }>(
-      API_ENDPOINTS.AUTHZ_ROLES,
-      {
-        method: 'POST',
-        body: role,
-      },
-    );
-    return response.data;
-  }
-
-  async updateRole(name: string, actions: string[]): Promise<AuthzRole> {
-    const response = await this.apiFetch<{ data: AuthzRole }>(
-      `${API_ENDPOINTS.AUTHZ_ROLES}/${encodeURIComponent(name)}`,
-      {
-        method: 'PUT',
-        body: { actions },
-      },
-    );
-    return response.data;
-  }
-
-  async deleteRole(name: string, force?: boolean): Promise<void> {
-    const queryString = force ? '?force=true' : '';
-    await this.apiFetch(
-      `${API_ENDPOINTS.AUTHZ_ROLES}/${encodeURIComponent(name)}${queryString}`,
-      {
-        method: 'DELETE',
-      },
-    );
-  }
-
-  async listRoleMappings(
-    filters?: RoleMappingFilters,
-  ): Promise<RoleEntitlementMapping[]> {
-    const params = new URLSearchParams();
-    if (filters?.role) {
-      params.set('role', filters.role);
-    }
-    if (filters?.claim && filters?.value) {
-      params.set('claim', filters.claim);
-      params.set('value', filters.value);
-    }
-    const queryString = params.toString();
-    const url = queryString
-      ? `${API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS}?${queryString}`
-      : API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS;
-
-    const response = await this.apiFetch<{ data: RoleEntitlementMapping[] }>(
-      url,
-    );
-    return response.data || [];
-  }
-
-  async getRoleMappingsForRole(
-    roleName: string,
-  ): Promise<RoleEntitlementMapping[]> {
-    return this.listRoleMappings({ role: roleName });
-  }
-
-  async addRoleMapping(
-    mapping: RoleEntitlementMapping,
-  ): Promise<RoleEntitlementMapping> {
-    const response = await this.apiFetch<{ data: RoleEntitlementMapping }>(
-      API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS,
-      {
-        method: 'POST',
-        body: mapping,
-      },
-    );
-    return response.data;
-  }
-
-  async updateRoleMapping(
-    mappingId: number,
-    mapping: RoleEntitlementMapping,
-  ): Promise<RoleEntitlementMapping> {
-    const response = await this.apiFetch<{ data: RoleEntitlementMapping }>(
-      `${API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS}/${mappingId}`,
-      {
-        method: 'PUT',
-        body: mapping,
-      },
-    );
-    return response.data;
-  }
-
-  async deleteRoleMapping(mapping: RoleEntitlementMapping): Promise<void> {
-    await this.apiFetch(API_ENDPOINTS.AUTHZ_ROLE_MAPPINGS, {
-      method: 'DELETE',
-      body: mapping,
-    });
-  }
 
   async listActions(): Promise<string[]> {
     const response = await this.apiFetch<{ data: string[] }>(

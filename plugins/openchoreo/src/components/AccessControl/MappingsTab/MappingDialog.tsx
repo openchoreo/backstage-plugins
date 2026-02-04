@@ -12,10 +12,9 @@ import { makeStyles } from '@material-ui/core/styles';
 import {
   useUserTypes,
   getEntitlementClaim,
-  Role,
-  RoleEntitlementMapping,
   ClusterRoleBinding,
   NamespaceRoleBinding,
+  ClusterRole,
 } from '../hooks';
 import { ClusterRoleBindingRequest, NamespaceRoleBindingRequest } from '../../../api/OpenChoreoClientApi';
 import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
@@ -58,16 +57,15 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export type BindingType = 'mapping' | typeof SCOPE_CLUSTER | typeof SCOPE_NAMESPACE;
+export type BindingType = typeof SCOPE_CLUSTER | typeof SCOPE_NAMESPACE;
 
 interface MappingDialogProps {
   open: boolean;
   onClose: () => void;
   onSave: (
-    mapping: RoleEntitlementMapping | ClusterRoleBinding | NamespaceRoleBinding | any,
+    binding: ClusterRoleBinding | NamespaceRoleBinding | any,
   ) => Promise<void>;
-  availableRoles: (Role & { isClusterRole?: boolean })[];
-  editingMapping?: RoleEntitlementMapping;
+  availableRoles: ClusterRole[];
   editingBinding?: ClusterRoleBinding | NamespaceRoleBinding;
   bindingType?: BindingType;
   namespace?: string;
@@ -78,7 +76,6 @@ export const MappingDialog = ({
   onClose,
   onSave,
   availableRoles,
-  editingMapping,
   editingBinding,
   bindingType,
   namespace,
@@ -93,7 +90,7 @@ export const MappingDialog = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isEditMode = !!editingMapping || !!editingBinding;
+  const isEditMode = !!editingBinding;
 
   // steps to include based on binding type
   const activeSteps = bindingType === SCOPE_CLUSTER
@@ -139,11 +136,10 @@ export const MappingDialog = ({
           setWizardState(baseState);
         }
       } else {
-        // Reset for new mapping/binding
         setWizardState(createInitialWizardState(userTypes));
       }
     }
-  }, [open, editingMapping, editingBinding, userTypes, bindingType]);
+  }, [open, editingBinding, userTypes, bindingType]);
 
   const handleStateChange = useCallback((updates: Partial<WizardState>) => {
     setWizardState(prev => ({ ...prev, ...updates }));
@@ -224,25 +220,6 @@ export const MappingDialog = ({
           effect: wizardState.effect,
         };
         await onSave(binding);
-      } else {
-        // Create role entitlement mapping (original behavior)
-        const mapping: RoleEntitlementMapping = {
-          role: { name: wizardState.selectedRole },
-          entitlement: {
-            claim: entitlementClaim,
-            value: wizardState.entitlementValue.trim(),
-          },
-          hierarchy:
-            wizardState.scopeType === 'global'
-              ? {}
-              : {
-                  namespace: wizardState.namespace || undefined,
-                  project: wizardState.project || undefined,
-                  component: wizardState.component || undefined,
-                },
-          effect: wizardState.effect,
-        };
-        await onSave(mapping);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
@@ -286,15 +263,8 @@ export const MappingDialog = ({
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle disableTypography className={classes.dialogTitle}>
         <Typography variant="h4">
-          {(() => {
-            let typeLabel = 'Role Mapping';
-            if (bindingType === SCOPE_CLUSTER) {
-              typeLabel = 'Cluster Role Binding';
-            } else if (bindingType === SCOPE_NAMESPACE) {
-              typeLabel = 'Namespace Role Binding';
-            }
-            return isEditMode ? `Edit ${typeLabel}` : `Create ${typeLabel}`;
-          })()}
+          {isEditMode ? 'Edit' : 'Create'}{' '}
+          {bindingType === SCOPE_CLUSTER ? 'Cluster Role Binding' : 'Namespace Role Binding'}
         </Typography>
         <IconButton
           className={classes.closeButton}

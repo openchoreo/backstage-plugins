@@ -15,7 +15,7 @@ import {
 import { RolesTab } from './RolesTab';
 import { MappingsTab } from './MappingsTab';
 import { ActionsTab } from './ActionsTab';
-import { useRoles } from './hooks/useRoles';
+import { useClusterRoles } from './hooks';
 import { useStyles } from './styles';
 
 const isAuthzDisabledError = (error: Error | null): boolean => {
@@ -32,7 +32,7 @@ const isAuthzDisabledError = (error: Error | null): boolean => {
 const AccessControlPageContent = () => {
   const classes = useStyles();
   const [selectedTab, setSelectedTab] = useState(0);
-  const { error: rolesError, loading: rolesLoading } = useRoles();
+  const { error: rolesError, loading: rolesLoading } = useClusterRoles();
   const { canView: canViewRoles, loading: rolesPermissionLoading } =
     useRolePermissions();
   const { canView: canViewMappings, loading: mappingsPermissionLoading } =
