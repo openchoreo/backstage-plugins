@@ -60,7 +60,10 @@ import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import BuildIcon from '@material-ui/icons/Build';
-import { AccessControlPage, GitSecretsPage } from '@openchoreo/backstage-plugin';
+import {
+  AccessControlPage,
+  GitSecretsPage,
+} from '@openchoreo/backstage-plugin';
 import CategoryIcon from '@material-ui/icons/Category';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';

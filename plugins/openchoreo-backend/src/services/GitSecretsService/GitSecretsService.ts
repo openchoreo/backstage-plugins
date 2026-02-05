@@ -61,7 +61,9 @@ export class GitSecretsService {
       // Extract the list response data
       const listData = data.data as GitSecretListResponse;
       this.logger.debug(
-        `Successfully listed ${listData.items?.length || 0} git secrets for namespace: ${namespaceName}`,
+        `Successfully listed ${
+          listData.items?.length || 0
+        } git secrets for namespace: ${namespaceName}`,
       );
       return listData;
     } catch (err) {
