@@ -58,8 +58,8 @@ export const catalogModuleOpenchoreo = createBackendModule({
         config: coreServices.rootConfig,
         logger: coreServices.logger,
         scheduler: coreServices.scheduler,
-        database: coreServices.database,
         tokenService: openChoreoTokenServiceRef,
+        annotationStore: annotationStoreRef,
       },
       async init({
         catalog,
@@ -67,8 +67,8 @@ export const catalogModuleOpenchoreo = createBackendModule({
         config,
         logger,
         scheduler,
-        database,
         tokenService,
+        annotationStore,
       }) {
         const openchoreoConfig = config.getOptionalConfig('openchoreo');
         const frequency =
@@ -81,15 +81,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
           timeout: { seconds: timeout },
         });
 
-        // Initialize the annotation store with database migration
-        const knex = await database.getClient();
-        await applyAnnotationStoreMigrations(knex);
-        annotationStoreInstance = new DatabaseAnnotationStore(knex);
-
         // Register the custom annotation processor (merges user-defined annotations)
-        catalog.addProcessor(
-          new CustomAnnotationProcessor(annotationStoreInstance),
-        );
+        // Uses the shared annotation store from the factory
+        catalog.addProcessor(new CustomAnnotationProcessor(annotationStore));
 
         // Register the Environment entity processor
         catalog.addProcessor(new EnvironmentEntityProcessor());
@@ -176,23 +170,37 @@ export const immediateCatalogServiceFactory = createServiceFactory({
 /**
  * Factory for the AnnotationStore.
  * Provides the annotation store service to other plugins (e.g., openchoreo-backend).
- * Uses the singleton instance created during module initialization, or creates a new one
- * with its own database connection if the module hasn't initialized yet.
+ *
+ * IMPORTANT: This factory explicitly uses the 'catalog' plugin's database to ensure
+ * all plugins share the same annotation data. The catalog module also depends on
+ * this service, creating a shared instance.
  */
 export const annotationStoreFactory = createServiceFactory({
   service: annotationStoreRef,
   deps: {
-    database: coreServices.database,
+    rootConfig: coreServices.rootConfig,
+    logger: coreServices.logger,
+    lifecycle: coreServices.rootLifecycle,
   },
-  async factory({ database }): Promise<AnnotationStore> {
+  async factory({ rootConfig, logger, lifecycle }): Promise<AnnotationStore> {
     if (annotationStoreInstance) {
       return annotationStoreInstance;
     }
 
-    // Fallback: create a new instance if module hasn't initialized yet
-    const knex = await database.getClient();
+    // Use DatabaseManager to explicitly get the catalog plugin's database
+    const { DatabaseManager } = await import(
+      '@backstage/backend-defaults/database'
+    );
+    const databaseManager = DatabaseManager.fromConfig(rootConfig);
+    const catalogDb = databaseManager.forPlugin('catalog', {
+      logger,
+      lifecycle,
+    });
+    const knex = await catalogDb.getClient();
+
     await applyAnnotationStoreMigrations(knex);
     annotationStoreInstance = new DatabaseAnnotationStore(knex);
+
     return annotationStoreInstance;
   },
 });

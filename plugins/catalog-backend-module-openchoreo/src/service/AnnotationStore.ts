@@ -125,6 +125,12 @@ export class DatabaseAnnotationStore implements AnnotationStore {
 /**
  * Service reference for the AnnotationStore.
  * This can be injected into other backend modules/plugins.
+ *
+ * NOTE: scope is 'plugin' which means each plugin gets its own instance.
+ * However, the annotationStoreFactory uses a module-level singleton pattern
+ * to ensure all plugins share the same database connection. The singleton
+ * is initialized by the catalog module during startup and reused by other
+ * plugins (like openchoreo-backend).
  */
 export const annotationStoreRef = createServiceRef<AnnotationStore>({
   id: 'openchoreo.annotation-store',
