@@ -106,9 +106,18 @@ import {
   ObservabilityRuntimeLogs,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
-import { FeatureGate } from '@openchoreo/backstage-plugin-react';
+import {
+  FeatureGate,
+  AnnotationGatedContent,
+} from '@openchoreo/backstage-plugin-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
 import { CustomGraphNode } from './CustomGraphNode';
+import { CIStatusCards } from './CIStatusCards';
+
+// External CI Platform imports
+import { EntityJenkinsContent } from '@backstage-community/plugin-jenkins';
+import { EntityGithubActionsContent } from '@backstage-community/plugin-github-actions';
+import { EntityGitlabContent } from '@immobiliarelabs/backstage-plugin-gitlab';
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -171,6 +180,8 @@ function OverviewContent() {
               <RuntimeHealthCard />
             </Grid>
           </FeatureGate>
+          {/* External CI Status Cards - annotation gated */}
+          <CIStatusCards />
         </EntitySwitch.Case>
       </EntitySwitch>
       <Grid item md={6}>
@@ -256,6 +267,37 @@ const serviceEntityPage = (
     <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
     </EntityLayout.Route>
+
+    {/* External CI Platform Tabs - annotation gated */}
+    <EntityLayout.Route path="/jenkins" title="Jenkins">
+      <AnnotationGatedContent
+        annotation="jenkins.io/job-full-name"
+        missingAnnotationTitle="Jenkins Not Configured"
+        missingAnnotationDescription="Add the jenkins.io/job-full-name annotation to this entity to view Jenkins builds."
+      >
+        <EntityJenkinsContent />
+      </AnnotationGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/github-actions" title="GitHub Actions">
+      <AnnotationGatedContent
+        annotation="github.com/project-slug"
+        missingAnnotationTitle="GitHub Actions Not Configured"
+        missingAnnotationDescription="Add the github.com/project-slug annotation to this entity to view GitHub Actions workflows."
+      >
+        <EntityGithubActionsContent />
+      </AnnotationGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/gitlab" title="GitLab">
+      <AnnotationGatedContent
+        annotations={['gitlab.com/project-slug', 'gitlab.com/project-id']}
+        missingAnnotationTitle="GitLab Not Configured"
+        missingAnnotationDescription="Add the gitlab.com/project-slug or gitlab.com/project-id annotation to this entity to view GitLab pipelines."
+      >
+        <EntityGitlabContent />
+      </AnnotationGatedContent>
+    </EntityLayout.Route>
   </EntityLayoutWithDelete>
 );
 
@@ -316,6 +358,37 @@ const websiteEntityPage = (
 
     <EntityLayout.Route path="/docs" title="Docs">
       {techdocsContent}
+    </EntityLayout.Route>
+
+    {/* External CI Platform Tabs - annotation gated */}
+    <EntityLayout.Route path="/jenkins" title="Jenkins">
+      <AnnotationGatedContent
+        annotation="jenkins.io/job-full-name"
+        missingAnnotationTitle="Jenkins Not Configured"
+        missingAnnotationDescription="Add the jenkins.io/job-full-name annotation to this entity to view Jenkins builds."
+      >
+        <EntityJenkinsContent />
+      </AnnotationGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/github-actions" title="GitHub Actions">
+      <AnnotationGatedContent
+        annotation="github.com/project-slug"
+        missingAnnotationTitle="GitHub Actions Not Configured"
+        missingAnnotationDescription="Add the github.com/project-slug annotation to this entity to view GitHub Actions workflows."
+      >
+        <EntityGithubActionsContent />
+      </AnnotationGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/gitlab" title="GitLab">
+      <AnnotationGatedContent
+        annotations={['gitlab.com/project-slug', 'gitlab.com/project-id']}
+        missingAnnotationTitle="GitLab Not Configured"
+        missingAnnotationDescription="Add the gitlab.com/project-slug or gitlab.com/project-id annotation to this entity to view GitLab pipelines."
+      >
+        <EntityGitlabContent />
+      </AnnotationGatedContent>
     </EntityLayout.Route>
   </EntityLayoutWithDelete>
 );

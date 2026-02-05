@@ -12,6 +12,13 @@ export {
   type FeatureGateProps,
 } from './components/FeatureGate';
 export {
+  AnnotationGate,
+  withAnnotationGate,
+  AnnotationGatedContent,
+  type AnnotationGateProps,
+  type AnnotationGatedContentProps,
+} from './components/AnnotationGate';
+export {
   LoadingState,
   type LoadingStateProps,
 } from './components/LoadingState';
@@ -105,6 +112,11 @@ export {
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';
+export {
+  useEntityAnnotation,
+  useHasAnnotation,
+  useHasAnyAnnotation,
+} from './hooks/useEntityAnnotation';
 export {
   useOpenChoreoFeatures,
   useWorkflowsEnabled,

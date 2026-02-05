@@ -89,3 +89,34 @@ auth:
 #   github:
 #     - host: github.com
 #       token: YOUR_GITHUB_TOKEN_HERE
+#   # GitLab integration (required for GitLab CI plugin)
+#   gitlab:
+#     - host: gitlab.com
+#       token: YOUR_GITLAB_TOKEN_HERE
+
+# =====================================================================
+# External CI Platform Configuration
+# =====================================================================
+# Uncomment the sections below to enable external CI platform integrations.
+# Each plugin activates automatically when its configuration is present.
+# Entity annotations control which CI platform is shown for each component.
+#
+# Required Annotations:
+#   - Jenkins:        jenkins.io/job-full-name
+#   - GitHub Actions: github.com/project-slug
+#   - GitLab:         gitlab.com/project-slug or gitlab.com/project-id
+# =====================================================================
+
+# Jenkins Configuration
+# Uncomment to enable Jenkins plugin
+# jenkins:
+#   baseUrl: http://jenkins.example.com
+#   username: admin
+#   apiKey: YOUR_JENKINS_API_KEY
+
+# GitLab CI Configuration
+# Uncomment to enable GitLab CI plugin (requires gitlab integration above)
+# gitlab:
+#   baseUrl: https://gitlab.com
+#   # If using self-hosted GitLab:
+#   # baseUrl: https://gitlab.example.com
