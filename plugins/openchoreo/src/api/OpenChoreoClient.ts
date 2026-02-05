@@ -25,6 +25,8 @@ import type {
   ComponentSummary,
   GitSecret,
   GitSecretsListResponse,
+  PlatformResourceKind,
+  ResourceCRUDResponse,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -67,6 +69,8 @@ const API_ENDPOINTS = {
   PROJECTS: '/projects', // GET /namespaces/{namespaceName}/projects
   COMPONENTS: '/components', // GET /namespaces/{namespaceName}/projects/{projectName}/components
   ENTITY_ANNOTATIONS: '/entity-annotations',
+  // Platform resource definition endpoint
+  PLATFORM_RESOURCE_DEFINITION: '/platform-resource/definition',
 } as const;
 
 // ============================================
@@ -935,5 +939,82 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         params: { namespaceName },
       },
     );
+  }
+
+  // ============================================
+  // Platform Resource Definition Operations
+  // ============================================
+
+  async getResourceDefinition(
+    kind: PlatformResourceKind,
+    namespaceName: string,
+    resourceName: string,
+  ): Promise<Record<string, unknown>> {
+    const response = await this.apiFetch<{
+      success: boolean;
+      data?: Record<string, unknown>;
+    }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
+      params: {
+        kind,
+        namespaceName,
+        resourceName,
+      },
+    });
+
+    if (!response.data) {
+      throw new Error(`No data returned for ${kind} ${resourceName}`);
+    }
+
+    return response.data;
+  }
+
+  async updateResourceDefinition(
+    kind: PlatformResourceKind,
+    namespaceName: string,
+    resourceName: string,
+    resource: Record<string, unknown>,
+  ): Promise<ResourceCRUDResponse> {
+    const response = await this.apiFetch<{
+      success: boolean;
+      data?: ResourceCRUDResponse;
+    }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
+      method: 'PUT',
+      params: {
+        kind,
+        namespaceName,
+        resourceName,
+      },
+      body: { resource },
+    });
+
+    if (!response.data) {
+      throw new Error(`Failed to update ${kind} ${resourceName}`);
+    }
+
+    return response.data;
+  }
+
+  async deleteResourceDefinition(
+    kind: PlatformResourceKind,
+    namespaceName: string,
+    resourceName: string,
+  ): Promise<ResourceCRUDResponse> {
+    const response = await this.apiFetch<{
+      success: boolean;
+      data?: ResourceCRUDResponse;
+    }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
+      method: 'DELETE',
+      params: {
+        kind,
+        namespaceName,
+        resourceName,
+      },
+    });
+
+    if (!response.data) {
+      throw new Error(`Failed to delete ${kind} ${resourceName}`);
+    }
+
+    return response.data;
   }
 }

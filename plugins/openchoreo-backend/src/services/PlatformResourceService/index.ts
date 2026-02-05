@@ -1,0 +1,1 @@
+export { PlatformResourceService } from './PlatformResourceService';

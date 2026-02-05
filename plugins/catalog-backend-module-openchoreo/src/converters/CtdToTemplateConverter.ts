@@ -1,12 +1,28 @@
 import { Entity } from '@backstage/catalog-model';
-import { OpenChoreoAPI } from '@openchoreo/openchoreo-client-node';
 import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 import {
   CHOREO_ANNOTATIONS,
   sanitizeLabel,
 } from '@openchoreo/backstage-plugin-common';
 
-type ComponentType = OpenChoreoAPI.ComponentType;
+/**
+ * ComponentType CRD structure as returned by the Kubernetes API.
+ * This represents the full CRD object with metadata and spec.
+ */
+export interface ComponentType {
+  metadata: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    workloadType: string;
+    allowedWorkflows?: string[];
+    tags?: string[];
+    createdAt?: string;
+  };
+  spec: {
+    inputParametersSchema?: JSONSchema7;
+  };
+}
 
 /**
  * Fields that are considered "advanced" and should be hidden in a collapsible section.

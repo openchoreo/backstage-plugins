@@ -401,6 +401,25 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/namespaces/{namespaceName}/component-types/{ctName}/definition': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the full CRD definition for a specific component type */
+    get: operations['getComponentTypeDefinition'];
+    /** Create or update a component type definition */
+    put: operations['updateComponentTypeDefinition'];
+    post?: never;
+    /** Delete a component type definition */
+    delete: operations['deleteComponentTypeDefinition'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/namespaces/{namespaceName}/workflows': {
     parameters: {
       query?: never;
@@ -430,6 +449,25 @@ export interface paths {
     put?: never;
     post?: never;
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespaceName}/workflows/{workflowName}/definition': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the full CRD definition for a specific workflow */
+    get: operations['getWorkflowDefinition'];
+    /** Create or update a workflow definition */
+    put: operations['updateWorkflowDefinition'];
+    post?: never;
+    /** Delete a workflow definition */
+    delete: operations['deleteWorkflowDefinition'];
     options?: never;
     head?: never;
     patch?: never;
@@ -469,6 +507,25 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/namespaces/{namespaceName}/component-workflows/{cwName}/definition': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the full CRD definition for a specific component workflow */
+    get: operations['getComponentWorkflowDefinition'];
+    /** Create or update a component workflow definition */
+    put: operations['updateComponentWorkflowDefinition'];
+    post?: never;
+    /** Delete a component workflow definition */
+    delete: operations['deleteComponentWorkflowDefinition'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/namespaces/{namespaceName}/traits': {
     parameters: {
       query?: never;
@@ -498,6 +555,25 @@ export interface paths {
     put?: never;
     post?: never;
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespaceName}/traits/{traitName}/definition': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get the full CRD definition for a specific trait */
+    get: operations['getTraitDefinition'];
+    /** Create or update a trait definition */
+    put: operations['updateTraitDefinition'];
+    post?: never;
+    /** Delete a trait definition */
+    delete: operations['deleteTraitDefinition'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1375,6 +1451,14 @@ export interface components {
     BuildTemplateParameter: {
       name: string;
       default?: string;
+    };
+    ResourceCRUDResponse: {
+      apiVersion?: string;
+      kind?: string;
+      name?: string;
+      namespace?: string;
+      /** @description The operation performed - created, updated, deleted, or not_found */
+      operation?: string;
     };
     ComponentTypeResponse: {
       name: string;
@@ -2586,6 +2670,104 @@ export interface operations {
       };
     };
   };
+  getComponentTypeDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        ctName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description Full Kubernetes CRD as unstructured JSON */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Component type not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateComponentTypeDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        ctName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Resource applied successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+    };
+  };
+  deleteComponentTypeDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        ctName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+      /** @description Component type not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   listWorkflows: {
     parameters: {
       query?: never;
@@ -2635,6 +2817,104 @@ export interface operations {
             data?: {
               [key: string]: unknown;
             };
+          };
+        };
+      };
+      /** @description Workflow not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getWorkflowDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        workflowName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description Full Kubernetes CRD as unstructured JSON */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Workflow not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateWorkflowDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        workflowName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Resource applied successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+    };
+  };
+  deleteWorkflowDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        workflowName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
           };
         };
       };
@@ -2708,6 +2988,104 @@ export interface operations {
       };
     };
   };
+  getComponentWorkflowDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        cwName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description Full Kubernetes CRD as unstructured JSON */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Component workflow not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateComponentWorkflowDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        cwName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Resource applied successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+    };
+  };
+  deleteComponentWorkflowDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        cwName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+      /** @description Component workflow not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   listTraits: {
     parameters: {
       query?: never;
@@ -2757,6 +3135,104 @@ export interface operations {
             data?: {
               [key: string]: unknown;
             };
+          };
+        };
+      };
+      /** @description Trait not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getTraitDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        traitName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            /** @description Full Kubernetes CRD as unstructured JSON */
+            data?: {
+              [key: string]: unknown;
+            };
+          };
+        };
+      };
+      /** @description Trait not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  updateTraitDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        traitName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Resource applied successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+    };
+  };
+  deleteTraitDefinition: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+        traitName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
           };
         };
       };
