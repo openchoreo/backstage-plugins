@@ -120,23 +120,30 @@ export const HomePage = () => {
             {/* Recent Activity - Only for non-PE users (PEs have it above) */}
             {getUserRole() !== 'platformengineer' && (
               <Grid item xs={12}>
-                <Typography
-                  variant="h4"
-                  color="secondary"
-                  style={{ marginBottom: 16 }}
-                >
-                  Recent Activity
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <HomePageStarredEntities />
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <HomePageRecentlyVisited />
-                  </Grid>
-                </Grid>
+                <Box className={classes.platformDetailsSection}>
+                  <HomePagePlatformDetailsCard />
+                </Box>
               </Grid>
             )}
+
+            {/* Recent Activity - Full-width, horizontal layout */}
+            <Grid item xs={12}>
+              <Typography
+                variant="h4"
+                color="secondary"
+                style={{ marginBottom: 16 }}
+              >
+                Recent Activity
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <HomePageStarredEntities />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <HomePageRecentlyVisited />
+                </Grid>
+              </Grid>
+            </Grid>
 
             {/* Main content column */}
             <Grid item xs={12} md={8}>
