@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -30,7 +30,7 @@ interface GitSecretDialogProps {
  * Dialog for creating a new git secret inline during the scaffolder flow.
  * Supports both Basic Authentication (token) and SSH Authentication (SSH key).
  */
-export const GitSecretDialog: React.FC<GitSecretDialogProps> = ({
+export const GitSecretDialog = ({
   open,
   onClose,
   onSubmit,
@@ -181,7 +181,6 @@ export const GitSecretDialog: React.FC<GitSecretDialogProps> = ({
       <DialogContent style={{ minHeight: 300 }}>
         <Box style={{ marginTop: 16 }}>
           <TextField
-            autoFocus
             margin="dense"
             label="Secret Name"
             fullWidth

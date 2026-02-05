@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Box, Typography, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@material-ui/core';
 import {
   Page,
@@ -33,7 +33,7 @@ const useStyles = makeStyles(theme => ({
  * Git Secrets management page.
  * Allows platform engineers to manage git secrets for accessing private repositories.
  */
-export const GitSecretsPage: React.FC = () => {
+export const GitSecretsPage = () => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
