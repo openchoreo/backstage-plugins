@@ -16966,6 +16966,7 @@ __metadata:
     "@backstage/ui": "npm:0.6.1"
     "@material-ui/core": "npm:4.12.4"
     "@material-ui/icons": "npm:4.11.3"
+    "@material-ui/lab": "npm:4.0.0-alpha.61"
     "@openchoreo/backstage-design-system": "workspace:^"
     "@openchoreo/backstage-plugin": "workspace:^"
     "@openchoreo/backstage-plugin-common": "workspace:^"
