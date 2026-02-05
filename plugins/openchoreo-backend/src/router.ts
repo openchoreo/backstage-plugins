@@ -768,7 +768,10 @@ export async function createRouter({
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
-      await gitSecretsService.listGitSecrets(namespaceName as string, userToken),
+      await gitSecretsService.listGitSecrets(
+        namespaceName as string,
+        userToken,
+      ),
     );
   });
 
@@ -781,10 +784,14 @@ export async function createRouter({
       throw new InputError('namespaceName is a required query parameter');
     }
     if (!secretName || !secretType) {
-      throw new InputError('secretName and secretType are required in the request body');
+      throw new InputError(
+        'secretName and secretType are required in the request body',
+      );
     }
     if (secretType !== 'basic-auth' && secretType !== 'ssh-auth') {
-      throw new InputError('secretType must be either "basic-auth" or "ssh-auth"');
+      throw new InputError(
+        'secretType must be either "basic-auth" or "ssh-auth"',
+      );
     }
     if (secretType === 'basic-auth' && !token) {
       throw new InputError('token is required for basic-auth type');
@@ -795,16 +802,18 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    res.status(201).json(
-      await gitSecretsService.createGitSecret(
-        namespaceName as string,
-        secretName,
-        secretType,
-        token,
-        sshKey,
-        userToken,
-      ),
-    );
+    res
+      .status(201)
+      .json(
+        await gitSecretsService.createGitSecret(
+          namespaceName as string,
+          secretName,
+          secretType,
+          token,
+          sshKey,
+          userToken,
+        ),
+      );
   });
 
   // Delete a git secret

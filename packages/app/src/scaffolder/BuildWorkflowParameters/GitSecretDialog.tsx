@@ -22,8 +22,11 @@ type SecretType = 'basic-auth' | 'ssh-auth';
 interface GitSecretDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (secretName: string, secretType: SecretType, tokenOrKey: string) => Promise<void>;
-  namespaceName: string;
+  onSubmit: (
+    secretName: string,
+    secretType: SecretType,
+    tokenOrKey: string,
+  ) => Promise<void>;
 }
 
 /**
@@ -34,7 +37,7 @@ export const GitSecretDialog = ({
   open,
   onClose,
   onSubmit,
-}) => {
+}: GitSecretDialogProps) => {
   const [secretName, setSecretName] = useState('');
   const [secretType, setSecretType] = useState<SecretType>('basic-auth');
   const [token, setToken] = useState('');
@@ -74,7 +77,10 @@ export const GitSecretDialog = ({
     // Validate SSH key format if SSH authentication is selected
     if (secretType === 'ssh-auth') {
       const trimmedKey = sshKey.trim();
-      if (!trimmedKey.includes('BEGIN') || !trimmedKey.includes('PRIVATE KEY')) {
+      if (
+        !trimmedKey.includes('BEGIN') ||
+        !trimmedKey.includes('PRIVATE KEY')
+      ) {
         setError('Invalid SSH key format. Please provide a valid private key.');
         return;
       }
@@ -85,9 +91,10 @@ export const GitSecretDialog = ({
 
     try {
       // Format SSH key: convert multiline to single line with \n
-      const formattedValue = secretType === 'ssh-auth'
-        ? sshKey.trim().replace(/\r\n/g, '\n') // Normalize line endings
-        : token.trim();
+      const formattedValue =
+        secretType === 'ssh-auth'
+          ? sshKey.trim().replace(/\r\n/g, '\n') // Normalize line endings
+          : token.trim();
 
       await onSubmit(secretName.trim(), secretType, formattedValue);
 
@@ -122,7 +129,7 @@ export const GitSecretDialog = ({
     if (file) {
       setUploadedFileName(file.name);
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         const content = e.target?.result as string;
         setSshKey(content);
       };
@@ -151,7 +158,7 @@ export const GitSecretDialog = ({
     if (file) {
       setUploadedFileName(file.name);
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         const content = e.target?.result as string;
         setSshKey(content);
       };
@@ -229,7 +236,8 @@ export const GitSecretDialog = ({
               disabled={loading}
             />
             <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
-              Your git provider access token or password with repository read permissions.
+              Your git provider access token or password with repository read
+              permissions.
             </FormHelperText>
           </Box>
         ) : (
@@ -242,7 +250,9 @@ export const GitSecretDialog = ({
                 border: isDragging ? '2px dashed #3f51b5' : '2px dashed #ccc',
                 borderRadius: 8,
                 padding: 16,
-                backgroundColor: isDragging ? 'rgba(63, 81, 181, 0.05)' : 'transparent',
+                backgroundColor: isDragging
+                  ? 'rgba(63, 81, 181, 0.05)'
+                  : 'transparent',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -281,7 +291,8 @@ export const GitSecretDialog = ({
                 color="textSecondary"
                 style={{ display: 'block', marginTop: 8 }}
               >
-                Drag and drop file with your private SSH key here or browse to upload it.
+                Drag and drop file with your private SSH key here or browse to
+                upload it.
               </Typography>
             </Box>
 
@@ -309,11 +320,7 @@ export const GitSecretDialog = ({
         )}
 
         {error && (
-          <Typography
-            variant="body2"
-            color="error"
-            style={{ marginTop: 16 }}
-          >
+          <Typography variant="body2" color="error" style={{ marginTop: 16 }}>
             {error}
           </Typography>
         )}

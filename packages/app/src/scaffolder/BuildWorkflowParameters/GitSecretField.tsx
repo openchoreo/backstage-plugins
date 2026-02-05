@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FieldProps } from '@rjsf/utils';
+import type { FieldProps } from '@rjsf/utils';
+import type { RJSFSchema } from '@rjsf/utils';
 import {
   FormControl,
   FormHelperText,
@@ -43,7 +44,7 @@ export const GitSecretField = ({
   onChange,
   rawErrors,
   formContext,
-}) => {
+}: FieldProps<any, RJSFSchema, any>) => {
   const [secrets, setSecrets] = useState<GitSecret[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +137,8 @@ export const GitSecretField = ({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+          errorData.message ||
+            `HTTP ${response.status}: ${response.statusText}`,
         );
       }
 
@@ -200,13 +202,13 @@ export const GitSecretField = ({
           onChange={handleAutocompleteChange}
           disabled={disabled || readonly}
           loading={loading}
-          getOptionLabel={(option) => {
+          getOptionLabel={option => {
             if (option === CREATE_NEW_SECRET) return 'Create New Git Secret';
             if (option === NO_SECRET) return 'No Secret';
             if (option === DIVIDER) return '';
             return option;
           }}
-          renderOption={(option) => {
+          renderOption={option => {
             if (option === CREATE_NEW_SECRET) {
               return (
                 <Box display="flex" alignItems="center" style={{ gap: 8 }}>
@@ -223,8 +225,8 @@ export const GitSecretField = ({
             }
             return <Typography>{option}</Typography>;
           }}
-          getOptionDisabled={(option) => option === DIVIDER}
-          renderInput={(params) => (
+          getOptionDisabled={option => option === DIVIDER}
+          renderInput={params => (
             <TextField
               {...params}
               label={label}
@@ -241,9 +243,7 @@ export const GitSecretField = ({
             />
           )}
           noOptionsText={
-            !nsName
-              ? 'Select a namespace first'
-              : 'No git secrets available'
+            !nsName ? 'Select a namespace first' : 'No git secrets available'
           }
         />
 
@@ -292,7 +292,6 @@ export const GitSecretField = ({
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onSubmit={handleCreateSecret}
-        namespaceName={nsName}
       />
     </Box>
   );

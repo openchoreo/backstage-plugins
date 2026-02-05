@@ -7,10 +7,6 @@ import { SidebarItem } from '@backstage/core-components';
  */
 export const GitSecretsSidebarItem = () => {
   return (
-    <SidebarItem
-      icon={VpnKeyIcon}
-      to="admin/git-secrets"
-      text="Git Secrets"
-    />
+    <SidebarItem icon={VpnKeyIcon} to="admin/git-secrets" text="Git Secrets" />
   );
 };

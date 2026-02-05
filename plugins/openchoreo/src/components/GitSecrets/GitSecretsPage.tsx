@@ -1,5 +1,13 @@
 import { useState, useMemo } from 'react';
-import { Box, Typography, FormControl, InputLabel, Select, MenuItem, CircularProgress } from '@material-ui/core';
+import {
+  Box,
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+} from '@material-ui/core';
 import {
   Page,
   Header,
@@ -40,7 +48,11 @@ export const GitSecretsPage = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Fetch available namespaces
-  const { value: namespaces, loading: namespacesLoading, error: namespacesError } = useAsync(async () => {
+  const {
+    value: namespaces,
+    loading: namespacesLoading,
+    error: namespacesError,
+  } = useAsync(async () => {
     return client.listNamespaces();
   }, [client]);
 
@@ -53,11 +65,17 @@ export const GitSecretsPage = () => {
     deleteSecret,
   } = useGitSecrets(selectedNamespace);
 
-  const handleNamespaceChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+  const handleNamespaceChange = (
+    event: React.ChangeEvent<{ value: unknown }>,
+  ) => {
     setSelectedNamespace(event.target.value as string);
   };
 
-  const handleCreateSecret = async (secretName: string, secretType: 'basic-auth' | 'ssh-auth', tokenOrKey: string) => {
+  const handleCreateSecret = async (
+    secretName: string,
+    secretType: 'basic-auth' | 'ssh-auth',
+    tokenOrKey: string,
+  ) => {
     await createSecret(secretName, secretType, tokenOrKey);
   };
 
@@ -108,23 +126,19 @@ export const GitSecretsPage = () => {
 
         {/* Error Display */}
         {namespacesError && (
-          <WarningPanel
-            severity="error"
-            title="Failed to load namespaces"
-          >
+          <WarningPanel severity="error" title="Failed to load namespaces">
             <Typography>
-              {namespacesError.message || 'An error occurred while loading namespaces.'}
+              {namespacesError.message ||
+                'An error occurred while loading namespaces.'}
             </Typography>
           </WarningPanel>
         )}
 
         {secretsError && (
-          <WarningPanel
-            severity="error"
-            title="Failed to load git secrets"
-          >
+          <WarningPanel severity="error" title="Failed to load git secrets">
             <Typography>
-              {secretsError.message || 'An error occurred while loading git secrets.'}
+              {secretsError.message ||
+                'An error occurred while loading git secrets.'}
             </Typography>
           </WarningPanel>
         )}

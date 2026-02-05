@@ -10,7 +10,11 @@ export interface UseGitSecretsResult {
   loading: boolean;
   error: Error | null;
   fetchSecrets: () => Promise<void>;
-  createSecret: (secretName: string, secretType: 'basic-auth' | 'ssh-auth', tokenOrKey: string) => Promise<GitSecret>;
+  createSecret: (
+    secretName: string,
+    secretType: 'basic-auth' | 'ssh-auth',
+    tokenOrKey: string,
+  ) => Promise<GitSecret>;
   deleteSecret: (secretName: string) => Promise<void>;
 }
 
@@ -44,7 +48,11 @@ export function useGitSecrets(namespaceName: string): UseGitSecretsResult {
   }, [client, namespaceName]);
 
   const createSecret = useCallback(
-    async (secretName: string, secretType: 'basic-auth' | 'ssh-auth', tokenOrKey: string): Promise<GitSecret> => {
+    async (
+      secretName: string,
+      secretType: 'basic-auth' | 'ssh-auth',
+      tokenOrKey: string,
+    ): Promise<GitSecret> => {
       const secret = await client.createGitSecret(
         namespaceName,
         secretName,

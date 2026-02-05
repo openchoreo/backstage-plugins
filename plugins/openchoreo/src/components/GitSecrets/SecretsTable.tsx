@@ -60,7 +60,7 @@ export const SecretsTable = ({
   onDelete,
   onCreateClick,
   namespaceName,
-}) => {
+}: SecretsTableProps) => {
   const classes = useStyles();
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
