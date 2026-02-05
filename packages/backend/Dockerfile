@@ -100,6 +100,7 @@ COPY --from=build --chown=node:node /app/packages/backend/dist/bundle/ ./
 # Copy any other files that we need at runtime
 COPY --chown=node:node app-config.production.yaml ./app-config.yaml
 COPY --chown=node:node templates/ /app/templates
+COPY --chown=node:node catalog-entities/ /app/catalog-entities
 
 # This will include the examples, if you don't need these simply remove this line
 COPY --chown=node:node examples ./examples
