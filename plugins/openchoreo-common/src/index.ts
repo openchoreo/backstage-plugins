@@ -96,6 +96,12 @@ export type ConnectionInject =
   OpenChoreoComponents['schemas']['ConnectionInject'];
 export type Schema = OpenChoreoComponents['schemas']['Schema'];
 
+// Workflow run / build logs status types
+export type WorkflowRunStatusResponse =
+  OpenChoreoComponents['schemas']['ComponentWorkflowRunStatusResponse'];
+export type WorkflowStepStatus =
+  OpenChoreoComponents['schemas']['WorkflowStepStatus'];
+
 // Define WorkloadType as a string union since it's defined as enum in OpenAPI
 export type WorkloadType =
   | 'Service'

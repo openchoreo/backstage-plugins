@@ -4,18 +4,21 @@ import {
   createObservabilityClientWithUrl,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { RuntimeLogsResponse } from '../types';
+import { LogEntry, RuntimeLogsResponse } from '../types';
 
 // Use generated type from OpenAPI spec
 type ModelsBuild =
   OpenChoreoComponents['schemas']['ComponentWorkflowRunResponse'];
 
-// Type definition matching the API response structure
+// Type definitions matching the API response structures
 type WorkflowSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   data?: {
     [key: string]: unknown;
   };
 };
+
+type WorkflowRunStatusResponse =
+  OpenChoreoComponents['schemas']['ComponentWorkflowRunStatusResponse'];
 
 type WorkflowListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
   data: OpenChoreoComponents['schemas']['ListResponse'] & {
@@ -137,6 +140,53 @@ export class WorkflowService {
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow run ${runName} for component ${componentName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  async getWorkflowRunStatus(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    token?: string,
+  ): Promise<WorkflowRunStatusResponse> {
+    this.logger.debug(
+      `Fetching workflow run status: ${runName} for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/status',
+        {
+          params: {
+            path: { namespaceName, projectName, componentName, runName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workflow run status: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data?.success || !data.data) {
+        throw new Error('No workflow run status data returned');
+      }
+
+      this.logger.debug(`Successfully fetched workflow run status: ${runName}`);
+      return data.data as WorkflowRunStatusResponse;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch workflow run status ${runName} for component ${componentName}: ${error}`,
       );
       throw error;
     }
@@ -312,6 +362,172 @@ export class WorkflowService {
 
       this.logger.error(
         `Error fetching build logs for component ${componentName}:`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  async fetchWorkflowRunLogs(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    hasLiveObservability: boolean,
+    options: { step?: string; sinceSeconds?: number } = {},
+    token?: string,
+  ): Promise<LogEntry[]> {
+    this.logger.debug(
+      `Fetching workflow run logs for component: ${componentName}, run: ${runName} from ${
+        hasLiveObservability ? 'openchoreo-api' : 'observer-api'
+      } with options: ${JSON.stringify(options)}`,
+    );
+
+    try {
+      if (hasLiveObservability) {
+        // Use OpenChoreo API directly for recent workflow runs
+        const client = createOpenChoreoApiClient({
+          baseUrl: this.baseUrl,
+          token,
+          logger: this.logger,
+        });
+
+        const { data, error, response } = await client.GET(
+          '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs',
+          {
+            params: {
+              path: { namespaceName, projectName, componentName, runName },
+              query: {
+                ...(options.step ? { step: options.step } : {}),
+                ...(typeof options.sinceSeconds === 'number' &&
+                options.sinceSeconds > 0
+                  ? { sinceSeconds: options.sinceSeconds }
+                  : {}),
+              },
+            },
+          },
+        );
+
+        if (error || !response.ok) {
+          throw new Error(
+            `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        if (!Array.isArray(data)) {
+          throw new Error('Failed to fetch workflow run logs: invalid payload');
+        }
+
+        const entries: LogEntry[] = data.map(entry => ({
+          timestamp: entry.timestamp,
+          log: entry.log,
+        }));
+
+        this.logger.debug(
+          `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`,
+        );
+
+        return entries;
+      }
+
+      // Use observer API for older workflow runs
+      // First, get the observer URL from the main API
+      const mainClient = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const {
+        data: urlData,
+        error: urlError,
+        response: urlResponse,
+      } = await mainClient.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url',
+        {
+          params: {
+            path: { namespaceName, projectName, componentName },
+          },
+        },
+      );
+
+      if (urlError || !urlResponse.ok) {
+        throw new Error(
+          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
+        );
+      }
+
+      if (!urlData.success || !urlData.data) {
+        throw new Error(
+          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
+        );
+      }
+
+      const observerUrl = urlData.data.observerUrl;
+      if (!observerUrl) {
+        throw new ObservabilityNotConfiguredError(componentName);
+      }
+
+      // Now use the observability client with the resolved URL
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        token,
+        this.logger,
+      );
+
+      this.logger.debug(
+        `Sending workflow run logs request for component ${componentName} with run: ${runName}`,
+      );
+
+      const { data, error, response } = await obsClient.GET(
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs',
+        {
+          params: {
+            path: { namespaceName, projectName, componentName, runName },
+            query: {
+              ...(options.step ? { step: options.step } : {}),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        if (response.status === 404) {
+          this.logger.info(
+            `Workflow run logs endpoint not available (404). The observability service may not support workflow run logs yet.`,
+          );
+          throw new ObservabilityNotConfiguredError(componentName);
+        }
+        const errorText = await response.text();
+        this.logger.error(
+          `Failed to fetch workflow run logs for component ${componentName}: ${response.status} ${response.statusText}`,
+          { error: errorText },
+        );
+        throw new Error(
+          `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const entries: LogEntry[] = (data || []).map((entry: any) => ({
+        timestamp: entry.timestamp,
+        log: entry.log,
+      }));
+
+      this.logger.debug(
+        `Successfully fetched ${entries.length} workflow run logs from observer-api`,
+      );
+
+      return entries;
+    } catch (error: unknown) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        this.logger.info(
+          `Observability not configured for component ${componentName}`,
+        );
+        throw error;
+      }
+
+      this.logger.error(
+        `Error fetching workflow run logs for component ${componentName}:`,
         error as Error,
       );
       throw error;
