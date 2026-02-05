@@ -10,6 +10,7 @@ import {
 } from '@material-ui/core';
 import CodeIcon from '@material-ui/icons/Code';
 import ImageIcon from '@material-ui/icons/Image';
+import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -74,11 +75,21 @@ interface SourceOption {
 }
 
 /**
+ * Valid deployment source values
+ */
+export const DEPLOYMENT_SOURCE_VALUES: string[] = [
+  'build-from-source',
+  'deploy-from-image',
+  'external-ci',
+];
+
+/**
  * Schema for the Deployment Source Picker Field
  */
 export const DeploymentSourcePickerSchema = {
   returnValue: {
     type: 'string' as const,
+    enum: DEPLOYMENT_SOURCE_VALUES,
   },
 };
 
@@ -106,6 +117,13 @@ export const DeploymentSourcePicker = ({
       label: 'Deploy from Image',
       description: 'Use an existing container image from a registry',
       icon: <ImageIcon className={classes.icon} />,
+    },
+    {
+      value: 'external-ci',
+      label: 'External CI',
+      description:
+        'Use Jenkins, GitHub Actions, or other CI platforms to build and deploy',
+      icon: <SettingsInputComponentIcon className={classes.icon} />,
     },
   ];
 

@@ -16,9 +16,26 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 import {
   type ImmediateCatalogService,
+  type AnnotationStore,
   translateComponentToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 import type { DiscoveryService } from '@backstage/backend-plugin-api';
+
+/**
+ * Maps CI platform identifier to the corresponding annotation key
+ */
+function getCIAnnotationKey(platform: string): string | undefined {
+  switch (platform) {
+    case 'jenkins':
+      return 'jenkins.io/job-full-name';
+    case 'github-actions':
+      return 'github.com/project-slug';
+    case 'gitlab-ci':
+      return 'gitlab.com/project-id';
+    default:
+      return undefined;
+  }
+}
 
 type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 
@@ -31,6 +48,7 @@ export const createComponentAction = (
   config: Config,
   discovery: DiscoveryService,
   immediateCatalog: ImmediateCatalogService,
+  annotationStore: AnnotationStore,
 ) => {
   return createTemplateAction({
     id: 'openchoreo:component:create',
@@ -71,9 +89,28 @@ export const createComponentAction = (
               .describe('The description of the component'),
             componentType: zImpl.string().describe('The type of the component'),
 
-            // Optional fields
-            useBuiltInCI: zImpl.boolean().optional(),
+            // Deployment source and optional fields
+            deploymentSource: zImpl
+              .enum(['build-from-source', 'deploy-from-image', 'external-ci'])
+              .optional()
+              .describe(
+                'How the component will be built and deployed (build-from-source, deploy-from-image, or external-ci)',
+              ),
             autoDeploy: zImpl.boolean().optional(),
+            containerImage: zImpl
+              .string()
+              .optional()
+              .describe('Container image for deploy-from-image deployment'),
+            ciPlatform: zImpl
+              .enum(['none', 'jenkins', 'github-actions', 'gitlab-ci'])
+              .optional()
+              .describe('CI platform for external-ci deployment'),
+            ciIdentifier: zImpl
+              .string()
+              .optional()
+              .describe(
+                'CI job/project identifier (e.g., Jenkins job path, GitHub repo slug)',
+              ),
           })
           .passthrough(), // Allow any additional fields (CTD params, workflow params, traits, etc.)
       output: (zImpl: typeof z) =>
@@ -173,18 +210,17 @@ export const createComponentAction = (
         const deploymentSource =
           (ctx.input as any).deploymentSource || 'build-from-source';
         const isFromImage = deploymentSource === 'deploy-from-image';
+        const isExternalCI = deploymentSource === 'external-ci';
+        const isBuildFromSource = deploymentSource === 'build-from-source';
 
         // Only use workflow-related fields if deploying from source
-        const useBuiltInCI = isFromImage
-          ? false
-          : ctx.input.useBuiltInCI ?? false;
         const autoDeploy = ctx.input.autoDeploy ?? false;
-        const workflowName = isFromImage
-          ? undefined
-          : (ctx.input as any).workflow_name;
-        const workflowParametersData = isFromImage
-          ? undefined
-          : (ctx.input as any).workflow_parameters;
+        const workflowName = isBuildFromSource
+          ? (ctx.input as any).workflow_name
+          : undefined;
+        const workflowParametersData = isBuildFromSource
+          ? (ctx.input as any).workflow_parameters
+          : undefined;
         // Extract parameters from the new structure (workflow_parameters.parameters)
         const workflowParameters =
           workflowParametersData?.parameters || workflowParametersData;
@@ -199,7 +235,6 @@ export const createComponentAction = (
           'componentType',
           'deploymentSource',
           'containerImage',
-          'useBuiltInCI',
           'autoDeploy',
           'workflow_name',
           'workflow_parameters',
@@ -208,6 +243,9 @@ export const createComponentAction = (
           'branch',
           'component_path',
           'component_type_workload_type',
+          'ciPlatform',
+          'ciIdentifier',
+          'external_ci_info', // UI-only markdown field
         ]);
 
         const ctdParameters: Record<string, any> = {};
@@ -232,13 +270,14 @@ export const createComponentAction = (
           componentTypeWorkloadType:
             (ctx.input as any).component_type_workload_type || 'deployment',
           ctdParameters: ctdParameters,
-          useBuiltInCI: useBuiltInCI,
+          deploymentSource: deploymentSource,
           autoDeploy: autoDeploy,
           repoUrl: (ctx.input as any).repo_url,
           branch: (ctx.input as any).branch,
           componentPath: (ctx.input as any).component_path,
           workflowName: workflowName,
           workflowParameters: workflowParameters,
+          containerImage: (ctx.input as any).containerImage,
           traits: cleanedTraits,
         });
 
@@ -350,6 +389,46 @@ export const createComponentAction = (
                 workloadData,
               )}`,
             );
+          }
+        }
+
+        // For external-ci: log that no workload is created (CI will create via API)
+        if (isExternalCI) {
+          ctx.logger.info(
+            `External CI flow: Component created without workload. ` +
+              `External CI pipeline will create workloads via OpenChoreo API.`,
+          );
+        }
+
+        // Store CI annotation in Backstage DB if provided (for external-ci flow)
+        const ciPlatform = (ctx.input as any).ciPlatform;
+        const ciIdentifier = (ctx.input as any).ciIdentifier;
+
+        if (ciPlatform && ciPlatform !== 'none' && ciIdentifier) {
+          const annotationKey = getCIAnnotationKey(ciPlatform);
+          if (annotationKey) {
+            try {
+              // Build entity ref in standard format: component:namespace/name
+              const entityRef = `component:${namespaceName}/${ctx.input.componentName}`;
+
+              ctx.logger.info(
+                `Storing CI annotation for ${entityRef}: ${annotationKey}=${ciIdentifier}`,
+              );
+
+              await annotationStore.setAnnotations(entityRef, {
+                [annotationKey]: ciIdentifier,
+              });
+
+              ctx.logger.info(
+                `CI annotation stored successfully. Build visibility will be available after catalog sync.`,
+              );
+            } catch (annotationError) {
+              // Don't fail the whole operation - annotation can be added later via editor
+              ctx.logger.warn(
+                `Failed to store CI annotation: ${annotationError}. ` +
+                  `You can add the annotation later via the annotation editor.`,
+              );
+            }
           }
         }
 

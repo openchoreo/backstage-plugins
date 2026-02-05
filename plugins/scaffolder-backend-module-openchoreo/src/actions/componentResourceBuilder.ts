@@ -5,6 +5,14 @@ import {
 } from './componentResourceInterface';
 
 /**
+ * Deployment source type for component creation
+ */
+export type DeploymentSource =
+  | 'build-from-source'
+  | 'deploy-from-image'
+  | 'external-ci';
+
+/**
  * Input data for building a component resource
  */
 export interface ComponentResourceInput {
@@ -20,14 +28,15 @@ export interface ComponentResourceInput {
   componentTypeWorkloadType: string; // The workload type (e.g., "deployment")
   ctdParameters?: Record<string, any>; // Parameters from component type schema
 
-  // Section 3: CI/CD Setup
-  useBuiltInCI?: boolean;
+  // Section 3: Deployment Source & CI/CD Setup
+  deploymentSource?: DeploymentSource;
   autoDeploy?: boolean;
   repoUrl?: string;
   branch?: string;
   componentPath?: string;
   workflowName?: string;
   workflowParameters?: Record<string, any>;
+  containerImage?: string; // For deploy-from-image
 
   // Section 4: Traits (optional)
   traits?: Array<{
@@ -75,9 +84,14 @@ export function buildComponentResource(
       input.description;
   }
 
-  // Add workflow configuration if workflow name and parameters are provided
-  // This applies when building from source (useBuiltInCI is deprecated, we check for workflow data instead)
-  if (input.workflowName && input.workflowParameters) {
+  // Add workflow configuration only for build-from-source deployment source
+  // For external-ci and deploy-from-image, no workflow is attached to the component
+  // External CI will create workloads via API, deploy-from-image creates a workload directly
+  if (
+    input.deploymentSource === 'build-from-source' &&
+    input.workflowName &&
+    input.workflowParameters
+  ) {
     // Build workflow schema from flat workflow parameters
     // Workflow parameters come in dot-notation (e.g., "docker.context", "repository.url")
     // Need to convert to nested structure
