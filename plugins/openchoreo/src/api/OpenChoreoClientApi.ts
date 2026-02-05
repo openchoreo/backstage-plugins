@@ -206,6 +206,20 @@ export interface ComponentTrait {
   parameters?: Record<string, unknown>;
 }
 
+/** Platform resource kind for definition CRUD operations */
+export type PlatformResourceKind =
+  | 'component-types'
+  | 'traits'
+  | 'workflows'
+  | 'component-workflows';
+
+/** Response for resource CRUD operations */
+export interface ResourceCRUDResponse {
+  operation: string;
+  name?: string;
+  kind?: string;
+}
+
 // ============================================
 // OpenChoreo Client API Interface
 // ============================================
@@ -461,6 +475,49 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     annotations: Record<string, string | null>,
   ): Promise<Record<string, string>>;
+
+  // === Platform Resource Definition Operations ===
+
+  /**
+   * Get the full CRD definition for a platform resource
+   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param namespaceName - Kubernetes namespace
+   * @param resourceName - Name of the resource
+   * @returns The full CRD as an unstructured JSON object
+   */
+  getResourceDefinition(
+    kind: PlatformResourceKind,
+    namespaceName: string,
+    resourceName: string,
+  ): Promise<Record<string, unknown>>;
+
+  /**
+   * Update (or create) a platform resource definition
+   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param namespaceName - Kubernetes namespace
+   * @param resourceName - Name of the resource
+   * @param resource - Full CRD as JSON
+   * @returns Operation result
+   */
+  updateResourceDefinition(
+    kind: PlatformResourceKind,
+    namespaceName: string,
+    resourceName: string,
+    resource: Record<string, unknown>,
+  ): Promise<ResourceCRUDResponse>;
+
+  /**
+   * Delete a platform resource definition
+   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param namespaceName - Kubernetes namespace
+   * @param resourceName - Name of the resource
+   * @returns Operation result
+   */
+  deleteResourceDefinition(
+    kind: PlatformResourceKind,
+    namespaceName: string,
+    resourceName: string,
+  ): Promise<ResourceCRUDResponse>;
 }
 
 // ============================================

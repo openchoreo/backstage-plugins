@@ -16,6 +16,7 @@ import { SecretReferencesService } from './services/SecretReferencesService/Secr
 import { GitSecretsService } from './services/GitSecretsService/GitSecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
+import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
 import {
@@ -106,6 +107,11 @@ export const choreoPlugin = createBackendPlugin({
 
         const dataPlaneInfoService = new DataPlaneInfoService(logger, baseUrl);
 
+        const platformResourceService = new PlatformResourceService(
+          logger,
+          baseUrl,
+        );
+
         // Register OpenChoreo component permissions with the permissions registry
         // This enables CONDITIONAL permission checks against catalog entities
         const componentPermissions = openchoreoPermissions.filter(
@@ -154,6 +160,7 @@ export const choreoPlugin = createBackendPlugin({
             gitSecretsService,
             authzService,
             dataPlaneInfoService,
+            platformResourceService,
             annotationStore,
             catalogService: catalog,
             auth,

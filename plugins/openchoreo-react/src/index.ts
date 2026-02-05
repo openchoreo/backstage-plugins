@@ -95,6 +95,13 @@ export {
   PipelineFlowVisualization,
   type PipelineFlowVisualizationProps,
 } from './components/PipelineFlowVisualization';
+export {
+  YamlEditor,
+  useYamlEditor,
+  type YamlEditorProps,
+  type UseYamlEditorOptions,
+  type UseYamlEditorResult,
+} from './components/YamlEditor';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';

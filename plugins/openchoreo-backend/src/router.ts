@@ -16,6 +16,7 @@ import { ComponentInfoService } from './services/ComponentService/ComponentInfoS
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
+import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
 import {
@@ -41,6 +42,7 @@ export async function createRouter({
   gitSecretsService,
   authzService,
   dataPlaneInfoService,
+  platformResourceService,
   annotationStore,
   catalogService,
   auth,
@@ -60,6 +62,7 @@ export async function createRouter({
   gitSecretsService: GitSecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
+  platformResourceService: PlatformResourceService;
   annotationStore: AnnotationStore;
   catalogService: CatalogService;
   auth: AuthService;
@@ -1123,6 +1126,128 @@ export async function createRouter({
       ),
     );
   });
+
+  // =====================
+  // Platform Resource Definition Endpoints
+  // =====================
+
+  // Get full CRD definition for a platform resource
+  router.get('/platform-resource/definition', async (req, res) => {
+    const { kind, namespaceName, resourceName } = req.query;
+
+    if (!kind || !namespaceName || !resourceName) {
+      throw new InputError(
+        'kind, namespaceName and resourceName are required query parameters',
+      );
+    }
+
+    const validKinds = [
+      'component-types',
+      'traits',
+      'workflows',
+      'component-workflows',
+    ];
+    if (!validKinds.includes(kind as string)) {
+      throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await platformResourceService.getResourceDefinition(
+        kind as
+          | 'component-types'
+          | 'traits'
+          | 'workflows'
+          | 'component-workflows',
+        namespaceName as string,
+        resourceName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Update (or create) a platform resource definition
+  router.put('/platform-resource/definition', requireAuth, async (req, res) => {
+    const { kind, namespaceName, resourceName } = req.query;
+    const { resource } = req.body;
+
+    if (!kind || !namespaceName || !resourceName) {
+      throw new InputError(
+        'kind, namespaceName and resourceName are required query parameters',
+      );
+    }
+
+    const validKinds = [
+      'component-types',
+      'traits',
+      'workflows',
+      'component-workflows',
+    ];
+    if (!validKinds.includes(kind as string)) {
+      throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+    }
+
+    if (!resource || typeof resource !== 'object') {
+      throw new InputError('resource object is required in request body');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await platformResourceService.updateResourceDefinition(
+        kind as
+          | 'component-types'
+          | 'traits'
+          | 'workflows'
+          | 'component-workflows',
+        namespaceName as string,
+        resourceName as string,
+        resource as Record<string, unknown>,
+        userToken,
+      ),
+    );
+  });
+
+  // Delete a platform resource definition
+  router.delete(
+    '/platform-resource/definition',
+    requireAuth,
+    async (req, res) => {
+      const { kind, namespaceName, resourceName } = req.query;
+
+      if (!kind || !namespaceName || !resourceName) {
+        throw new InputError(
+          'kind, namespaceName and resourceName are required query parameters',
+        );
+      }
+
+      const validKinds = [
+        'component-types',
+        'traits',
+        'workflows',
+        'component-workflows',
+      ];
+      if (!validKinds.includes(kind as string)) {
+        throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+
+      res.json(
+        await platformResourceService.deleteResourceDefinition(
+          kind as
+            | 'component-types'
+            | 'traits'
+            | 'workflows'
+            | 'component-workflows',
+          namespaceName as string,
+          resourceName as string,
+          userToken,
+        ),
+      );
+    },
+  );
 
   return router;
 }

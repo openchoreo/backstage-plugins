@@ -682,6 +682,22 @@ components:
         default:
           type: string
 
+    # Resource CRUD Response (for definition endpoints)
+    ResourceCRUDResponse:
+      type: object
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        name:
+          type: string
+        namespace:
+          type: string
+        operation:
+          type: string
+          description: The operation performed - created, updated, deleted, or not_found
+
     # ComponentType
     ComponentTypeResponse:
       type: object
@@ -2519,6 +2535,106 @@ paths:
         '404':
           description: Component type not found
 
+  /namespaces/{namespaceName}/component-types/{ctName}/definition:
+    get:
+      summary: Get the full CRD definition for a specific component type
+      operationId: getComponentTypeDefinition
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ctName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: Full Kubernetes CRD as unstructured JSON
+                        additionalProperties: true
+        '404':
+          description: Component type not found
+    put:
+      summary: Create or update a component type definition
+      operationId: updateComponentTypeDefinition
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ctName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '200':
+          description: Resource applied successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+    delete:
+      summary: Delete a component type definition
+      operationId: deleteComponentTypeDefinition
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: ctName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resource deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '404':
+          description: Component type not found
+
   # Workflows (generic workflows)
   /namespaces/{namespaceName}/workflows:
     get:
@@ -2583,6 +2699,106 @@ paths:
                         type: object
                         description: JSON Schema for the workflow
                         additionalProperties: true
+        '404':
+          description: Workflow not found
+
+  /namespaces/{namespaceName}/workflows/{workflowName}/definition:
+    get:
+      summary: Get the full CRD definition for a specific workflow
+      operationId: getWorkflowDefinition
+      tags:
+        - Workflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workflowName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: Full Kubernetes CRD as unstructured JSON
+                        additionalProperties: true
+        '404':
+          description: Workflow not found
+    put:
+      summary: Create or update a workflow definition
+      operationId: updateWorkflowDefinition
+      tags:
+        - Workflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workflowName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '200':
+          description: Resource applied successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+    delete:
+      summary: Delete a workflow definition
+      operationId: deleteWorkflowDefinition
+      tags:
+        - Workflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workflowName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resource deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
         '404':
           description: Workflow not found
 
@@ -2653,6 +2869,106 @@ paths:
         '404':
           description: Component workflow not found
 
+  /namespaces/{namespaceName}/component-workflows/{cwName}/definition:
+    get:
+      summary: Get the full CRD definition for a specific component workflow
+      operationId: getComponentWorkflowDefinition
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cwName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: Full Kubernetes CRD as unstructured JSON
+                        additionalProperties: true
+        '404':
+          description: Component workflow not found
+    put:
+      summary: Create or update a component workflow definition
+      operationId: updateComponentWorkflowDefinition
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cwName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '200':
+          description: Resource applied successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+    delete:
+      summary: Delete a component workflow definition
+      operationId: deleteComponentWorkflowDefinition
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cwName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resource deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '404':
+          description: Component workflow not found
+
   # Traits
   /namespaces/{namespaceName}/traits:
     get:
@@ -2717,6 +3033,106 @@ paths:
                         type: object
                         description: JSON Schema for the trait
                         additionalProperties: true
+        '404':
+          description: Trait not found
+
+  /namespaces/{namespaceName}/traits/{traitName}/definition:
+    get:
+      summary: Get the full CRD definition for a specific trait
+      operationId: getTraitDefinition
+      tags:
+        - Traits
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: traitName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        description: Full Kubernetes CRD as unstructured JSON
+                        additionalProperties: true
+        '404':
+          description: Trait not found
+    put:
+      summary: Create or update a trait definition
+      operationId: updateTraitDefinition
+      tags:
+        - Traits
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: traitName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '200':
+          description: Resource applied successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+    delete:
+      summary: Delete a trait definition
+      operationId: deleteTraitDefinition
+      tags:
+        - Traits
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: traitName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resource deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
         '404':
           description: Trait not found
 

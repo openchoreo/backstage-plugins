@@ -93,6 +93,7 @@ import {
   TraitTypeOverviewCard,
   WorkflowOverviewCard,
   ComponentWorkflowOverviewCard,
+  ResourceDefinitionTab,
 } from '@openchoreo/backstage-plugin';
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
@@ -767,6 +768,9 @@ const componentTypePage = (
         </Grid>
       </Grid>
     </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
   </EntityLayout>
 );
 
@@ -789,6 +793,9 @@ const traitTypePage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
       </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </EntityLayout.Route>
   </EntityLayout>
 );
@@ -813,6 +820,9 @@ const workflowPage = (
         </Grid>
       </Grid>
     </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
   </EntityLayout>
 );
 
@@ -836,6 +846,9 @@ const componentWorkflowPage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
       </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </EntityLayout.Route>
   </EntityLayout>
 );
