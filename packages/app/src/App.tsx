@@ -238,7 +238,10 @@ const routes = (
         <UserSettingsPage providerSettings={<OpenChoreoProviderSettings />} />
       }
     />
-    <Route path="/catalog-graph" element={<CatalogGraphPage renderNode={CustomGraphNode} />} />
+    <Route
+      path="/catalog-graph"
+      element={<CatalogGraphPage renderNode={CustomGraphNode} />}
+    />
     <Route path="/admin/access-control" element={<AccessControlPage />} />
     <Route path="/admin/workflows/*" element={<GenericWorkflowsPage />} />
     <Route path="/admin/git-secrets" element={<GitSecretsPage />} />
