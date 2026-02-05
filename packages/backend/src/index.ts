@@ -107,4 +107,15 @@ backend.add(
   import('@openchoreo/backstage-plugin-openchoreo-observability-backend'),
 );
 backend.add(import('@openchoreo/backstage-plugin-openchoreo-ci-backend'));
+
+// External CI Platform Integrations
+// Uncomment the plugins below AFTER adding their configuration to app-config.yaml
+// These plugins require their respective config to be present or they will fail to start.
+//
+// Jenkins: requires jenkins.baseUrl, jenkins.username, jenkins.apiKey config
+// backend.add(import('@backstage-community/plugin-jenkins-backend'));
+//
+// GitLab: requires integrations.gitlab config with host and token
+// backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
+
 backend.start();

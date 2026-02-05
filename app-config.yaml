@@ -64,6 +64,45 @@ integrations:
     #   apiBaseUrl: https://ghe.example.net/api/v3
     #   token: ${GHE_TOKEN}
 
+  # GitLab Integration (required for GitLab CI plugin)
+  # Uncomment to enable GitLab integration
+  # gitlab:
+  #   - host: gitlab.com
+  #     token: ${GITLAB_TOKEN}
+  #   # Example for self-hosted GitLab:
+  #   # - host: gitlab.example.com
+  #   #   apiBaseUrl: https://gitlab.example.com/api/v4
+  #   #   token: ${GITLAB_TOKEN}
+
+# =====================================================================
+# External CI Platform Configuration
+# =====================================================================
+# Uncomment the sections below to enable external CI platform integrations.
+# Each plugin activates automatically when its configuration is present.
+# Entity annotations control which CI platform is shown for each component.
+#
+# Required Annotations:
+#   - Jenkins:        jenkins.io/job-full-name
+#   - GitHub Actions: github.com/project-slug
+#   - GitLab:         gitlab.com/project-slug or gitlab.com/project-id
+# =====================================================================
+
+# Jenkins Configuration
+# Uncomment to enable Jenkins plugin
+# jenkins:
+#   baseUrl: ${JENKINS_BASE_URL}
+#   username: ${JENKINS_USERNAME}
+#   apiKey: ${JENKINS_API_KEY}
+#   # Optional: Extra request headers
+#   # extraRequestHeaders:
+#   #   Authorization: Bearer ${JENKINS_TOKEN}
+
+# GitLab CI Configuration
+# Uncomment to enable GitLab CI plugin (requires gitlab integration above)
+# gitlab:
+#   # If using self-hosted GitLab, set the baseUrl
+#   # baseUrl: https://gitlab.example.com
+
 proxy:
   ### Example for how to add a proxy endpoint for the frontend.
   ### A typical reason to do this is to handle HTTPS and CORS for internal services.

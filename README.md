@@ -297,6 +297,73 @@ When a feature is disabled:
 - **Overview cards** for the feature are hidden from the Overview tab
 - This approach ensures consistent navigation while clearly communicating feature availability
 
+## External CI Platform Integration
+
+OpenChoreo includes built-in support for viewing CI build status from external platforms directly in Backstage.
+
+### Supported Platforms
+
+| Platform           | Required Annotation                                  | Configuration Key             |
+| ------------------ | ---------------------------------------------------- | ----------------------------- |
+| **Jenkins**        | `jenkins.io/job-full-name`                           | `jenkins.baseUrl`             |
+| **GitHub Actions** | `github.com/project-slug`                            | `integrations.github[].token` |
+| **GitLab CI**      | `gitlab.com/project-slug` or `gitlab.com/project-id` | `integrations.gitlab[].token` |
+
+### Enabling CI Plugins
+
+To enable a CI plugin:
+
+1. **Add configuration** to `app-config.yaml` (or `app-config.local.yaml` for local dev)
+2. **Uncomment the backend plugin** in `packages/backend/src/index.ts`
+
+**Step 1: Configuration in `app-config.yaml`:**
+
+```yaml
+# Jenkins Configuration
+jenkins:
+  baseUrl: https://jenkins.example.com
+  username: admin
+  apiKey: ${JENKINS_API_KEY}
+
+# GitLab Integration (enables GitLab CI plugin)
+integrations:
+  gitlab:
+    - host: gitlab.com
+      token: ${GITLAB_TOKEN}
+
+# GitHub Integration (enables GitHub Actions plugin)
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}
+```
+
+**Step 2: Enable backend plugins in `packages/backend/src/index.ts`:**
+
+```typescript
+// Uncomment the plugins you need:
+backend.add(import('@backstage-community/plugin-jenkins-backend'));
+backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
+```
+
+> **Note:** GitHub Actions uses the GitHub integration and doesn't require a separate backend plugin.
+
+### Adding CI Annotations
+
+Once the plugins are enabled, add annotations to your components:
+
+1. Navigate to the component in Backstage
+2. Click the context menu (**...**) and select **Edit Annotations**
+3. Add the appropriate CI annotation for your platform
+4. Click **Save**
+
+When annotations are present, you'll see:
+
+- **Status cards** on the component Overview page
+- **Dedicated tabs** (Jenkins, GitHub Actions, or GitLab) with full build history
+
+For detailed setup instructions, see the [External CI Integration Guide](https://openchoreo.dev/docs/integrating-with-openchoreo/external-ci).
+
 ## Documentation
 
 - Check individual plugin README files in `plugins/` directory
