@@ -59,23 +59,28 @@ spec:
             - ScheduledTask
             - APIProxy
 
-    - title: CI Setup
+    - title: Deployment Source
       required:
-        - useBuiltInCI
+        - deploymentSource
       properties:
-        useBuiltInCI:
-          title: Use Built-in CI in OpenChoreo
-          description: OpenChoreo provides built-in CI capabilities for building components. Enable this to use the built-in CI.
-          type: boolean
-          ui:widget: radio
+        deploymentSource:
+          title: How would you like to build and deploy?
+          type: string
+          default: build-from-source
+          enum:
+            - build-from-source
+            - deploy-from-image
+            - external-ci
+          ui:field: DeploymentSourcePicker
 
       dependencies:
-        useBuiltInCI:
+        deploymentSource:
           allOf:
+            # Build from Source: Show repository and build configuration
             - if:
                 properties:
-                  useBuiltInCI:
-                    const: true
+                  deploymentSource:
+                    const: build-from-source
               then:
                 properties:
                   repo_url:
@@ -93,13 +98,6 @@ spec:
                     type: string
                     description: The path within the repository where the component's source code is located.
                     default: .
-                  # build_engine:
-                  #   title: Build Engine
-                  #   type: string
-                  #   description: The engine to use for building the component
-                  #   default: argo
-                  #   enum:
-                  #     - argo
                   build_template_name:
                     title: Argo Workflows Build Template Name
                     type: string
@@ -115,19 +113,82 @@ spec:
                   - repo_url
                   - branch
                   - component_path
+
+            # Deploy from Image: Show container image field
             - if:
                 properties:
-                  useBuiltInCI:
-                    const: false
+                  deploymentSource:
+                    const: deploy-from-image
               then:
                 properties:
-                  external_ci_note:
+                  containerImage:
+                    title: Container Image
+                    type: string
+                    description: The container image to deploy (e.g., docker.io/myorg/myimage:tag)
+                required:
+                  - containerImage
+
+            # External CI: Show optional CI platform configuration
+            - if:
+                properties:
+                  deploymentSource:
+                    const: external-ci
+              then:
+                properties:
+                  external_ci_info:
                     type: 'null'
                     ui:widget: markdown
                     description: |
-                      ## Configure your CI
+                      Your component will be created without a workload. Use your CI pipeline (Jenkins, GitHub Actions, GitLab CI) to create workloads via the OpenChoreo API.
 
-                      This section contains details for configuring your CI pipeline to notify OpenChoreo for each build.
+                      See the [External CI Integration Guide](https://openchoreo.github.io/docs/integrating-with-openchoreo/external-ci) for setup instructions.
+                  ciPlatform:
+                    title: CI Platform (Optional)
+                    type: string
+                    description: Select your CI platform to enable build visibility in Backstage. You can configure this later via the annotation editor.
+                    default: none
+                    enum:
+                      - none
+                      - jenkins
+                      - github-actions
+                      - gitlab-ci
+                    enumNames:
+                      - Skip - I'll configure this later
+                      - Jenkins
+                      - GitHub Actions
+                      - GitLab CI
+
+            # CI Identifier fields - shown based on ciPlatform selection
+            - if:
+                properties:
+                  ciPlatform:
+                    const: jenkins
+              then:
+                properties:
+                  ciIdentifier:
+                    title: Jenkins Job Path
+                    type: string
+                    description: 'Full job path (e.g., /job/my-org/job/my-service or folder/job-name)'
+            - if:
+                properties:
+                  ciPlatform:
+                    const: github-actions
+              then:
+                properties:
+                  ciIdentifier:
+                    title: GitHub Repository Slug
+                    type: string
+                    description: 'Repository slug (e.g., my-org/my-repo)'
+            - if:
+                properties:
+                  ciPlatform:
+                    const: gitlab-ci
+              then:
+                properties:
+                  ciIdentifier:
+                    title: GitLab Project ID
+                    type: string
+                    description: 'Numeric project ID from GitLab'
   steps:
     - id: create-openchoreo-component
       name: Create OpenChoreo Component
@@ -139,9 +200,15 @@ spec:
         displayName: ${{ parameters.displayName }}
         description: ${{ parameters.description }}
         componentType: ${{ parameters.component_type }}
-        useBuiltInCI: ${{ parameters.useBuiltInCI }}
+        deploymentSource: ${{ parameters.deploymentSource }}
+        # Build from source parameters
         repoUrl: ${{ parameters.repo_url }}
         branch: ${{ parameters.branch }}
         componentPath: ${{ parameters.component_path }}
         buildTemplateName: ${{ parameters.build_template_name }}
         buildParameters: ${{ parameters.build_parameters }}
+        # Deploy from image parameters
+        containerImage: ${{ parameters.containerImage }}
+        # External CI parameters (for Backstage annotation)
+        ciPlatform: ${{ parameters.ciPlatform }}
+        ciIdentifier: ${{ parameters.ciIdentifier }}

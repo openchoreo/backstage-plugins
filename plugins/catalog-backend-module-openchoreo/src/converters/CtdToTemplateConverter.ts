@@ -293,7 +293,7 @@ export class CtdToTemplateConverter {
           title: 'Deployment Source',
           type: 'string',
           description: 'Choose how to deploy your component',
-          enum: ['build-from-source', 'deploy-from-image'],
+          enum: ['build-from-source', 'deploy-from-image', 'external-ci'],
           default: 'build-from-source',
           'ui:field': 'DeploymentSourcePicker',
         },
@@ -339,6 +339,68 @@ export class CtdToTemplateConverter {
                 },
               },
               required: ['containerImage'],
+            },
+            // External CI branch
+            {
+              properties: {
+                deploymentSource: {
+                  const: 'external-ci',
+                },
+                ciPlatform: {
+                  title: 'CI Platform (Optional)',
+                  type: 'string',
+                  description:
+                    'Select your CI platform to enable build visibility in Backstage. You can configure this later via the annotation editor.',
+                  enum: ['none', 'jenkins', 'github-actions', 'gitlab-ci'],
+                  enumNames: [
+                    "Skip - I'll configure this later",
+                    'Jenkins',
+                    'GitHub Actions',
+                    'GitLab CI',
+                  ],
+                  default: 'none',
+                },
+              },
+            },
+          ],
+        },
+        ciPlatform: {
+          oneOf: [
+            {
+              properties: {
+                ciPlatform: { const: 'none' },
+              },
+            },
+            {
+              properties: {
+                ciPlatform: { const: 'jenkins' },
+                ciIdentifier: {
+                  title: 'Jenkins Job Path',
+                  type: 'string',
+                  description:
+                    'Full job path (e.g., /job/my-org/job/my-service or folder/job-name)',
+                },
+              },
+            },
+            {
+              properties: {
+                ciPlatform: { const: 'github-actions' },
+                ciIdentifier: {
+                  title: 'GitHub Repository Slug',
+                  type: 'string',
+                  description: 'Repository slug (e.g., my-org/my-repo)',
+                },
+              },
+            },
+            {
+              properties: {
+                ciPlatform: { const: 'gitlab-ci' },
+                ciIdentifier: {
+                  title: 'GitLab Project ID',
+                  type: 'string',
+                  description: 'Numeric project ID from GitLab',
+                },
+              },
             },
           ],
         },
@@ -656,6 +718,9 @@ export class CtdToTemplateConverter {
           component_path: '${{ parameters.component_path }}',
           workflow_name: '${{ parameters.workflow_name }}',
           workflow_parameters: '${{ parameters.workflow_parameters }}',
+          // External CI parameters
+          ciPlatform: '${{ parameters.ciPlatform }}',
+          ciIdentifier: '${{ parameters.ciIdentifier }}',
 
           // Section 4: Traits
           traits: '${{ parameters.traits }}',
