@@ -4,6 +4,8 @@ import {
   CHOREO_ANNOTATIONS,
   ModelsBuild,
   RuntimeLogsResponse,
+  WorkflowRunStatusResponse,
+  LogEntry,
 } from '@openchoreo/backstage-plugin-common';
 import type {
   OpenChoreoCiClientApi,
@@ -119,6 +121,7 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
     });
   }
 
+  // TODO: Deprecate this method and use the new method fetchWorkflowRunLogs instead
   async fetchBuildLogsForBuild(
     build: ModelsBuild,
   ): Promise<RuntimeLogsResponse> {
@@ -142,5 +145,74 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
         namespaceName: build.namespaceName,
       },
     });
+  }
+
+  async fetchWorkflowRunStatus(
+    build: ModelsBuild,
+  ): Promise<WorkflowRunStatusResponse> {
+    if (
+      !build.componentName ||
+      !build.name ||
+      !build.projectName ||
+      !build.namespaceName
+    ) {
+      throw new Error(
+        'Build object is missing required fields for fetching workflow run status',
+      );
+    }
+
+    return this.apiFetch<WorkflowRunStatusResponse>('/workflow-run-status', {
+      params: {
+        componentName: build.componentName,
+        projectName: build.projectName,
+        namespaceName: build.namespaceName,
+        runName: build.name,
+      },
+    });
+  }
+
+  async fetchWorkflowRunLogs(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    hasLiveObservability: boolean,
+    options?: { step?: string; sinceSeconds?: number },
+  ): Promise<LogEntry[]> {
+    if (!namespaceName || !projectName || !componentName || !runName) {
+      throw new Error(
+        'namespaceName, projectName, componentName and runName are required fields for fetching workflow run logs',
+      );
+    }
+
+    const baseUrl = await this.discovery.getBaseUrl('openchoreo-ci-backend');
+    const url = new URL(`${baseUrl}/workflow-run-logs`);
+
+    url.searchParams.set('namespaceName', namespaceName);
+    url.searchParams.set('projectName', projectName);
+    url.searchParams.set('componentName', componentName);
+    url.searchParams.set('runName', runName);
+    url.searchParams.set(
+      'hasLiveObservability',
+      hasLiveObservability.toString(),
+    );
+    if (options?.step) {
+      url.searchParams.set('step', options.step);
+    }
+    if (typeof options?.sinceSeconds === 'number' && options.sinceSeconds > 0) {
+      url.searchParams.set('sinceSeconds', String(options.sinceSeconds));
+    }
+
+    const response = await this.fetchApi.fetch(url.toString());
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Failed to fetch workflow run logs (${response.status}): ${errorText}`,
+      );
+    }
+
+    const entries = (await response.json()) as LogEntry[];
+    return entries;
   }
 }

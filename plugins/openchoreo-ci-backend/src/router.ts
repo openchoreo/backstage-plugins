@@ -93,6 +93,83 @@ export async function createRouter({
     );
   });
 
+  router.get('/workflow-run-status', async (req, res) => {
+    const { componentName, projectName, namespaceName, runName } = req.query;
+
+    if (!componentName || !projectName || !namespaceName || !runName) {
+      throw new InputError(
+        'componentName, projectName, namespaceName and runName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await workflowService.getWorkflowRunStatus(
+        namespaceName as string,
+        projectName as string,
+        componentName as string,
+        runName as string,
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/workflow-run-logs', async (req, res) => {
+    const {
+      namespaceName,
+      projectName,
+      componentName,
+      runName,
+      hasLiveObservability,
+      step,
+      sinceSeconds,
+    } = req.query;
+
+    if (!namespaceName || !projectName || !componentName || !runName) {
+      throw new InputError(
+        'namespaceName, projectName, componentName and runName are required query parameters',
+      );
+    }
+
+    if (typeof hasLiveObservability !== 'string') {
+      throw new InputError(
+        'hasLiveObservability is a required query parameter',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    try {
+      const entries = await workflowService.fetchWorkflowRunLogs(
+        namespaceName as string,
+        projectName as string,
+        componentName as string,
+        runName as string,
+        hasLiveObservability === 'true',
+        {
+          step: typeof step === 'string' ? step : undefined,
+          sinceSeconds:
+            typeof sinceSeconds === 'string'
+              ? Number.parseInt(sinceSeconds, 10)
+              : undefined,
+        },
+        userToken,
+      );
+
+      res.json(entries);
+    } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        res.status(503).json({
+          error: 'ObservabilityNotConfigured',
+          message: error.message,
+        });
+        return;
+      }
+      throw error;
+    }
+  });
+
   router.get('/workflows', async (req, res) => {
     const { namespaceName } = req.query;
 
