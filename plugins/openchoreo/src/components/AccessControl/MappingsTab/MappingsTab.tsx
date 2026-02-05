@@ -11,18 +11,21 @@ import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import { ClusterRoleBindingsContent } from './ClusterRoleBindingsContent';
 import { NamespaceRoleBindingsContent } from './NamespaceRoleBindingsContent';
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles(theme => ({
   verticalTabWrapper: {
     height: '100%',
     minHeight: 500,
   },
+  contentRoot: {
+    marginTop: -theme.spacing(2),
+  },
 }));
 
 const SUB_TABS: TabItemData[] = [
-  { id: SCOPE_CLUSTER, label: 'Cluster Role Bindings', icon: <PublicIcon /> },
+  { id: SCOPE_CLUSTER, label: 'Cluster', icon: <PublicIcon /> },
   {
     id: SCOPE_NAMESPACE,
-    label: 'Namespace Role Bindings',
+    label: 'Namespace',
     icon: <FolderIcon />,
   },
 ];
@@ -47,8 +50,10 @@ export const MappingsTab = ({ initialTab, onTabChange }: MappingsTabProps) => {
         activeTabId={activeTab}
         onChange={setActiveTab}
       >
-        {activeTab === SCOPE_CLUSTER && <ClusterRoleBindingsContent />}
-        {activeTab === SCOPE_NAMESPACE && <NamespaceRoleBindingsContent />}
+        <Box className={classes.contentRoot}>
+          {activeTab === SCOPE_CLUSTER && <ClusterRoleBindingsContent />}
+          {activeTab === SCOPE_NAMESPACE && <NamespaceRoleBindingsContent />}
+        </Box>
       </VerticalTabNav>
     </Box>
   );

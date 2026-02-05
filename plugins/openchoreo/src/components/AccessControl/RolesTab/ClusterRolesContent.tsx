@@ -16,13 +16,15 @@ import { useNotification } from '../../../hooks';
 import { NotificationBanner } from '../../Environments/components';
 import { SCOPE_CLUSTER } from '../constants';
 import { RoleDialog } from './RoleDialog';
-import { RolesTable } from './RolesTable';
+import { RolesTable, BindingSummary } from './RolesTable';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 const useStyles = makeStyles(theme => ({
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: theme.spacing(3),
   },
   headerActions: {
@@ -48,6 +50,7 @@ export const ClusterRolesContent = () => {
     updateDeniedTooltip,
     deleteDeniedTooltip,
   } = useRolePermissions();
+  const client = useApi(openChoreoClientApiRef);
   const { roles, loading, error, fetchRoles, addRole, updateRole, deleteRole } =
     useClusterRoles();
 
@@ -66,10 +69,42 @@ export const ClusterRolesContent = () => {
     setDialogOpen(true);
   };
 
+  const handleCheckBindings = async (
+    name: string,
+  ): Promise<BindingSummary[]> => {
+    const bindings = await client.listClusterRoleBindings({ roleName: name });
+    return bindings.map(b => ({
+      name: b.name,
+      entitlement: { claim: b.entitlement.claim, value: b.entitlement.value },
+      effect: b.effect,
+    }));
+  };
+
   const handleDeleteRole = async (name: string) => {
     try {
       await deleteRole(name);
       notification.showSuccess(`Cluster role "${name}" deleted successfully`);
+    } catch (err) {
+      notification.showError(
+        `Failed to delete role: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
+      );
+    }
+  };
+
+  const handleForceDelete = async (
+    name: string,
+    bindings: BindingSummary[],
+  ) => {
+    try {
+      for (const binding of bindings) {
+        await client.deleteClusterRoleBinding(binding.name);
+      }
+      await deleteRole(name);
+      notification.showSuccess(
+        `Cluster role "${name}" and its bindings deleted successfully`,
+      );
     } catch (err) {
       notification.showError(
         `Failed to delete role: ${
@@ -134,13 +169,15 @@ export const ClusterRolesContent = () => {
 
       <RolesTable
         roles={roles}
-        scopeLabel="Cluster Role"
+        scopeLabel="Cluster Roles"
         canUpdate={canUpdate}
         canDelete={canDelete}
         updateDeniedTooltip={updateDeniedTooltip}
         deleteDeniedTooltip={deleteDeniedTooltip}
         onEdit={handleEditRole}
         onDelete={handleDeleteRole}
+        onCheckBindings={handleCheckBindings}
+        onForceDelete={handleForceDelete}
       />
 
       <RoleDialog

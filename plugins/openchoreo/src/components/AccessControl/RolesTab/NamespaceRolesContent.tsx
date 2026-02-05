@@ -18,13 +18,15 @@ import { NotificationBanner } from '../../Environments/components';
 import { SCOPE_NAMESPACE } from '../constants';
 import { RoleDialog } from './RoleDialog';
 import { NamespaceSelector } from './NamespaceSelector';
-import { RolesTable } from './RolesTable';
+import { RolesTable, BindingSummary } from './RolesTable';
+import { useApi } from '@backstage/core-plugin-api';
+import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 const useStyles = makeStyles(theme => ({
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: theme.spacing(3),
   },
   headerActions: {
@@ -54,6 +56,7 @@ export const NamespaceRolesContent = () => {
     deleteDeniedTooltip,
   } = useRolePermissions();
 
+  const client = useApi(openChoreoClientApiRef);
   const [selectedNamespace, setSelectedNamespace] = useState('');
   const { roles, loading, error, fetchRoles, addRole, updateRole, deleteRole } =
     useNamespaceRoles(selectedNamespace || undefined);
@@ -73,10 +76,48 @@ export const NamespaceRolesContent = () => {
     setDialogOpen(true);
   };
 
+  const handleCheckBindings = async (
+    name: string,
+  ): Promise<BindingSummary[]> => {
+    const bindings = await client.listNamespaceRoleBindings(selectedNamespace, {
+      roleName: name,
+      roleNamespace: selectedNamespace,
+    });
+    return bindings.map(b => ({
+      name: b.name,
+      entitlement: { claim: b.entitlement.claim, value: b.entitlement.value },
+      effect: b.effect,
+    }));
+  };
+
   const handleDeleteRole = async (name: string) => {
     try {
       await deleteRole(name);
       notification.showSuccess(`Namespace role "${name}" deleted successfully`);
+    } catch (err) {
+      notification.showError(
+        `Failed to delete role: ${
+          err instanceof Error ? err.message : 'Unknown error'
+        }`,
+      );
+    }
+  };
+
+  const handleForceDelete = async (
+    name: string,
+    bindings: BindingSummary[],
+  ) => {
+    try {
+      for (const binding of bindings) {
+        await client.deleteNamespaceRoleBinding(
+          selectedNamespace,
+          binding.name,
+        );
+      }
+      await deleteRole(name);
+      notification.showSuccess(
+        `Namespace role "${name}" and its bindings deleted successfully`,
+      );
     } catch (err) {
       notification.showError(
         `Failed to delete role: ${
@@ -180,6 +221,8 @@ export const NamespaceRolesContent = () => {
               deleteDeniedTooltip={deleteDeniedTooltip}
               onEdit={handleEditRole}
               onDelete={handleDeleteRole}
+              onCheckBindings={handleCheckBindings}
+              onForceDelete={handleForceDelete}
             />
           )}
         </>

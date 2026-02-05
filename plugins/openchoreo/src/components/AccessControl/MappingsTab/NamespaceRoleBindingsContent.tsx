@@ -51,7 +51,7 @@ const useStyles = makeStyles(theme => ({
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'align-start',
     marginBottom: theme.spacing(3),
   },
   headerActions: {
@@ -123,8 +123,6 @@ export const NamespaceRoleBindingsContent = () => {
     bindings,
     loading,
     error,
-    filters,
-    setFilters,
     fetchBindings,
     addBinding,
     updateBinding,
@@ -145,6 +143,7 @@ export const NamespaceRoleBindingsContent = () => {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [effectFilter, setEffectFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBinding, setEditingBinding] = useState<
@@ -154,34 +153,32 @@ export const NamespaceRoleBindingsContent = () => {
   const [bindingToDelete, setBindingToDelete] =
     useState<NamespaceRoleBinding | null>(null);
 
-  // Server-side role filter
-  const handleRoleFilterChange = useCallback(
-    (value: string) => {
-      if (value === 'all') {
-        setFilters({ ...filters, roleName: undefined });
-      } else {
-        setFilters({ ...filters, roleName: value });
-      }
-    },
-    [filters, setFilters],
-  );
-
   // Clear all filters
   const handleClearFilters = useCallback(() => {
-    setFilters({});
+    setRoleFilter('all');
     setSearchQuery('');
     setEffectFilter('all');
-  }, [setFilters]);
+  }, []);
 
-  // Client-side filtering for effect and search
+  // Client-side filtering for role, effect, and search
   const filteredBindings = useMemo(() => {
     return bindings.filter(binding => {
-      // Effect filter (client-side)
+      // Role filter
+      if (roleFilter !== 'all') {
+        const bindingKey = `${binding.role.name}|${
+          binding.role.namespace || ''
+        }`;
+        if (bindingKey !== roleFilter) {
+          return false;
+        }
+      }
+
+      // Effect filter
       if (effectFilter !== 'all' && binding.effect !== effectFilter) {
         return false;
       }
 
-      // Search filter (client-side)
+      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const searchFields = [
@@ -198,7 +195,7 @@ export const NamespaceRoleBindingsContent = () => {
 
       return true;
     });
-  }, [bindings, searchQuery, effectFilter]);
+  }, [bindings, roleFilter, searchQuery, effectFilter]);
 
   const handleCreateBinding = () => {
     setEditingBinding(undefined);
@@ -250,7 +247,7 @@ export const NamespaceRoleBindingsContent = () => {
   };
 
   const hasActiveFilters =
-    filters.roleName || searchQuery || effectFilter !== 'all';
+    roleFilter !== 'all' || searchQuery || effectFilter !== 'all';
 
   if (permissionsLoading) {
     return <Progress />;
@@ -318,9 +315,9 @@ export const NamespaceRoleBindingsContent = () => {
         </Box>
       ) : (
         <>
-          {loading ||
-            namespaceRolesLoading ||
-            (clusterRolesLoading && <Progress />)}
+          {(loading || namespaceRolesLoading || clusterRolesLoading) && (
+            <Progress />
+          )}
           {!loading &&
             !namespaceRolesLoading &&
             !clusterRolesLoading &&
@@ -354,17 +351,15 @@ export const NamespaceRoleBindingsContent = () => {
                   >
                     <InputLabel>Role</InputLabel>
                     <Select
-                      value={filters.roleName || 'all'}
-                      onChange={e =>
-                        handleRoleFilterChange(e.target.value as string)
-                      }
+                      value={roleFilter}
+                      onChange={e => setRoleFilter(e.target.value as string)}
                       label="Role"
                     >
                       <MenuItem value="all">All Roles</MenuItem>
                       {availableRoles.map(role => (
                         <MenuItem
-                          key={`${role.name}-${role.namespace || ''}`}
-                          value={role.name}
+                          key={`${role.name}|${role.namespace || ''}`}
+                          value={`${role.name}|${role.namespace || ''}`}
                         >
                           {role.name}{' '}
                           {role.namespace ? '(Namespace)' : '(Cluster)'}

@@ -134,6 +134,7 @@ export const MappingDialog = ({
             selectedRoleNamespace: nsBinding.role?.namespace || '',
             scopeType: nsBinding.hierarchy?.project ? 'specific' : 'global',
             project: nsBinding.hierarchy?.project || '',
+            component: nsBinding.hierarchy?.component || '',
           });
         } else {
           // Cluster binding — no namespace or scope fields needed
@@ -191,11 +192,7 @@ export const MappingDialog = ({
       setSaving(true);
       setError(null);
 
-      const resolvedName =
-        wizardState.name ||
-        `${
-          wizardState.selectedRole
-        }-${wizardState.entitlementValue.trim()}`.toLowerCase();
+      const resolvedName = wizardState.name;
 
       if (bindingType === SCOPE_CLUSTER) {
         // Create cluster role binding
@@ -223,7 +220,12 @@ export const MappingDialog = ({
           },
           ...(wizardState.scopeType === 'specific' &&
             wizardState.project && {
-              targetPath: { project: wizardState.project },
+              targetPath: {
+                project: wizardState.project,
+                ...(wizardState.component && {
+                  component: wizardState.component,
+                }),
+              },
             }),
           effect: wizardState.effect,
         };
