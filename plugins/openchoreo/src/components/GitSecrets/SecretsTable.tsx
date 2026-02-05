@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Table,
   TableHead,
@@ -54,7 +54,7 @@ interface SecretsTableProps {
   namespaceName: string;
 }
 
-export const SecretsTable: React.FC<SecretsTableProps> = ({
+export const SecretsTable = ({
   secrets,
   loading,
   onDelete,

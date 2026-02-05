@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FieldProps } from '@rjsf/utils';
 import {
   FormControl,
@@ -33,7 +33,7 @@ const DIVIDER = '__divider__';
  * This field is used when the workflow schema contains a secretRef field
  * in the systemParameters.repository section.
  */
-export const GitSecretField: React.FC<FieldProps> = ({
+export const GitSecretField = ({
   id,
   schema,
   uiSchema,

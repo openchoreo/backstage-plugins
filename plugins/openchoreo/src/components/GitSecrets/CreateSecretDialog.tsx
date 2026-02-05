@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -30,7 +30,7 @@ interface CreateSecretDialogProps {
  * Dialog for creating a new git secret.
  * Supports both Basic Authentication (token) and SSH Authentication (SSH key).
  */
-export const CreateSecretDialog: React.FC<CreateSecretDialogProps> = ({
+export const CreateSecretDialog = ({
   open,
   onClose,
   onSubmit,
@@ -192,7 +192,6 @@ export const CreateSecretDialog: React.FC<CreateSecretDialogProps> = ({
 
         <Box style={{ marginTop: 16 }}>
           <TextField
-            autoFocus
             margin="dense"
             label="Secret Name"
             fullWidth
