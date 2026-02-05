@@ -10,8 +10,7 @@ import {
 import { Autocomplete } from '@material-ui/lab';
 import { makeStyles } from '@material-ui/core/styles';
 import { WizardState } from './types';
-import { useNamespaces, useProjects, useComponents } from '../../hooks';
-import type { NamespaceSummary } from '../../../../api/OpenChoreoClientApi';
+import { useProjects, useComponents } from '../../hooks';
 import { NotificationBanner } from '@openchoreo/backstage-plugin-react';
 import { BindingType } from '../MappingDialog';
 import { SCOPE_NAMESPACE } from '../../constants';
@@ -91,7 +90,6 @@ export const ScopeStep = ({
     bindingType === SCOPE_NAMESPACE ? namespace : state.namespace;
 
   // Hierarchy data hooks
-  const { namespaces, loading: namespacesLoading } = useNamespaces();
   const { projects, loading: projectsLoading } = useProjects(
     effectiveNamespace || undefined,
   );
@@ -113,14 +111,6 @@ export const ScopeStep = ({
     });
   };
 
-  const handleNamespaceChange = (value: string | null) => {
-    onChange({
-      namespace: value || '',
-      project: '',
-      component: '',
-    });
-  };
-
   const handleProjectChange = (value: string | null) => {
     onChange({
       project: value || '',
@@ -130,6 +120,11 @@ export const ScopeStep = ({
 
   const handleComponentChange = (value: string | null) => {
     onChange({ component: value || '' });
+  };
+
+  const getProjectHint = (): string => {
+    if (!effectiveNamespace) return 'Select a namespace first';
+    return 'Leave empty to apply to all projects';
   };
 
   const getScopePath = (): string => {
@@ -202,61 +197,15 @@ export const ScopeStep = ({
 
       {state.scopeType === 'specific' && (
         <Box className={classes.hierarchySection}>
-          {/* Only show namespace field for mappings, not for namespace bindings */}
-          {bindingType !== SCOPE_NAMESPACE && (
-            <Box className={classes.fieldGroup}>
-              <Typography className={classes.fieldLabel}>Namespace</Typography>
-              <Autocomplete
-                freeSolo
-                options={namespaces.map((ns: NamespaceSummary) => ns.name)}
-                value={state.namespace}
-                onChange={(_, value) => handleNamespaceChange(value)}
-                onInputChange={(_, value, reason) => {
-                  if (reason === 'input') {
-                    handleNamespaceChange(value);
-                  }
-                }}
-                loading={namespacesLoading}
-                renderInput={params => (
-                  <TextField
-                    {...params}
-                    variant="outlined"
-                    size="small"
-                    placeholder="Select or type namespace"
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {namespacesLoading && (
-                            <CircularProgress color="inherit" size={20} />
-                          )}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-              />
-            </Box>
-          )}
-
           <Box className={classes.fieldGroup}>
             <Typography className={classes.fieldLabel}>Project</Typography>
             <Typography className={classes.fieldHint}>
-              {effectiveNamespace
-                ? 'Leave empty to apply to all projects'
-                : 'Select a namespace first'}
+              {getProjectHint()}
             </Typography>
             <Autocomplete
-              freeSolo
               options={projects.map(p => p.name)}
-              value={state.project}
+              value={state.project || null}
               onChange={(_, value) => handleProjectChange(value)}
-              onInputChange={(_, value, reason) => {
-                if (reason === 'input') {
-                  handleProjectChange(value);
-                }
-              }}
               disabled={!effectiveNamespace}
               loading={projectsLoading}
               renderInput={params => (
@@ -264,9 +213,7 @@ export const ScopeStep = ({
                   {...params}
                   variant="outlined"
                   size="small"
-                  placeholder={
-                    effectiveNamespace ? 'Select or type project' : ''
-                  }
+                  placeholder={effectiveNamespace ? 'Select project' : ''}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (
@@ -291,15 +238,9 @@ export const ScopeStep = ({
                 : 'Select a project first'}
             </Typography>
             <Autocomplete
-              freeSolo
               options={components.map(c => c.name)}
-              value={state.component}
+              value={state.component || null}
               onChange={(_, value) => handleComponentChange(value)}
-              onInputChange={(_, value, reason) => {
-                if (reason === 'input') {
-                  handleComponentChange(value);
-                }
-              }}
               disabled={!state.project}
               loading={componentsLoading}
               renderInput={params => (
@@ -307,7 +248,7 @@ export const ScopeStep = ({
                   {...params}
                   variant="outlined"
                   size="small"
-                  placeholder={state.project ? 'Select or type component' : ''}
+                  placeholder={state.project ? 'Select component' : ''}
                   InputProps={{
                     ...params.InputProps,
                     endAdornment: (

@@ -49,7 +49,7 @@ const useStyles = makeStyles(theme => ({
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'align-start',
     marginBottom: theme.spacing(3),
   },
   headerActions: {

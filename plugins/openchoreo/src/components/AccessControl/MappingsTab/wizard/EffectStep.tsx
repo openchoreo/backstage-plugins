@@ -5,7 +5,7 @@ import BlockIcon from '@material-ui/icons/Block';
 import RadioButtonUncheckedIcon from '@material-ui/icons/RadioButtonUnchecked';
 import RadioButtonCheckedIcon from '@material-ui/icons/RadioButtonChecked';
 import { PolicyEffect } from '../../hooks';
-import { WizardState } from './types';
+import { WizardState, toK8sName, getK8sNameError } from './types';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -89,6 +89,11 @@ const useStyles = makeStyles(theme => ({
       color: theme.palette.primary.main,
     },
   },
+  nameError: {
+    color: theme.palette.error.main,
+    fontSize: '0.75rem',
+    marginTop: theme.spacing(0.5),
+  },
 }));
 
 interface EffectStepProps {
@@ -98,8 +103,17 @@ interface EffectStepProps {
 }
 
 function getSuggestedName(state: WizardState): string {
-  if (!state.selectedRole || !state.entitlementValue) return '';
-  return `${state.selectedRole}-${state.entitlementValue.trim()}`.toLowerCase();
+  let suggestedName = '';
+  if (state.selectedRole) {
+    suggestedName += state.selectedRole;
+  }
+  if (state.selectedRoleNamespace) {
+    suggestedName += `-${state.selectedRoleNamespace.trim()}`;
+  }
+  if (state.subjectType && state.entitlementValue) {
+    suggestedName += `-${state.subjectType}-${state.entitlementValue.trim()}`;
+  }
+  return toK8sName(suggestedName);
 }
 
 export const EffectStep = ({
@@ -205,6 +219,7 @@ export const EffectStep = ({
               value={state.name}
               onChange={e => onChange({ name: e.target.value })}
               placeholder={suggestedName || 'e.g., admin-platform-team'}
+              error={!!state.name && !!getK8sNameError(state.name)}
             />
             {suggestedName && !state.name && (
               <Typography
@@ -212,6 +227,11 @@ export const EffectStep = ({
                 onClick={() => onChange({ name: suggestedName })}
               >
                 Use suggested: "{suggestedName}"
+              </Typography>
+            )}
+            {!!state.name && getK8sNameError(state.name) && (
+              <Typography className={classes.nameError}>
+                {getK8sNameError(state.name)}
               </Typography>
             )}
           </>

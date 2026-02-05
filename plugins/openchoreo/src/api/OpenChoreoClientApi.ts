@@ -181,6 +181,7 @@ export interface NamespaceRoleBindingRequest {
   };
   targetPath?: {
     project?: string;
+    component?: string;
   };
   effect: PolicyEffect;
 }

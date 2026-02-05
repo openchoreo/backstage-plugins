@@ -20,16 +20,27 @@ import {
   DialogActions,
   Button,
   Tooltip,
+  List,
+  ListItem,
+  ListItemText,
+  CircularProgress,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/DeleteOutlined';
 import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
+import WarningIcon from '@material-ui/icons/Warning';
 
 interface RoleRow {
   name: string;
   actions: string[];
   description?: string;
+}
+
+export interface BindingSummary {
+  name: string;
+  entitlement: { claim: string; value: string };
+  effect: string;
 }
 
 interface RolesTableProps {
@@ -41,6 +52,8 @@ interface RolesTableProps {
   deleteDeniedTooltip: string;
   onEdit: (role: RoleRow) => void;
   onDelete: (name: string) => Promise<void>;
+  onCheckBindings: (name: string) => Promise<BindingSummary[]>;
+  onForceDelete: (name: string, bindings: BindingSummary[]) => Promise<void>;
 }
 
 const useStyles = makeStyles(theme => ({
@@ -70,6 +83,21 @@ const useStyles = makeStyles(theme => ({
       backgroundColor: 'rgba(211, 47, 47, 0.04)',
     },
   },
+  warningHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  },
+  warningIcon: {
+    color: theme.palette.warning.main,
+  },
+  mappingsList: {
+    maxHeight: 200,
+    overflow: 'auto',
+    backgroundColor: theme.palette.background.default,
+    borderRadius: theme.shape.borderRadius,
+    marginTop: theme.spacing(2),
+  },
 }));
 
 export const RolesTable = ({
@@ -81,11 +109,15 @@ export const RolesTable = ({
   deleteDeniedTooltip,
   onEdit,
   onDelete,
+  onCheckBindings,
+  onForceDelete,
 }: RolesTableProps) => {
   const classes = useStyles();
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
+  const [activeBindings, setActiveBindings] = useState<BindingSummary[]>([]);
+  const [checkingBindings, setCheckingBindings] = useState(false);
 
   const filteredRoles = useMemo(() => {
     if (!searchQuery) return roles;
@@ -97,21 +129,37 @@ export const RolesTable = ({
     );
   }, [roles, searchQuery]);
 
-  const handleDeleteRole = (name: string) => {
+  const handleDeleteRole = async (name: string) => {
     setRoleToDelete(name);
+    setCheckingBindings(true);
     setDeleteConfirmOpen(true);
-  };
 
-  const confirmDeleteRole = async () => {
-    if (!roleToDelete) return;
-    await onDelete(roleToDelete);
-    setDeleteConfirmOpen(false);
-    setRoleToDelete(null);
+    try {
+      const bindings = await onCheckBindings(name);
+      setActiveBindings(bindings);
+    } catch {
+      setActiveBindings([]);
+    } finally {
+      setCheckingBindings(false);
+    }
   };
 
   const closeDeleteDialog = () => {
     setDeleteConfirmOpen(false);
     setRoleToDelete(null);
+    setActiveBindings([]);
+  };
+
+  const confirmDeleteRole = async () => {
+    if (!roleToDelete) return;
+    await onDelete(roleToDelete);
+    closeDeleteDialog();
+  };
+
+  const confirmForceDelete = async () => {
+    if (!roleToDelete) return;
+    await onForceDelete(roleToDelete, activeBindings);
+    closeDeleteDialog();
   };
 
   return (
@@ -228,27 +276,91 @@ export const RolesTable = ({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle disableTypography>
-          <Typography variant="h4">Delete {scopeLabel}</Typography>
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete the {scopeLabel.toLowerCase()} "
-            {roleToDelete}"?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDeleteDialog} variant="contained">
-            Cancel
-          </Button>
-          <Button
-            onClick={confirmDeleteRole}
-            variant="outlined"
-            className={classes.deleteButton}
-          >
-            Delete
-          </Button>
-        </DialogActions>
+        {checkingBindings && (
+          <>
+            <DialogTitle disableTypography>
+              <Typography variant="h6">Checking {scopeLabel} Usage</Typography>
+            </DialogTitle>
+            <DialogContent>
+              <Box
+                display="flex"
+                alignItems="center"
+                style={{ gap: 16 }}
+                py={2}
+              >
+                <CircularProgress size={24} />
+                <Typography>Checking for role bindings...</Typography>
+              </Box>
+            </DialogContent>
+          </>
+        )}
+        {!checkingBindings && activeBindings.length > 0 && (
+          <>
+            <DialogTitle disableTypography>
+              <Box className={classes.warningHeader}>
+                <WarningIcon className={classes.warningIcon} />
+                <Typography variant="h4" component="span">
+                  {scopeLabel} Has Active Bindings
+                </Typography>
+              </Box>
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                The {scopeLabel.toLowerCase()} "{roleToDelete}" has{' '}
+                {activeBindings.length} active binding
+                {activeBindings.length > 1 ? 's' : ''}. Deleting it will also
+                remove the following bindings:
+              </DialogContentText>
+              <List className={classes.mappingsList} dense>
+                {activeBindings.map((binding, index) => (
+                  <ListItem key={binding.name ?? index}>
+                    <ListItemText
+                      primary={`${binding.entitlement.claim}=${binding.entitlement.value}`}
+                      secondary={`Effect: ${binding.effect.toUpperCase()}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeDeleteDialog} variant="contained">
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmForceDelete}
+                className={classes.deleteButton}
+                variant="outlined"
+              >
+                Force Delete
+              </Button>
+            </DialogActions>
+          </>
+        )}
+        {!checkingBindings && activeBindings.length === 0 && (
+          <>
+            <DialogTitle disableTypography>
+              <Typography variant="h4">Delete {scopeLabel}</Typography>
+            </DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                Are you sure you want to delete the {scopeLabel.toLowerCase()} "
+                {roleToDelete}"?
+              </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={closeDeleteDialog} variant="contained">
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDeleteRole}
+                variant="outlined"
+                className={classes.deleteButton}
+              >
+                Delete
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </>
   );

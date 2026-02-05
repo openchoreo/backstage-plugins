@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -36,6 +37,12 @@ export const NamespaceSelector = ({
 }: NamespaceSelectorProps) => {
   const classes = useStyles();
   const { namespaces, loading } = useNamespaces();
+
+  useEffect(() => {
+    if (!loading && !value && namespaces.length > 0) {
+      onChange(namespaces[0].name);
+    }
+  }, [loading, namespaces, value, onChange]);
 
   if (loading) {
     return (

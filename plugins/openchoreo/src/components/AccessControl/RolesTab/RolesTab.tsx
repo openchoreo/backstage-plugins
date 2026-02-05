@@ -11,16 +11,19 @@ import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import { ClusterRolesContent } from './ClusterRolesContent';
 import { NamespaceRolesContent } from './NamespaceRolesContent';
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles(theme => ({
   verticalTabWrapper: {
     height: '100%',
     minHeight: 500,
   },
+  contentRoot: {
+    marginTop: -theme.spacing(2),
+  },
 }));
 
 const SUB_TABS: TabItemData[] = [
-  { id: SCOPE_CLUSTER, label: 'Cluster Roles', icon: <PublicIcon /> },
-  { id: SCOPE_NAMESPACE, label: 'Namespace Roles', icon: <FolderIcon /> },
+  { id: SCOPE_CLUSTER, label: 'Cluster', icon: <PublicIcon /> },
+  { id: SCOPE_NAMESPACE, label: 'Namespace', icon: <FolderIcon /> },
 ];
 
 interface RolesTabProps {
@@ -43,8 +46,10 @@ export const RolesTab = ({ initialTab, onTabChange }: RolesTabProps) => {
         activeTabId={activeTab}
         onChange={setActiveTab}
       >
-        {activeTab === SCOPE_CLUSTER && <ClusterRolesContent />}
-        {activeTab === SCOPE_NAMESPACE && <NamespaceRolesContent />}
+        <Box className={classes.contentRoot}>
+          {activeTab === SCOPE_CLUSTER && <ClusterRolesContent />}
+          {activeTab === SCOPE_NAMESPACE && <NamespaceRolesContent />}
+        </Box>
       </VerticalTabNav>
     </Box>
   );
