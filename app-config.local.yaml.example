@@ -26,10 +26,13 @@ backend:
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
 
-  # Database configuration (in-memory SQLite for local development)
+  # Database configuration (SQLite for local development)
+  # Uses a directory where each plugin creates its own database file.
+  # Note: ':memory:' also works but data is lost on restart.
   database:
     client: better-sqlite3
-    connection: ':memory:'
+    connection:
+      directory: ./.backstage-db
 
 # OpenChoreo API configuration (k3d cluster)
 openchoreo:
