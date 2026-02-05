@@ -5,7 +5,8 @@ import BlockIcon from '@material-ui/icons/Block';
 import RadioButtonUncheckedIcon from '@material-ui/icons/RadioButtonUnchecked';
 import RadioButtonCheckedIcon from '@material-ui/icons/RadioButtonChecked';
 import { PolicyEffect } from '../../hooks';
-import { WizardState, toK8sName, getK8sNameError } from './types';
+import { WizardState } from './types';
+import { getK8sNameError, toK8sName } from './utils';
 
 const useStyles = makeStyles(theme => ({
   root: {
