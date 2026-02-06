@@ -80,6 +80,8 @@ export class GitSecretsService {
     secretType: 'basic-auth' | 'ssh-auth',
     gitToken?: string,
     sshKey?: string,
+    username?: string,
+    sshKeyId?: string,
     userToken?: string,
   ): Promise<GitSecretResponse> {
     this.logger.debug(
@@ -104,6 +106,8 @@ export class GitSecretsService {
             secretType,
             token: gitToken,
             sshKey,
+            username,
+            sshKeyId,
           },
         },
       );

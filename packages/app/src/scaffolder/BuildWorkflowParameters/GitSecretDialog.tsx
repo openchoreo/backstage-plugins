@@ -62,7 +62,9 @@ export const GitSecretDialog = ({
 
     // Check for duplicate name
     if (existingSecretNames.includes(secretName.trim())) {
-      setError('A secret with this name already exists. Please choose a unique name.');
+      setError(
+        'A secret with this name already exists. Please choose a unique name.',
+      );
       return;
     }
 
@@ -81,7 +83,7 @@ export const GitSecretDialog = ({
     if (!nameRegex.test(secretName)) {
       setError(
         'Secret name must consist of lowercase alphanumeric characters or dashes, ' +
-          'start with an alphanumeric character, and be at most 253 characters long',
+          'start with a lowercase letter or number, and end with a lowercase letter or number.',
       );
       return;
     }

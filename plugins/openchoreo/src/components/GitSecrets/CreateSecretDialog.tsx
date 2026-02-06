@@ -44,7 +44,6 @@ export const CreateSecretDialog = ({
   namespaceName,
   existingSecretNames = [],
 }: CreateSecretDialogProps) => {
-  const classes = useStyles();
   const [secretName, setSecretName] = useState('');
   const [secretType, setSecretType] = useState<SecretType>('basic-auth');
   const [token, setToken] = useState('');
@@ -65,7 +64,9 @@ export const CreateSecretDialog = ({
 
     // Check for duplicate name
     if (existingSecretNames.includes(secretName.trim())) {
-      setError('A secret with this name already exists. Please choose a unique name.');
+      setError(
+        'A secret with this name already exists. Please choose a unique name.',
+      );
       return;
     }
 
@@ -84,7 +85,7 @@ export const CreateSecretDialog = ({
     if (!nameRegex.test(secretName)) {
       setError(
         'Secret name must consist of lowercase alphanumeric characters or dashes, ' +
-          'start with an alphanumeric character, and be at most 253 characters long',
+          'start with a lowercase letter or number, and end with a lowercase letter or number.',
       );
       return;
     }
@@ -231,7 +232,6 @@ export const CreateSecretDialog = ({
             onChange={e => setSecretName(e.target.value.toLowerCase())}
             disabled={loading}
             required
-            className={classes.requiredField}
           />
           <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
             Unique name of the secret.
@@ -286,7 +286,6 @@ export const CreateSecretDialog = ({
               disabled={loading}
               required
               style={{ marginTop: 16 }}
-              className={classes.requiredField}
             />
             <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
               Your git provider password or access token with repository read
@@ -379,7 +378,6 @@ export const CreateSecretDialog = ({
                 disabled={loading}
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
                 required
-                className={classes.requiredField}
               />
               <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
                 Your Private SSH Key file for git authentication.

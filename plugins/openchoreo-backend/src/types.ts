@@ -180,6 +180,8 @@ export interface GitSecretsService {
     secretType: 'basic-auth' | 'ssh-auth',
     gitToken?: string,
     sshKey?: string,
+    username?: string,
+    sshKeyId?: string,
     userToken?: string,
   ): Promise<GitSecretResponse>;
   deleteGitSecret(
