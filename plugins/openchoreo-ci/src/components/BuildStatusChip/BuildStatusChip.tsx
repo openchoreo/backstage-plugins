@@ -18,6 +18,15 @@ export const BuildStatusChip = ({ status }: { status?: string }) => {
           className={`${classes.statusChip} ${classes.successChip}`}
         />
       );
+    case 'succeeded':
+      return (
+        <Chip
+          icon={<CheckCircleIcon style={{ color: '#2e7d32' }} />}
+          label={status}
+          size="small"
+          className={`${classes.statusChip} ${classes.successChip}`}
+        />
+      );
     case 'failed':
       return (
         <Chip
