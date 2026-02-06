@@ -200,14 +200,6 @@ export const openChoreoTheme = createUnifiedTheme({
         },
       },
     },
-    CatalogReactEntityDisplayName: {
-      styleOverrides: {
-        root: {
-          paddingBottom: 12, // More breathing room
-          paddingTop: 12,
-        },
-      },
-    },
     MuiCssBaseline: {
       styleOverrides: {
         '@font-face': [UbuntuFont],
