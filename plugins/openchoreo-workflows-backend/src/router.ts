@@ -1,7 +1,10 @@
 import { InputError } from '@backstage/errors';
 import express from 'express';
 import Router from 'express-promise-router';
-import { GenericWorkflowService, ObservabilityNotConfiguredError } from './services';
+import {
+  GenericWorkflowService,
+  ObservabilityNotConfiguredError,
+} from './services';
 import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,

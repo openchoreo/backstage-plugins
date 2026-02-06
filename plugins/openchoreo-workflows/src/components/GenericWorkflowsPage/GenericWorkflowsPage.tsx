@@ -87,7 +87,12 @@ const WorkflowsListContent = () => {
   }, [client]);
 
   // Fetch workflows for the selected namespace (reads from context)
-  const { workflows, loading: workflowsLoading, error: workflowsError, refetch } = useWorkflows();
+  const {
+    workflows,
+    loading: workflowsLoading,
+    error: workflowsError,
+    refetch,
+  } = useWorkflows();
 
   const handleNamespaceChange = (
     event: React.ChangeEvent<{ value: unknown }>,
@@ -151,26 +156,31 @@ const WorkflowsListContent = () => {
       )}
 
       {/* Content */}
-      {!selectedNamespace ? (
+      {!selectedNamespace && (
         <Box className={classes.emptyState}>
           <Typography variant="h6">
             Select a namespace to view workflow templates
           </Typography>
         </Box>
-      ) : workflowsLoading ? (
-        <Progress />
-      ) : workflows.length === 0 ? (
+      )}
+
+      {selectedNamespace && workflowsLoading && <Progress />}
+
+      {selectedNamespace && !workflowsLoading && workflows.length === 0 && (
         <Box className={classes.emptyState}>
           <Typography variant="h6">No workflow templates found</Typography>
           <Typography variant="body2">
             There are no generic workflow templates available in this namespace.
           </Typography>
         </Box>
-      ) : (
+      )}
+
+      {selectedNamespace && !workflowsLoading && workflows.length > 0 && (
         <>
           <Box className={classes.headerActions}>
             <Typography variant="h6">
-              {workflows.length} Workflow Template{workflows.length !== 1 ? 's' : ''}
+              {workflows.length} Workflow Template
+              {workflows.length !== 1 ? 's' : ''}
             </Typography>
             <IconButton
               className={classes.refreshButton}
@@ -224,11 +234,17 @@ export const GenericWorkflowsPage = () => {
   return (
     <NamespaceProvider>
       <Page themeId="tool">
-        <Header title="Generic Workflows" subtitle="Manage namespace-level workflow templates" />
+        <Header
+          title="Generic Workflows"
+          subtitle="Manage namespace-level workflow templates"
+        />
         <Routes>
           <Route path="/" element={<WorkflowsListContent />} />
           <Route path="/:workflowName" element={<WorkflowDetailsPage />} />
-          <Route path="/:workflowName/trigger" element={<TriggerWorkflowPage />} />
+          <Route
+            path="/:workflowName/trigger"
+            element={<TriggerWorkflowPage />}
+          />
           <Route path="/runs/:runName" element={<WorkflowRunDetailsPage />} />
         </Routes>
       </Page>

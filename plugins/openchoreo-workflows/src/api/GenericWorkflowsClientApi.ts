@@ -22,7 +22,10 @@ export interface GenericWorkflowsClientApi {
   listWorkflows(namespaceName: string): Promise<PaginatedResponse<Workflow>>;
 
   /** Get the JSONSchema for a workflow's parameters */
-  getWorkflowSchema(namespaceName: string, workflowName: string): Promise<unknown>;
+  getWorkflowSchema(
+    namespaceName: string,
+    workflowName: string,
+  ): Promise<unknown>;
 
   /** List workflow runs for a namespace, optionally filtered by workflow name */
   listWorkflowRuns(
@@ -41,7 +44,10 @@ export interface GenericWorkflowsClientApi {
   ): Promise<WorkflowRun>;
 
   /** Get logs for a specific workflow run */
-  getWorkflowRunLogs(namespaceName: string, runName: string): Promise<LogsResponse>;
+  getWorkflowRunLogs(
+    namespaceName: string,
+    runName: string,
+  ): Promise<LogsResponse>;
 }
 
 /**

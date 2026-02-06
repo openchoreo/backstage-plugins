@@ -53,7 +53,11 @@ interface WorkflowRunLogsProps {
   error: Error | null;
 }
 
-export const WorkflowRunLogs = ({ logs, loading, error }: WorkflowRunLogsProps) => {
+export const WorkflowRunLogs = ({
+  logs,
+  loading,
+  error,
+}: WorkflowRunLogsProps) => {
   const classes = useStyles();
 
   if (loading) {
@@ -74,7 +78,8 @@ export const WorkflowRunLogs = ({ logs, loading, error }: WorkflowRunLogsProps) 
     return (
       <Alert severity="info">
         <AlertTitle>Logs not available</AlertTitle>
-        {logs.message || 'Observability is not configured for this workflow run. Logs cannot be retrieved.'}
+        {logs.message ||
+          'Observability is not configured for this workflow run. Logs cannot be retrieved.'}
       </Alert>
     );
   }

@@ -8,12 +8,7 @@ import {
   HeaderTabs,
 } from '@backstage/core-components';
 import { Alert, AlertTitle } from '@material-ui/lab';
-import {
-  Box,
-  IconButton,
-  Typography,
-  Paper,
-} from '@material-ui/core';
+import { Box, IconButton, Typography, Paper } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import RefreshIcon from '@material-ui/icons/Refresh';
@@ -73,7 +68,8 @@ export const WorkflowRunDetailsPage = () => {
   const decodedRunName = runName ? decodeURIComponent(runName) : '';
   const [activeTab, setActiveTab] = useState(0);
 
-  const { run, loading, error, refetch } = useWorkflowRunDetails(decodedRunName);
+  const { run, loading, error, refetch } =
+    useWorkflowRunDetails(decodedRunName);
 
   const isActive = run?.status === 'Pending' || run?.status === 'Running';
 
@@ -179,7 +175,11 @@ export const WorkflowRunDetailsPage = () => {
 
       <Box className={classes.tabContent}>
         {activeTab === 0 && (
-          <WorkflowRunLogs logs={logs} loading={logsLoading} error={logsError} />
+          <WorkflowRunLogs
+            logs={logs}
+            loading={logsLoading}
+            error={logsError}
+          />
         )}
 
         {activeTab === 1 && (
@@ -191,7 +191,10 @@ export const WorkflowRunDetailsPage = () => {
             {run.parameters && Object.keys(run.parameters).length > 0 && (
               <Box className={classes.section}>
                 <InfoCard title="Parameters">
-                  <Paper className={classes.parametersContainer} variant="outlined">
+                  <Paper
+                    className={classes.parametersContainer}
+                    variant="outlined"
+                  >
                     <pre className={classes.parametersCode}>
                       {JSON.stringify(run.parameters, null, 2)}
                     </pre>

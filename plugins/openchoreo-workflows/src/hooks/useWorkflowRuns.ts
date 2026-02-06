@@ -38,7 +38,10 @@ export function useWorkflowRuns(workflowName?: string): UseWorkflowRunsResult {
 
     try {
       setError(null);
-      const response = await client.listWorkflowRuns(namespaceName, workflowName);
+      const response = await client.listWorkflowRuns(
+        namespaceName,
+        workflowName,
+      );
       setRuns(response.items);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));

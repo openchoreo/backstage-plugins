@@ -7,12 +7,7 @@ import {
   Link,
 } from '@backstage/core-components';
 import { Alert, AlertTitle } from '@material-ui/lab';
-import {
-  Box,
-  Button,
-  IconButton,
-  Typography,
-} from '@material-ui/core';
+import { Box, Button, IconButton, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
@@ -66,10 +61,7 @@ function formatRelativeTime(dateString: string): string {
 }
 
 // Helper to calculate duration
-function calculateDuration(
-  createdAt: string,
-  finishedAt?: string,
-): string {
+function calculateDuration(createdAt: string, finishedAt?: string): string {
   if (!finishedAt) return '-';
 
   const start = new Date(createdAt).getTime();
@@ -96,7 +88,12 @@ export const WorkflowDetailsPage = () => {
   const decodedName = decodeURIComponent(workflowName || '');
 
   const { workflows, loading: workflowsLoading } = useWorkflows();
-  const { runs, loading: runsLoading, error, refetch } = useWorkflowRuns(decodedName);
+  const {
+    runs,
+    loading: runsLoading,
+    error,
+    refetch,
+  } = useWorkflowRuns(decodedName);
 
   const workflow = workflows.find(w => w.name === decodedName);
 
@@ -111,7 +108,9 @@ export const WorkflowDetailsPage = () => {
     {
       title: 'Status',
       field: 'status',
-      render: (row: WorkflowRun) => <WorkflowRunStatusChip status={row.status} />,
+      render: (row: WorkflowRun) => (
+        <WorkflowRunStatusChip status={row.status} />
+      ),
     },
     {
       title: 'Created',
@@ -120,7 +119,8 @@ export const WorkflowDetailsPage = () => {
     },
     {
       title: 'Duration',
-      render: (row: WorkflowRun) => calculateDuration(row.createdAt, row.finishedAt),
+      render: (row: WorkflowRun) =>
+        calculateDuration(row.createdAt, row.finishedAt),
     },
   ];
 
@@ -171,16 +171,18 @@ export const WorkflowDetailsPage = () => {
         </Alert>
       )}
 
-      {runsLoading ? (
-        <Progress />
-      ) : runs.length === 0 ? (
+      {runsLoading && <Progress />}
+
+      {!runsLoading && runs.length === 0 && (
         <Box className={classes.emptyState}>
           <Typography variant="h6">No runs yet</Typography>
           <Typography variant="body2">
             Click "Run Workflow" to execute this workflow.
           </Typography>
         </Box>
-      ) : (
+      )}
+
+      {!runsLoading && runs.length > 0 && (
         <Table
           data={runs}
           columns={columns}
