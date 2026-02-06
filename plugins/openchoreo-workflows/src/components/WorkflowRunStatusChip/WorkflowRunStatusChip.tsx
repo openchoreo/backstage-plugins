@@ -50,8 +50,11 @@ export const WorkflowRunStatusChip = ({
 }: WorkflowRunStatusChipProps) => {
   const classes = useStyles();
 
-  switch (status) {
-    case 'Succeeded':
+  // Normalize status to handle case differences from API
+  const normalizedStatus = status?.toLowerCase();
+
+  switch (normalizedStatus) {
+    case 'succeeded':
       return (
         <Chip
           icon={<CheckCircleIcon style={{ color: '#2e7d32' }} />}
@@ -60,8 +63,8 @@ export const WorkflowRunStatusChip = ({
           className={`${classes.statusChip} ${classes.successChip}`}
         />
       );
-    case 'Failed':
-    case 'Error':
+    case 'failed':
+    case 'error':
       return (
         <Chip
           icon={<ErrorIcon style={{ color: '#c62828' }} />}
@@ -70,7 +73,7 @@ export const WorkflowRunStatusChip = ({
           className={`${classes.statusChip} ${classes.errorChip}`}
         />
       );
-    case 'Running':
+    case 'running':
       return (
         <Chip
           icon={<CircularProgress size={14} style={{ color: '#01579b' }} />}
@@ -79,7 +82,7 @@ export const WorkflowRunStatusChip = ({
           className={`${classes.statusChip} ${classes.runningChip}`}
         />
       );
-    case 'Pending':
+    case 'pending':
       return (
         <Chip
           icon={<ScheduleIcon style={{ color: '#e65100' }} />}

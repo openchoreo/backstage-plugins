@@ -109,7 +109,7 @@ export const WorkflowDetailsPage = () => {
       title: 'Status',
       field: 'status',
       render: (row: WorkflowRun) => (
-        <WorkflowRunStatusChip status={row.status} />
+        <WorkflowRunStatusChip status={row.phase || row.status} />
       ),
     },
     {

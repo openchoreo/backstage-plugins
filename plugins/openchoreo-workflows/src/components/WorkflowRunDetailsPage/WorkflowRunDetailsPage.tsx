@@ -71,7 +71,10 @@ export const WorkflowRunDetailsPage = () => {
   const { run, loading, error, refetch } =
     useWorkflowRunDetails(decodedRunName);
 
-  const isActive = run?.status === 'Pending' || run?.status === 'Running';
+  const runStatus = run?.phase || run?.status;
+  const normalizedStatus = runStatus?.toLowerCase();
+  const isActive =
+    normalizedStatus === 'pending' || normalizedStatus === 'running';
 
   const {
     logs,
@@ -136,12 +139,13 @@ export const WorkflowRunDetailsPage = () => {
     );
   }
 
+  const displayStatus = run.phase || run.status;
+
   const metadata = {
     Name: run.name,
-    Status: <WorkflowRunStatusChip status={run.status} />,
+    Status: <WorkflowRunStatusChip status={displayStatus} />,
     Workflow: run.workflowName,
     Namespace: run.namespaceName,
-    Phase: run.phase || '-',
     Created: formatDate(run.createdAt),
     Finished: formatDate(run.finishedAt),
     UUID: run.uuid || '-',
@@ -156,7 +160,7 @@ export const WorkflowRunDetailsPage = () => {
         <Typography variant="h5" className={classes.title}>
           {run.name}
         </Typography>
-        <WorkflowRunStatusChip status={run.status} />
+        <WorkflowRunStatusChip status={displayStatus} />
         {isActive && (
           <Typography className={classes.pollingIndicator}>
             (auto-refreshing)
