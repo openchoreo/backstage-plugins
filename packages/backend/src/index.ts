@@ -57,7 +57,8 @@ backend.add(import('@backstage/plugin-auth-backend'));
 backend.add(OpenChoreoAuthModule);
 // Guest provider for development/demo mode (active when openchoreo.features.auth.enabled = false)
 backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
-
+// Github provider
+backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
 // catalog plugin
 backend.add(import('@backstage/plugin-catalog-backend'));
 backend.add(
