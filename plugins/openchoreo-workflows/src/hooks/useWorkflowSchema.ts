@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { genericWorkflowsClientApiRef } from '../api';
-import { useNamespace } from './useOrgName';
+import { useSelectedNamespace } from '../context';
 
 interface UseWorkflowSchemaResult {
   schema: unknown | null;
@@ -12,18 +12,24 @@ interface UseWorkflowSchemaResult {
 
 /**
  * Hook to fetch the JSONSchema for a workflow's parameters.
+ * Must be used within a NamespaceProvider.
  */
 export function useWorkflowSchema(
   workflowName: string,
 ): UseWorkflowSchemaResult {
   const client = useApi(genericWorkflowsClientApiRef);
-  const namespaceName = useNamespace();
+  const namespaceName = useSelectedNamespace();
 
   const [schema, setSchema] = useState<unknown | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchSchema = useCallback(async () => {
+    if (!namespaceName || !workflowName) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -37,10 +43,8 @@ export function useWorkflowSchema(
   }, [client, namespaceName, workflowName]);
 
   useEffect(() => {
-    if (workflowName) {
-      fetchSchema();
-    }
-  }, [fetchSchema, workflowName]);
+    fetchSchema();
+  }, [fetchSchema]);
 
   return {
     schema,

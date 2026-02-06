@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { genericWorkflowsClientApiRef } from '../api';
 import type { WorkflowRun } from '../types';
-import { useNamespace } from './useOrgName';
+import { useSelectedNamespace } from '../context';
 
 interface UseWorkflowRunsResult {
   runs: WorkflowRun[];
@@ -14,14 +14,15 @@ interface UseWorkflowRunsResult {
 const POLLING_INTERVAL = 5000; // 5 seconds
 
 /**
- * Hook to fetch workflow runs for the namespace.
+ * Hook to fetch workflow runs for the selected namespace.
  * Automatically polls for updates when there are active runs.
+ * Must be used within a NamespaceProvider.
  *
  * @param workflowName - Optional workflow name to filter runs by
  */
 export function useWorkflowRuns(workflowName?: string): UseWorkflowRunsResult {
   const client = useApi(genericWorkflowsClientApiRef);
-  const namespaceName = useNamespace();
+  const namespaceName = useSelectedNamespace();
 
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,12 @@ export function useWorkflowRuns(workflowName?: string): UseWorkflowRunsResult {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchRuns = useCallback(async () => {
+    if (!namespaceName) {
+      setRuns([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setError(null);
       const response = await client.listWorkflowRuns(namespaceName, workflowName);

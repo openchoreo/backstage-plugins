@@ -19,7 +19,7 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
-import { useNamespace } from '../../hooks/useOrgName';
+import { useSelectedNamespace } from '../../context';
 import { genericWorkflowsClientApiRef } from '../../api';
 
 const useStyles = makeStyles(theme => ({
@@ -53,7 +53,7 @@ export const TriggerWorkflowPage = () => {
     ? decodeURIComponent(workflowName)
     : '';
 
-  const namespaceName = useNamespace();
+  const namespaceName = useSelectedNamespace();
   const client = useApi(genericWorkflowsClientApiRef);
   const { schema, loading, error } = useWorkflowSchema(decodedWorkflowName);
 

@@ -10794,6 +10794,7 @@ __metadata:
     "@material-ui/icons": "npm:4.11.3"
     "@material-ui/lab": "npm:4.0.0-alpha.61"
     "@openchoreo/backstage-design-system": "workspace:^"
+    "@openchoreo/backstage-plugin": "workspace:^"
     "@rjsf/core": "npm:5.24.13"
     "@rjsf/material-ui": "npm:5.24.13"
     "@rjsf/utils": "npm:5.24.13"
