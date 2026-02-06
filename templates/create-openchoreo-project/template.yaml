@@ -8,7 +8,7 @@ metadata:
     - openchoreo
 spec:
   owner: guests
-  type: system
+  type: System (Project)
   # Enable user token injection for user-based authorization at OpenChoreo API
   EXPERIMENTAL_formDecorators:
     - id: openchoreo:inject-user-token

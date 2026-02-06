@@ -158,11 +158,11 @@ const app = createApp({
 const templateGroups = [
   {
     title: 'Component Templates',
-    filter: (entity: any) => entity.spec?.type === 'Component Type',
+    filter: (entity: any) => entity.spec?.type === 'Component',
   },
   {
-    title: 'Other Templates',
-    filter: (entity: any) => entity.spec?.type !== 'Component Type',
+    title: 'Project Templates',
+    filter: (entity: any) => entity.spec?.type === 'System (Project)',
   },
 ];
 

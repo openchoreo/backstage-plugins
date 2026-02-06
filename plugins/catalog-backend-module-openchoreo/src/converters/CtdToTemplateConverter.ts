@@ -99,7 +99,7 @@ export class CtdToTemplateConverter {
       },
       spec: {
         owner: this.defaultOwner,
-        type: 'Component Type', // All component type templates use 'Component Type' type
+        type: 'Component', // All component type templates use 'Component Type' type
         // Enable user token injection for user-based authorization at OpenChoreo API
         EXPERIMENTAL_formDecorators: [{ id: 'openchoreo:inject-user-token' }],
         parameters: this.generateParameters(componentType, namespaceName),
