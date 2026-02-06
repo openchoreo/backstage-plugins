@@ -789,7 +789,8 @@ export async function createRouter({
   // Create a new git secret
   router.post('/git-secrets', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
-    const { secretName, secretType, token, sshKey } = req.body;
+    const { secretName, secretType, token, sshKey, username, sshKeyId } =
+      req.body;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is a required query parameter');
@@ -822,6 +823,8 @@ export async function createRouter({
           secretType,
           token,
           sshKey,
+          username,
+          sshKeyId,
           userToken,
         ),
       );
