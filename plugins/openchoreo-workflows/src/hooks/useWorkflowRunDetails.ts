@@ -48,8 +48,8 @@ export function useWorkflowRunDetails(
   }, [client, namespaceName, runName]);
 
   // Check if the run is active (Pending or Running)
-  const isActive =
-    run && (run.status === 'Pending' || run.status === 'Running');
+  const runStatus = (run?.phase || run?.status)?.toLowerCase();
+  const isActive = run && (runStatus === 'pending' || runStatus === 'running');
 
   // Set up polling when the run is active
   useEffect(() => {
