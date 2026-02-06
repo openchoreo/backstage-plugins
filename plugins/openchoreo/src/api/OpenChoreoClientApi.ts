@@ -463,6 +463,8 @@ export interface OpenChoreoClientApi {
     secretName: string,
     secretType: 'basic-auth' | 'ssh-auth',
     tokenOrKey: string,
+    username?: string,
+    sshKeyId?: string,
   ): Promise<GitSecret>;
 
   /** Delete a git secret */

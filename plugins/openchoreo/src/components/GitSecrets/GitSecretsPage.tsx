@@ -75,8 +75,10 @@ export const GitSecretsPage = () => {
     secretName: string,
     secretType: 'basic-auth' | 'ssh-auth',
     tokenOrKey: string,
+    username?: string,
+    sshKeyId?: string,
   ) => {
-    await createSecret(secretName, secretType, tokenOrKey);
+    await createSecret(secretName, secretType, tokenOrKey, username, sshKeyId);
   };
 
   const handleDeleteSecret = async (secretName: string) => {
@@ -166,6 +168,7 @@ export const GitSecretsPage = () => {
           onClose={() => setCreateDialogOpen(false)}
           onSubmit={handleCreateSecret}
           namespaceName={selectedNamespace}
+          existingSecretNames={secrets.map(s => s.name)}
         />
       </Content>
     </Page>

@@ -1077,6 +1077,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     secretName: string,
     secretType: 'basic-auth' | 'ssh-auth',
     tokenOrKey: string,
+    username?: string,
+    sshKeyId?: string,
   ): Promise<GitSecret> {
     const requestBody: any = {
       secretName,
@@ -1085,8 +1087,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
     if (secretType === 'basic-auth') {
       requestBody.token = tokenOrKey;
+      if (username) {
+        requestBody.username = username;
+      }
     } else {
       requestBody.sshKey = tokenOrKey;
+      if (sshKeyId) {
+        requestBody.sshKeyId = sshKeyId;
+      }
     }
 
     return this.apiFetch<GitSecret>(API_ENDPOINTS.GIT_SECRETS, {
