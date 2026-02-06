@@ -56,7 +56,6 @@ function createProjectColumn(): TableColumn<CatalogTableRow> {
   return {
     title: 'System (Project)',
     field: 'resolved.partOfSystemRelationTitle',
-    // width: 'auto',
     customFilterAndSearch: (query, row) => {
       if (!row.resolved.partOfSystemRelations) {
         return false;
