@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { genericWorkflowsClientApiRef } from '../api';
 import type { Workflow } from '../types';
-import { useNamespace } from './useOrgName';
+import { useSelectedNamespace } from '../context';
 
 interface UseWorkflowsResult {
   workflows: Workflow[];
@@ -12,17 +12,23 @@ interface UseWorkflowsResult {
 }
 
 /**
- * Hook to fetch workflow templates for the namespace.
+ * Hook to fetch workflow templates for the selected namespace.
+ * Must be used within a NamespaceProvider.
  */
 export function useWorkflows(): UseWorkflowsResult {
   const client = useApi(genericWorkflowsClientApiRef);
-  const namespaceName = useNamespace();
+  const namespaceName = useSelectedNamespace();
 
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchWorkflows = useCallback(async () => {
+    if (!namespaceName) {
+      setWorkflows([]);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);

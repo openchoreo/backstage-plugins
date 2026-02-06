@@ -411,7 +411,7 @@ export class GenericWorkflowService {
 
       try {
         const result = await obsClient.POST(
-          '/api/logs/workflow-run/{runId}' as any,
+          '/api/v1/workflow-runs/{runId}/logs' as any,
           {
             params: {
               path: { runId },

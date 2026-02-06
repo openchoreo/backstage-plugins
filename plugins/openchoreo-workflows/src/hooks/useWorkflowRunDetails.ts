@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { genericWorkflowsClientApiRef } from '../api';
 import type { WorkflowRun } from '../types';
-import { useNamespace } from './useOrgName';
+import { useSelectedNamespace } from '../context';
 
 interface UseWorkflowRunDetailsResult {
   run: WorkflowRun | null;
@@ -16,12 +16,13 @@ const POLLING_INTERVAL = 5000; // 5 seconds
 /**
  * Hook to fetch details of a specific workflow run.
  * Automatically polls for updates when the run is active.
+ * Must be used within a NamespaceProvider.
  */
 export function useWorkflowRunDetails(
   runName: string,
 ): UseWorkflowRunDetailsResult {
   const client = useApi(genericWorkflowsClientApiRef);
-  const namespaceName = useNamespace();
+  const namespaceName = useSelectedNamespace();
 
   const [run, setRun] = useState<WorkflowRun | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,12 @@ export function useWorkflowRunDetails(
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchRun = useCallback(async () => {
+    if (!namespaceName) {
+      setRun(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setError(null);
       const data = await client.getWorkflowRun(namespaceName, runName);
