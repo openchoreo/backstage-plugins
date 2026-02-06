@@ -23,6 +23,7 @@ import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSou
 import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
+import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -194,12 +195,14 @@ const routes = (
     <Route
       path="/create"
       element={
-        <ScaffolderPage
-          groups={templateGroups}
-          components={{
-            ReviewStepComponent: CustomReviewStep,
-          }}
-        />
+        <ScaffolderPreselectionProvider>
+          <ScaffolderPage
+            groups={templateGroups}
+            components={{
+              ReviewStepComponent: CustomReviewStep,
+            }}
+          />
+        </ScaffolderPreselectionProvider>
       }
     >
       <ScaffolderFieldExtensions>
