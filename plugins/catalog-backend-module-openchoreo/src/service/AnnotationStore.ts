@@ -49,7 +49,7 @@ export async function applyAnnotationStoreMigrations(
 ): Promise<void> {
   const hasTable = await knex.schema.hasTable(TABLE_NAME);
   if (!hasTable) {
-    await knex.schema.createTable(TABLE_NAME, table => {
+    await knex.schema.createTableIfNotExists(TABLE_NAME, table => {
       table.string('entity_ref', 255).notNullable();
       table.string('annotation_key', 255).notNullable();
       table.text('annotation_value').notNullable();
