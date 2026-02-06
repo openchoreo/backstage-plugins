@@ -65,43 +65,31 @@ integrations:
     #   token: ${GHE_TOKEN}
 
   # GitLab Integration (required for GitLab CI plugin)
-  # Uncomment to enable GitLab integration
+  # Uncomment and configure in app-config.local.yaml if needed for local development
+  # For production, this is configured via app-config.production.yaml with Helm-injected env vars
   # gitlab:
   #   - host: gitlab.com
   #     token: ${GITLAB_TOKEN}
-  #   # Example for self-hosted GitLab:
-  #   # - host: gitlab.example.com
-  #   #   apiBaseUrl: https://gitlab.example.com/api/v4
-  #   #   token: ${GITLAB_TOKEN}
 
 # =====================================================================
 # External CI Platform Configuration
 # =====================================================================
-# Uncomment the sections below to enable external CI platform integrations.
-# Each plugin activates automatically when its configuration is present.
-# Entity annotations control which CI platform is shown for each component.
+# External CI integrations are controlled by environment variables.
+# For local development, uncomment and configure in app-config.local.yaml.
+# For production (Helm), configs are in app-config.production.yaml with env var placeholders.
 #
-# Required Annotations:
+# Entity annotations control which CI platform is shown for each component:
 #   - Jenkins:        jenkins.io/job-full-name
-#   - GitHub Actions: github.com/project-slug
+#   - GitHub Actions: github.com/project-slug (uses integrations.github token)
 #   - GitLab:         gitlab.com/project-slug or gitlab.com/project-id
 # =====================================================================
 
 # Jenkins Configuration
-# Uncomment to enable Jenkins plugin
+# Uncomment and configure in app-config.local.yaml if needed for local development
 # jenkins:
 #   baseUrl: ${JENKINS_BASE_URL}
 #   username: ${JENKINS_USERNAME}
 #   apiKey: ${JENKINS_API_KEY}
-#   # Optional: Extra request headers
-#   # extraRequestHeaders:
-#   #   Authorization: Bearer ${JENKINS_TOKEN}
-
-# GitLab CI Configuration
-# Uncomment to enable GitLab CI plugin (requires gitlab integration above)
-# gitlab:
-#   # If using self-hosted GitLab, set the baseUrl
-#   # baseUrl: https://gitlab.example.com
 
 proxy:
   ### Example for how to add a proxy endpoint for the frontend.

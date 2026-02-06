@@ -112,13 +112,10 @@ backend.add(
 backend.add(import('@openchoreo/backstage-plugin-openchoreo-ci-backend'));
 
 // External CI Platform Integrations
-// Uncomment the plugins below AFTER adding their configuration to app-config.yaml
-// These plugins require their respective config to be present or they will fail to start.
-//
-// Jenkins: requires jenkins.baseUrl, jenkins.username, jenkins.apiKey config
-// backend.add(import('@backstage-community/plugin-jenkins-backend'));
-//
-// GitLab: requires integrations.gitlab config with host and token
+// Jenkins: Handles missing config gracefully (API calls fail, not startup)
+backend.add(import('@backstage-community/plugin-jenkins-backend'));
+// GitLab: Requires integrations.gitlab config at startup. Uncomment after configuring in app-config.local.yaml
+// For production, config is in app-config.production.yaml with Helm-injected env vars
 // backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
 
 backend.start();

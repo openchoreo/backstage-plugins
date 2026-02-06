@@ -73,7 +73,6 @@ import {
 import {
   Environments,
   CellDiagram,
-  WorkflowsOverviewCard,
   ProductionOverviewCard,
   RuntimeHealthCard,
   DeploymentPipelineCard,
@@ -106,18 +105,28 @@ import {
   ObservabilityRuntimeLogs,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
-import {
-  FeatureGate,
-  AnnotationGatedContent,
-} from '@openchoreo/backstage-plugin-react';
+import { FeatureGate } from '@openchoreo/backstage-plugin-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
 import { CustomGraphNode } from './CustomGraphNode';
-import { CIStatusCards } from './CIStatusCards';
+import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 
 // External CI Platform imports
 import { EntityJenkinsContent } from '@backstage-community/plugin-jenkins';
 import { EntityGithubActionsContent } from '@backstage-community/plugin-github-actions';
 import { EntityGitlabContent } from '@immobiliarelabs/backstage-plugin-gitlab';
+
+// Annotation predicates for conditionally showing CI tabs
+const hasJenkinsAnnotation = (entity: Entity) =>
+  Boolean(entity.metadata.annotations?.['jenkins.io/job-full-name']);
+
+const hasGithubActionsAnnotation = (entity: Entity) =>
+  Boolean(entity.metadata.annotations?.['github.com/project-slug']);
+
+const hasGitlabAnnotation = (entity: Entity) =>
+  Boolean(
+    entity.metadata.annotations?.['gitlab.com/project-slug'] ||
+      entity.metadata.annotations?.['gitlab.com/project-id'],
+  );
 
 const techdocsContent = (
   <EntityTechdocsContent>
@@ -157,7 +166,7 @@ const entityWarningContent = (
 
 /**
  * Overview content component with feature-gated cards.
- * WorkflowsOverviewCard is gated by workflows feature.
+ * WorkflowsOverviewCard or External CI card shown based on annotations.
  * RuntimeHealthCard is gated by observability feature.
  */
 function OverviewContent() {
@@ -166,12 +175,8 @@ function OverviewContent() {
       {entityWarningContent}
       <EntitySwitch>
         <EntitySwitch.Case if={isKind('component')}>
-          {/* OpenChoreo Summary Cards - feature gated */}
-          <FeatureGate feature="workflows">
-            <Grid item md={4} xs={12}>
-              <WorkflowsOverviewCard />
-            </Grid>
-          </FeatureGate>
+          {/* CI Status Card - shows external CI card if annotation present, otherwise OpenChoreo WorkflowsOverviewCard */}
+          <WorkflowsOrExternalCICard />
           <Grid item md={4} xs={12}>
             <ProductionOverviewCard />
           </Grid>
@@ -180,8 +185,6 @@ function OverviewContent() {
               <RuntimeHealthCard />
             </Grid>
           </FeatureGate>
-          {/* External CI Status Cards - annotation gated */}
-          <CIStatusCards />
         </EntitySwitch.Case>
       </EntitySwitch>
       <Grid item md={6}>
@@ -268,35 +271,25 @@ const serviceEntityPage = (
       {techdocsContent}
     </EntityLayout.Route>
 
-    {/* External CI Platform Tabs - annotation gated */}
-    <EntityLayout.Route path="/jenkins" title="Jenkins">
-      <AnnotationGatedContent
-        annotation="jenkins.io/job-full-name"
-        missingAnnotationTitle="Jenkins Not Configured"
-        missingAnnotationDescription="Add the jenkins.io/job-full-name annotation to this entity to view Jenkins builds."
-      >
-        <EntityJenkinsContent />
-      </AnnotationGatedContent>
+    {/* External CI Platform Tabs - only shown when annotation is present */}
+    <EntityLayout.Route
+      path="/jenkins"
+      title="Jenkins"
+      if={hasJenkinsAnnotation}
+    >
+      <EntityJenkinsContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/github-actions" title="GitHub Actions">
-      <AnnotationGatedContent
-        annotation="github.com/project-slug"
-        missingAnnotationTitle="GitHub Actions Not Configured"
-        missingAnnotationDescription="Add the github.com/project-slug annotation to this entity to view GitHub Actions workflows."
-      >
-        <EntityGithubActionsContent />
-      </AnnotationGatedContent>
+    <EntityLayout.Route
+      path="/github-actions"
+      title="GitHub Actions"
+      if={hasGithubActionsAnnotation}
+    >
+      <EntityGithubActionsContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/gitlab" title="GitLab">
-      <AnnotationGatedContent
-        annotations={['gitlab.com/project-slug', 'gitlab.com/project-id']}
-        missingAnnotationTitle="GitLab Not Configured"
-        missingAnnotationDescription="Add the gitlab.com/project-slug or gitlab.com/project-id annotation to this entity to view GitLab pipelines."
-      >
-        <EntityGitlabContent />
-      </AnnotationGatedContent>
+    <EntityLayout.Route path="/gitlab" title="GitLab" if={hasGitlabAnnotation}>
+      <EntityGitlabContent />
     </EntityLayout.Route>
   </EntityLayoutWithDelete>
 );
@@ -360,35 +353,25 @@ const websiteEntityPage = (
       {techdocsContent}
     </EntityLayout.Route>
 
-    {/* External CI Platform Tabs - annotation gated */}
-    <EntityLayout.Route path="/jenkins" title="Jenkins">
-      <AnnotationGatedContent
-        annotation="jenkins.io/job-full-name"
-        missingAnnotationTitle="Jenkins Not Configured"
-        missingAnnotationDescription="Add the jenkins.io/job-full-name annotation to this entity to view Jenkins builds."
-      >
-        <EntityJenkinsContent />
-      </AnnotationGatedContent>
+    {/* External CI Platform Tabs - only shown when annotation is present */}
+    <EntityLayout.Route
+      path="/jenkins"
+      title="Jenkins"
+      if={hasJenkinsAnnotation}
+    >
+      <EntityJenkinsContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/github-actions" title="GitHub Actions">
-      <AnnotationGatedContent
-        annotation="github.com/project-slug"
-        missingAnnotationTitle="GitHub Actions Not Configured"
-        missingAnnotationDescription="Add the github.com/project-slug annotation to this entity to view GitHub Actions workflows."
-      >
-        <EntityGithubActionsContent />
-      </AnnotationGatedContent>
+    <EntityLayout.Route
+      path="/github-actions"
+      title="GitHub Actions"
+      if={hasGithubActionsAnnotation}
+    >
+      <EntityGithubActionsContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/gitlab" title="GitLab">
-      <AnnotationGatedContent
-        annotations={['gitlab.com/project-slug', 'gitlab.com/project-id']}
-        missingAnnotationTitle="GitLab Not Configured"
-        missingAnnotationDescription="Add the gitlab.com/project-slug or gitlab.com/project-id annotation to this entity to view GitLab pipelines."
-      >
-        <EntityGitlabContent />
-      </AnnotationGatedContent>
+    <EntityLayout.Route path="/gitlab" title="GitLab" if={hasGitlabAnnotation}>
+      <EntityGitlabContent />
     </EntityLayout.Route>
   </EntityLayoutWithDelete>
 );

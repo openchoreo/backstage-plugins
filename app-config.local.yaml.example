@@ -86,40 +86,33 @@ auth:
         tokenUrl: http://thunder.openchoreo.localhost:8080/oauth2/token
         scope: 'openid profile email'
 
-# GitHub integration (optional)
-# Uncomment and add your personal access token if you need GitHub integration
-# integrations:
-#   github:
-#     - host: github.com
-#       token: YOUR_GITHUB_TOKEN_HERE
-#   # GitLab integration (required for GitLab CI plugin)
-#   gitlab:
-#     - host: gitlab.com
-#       token: YOUR_GITLAB_TOKEN_HERE
-
 # =====================================================================
 # External CI Platform Configuration
 # =====================================================================
-# Uncomment the sections below to enable external CI platform integrations.
-# Each plugin activates automatically when its configuration is present.
-# Entity annotations control which CI platform is shown for each component.
-#
-# Required Annotations:
+# Uncomment and configure the CI platforms you want to use.
+# Entity annotations control which CI tabs appear for each component:
 #   - Jenkins:        jenkins.io/job-full-name
-#   - GitHub Actions: github.com/project-slug
+#   - GitHub Actions: github.com/project-slug (uses integrations.github token)
 #   - GitLab:         gitlab.com/project-slug or gitlab.com/project-id
+#
+# IMPORTANT: For GitLab, you must also uncomment the GitLab backend plugin
+# in packages/backend/src/index.ts after adding this configuration:
+#   backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
 # =====================================================================
 
 # Jenkins Configuration
-# Uncomment to enable Jenkins plugin
 # jenkins:
 #   baseUrl: http://jenkins.example.com
 #   username: admin
 #   apiKey: YOUR_JENKINS_API_KEY
 
-# GitLab CI Configuration
-# Uncomment to enable GitLab CI plugin (requires gitlab integration above)
-# gitlab:
-#   baseUrl: https://gitlab.com
-#   # If using self-hosted GitLab:
-#   # baseUrl: https://gitlab.example.com
+# GitHub integration (required for GitHub Actions CI and scaffolder)
+# integrations:
+#   github:
+#     - host: github.com
+#       token: YOUR_GITHUB_TOKEN_HERE
+#   # GitLab integration (required for GitLab CI plugin)
+#   # NOTE: Also uncomment the GitLab backend plugin in packages/backend/src/index.ts
+#   gitlab:
+#     - host: gitlab.com
+#       token: YOUR_GITLAB_TOKEN_HERE
