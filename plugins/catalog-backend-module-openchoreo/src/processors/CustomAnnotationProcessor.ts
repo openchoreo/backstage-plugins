@@ -28,8 +28,9 @@ export class CustomAnnotationProcessor implements CatalogProcessor {
     }
 
     const entityRef = stringifyEntityRef(entity);
-    const customAnnotations =
-      await this.annotationStore.getAnnotations(entityRef);
+    const customAnnotations = await this.annotationStore.getAnnotations(
+      entityRef,
+    );
 
     if (Object.keys(customAnnotations).length === 0) {
       return entity;

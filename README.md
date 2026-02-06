@@ -303,11 +303,11 @@ OpenChoreo includes built-in support for viewing CI build status from external p
 
 ### Supported Platforms
 
-| Platform           | Required Annotation                                  | Environment Variables                              |
-| ------------------ | ---------------------------------------------------- | -------------------------------------------------- |
+| Platform           | Required Annotation                                  | Environment Variables                                     |
+| ------------------ | ---------------------------------------------------- | --------------------------------------------------------- |
 | **Jenkins**        | `jenkins.io/job-full-name`                           | `JENKINS_BASE_URL`, `JENKINS_USERNAME`, `JENKINS_API_KEY` |
-| **GitHub Actions** | `github.com/project-slug`                            | `GITHUB_TOKEN`                                     |
-| **GitLab CI**      | `gitlab.com/project-slug` or `gitlab.com/project-id` | `GITLAB_HOST`, `GITLAB_TOKEN`                      |
+| **GitHub Actions** | `github.com/project-slug`                            | `GITHUB_TOKEN`                                            |
+| **GitLab CI**      | `gitlab.com/project-slug` or `gitlab.com/project-id` | `GITLAB_HOST`, `GITLAB_TOKEN`                             |
 
 ### How It Works
 
@@ -345,6 +345,7 @@ integrations:
 > **Note for GitLab**: Unlike Jenkins, the GitLab backend plugin requires configuration at startup.
 > After adding GitLab config to `app-config.local.yaml`, you must also uncomment the GitLab backend
 > plugin in `packages/backend/src/index.ts`:
+>
 > ```typescript
 > backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
 > ```
@@ -358,19 +359,20 @@ backstage:
   externalCI:
     jenkins:
       enabled: true
-      baseUrl: "https://jenkins.example.com"
-      username: "admin"
-      apiKey: "your-jenkins-api-key"
+      baseUrl: 'https://jenkins.example.com'
+      username: 'admin'
+      apiKey: 'your-jenkins-api-key'
     github:
       enabled: true
-      token: "ghp_xxxxxxxxxxxx"
+      token: 'ghp_xxxxxxxxxxxx'
     gitlab:
       enabled: true
-      host: "gitlab.com"
-      token: "glpat-xxxxxxxxxxxx"
+      host: 'gitlab.com'
+      token: 'glpat-xxxxxxxxxxxx'
 ```
 
 The Helm chart will:
+
 - Inject environment variables when `enabled: true`
 - Store sensitive values (apiKey, token) in Kubernetes secrets
 - Skip injection when `enabled: false` (default)
