@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
   Grid,
@@ -10,6 +10,7 @@ import {
 } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { useScaffolderPreselection } from '../ScaffolderPreselectionContext';
 
 export interface ProjectNamespaceData {
   project_name: string;
@@ -42,12 +43,17 @@ export const ProjectNamespaceField = ({
   rawErrors,
 }: FieldExtensionComponentProps<ProjectNamespaceData>) => {
   const catalogApi = useApi(catalogApiRef);
+  const { preselectedProject, clearPreselectedProject } =
+    useScaffolderPreselection();
 
   const [projects, setProjects] = useState<
     Array<{ name: string; entityRef: string }>
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Track if we've already applied the preselection to avoid re-applying
+  const preselectionAppliedRef = useRef(false);
 
   // Get default namespace from ui:options
   const defaultNamespace =
@@ -80,10 +86,27 @@ export const ProjectNamespaceField = ({
 
       setProjects(projectList);
 
-      // Auto-select first project if none selected and projects available
+      // Auto-select project based on preselection or fallback to first
       if (projectList.length > 0 && !formData?.project_name) {
+        let selectedProject = projectList[0].entityRef;
+
+        // Check if we have a preselected project from context
+        if (preselectedProject && !preselectionAppliedRef.current) {
+          const matchingProject = projectList.find(
+            p =>
+              p.name === preselectedProject ||
+              p.entityRef.endsWith(`/${preselectedProject}`),
+          );
+          if (matchingProject) {
+            selectedProject = matchingProject.entityRef;
+            preselectionAppliedRef.current = true;
+            // Clear the preselection after applying to avoid affecting future forms
+            clearPreselectedProject();
+          }
+        }
+
         onChange({
-          project_name: projectList[0].entityRef,
+          project_name: selectedProject,
           namespace_name: namespaceName,
         });
       }
@@ -92,7 +115,14 @@ export const ProjectNamespaceField = ({
     } finally {
       setLoading(false);
     }
-  }, [catalogApi, formData?.project_name, namespaceName, onChange]);
+  }, [
+    catalogApi,
+    formData?.project_name,
+    namespaceName,
+    onChange,
+    preselectedProject,
+    clearPreselectedProject,
+  ]);
 
   useEffect(() => {
     fetchProjects();

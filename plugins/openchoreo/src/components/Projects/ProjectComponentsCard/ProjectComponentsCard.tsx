@@ -136,13 +136,16 @@ export const ProjectComponentsCard = () => {
             icon: AddIcon,
             tooltip: 'Create a new component',
             isFreeAction: true,
-            onClick: () => navigate('/create?filters[type]=component'),
+            onClick: () =>
+              navigate(
+                `/create?filters[type]=component&project=${entity.metadata.name}`,
+              ),
           },
         ]}
         components={{
           Action: ({ action }: any) => (
             <Button
-              variant="outlined"
+              variant="contained"
               color="primary"
               size="small"
               startIcon={<AddIcon />}
