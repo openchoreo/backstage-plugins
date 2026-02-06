@@ -56,6 +56,7 @@ function createProjectColumn(): TableColumn<CatalogTableRow> {
   return {
     title: 'System (Project)',
     field: 'resolved.partOfSystemRelationTitle',
+    // width: 'auto',
     customFilterAndSearch: (query, row) => {
       if (!row.resolved.partOfSystemRelations) {
         return false;
@@ -83,27 +84,95 @@ function createProjectColumn(): TableColumn<CatalogTableRow> {
  * - Domain → Namespace (handled by entity kind picker)
  * - Name column with deletion badge support
  */
+/**
+ * Fields to hide for specific entity kinds.
+ */
+const hiddenFieldsByKind: Record<string, string[]> = {
+  componenttype: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+    'entity.spec.type',
+  ],
+  deploymentpipeline: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+    'entity.spec.type',
+  ],
+  dataplane: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+  ],
+  buildplane: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+  ],
+  traittype: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+    'entity.spec.type',
+  ],
+  componentworkflow: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+    'entity.spec.type',
+  ],
+  observabilityplane: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+  ],
+  environment: [
+    'resolved.partOfSystemRelationTitle',
+    'resolved.ownedByRelationsTitle',
+    'entity.spec.lifecycle',
+  ],
+};
+
 export const choreoCatalogTableColumns: CatalogTableColumnsFunc =
   entityListContext => {
     // Get the default columns
     const defaultColumns = CatalogTable.defaultColumnsFunc(entityListContext);
 
-    // Replace columns with custom versions
-    return defaultColumns.map(column => {
-      if (typeof column !== 'object' || !('field' in column)) {
+    const kind = entityListContext.filters.kind?.value;
+    const fieldsToHide = kind ? hiddenFieldsByKind[kind] ?? [] : [];
+
+    // Replace and filter columns
+    return defaultColumns
+      .map(column => {
+        if (typeof column !== 'object' || !('field' in column)) {
+          return column;
+        }
+
+        // Replace the "Name" column with deletion-aware version
+        if (column.field === 'resolved.entityRef') {
+          const nameColumn = createNameColumnWithDeletion();
+          return kind !== 'component'
+            ? { ...nameColumn, width: 'auto' }
+            : nameColumn;
+        }
+
+        // Replace the "System" column with "Project" column
+        if (column.field === 'resolved.partOfSystemRelationTitle') {
+          return createProjectColumn();
+        }
+
+        // Set auto width on Owner column to prevent excessive expansion
+        if (column.field === 'resolved.ownedByRelationsTitle') {
+          return { ...column, width: 'auto' };
+        }
+
         return column;
-      }
-
-      // Replace the "Name" column with deletion-aware version
-      if (column.field === 'resolved.entityRef') {
-        return createNameColumnWithDeletion();
-      }
-
-      // Replace the "System" column with "Project" column
-      if (column.field === 'resolved.partOfSystemRelationTitle') {
-        return createProjectColumn();
-      }
-
-      return column;
-    });
+      })
+      .filter(column => {
+        if (typeof column !== 'object' || !('field' in column)) {
+          return true;
+        }
+        return !fieldsToHide.includes(column.field as string);
+      });
   };
