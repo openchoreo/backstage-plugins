@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
-import { Link, TableColumn } from '@backstage/core-components';
-import { Box, Typography } from '@material-ui/core';
+import { Link, Table, TableColumn } from '@backstage/core-components';
+import { Box, Button, Typography } from '@material-ui/core';
+import AddIcon from '@material-ui/icons/Add';
+import { useNavigate } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { EntityTable } from '@backstage/plugin-catalog-react';
 import {
   useComponentsWithDeployment,
   useEnvironments,
@@ -21,6 +22,7 @@ export const ProjectComponentsCard = () => {
   const { environments, loading: envsLoading } = useEnvironments(entity);
   const { data: pipelineData, loading: pipelineLoading } =
     useDeploymentPipeline();
+  const navigate = useNavigate();
 
   // Filter and sort environments based on deployment pipeline
   const pipelineEnvironments = useMemo(() => {
@@ -108,11 +110,10 @@ export const ProjectComponentsCard = () => {
 
   return (
     <Box className={classes.cardWrapper}>
-      <EntityTable
+      <Table
         title="Has Components"
-        variant="gridItem"
         columns={columns}
-        entities={components}
+        data={components}
         emptyContent={
           <Box p={3}>
             <Typography variant="body1" color="textSecondary" align="center">
@@ -120,11 +121,39 @@ export const ProjectComponentsCard = () => {
             </Typography>
           </Box>
         }
-        tableOptions={{
+        options={{
           paging: true,
           pageSize: 5,
           pageSizeOptions: [5, 10, 20],
           search: true,
+          actionsColumnIndex: -1,
+          padding: 'dense',
+          draggable: false,
+        }}
+        style={{ minWidth: 0, width: '100%', height: 'calc(100% - 10px)' }}
+        actions={[
+          {
+            icon: AddIcon,
+            tooltip: 'Create a new component',
+            isFreeAction: true,
+            onClick: () => navigate('/create?filters[type]=component'),
+          },
+        ]}
+        components={{
+          Action: ({ action }: any) => (
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<AddIcon />}
+              className={classes.createComponentButton}
+              onClick={(event: React.MouseEvent) =>
+                action.onClick(event, undefined)
+              }
+            >
+              Create Component
+            </Button>
+          ),
         }}
       />
     </Box>

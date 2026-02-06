@@ -62,4 +62,9 @@ export const useProjectComponentsCardStyles = makeStyles(theme => ({
     fontWeight: 600,
     color: theme.palette.common.white,
   },
+  createComponentButton: {
+    textTransform: 'none',
+    marginRight: theme.spacing(2),
+    borderRadius: theme.spacing(1),
+  },
 }));
