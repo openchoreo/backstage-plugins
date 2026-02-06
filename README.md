@@ -303,54 +303,81 @@ OpenChoreo includes built-in support for viewing CI build status from external p
 
 ### Supported Platforms
 
-| Platform           | Required Annotation                                  | Configuration Key             |
-| ------------------ | ---------------------------------------------------- | ----------------------------- |
-| **Jenkins**        | `jenkins.io/job-full-name`                           | `jenkins.baseUrl`             |
-| **GitHub Actions** | `github.com/project-slug`                            | `integrations.github[].token` |
-| **GitLab CI**      | `gitlab.com/project-slug` or `gitlab.com/project-id` | `integrations.gitlab[].token` |
+| Platform           | Required Annotation                                  | Environment Variables                              |
+| ------------------ | ---------------------------------------------------- | -------------------------------------------------- |
+| **Jenkins**        | `jenkins.io/job-full-name`                           | `JENKINS_BASE_URL`, `JENKINS_USERNAME`, `JENKINS_API_KEY` |
+| **GitHub Actions** | `github.com/project-slug`                            | `GITHUB_TOKEN`                                     |
+| **GitLab CI**      | `gitlab.com/project-slug` or `gitlab.com/project-id` | `GITLAB_HOST`, `GITLAB_TOKEN`                      |
 
-### Enabling CI Plugins
+### How It Works
 
-To enable a CI plugin:
+External CI plugins work differently based on the platform:
 
-1. **Add configuration** to `app-config.yaml` (or `app-config.local.yaml` for local dev)
-2. **Uncomment the backend plugin** in `packages/backend/src/index.ts`
+- **Jenkins**: Backend plugin is always enabled and handles missing config gracefully (API calls fail, not startup)
+- **GitHub Actions**: Uses the GitHub integration token from `integrations.github` - no separate backend plugin needed
+- **GitLab**: Backend plugin requires `integrations.gitlab` config at startup. The plugin is **commented out by default** - you must uncomment it in `packages/backend/src/index.ts` after adding GitLab config.
 
-**Step 1: Configuration in `app-config.yaml`:**
+The UI components (tabs and status cards) appear when the entity has the required CI annotation.
+
+### Configuration
+
+#### Local Development (`app-config.local.yaml`)
 
 ```yaml
 # Jenkins Configuration
 jenkins:
-  baseUrl: https://jenkins.example.com
+  baseUrl: http://jenkins.example.com
   username: admin
-  apiKey: ${JENKINS_API_KEY}
+  apiKey: YOUR_JENKINS_API_KEY
 
-# GitLab Integration (enables GitLab CI plugin)
-integrations:
-  gitlab:
-    - host: gitlab.com
-      token: ${GITLAB_TOKEN}
-
-# GitHub Integration (enables GitHub Actions plugin)
+# GitHub Integration (used by GitHub Actions and scaffolder)
 integrations:
   github:
     - host: github.com
-      token: ${GITHUB_TOKEN}
+      token: YOUR_GITHUB_TOKEN
+
+  # GitLab Integration (required for GitLab CI)
+  gitlab:
+    - host: gitlab.com
+      token: YOUR_GITLAB_TOKEN
 ```
 
-**Step 2: Enable backend plugins in `packages/backend/src/index.ts`:**
+> **Note for GitLab**: Unlike Jenkins, the GitLab backend plugin requires configuration at startup.
+> After adding GitLab config to `app-config.local.yaml`, you must also uncomment the GitLab backend
+> plugin in `packages/backend/src/index.ts`:
+> ```typescript
+> backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
+> ```
 
-```typescript
-// Uncomment the plugins you need:
-backend.add(import('@backstage-community/plugin-jenkins-backend'));
-backend.add(import('@immobiliarelabs/backstage-plugin-gitlab-backend'));
+#### Production (Helm Chart)
+
+For Kubernetes deployments, configure CI integrations via Helm values:
+
+```yaml
+backstage:
+  externalCI:
+    jenkins:
+      enabled: true
+      baseUrl: "https://jenkins.example.com"
+      username: "admin"
+      apiKey: "your-jenkins-api-key"
+    github:
+      enabled: true
+      token: "ghp_xxxxxxxxxxxx"
+    gitlab:
+      enabled: true
+      host: "gitlab.com"
+      token: "glpat-xxxxxxxxxxxx"
 ```
 
-> **Note:** GitHub Actions uses the GitHub integration and doesn't require a separate backend plugin.
+The Helm chart will:
+- Inject environment variables when `enabled: true`
+- Store sensitive values (apiKey, token) in Kubernetes secrets
+- Skip injection when `enabled: false` (default)
 
 ### Adding CI Annotations
 
-Once the plugins are enabled, add annotations to your components:
+Once configured, add annotations to your components:
 
 1. Navigate to the component in Backstage
 2. Click the context menu (**...**) and select **Edit Annotations**
@@ -359,7 +386,7 @@ Once the plugins are enabled, add annotations to your components:
 
 When annotations are present, you'll see:
 
-- **Status cards** on the component Overview page
+- **Status cards** on the component Overview page (replaces the Workflows card when external CI is configured)
 - **Dedicated tabs** (Jenkins, GitHub Actions, or GitLab) with full build history
 
 For detailed setup instructions, see the [External CI Integration Guide](https://openchoreo.dev/docs/integrating-with-openchoreo/external-ci).

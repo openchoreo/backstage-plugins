@@ -161,36 +161,18 @@ thunder:
 # =====================================================================
 # External CI Platform Configuration
 # =====================================================================
-# Uncomment the sections below to enable external CI platform integrations.
-# Each plugin activates automatically when its configuration is present.
-# Entity annotations control which CI platform is shown for each component.
+# External CI configs are injected via Helm ConfigMap when enabled.
+# See: backstage.externalCI.jenkins.enabled, backstage.externalCI.gitlab.enabled
 #
-# Required Annotations:
+# The Helm chart mounts an additional config file (app-config.ci.yaml) when
+# CI integrations are enabled. This avoids startup errors when configs reference
+# unset environment variables.
+#
+# Entity annotations control which CI platform is shown for each component:
 #   - Jenkins:        jenkins.io/job-full-name
-#   - GitHub Actions: github.com/project-slug (uses GitHub integration token)
+#   - GitHub Actions: github.com/project-slug (uses integrations.github token)
 #   - GitLab:         gitlab.com/project-slug or gitlab.com/project-id
 # =====================================================================
-
-# Jenkins Configuration
-# Uncomment to enable Jenkins plugin
-# jenkins:
-#   baseUrl: ${JENKINS_BASE_URL}
-#   username: ${JENKINS_USERNAME}
-#   apiKey: ${JENKINS_API_KEY}
-
-# GitLab Integration & CI Configuration
-# Uncomment to enable GitLab CI plugin
-# integrations:
-#   gitlab:
-#     - host: gitlab.com
-#       token: ${GITLAB_TOKEN}
-#     # For self-hosted GitLab:
-#     # - host: ${GITLAB_HOST}
-#     #   apiBaseUrl: ${GITLAB_API_BASE_URL}
-#     #   token: ${GITLAB_TOKEN}
-#
-# gitlab:
-#   baseUrl: ${GITLAB_BASE_URL}
 
 # see https://backstage.io/docs/permissions/getting-started for more on the permission framework
 permission:
