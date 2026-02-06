@@ -14,6 +14,8 @@ export interface UseGitSecretsResult {
     secretName: string,
     secretType: 'basic-auth' | 'ssh-auth',
     tokenOrKey: string,
+    username?: string,
+    sshKeyId?: string,
   ) => Promise<GitSecret>;
   deleteSecret: (secretName: string) => Promise<void>;
 }
@@ -52,12 +54,16 @@ export function useGitSecrets(namespaceName: string): UseGitSecretsResult {
       secretName: string,
       secretType: 'basic-auth' | 'ssh-auth',
       tokenOrKey: string,
+      username?: string,
+      sshKeyId?: string,
     ): Promise<GitSecret> => {
       const secret = await client.createGitSecret(
         namespaceName,
         secretName,
         secretType,
         tokenOrKey,
+        username,
+        sshKeyId,
       );
       // Refresh the list
       await fetchSecrets();

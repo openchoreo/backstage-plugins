@@ -107,6 +107,8 @@ export const GitSecretField = ({
     secretName: string,
     secretType: 'basic-auth' | 'ssh-auth',
     tokenOrKey: string,
+    username?: string,
+    sshKeyId?: string,
   ) => {
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
@@ -119,8 +121,14 @@ export const GitSecretField = ({
 
       if (secretType === 'basic-auth') {
         requestBody.token = tokenOrKey;
+        if (username) {
+          requestBody.username = username;
+        }
       } else {
         requestBody.sshKey = tokenOrKey;
+        if (sshKeyId) {
+          requestBody.sshKeyId = sshKeyId;
+        }
       }
 
       const response = await fetchApi.fetch(
@@ -292,6 +300,7 @@ export const GitSecretField = ({
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onSubmit={handleCreateSecret}
+        existingSecretNames={secrets.map(s => s.name)}
       />
     </Box>
   );

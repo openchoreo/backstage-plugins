@@ -26,8 +26,11 @@ interface CreateSecretDialogProps {
     secretName: string,
     secretType: SecretType,
     tokenOrKey: string,
+    username?: string,
+    sshKeyId?: string,
   ) => Promise<void>;
   namespaceName: string;
+  existingSecretNames?: string[];
 }
 
 /**
@@ -39,11 +42,15 @@ export const CreateSecretDialog = ({
   onClose,
   onSubmit,
   namespaceName,
+  existingSecretNames = [],
 }: CreateSecretDialogProps) => {
+  const classes = useStyles();
   const [secretName, setSecretName] = useState('');
   const [secretType, setSecretType] = useState<SecretType>('basic-auth');
   const [token, setToken] = useState('');
   const [sshKey, setSshKey] = useState('');
+  const [username, setUsername] = useState('');
+  const [sshKeyId, setSshKeyId] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,8 +63,14 @@ export const CreateSecretDialog = ({
       return;
     }
 
+    // Check for duplicate name
+    if (existingSecretNames.includes(secretName.trim())) {
+      setError('A secret with this name already exists. Please choose a unique name.');
+      return;
+    }
+
     if (secretType === 'basic-auth' && !token.trim()) {
-      setError('Token is required for Basic Authentication');
+      setError('Password or Token is required for Basic Authentication');
       return;
     }
 
@@ -98,12 +111,20 @@ export const CreateSecretDialog = ({
           ? sshKey.trim().replace(/\r\n/g, '\n') // Normalize line endings
           : token.trim();
 
-      await onSubmit(secretName.trim(), secretType, formattedValue);
+      await onSubmit(
+        secretName.trim(),
+        secretType,
+        formattedValue,
+        username.trim() || undefined,
+        sshKeyId.trim() || undefined,
+      );
 
       // Reset form on success
       setSecretName('');
       setToken('');
       setSshKey('');
+      setUsername('');
+      setSshKeyId('');
       setUploadedFileName('');
       setSecretType('basic-auth');
       setError(null);
@@ -124,6 +145,8 @@ export const CreateSecretDialog = ({
       setSecretName('');
       setToken('');
       setSshKey('');
+      setUsername('');
+      setSshKeyId('');
       setUploadedFileName('');
       setSecretType('basic-auth');
       setError(null);
@@ -207,6 +230,8 @@ export const CreateSecretDialog = ({
             value={secretName}
             onChange={e => setSecretName(e.target.value.toLowerCase())}
             disabled={loading}
+            required
+            className={classes.requiredField}
           />
           <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
             Unique name of the secret.
@@ -239,21 +264,50 @@ export const CreateSecretDialog = ({
           <Box style={{ marginTop: 16 }}>
             <TextField
               margin="dense"
-              label="Token"
+              label="Username"
+              fullWidth
+              variant="outlined"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              disabled={loading}
+            />
+            <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
+              Username for git authentication.
+            </FormHelperText>
+
+            <TextField
+              margin="dense"
+              label="Password or Token"
               fullWidth
               variant="outlined"
               type="password"
               value={token}
               onChange={e => setToken(e.target.value)}
               disabled={loading}
+              required
+              style={{ marginTop: 16 }}
+              className={classes.requiredField}
             />
             <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
-              Your git provider access token or password with repository read
+              Your git provider password or access token with repository read
               permissions.
             </FormHelperText>
           </Box>
         ) : (
           <Box style={{ marginTop: 16 }}>
+            <TextField
+              margin="dense"
+              label="SSH Key ID"
+              fullWidth
+              variant="outlined"
+              value={sshKeyId}
+              onChange={e => setSshKeyId(e.target.value)}
+              disabled={loading}
+            />
+            <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
+              SSH key identifier for git authentication.
+            </FormHelperText>
+
             <Box
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -262,6 +316,7 @@ export const CreateSecretDialog = ({
                 border: isDragging ? '2px dashed #3f51b5' : '2px dashed #ccc',
                 borderRadius: 8,
                 padding: 16,
+                marginTop: 16,
                 backgroundColor: isDragging
                   ? 'rgba(63, 81, 181, 0.05)'
                   : 'transparent',
@@ -323,6 +378,8 @@ export const CreateSecretDialog = ({
                 }}
                 disabled={loading}
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
+                required
+                className={classes.requiredField}
               />
               <FormHelperText style={{ marginLeft: 0, marginTop: 4 }}>
                 Your Private SSH Key file for git authentication.
