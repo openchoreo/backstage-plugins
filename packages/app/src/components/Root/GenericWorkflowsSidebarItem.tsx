@@ -7,10 +7,6 @@ import { SidebarItem } from '@backstage/core-components';
  */
 export const GenericWorkflowsSidebarItem = () => {
   return (
-    <SidebarItem
-      icon={PlayArrowIcon}
-      to="admin/workflows"
-      text="Workflows"
-    />
+    <SidebarItem icon={PlayArrowIcon} to="admin/workflows" text="Workflows" />
   );
 };

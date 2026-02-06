@@ -5,7 +5,9 @@ interface NamespaceContextValue {
   setSelectedNamespace: (namespace: string) => void;
 }
 
-const NamespaceContext = createContext<NamespaceContextValue | undefined>(undefined);
+const NamespaceContext = createContext<NamespaceContextValue | undefined>(
+  undefined,
+);
 
 interface NamespaceProviderProps {
   children: ReactNode;
@@ -37,7 +39,9 @@ export function NamespaceProvider({ children }: NamespaceProviderProps) {
 export function useNamespaceContext(): NamespaceContextValue {
   const context = useContext(NamespaceContext);
   if (!context) {
-    throw new Error('useNamespaceContext must be used within a NamespaceProvider');
+    throw new Error(
+      'useNamespaceContext must be used within a NamespaceProvider',
+    );
   }
   return context;
 }

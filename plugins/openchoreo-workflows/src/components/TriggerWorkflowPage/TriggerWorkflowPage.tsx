@@ -1,18 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  Content,
-  Progress,
-  InfoCard,
-} from '@backstage/core-components';
+import { Content, Progress, InfoCard } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { Alert, AlertTitle } from '@material-ui/lab';
-import {
-  Box,
-  Button,
-  IconButton,
-  Typography,
-} from '@material-ui/core';
+import { Box, Button, IconButton, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import Form from '@rjsf/material-ui';

@@ -53,7 +53,9 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
     return response.json();
   }
 
-  async listWorkflows(namespaceName: string): Promise<PaginatedResponse<Workflow>> {
+  async listWorkflows(
+    namespaceName: string,
+  ): Promise<PaginatedResponse<Workflow>> {
     return this.apiFetch<PaginatedResponse<Workflow>>('/workflows', {
       params: { namespaceName },
     });
@@ -63,9 +65,12 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
     namespaceName: string,
     workflowName: string,
   ): Promise<unknown> {
-    return this.apiFetch<unknown>(`/workflows/${encodeURIComponent(workflowName)}/schema`, {
-      params: { namespaceName },
-    });
+    return this.apiFetch<unknown>(
+      `/workflows/${encodeURIComponent(workflowName)}/schema`,
+      {
+        params: { namespaceName },
+      },
+    );
   }
 
   async listWorkflowRuns(
@@ -81,7 +86,10 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
     });
   }
 
-  async getWorkflowRun(namespaceName: string, runName: string): Promise<WorkflowRun> {
+  async getWorkflowRun(
+    namespaceName: string,
+    runName: string,
+  ): Promise<WorkflowRun> {
     return this.apiFetch<WorkflowRun>(
       `/workflow-runs/${encodeURIComponent(runName)}`,
       {

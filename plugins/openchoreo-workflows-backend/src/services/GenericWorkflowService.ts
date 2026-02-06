@@ -16,7 +16,9 @@ import {
  */
 export class ObservabilityNotConfiguredError extends Error {
   constructor(runName: string) {
-    super(`Workflow run logs are not available for run ${runName}. Observability may not be configured.`);
+    super(
+      `Workflow run logs are not available for run ${runName}. Observability may not be configured.`,
+    );
     this.name = 'ObservabilityNotConfiguredError';
   }
 }
@@ -44,7 +46,9 @@ export class GenericWorkflowService {
     namespaceName: string,
     token?: string,
   ): Promise<PaginatedResponse<Workflow>> {
-    this.logger.debug(`Fetching generic workflows for namespace: ${namespaceName}`);
+    this.logger.debug(
+      `Fetching generic workflows for namespace: ${namespaceName}`,
+    );
 
     try {
       const client = createOpenChoreoApiClient({
@@ -80,7 +84,9 @@ export class GenericWorkflowService {
 
       return {
         items,
-        pagination: data.data?.pagination as { nextCursor?: string } | undefined,
+        pagination: data.data?.pagination as
+          | { nextCursor?: string }
+          | undefined,
       };
     } catch (error) {
       this.logger.error(
@@ -152,7 +158,9 @@ export class GenericWorkflowService {
     token?: string,
   ): Promise<PaginatedResponse<WorkflowRun>> {
     this.logger.debug(
-      `Fetching workflow runs for namespace: ${namespaceName}${workflowName ? `, workflow: ${workflowName}` : ''}`,
+      `Fetching workflow runs for namespace: ${namespaceName}${
+        workflowName ? `, workflow: ${workflowName}` : ''
+      }`,
     );
 
     try {
@@ -192,12 +200,18 @@ export class GenericWorkflowService {
       }
 
       this.logger.debug(
-        `Successfully fetched ${items.length} workflow runs for namespace: ${namespaceName}${workflowName ? `, workflow: ${workflowName}` : ''}`,
+        `Successfully fetched ${
+          items.length
+        } workflow runs for namespace: ${namespaceName}${
+          workflowName ? `, workflow: ${workflowName}` : ''
+        }`,
       );
 
       return {
         items,
-        pagination: data.data?.pagination as { nextCursor?: string } | undefined,
+        pagination: data.data?.pagination as
+          | { nextCursor?: string }
+          | undefined,
       };
     } catch (error) {
       this.logger.error(
@@ -302,9 +316,7 @@ export class GenericWorkflowService {
         throw new Error('No workflow run data returned');
       }
 
-      this.logger.debug(
-        `Successfully created workflow run: ${data.data.name}`,
-      );
+      this.logger.debug(`Successfully created workflow run: ${data.data.name}`);
 
       return data.data as WorkflowRun;
     } catch (error) {
@@ -336,7 +348,11 @@ export class GenericWorkflowService {
 
     try {
       // First, get the workflow run to obtain its UUID
-      const workflowRun = await this.getWorkflowRun(namespaceName, runName, token);
+      const workflowRun = await this.getWorkflowRun(
+        namespaceName,
+        runName,
+        token,
+      );
       // Use run name for observability API (not UUID)
       const runId = workflowRun.name || runName;
 
@@ -438,7 +454,11 @@ export class GenericWorkflowService {
           }
           this.logger.error(
             `Failed to fetch workflow run logs for ${runName}: ${response.status} ${response.statusText}`,
-            { error: result.error ? JSON.stringify(result.error) : 'Unknown error' },
+            {
+              error: result.error
+                ? JSON.stringify(result.error)
+                : 'Unknown error',
+            },
           );
           throw new Error(
             `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
@@ -458,7 +478,9 @@ export class GenericWorkflowService {
       }
 
       this.logger.debug(
-        `Successfully fetched ${data?.logs?.length || 0} log entries for workflow run: ${runName}`,
+        `Successfully fetched ${
+          data?.logs?.length || 0
+        } log entries for workflow run: ${runName}`,
       );
 
       return {
