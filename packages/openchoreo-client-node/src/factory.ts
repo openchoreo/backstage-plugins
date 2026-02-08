@@ -4,8 +4,7 @@
  * @packageDocumentation
  */
 
-import { Config } from '@backstage/config';
-import { LoggerService } from '@backstage/backend-plugin-api';
+import type { Logger } from './logger';
 import createClient, { type ClientOptions } from 'openapi-fetch';
 import type { paths as OpenChoreoPaths } from './generated/openchoreo/types';
 import type { paths as ObservabilityPaths } from './generated/observability/types';
@@ -37,7 +36,7 @@ export interface OpenChoreoClientConfig {
   /**
    * Optional logger for debugging
    */
-  logger?: LoggerService;
+  logger?: Logger;
 }
 
 /**
@@ -66,7 +65,7 @@ export interface OpenChoreoObservabilityClientConfig {
   /**
    * Optional logger for debugging
    */
-  logger?: LoggerService;
+  logger?: Logger;
 }
 
 /**
@@ -94,7 +93,7 @@ export interface OpenChoreoAIRCAAgentClientConfig {
   /**
    * Optional logger for debugging
    */
-  logger?: LoggerService;
+  logger?: Logger;
 }
 
 /**
@@ -247,46 +246,6 @@ export function createOpenChoreoAIRCAAgentApiClient(
 }
 
 /**
- * Creates OpenChoreo API clients from Backstage configuration
- *
- * @param config - Backstage Config object
- * @param logger - Optional logger service
- * @returns Object containing the main API client
- *
- * @example
- * ```typescript
- * // In your Backstage backend module
- * const client = createOpenChoreoClientFromConfig(config, logger);
- * const { data: projects } = await client.GET('/namespaces/{namespaceName}/projects', {
- *   params: { path: { namespaceName: 'my-namespace' } }
- * });
- * ```
- *
- * @remarks
- * Expects the following configuration in app-config.yaml:
- * ```yaml
- * openchoreo:
- *   baseUrl: https://openchoreo.example.com
- *   token: ${OPENCHOREO_TOKEN}
- * ```
- */
-export function createOpenChoreoClientFromConfig(
-  config: Config,
-  logger?: LoggerService,
-) {
-  const baseUrl = config.getString('openchoreo.baseUrl');
-  const token = config.getOptionalString('openchoreo.token');
-
-  logger?.info('Initializing OpenChoreo API client');
-
-  return createOpenChoreoApiClient({
-    baseUrl,
-    token,
-    logger,
-  });
-}
-
-/**
  * Helper function to create an observability client with a dynamically resolved base URL
  *
  * @param observerBaseUrl - The dynamically resolved observer URL
@@ -304,7 +263,7 @@ export function createOpenChoreoClientFromConfig(
 export function createObservabilityClientWithUrl(
   observerBaseUrl: string,
   token?: string,
-  logger?: LoggerService,
+  logger?: Logger,
 ) {
   return createOpenChoreoObservabilityApiClient({
     baseUrl: observerBaseUrl,

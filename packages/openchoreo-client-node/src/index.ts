@@ -6,17 +6,22 @@
  * @packageDocumentation
  */
 
+// Export logger interface
+export type { Logger } from './logger';
+
 // Export factory functions
 export {
   createOpenChoreoApiClient,
   createOpenChoreoObservabilityApiClient,
   createOpenChoreoAIRCAAgentApiClient,
-  createOpenChoreoClientFromConfig,
   createObservabilityClientWithUrl,
   type OpenChoreoClientConfig,
   type OpenChoreoObservabilityClientConfig,
   type OpenChoreoAIRCAAgentClientConfig,
 } from './factory';
+
+// Export Backstage-specific factory (requires @backstage/config peer dependency)
+export { createOpenChoreoClientFromConfig } from './backstage';
 
 // Export tracing utilities
 export {
