@@ -121,7 +121,7 @@ openchoreo:
 
   # Default owner for built-in Backstage entity kinds (Domain, System, Component, API)
   # Required by Backstage schema validation. Custom OpenChoreo kinds don't use owner.
-  defaultOwner: 'guests'
+  defaultOwner: 'openchoreo-users'
 
   schedule:
     frequency: 30 # seconds between runs (default: 30)
