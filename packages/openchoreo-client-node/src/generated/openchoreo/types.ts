@@ -802,6 +802,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component workflow run events
+     * @description Returns Kubernetes events associated with a component workflow run. Events are
+     *     fetched from the build plane through the cluster gateway and aggregated across
+     *     all relevant pods for the workflow and optional step filter.
+     *
+     */
+    get: operations['getComponentWorkflowRunEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings': {
     parameters: {
       query?: never;
@@ -1692,6 +1715,30 @@ export interface components {
        * @example Building application...
        */
       log: string;
+    };
+    /** @description A single Kubernetes event entry from a component workflow run */
+    ComponentWorkflowRunEventEntry: {
+      /**
+       * Format: date-time
+       * @description Timestamp when the event was recorded (RFC3339 format)
+       * @example 2025-01-06T10:00:00Z
+       */
+      timestamp: string;
+      /**
+       * @description Event type (e.g., Normal, Warning)
+       * @example Warning
+       */
+      type: string;
+      /**
+       * @description Short, machine-understandable reason for the event
+       * @example BackOff
+       */
+      reason: string;
+      /**
+       * @description Human-readable description of the event
+       * @example Back-off restarting failed container
+       */
+      message: string;
     };
     TraitResponse: {
       name: string;
@@ -4150,6 +4197,62 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Component workflow run not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  getComponentWorkflowRunEvents: {
+    parameters: {
+      query?: {
+        /** @description Filter events by specific workflow step name */
+        step?: string;
+      };
+      header?: never;
+      path: {
+        namespaceName: string;
+        projectName: string;
+        componentName: string;
+        runName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowRunEventEntry'][];
         };
       };
       /** @description Unauthorized */
