@@ -1,4 +1,4 @@
-import { ChangeEvent, useState, useEffect, useMemo } from 'react';
+import { ChangeEvent, useState, useEffect, useMemo, ReactNode } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
@@ -25,6 +25,15 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import NodejsOriginal from 'devicons-react/lib/icons/NodejsOriginal';
+import JavaOriginal from 'devicons-react/lib/icons/JavaOriginal';
+import GoOriginal from 'devicons-react/lib/icons/GoOriginal';
+import PythonOriginal from 'devicons-react/lib/icons/PythonOriginal';
+import RubyOriginal from 'devicons-react/lib/icons/RubyOriginal';
+import PhpOriginal from 'devicons-react/lib/icons/PhpOriginal';
+import DotNetOriginal from 'devicons-react/lib/icons/DotNetOriginal';
+import BallerinaOriginal from 'devicons-react/lib/icons/BallerinaOriginal';
+import DockerOriginal from 'devicons-react/lib/icons/DockerOriginal';
 
 /*
  Schema for the Build Workflow Picker field
@@ -47,6 +56,8 @@ const BUILDPACK_WORKFLOW_NAMES = new Set([
   'ballerina-buildpack',
 ]);
 
+const ICON_SIZE = 24;
+
 interface LanguageOption {
   /** Unique key for this option (used for UI state tracking) */
   key: string;
@@ -56,11 +67,16 @@ interface LanguageOption {
   label: string;
   /** Short description */
   description: string;
+  /** Icon element */
+  icon: ReactNode;
 }
 
 /**
  * All known language options mapped to their buildpack workflows.
  * Only options whose workflow is present in allowedWorkflows will be shown.
+ *
+ * Google Cloud Buildpacks supported languages:
+ * https://cloud.google.com/docs/buildpacks/builders
  */
 const ALL_LANGUAGE_OPTIONS: LanguageOption[] = [
   {
@@ -68,36 +84,63 @@ const ALL_LANGUAGE_OPTIONS: LanguageOption[] = [
     workflow: 'google-cloud-buildpacks',
     label: 'Node.js',
     description: 'Auto-detected via Google Cloud Buildpacks',
+    icon: <NodejsOriginal size={ICON_SIZE} />,
   },
   {
     key: 'java',
     workflow: 'google-cloud-buildpacks',
     label: 'Java',
     description: 'Auto-detected via Google Cloud Buildpacks',
+    icon: <JavaOriginal size={ICON_SIZE} />,
   },
   {
     key: 'go',
     workflow: 'google-cloud-buildpacks',
     label: 'Go',
     description: 'Auto-detected via Google Cloud Buildpacks',
+    icon: <GoOriginal size={ICON_SIZE} />,
   },
   {
     key: 'python',
     workflow: 'google-cloud-buildpacks',
     label: 'Python',
     description: 'Auto-detected via Google Cloud Buildpacks',
+    icon: <PythonOriginal size={ICON_SIZE} />,
+  },
+  {
+    key: 'ruby',
+    workflow: 'google-cloud-buildpacks',
+    label: 'Ruby',
+    description: 'Auto-detected via Google Cloud Buildpacks',
+    icon: <RubyOriginal size={ICON_SIZE} />,
+  },
+  {
+    key: 'php',
+    workflow: 'google-cloud-buildpacks',
+    label: 'PHP',
+    description: 'Auto-detected via Google Cloud Buildpacks',
+    icon: <PhpOriginal size={ICON_SIZE} />,
+  },
+  {
+    key: 'dotnet',
+    workflow: 'google-cloud-buildpacks',
+    label: '.NET',
+    description: 'Auto-detected via Google Cloud Buildpacks',
+    icon: <DotNetOriginal size={ICON_SIZE} />,
   },
   {
     key: 'ballerina',
     workflow: 'ballerina-buildpack',
     label: 'Ballerina',
     description: 'Built with Ballerina Buildpack',
+    icon: <BallerinaOriginal size={ICON_SIZE} />,
   },
   {
     key: 'docker',
     workflow: 'docker',
     label: 'Docker',
     description: 'Build with a Dockerfile',
+    icon: <DockerOriginal size={ICON_SIZE} />,
   },
 ];
 
@@ -128,8 +171,15 @@ const useLanguageSelectorStyles = makeStyles(theme => ({
       paddingBottom: theme.spacing(1.5),
     },
   },
+  iconWrapper: {
+    flexShrink: 0,
+    marginRight: theme.spacing(1.5),
+    display: 'flex',
+    alignItems: 'center',
+  },
   labelSection: {
     flex: 1,
+    minWidth: 0,
   },
   label: {
     fontWeight: 500,
@@ -352,6 +402,9 @@ export const BuildWorkflowPicker = ({
                 onClick={() => handleLanguageSelect(option)}
               >
                 <CardContent className={classes.cardContent}>
+                  <Box className={classes.iconWrapper}>
+                    {option.icon}
+                  </Box>
                   <Box className={classes.labelSection}>
                     <Typography variant="subtitle2" className={classes.label}>
                       {option.label}
