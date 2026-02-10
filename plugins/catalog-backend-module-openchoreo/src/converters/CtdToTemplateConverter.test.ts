@@ -489,19 +489,24 @@ describe('CtdToTemplateConverter', () => {
         'build-from-source',
       );
 
-      // Check standalone source fields appear before workflow selection
-      expect(buildFromSourceBranch.properties.repo_url).toBeDefined();
-      expect(buildFromSourceBranch.properties.repo_url.type).toBe('string');
-      expect(buildFromSourceBranch.properties.branch).toBeDefined();
-      expect(buildFromSourceBranch.properties.branch.default).toBe('main');
-      expect(buildFromSourceBranch.properties.component_path).toBeDefined();
-      expect(buildFromSourceBranch.properties.component_path.default).toBe('.');
-
-      // Check git_secret_ref field for private repository credentials
-      expect(buildFromSourceBranch.properties.git_secret_ref).toBeDefined();
-      expect(buildFromSourceBranch.properties.git_secret_ref['ui:field']).toBe(
-        'GitSecretField',
+      // Check git_source composite field
+      expect(buildFromSourceBranch.properties.git_source).toBeDefined();
+      expect(buildFromSourceBranch.properties.git_source.type).toBe('object');
+      expect(buildFromSourceBranch.properties.git_source['ui:field']).toBe(
+        'GitSourceField',
       );
+      expect(
+        buildFromSourceBranch.properties.git_source.properties.repo_url,
+      ).toBeDefined();
+      expect(
+        buildFromSourceBranch.properties.git_source.properties.branch,
+      ).toBeDefined();
+      expect(
+        buildFromSourceBranch.properties.git_source.properties.component_path,
+      ).toBeDefined();
+      expect(
+        buildFromSourceBranch.properties.git_source.properties.git_secret_ref,
+      ).toBeDefined();
 
       expect(buildFromSourceBranch.properties.workflow_name).toBeDefined();
       expect(
@@ -647,11 +652,15 @@ describe('CtdToTemplateConverter', () => {
       expect(input.description).toBe('${{ parameters.description }}');
       expect(input.componentType).toBe('web-service');
 
-      // CI/CD parameters including git secret ref
-      expect(input.gitSecretRef).toBe('${{ parameters.git_secret_ref }}');
-      expect(input.repo_url).toBe('${{ parameters.repo_url }}');
-      expect(input.branch).toBe('${{ parameters.branch }}');
-      expect(input.component_path).toBe('${{ parameters.component_path }}');
+      // CI/CD parameters including git secret ref (from git_source composite field)
+      expect(input.gitSecretRef).toBe(
+        '${{ parameters.git_source.git_secret_ref }}',
+      );
+      expect(input.repo_url).toBe('${{ parameters.git_source.repo_url }}');
+      expect(input.branch).toBe('${{ parameters.git_source.branch }}');
+      expect(input.component_path).toBe(
+        '${{ parameters.git_source.component_path }}',
+      );
     });
   });
 

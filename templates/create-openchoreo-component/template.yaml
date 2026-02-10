@@ -37,21 +37,19 @@ spec:
                     const: build-from-source
               then:
                 properties:
-                  repo_url:
-                    title: Repository URL
-                    type: string
-                    description: GitHub repository URL (e.g., https://github.com/username/repository)
-                    pattern: '^https://github\.com/[^/]+/[^/]+/?$'
-                  branch:
-                    title: Branch Name
-                    type: string
-                    description: The branch of the repository to use for the component.
-                    default: main
-                  component_path:
-                    title: Component Path
-                    type: string
-                    description: The path within the repository where the component's source code is located.
-                    default: .
+                  git_source:
+                    title: Source Repository
+                    type: object
+                    ui:field: GitSourceField
+                    properties:
+                      repo_url:
+                        type: string
+                      branch:
+                        type: string
+                      component_path:
+                        type: string
+                      git_secret_ref:
+                        type: string
                   build_template_name:
                     title: Argo Workflows Build Template Name
                     type: string
@@ -64,9 +62,7 @@ spec:
                     ui:field: BuildTemplateParameters
                 required:
                   - build_template_name
-                  - repo_url
-                  - branch
-                  - component_path
+                  - git_source
 
             # Deploy from Image: Show container image field
             - if:
@@ -203,9 +199,9 @@ spec:
         componentType: ${{ parameters.component_type }}
         deploymentSource: ${{ parameters.deploymentSource }}
         # Build from source parameters
-        repoUrl: ${{ parameters.repo_url }}
-        branch: ${{ parameters.branch }}
-        componentPath: ${{ parameters.component_path }}
+        repoUrl: ${{ parameters.git_source.repo_url }}
+        branch: ${{ parameters.git_source.branch }}
+        componentPath: ${{ parameters.git_source.component_path }}
         buildTemplateName: ${{ parameters.build_template_name }}
         buildParameters: ${{ parameters.build_parameters }}
         # Deploy from image parameters
