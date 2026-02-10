@@ -21,14 +21,13 @@ const useStyles = makeStyles(theme => ({
   card: {
     flex: 1,
     cursor: 'pointer',
+    outline: 'none',
     transition: 'border-color 0.2s ease, background-color 0.2s ease',
     '&:hover': {
-      borderColor: theme.palette.primary.light,
+      borderColor: theme.palette.primary.main,
     },
   },
   cardSelected: {
-    borderColor: theme.palette.primary.main,
-    borderWidth: 2,
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
   },
   cardContent: {
@@ -107,22 +106,20 @@ export const DeploymentSourcePicker = ({
   const sourceOptions: SourceOption[] = [
     {
       value: 'build-from-source',
-      label: 'Build and Deploy from a Git Repository',
-      description:
-        "Connect a git repository and build your application using OpenChoreo's built-in CI",
+      label: 'Build from Source',
+      description: 'Connect a git repo and build using built-in CI',
       icon: <CodeIcon className={classes.icon} />,
     },
     {
       value: 'deploy-from-image',
-      label: 'Deploy an Image from a Container Registry',
-      description: 'Use an existing container image from a registry',
+      label: 'Container Image',
+      description: 'Deploy an existing image from a container registry',
       icon: <ImageIcon className={classes.icon} />,
     },
     {
       value: 'external-ci',
-      label: 'Deploy an Image with an External CI System',
-      description:
-        'Use Jenkins, GitHub Actions, or other CI platforms to build and push images',
+      label: 'External CI',
+      description: 'Use Jenkins, GitHub Actions, or other CI platforms',
       icon: <SettingsInputComponentIcon className={classes.icon} />,
     },
   ];

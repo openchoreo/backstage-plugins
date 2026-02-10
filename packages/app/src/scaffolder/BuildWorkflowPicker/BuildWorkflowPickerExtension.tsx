@@ -153,14 +153,13 @@ const useLanguageSelectorStyles = makeStyles(theme => ({
   },
   card: {
     cursor: 'pointer',
+    outline: 'none',
     transition: 'border-color 0.2s ease, background-color 0.2s ease',
     '&:hover': {
-      borderColor: theme.palette.primary.light,
+      borderColor: theme.palette.primary.main,
     },
   },
   cardSelected: {
-    borderColor: theme.palette.primary.main,
-    borderWidth: 2,
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
   },
   cardContent: {
