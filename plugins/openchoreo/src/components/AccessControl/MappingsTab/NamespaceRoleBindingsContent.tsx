@@ -79,6 +79,12 @@ const useStyles = makeStyles(theme => ({
   entitlementCell: {
     maxWidth: 200,
   },
+  truncateCell: {
+    maxWidth: 200,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
   effectChip: {
     fontWeight: 600,
   },
@@ -103,6 +109,32 @@ const useStyles = makeStyles(theme => ({
     },
   },
 }));
+
+const getFormattedScope = (hierarchy?: {
+  namespace?: string;
+  project?: string;
+  component?: string;
+}): string => {
+  const parts: string[] = [];
+
+  if (!hierarchy?.namespace) {
+    return '*';
+  }
+  parts.push(`ns/${hierarchy.namespace}`);
+
+  if (hierarchy?.project) {
+    parts.push(`project/${hierarchy.project}`);
+  } else {
+    return `${parts.join('/')}/ *`;
+  }
+
+  if (hierarchy?.component) {
+    parts.push(`component/${hierarchy.component}`);
+  } else {
+    return `${parts.join('/')}/ *`;
+  }
+  return parts.join('/');
+};
 
 export const NamespaceRoleBindingsContent = () => {
   const classes = useStyles();
@@ -417,87 +449,102 @@ export const NamespaceRoleBindingsContent = () => {
                           <TableCell className={classes.entitlementCell}>
                             Entitlement (claim=value)
                           </TableCell>
+                          <TableCell>Scope</TableCell>
                           <TableCell>Effect</TableCell>
                           <TableCell align="right">Actions</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {filteredBindings.map(binding => (
-                          <TableRow key={binding.name}>
-                            <TableCell>
-                              <Typography variant="body2">
-                                {binding.name}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2">
-                                {binding.role.name}
-                                {binding.role.namespace && (
-                                  <Chip
-                                    label="Namespace"
-                                    size="small"
-                                    variant="outlined"
-                                    style={{ marginLeft: 8 }}
-                                  />
-                                )}
-                                {!binding.role.namespace && (
-                                  <Chip
-                                    label="Cluster"
-                                    size="small"
-                                    variant="outlined"
-                                    style={{ marginLeft: 8 }}
-                                  />
-                                )}
-                              </Typography>
-                            </TableCell>
-                            <TableCell className={classes.entitlementCell}>
-                              <Typography variant="body2">
-                                {binding.entitlement.claim}=
-                                {binding.entitlement.value}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={binding.effect.toUpperCase()}
-                                size="small"
-                                variant="outlined"
-                                className={`${classes.effectChip} ${
-                                  binding.effect === 'allow'
-                                    ? classes.allowChip
-                                    : classes.denyChip
-                                }`}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <Tooltip title={updateDeniedTooltip}>
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleEditBinding(binding)}
-                                    title="Edit"
-                                    disabled={!canUpdate}
-                                    color="primary"
-                                  >
-                                    <EditIcon />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                              <Tooltip title={deleteDeniedTooltip}>
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleDeleteBinding(binding)}
-                                    title="Delete"
-                                    disabled={!canDelete}
-                                    color="primary"
-                                  >
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {filteredBindings.map(binding => {
+                          const formattedScope = getFormattedScope(
+                            binding.hierarchy,
+                          );
+                          return (
+                            <TableRow key={binding.name}>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {binding.name}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2">
+                                  {binding.role.name}
+                                  {binding.role.namespace && (
+                                    <Chip
+                                      label="Namespace"
+                                      size="small"
+                                      variant="outlined"
+                                      style={{ marginLeft: 8 }}
+                                    />
+                                  )}
+                                  {!binding.role.namespace && (
+                                    <Chip
+                                      label="Cluster"
+                                      size="small"
+                                      variant="outlined"
+                                      style={{ marginLeft: 8 }}
+                                    />
+                                  )}
+                                </Typography>
+                              </TableCell>
+                              <TableCell className={classes.entitlementCell}>
+                                <Typography variant="body2">
+                                  {binding.entitlement.claim}=
+                                  {binding.entitlement.value}
+                                </Typography>
+                              </TableCell>
+                              <TableCell className={classes.truncateCell}>
+                                <Tooltip title={formattedScope}>
+                                  <Typography variant="body2" noWrap>
+                                    {formattedScope}
+                                  </Typography>
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={binding.effect.toUpperCase()}
+                                  size="small"
+                                  variant="outlined"
+                                  className={`${classes.effectChip} ${
+                                    binding.effect === 'allow'
+                                      ? classes.allowChip
+                                      : classes.denyChip
+                                  }`}
+                                />
+                              </TableCell>
+                              <TableCell align="right">
+                                <Tooltip title={updateDeniedTooltip}>
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleEditBinding(binding)}
+                                      title="Edit"
+                                      disabled={!canUpdate}
+                                      color="primary"
+                                    >
+                                      <EditIcon />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                                <Tooltip title={deleteDeniedTooltip}>
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() =>
+                                        handleDeleteBinding(binding)
+                                      }
+                                      title="Delete"
+                                      disabled={!canDelete}
+                                      color="primary"
+                                    >
+                                      <DeleteIcon />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>
