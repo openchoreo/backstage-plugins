@@ -22,7 +22,12 @@ type ResourceKind =
   | 'component-types'
   | 'traits'
   | 'workflows'
-  | 'component-workflows';
+  | 'component-workflows'
+  | 'environments'
+  | 'dataplanes'
+  | 'buildplanes'
+  | 'observabilityplanes'
+  | 'deploymentpipelines';
 
 export class PlatformResourceService {
   private logger: LoggerService;
@@ -113,6 +118,30 @@ export class PlatformResourceService {
           data = result.data as ResourceDefinitionResponse;
           error = result.error;
           response = result.response;
+          break;
+        }
+        // Kinds whose /definition endpoints are not yet in the typed OpenAPI spec.
+        // Use raw fetch until the spec is updated, then migrate to typed client calls.
+        case 'environments':
+        case 'dataplanes':
+        case 'buildplanes':
+        case 'observabilityplanes':
+        case 'deploymentpipelines': {
+          const url = `${this.baseUrl}/namespaces/${encodeURIComponent(namespaceName)}/${kind}/${encodeURIComponent(resourceName)}/definition`;
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
+          response = await fetch(url, { method: 'GET', headers });
+          if (!response.ok) {
+            throw new Error(
+              `Failed to fetch ${kind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          data = (await response.json()) as ResourceDefinitionResponse;
+          error = undefined;
           break;
         }
         default:
@@ -228,6 +257,32 @@ export class PlatformResourceService {
           response = result.response;
           break;
         }
+        case 'environments':
+        case 'dataplanes':
+        case 'buildplanes':
+        case 'observabilityplanes':
+        case 'deploymentpipelines': {
+          const url = `${this.baseUrl}/namespaces/${encodeURIComponent(namespaceName)}/${kind}/${encodeURIComponent(resourceName)}/definition`;
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
+          response = await fetch(url, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(resource),
+          });
+          if (!response.ok) {
+            throw new Error(
+              `Failed to update ${kind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          data = (await response.json()) as ResourceCRUDResponse;
+          error = undefined;
+          break;
+        }
         default:
           throw new Error(`Unsupported resource kind: ${kind}`);
       }
@@ -334,6 +389,28 @@ export class PlatformResourceService {
           data = result.data as ResourceCRUDResponse;
           error = result.error;
           response = result.response;
+          break;
+        }
+        case 'environments':
+        case 'dataplanes':
+        case 'buildplanes':
+        case 'observabilityplanes':
+        case 'deploymentpipelines': {
+          const url = `${this.baseUrl}/namespaces/${encodeURIComponent(namespaceName)}/${kind}/${encodeURIComponent(resourceName)}/definition`;
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
+          response = await fetch(url, { method: 'DELETE', headers });
+          if (!response.ok) {
+            throw new Error(
+              `Failed to delete ${kind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          data = (await response.json()) as ResourceCRUDResponse;
+          error = undefined;
           break;
         }
         default:

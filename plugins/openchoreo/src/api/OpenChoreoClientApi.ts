@@ -272,7 +272,12 @@ export type PlatformResourceKind =
   | 'component-types'
   | 'traits'
   | 'workflows'
-  | 'component-workflows';
+  | 'component-workflows'
+  | 'environments'
+  | 'dataplanes'
+  | 'buildplanes'
+  | 'observabilityplanes'
+  | 'deploymentpipelines';
 
 /** Response for resource CRUD operations */
 export interface ResourceCRUDResponse {

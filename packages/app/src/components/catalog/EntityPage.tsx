@@ -671,6 +671,9 @@ const environmentPage = (
         </Grid>
       </Grid>
     </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
   </EntityLayout>
 );
 
@@ -705,6 +708,9 @@ const dataplanePage = (
         </Grid>
       </Grid>
     </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </EntityLayout.Route>
   </EntityLayout>
 );
 
@@ -730,6 +736,9 @@ const buildPlanePage = (
           <EntityAboutCard variant="gridItem" />
         </Grid>
       </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </EntityLayout.Route>
   </EntityLayout>
 );
@@ -760,6 +769,9 @@ const observabilityPlanePage = (
           />
         </Grid>
       </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </EntityLayout.Route>
   </EntityLayout>
 );
@@ -794,6 +806,9 @@ const deploymentPipelinePage = (
           />
         </Grid>
       </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </EntityLayout.Route>
   </EntityLayout>
 );

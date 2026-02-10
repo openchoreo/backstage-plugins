@@ -1346,6 +1346,11 @@ export async function createRouter({
       'traits',
       'workflows',
       'component-workflows',
+      'environments',
+      'dataplanes',
+      'buildplanes',
+      'observabilityplanes',
+      'deploymentpipelines',
     ];
     if (!validKinds.includes(kind as string)) {
       throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
@@ -1359,7 +1364,12 @@ export async function createRouter({
           | 'component-types'
           | 'traits'
           | 'workflows'
-          | 'component-workflows',
+          | 'component-workflows'
+          | 'environments'
+          | 'dataplanes'
+          | 'buildplanes'
+          | 'observabilityplanes'
+          | 'deploymentpipelines',
         namespaceName as string,
         resourceName as string,
         userToken,
@@ -1383,6 +1393,11 @@ export async function createRouter({
       'traits',
       'workflows',
       'component-workflows',
+      'environments',
+      'dataplanes',
+      'buildplanes',
+      'observabilityplanes',
+      'deploymentpipelines',
     ];
     if (!validKinds.includes(kind as string)) {
       throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
@@ -1400,7 +1415,12 @@ export async function createRouter({
           | 'component-types'
           | 'traits'
           | 'workflows'
-          | 'component-workflows',
+          | 'component-workflows'
+          | 'environments'
+          | 'dataplanes'
+          | 'buildplanes'
+          | 'observabilityplanes'
+          | 'deploymentpipelines',
         namespaceName as string,
         resourceName as string,
         resource as Record<string, unknown>,

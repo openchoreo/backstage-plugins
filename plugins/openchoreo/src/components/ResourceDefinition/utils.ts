@@ -14,6 +14,16 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'workflows';
     case 'componentworkflow':
       return 'component-workflows';
+    case 'environment':
+      return 'environments';
+    case 'dataplane':
+      return 'dataplanes';
+    case 'buildplane':
+      return 'buildplanes';
+    case 'observabilityplane':
+      return 'observabilityplanes';
+    case 'deploymentpipeline':
+      return 'deploymentpipelines';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -34,6 +44,16 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'Workflow';
     case 'componentworkflow':
       return 'ComponentWorkflow';
+    case 'environment':
+      return 'Environment';
+    case 'dataplane':
+      return 'DataPlane';
+    case 'buildplane':
+      return 'BuildPlane';
+    case 'observabilityplane':
+      return 'ObservabilityPlane';
+    case 'deploymentpipeline':
+      return 'DeploymentPipeline';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -83,5 +103,10 @@ export function isSupportedKind(kind: string): boolean {
     'traittype',
     'workflow',
     'componentworkflow',
+    'environment',
+    'dataplane',
+    'buildplane',
+    'observabilityplane',
+    'deploymentpipeline',
   ].includes(kindLower);
 }
