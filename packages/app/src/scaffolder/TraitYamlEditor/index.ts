@@ -1,0 +1,1 @@
+export { TraitYamlEditorFieldExtension } from './extensions';

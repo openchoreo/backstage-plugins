@@ -39,6 +39,7 @@
     "@openchoreo/backstage-plugin-common": "workspace:^",
     "@openchoreo/openchoreo-auth": "workspace:^",
     "@openchoreo/openchoreo-client-node": "workspace:^",
+    "yaml": "^2.8.1",
     "zod": "3.25.76"
   },
   "devDependencies": {

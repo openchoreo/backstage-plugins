@@ -377,7 +377,8 @@ export interface paths {
     /** List all component types for a namespace */
     get: operations['listComponentTypes'];
     put?: never;
-    post?: never;
+    /** Create a new component type */
+    post: operations['createComponentType'];
     delete?: never;
     options?: never;
     head?: never;
@@ -483,7 +484,8 @@ export interface paths {
     /** List all component workflows for a namespace */
     get: operations['listComponentWorkflows'];
     put?: never;
-    post?: never;
+    /** Create a new component workflow */
+    post: operations['createComponentWorkflow'];
     delete?: never;
     options?: never;
     head?: never;
@@ -536,7 +538,8 @@ export interface paths {
     /** List all traits for a namespace */
     get: operations['listTraits'];
     put?: never;
-    post?: never;
+    /** Create a new trait */
+    post: operations['createTrait'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2942,6 +2945,57 @@ export interface operations {
       };
     };
   };
+  createComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description ComponentType created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+      /** @description Invalid request body or validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not authorized to create ComponentType */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ComponentType already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   getComponentTypeSchema: {
     parameters: {
       query?: never;
@@ -3260,6 +3314,57 @@ export interface operations {
       };
     };
   };
+  createComponentWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description ComponentWorkflow created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+      /** @description Invalid request body or validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not authorized to create ComponentWorkflow */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description ComponentWorkflow already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   getComponentWorkflowSchema: {
     parameters: {
       query?: never;
@@ -3416,6 +3521,57 @@ export interface operations {
             };
           };
         };
+      };
+    };
+  };
+  createTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        namespaceName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          [key: string]: unknown;
+        };
+      };
+    };
+    responses: {
+      /** @description Trait created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['ResourceCRUDResponse'];
+          };
+        };
+      };
+      /** @description Invalid request body or validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not authorized to create Trait */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Trait already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
