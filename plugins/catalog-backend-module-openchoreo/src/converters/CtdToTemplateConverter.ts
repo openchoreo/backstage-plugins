@@ -148,7 +148,10 @@ export class CtdToTemplateConverter {
   ): any[] {
     const parameters: any[] = [];
 
-    // Section 1: Component Metadata (standard fields)
+    // Section 1: Build & Deploy (deployment source selection + conditional fields)
+    parameters.push(this.generateCISetupSection(componentType, namespaceName));
+
+    // Section 2: Component Metadata (standard fields)
     // Project/Namespace in two-column layout, then naming fields
     parameters.push({
       title: 'Component Metadata',
@@ -186,7 +189,7 @@ export class CtdToTemplateConverter {
       },
     });
 
-    // Section 2: Component type-specific configuration
+    // Section 3: Component type-specific configuration
     const componentTypeSchema = componentType.spec.inputParametersSchema;
     if (
       componentTypeSchema &&
@@ -218,9 +221,6 @@ export class CtdToTemplateConverter {
         ...(hasAdvancedFields && { 'ui:field': 'AdvancedConfigurationField' }),
       });
     }
-
-    // Section 3: CI/CD Setup (always shown - workflows fetched dynamically if not in allowedWorkflows)
-    parameters.push(this.generateCISetupSection(componentType, namespaceName));
 
     // Section 4: Traits
     parameters.push(this.generateTraitsSection(namespaceName));
@@ -291,6 +291,9 @@ export class CtdToTemplateConverter {
                   title: 'Workflow Parameters',
                   type: 'object',
                   'ui:field': 'BuildWorkflowParameters',
+                  'ui:options': {
+                    namespaceName: namespaceName,
+                  },
                 },
               },
               required: ['workflow_name', 'workflow_parameters'],

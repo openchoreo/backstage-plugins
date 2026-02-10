@@ -13,52 +13,6 @@ spec:
   EXPERIMENTAL_formDecorators:
     - id: openchoreo:inject-user-token
   parameters:
-    - title: Component Metadata
-      required:
-        - namespace_name
-        - project_name
-        - component_name
-        - component_type
-      properties:
-        component_name:
-          title: Component Name
-          type: string
-          description: Name of the component
-          ui:field: EntityNamePicker
-        displayName:
-          title: Display Name
-          type: string
-          description: Display name of the component
-        description:
-          title: Description
-          type: string
-          description: Help others understand what this component is for.
-        project_name:
-          title: Project Name
-          type: string
-          description: OpenChoreo project name
-          ui:field: EntityPicker
-          ui:options:
-            catalogFilter:
-              - kind: System
-        namespace_name:
-          title: Namespace Name
-          type: string
-          description: Help others understand what this project is for.
-          ui:field: EntityPicker
-          ui:options:
-            catalogFilter:
-              - kind: Domain
-        component_type:
-          title: Component Type
-          type: string
-          description: Describe the type of component you are creating
-          enum:
-            - Service
-            - WebApplication
-            - ScheduledTask
-            - APIProxy
-
     - title: Deployment Source
       required:
         - deploymentSource
@@ -189,6 +143,53 @@ spec:
                     title: GitLab Project ID
                     type: string
                     description: 'Numeric project ID from GitLab'
+
+    - title: Component Metadata
+      required:
+        - namespace_name
+        - project_name
+        - component_name
+        - component_type
+      properties:
+        component_name:
+          title: Component Name
+          type: string
+          description: Name of the component
+          ui:field: EntityNamePicker
+        displayName:
+          title: Display Name
+          type: string
+          description: Display name of the component
+        description:
+          title: Description
+          type: string
+          description: Help others understand what this component is for.
+        project_name:
+          title: Project Name
+          type: string
+          description: OpenChoreo project name
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: System
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Help others understand what this project is for.
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Domain
+        component_type:
+          title: Component Type
+          type: string
+          description: Describe the type of component you are creating
+          enum:
+            - Service
+            - WebApplication
+            - ScheduledTask
+            - APIProxy
+
   steps:
     - id: create-openchoreo-component
       name: Create OpenChoreo Component

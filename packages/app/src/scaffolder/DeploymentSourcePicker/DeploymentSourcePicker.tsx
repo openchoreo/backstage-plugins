@@ -107,22 +107,22 @@ export const DeploymentSourcePicker = ({
   const sourceOptions: SourceOption[] = [
     {
       value: 'build-from-source',
-      label: 'Build from Source',
+      label: 'Build and Deploy from a Git Repository',
       description:
         "Connect a git repository and build your application using OpenChoreo's built-in CI",
       icon: <CodeIcon className={classes.icon} />,
     },
     {
       value: 'deploy-from-image',
-      label: 'Deploy from Image',
+      label: 'Deploy an Image from a Container Registry',
       description: 'Use an existing container image from a registry',
       icon: <ImageIcon className={classes.icon} />,
     },
     {
       value: 'external-ci',
-      label: 'External CI',
+      label: 'Deploy an Image with an External CI System',
       description:
-        'Use Jenkins, GitHub Actions, or other CI platforms to build and deploy',
+        'Use Jenkins, GitHub Actions, or other CI platforms to build and push images',
       icon: <SettingsInputComponentIcon className={classes.icon} />,
     },
   ];
