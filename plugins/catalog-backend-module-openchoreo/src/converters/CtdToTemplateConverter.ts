@@ -288,33 +288,18 @@ export class CtdToTemplateConverter {
                 deploymentSource: {
                   const: 'build-from-source',
                 },
-                repo_url: {
-                  title: 'Git Repository URL',
-                  type: 'string',
-                  description:
-                    'URL of the Git repository containing your source code',
-                },
-                branch: {
-                  title: 'Branch',
-                  type: 'string',
-                  description: 'Git branch to build from',
-                  default: 'main',
-                },
-                component_path: {
-                  title: 'Application Path',
-                  type: 'string',
-                  description:
-                    'Path to the application directory within the repository',
-                  default: '.',
-                },
-                git_secret_ref: {
-                  title: 'Git Secret',
-                  type: 'string',
-                  description:
-                    'Secret reference for private repository credentials (optional for public repos)',
-                  'ui:field': 'GitSecretField',
+                git_source: {
+                  title: 'Source Repository',
+                  type: 'object',
+                  'ui:field': 'GitSourceField',
                   'ui:options': {
                     namespaceName: namespaceName,
+                  },
+                  properties: {
+                    repo_url: { type: 'string' },
+                    branch: { type: 'string' },
+                    component_path: { type: 'string' },
+                    git_secret_ref: { type: 'string' },
                   },
                 },
                 workflow_name: workflowNameField,
@@ -721,10 +706,10 @@ export class CtdToTemplateConverter {
           deploymentSource: '${{ parameters.deploymentSource }}',
           autoDeploy: '${{ parameters.autoDeploy }}',
           containerImage: '${{ parameters.containerImage }}',
-          repo_url: '${{ parameters.repo_url }}',
-          branch: '${{ parameters.branch }}',
-          component_path: '${{ parameters.component_path }}',
-          gitSecretRef: '${{ parameters.git_secret_ref }}',
+          repo_url: '${{ parameters.git_source.repo_url }}',
+          branch: '${{ parameters.git_source.branch }}',
+          component_path: '${{ parameters.git_source.component_path }}',
+          gitSecretRef: '${{ parameters.git_source.git_secret_ref }}',
           workflow_name: '${{ parameters.workflow_name }}',
           workflow_parameters: '${{ parameters.workflow_parameters }}',
           // External CI parameters
