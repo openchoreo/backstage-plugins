@@ -1,4 +1,4 @@
-import { ChangeEvent, useState, useEffect } from 'react';
+import { ChangeEvent, useState, useEffect, useMemo } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
@@ -8,7 +8,18 @@ import {
   MenuItem,
   FormHelperText,
   CircularProgress,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Radio,
+  Link,
+  Collapse,
+  makeStyles,
+  alpha,
 } from '@material-ui/core';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import {
   useApi,
   discoveryApiRef,
@@ -21,6 +32,161 @@ import {
 export const BuildWorkflowPickerSchema = {
   returnValue: { type: 'string' as const },
 };
+
+/**
+ * Special treatment: hardcoded buildpack workflow → language options mapping.
+ * TODO: Replace with metadata from ComponentWorkflow definition once supported.
+ *
+ * When allowedWorkflows contains any of these buildpack workflow names, the picker
+ * renders a language card selector instead of a raw workflow dropdown.
+ * Google Cloud Buildpacks auto-detects language from source code, so multiple
+ * language options map to the same workflow. Ballerina uses a dedicated workflow.
+ */
+const BUILDPACK_WORKFLOW_NAMES = new Set([
+  'google-cloud-buildpacks',
+  'ballerina-buildpack',
+]);
+
+interface LanguageOption {
+  /** Unique key for this option (used for UI state tracking) */
+  key: string;
+  /** The workflow name this option maps to */
+  workflow: string;
+  /** Display label */
+  label: string;
+  /** Short description */
+  description: string;
+}
+
+/**
+ * All known language options mapped to their buildpack workflows.
+ * Only options whose workflow is present in allowedWorkflows will be shown.
+ */
+const ALL_LANGUAGE_OPTIONS: LanguageOption[] = [
+  {
+    key: 'nodejs',
+    workflow: 'google-cloud-buildpacks',
+    label: 'Node.js',
+    description: 'Auto-detected via Google Cloud Buildpacks',
+  },
+  {
+    key: 'java',
+    workflow: 'google-cloud-buildpacks',
+    label: 'Java',
+    description: 'Auto-detected via Google Cloud Buildpacks',
+  },
+  {
+    key: 'go',
+    workflow: 'google-cloud-buildpacks',
+    label: 'Go',
+    description: 'Auto-detected via Google Cloud Buildpacks',
+  },
+  {
+    key: 'python',
+    workflow: 'google-cloud-buildpacks',
+    label: 'Python',
+    description: 'Auto-detected via Google Cloud Buildpacks',
+  },
+  {
+    key: 'ballerina',
+    workflow: 'ballerina-buildpack',
+    label: 'Ballerina',
+    description: 'Built with Ballerina Buildpack',
+  },
+  {
+    key: 'docker',
+    workflow: 'docker',
+    label: 'Docker',
+    description: 'Build with a Dockerfile',
+  },
+];
+
+const useLanguageSelectorStyles = makeStyles(theme => ({
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: theme.spacing(1.5),
+    marginTop: theme.spacing(1),
+  },
+  card: {
+    cursor: 'pointer',
+    transition: 'border-color 0.2s ease, background-color 0.2s ease',
+    '&:hover': {
+      borderColor: theme.palette.primary.light,
+    },
+  },
+  cardSelected: {
+    borderColor: theme.palette.primary.main,
+    borderWidth: 2,
+    backgroundColor: alpha(theme.palette.primary.main, 0.04),
+  },
+  cardContent: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(1.5),
+    '&:last-child': {
+      paddingBottom: theme.spacing(1.5),
+    },
+  },
+  labelSection: {
+    flex: 1,
+  },
+  label: {
+    fontWeight: 500,
+    lineHeight: 1.2,
+  },
+  description: {
+    color: theme.palette.text.secondary,
+    lineHeight: 1.3,
+    fontSize: '0.75rem',
+  },
+  radio: {
+    padding: 0,
+    marginLeft: theme.spacing(1),
+  },
+  advancedToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    marginTop: theme.spacing(1.5),
+    cursor: 'pointer',
+    color: theme.palette.text.secondary,
+    '&:hover': {
+      color: theme.palette.primary.main,
+    },
+  },
+  advancedIcon: {
+    fontSize: 18,
+    marginLeft: theme.spacing(0.5),
+  },
+}));
+
+/**
+ * Check if any of the provided workflows are known buildpack workflows.
+ */
+function hasBuildpackWorkflows(workflows: string[]): boolean {
+  return workflows.some(w => BUILDPACK_WORKFLOW_NAMES.has(w));
+}
+
+/**
+ * Get the available language options filtered by allowed workflows.
+ */
+function getAvailableLanguageOptions(
+  allowedWorkflows: string[],
+): LanguageOption[] {
+  const workflowSet = new Set(allowedWorkflows);
+  return ALL_LANGUAGE_OPTIONS.filter(opt => workflowSet.has(opt.workflow));
+}
+
+/**
+ * Find the language option key that matches a workflow name.
+ * Returns the first matching key (for workflows with multiple languages like GCB).
+ */
+function languageKeyForWorkflow(
+  workflow: string,
+  options: LanguageOption[],
+): string | undefined {
+  return options.find(opt => opt.workflow === workflow)?.key;
+}
 
 /*
  This is the actual component that will get rendered in the form
@@ -42,7 +208,12 @@ export const BuildWorkflowPicker = ({
   const [workflowOptions, setWorkflowOptions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLanguageKey, setSelectedLanguageKey] = useState<
+    string | undefined
+  >(undefined);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
+  const classes = useLanguageSelectorStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
@@ -52,6 +223,26 @@ export const BuildWorkflowPicker = ({
     typeof uiSchema?.['ui:options']?.namespaceName === 'string'
       ? uiSchema['ui:options'].namespaceName
       : '';
+
+  const showLanguageSelector =
+    enumWorkflows &&
+    enumWorkflows.length > 0 &&
+    hasBuildpackWorkflows(enumWorkflows);
+  const languageOptions = useMemo(
+    () =>
+      showLanguageSelector ? getAvailableLanguageOptions(enumWorkflows) : [],
+    [showLanguageSelector, enumWorkflows],
+  );
+
+  // Initialize selected language key from existing formData
+  useEffect(() => {
+    if (showLanguageSelector && formData && !selectedLanguageKey) {
+      const key = languageKeyForWorkflow(formData, languageOptions);
+      if (key) {
+        setSelectedLanguageKey(key);
+      }
+    }
+  }, [showLanguageSelector, formData, selectedLanguageKey, languageOptions]);
 
   // Fetch workflows from API if enum is not provided
   useEffect(() => {
@@ -117,13 +308,121 @@ export const BuildWorkflowPicker = ({
     };
   }, [namespaceName, enumWorkflows, discoveryApi, fetchApi]);
 
-  const handleChange = (event: ChangeEvent<{ value: unknown }>) => {
+  const handleDropdownChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedWorkflow = event.target.value as string;
     onChange(selectedWorkflow);
+    // Sync language key if switching via advanced dropdown
+    if (showLanguageSelector) {
+      const key = languageKeyForWorkflow(selectedWorkflow, languageOptions);
+      setSelectedLanguageKey(key);
+    }
+  };
+
+  const handleLanguageSelect = (option: LanguageOption) => {
+    setSelectedLanguageKey(option.key);
+    onChange(option.workflow);
+    // Collapse advanced when selecting via language cards
+    setShowAdvanced(false);
   };
 
   const label = uiSchema?.['ui:title'] || schema.title || 'Build Workflow';
 
+  // Render language card selector for buildpack workflows
+  if (showLanguageSelector) {
+    return (
+      <Box>
+        <Typography variant="body1" gutterBottom>
+          {label}
+        </Typography>
+        {schema.description && (
+          <Typography variant="body2" color="textSecondary" gutterBottom>
+            Choose the language or build method for your component
+          </Typography>
+        )}
+        <Box className={classes.grid}>
+          {languageOptions.map(option => {
+            const isSelected = selectedLanguageKey === option.key;
+            return (
+              <Card
+                key={option.key}
+                variant="outlined"
+                className={`${classes.card} ${
+                  isSelected ? classes.cardSelected : ''
+                }`}
+                onClick={() => handleLanguageSelect(option)}
+              >
+                <CardContent className={classes.cardContent}>
+                  <Box className={classes.labelSection}>
+                    <Typography variant="subtitle2" className={classes.label}>
+                      {option.label}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      className={classes.description}
+                    >
+                      {option.description}
+                    </Typography>
+                  </Box>
+                  <Radio
+                    checked={isSelected}
+                    className={classes.radio}
+                    color="primary"
+                    size="small"
+                  />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
+
+        {/* Advanced: raw workflow dropdown */}
+        <Link
+          component="button"
+          variant="body2"
+          className={classes.advancedToggle}
+          onClick={() => setShowAdvanced(prev => !prev)}
+          underline="none"
+        >
+          Advanced: Select workflow directly
+          {showAdvanced ? (
+            <ExpandLessIcon className={classes.advancedIcon} />
+          ) : (
+            <ExpandMoreIcon className={classes.advancedIcon} />
+          )}
+        </Link>
+        <Collapse in={showAdvanced}>
+          <FormControl
+            fullWidth
+            margin="dense"
+            variant="outlined"
+            error={!!rawErrors?.length || !!error}
+          >
+            <InputLabel id={`${idSchema?.$id}-label`}>Workflow</InputLabel>
+            <Select
+              labelId={`${idSchema?.$id}-label`}
+              label="Workflow"
+              value={formData || ''}
+              onChange={handleDropdownChange}
+              disabled={loading || workflowOptions.length === 0}
+            >
+              {workflowOptions.map(workflow => (
+                <MenuItem key={workflow} value={workflow}>
+                  {workflow}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Collapse>
+
+        {error && <FormHelperText error>{error}</FormHelperText>}
+        {rawErrors?.length ? (
+          <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
+        ) : null}
+      </Box>
+    );
+  }
+
+  // Standard dropdown for non-buildpack workflows
   return (
     <FormControl
       fullWidth
@@ -137,7 +436,7 @@ export const BuildWorkflowPicker = ({
         labelId={`${idSchema?.$id}-label`}
         label={label}
         value={formData || ''}
-        onChange={handleChange}
+        onChange={handleDropdownChange}
         disabled={loading || workflowOptions.length === 0}
       >
         {loading && (
