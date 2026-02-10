@@ -170,6 +170,53 @@ export async function createRouter({
     }
   });
 
+  router.get('/workflow-run-events', async (req, res) => {
+    const {
+      namespaceName,
+      projectName,
+      componentName,
+      runName,
+      step,
+      hasLiveObservability,
+    } = req.query;
+
+    if (!namespaceName || !projectName || !componentName || !runName || !step) {
+      throw new InputError(
+        'namespaceName, projectName, componentName, runName and step are required query parameters',
+      );
+    }
+
+    if (typeof hasLiveObservability !== 'string') {
+      throw new InputError(
+        'hasLiveObservability is a required query parameter',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    try {
+      const entries = await workflowService.fetchWorkflowRunEvents(
+        namespaceName as string,
+        projectName as string,
+        componentName as string,
+        runName as string,
+        hasLiveObservability === 'true',
+        step as string,
+        userToken,
+      );
+      res.json(entries);
+    } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        res.status(503).json({
+          error: 'ObservabilityNotConfigured',
+          message: error.message,
+        });
+        return;
+      }
+      throw error;
+    }
+  });
+
   router.get('/workflows', async (req, res) => {
     const { namespaceName } = req.query;
 
