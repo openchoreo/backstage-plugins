@@ -1,0 +1,79 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-environment
+  title: Create OpenChoreo Environment
+  description: Create a new environment for deploying components across your organization.
+  tags:
+    - openchoreo
+    - platform-engineer
+spec:
+  owner: openchoreo-users
+  type: Environment
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: Environment Details
+      required:
+        - namespace_name
+        - environment_name
+        - dataPlaneRef
+      properties:
+        environment_name:
+          title: Environment Name
+          type: string
+          description: Name of the environment (must be a valid Kubernetes name)
+          ui:field: EntityNamePicker
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the environment
+        description:
+          title: Description
+          type: string
+          description: Describe what this environment is for (e.g., Development, Staging, Production)
+        namespace_name:
+          title: Namespace
+          type: string
+          description: Namespace where the environment will be created
+          default: domain:default/default
+          ui:field: EntityPicker
+          ui:options:
+            allowArbitraryValues: false
+            defaultKind: Domain
+            catalogFilter:
+              - kind: Domain
+        dataPlaneRef:
+          title: Data Plane
+          type: string
+          description: Select the data plane cluster where workloads in this environment will be deployed
+          default: dataplane:default/default
+          ui:field: EntityPicker
+          ui:options:
+            allowArbitraryValues: false
+            defaultKind: Dataplane
+            catalogFilter:
+              - kind: Dataplane
+        isProduction:
+          title: Production Environment
+          type: boolean
+          default: false
+          description: Mark this as a production environment. Production environments have stricter deployment policies.
+          ui:field: SwitchField
+        dnsPrefix:
+          title: DNS Prefix
+          type: string
+          description: "DNS prefix for environment routing (e.g., 'dev' creates dev.example.com). Leave empty to use environment name."
+  steps:
+    - id: create-openchoreo-environment
+      name: Create OpenChoreo Environment
+      action: openchoreo:environment:create
+      input:
+        namespaceName: ${{ parameters.namespace_name }}
+        environmentName: ${{ parameters.environment_name }}
+        displayName: ${{ parameters.displayName }}
+        description: ${{ parameters.description }}
+        dataPlaneRef: ${{ parameters.dataPlaneRef }}
+        isProduction: ${{ parameters.isProduction }}
+        dnsPrefix: ${{ parameters.dnsPrefix }}

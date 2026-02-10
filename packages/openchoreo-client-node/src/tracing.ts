@@ -13,7 +13,7 @@ import type { LoggerService } from '@backstage/backend-plugin-api';
 export const TRACE_ENV_VAR = 'CHOREO_CLIENT_TRACE_ENABLED';
 
 /** Headers that should be redacted in trace output for security */
-const SENSITIVE_HEADERS = ['authorization'];
+const SENSITIVE_HEADERS: string[] = [];
 
 /** Maximum body length before truncation (10KB) */
 const MAX_BODY_LENGTH = 10000;

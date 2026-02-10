@@ -7,7 +7,7 @@ metadata:
   tags:
     - openchoreo
 spec:
-  owner: guests
+  owner: openchoreo-users
   type: System (Project)
   # Enable user token injection for user-based authorization at OpenChoreo API
   EXPERIMENTAL_formDecorators:
@@ -35,8 +35,11 @@ spec:
           title: Namespace Name
           type: string
           description: Namespace where the project will be created
+          default: domain:default/default
           ui:field: EntityPicker
           ui:options:
+            allowArbitraryValues: false
+            defaultKind: Domain
             catalogFilter:
               - kind: Domain
         # owner:

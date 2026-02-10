@@ -2739,6 +2739,43 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ComponentTypeResponse'
+    post:
+      summary: Create a new component type
+      operationId: createComponentType
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '201':
+          description: ComponentType created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '400':
+          description: Invalid request body or validation error
+        '403':
+          description: Not authorized to create ComponentType
+        '409':
+          description: ComponentType already exists
 
   /namespaces/{namespaceName}/component-types/{ctName}/schema:
     get:
@@ -3074,6 +3111,44 @@ paths:
                                 items:
                                   $ref: '#/components/schemas/WorkflowResponse'
 
+    post:
+      summary: Create a new component workflow
+      operationId: createComponentWorkflow
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '201':
+          description: ComponentWorkflow created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '400':
+          description: Invalid request body or validation error
+        '403':
+          description: Not authorized to create ComponentWorkflow
+        '409':
+          description: ComponentWorkflow already exists
+
   /namespaces/{namespaceName}/component-workflows/{cwName}/schema:
     get:
       summary: Get the JSON schema for a specific component workflow
@@ -3240,6 +3315,44 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/TraitResponse'
+
+    post:
+      summary: Create a new trait
+      operationId: createTrait
+      tags:
+        - Traits
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '201':
+          description: Trait created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '400':
+          description: Invalid request body or validation error
+        '403':
+          description: Not authorized to create Trait
+        '409':
+          description: Trait already exists
 
   /namespaces/{namespaceName}/traits/{traitName}/schema:
     get:

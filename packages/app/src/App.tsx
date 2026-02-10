@@ -21,6 +21,9 @@ import { SwitchFieldExtension } from './scaffolder/SwitchField';
 import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
 import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
 import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
+import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
+import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
+import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
@@ -199,6 +202,11 @@ const routes = (
         <ScaffolderPreselectionProvider>
           <ScaffolderPage
             groups={templateGroups}
+            headerOptions={{
+              title: 'Create a new resource',
+              subtitle:
+                'Create new resources using standard templates in your organization',
+            }}
             components={{
               ReviewStepComponent: CustomReviewStep,
             }}
@@ -218,6 +226,9 @@ const routes = (
         <AdvancedConfigurationFieldExtension />
         <DeploymentSourcePickerFieldExtension />
         <ContainerImageFieldExtension />
+        <ComponentTypeYamlEditorFieldExtension />
+        <TraitYamlEditorFieldExtension />
+        <ComponentWorkflowYamlEditorFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />
