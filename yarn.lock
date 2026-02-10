@@ -18075,6 +18075,7 @@ __metadata:
     "@types/react-dom": "npm:*"
     clsx: "npm:^2.1.1"
     cross-env: "npm:7.0.3"
+    devicons-react: "npm:^1.5.0"
     json-schema: "npm:0.4.0"
     react: "npm:18.3.1"
     react-dom: "npm:18.3.1"
@@ -21601,6 +21602,15 @@ __metadata:
     detect: ./bin/detect-port
     detect-port: ./bin/detect-port
   checksum: 10c0/7269e6aef7b782d98c77505c07a7a0f5e2ee98a9607dc791035fc0192fc58aa03cc833fae605e10eaf239a2a5a55cd938e0bb141dea764ac6180ca082fd62b23
+  languageName: node
+  linkType: hard
+
+"devicons-react@npm:^1.5.0":
+  version: 1.5.0
+  resolution: "devicons-react@npm:1.5.0"
+  peerDependencies:
+    react: "*"
+  checksum: 10c0/fed02eb4a60c24dada483b0a10efb13bd6090e1f161f491903035efaaac8ea6c602062231344cc0c021e4d44f3ad4d9b216ddaed0bf9893a1367f1b8f0661e89
   languageName: node
   linkType: hard
 
