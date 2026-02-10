@@ -11,7 +11,6 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { filterEmptyObjectProperties } from '@openchoreo/backstage-plugin-common';
-import { GitSecretField } from './GitSecretField';
 
 /*
  Schema for the Build Workflow Parameters Field
@@ -124,67 +123,25 @@ export const BuildWorkflowParameters = ({
           // This prevents rendering empty sections in the RJSF form
           schema = filterEmptyObjectProperties(schema);
 
-          setWorkflowSchema(schema);
-          // Generate UI schema with sanitized titles for fields without explicit titles
-          const generatedUiSchema = generateUiSchemaWithTitles(schema);
-
-          // Set top-level ui:order to show systemParameters before parameters
-          generatedUiSchema['ui:order'] = [
-            'systemParameters',
-            'parameters',
-            '*',
-          ];
-
-          // Initialize systemParameters structure in uiSchema
-          if (!generatedUiSchema.systemParameters) {
-            generatedUiSchema.systemParameters = {};
-          }
-          if (!generatedUiSchema.systemParameters.repository) {
-            generatedUiSchema.systemParameters.repository = {};
-          }
-          if (!generatedUiSchema.systemParameters.repository.revision) {
-            generatedUiSchema.systemParameters.repository.revision = {};
-          }
-
-          // Hide systemParameters.repository.revision.commit field from the form
-          // This field is set dynamically when triggering the workflow
-          generatedUiSchema.systemParameters.repository.revision.commit = {
-            ...generatedUiSchema.systemParameters.repository.revision.commit,
-            'ui:widget': 'hidden',
-          };
-
-          // Use custom GitSecretField for secretRef field if it exists
+          // Strip systemParameters from the schema — these are now standalone
+          // fields in the wizard (repo URL, branch, app path) managed by the converter
           if (schema.properties?.systemParameters) {
-            const sysParams = schema.properties.systemParameters as JSONSchema7;
-            if (sysParams.properties?.repository) {
-              const repo = sysParams.properties.repository as JSONSchema7;
-              if (repo.properties?.secretRef) {
-                generatedUiSchema.systemParameters.repository.secretRef = {
-                  ...generatedUiSchema.systemParameters.repository.secretRef,
-                  'ui:field': 'GitSecretField',
-                  'ui:title': 'Secret Reference',
-                  'ui:description': 'Git secret reference.',
-                };
-              }
+            const { systemParameters, ...restProperties } = schema.properties;
+            schema = {
+              ...schema,
+              properties: restProperties,
+            };
+            // Also remove from required array if present
+            if (schema.required) {
+              schema.required = schema.required.filter(
+                r => r !== 'systemParameters',
+              );
             }
           }
 
-          // Set field order within systemParameters.repository
-          // Order: url, revision (branch), appPath, secretRef
-          generatedUiSchema.systemParameters.repository['ui:order'] = [
-            'url',
-            'revision',
-            'appPath',
-            'secretRef',
-            '*',
-          ];
-
-          // Set field order within revision (branch before commit)
-          generatedUiSchema.systemParameters.repository.revision['ui:order'] = [
-            'branch',
-            'commit',
-            '*',
-          ];
+          setWorkflowSchema(schema);
+          // Generate UI schema with sanitized titles for fields without explicit titles
+          const generatedUiSchema = generateUiSchemaWithTitles(schema);
 
           setRjsfUiSchema(generatedUiSchema);
         }
@@ -239,12 +196,7 @@ export const BuildWorkflowParameters = ({
 
   // Custom RJSF fields for specialized input types
   // Must be defined before any early returns to satisfy React's rules of hooks
-  const customFields = useMemo(
-    () => ({
-      GitSecretField: GitSecretField,
-    }),
-    [],
-  );
+  const customFields = useMemo(() => ({}), []);
 
   if (loading) {
     return (
@@ -284,9 +236,6 @@ export const BuildWorkflowParameters = ({
   return (
     workflowSchema && (
       <Box mt={2}>
-        <Typography variant="subtitle1" gutterBottom>
-          Workflow Parameters
-        </Typography>
         <Form
           key={resetKey}
           schema={workflowSchema}

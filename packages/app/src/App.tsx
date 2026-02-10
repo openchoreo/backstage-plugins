@@ -24,6 +24,7 @@ import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
 import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
 import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
+import { GitSecretFieldExtension } from './scaffolder/GitSecretField';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
@@ -221,6 +222,7 @@ const routes = (
         <TraitYamlEditorFieldExtension />
         <ComponentWorkflowYamlEditorFieldExtension />
         <EnvironmentFormWithYamlFieldExtension />
+        <GitSecretFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />
