@@ -274,7 +274,7 @@ export const Workflows = () => {
         run={selectedRun}
         onBack={handleBack}
         initialTab={routingState.runDetailsTab}
-        onTabChange={setRunDetailsTab}
+        onTabChange={tab => setRunDetailsTab(tab)}
       />
     );
   }

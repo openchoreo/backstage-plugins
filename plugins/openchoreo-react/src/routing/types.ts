@@ -31,4 +31,4 @@ export type EnvironmentView =
  */
 export type WorkflowView = 'list' | 'config' | 'run-details';
 export type WorkflowTab = 'runs' | 'configurations';
-export type RunDetailsTab = 'logs' | 'details';
+export type RunDetailsTab = 'logs' | 'events' | 'details';
