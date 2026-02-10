@@ -54,12 +54,10 @@ describe('CtdToTemplateConverter', () => {
       expect(result.metadata.namespace).toBe('test-namespace');
       expect(result.metadata.title).toBe('Simple Service');
       expect(result.metadata.description).toBe('A simple service for testing');
-      // Tags now include inferred tags from name ('simple', 'service') and workloadType ('deployment')
+      // Tags include inferred tags from name and workloadType
       expect(result.metadata.tags).toEqual([
         'openchoreo',
-        'component-type',
-        'simple',
-        'service',
+        'simple-service',
         'deployment',
         'test',
         'simple',
@@ -78,7 +76,7 @@ describe('CtdToTemplateConverter', () => {
 
       // Check spec
       expect(result.spec?.owner).toBe('test-owner');
-      expect(result.spec?.type).toBe('Component Type'); // All CTD templates use 'Component Type' type
+      expect(result.spec?.type).toBe('Component');
       expect(result.spec?.parameters).toBeDefined();
       expect(result.spec?.steps).toBeDefined();
     });
@@ -126,9 +124,7 @@ describe('CtdToTemplateConverter', () => {
       // Even without explicit tags, should have inferred tags from name and workloadType
       expect(result.metadata.tags).toEqual([
         'openchoreo',
-        'component-type',
-        'simple',
-        'service',
+        'simple-service',
         'deployment',
       ]);
     });
@@ -153,26 +149,26 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // First section should be Component Metadata
-      expect(parameters[0].title).toBe('Component Metadata');
-      expect(parameters[0].required).toEqual([
-        'namespace_name',
-        'project_name',
+      // First section should be Build & Deploy
+      expect(parameters[0].title).toBe('Build & Deploy');
+
+      // Second section should be Component Metadata
+      expect(parameters[1].title).toBe('Component Metadata');
+      expect(parameters[1].required).toEqual([
+        'project_namespace',
         'component_name',
       ]);
-      expect(parameters[0].properties.component_name).toBeDefined();
-      expect(parameters[0].properties.namespace_name).toBeDefined();
-      expect(parameters[0].properties.project_name).toBeDefined();
-      expect(parameters[0].properties.displayName).toBeDefined();
-      expect(parameters[0].properties.description).toBeDefined();
+      expect(parameters[1].properties.component_name).toBeDefined();
+      expect(parameters[1].properties.project_namespace).toBeDefined();
+      expect(parameters[1].properties.displayName).toBeDefined();
+      expect(parameters[1].properties.description).toBeDefined();
 
       // Check UI fields
-      expect(parameters[0].properties.component_name['ui:field']).toBe(
-        'EntityNamePicker',
+      expect(parameters[1].properties.component_name['ui:field']).toBe(
+        'ComponentNamePicker',
       );
-      expect(parameters[0].properties.namespace_name['ui:disabled']).toBe(true); // Namespace is fixed from CTD
-      expect(parameters[0].properties.project_name['ui:field']).toBe(
-        'EntityPicker',
+      expect(parameters[1].properties.project_namespace['ui:field']).toBe(
+        'ProjectNamespaceField',
       );
     });
 
@@ -214,11 +210,11 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Second section should be CTD configuration
-      expect(parameters[1].title).toBe('Database Service Configuration');
-      expect(parameters[1].required).toEqual(['databaseType', 'storageSize']);
+      // Third section should be CTD configuration (after Build & Deploy and Component Metadata)
+      expect(parameters[2].title).toBe('Database Service Configuration');
+      expect(parameters[2].required).toEqual(['databaseType', 'storageSize']);
 
-      const props = parameters[1].properties;
+      const props = parameters[2].properties;
 
       // Check string with enum
       expect(props.databaseType.type).toBe('string');
@@ -238,7 +234,6 @@ describe('CtdToTemplateConverter', () => {
       // Check boolean
       expect(props.enableBackup.type).toBe('boolean');
       expect(props.enableBackup.default).toBe(true);
-      expect(props.enableBackup['ui:widget']).toBe('radio');
     });
 
     it('should handle nested objects', () => {
@@ -275,7 +270,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const props = parameters[1].properties;
+      const props = parameters[2].properties;
 
       expect(props.resourceLimits.type).toBe('object');
       expect(props.resourceLimits.title).toBe('Resource Limits');
@@ -312,7 +307,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const props = parameters[1].properties;
+      const props = parameters[2].properties;
 
       expect(props.tags.type).toBe('array');
       expect(props.tags.title).toBe('Tags');
@@ -349,7 +344,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const props = parameters[1].properties;
+      const props = parameters[2].properties;
 
       expect(props.coordinates.type).toBe('array');
       expect(props.coordinates.items).toHaveLength(2);
@@ -390,7 +385,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const props = parameters[1].properties;
+      const props = parameters[2].properties;
 
       expect(props.email.format).toBe('email');
       expect(props.email['ui:help']).toBe('Enter a valid email address');
@@ -419,11 +414,12 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have only Component Metadata + Addons sections
-      // (CTD config section skipped due to empty properties, CI Setup skipped due to no allowedWorkflows)
-      expect(parameters).toHaveLength(2);
-      expect(parameters[0].title).toBe('Component Metadata');
-      expect(parameters[1].title).toBe('Addons');
+      // Should have Build & Deploy + Component Metadata + Traits sections
+      // (CTD config section skipped due to empty properties)
+      expect(parameters).toHaveLength(3);
+      expect(parameters[0].title).toBe('Build & Deploy');
+      expect(parameters[1].title).toBe('Component Metadata');
+      expect(parameters[2].title).toBe('Enhance Your Component');
     });
 
     it('should generate Build & Deploy section with deployment source options when CTD has allowedWorkflows', () => {
@@ -452,11 +448,11 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have all four sections: Component Metadata, CTD Configuration, Build & Deploy, and Addons
+      // Should have all four sections: Build & Deploy, Component Metadata, CTD Configuration, and Traits
       expect(parameters).toHaveLength(4);
 
-      // Check Build & Deploy section (third section)
-      const buildDeploySection = parameters[2];
+      // Check Build & Deploy section (first section)
+      const buildDeploySection = parameters[0];
       expect(buildDeploySection.title).toBe('Build & Deploy');
       expect(buildDeploySection.required).toEqual(['deploymentSource']);
 
@@ -468,6 +464,7 @@ describe('CtdToTemplateConverter', () => {
       expect(buildDeploySection.properties.deploymentSource.enum).toEqual([
         'build-from-source',
         'deploy-from-image',
+        'external-ci',
       ]);
       expect(buildDeploySection.properties.deploymentSource['ui:field']).toBe(
         'DeploymentSourcePicker',
@@ -487,7 +484,7 @@ describe('CtdToTemplateConverter', () => {
       ).toBeDefined();
       expect(
         buildDeploySection.dependencies.deploymentSource.oneOf,
-      ).toHaveLength(2);
+      ).toHaveLength(3);
 
       // Check build-from-source branch
       const buildFromSourceBranch =
@@ -561,18 +558,15 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have only 3 sections: Component Metadata, CTD Configuration, and Addons
-      // Build & Deploy section should be absent when no allowedWorkflows
-      expect(parameters).toHaveLength(3);
+      // Should have 4 sections: Build & Deploy, Component Metadata, CTD Configuration, and Traits
+      // Build & Deploy is always present as the first step
+      expect(parameters).toHaveLength(4);
 
-      // Verify section titles to confirm Build & Deploy is not present
-      expect(parameters[0].title).toBe('Component Metadata');
-      expect(parameters[1].title).toContain('Configuration');
-      expect(parameters[2].title).toBe('Addons');
-
-      // Verify no section has 'Build & Deploy' title
-      const hasBuildDeploy = parameters.some(p => p.title === 'Build & Deploy');
-      expect(hasBuildDeploy).toBe(false);
+      // Verify section order
+      expect(parameters[0].title).toBe('Build & Deploy');
+      expect(parameters[1].title).toBe('Component Metadata');
+      expect(parameters[2].title).toContain('Configuration');
+      expect(parameters[3].title).toBe('Enhance Your Component');
     });
   });
 
@@ -622,13 +616,16 @@ describe('CtdToTemplateConverter', () => {
       const steps = result.spec?.steps as any[];
       const input = steps[0].input;
 
-      expect(input.namespaceName).toBe('${{ parameters.namespace_name }}');
-      expect(input.projectName).toBe('${{ parameters.project_name }}');
+      expect(input.namespaceName).toBe(
+        '${{ parameters.project_namespace.namespace_name }}',
+      );
+      expect(input.projectName).toBe(
+        '${{ parameters.project_namespace.project_name }}',
+      );
       expect(input.componentName).toBe('${{ parameters.component_name }}');
       expect(input.displayName).toBe('${{ parameters.displayName }}');
       expect(input.description).toBe('${{ parameters.description }}');
       expect(input.componentType).toBe('web-service');
-      expect(input.componentTypeParameters).toBe('${{ parameters }}');
     });
   });
 
@@ -656,7 +653,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const deps = parameters[1].dependencies;
+      const deps = parameters[2].dependencies;
 
       expect(deps).toBeDefined();
       expect(deps.enableFeature).toEqual(['featureConfig']);
@@ -692,7 +689,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const deps = parameters[1].dependencies;
+      const deps = parameters[2].dependencies;
 
       expect(deps).toBeDefined();
       expect(deps.enableAuth).toBeDefined();
@@ -739,7 +736,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const deps = parameters[1].dependencies;
+      const deps = parameters[2].dependencies;
 
       expect(deps.tier.allOf).toBeDefined();
       expect(deps.tier.allOf[0].if).toBeDefined();
@@ -781,7 +778,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const deps = parameters[1].dependencies;
+      const deps = parameters[2].dependencies;
 
       expect(deps.enableFeatures.allOf).toBeDefined();
       expect(deps.enableFeatures.allOf).toHaveLength(2);
@@ -815,7 +812,7 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const props = parameters[1].properties;
+      const props = parameters[2].properties;
 
       expect(props.config.additionalProperties.type).toBe('string');
     });

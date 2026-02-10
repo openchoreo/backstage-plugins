@@ -39,11 +39,12 @@ export const BuildWorkflowParameters = ({
   onChange,
   formData,
   formContext,
+  uiSchema,
 }: FieldExtensionComponentProps<WorkflowParametersData>) => {
   const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(
     null,
   );
-  const [uiSchema, setUiSchema] = useState<any>({});
+  const [rjsfUiSchema, setRjsfUiSchema] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,11 +55,13 @@ export const BuildWorkflowParameters = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get the selected workflow and namespace from form data
-  // The workflow_name is a sibling field in the same section
-  // Support both nested (project_namespace.namespace_name) and flat (namespace_name) formats
+  // Get the selected workflow from sibling field in the same section
   const selectedWorkflowName = formContext?.formData?.workflow_name;
+  // Get namespace from ui:options (set by the converter) or fall back to form data
   const namespaceName =
+    (typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+      ? uiSchema['ui:options'].namespaceName
+      : undefined) ||
     formContext?.formData?.project_namespace?.namespace_name ||
     formContext?.formData?.namespace_name;
 
@@ -183,7 +186,7 @@ export const BuildWorkflowParameters = ({
             '*',
           ];
 
-          setUiSchema(generatedUiSchema);
+          setRjsfUiSchema(generatedUiSchema);
         }
       } catch (err) {
         if (!ignore) {
@@ -287,7 +290,7 @@ export const BuildWorkflowParameters = ({
         <Form
           key={resetKey}
           schema={workflowSchema}
-          uiSchema={uiSchema}
+          uiSchema={rjsfUiSchema}
           formData={formData?.parameters || {}}
           onChange={handleFormChange}
           validator={validator}
