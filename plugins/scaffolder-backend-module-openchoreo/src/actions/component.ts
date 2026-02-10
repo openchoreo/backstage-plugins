@@ -246,6 +246,7 @@ export const createComponentAction = (
           'ciPlatform',
           'ciIdentifier',
           'external_ci_info', // UI-only markdown field
+          'gitSecretRef', // Git secret reference for private repos
         ]);
 
         const ctdParameters: Record<string, any> = {};
@@ -278,6 +279,7 @@ export const createComponentAction = (
           workflowName: workflowName,
           workflowParameters: workflowParameters,
           containerImage: (ctx.input as any).containerImage,
+          gitSecretRef: (ctx.input as any).gitSecretRef,
           traits: cleanedTraits,
         });
 
@@ -466,11 +468,15 @@ export const createComponentAction = (
                   systemParameters: {
                     repository: {
                       url: (ctx.input as any).repo_url,
+                      // secretRef is supported by the backend but not yet in the OpenAPI spec
+                      ...((ctx.input as any).gitSecretRef
+                        ? { secretRef: (ctx.input as any).gitSecretRef }
+                        : {}),
                       revision: {
                         branch: (ctx.input as any).branch,
                       },
                       appPath: (ctx.input as any).component_path,
-                    },
+                    } as any,
                   },
                   parameters: workflowParameters,
                 }

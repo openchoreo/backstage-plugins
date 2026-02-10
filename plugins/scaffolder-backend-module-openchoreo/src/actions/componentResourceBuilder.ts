@@ -37,6 +37,7 @@ export interface ComponentResourceInput {
   workflowName?: string;
   workflowParameters?: Record<string, any>;
   containerImage?: string; // For deploy-from-image
+  gitSecretRef?: string; // Secret reference for private repository credentials
 
   // Section 4: Traits (optional)
   traits?: Array<{
@@ -101,6 +102,22 @@ export function buildComponentResource(
       name: input.workflowName,
       ...workflowSchema, // Spread parameters and systemParameters directly
     };
+
+    // Build systemParameters.repository from standalone fields
+    // These were previously part of workflow_parameters but are now standalone wizard fields
+    if (input.repoUrl) {
+      const repository: Record<string, any> = {
+        url: input.repoUrl,
+        revision: {
+          branch: input.branch || 'main',
+        },
+        appPath: input.componentPath || '.',
+      };
+      if (input.gitSecretRef) {
+        repository.secretRef = input.gitSecretRef;
+      }
+      resource.spec.workflow.systemParameters = { repository };
+    }
   }
 
   // Add traits (traits) if provided

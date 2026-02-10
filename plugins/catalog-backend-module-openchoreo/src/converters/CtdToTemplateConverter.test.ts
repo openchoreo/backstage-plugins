@@ -470,12 +470,8 @@ describe('CtdToTemplateConverter', () => {
         'DeploymentSourcePicker',
       );
 
-      // Check autoDeploy property
-      expect(buildDeploySection.properties.autoDeploy).toBeDefined();
-      expect(buildDeploySection.properties.autoDeploy.type).toBe('boolean');
-      expect(buildDeploySection.properties.autoDeploy['ui:field']).toBe(
-        'SwitchField',
-      );
+      // autoDeploy is NOT a top-level property — it's in each oneOf branch (at the bottom)
+      expect(buildDeploySection.properties.autoDeploy).toBeUndefined();
 
       // Check dependencies structure uses oneOf
       expect(buildDeploySection.dependencies.deploymentSource).toBeDefined();
@@ -492,6 +488,21 @@ describe('CtdToTemplateConverter', () => {
       expect(buildFromSourceBranch.properties.deploymentSource.const).toBe(
         'build-from-source',
       );
+
+      // Check standalone source fields appear before workflow selection
+      expect(buildFromSourceBranch.properties.repo_url).toBeDefined();
+      expect(buildFromSourceBranch.properties.repo_url.type).toBe('string');
+      expect(buildFromSourceBranch.properties.branch).toBeDefined();
+      expect(buildFromSourceBranch.properties.branch.default).toBe('main');
+      expect(buildFromSourceBranch.properties.component_path).toBeDefined();
+      expect(buildFromSourceBranch.properties.component_path.default).toBe('.');
+
+      // Check git_secret_ref field for private repository credentials
+      expect(buildFromSourceBranch.properties.git_secret_ref).toBeDefined();
+      expect(buildFromSourceBranch.properties.git_secret_ref['ui:field']).toBe(
+        'GitSecretField',
+      );
+
       expect(buildFromSourceBranch.properties.workflow_name).toBeDefined();
       expect(
         buildFromSourceBranch.properties.workflow_parameters,
@@ -511,6 +522,13 @@ describe('CtdToTemplateConverter', () => {
         buildFromSourceBranch.properties.workflow_parameters['ui:field'],
       ).toBe('BuildWorkflowParameters');
 
+      // Check autoDeploy appears in build-from-source branch
+      expect(buildFromSourceBranch.properties.autoDeploy).toBeDefined();
+      expect(buildFromSourceBranch.properties.autoDeploy.type).toBe('boolean');
+      expect(buildFromSourceBranch.properties.autoDeploy['ui:field']).toBe(
+        'SwitchField',
+      );
+
       // Check required fields for build-from-source
       expect(buildFromSourceBranch.required).toEqual([
         'workflow_name',
@@ -527,6 +545,8 @@ describe('CtdToTemplateConverter', () => {
       expect(deployFromImageBranch.properties.containerImage['ui:field']).toBe(
         'ContainerImageField',
       );
+      // Check autoDeploy appears in deploy-from-image branch
+      expect(deployFromImageBranch.properties.autoDeploy).toBeDefined();
 
       // Check required fields for deploy-from-image
       expect(deployFromImageBranch.required).toEqual(['containerImage']);
@@ -626,6 +646,12 @@ describe('CtdToTemplateConverter', () => {
       expect(input.displayName).toBe('${{ parameters.displayName }}');
       expect(input.description).toBe('${{ parameters.description }}');
       expect(input.componentType).toBe('web-service');
+
+      // CI/CD parameters including git secret ref
+      expect(input.gitSecretRef).toBe('${{ parameters.git_secret_ref }}');
+      expect(input.repo_url).toBe('${{ parameters.repo_url }}');
+      expect(input.branch).toBe('${{ parameters.branch }}');
+      expect(input.component_path).toBe('${{ parameters.component_path }}');
     });
   });
 

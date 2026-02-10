@@ -402,9 +402,7 @@ export const BuildWorkflowPicker = ({
                 onClick={() => handleLanguageSelect(option)}
               >
                 <CardContent className={classes.cardContent}>
-                  <Box className={classes.iconWrapper}>
-                    {option.icon}
-                  </Box>
+                  <Box className={classes.iconWrapper}>{option.icon}</Box>
                   <Box className={classes.labelSection}>
                     <Typography variant="subtitle2" className={classes.label}>
                       {option.label}
