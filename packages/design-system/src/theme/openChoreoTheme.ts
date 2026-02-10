@@ -530,5 +530,26 @@ export const openChoreoTheme = createUnifiedTheme({
         },
       },
     },
+    // Scaffolder stepper form width constraint.
+    // Cast needed because the BackstageTemplateStepper type augmentation lives in
+    // @backstage/plugin-scaffolder-react/alpha, which the design-system package
+    // does not depend on. Adding it as a dependency would couple a low-level
+    // design package to a specific plugin.
+    ...({
+      BackstageTemplateStepper: {
+        styleOverrides: {
+          formWrapper: {
+            maxWidth: 800,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          },
+          footer: {
+            maxWidth: 800,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          },
+        },
+      },
+    } as any),
   },
 });
