@@ -46,4 +46,6 @@ export { ComponentTypeOverviewCard } from './components/ComponentTypeOverview';
 export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';
 export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOverview';
+export { ComponentWorkflowRunOverviewCard } from './components/ComponentWorkflowRunOverview';
+export { WorkflowRunOverviewCard } from './components/WorkflowRunOverview';
 export { ResourceDefinitionTab } from './components/ResourceDefinition';

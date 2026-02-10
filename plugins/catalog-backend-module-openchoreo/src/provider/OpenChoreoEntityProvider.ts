@@ -31,6 +31,8 @@ type ModelsComponentType =
   OpenChoreoComponents['schemas']['ComponentTypeResponse'];
 type ModelsWorkflow = OpenChoreoComponents['schemas']['WorkflowResponse'];
 type ModelsTrait = OpenChoreoComponents['schemas']['TraitResponse'];
+type ModelsComponentWorkflowRun =
+  OpenChoreoComponents['schemas']['ComponentWorkflowRunResponse'];
 
 // WorkloadEndpoint is part of the workload.endpoints structure
 // Since Workload uses additionalProperties, we define this locally
@@ -56,6 +58,7 @@ import {
   TraitTypeEntityV1alpha1,
   WorkflowEntityV1alpha1,
   ComponentWorkflowEntityV1alpha1,
+  ComponentWorkflowRunEntityV1alpha1,
 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import { translateComponentToEntity as translateComponent } from '../utils/entityTranslation';
@@ -531,6 +534,49 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   );
                   allEntities.push(componentEntity);
                 }
+
+                // Fetch component workflow runs for this component
+                try {
+                  const {
+                    data: cwrData,
+                    error: cwrError,
+                    response: cwrResponse,
+                  } = await client.GET(
+                    '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
+                    {
+                      params: {
+                        path: {
+                          namespaceName: ns.name!,
+                          projectName: project.name!,
+                          componentName: component.name!,
+                        },
+                      },
+                    },
+                  );
+
+                  if (!cwrError && cwrResponse.ok) {
+                    const workflowRuns =
+                      cwrData.success && cwrData.data?.items
+                        ? (cwrData.data
+                            .items as ModelsComponentWorkflowRun[])
+                        : [];
+                    this.logger.debug(
+                      `Found ${workflowRuns.length} workflow runs for component: ${component.name}`,
+                    );
+
+                    const cwrEntities: Entity[] = workflowRuns.map(run =>
+                      this.translateComponentWorkflowRunToEntity(
+                        run,
+                        ns.name!,
+                      ),
+                    );
+                    allEntities.push(...cwrEntities);
+                  }
+                } catch (error) {
+                  this.logger.debug(
+                    `Failed to fetch workflow runs for component ${component.name}: ${error}`,
+                  );
+                }
               }
             } catch (error) {
               this.logger.warn(
@@ -860,8 +906,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       const componentWorkflowCount = allEntities.filter(
         e => e.kind === 'ComponentWorkflow',
       ).length;
+      const componentWorkflowRunCount = allEntities.filter(
+        e => e.kind === 'ComponentWorkflowRun',
+      ).length;
       this.logger.info(
-        `Successfully processed ${allEntities.length} entities (${domainEntities.length} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${workflowCount} workflows, ${componentWorkflowCount} component workflows)`,
+        `Successfully processed ${allEntities.length} entities (${domainEntities.length} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${workflowCount} workflows, ${componentWorkflowCount} component workflows, ${componentWorkflowRunCount} component workflow runs)`,
       );
     } catch (error) {
       this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
@@ -1588,6 +1637,59 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       spec: {
         type: 'component-workflow',
         domain: `default/${namespaceName}`,
+      },
+    };
+  }
+
+  /**
+   * Translates a ComponentWorkflowRunResponse from OpenChoreo API to a Backstage ComponentWorkflowRun entity
+   */
+  private translateComponentWorkflowRunToEntity(
+    run: ModelsComponentWorkflowRun,
+    namespaceName: string,
+  ): ComponentWorkflowRunEntityV1alpha1 {
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ComponentWorkflowRun',
+      metadata: {
+        name: run.name,
+        namespace: namespaceName,
+        title: run.name,
+        description: `Workflow run for ${run.componentName} in ${run.projectName}`,
+        tags: ['openchoreo', 'component-workflow-run'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.COMPONENT]: run.componentName,
+          [CHOREO_ANNOTATIONS.PROJECT]: run.projectName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: run.createdAt || '',
+          ...(run.status && {
+            [CHOREO_ANNOTATIONS.STATUS]: run.status,
+          }),
+          ...(run.uuid && {
+            'openchoreo.io/uuid': run.uuid,
+          }),
+          ...(run.commit && {
+            'openchoreo.io/commit': run.commit,
+          }),
+          ...(run.image && {
+            'openchoreo.io/image': run.image,
+          }),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+        },
+      },
+      spec: {
+        type: 'component-workflow-run',
+        domain: `default/${namespaceName}`,
+        componentName: run.componentName,
+        projectName: run.projectName,
+        workflowName: run.workflow?.name,
+        commit: run.commit,
+        status: run.status,
+        image: run.image,
       },
     };
   }

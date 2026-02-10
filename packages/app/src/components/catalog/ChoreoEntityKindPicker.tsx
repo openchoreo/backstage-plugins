@@ -29,6 +29,8 @@ const kindDisplayNames: Record<string, string> = {
   traittype: 'Trait Type',
   workflow: 'Workflow',
   componentworkflow: 'Component Workflow',
+  componentworkflowrun: 'Component Workflow Run',
+  workflowrun: 'Workflow Run',
 };
 
 // Custom order for displaying entity kinds in the dropdown
@@ -52,6 +54,8 @@ const kindDisplayOrder: string[] = [
   'traittype',
   'workflow',
   'componentworkflow',
+  'componentworkflowrun',
+  'workflowrun',
 ];
 
 // Hook to fetch all available Choreo entity kinds from the catalog
@@ -245,7 +249,9 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
             lowerKey !== 'componenttype' &&
             lowerKey !== 'traittype' &&
             lowerKey !== 'workflow' &&
-            lowerKey !== 'componentworkflow'
+            lowerKey !== 'componentworkflow' &&
+            lowerKey !== 'componentworkflowrun' &&
+            lowerKey !== 'workflowrun'
           );
         }),
       );

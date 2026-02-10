@@ -19,6 +19,8 @@ import {
   TraitTypeEntityProcessor,
   WorkflowEntityProcessor,
   ComponentWorkflowEntityProcessor,
+  ComponentWorkflowRunEntityProcessor,
+  WorkflowRunEntityProcessor,
   CustomAnnotationProcessor,
 } from './processors';
 import {
@@ -111,6 +113,12 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ComponentWorkflow entity processor
         catalog.addProcessor(new ComponentWorkflowEntityProcessor());
+
+        // Register the ComponentWorkflowRun entity processor
+        catalog.addProcessor(new ComponentWorkflowRunEntityProcessor());
+
+        // Register the WorkflowRun entity processor
+        catalog.addProcessor(new WorkflowRunEntityProcessor());
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(

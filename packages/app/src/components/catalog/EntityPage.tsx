@@ -92,6 +92,8 @@ import {
   TraitTypeOverviewCard,
   WorkflowOverviewCard,
   ComponentWorkflowOverviewCard,
+  ComponentWorkflowRunOverviewCard,
+  WorkflowRunOverviewCard,
   ResourceDefinitionTab,
 } from '@openchoreo/backstage-plugin';
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
@@ -909,6 +911,52 @@ const componentWorkflowPage = (
   </EntityLayout>
 );
 
+const componentWorkflowRunPage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ComponentWorkflowRunOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
+const workflowRunPage = (
+  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <WorkflowRunOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+  </EntityLayout>
+);
+
 export const entityPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isKind('component')} children={componentPage} />
@@ -938,6 +986,14 @@ export const entityPage = (
     <EntitySwitch.Case
       if={isKind('componentworkflow')}
       children={componentWorkflowPage}
+    />
+    <EntitySwitch.Case
+      if={isKind('componentworkflowrun')}
+      children={componentWorkflowRunPage}
+    />
+    <EntitySwitch.Case
+      if={isKind('workflowrun')}
+      children={workflowRunPage}
     />
 
     <EntitySwitch.Case>{defaultEntityPage}</EntitySwitch.Case>

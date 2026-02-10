@@ -7,4 +7,6 @@ export { ComponentTypeEntityProcessor } from './ComponentTypeEntityProcessor';
 export { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
 export { WorkflowEntityProcessor } from './WorkflowEntityProcessor';
 export { ComponentWorkflowEntityProcessor } from './ComponentWorkflowEntityProcessor';
+export { ComponentWorkflowRunEntityProcessor } from './ComponentWorkflowRunEntityProcessor';
+export { WorkflowRunEntityProcessor } from './WorkflowRunEntityProcessor';
 export { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
