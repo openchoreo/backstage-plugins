@@ -28,6 +28,7 @@ import { GitSecretFieldExtension } from './scaffolder/GitSecretField';
 import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
+import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
@@ -228,6 +229,7 @@ const routes = (
         <EnvironmentFormWithYamlFieldExtension />
         <GitSecretFieldExtension />
         <GitSourceFieldExtension />
+        <WorkloadDetailsFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />

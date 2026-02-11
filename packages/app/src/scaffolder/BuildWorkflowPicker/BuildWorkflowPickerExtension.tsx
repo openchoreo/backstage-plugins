@@ -407,8 +407,18 @@ export const BuildWorkflowPicker = ({
             className={classes.tabs}
             style={{ minHeight: 32, marginBottom: 12 }}
           >
-            <Tab label="Auto-detect" disableRipple className={classes.tab} style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }} />
-            <Tab label="Advanced" disableRipple className={classes.tab} style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }} />
+            <Tab
+              label="Auto-detect"
+              disableRipple
+              className={classes.tab}
+              style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }}
+            />
+            <Tab
+              label="Advanced"
+              disableRipple
+              className={classes.tab}
+              style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }}
+            />
           </Tabs>
 
           {activeTab === 0 && (
@@ -427,7 +437,10 @@ export const BuildWorkflowPicker = ({
                     <CardContent className={classes.cardContent}>
                       <Box className={classes.iconWrapper}>{option.icon}</Box>
                       <Box className={classes.labelSection}>
-                        <Typography variant="subtitle2" className={classes.label}>
+                        <Typography
+                          variant="subtitle2"
+                          className={classes.label}
+                        >
                           {option.label}
                         </Typography>
                         <Typography
@@ -463,13 +476,19 @@ export const BuildWorkflowPicker = ({
                     }`}
                     onClick={() => {
                       onChange(workflow);
-                      const key = languageKeyForWorkflow(workflow, languageOptions);
+                      const key = languageKeyForWorkflow(
+                        workflow,
+                        languageOptions,
+                      );
                       setSelectedLanguageKey(key);
                     }}
                   >
                     <CardContent className={classes.cardContent}>
                       <Box className={classes.labelSection}>
-                        <Typography variant="subtitle2" className={classes.label}>
+                        <Typography
+                          variant="subtitle2"
+                          className={classes.label}
+                        >
                           {workflow}
                         </Typography>
                         <Typography

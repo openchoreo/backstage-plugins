@@ -131,7 +131,7 @@ describe('CtdToTemplateConverter', () => {
   });
 
   describe('generateParameters', () => {
-    it('should include standard component metadata fields', () => {
+    it('should generate 3 sections: Build & Deploy, Workload Details, Component Metadata', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -149,58 +149,52 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // First section should be Build & Deploy
+      // Always 3 sections
+      expect(parameters).toHaveLength(3);
+
+      // Section 1: Build & Deploy
       expect(parameters[0].title).toBe('Build & Deploy');
 
-      // Second section should be Component Metadata
-      expect(parameters[1].title).toBe('Component Metadata');
-      expect(parameters[1].required).toEqual([
+      // Section 2: Workload Details
+      expect(parameters[1].title).toBe('Workload Details');
+
+      // Section 3: Component Metadata
+      expect(parameters[2].title).toBe('Component Metadata');
+      expect(parameters[2].required).toEqual([
         'project_namespace',
         'component_name',
       ]);
-      expect(parameters[1].properties.component_name).toBeDefined();
-      expect(parameters[1].properties.project_namespace).toBeDefined();
-      expect(parameters[1].properties.displayName).toBeDefined();
-      expect(parameters[1].properties.description).toBeDefined();
+      expect(parameters[2].properties.component_name).toBeDefined();
+      expect(parameters[2].properties.project_namespace).toBeDefined();
+      expect(parameters[2].properties.displayName).toBeDefined();
+      expect(parameters[2].properties.description).toBeDefined();
 
       // Check UI fields
-      expect(parameters[1].properties.component_name['ui:field']).toBe(
+      expect(parameters[2].properties.component_name['ui:field']).toBe(
         'ComponentNamePicker',
       );
-      expect(parameters[1].properties.project_namespace['ui:field']).toBe(
+      expect(parameters[2].properties.project_namespace['ui:field']).toBe(
         'ProjectNamespaceField',
       );
     });
 
-    it('should convert CTD parameters to RJSF format', () => {
+    it('should generate Workload Details section with WorkloadDetailsField', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
           createdAt: '2025-01-01T00:00:00Z',
-          name: 'database-service',
-          displayName: 'Database Service',
+          name: 'web-service',
+          displayName: 'Web Service',
         },
         spec: {
           inputParametersSchema: {
             type: 'object',
-            required: ['databaseType', 'storageSize'],
+            required: ['port'],
             properties: {
-              databaseType: {
-                type: 'string',
-                title: 'Database Type',
-                enum: ['postgresql', 'mysql', 'mongodb'],
-              },
-              storageSize: {
+              port: {
                 type: 'integer',
-                title: 'Storage Size',
-                minimum: 10,
-                maximum: 1000,
-                default: 20,
-              },
-              enableBackup: {
-                type: 'boolean',
-                title: 'Enable Backup',
-                default: true,
+                title: 'Port',
+                default: 8080,
               },
             },
           },
@@ -210,198 +204,83 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Third section should be CTD configuration (after Build & Deploy and Component Metadata)
-      expect(parameters[2].title).toBe('Database Service Configuration');
-      expect(parameters[2].required).toEqual(['databaseType', 'storageSize']);
+      // Section 2: Workload Details
+      const workloadSection = parameters[1];
+      expect(workloadSection.title).toBe('Workload Details');
 
-      const props = parameters[2].properties;
+      // Check it uses WorkloadDetailsField
+      const workloadDetails = workloadSection.properties.workloadDetails;
+      expect(workloadDetails).toBeDefined();
+      expect(workloadDetails['ui:field']).toBe('WorkloadDetailsField');
+      expect(workloadDetails.type).toBe('object');
 
-      // Check string with enum
-      expect(props.databaseType.type).toBe('string');
-      expect(props.databaseType.title).toBe('Database Type');
-      expect(props.databaseType.enum).toEqual([
-        'postgresql',
-        'mysql',
-        'mongodb',
-      ]);
+      // Check ui:options
+      const options = workloadDetails['ui:options'];
+      expect(options.namespaceName).toBe('test-org');
+      expect(options.workloadType).toBe('deployment');
+      expect(options.ctdDisplayName).toBe('Web Service');
 
-      // Check integer with min/max
-      expect(props.storageSize.type).toBe('integer');
-      expect(props.storageSize.minimum).toBe(10);
-      expect(props.storageSize.maximum).toBe(1000);
-      expect(props.storageSize.default).toBe(20);
-
-      // Check boolean
-      expect(props.enableBackup.type).toBe('boolean');
-      expect(props.enableBackup.default).toBe(true);
+      // Check CTD schema is passed through
+      expect(options.ctdSchema).toBeDefined();
+      expect(options.ctdSchema.properties.port).toBeDefined();
+      expect(options.ctdSchema.properties.port.type).toBe('integer');
+      expect(options.ctdSchema.required).toEqual(['port']);
     });
 
-    it('should handle nested objects', () => {
-      const ctd: ComponentType = {
+    it('should pass workloadType in ui:options for conditional endpoint rendering', () => {
+      const deploymentCtd: ComponentType = {
         metadata: {
-          workloadType: 'deployment',
+          workloadType: 'deployment/service',
           createdAt: '2025-01-01T00:00:00Z',
-          name: 'service-with-nested',
+          name: 'web-service',
         },
         spec: {
           inputParametersSchema: {
             type: 'object',
-            properties: {
-              resourceLimits: {
-                type: 'object',
-                title: 'Resource Limits',
-                properties: {
-                  cpu: {
-                    type: 'string',
-                    title: 'CPU',
-                    default: '1000m',
-                  },
-                  memory: {
-                    type: 'string',
-                    title: 'Memory',
-                    default: '2Gi',
-                  },
-                },
-              },
-            },
+            properties: {},
           },
         },
       };
 
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const props = parameters[2].properties;
-
-      expect(props.resourceLimits.type).toBe('object');
-      expect(props.resourceLimits.title).toBe('Resource Limits');
-      expect(props.resourceLimits.properties.cpu.type).toBe('string');
-      expect(props.resourceLimits.properties.cpu.default).toBe('1000m');
-      expect(props.resourceLimits.properties.memory.type).toBe('string');
-      expect(props.resourceLimits.properties.memory.default).toBe('2Gi');
-    });
-
-    it('should handle arrays', () => {
-      const ctd: ComponentType = {
+      const cronjobCtd: ComponentType = {
         metadata: {
-          workloadType: 'deployment',
+          workloadType: 'cronjob',
           createdAt: '2025-01-01T00:00:00Z',
-          name: 'service-with-array',
+          name: 'batch-job',
         },
         spec: {
           inputParametersSchema: {
             type: 'object',
-            properties: {
-              tags: {
-                type: 'array',
-                title: 'Tags',
-                items: {
-                  type: 'string',
-                },
-                minItems: 1,
-                maxItems: 10,
-              },
-            },
+            properties: {},
           },
         },
       };
 
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const props = parameters[2].properties;
+      const deployResult = converter.convertCtdToTemplateEntity(
+        deploymentCtd,
+        'test-org',
+      );
+      const deployParams = deployResult.spec?.parameters as any[];
+      expect(
+        deployParams[1].properties.workloadDetails['ui:options'].workloadType,
+      ).toBe('deployment/service');
 
-      expect(props.tags.type).toBe('array');
-      expect(props.tags.title).toBe('Tags');
-      expect(props.tags.items.type).toBe('string');
-      expect(props.tags.minItems).toBe(1);
-      expect(props.tags.maxItems).toBe(10);
-      expect(props.tags['ui:options']).toBeDefined();
-      expect(props.tags['ui:options'].orderable).toBe(true);
+      const cronjobResult = converter.convertCtdToTemplateEntity(
+        cronjobCtd,
+        'test-org',
+      );
+      const cronjobParams = cronjobResult.spec?.parameters as any[];
+      expect(
+        cronjobParams[1].properties.workloadDetails['ui:options'].workloadType,
+      ).toBe('cronjob');
     });
 
-    it('should handle tuple arrays (array of schemas)', () => {
+    it('should generate ctdDisplayName from name when displayName is not provided', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
           createdAt: '2025-01-01T00:00:00Z',
-          name: 'service-with-tuple',
-        },
-        spec: {
-          inputParametersSchema: {
-            type: 'object',
-            properties: {
-              coordinates: {
-                type: 'array',
-                title: 'Coordinates',
-                items: [
-                  { type: 'number', title: 'Latitude' },
-                  { type: 'number', title: 'Longitude' },
-                ],
-              },
-            },
-          },
-        },
-      };
-
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const props = parameters[2].properties;
-
-      expect(props.coordinates.type).toBe('array');
-      expect(props.coordinates.items).toHaveLength(2);
-      expect(props.coordinates.items[0].type).toBe('number');
-      expect(props.coordinates.items[1].type).toBe('number');
-    });
-
-    it('should handle string patterns and formats', () => {
-      const ctd: ComponentType = {
-        metadata: {
-          workloadType: 'deployment',
-          createdAt: '2025-01-01T00:00:00Z',
-          name: 'service-with-validation',
-        },
-        spec: {
-          inputParametersSchema: {
-            type: 'object',
-            properties: {
-              email: {
-                type: 'string',
-                title: 'Email',
-                format: 'email',
-              },
-              url: {
-                type: 'string',
-                title: 'URL',
-                format: 'uri',
-              },
-              pattern: {
-                type: 'string',
-                title: 'Pattern',
-                pattern: '^[a-z]+$',
-              },
-            },
-          },
-        },
-      };
-
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const props = parameters[2].properties;
-
-      expect(props.email.format).toBe('email');
-      expect(props.email['ui:help']).toBe('Enter a valid email address');
-
-      expect(props.url.format).toBe('uri');
-      expect(props.url['ui:help']).toBe('Enter a valid URL');
-
-      expect(props.pattern.pattern).toBe('^[a-z]+$');
-    });
-
-    it('should handle empty CTD schema', () => {
-      const ctd: ComponentType = {
-        metadata: {
-          workloadType: 'deployment',
-          createdAt: '2025-01-01T00:00:00Z',
-          name: 'minimal-service',
+          name: 'web-service',
         },
         spec: {
           inputParametersSchema: {
@@ -413,13 +292,9 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
+      const options = parameters[1].properties.workloadDetails['ui:options'];
 
-      // Should have Build & Deploy + Component Metadata + Traits sections
-      // (CTD config section skipped due to empty properties)
-      expect(parameters).toHaveLength(3);
-      expect(parameters[0].title).toBe('Build & Deploy');
-      expect(parameters[1].title).toBe('Component Metadata');
-      expect(parameters[2].title).toBe('Enhance Your Component');
+      expect(options.ctdDisplayName).toBe('Web Service');
     });
 
     it('should generate Build & Deploy section with deployment source options when CTD has allowedWorkflows', () => {
@@ -448,8 +323,8 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have all four sections: Build & Deploy, Component Metadata, CTD Configuration, and Traits
-      expect(parameters).toHaveLength(4);
+      // Should have 3 sections
+      expect(parameters).toHaveLength(3);
 
       // Check Build & Deploy section (first section)
       const buildDeploySection = parameters[0];
@@ -557,7 +432,7 @@ describe('CtdToTemplateConverter', () => {
       expect(deployFromImageBranch.required).toEqual(['containerImage']);
     });
 
-    it('should not include Build & Deploy section when CTD has no allowedWorkflows', () => {
+    it('should still have 3 sections when CTD has no allowedWorkflows', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -583,15 +458,40 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Should have 4 sections: Build & Deploy, Component Metadata, CTD Configuration, and Traits
-      // Build & Deploy is always present as the first step
-      expect(parameters).toHaveLength(4);
+      // Should have 3 sections: Build & Deploy, Workload Details, Component Metadata
+      expect(parameters).toHaveLength(3);
 
       // Verify section order
       expect(parameters[0].title).toBe('Build & Deploy');
-      expect(parameters[1].title).toBe('Component Metadata');
-      expect(parameters[2].title).toContain('Configuration');
-      expect(parameters[3].title).toBe('Enhance Your Component');
+      expect(parameters[1].title).toBe('Workload Details');
+      expect(parameters[2].title).toBe('Component Metadata');
+    });
+
+    it('should pass empty/undefined CTD schema when no input parameters', () => {
+      const ctd: ComponentType = {
+        metadata: {
+          workloadType: 'deployment',
+          createdAt: '2025-01-01T00:00:00Z',
+          name: 'minimal-service',
+        },
+        spec: {
+          inputParametersSchema: {
+            type: 'object',
+            properties: {},
+          },
+        },
+      };
+
+      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
+      const parameters = result.spec?.parameters as any[];
+
+      // Should still have 3 sections
+      expect(parameters).toHaveLength(3);
+
+      // Workload Details section should have the CTD schema in ui:options
+      const options = parameters[1].properties.workloadDetails['ui:options'];
+      expect(options.ctdSchema).toBeDefined();
+      expect(options.ctdSchema.properties).toEqual({});
     });
   });
 
@@ -620,7 +520,7 @@ describe('CtdToTemplateConverter', () => {
       expect(steps[0].action).toBe('openchoreo:component:create');
     });
 
-    it('should pass parameters to scaffolder action', () => {
+    it('should pass parameters to scaffolder action with workloadDetails', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -641,6 +541,7 @@ describe('CtdToTemplateConverter', () => {
       const steps = result.spec?.steps as any[];
       const input = steps[0].input;
 
+      // Component metadata parameters
       expect(input.namespaceName).toBe(
         '${{ parameters.project_namespace.namespace_name }}',
       );
@@ -652,6 +553,9 @@ describe('CtdToTemplateConverter', () => {
       expect(input.description).toBe('${{ parameters.description }}');
       expect(input.componentType).toBe('web-service');
 
+      // Workload details as nested object
+      expect(input.workloadDetails).toBe('${{ parameters.workloadDetails }}');
+
       // CI/CD parameters including git secret ref (from git_source composite field)
       expect(input.gitSecretRef).toBe(
         '${{ parameters.git_source.git_secret_ref }}',
@@ -661,164 +565,6 @@ describe('CtdToTemplateConverter', () => {
       expect(input.component_path).toBe(
         '${{ parameters.git_source.component_path }}',
       );
-    });
-  });
-
-  describe('conditional fields (dependencies)', () => {
-    it('should handle simple property dependencies', () => {
-      const ctd: ComponentType = {
-        metadata: {
-          workloadType: 'deployment',
-          createdAt: '2025-01-01T00:00:00Z',
-          name: 'service-with-deps',
-        },
-        spec: {
-          inputParametersSchema: {
-            type: 'object',
-            properties: {
-              enableFeature: { type: 'boolean' },
-              featureConfig: { type: 'string' },
-            },
-            dependencies: {
-              enableFeature: ['featureConfig'],
-            },
-          },
-        },
-      };
-
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const deps = parameters[2].dependencies;
-
-      expect(deps).toBeDefined();
-      expect(deps.enableFeature).toEqual(['featureConfig']);
-    });
-
-    it('should handle schema dependencies with if/then', () => {
-      const ctd: ComponentType = {
-        metadata: {
-          workloadType: 'deployment',
-          createdAt: '2025-01-01T00:00:00Z',
-          name: 'conditional-service',
-        },
-        spec: {
-          inputParametersSchema: {
-            type: 'object',
-            properties: {
-              enableAuth: { type: 'boolean' },
-              authType: { type: 'string', enum: ['oauth2', 'jwt'] },
-            },
-            dependencies: {
-              enableAuth: {
-                if: {
-                  properties: { enableAuth: { const: true } },
-                },
-                then: {
-                  required: ['authType'],
-                },
-              },
-            },
-          },
-        },
-      };
-
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const deps = parameters[2].dependencies;
-
-      expect(deps).toBeDefined();
-      expect(deps.enableAuth).toBeDefined();
-      expect(deps.enableAuth.allOf).toBeDefined();
-      expect(deps.enableAuth.allOf).toHaveLength(1);
-      expect(deps.enableAuth.allOf[0].if).toBeDefined();
-      expect(deps.enableAuth.allOf[0].then).toBeDefined();
-      expect(deps.enableAuth.allOf[0].then.required).toEqual(['authType']);
-    });
-
-    it('should handle nested if/then/else in dependencies', () => {
-      const ctd: ComponentType = {
-        metadata: {
-          workloadType: 'deployment',
-          createdAt: '2025-01-01T00:00:00Z',
-          name: 'nested-conditional',
-        },
-        spec: {
-          inputParametersSchema: {
-            type: 'object',
-            properties: {
-              tier: { type: 'string', enum: ['small', 'medium', 'custom'] },
-              cpu: { type: 'string' },
-              memory: { type: 'string' },
-            },
-            dependencies: {
-              tier: {
-                if: {
-                  properties: { tier: { const: 'custom' } },
-                },
-                then: {
-                  required: ['cpu', 'memory'],
-                },
-                else: {
-                  properties: {
-                    note: { type: 'string' },
-                  },
-                },
-              },
-            },
-          },
-        },
-      };
-
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const deps = parameters[2].dependencies;
-
-      expect(deps.tier.allOf).toBeDefined();
-      expect(deps.tier.allOf[0].if).toBeDefined();
-      expect(deps.tier.allOf[0].then.required).toEqual(['cpu', 'memory']);
-      expect(deps.tier.allOf[0].else).toBeDefined();
-      expect(deps.tier.allOf[0].else.properties).toBeDefined();
-    });
-
-    it('should handle allOf in schema dependencies', () => {
-      const ctd: ComponentType = {
-        metadata: {
-          workloadType: 'deployment',
-          createdAt: '2025-01-01T00:00:00Z',
-          name: 'allof-service',
-        },
-        spec: {
-          inputParametersSchema: {
-            type: 'object',
-            properties: {
-              enableFeatures: { type: 'boolean' },
-            },
-            dependencies: {
-              enableFeatures: {
-                allOf: [
-                  {
-                    if: { properties: { enableFeatures: { const: true } } },
-                    then: { required: ['feature1'] },
-                  },
-                  {
-                    if: { properties: { enableFeatures: { const: true } } },
-                    then: { required: ['feature2'] },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      };
-
-      const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
-      const parameters = result.spec?.parameters as any[];
-      const deps = parameters[2].dependencies;
-
-      expect(deps.enableFeatures.allOf).toBeDefined();
-      expect(deps.enableFeatures.allOf).toHaveLength(2);
-      expect(deps.enableFeatures.allOf[0].then.required).toEqual(['feature1']);
-      expect(deps.enableFeatures.allOf[1].then.required).toEqual(['feature2']);
     });
   });
 
@@ -847,9 +593,13 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
-      const props = parameters[2].properties;
 
-      expect(props.config.additionalProperties.type).toBe('string');
+      // CTD schema is now embedded in ui:options.ctdSchema
+      const ctdSchema =
+        parameters[1].properties.workloadDetails['ui:options'].ctdSchema;
+      expect(ctdSchema.properties.config.additionalProperties.type).toBe(
+        'string',
+      );
     });
 
     it('should use default config when not provided', () => {
