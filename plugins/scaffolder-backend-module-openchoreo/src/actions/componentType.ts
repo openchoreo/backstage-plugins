@@ -4,9 +4,9 @@ import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
 
-export const createComponentTypeAction = (config: Config) => {
+export const createComponentTypeDefinitionAction = (config: Config) => {
   return createTemplateAction({
-    id: 'openchoreo:componenttype:create',
+    id: 'openchoreo:componenttype-definition:create',
     description: 'Create OpenChoreo ComponentType',
     schema: {
       input: (zImpl: typeof z) =>
@@ -105,7 +105,7 @@ export const createComponentTypeAction = (config: Config) => {
 
       try {
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/component-types',
+          '/namespaces/{namespaceName}/component-types/definition',
           {
             params: {
               path: { namespaceName },

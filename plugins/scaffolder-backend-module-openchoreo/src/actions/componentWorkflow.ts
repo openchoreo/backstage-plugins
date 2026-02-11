@@ -4,9 +4,9 @@ import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
 
-export const createComponentWorkflowAction = (config: Config) => {
+export const createComponentWorkflowDefinitionAction = (config: Config) => {
   return createTemplateAction({
-    id: 'openchoreo:componentworkflow:create',
+    id: 'openchoreo:componentworkflow-definition:create',
     description: 'Create OpenChoreo ComponentWorkflow',
     schema: {
       input: (zImpl: typeof z) =>
@@ -105,7 +105,7 @@ export const createComponentWorkflowAction = (config: Config) => {
 
       try {
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/component-workflows',
+          '/namespaces/{namespaceName}/component-workflows/definition',
           {
             params: {
               path: { namespaceName },
