@@ -146,8 +146,17 @@ export interface WorkloadResourceInput {
   containerImage?: string;
   port?: number;
   endpoints?: Record<string, { type: string; port: number }>;
-  envVars?: Array<{ key: string; value: string }>;
-  fileMounts?: Array<{ key: string; mountPath: string; value: string }>;
+  envVars?: Array<{
+    key: string;
+    value?: string;
+    valueFrom?: { secretRef?: { name: string; key: string } };
+  }>;
+  fileMounts?: Array<{
+    key: string;
+    mountPath: string;
+    value?: string;
+    valueFrom?: { secretRef?: { name: string; key: string } };
+  }>;
 }
 
 /**
