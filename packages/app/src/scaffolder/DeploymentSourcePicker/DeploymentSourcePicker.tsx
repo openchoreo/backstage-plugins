@@ -124,7 +124,7 @@ export const DeploymentSourcePicker = ({
     },
   ];
 
-  const selectedValue = formData || 'build-from-source';
+  const selectedValue = formData || '';
 
   return (
     <Box>
