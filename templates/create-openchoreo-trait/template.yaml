@@ -2,11 +2,8 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: create-openchoreo-trait
-  title: Create OpenChoreo Trait
-  description: Create a new Trait for your organization.
-  tags:
-    - openchoreo
-    - platform-engineer
+  title: Trait
+  description: Define a reusable trait template to add cross-cutting capabilities like storage or observability to components.
 spec:
   owner: openchoreo-users
   type: Trait
@@ -51,7 +48,7 @@ spec:
   steps:
     - id: create-openchoreo-trait
       name: Create OpenChoreo Trait
-      action: openchoreo:trait:create
+      action: openchoreo:trait-definition:create
       input:
         namespaceName: ${{ parameters.namespace_name }}
         yamlContent: ${{ parameters.yaml_definition }}

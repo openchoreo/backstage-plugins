@@ -367,7 +367,7 @@ export const openChoreoTheme = createUnifiedTheme({
       styleOverrides: {
         root: {
           backgroundColor: colors.secondary.light,
-          border: `1px solid transparent`,
+          border: `1px solid ${colors.grey[300]}`,
           transition: 'all 0.3s',
           borderRadius: 8,
           padding: '2px 4px',
@@ -383,10 +383,11 @@ export const openChoreoTheme = createUnifiedTheme({
             display: 'none',
           },
           '&:hover:not(.Mui-focused)': {
-            borderColor: colors.indigo[200],
+            borderColor: colors.primary.light,
           },
           '&.Mui-focused': {
-            borderColor: colors.primary.light,
+            borderColor: colors.primary.main,
+            borderWidth: 2,
           },
         },
       },

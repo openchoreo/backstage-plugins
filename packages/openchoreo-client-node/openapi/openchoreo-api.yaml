@@ -2739,9 +2739,11 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/ComponentTypeResponse'
+
+  /namespaces/{namespaceName}/component-types/definition:
     post:
       summary: Create a new component type
-      operationId: createComponentType
+      operationId: createComponentTypeDefinition
       tags:
         - ComponentTypes
       parameters:
@@ -3111,9 +3113,10 @@ paths:
                                 items:
                                   $ref: '#/components/schemas/WorkflowResponse'
 
+  /namespaces/{namespaceName}/component-workflows/definition:
     post:
       summary: Create a new component workflow
-      operationId: createComponentWorkflow
+      operationId: createComponentWorkflowDefinition
       tags:
         - ComponentWorkflows
       parameters:
@@ -3316,9 +3319,10 @@ paths:
                                 items:
                                   $ref: '#/components/schemas/TraitResponse'
 
+  /namespaces/{namespaceName}/traits/definition:
     post:
       summary: Create a new trait
-      operationId: createTrait
+      operationId: createTraitDefinition
       tags:
         - Traits
       parameters:
