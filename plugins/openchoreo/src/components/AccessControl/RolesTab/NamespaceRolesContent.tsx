@@ -79,14 +79,16 @@ export const NamespaceRolesContent = () => {
   const handleCheckBindings = async (
     name: string,
   ): Promise<BindingSummary[]> => {
-    const bindings = await client.listNamespaceRoleBindings(selectedNamespace, {
-      roleName: name,
-      roleNamespace: selectedNamespace,
-    });
-    return bindings.map(b => ({
+    const result = await client.listBindingsForNamespaceRole(
+      selectedNamespace,
+      name,
+    );
+    return result.namespaceRoleBindings.map(b => ({
       name: b.name,
       entitlement: { claim: b.entitlement.claim, value: b.entitlement.value },
       effect: b.effect,
+      type: SCOPE_NAMESPACE,
+      namespace: b.namespace,
     }));
   };
 
@@ -108,16 +110,28 @@ export const NamespaceRolesContent = () => {
     bindings: BindingSummary[],
   ) => {
     try {
-      for (const binding of bindings) {
-        await client.deleteNamespaceRoleBinding(
-          selectedNamespace,
-          binding.name,
+      const namespaceRoleBindings = bindings.map(b => ({
+        namespace: b.namespace || selectedNamespace,
+        name: b.name,
+      }));
+
+      const result = await client.forceDeleteNamespaceRole(
+        selectedNamespace,
+        name,
+        { namespaceRoleBindings },
+      );
+
+      if (result.roleDeleted) {
+        await fetchRoles();
+        notification.showSuccess(
+          `Namespace role "${name}" and its bindings deleted successfully`,
+        );
+      } else {
+        const failedNames = result.failedBindings.map(f => f.name).join(', ');
+        notification.showError(
+          `Role not deleted. Failed to remove binding(s): ${failedNames}`,
         );
       }
-      await deleteRole(name);
-      notification.showSuccess(
-        `Namespace role "${name}" and its bindings deleted successfully`,
-      );
     } catch (err) {
       notification.showError(
         `Failed to delete role: ${
@@ -214,6 +228,7 @@ export const NamespaceRolesContent = () => {
           {!loading && !error && (
             <RolesTable
               roles={roles}
+              scope={SCOPE_NAMESPACE}
               scopeLabel="Namespace Role"
               canUpdate={canUpdate}
               canDelete={canDelete}

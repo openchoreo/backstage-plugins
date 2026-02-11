@@ -987,4 +987,179 @@ export class AuthzService {
       throw err;
     }
   }
+
+  // =====================
+  // Binding Lookup & Force-Delete Methods
+  // =====================
+
+  async listBindingsForRole(
+    roleName: string,
+    roleScope: 'cluster' | 'namespace',
+    roleNamespace?: string,
+    userToken?: string,
+  ): Promise<{
+    clusterRoleBindings: Array<any>;
+    namespaceRoleBindings: Array<any & { namespace: string }>;
+  }> {
+    this.logger.debug(
+      `Listing bindings for role: ${roleName} (scope: ${roleScope})`,
+    );
+
+    if (roleScope === 'cluster') {
+      const [clusterBindingsResult, namespacesResult] = await Promise.all([
+        this.listClusterRoleBindings({ roleName }, userToken),
+        this.listNamespaces(userToken),
+      ]);
+
+      const namespaces = namespacesResult.data || [];
+      const nsBindingResults = await Promise.all(
+        namespaces.map(async ns => {
+          const result = await this.listNamespaceRoleBindings(
+            ns.name,
+            { roleName },
+            userToken,
+          );
+          return result.data.map(b => ({ ...b, namespace: ns.name }));
+        }),
+      );
+
+      return {
+        clusterRoleBindings: clusterBindingsResult.data,
+        namespaceRoleBindings: nsBindingResults.flat(),
+      };
+    }
+
+    // namespace scope
+    if (!roleNamespace) {
+      throw new Error('roleNamespace is required for namespace-scoped roles');
+    }
+
+    const nsBindings = await this.listNamespaceRoleBindings(
+      roleNamespace,
+      { roleName, roleNamespace },
+      userToken,
+    );
+
+    return {
+      clusterRoleBindings: [],
+      namespaceRoleBindings: nsBindings.data.map(b => ({
+        ...b,
+        namespace: roleNamespace,
+      })),
+    };
+  }
+
+  async forceDeleteClusterRole(
+    name: string,
+    clusterBindings: string[],
+    nsBindings: Array<{ namespace: string; name: string }>,
+    userToken?: string,
+  ): Promise<{
+    deletedBindings: string[];
+    failedBindings: Array<{ name: string; error: string }>;
+    roleDeleted: boolean;
+  }> {
+    this.logger.debug(`Force-deleting cluster role: ${name}`);
+
+    const deletedBindings: string[] = [];
+    const failedBindings: Array<{ name: string; error: string }> = [];
+
+    // Delete all cluster bindings
+    const clusterResults = await Promise.allSettled(
+      clusterBindings.map(bindingName =>
+        this.deleteClusterRoleBinding(bindingName, userToken),
+      ),
+    );
+    clusterResults.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        deletedBindings.push(clusterBindings[i]);
+      } else {
+        failedBindings.push({
+          name: clusterBindings[i],
+          error:
+            result.reason instanceof Error
+              ? result.reason.message
+              : String(result.reason),
+        });
+      }
+    });
+
+    // Delete all namespace bindings
+    const nsResults = await Promise.allSettled(
+      nsBindings.map(b =>
+        this.deleteNamespaceRoleBinding(b.namespace, b.name, userToken),
+      ),
+    );
+    nsResults.forEach((result, i) => {
+      const bindingId = `${nsBindings[i].namespace}/${nsBindings[i].name}`;
+      if (result.status === 'fulfilled') {
+        deletedBindings.push(bindingId);
+      } else {
+        failedBindings.push({
+          name: bindingId,
+          error:
+            result.reason instanceof Error
+              ? result.reason.message
+              : String(result.reason),
+        });
+      }
+    });
+
+    // Only delete the role if all bindings were successfully deleted
+    if (failedBindings.length > 0) {
+      this.logger.warn(
+        `Cannot delete cluster role ${name}: ${failedBindings.length} binding(s) failed to delete`,
+      );
+      return { deletedBindings, failedBindings, roleDeleted: false };
+    }
+
+    await this.deleteClusterRole(name, userToken);
+    return { deletedBindings, failedBindings, roleDeleted: true };
+  }
+
+  async forceDeleteNamespaceRole(
+    namespace: string,
+    name: string,
+    nsBindings: Array<{ namespace: string; name: string }>,
+    userToken?: string,
+  ): Promise<{
+    deletedBindings: string[];
+    failedBindings: Array<{ name: string; error: string }>;
+    roleDeleted: boolean;
+  }> {
+    this.logger.debug(`Force-deleting namespace role: ${namespace}/${name}`);
+
+    const deletedBindings: string[] = [];
+    const failedBindings: Array<{ name: string; error: string }> = [];
+
+    const results = await Promise.allSettled(
+      nsBindings.map(b =>
+        this.deleteNamespaceRoleBinding(b.namespace, b.name, userToken),
+      ),
+    );
+    results.forEach((result, i) => {
+      const bindingId = `${nsBindings[i].namespace}/${nsBindings[i].name}`;
+      if (result.status === 'fulfilled') {
+        deletedBindings.push(bindingId);
+      } else {
+        failedBindings.push({
+          name: bindingId,
+          error:
+            result.reason instanceof Error
+              ? result.reason.message
+              : String(result.reason),
+        });
+      }
+    });
+
+    if (failedBindings.length > 0) {
+      this.logger.warn(
+        `Cannot delete namespace role ${namespace}/${name}: ${failedBindings.length} binding(s) failed to delete`,
+      );
+      return { deletedBindings, failedBindings, roleDeleted: false };
+    }
+
+    await this.deleteNamespaceRole(namespace, name, userToken);
+    return { deletedBindings, failedBindings, roleDeleted: true };
+  }
 }

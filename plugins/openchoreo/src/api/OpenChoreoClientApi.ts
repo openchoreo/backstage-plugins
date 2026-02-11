@@ -218,6 +218,19 @@ export interface UserTypeConfig {
   authMechanisms: AuthMechanismConfig[];
 }
 
+/** Result of a force-delete operation */
+export interface ForceDeleteResult {
+  deletedBindings: string[];
+  failedBindings: { name: string; error: string }[];
+  roleDeleted: boolean;
+}
+
+/** Bindings lookup result for a role */
+export interface RoleBindingsLookup {
+  clusterRoleBindings: ClusterRoleBinding[];
+  namespaceRoleBindings: (NamespaceRoleBinding & { namespace: string })[];
+}
+
 /** Namespace summary for listing */
 export interface NamespaceSummary {
   name: string;
@@ -625,6 +638,35 @@ export interface OpenChoreoClientApi {
 
   /** Delete a namespace role binding */
   deleteNamespaceRoleBinding(namespace: string, name: string): Promise<void>;
+
+  // === Binding Lookup & Force-Delete Operations ===
+
+  /** List all bindings (cluster + namespace) for a cluster role */
+  listBindingsForClusterRole(name: string): Promise<RoleBindingsLookup>;
+
+  /** List all bindings for a namespace role */
+  listBindingsForNamespaceRole(
+    namespace: string,
+    name: string,
+  ): Promise<RoleBindingsLookup>;
+
+  /** Force-delete a cluster role (delete bindings first, then the role) */
+  forceDeleteClusterRole(
+    name: string,
+    bindings: {
+      clusterRoleBindings: string[];
+      namespaceRoleBindings: { namespace: string; name: string }[];
+    },
+  ): Promise<ForceDeleteResult>;
+
+  /** Force-delete a namespace role (delete bindings first, then the role) */
+  forceDeleteNamespaceRole(
+    namespace: string,
+    name: string,
+    bindings: {
+      namespaceRoleBindings: { namespace: string; name: string }[];
+    },
+  ): Promise<ForceDeleteResult>;
 }
 
 // ============================================

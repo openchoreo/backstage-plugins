@@ -30,6 +30,7 @@ import EditIcon from '@material-ui/icons/EditOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import WarningIcon from '@material-ui/icons/Warning';
 import { useStyles } from './styles';
+import { SCOPE_CLUSTER, type BindingScope } from '../constants';
 
 interface RoleRow {
   name: string;
@@ -41,10 +42,13 @@ export interface BindingSummary {
   name: string;
   entitlement: { claim: string; value: string };
   effect: string;
+  type: BindingScope;
+  namespace?: string;
 }
 
 interface RolesTableProps {
   roles: RoleRow[];
+  scope: BindingScope;
   scopeLabel: string;
   canUpdate: boolean;
   canDelete: boolean;
@@ -58,6 +62,7 @@ interface RolesTableProps {
 
 export const RolesTable = ({
   roles,
+  scope,
   scopeLabel,
   canUpdate,
   canDelete,
@@ -268,14 +273,23 @@ export const RolesTable = ({
                 remove the following bindings:
               </DialogContentText>
               <List className={classes.mappingsList} dense>
-                {activeBindings.map((binding, index) => (
-                  <ListItem key={binding.name ?? index}>
-                    <ListItemText
-                      primary={`${binding.entitlement.claim}=${binding.entitlement.value}`}
-                      secondary={`Effect: ${binding.effect.toUpperCase()}`}
-                    />
-                  </ListItem>
-                ))}
+                {activeBindings.map((binding, index) => {
+                  let secondary: string | undefined;
+                  if (scope === SCOPE_CLUSTER) {
+                    secondary =
+                      binding.type === SCOPE_CLUSTER
+                        ? 'Type: Cluster'
+                        : `Type: Namespace (${binding.namespace})`;
+                  }
+                  return (
+                    <ListItem key={binding.name ?? index}>
+                      <ListItemText
+                        primary={`Binding: ${binding.name}`}
+                        secondary={secondary}
+                      />
+                    </ListItem>
+                  );
+                })}
               </List>
             </DialogContent>
             <DialogActions>
