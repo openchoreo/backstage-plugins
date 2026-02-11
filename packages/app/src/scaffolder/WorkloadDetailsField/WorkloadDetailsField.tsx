@@ -60,12 +60,8 @@ const useStyles = makeStyles(theme => ({
     '&:before': {
       display: 'none',
     },
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius,
   },
-  accordionSummary: {
-    backgroundColor: theme.palette.background.default,
-  },
+  accordionSummary: {},
   chip: {
     marginLeft: theme.spacing(1),
   },
@@ -205,6 +201,7 @@ export const WorkloadDetailsField = ({
 
   // CTD advanced accordion
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
+  const [advancedConfigExpanded, setAdvancedConfigExpanded] = useState(false);
 
   // Propagate changes to parent
   const emitChange = useCallback(
@@ -885,119 +882,131 @@ export const WorkloadDetailsField = ({
         </>
       )}
 
-      {/* ── Traits ("Enhance Your Component") ── */}
+      {/* ── Traits ("Advanced Configurations") ── */}
       <Divider className={classes.divider} />
-      <Typography variant="subtitle1" className={classes.sectionTitle}>
-        Enhance Your Component
-      </Typography>
-      <Typography variant="body2" color="textSecondary" gutterBottom>
-        Select and configure traits for your component.
-      </Typography>
-
-      {traitError && (
-        <Typography variant="body2" color="error" gutterBottom>
-          {traitError}
-        </Typography>
-      )}
-
-      {loadingTraits && (
-        <Box display="flex" alignItems="center" justifyContent="center" py={4}>
-          <CircularProgress size={24} style={{ marginRight: 8 }} />
-          <Typography variant="body2" color="textSecondary">
-            Loading available traits...
+      <Accordion
+        expanded={advancedConfigExpanded}
+        onChange={() => setAdvancedConfigExpanded(!advancedConfigExpanded)}
+        className={classes.accordion}
+        elevation={0}
+      >
+        <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          className={classes.accordionSummary}
+        >
+          <Typography variant="subtitle2">Advanced Configurations</Typography>
+        </AccordionSummary>
+        <AccordionDetails className={classes.accordionDetails}>
+          <Typography variant="body2" color="textSecondary" gutterBottom>
+            Select and configure traits for your component.
           </Typography>
-        </Box>
-      )}
 
-      {!loadingTraits && availableTraits.length === 0 && namespaceName && (
-        <NoTraitsAvailableMessage />
-      )}
+          {traitError && (
+            <Typography variant="body2" color="error" gutterBottom>
+              {traitError}
+            </Typography>
+          )}
 
-      {!loadingTraits && availableTraits.length > 0 && (
-        <TraitPicker
-          availableTraits={availableTraits}
-          addedTraitNames={addedTraitNames}
-          onAddTrait={handleAddTrait}
-          loading={loadingTraits}
-          loadingTraitName={loadingTraitName || undefined}
-        />
-      )}
+          {loadingTraits && (
+            <Box display="flex" alignItems="center" justifyContent="center" py={4}>
+              <CircularProgress size={24} style={{ marginRight: 8 }} />
+              <Typography variant="body2" color="textSecondary">
+                Loading available traits...
+              </Typography>
+            </Box>
+          )}
 
-      {addedTraits.length > 0 && (
-        <Box mt={3}>
-          <Typography variant="subtitle1" gutterBottom>
-            Configured Traits ({addedTraits.length})
-          </Typography>
-          {addedTraits.map((trait, index) => (
-            <Accordion
-              key={trait.id}
-              expanded={expandedTrait === trait.id}
-              onChange={(_e, isExpanded) =>
-                setExpandedTrait(isExpanded ? trait.id : false)
-              }
-              className={classes.traitAccordion}
-              elevation={0}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                className={classes.traitSummary}
-              >
-                <Box className={classes.traitSummaryContent}>
-                  <Box display="flex" alignItems="center">
-                    <Typography className={classes.traitTitle}>
-                      {trait.instanceName || `${trait.name} #${index + 1}`}
-                    </Typography>
-                    <Typography className={classes.traitName}>
-                      ({trait.name})
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    onClick={e => {
-                      e.stopPropagation();
-                      handleRemoveTrait(trait.id);
-                    }}
-                    size="small"
-                    className={classes.deleteButton}
+          {!loadingTraits && availableTraits.length === 0 && namespaceName && (
+            <NoTraitsAvailableMessage />
+          )}
+
+          {!loadingTraits && availableTraits.length > 0 && (
+            <TraitPicker
+              availableTraits={availableTraits}
+              addedTraitNames={addedTraitNames}
+              onAddTrait={handleAddTrait}
+              loading={loadingTraits}
+              loadingTraitName={loadingTraitName || undefined}
+            />
+          )}
+
+          {addedTraits.length > 0 && (
+            <Box mt={3}>
+              <Typography variant="subtitle1" gutterBottom>
+                Configured Traits ({addedTraits.length})
+              </Typography>
+              {addedTraits.map((trait, index) => (
+                <Accordion
+                  key={trait.id}
+                  expanded={expandedTrait === trait.id}
+                  onChange={(_e, isExpanded) =>
+                    setExpandedTrait(isExpanded ? trait.id : false)
+                  }
+                  className={classes.traitAccordion}
+                  elevation={0}
+                >
+                  <AccordionSummary
+                    expandIcon={<ExpandMoreIcon />}
+                    className={classes.traitSummary}
                   >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails className={classes.accordionDetails}>
-                <Box mb={2}>
-                  <TextField
-                    label="Instance Name"
-                    value={trait.instanceName || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      handleTraitInstanceNameChange(trait.id, e.target.value)
-                    }
-                    fullWidth
-                    required
-                    variant="outlined"
-                    size="small"
-                    helperText="A unique name to identify this trait instance"
-                  />
-                </Box>
+                    <Box className={classes.traitSummaryContent}>
+                      <Box display="flex" alignItems="center">
+                        <Typography className={classes.traitTitle}>
+                          {trait.instanceName || `${trait.name} #${index + 1}`}
+                        </Typography>
+                        <Typography className={classes.traitName}>
+                          ({trait.name})
+                        </Typography>
+                      </Box>
+                      <IconButton
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleRemoveTrait(trait.id);
+                        }}
+                        size="small"
+                        className={classes.deleteButton}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails className={classes.accordionDetails}>
+                    <Box mb={2}>
+                      <TextField
+                        label="Instance Name"
+                        value={trait.instanceName || ''}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleTraitInstanceNameChange(trait.id, e.target.value)
+                        }
+                        fullWidth
+                        required
+                        variant="outlined"
+                        size="small"
+                        helperText="A unique name to identify this trait instance"
+                      />
+                    </Box>
 
-                {trait.schema && (
-                  <Form
-                    schema={trait.schema}
-                    uiSchema={trait.uiSchema || {}}
-                    formData={trait.config}
-                    onChange={data =>
-                      handleTraitConfigChange(trait.id, data.formData)
-                    }
-                    validator={validator}
-                    showErrorList={false}
-                    tagName="div"
-                    children={<div />}
-                  />
-                )}
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        </Box>
-      )}
+                    {trait.schema && (
+                      <Form
+                        schema={trait.schema}
+                        uiSchema={trait.uiSchema || {}}
+                        formData={trait.config}
+                        onChange={data =>
+                          handleTraitConfigChange(trait.id, data.formData)
+                        }
+                        validator={validator}
+                        showErrorList={false}
+                        tagName="div"
+                        children={<div />}
+                      />
+                    )}
+                  </AccordionDetails>
+                </Accordion>
+              ))}
+            </Box>
+          )}
+        </AccordionDetails>
+      </Accordion>
     </Box>
   );
 };
