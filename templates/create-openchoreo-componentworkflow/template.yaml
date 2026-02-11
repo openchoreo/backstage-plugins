@@ -2,11 +2,8 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: create-openchoreo-componentworkflow
-  title: Create OpenChoreo ComponentWorkflow
-  description: Create a new ComponentWorkflow for your organization.
-  tags:
-    - openchoreo
-    - platform-engineer
+  title: ComponentWorkflow
+  description: Define a build workflow for how components are built and delivered.
 spec:
   owner: openchoreo-users
   type: ComponentWorkflow
@@ -51,7 +48,7 @@ spec:
   steps:
     - id: create-openchoreo-componentworkflow
       name: Create OpenChoreo ComponentWorkflow
-      action: openchoreo:componentworkflow:create
+      action: openchoreo:componentworkflow-definition:create
       input:
         namespaceName: ${{ parameters.namespace_name }}
         yamlContent: ${{ parameters.yaml_definition }}

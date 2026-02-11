@@ -74,13 +74,13 @@ export class CtdToTemplateConverter {
     const description =
       componentType.metadata.description || `Create a ${title} component`;
 
-    // Infer tags from component type name and workloadType
-    const inferredTags = this.inferTagsFromCtd(componentType);
-    const tags = [
-      'openchoreo',
-      ...inferredTags,
-      ...(componentType.metadata.tags || []),
-    ].filter(tag => tag && tag.trim().length > 0); // Filter out empty/whitespace-only tags
+    // // Infer tags from component type name and workloadType
+    // const inferredTags = this.inferTagsFromCtd(componentType);
+    // const tags = [
+    //   'openchoreo',
+    //   ...inferredTags,
+    //   ...(componentType.metadata.tags || []),
+    // ].filter(tag => tag && tag.trim().length > 0); // Filter out empty/whitespace-only tags
 
     // Build the template entity
     const templateEntity: Entity = {
@@ -91,7 +91,7 @@ export class CtdToTemplateConverter {
         namespace: this.namespace,
         title,
         description,
-        tags,
+        // tags,
         annotations: {
           [CHOREO_ANNOTATIONS.CTD_NAME]: componentType.metadata.name,
           [CHOREO_ANNOTATIONS.CTD_GENERATED]: 'true',

@@ -2,11 +2,8 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: create-openchoreo-componenttype
-  title: Create OpenChoreo ComponentType
-  description: Create a new ComponentType for your organization.
-  tags:
-    - openchoreo
-    - platform-engineer
+  title: ComponentType
+  description: Define a reusable deployment pattern for how components are deployed.
 spec:
   owner: openchoreo-users
   type: ComponentType
@@ -56,7 +53,7 @@ spec:
   steps:
     - id: create-openchoreo-componenttype
       name: Create OpenChoreo ComponentType
-      action: openchoreo:componenttype:create
+      action: openchoreo:componenttype-definition:create
       input:
         namespaceName: ${{ parameters.namespace_name }}
         yamlContent: ${{ parameters.yaml_content }}

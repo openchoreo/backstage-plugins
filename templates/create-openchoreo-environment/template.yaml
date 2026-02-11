@@ -2,11 +2,8 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: create-openchoreo-environment
-  title: Create OpenChoreo Environment
+  title: Environment
   description: Create a new environment for deploying components across your organization.
-  tags:
-    - openchoreo
-    - platform-engineer
 spec:
   owner: openchoreo-users
   type: Environment

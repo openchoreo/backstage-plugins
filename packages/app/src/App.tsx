@@ -26,6 +26,7 @@ import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
+import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
@@ -160,17 +161,6 @@ const app = createApp({
   ],
 });
 
-const templateGroups = [
-  {
-    title: 'Component Templates',
-    filter: (entity: any) => entity.spec?.type === 'Component',
-  },
-  {
-    title: 'Project Templates',
-    filter: (entity: any) => entity.spec?.type === 'System (Project)',
-  },
-];
-
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<HomePage />} />
@@ -201,7 +191,6 @@ const routes = (
       element={
         <ScaffolderPreselectionProvider>
           <ScaffolderPage
-            groups={templateGroups}
             headerOptions={{
               title: 'Create a new resource',
               subtitle:
@@ -209,6 +198,7 @@ const routes = (
             }}
             components={{
               ReviewStepComponent: CustomReviewStep,
+              EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
             }}
           />
         </ScaffolderPreselectionProvider>

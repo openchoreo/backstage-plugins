@@ -377,8 +377,24 @@ export interface paths {
     /** List all component types for a namespace */
     get: operations['listComponentTypes'];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespaceName}/component-types/definition': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
     /** Create a new component type */
-    post: operations['createComponentType'];
+    post: operations['createComponentTypeDefinition'];
     delete?: never;
     options?: never;
     head?: never;
@@ -484,8 +500,24 @@ export interface paths {
     /** List all component workflows for a namespace */
     get: operations['listComponentWorkflows'];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespaceName}/component-workflows/definition': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
     /** Create a new component workflow */
-    post: operations['createComponentWorkflow'];
+    post: operations['createComponentWorkflowDefinition'];
     delete?: never;
     options?: never;
     head?: never;
@@ -538,8 +570,24 @@ export interface paths {
     /** List all traits for a namespace */
     get: operations['listTraits'];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/namespaces/{namespaceName}/traits/definition': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
     /** Create a new trait */
-    post: operations['createTrait'];
+    post: operations['createTraitDefinition'];
     delete?: never;
     options?: never;
     head?: never;
@@ -2945,7 +2993,7 @@ export interface operations {
       };
     };
   };
-  createComponentType: {
+  createComponentTypeDefinition: {
     parameters: {
       query?: never;
       header?: never;
@@ -3314,7 +3362,7 @@ export interface operations {
       };
     };
   };
-  createComponentWorkflow: {
+  createComponentWorkflowDefinition: {
     parameters: {
       query?: never;
       header?: never;
@@ -3524,7 +3572,7 @@ export interface operations {
       };
     };
   };
-  createTrait: {
+  createTraitDefinition: {
     parameters: {
       query?: never;
       header?: never;
