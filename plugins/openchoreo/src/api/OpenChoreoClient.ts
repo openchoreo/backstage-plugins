@@ -1085,18 +1085,11 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     );
   }
 
-  async forceDeleteClusterRole(
-    name: string,
-    bindings: {
-      clusterRoleBindings: string[];
-      namespaceRoleBindings: { namespace: string; name: string }[];
-    },
-  ): Promise<ForceDeleteResult> {
+  async forceDeleteClusterRole(name: string): Promise<ForceDeleteResult> {
     return this.apiFetch<ForceDeleteResult>(
       `${API_ENDPOINTS.CLUSTER_ROLES}/${encodeURIComponent(name)}/force-delete`,
       {
         method: 'POST',
-        body: bindings,
       },
     );
   }
@@ -1104,9 +1097,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async forceDeleteNamespaceRole(
     namespace: string,
     name: string,
-    bindings: {
-      namespaceRoleBindings: { namespace: string; name: string }[];
-    },
   ): Promise<ForceDeleteResult> {
     return this.apiFetch<ForceDeleteResult>(
       `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
@@ -1114,7 +1104,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       )}/roles/${encodeURIComponent(name)}/force-delete`,
       {
         method: 'POST',
-        body: bindings,
       },
     );
   }

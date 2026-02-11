@@ -107,18 +107,12 @@ export const NamespaceRolesContent = () => {
 
   const handleForceDelete = async (
     name: string,
-    bindings: BindingSummary[],
+    _bindings: BindingSummary[],
   ) => {
     try {
-      const namespaceRoleBindings = bindings.map(b => ({
-        namespace: b.namespace || selectedNamespace,
-        name: b.name,
-      }));
-
       const result = await client.forceDeleteNamespaceRole(
         selectedNamespace,
         name,
-        { namespaceRoleBindings },
       );
 
       if (result.roleDeleted) {

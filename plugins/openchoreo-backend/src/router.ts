@@ -1135,26 +1135,9 @@ export async function createRouter({
     requireAuth,
     async (req, res) => {
       const { name } = req.params;
-      const { clusterRoleBindings, namespaceRoleBindings } = req.body;
-
-      if (
-        !Array.isArray(clusterRoleBindings) ||
-        !Array.isArray(namespaceRoleBindings)
-      ) {
-        throw new InputError(
-          'clusterRoleBindings and namespaceRoleBindings arrays are required in request body',
-        );
-      }
 
       const userToken = getUserTokenFromRequest(req);
-      res.json(
-        await authzService.forceDeleteClusterRole(
-          name,
-          clusterRoleBindings,
-          namespaceRoleBindings,
-          userToken,
-        ),
-      );
+      res.json(await authzService.forceDeleteClusterRole(name, userToken));
     },
   );
 
@@ -1164,22 +1147,10 @@ export async function createRouter({
     requireAuth,
     async (req, res) => {
       const { namespace, name } = req.params;
-      const { namespaceRoleBindings } = req.body;
-
-      if (!Array.isArray(namespaceRoleBindings)) {
-        throw new InputError(
-          'namespaceRoleBindings array is required in request body',
-        );
-      }
 
       const userToken = getUserTokenFromRequest(req);
       res.json(
-        await authzService.forceDeleteNamespaceRole(
-          namespace,
-          name,
-          namespaceRoleBindings,
-          userToken,
-        ),
+        await authzService.forceDeleteNamespaceRole(namespace, name, userToken),
       );
     },
   );

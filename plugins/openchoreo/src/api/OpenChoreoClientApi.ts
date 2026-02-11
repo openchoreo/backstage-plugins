@@ -651,21 +651,12 @@ export interface OpenChoreoClientApi {
   ): Promise<RoleBindingsLookup>;
 
   /** Force-delete a cluster role (delete bindings first, then the role) */
-  forceDeleteClusterRole(
-    name: string,
-    bindings: {
-      clusterRoleBindings: string[];
-      namespaceRoleBindings: { namespace: string; name: string }[];
-    },
-  ): Promise<ForceDeleteResult>;
+  forceDeleteClusterRole(name: string): Promise<ForceDeleteResult>;
 
   /** Force-delete a namespace role (delete bindings first, then the role) */
   forceDeleteNamespaceRole(
     namespace: string,
     name: string,
-    bindings: {
-      namespaceRoleBindings: { namespace: string; name: string }[];
-    },
   ): Promise<ForceDeleteResult>;
 }
 

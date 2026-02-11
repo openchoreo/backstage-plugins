@@ -1019,7 +1019,9 @@ export class AuthzService {
             { roleName },
             userToken,
           );
-          return result.data.map(b => ({ ...b, namespace: ns.name }));
+          return result.data
+            .filter(b => !b.role?.namespace)
+            .map(b => ({ ...b, namespace: ns.name }));
         }),
       );
 
@@ -1051,8 +1053,6 @@ export class AuthzService {
 
   async forceDeleteClusterRole(
     name: string,
-    clusterBindings: string[],
-    nsBindings: Array<{ namespace: string; name: string }>,
     userToken?: string,
   ): Promise<{
     deletedBindings: string[];
@@ -1061,21 +1061,25 @@ export class AuthzService {
   }> {
     this.logger.debug(`Force-deleting cluster role: ${name}`);
 
+    // Fetch authoritative binding lists server-side
+    const { clusterRoleBindings, namespaceRoleBindings } =
+      await this.listBindingsForRole(name, 'cluster', undefined, userToken);
+
     const deletedBindings: string[] = [];
     const failedBindings: Array<{ name: string; error: string }> = [];
 
     // Delete all cluster bindings
     const clusterResults = await Promise.allSettled(
-      clusterBindings.map(bindingName =>
-        this.deleteClusterRoleBinding(bindingName, userToken),
+      clusterRoleBindings.map(b =>
+        this.deleteClusterRoleBinding(b.name, userToken),
       ),
     );
     clusterResults.forEach((result, i) => {
       if (result.status === 'fulfilled') {
-        deletedBindings.push(clusterBindings[i]);
+        deletedBindings.push(clusterRoleBindings[i].name);
       } else {
         failedBindings.push({
-          name: clusterBindings[i],
+          name: clusterRoleBindings[i].name,
           error:
             result.reason instanceof Error
               ? result.reason.message
@@ -1086,12 +1090,12 @@ export class AuthzService {
 
     // Delete all namespace bindings
     const nsResults = await Promise.allSettled(
-      nsBindings.map(b =>
+      namespaceRoleBindings.map(b =>
         this.deleteNamespaceRoleBinding(b.namespace, b.name, userToken),
       ),
     );
     nsResults.forEach((result, i) => {
-      const bindingId = `${nsBindings[i].namespace}/${nsBindings[i].name}`;
+      const bindingId = `${namespaceRoleBindings[i].namespace}/${namespaceRoleBindings[i].name}`;
       if (result.status === 'fulfilled') {
         deletedBindings.push(bindingId);
       } else {
@@ -1120,7 +1124,6 @@ export class AuthzService {
   async forceDeleteNamespaceRole(
     namespace: string,
     name: string,
-    nsBindings: Array<{ namespace: string; name: string }>,
     userToken?: string,
   ): Promise<{
     deletedBindings: string[];
@@ -1129,16 +1132,24 @@ export class AuthzService {
   }> {
     this.logger.debug(`Force-deleting namespace role: ${namespace}/${name}`);
 
+    // Fetch authoritative binding lists server-side
+    const { namespaceRoleBindings } = await this.listBindingsForRole(
+      name,
+      'namespace',
+      namespace,
+      userToken,
+    );
+
     const deletedBindings: string[] = [];
     const failedBindings: Array<{ name: string; error: string }> = [];
 
     const results = await Promise.allSettled(
-      nsBindings.map(b =>
+      namespaceRoleBindings.map(b =>
         this.deleteNamespaceRoleBinding(b.namespace, b.name, userToken),
       ),
     );
     results.forEach((result, i) => {
-      const bindingId = `${nsBindings[i].namespace}/${nsBindings[i].name}`;
+      const bindingId = `${namespaceRoleBindings[i].namespace}/${namespaceRoleBindings[i].name}`;
       if (result.status === 'fulfilled') {
         deletedBindings.push(bindingId);
       } else {

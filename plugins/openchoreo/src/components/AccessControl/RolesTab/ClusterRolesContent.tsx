@@ -114,20 +114,10 @@ export const ClusterRolesContent = () => {
 
   const handleForceDelete = async (
     name: string,
-    bindings: BindingSummary[],
+    _bindings: BindingSummary[],
   ) => {
     try {
-      const clusterRoleBindings = bindings
-        .filter(b => b.type === SCOPE_CLUSTER)
-        .map(b => b.name);
-      const namespaceRoleBindings = bindings
-        .filter(b => b.type === SCOPE_NAMESPACE)
-        .map(b => ({ namespace: b.namespace!, name: b.name }));
-
-      const result = await client.forceDeleteClusterRole(name, {
-        clusterRoleBindings,
-        namespaceRoleBindings,
-      });
+      const result = await client.forceDeleteClusterRole(name);
 
       if (result.roleDeleted) {
         await fetchRoles();
