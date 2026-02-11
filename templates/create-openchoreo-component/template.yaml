@@ -20,7 +20,6 @@ spec:
         deploymentSource:
           title: How would you like to build and deploy?
           type: string
-          default: build-from-source
           enum:
             - build-from-source
             - deploy-from-image

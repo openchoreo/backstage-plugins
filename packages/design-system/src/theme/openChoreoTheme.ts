@@ -539,12 +539,12 @@ export const openChoreoTheme = createUnifiedTheme({
       BackstageTemplateStepper: {
         styleOverrides: {
           formWrapper: {
-            maxWidth: 800,
+            maxWidth: 900,
             marginLeft: 'auto',
             marginRight: 'auto',
           },
           footer: {
-            maxWidth: 800,
+            maxWidth: 900,
             marginLeft: 'auto',
             marginRight: 'auto',
           },

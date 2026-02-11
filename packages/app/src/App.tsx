@@ -31,6 +31,7 @@ import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentF
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
+import { ScaffolderLayout } from './scaffolder/ScaffolderLayout';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -192,19 +193,21 @@ const routes = (
     <Route
       path="/create"
       element={
-        <ScaffolderPreselectionProvider>
-          <ScaffolderPage
-            headerOptions={{
-              title: 'Create a new resource',
-              subtitle:
-                'Create new resources using standard templates in your organization',
-            }}
-            components={{
-              ReviewStepComponent: CustomReviewStep,
-              EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
-            }}
-          />
-        </ScaffolderPreselectionProvider>
+        <ScaffolderLayout>
+          <ScaffolderPreselectionProvider>
+            <ScaffolderPage
+              headerOptions={{
+                title: 'Create a new resource',
+                subtitle:
+                  'Create new resources using standard templates in your organization',
+              }}
+              components={{
+                ReviewStepComponent: CustomReviewStep,
+                EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
+              }}
+            />
+          </ScaffolderPreselectionProvider>
+        </ScaffolderLayout>
       }
     >
       <ScaffolderFieldExtensions>

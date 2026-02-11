@@ -275,7 +275,6 @@ export class CtdToTemplateConverter {
           type: 'string',
           description: 'Choose how to deploy your component',
           enum: ['build-from-source', 'deploy-from-image', 'external-ci'],
-          default: 'build-from-source',
           'ui:field': 'DeploymentSourcePicker',
         },
       },
