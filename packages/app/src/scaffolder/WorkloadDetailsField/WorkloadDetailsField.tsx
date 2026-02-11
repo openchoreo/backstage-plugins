@@ -12,17 +12,11 @@ import {
   IconButton,
   CircularProgress,
   makeStyles,
-  Button,
 } from '@material-ui/core';
 import { Alert } from '@material-ui/lab';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import DeleteIcon from '@material-ui/icons/Delete';
-import AddIcon from '@material-ui/icons/Add';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import Form from '@rjsf/material-ui';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
@@ -35,8 +29,22 @@ import type { AddedTrait } from '../TraitsField/TraitsFieldExtension';
 import {
   EndpointList,
   useEndpointEditBuffer,
+  StandardEnvVarList,
+  StandardFileVarList,
+  useEnvVarEditBuffer,
+  useFileVarEditBuffer,
+  useModeState,
 } from '@openchoreo/backstage-plugin-react';
-import type { WorkloadEndpoint as CommonWorkloadEndpoint } from '@openchoreo/backstage-plugin-common';
+import type { SecretOption } from '@openchoreo/backstage-design-system';
+import type {
+  WorkloadEndpoint as CommonWorkloadEndpoint,
+  EnvVar,
+  FileVar,
+  Container,
+} from '@openchoreo/backstage-plugin-common';
+import { openChoreoClientApiRef } from '@openchoreo/backstage-plugin';
+
+const CONTAINER_NAME = 'main';
 
 const useStyles = makeStyles(theme => ({
   sectionTitle: {
@@ -99,15 +107,6 @@ const useStyles = makeStyles(theme => ({
   deleteButton: {
     padding: theme.spacing(0.5),
   },
-  envRow: {
-    display: 'flex',
-    gap: theme.spacing(1),
-    marginBottom: theme.spacing(1),
-    alignItems: 'center',
-  },
-  envField: {
-    flex: 1,
-  },
 }));
 
 /**
@@ -116,8 +115,8 @@ const useStyles = makeStyles(theme => ({
 export interface WorkloadDetailsData {
   ctdParameters: Record<string, any>;
   endpoints: Record<string, WorkloadEndpoint>;
-  envVars: Array<{ key: string; value: string }>;
-  fileMounts: Array<{ key: string; mountPath: string; value: string }>;
+  envVars: EnvVar[];
+  fileMounts: FileVar[];
   traits: Array<{
     name: string;
     instanceName: string;
@@ -154,8 +153,7 @@ export const WorkloadDetailsField = ({
   formContext,
 }: FieldExtensionComponentProps<WorkloadDetailsData>) => {
   const classes = useStyles();
-  const discoveryApi = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
+  const client = useApi(openChoreoClientApiRef);
 
   // Env vars and file mounts require a container with an image.
   // For build-from-source and external-ci the image isn't known yet,
@@ -184,12 +182,11 @@ export const WorkloadDetailsField = ({
   const [endpoints, setEndpoints] = useState<Record<string, WorkloadEndpoint>>(
     formData?.endpoints || {},
   );
-  const [envVars, setEnvVars] = useState<Array<{ key: string; value: string }>>(
-    formData?.envVars || [],
+  const [envVars, setEnvVars] = useState<EnvVar[]>(formData?.envVars || []);
+  const [fileMounts, setFileMounts] = useState<FileVar[]>(
+    formData?.fileMounts || [],
   );
-  const [fileMounts, setFileMounts] = useState<
-    Array<{ key: string; mountPath: string; value: string }>
-  >(formData?.fileMounts || []);
+  const [secretOptions, setSecretOptions] = useState<SecretOption[]>([]);
 
   // Traits state
   const [availableTraits, setAvailableTraits] = useState<TraitListItem[]>([]);
@@ -214,8 +211,8 @@ export const WorkloadDetailsField = ({
     (
       newCtd: Record<string, any>,
       newEndpoints: Record<string, WorkloadEndpoint>,
-      newEnvVars: Array<{ key: string; value: string }>,
-      newFileMounts: Array<{ key: string; mountPath: string; value: string }>,
+      newEnvVars: EnvVar[],
+      newFileMounts: FileVar[],
       newTraits: AddedTrait[],
     ) => {
       onChange({
@@ -232,6 +229,49 @@ export const WorkloadDetailsField = ({
     },
     [onChange, isFromImage],
   );
+
+  // ── Container wrapper for hooks ─────────────────────────────────
+
+  const containers = useMemo(() => {
+    const c: { [key: string]: Container } = {
+      [CONTAINER_NAME]: { image: 'placeholder', env: envVars },
+    };
+    (c[CONTAINER_NAME] as any).files = fileMounts;
+    return c;
+  }, [envVars, fileMounts]);
+
+  // ── Mode state for env vars and file mounts ─────────────────────
+
+  const envModes = useModeState({ type: 'env' });
+  const fileModes = useModeState({ type: 'file' });
+
+  // ── Fetch secret references ─────────────────────────────────────
+
+  useEffect(() => {
+    let ignore = false;
+    const fetchSecrets = async () => {
+      if (!namespaceName) return;
+      try {
+        const nsName = namespaceName.split('/').pop() || namespaceName;
+        const result = await client.fetchSecretReferencesByNamespace(nsName);
+        if (!ignore && result.success) {
+          setSecretOptions(
+            (result.data.items || []).map(ref => ({
+              name: ref.name,
+              displayName: ref.displayName,
+              keys: (ref.data || []).map(d => d.secretKey),
+            })),
+          );
+        }
+      } catch {
+        /* secrets are optional */
+      }
+    };
+    fetchSecrets();
+    return () => {
+      ignore = true;
+    };
+  }, [namespaceName, client]);
 
   // ── CTD Parameters ──────────────────────────────────────────────
 
@@ -390,16 +430,45 @@ export const WorkloadDetailsField = ({
     return name;
   }, [endpoints, handleEndpointChange]);
 
-  // ── Environment Variables (simple inline editors) ──────────────
+  // ── Environment Variables ─────────────────────────────────────
 
-  const handleAddEnvVar = useCallback(() => {
-    const newEnvVars = [...envVars, { key: '', value: '' }];
-    setEnvVars(newEnvVars);
-    emitChange(ctdParameters, endpoints, newEnvVars, fileMounts, addedTraits);
-  }, [envVars, ctdParameters, endpoints, fileMounts, addedTraits, emitChange]);
+  const envEditBuffer = useEnvVarEditBuffer({
+    containers,
+    onEnvVarReplace: (_cn, index, envVar) => {
+      const newEnvVars = envVars.map((ev, i) => (i === index ? envVar : ev));
+      setEnvVars(newEnvVars);
+      emitChange(ctdParameters, endpoints, newEnvVars, fileMounts, addedTraits);
+    },
+    onEnvVarChange: (_cn, index, field, value) => {
+      const newEnvVars = envVars.map((ev, i) =>
+        i === index ? { ...ev, [field]: value } : ev,
+      );
+      setEnvVars(newEnvVars);
+      emitChange(ctdParameters, endpoints, newEnvVars, fileMounts, addedTraits);
+    },
+    onRemoveEnvVar: (_cn, index) => {
+      const newEnvVars = envVars.filter((_, i) => i !== index);
+      setEnvVars(newEnvVars);
+      emitChange(ctdParameters, endpoints, newEnvVars, fileMounts, addedTraits);
+    },
+  });
+
+  const handleAddEnvVar = useCallback(
+    (_containerName: string) => {
+      const newEnvVars = [...envVars, { key: '', value: '' }];
+      setEnvVars(newEnvVars);
+      emitChange(ctdParameters, endpoints, newEnvVars, fileMounts, addedTraits);
+    },
+    [envVars, ctdParameters, endpoints, fileMounts, addedTraits, emitChange],
+  );
 
   const handleEnvVarChange = useCallback(
-    (index: number, field: 'key' | 'value', value: string) => {
+    (
+      _containerName: string,
+      index: number,
+      field: keyof EnvVar,
+      value: any,
+    ) => {
       const newEnvVars = envVars.map((ev, i) =>
         i === index ? { ...ev, [field]: value } : ev,
       );
@@ -410,7 +479,7 @@ export const WorkloadDetailsField = ({
   );
 
   const handleRemoveEnvVar = useCallback(
-    (index: number) => {
+    (_containerName: string, index: number) => {
       const newEnvVars = envVars.filter((_, i) => i !== index);
       setEnvVars(newEnvVars);
       emitChange(ctdParameters, endpoints, newEnvVars, fileMounts, addedTraits);
@@ -418,19 +487,69 @@ export const WorkloadDetailsField = ({
     [envVars, ctdParameters, endpoints, fileMounts, addedTraits, emitChange],
   );
 
-  // ── File Mounts (simple inline editors) ────────────────────────
+  const handleEnvVarModeChange = useCallback(
+    (_containerName: string, index: number, mode: 'plain' | 'secret') => {
+      const newEnvVars = envVars.map((ev, i) => {
+        if (i !== index) return ev;
+        if (mode === 'plain') {
+          return { ...ev, value: '', valueFrom: undefined };
+        }
+        return {
+          ...ev,
+          value: undefined,
+          valueFrom: { secretRef: { name: '', key: '' } },
+        };
+      });
+      setEnvVars(newEnvVars);
+      emitChange(ctdParameters, endpoints, newEnvVars, fileMounts, addedTraits);
+    },
+    [envVars, ctdParameters, endpoints, fileMounts, addedTraits, emitChange],
+  );
 
-  const handleAddFileMount = useCallback(() => {
-    const newFileMounts = [
-      ...fileMounts,
-      { key: '', mountPath: '', value: '' },
-    ];
-    setFileMounts(newFileMounts);
-    emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
-  }, [fileMounts, ctdParameters, endpoints, envVars, addedTraits, emitChange]);
+  // ── File Mounts ───────────────────────────────────────────────
 
-  const handleFileMountChange = useCallback(
-    (index: number, field: 'key' | 'mountPath' | 'value', value: string) => {
+  const fileEditBuffer = useFileVarEditBuffer({
+    containers,
+    onFileVarReplace: (_cn, index, fileVar) => {
+      const newFileMounts = fileMounts.map((fm, i) =>
+        i === index ? fileVar : fm,
+      );
+      setFileMounts(newFileMounts);
+      emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
+    },
+    onFileVarChange: (_cn, index, field, value) => {
+      const newFileMounts = fileMounts.map((fm, i) =>
+        i === index ? { ...fm, [field]: value } : fm,
+      );
+      setFileMounts(newFileMounts);
+      emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
+    },
+    onRemoveFileVar: (_cn, index) => {
+      const newFileMounts = fileMounts.filter((_, i) => i !== index);
+      setFileMounts(newFileMounts);
+      emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
+    },
+  });
+
+  const handleAddFileVar = useCallback(
+    (_containerName: string) => {
+      const newFileMounts = [
+        ...fileMounts,
+        { key: '', mountPath: '', value: '' },
+      ];
+      setFileMounts(newFileMounts);
+      emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
+    },
+    [fileMounts, ctdParameters, endpoints, envVars, addedTraits, emitChange],
+  );
+
+  const handleFileVarChange = useCallback(
+    (
+      _containerName: string,
+      index: number,
+      field: keyof FileVar,
+      value: any,
+    ) => {
       const newFileMounts = fileMounts.map((fm, i) =>
         i === index ? { ...fm, [field]: value } : fm,
       );
@@ -440,9 +559,28 @@ export const WorkloadDetailsField = ({
     [fileMounts, ctdParameters, endpoints, envVars, addedTraits, emitChange],
   );
 
-  const handleRemoveFileMount = useCallback(
-    (index: number) => {
+  const handleRemoveFileVar = useCallback(
+    (_containerName: string, index: number) => {
       const newFileMounts = fileMounts.filter((_, i) => i !== index);
+      setFileMounts(newFileMounts);
+      emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
+    },
+    [fileMounts, ctdParameters, endpoints, envVars, addedTraits, emitChange],
+  );
+
+  const handleFileVarModeChange = useCallback(
+    (_containerName: string, index: number, mode: 'plain' | 'secret') => {
+      const newFileMounts = fileMounts.map((fm, i) => {
+        if (i !== index) return fm;
+        if (mode === 'plain') {
+          return { ...fm, value: '', valueFrom: undefined };
+        }
+        return {
+          ...fm,
+          value: undefined,
+          valueFrom: { secretRef: { name: '', key: '' } },
+        };
+      });
       setFileMounts(newFileMounts);
       emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
     },
@@ -462,20 +600,8 @@ export const WorkloadDetailsField = ({
       setTraitError(null);
 
       try {
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
         const nsName = namespaceName.split('/').pop() || namespaceName;
-
-        const response = await fetchApi.fetch(
-          `${baseUrl}/traits?namespaceName=${encodeURIComponent(
-            nsName,
-          )}&page=1&pageSize=100`,
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
+        const result = await client.fetchTraitsByNamespace(nsName, 1, 100);
 
         if (!ignore && result.success) {
           setAvailableTraits(result.data.items);
@@ -496,7 +622,7 @@ export const WorkloadDetailsField = ({
     return () => {
       ignore = true;
     };
-  }, [namespaceName, discoveryApi, fetchApi]);
+  }, [namespaceName, client]);
 
   const handleAddTrait = useCallback(
     async (traitName: string) => {
@@ -506,20 +632,11 @@ export const WorkloadDetailsField = ({
       setTraitError(null);
 
       try {
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
         const nsName = namespaceName.split('/').pop() || namespaceName;
-
-        const response = await fetchApi.fetch(
-          `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
-            nsName,
-          )}&traitName=${encodeURIComponent(traitName)}`,
+        const result = await client.fetchTraitSchemaByNamespace(
+          nsName,
+          traitName,
         );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const result = await response.json();
 
         if (result.success) {
           const schema = result.data;
@@ -562,8 +679,7 @@ export const WorkloadDetailsField = ({
       endpoints,
       envVars,
       fileMounts,
-      discoveryApi,
-      fetchApi,
+      client,
       emitChange,
     ],
   );
@@ -688,45 +804,18 @@ export const WorkloadDetailsField = ({
       <Typography variant="body2" color="textSecondary" gutterBottom>
         Define environment variables for your component.
       </Typography>
-      {envVars.map((ev, index) => (
-        <Box key={index} className={classes.envRow}>
-          <TextField
-            className={classes.envField}
-            label="Key"
-            value={ev.key}
-            onChange={e => handleEnvVarChange(index, 'key', e.target.value)}
-            variant="outlined"
-            size="small"
-            disabled={!isFromImage}
-          />
-          <TextField
-            className={classes.envField}
-            label="Value"
-            value={ev.value}
-            onChange={e => handleEnvVarChange(index, 'value', e.target.value)}
-            variant="outlined"
-            size="small"
-            disabled={!isFromImage}
-          />
-          <IconButton
-            size="small"
-            onClick={() => handleRemoveEnvVar(index)}
-            className={classes.deleteButton}
-            disabled={!isFromImage}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      ))}
-      <Button
-        size="small"
-        startIcon={<AddIcon />}
-        onClick={handleAddEnvVar}
-        color="primary"
+      <StandardEnvVarList
+        containerName={CONTAINER_NAME}
+        envVars={envVars}
+        secretOptions={secretOptions}
+        envModes={envModes}
         disabled={!isFromImage}
-      >
-        Add Environment Variable
-      </Button>
+        editBuffer={envEditBuffer}
+        onEnvVarChange={handleEnvVarChange}
+        onRemoveEnvVar={handleRemoveEnvVar}
+        onEnvVarModeChange={handleEnvVarModeChange}
+        onAddEnvVar={handleAddEnvVar}
+      />
 
       {/* File Mounts */}
       <Box mt={3}>
@@ -736,62 +825,18 @@ export const WorkloadDetailsField = ({
         <Typography variant="body2" color="textSecondary" gutterBottom>
           Mount configuration files into your component.
         </Typography>
-        {fileMounts.map((fm, index) => (
-          <Box key={index} className={classes.envRow}>
-            <TextField
-              className={classes.envField}
-              label="Filename"
-              value={fm.key}
-              onChange={e =>
-                handleFileMountChange(index, 'key', e.target.value)
-              }
-              variant="outlined"
-              size="small"
-              disabled={!isFromImage}
-            />
-            <TextField
-              className={classes.envField}
-              label="Mount Path"
-              value={fm.mountPath}
-              onChange={e =>
-                handleFileMountChange(index, 'mountPath', e.target.value)
-              }
-              variant="outlined"
-              size="small"
-              disabled={!isFromImage}
-            />
-            <TextField
-              className={classes.envField}
-              label="Content"
-              value={fm.value}
-              onChange={e =>
-                handleFileMountChange(index, 'value', e.target.value)
-              }
-              variant="outlined"
-              size="small"
-              multiline
-              maxRows={3}
-              disabled={!isFromImage}
-            />
-            <IconButton
-              size="small"
-              onClick={() => handleRemoveFileMount(index)}
-              className={classes.deleteButton}
-              disabled={!isFromImage}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        ))}
-        <Button
-          size="small"
-          startIcon={<AddIcon />}
-          onClick={handleAddFileMount}
-          color="primary"
+        <StandardFileVarList
+          containerName={CONTAINER_NAME}
+          fileVars={fileMounts}
+          secretOptions={secretOptions}
+          fileModes={fileModes}
           disabled={!isFromImage}
-        >
-          Add File Mount
-        </Button>
+          editBuffer={fileEditBuffer}
+          onFileVarChange={handleFileVarChange}
+          onRemoveFileVar={handleRemoveFileVar}
+          onFileVarModeChange={handleFileVarModeChange}
+          onAddFileVar={handleAddFileVar}
+        />
       </Box>
 
       {/* ── Optional Parameters ── */}
@@ -809,9 +854,7 @@ export const WorkloadDetailsField = ({
               className={classes.accordionSummary}
             >
               <Box display="flex" alignItems="center">
-                <Typography variant="subtitle2">
-                  Optional Parameters
-                </Typography>
+                <Typography variant="subtitle2">Optional Parameters</Typography>
                 <Chip
                   label={advancedFieldCount}
                   size="small"
@@ -991,7 +1034,8 @@ export const workloadDetailsFieldValidation = (
   // Validate env var keys are non-empty when values exist
   if (value.envVars) {
     value.envVars.forEach((ev, index) => {
-      if (ev.value && !ev.key) {
+      const hasValue = ev.value || ev.valueFrom?.secretRef?.name;
+      if (hasValue && !ev.key) {
         validation.addError(
           `Environment Variable #${
             index + 1
@@ -1004,10 +1048,11 @@ export const workloadDetailsFieldValidation = (
   // Validate file mount keys and mount paths
   if (value.fileMounts) {
     value.fileMounts.forEach((fm, index) => {
-      if ((fm.value || fm.mountPath) && !fm.key) {
+      const hasValue = fm.value || fm.valueFrom?.secretRef?.name;
+      if ((hasValue || fm.mountPath) && !fm.key) {
         validation.addError(`File Mount #${index + 1}: Filename is required`);
       }
-      if ((fm.value || fm.key) && !fm.mountPath) {
+      if ((hasValue || fm.key) && !fm.mountPath) {
         validation.addError(`File Mount #${index + 1}: Mount path is required`);
       }
     });
