@@ -13,13 +13,11 @@ import {
   CardContent,
   Typography,
   Radio,
-  Link,
-  Collapse,
+  Tab,
+  Tabs,
   makeStyles,
   alpha,
 } from '@material-ui/core';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import {
   useApi,
   discoveryApiRef,
@@ -149,7 +147,6 @@ const useLanguageSelectorStyles = makeStyles(theme => ({
     display: 'grid',
     gridTemplateColumns: 'repeat(3, 1fr)',
     gap: theme.spacing(1.5),
-    marginTop: theme.spacing(1),
   },
   card: {
     cursor: 'pointer',
@@ -193,19 +190,29 @@ const useLanguageSelectorStyles = makeStyles(theme => ({
     padding: 0,
     marginLeft: theme.spacing(1),
   },
-  advancedToggle: {
-    display: 'flex',
-    alignItems: 'center',
-    marginTop: theme.spacing(1.5),
-    cursor: 'pointer',
-    color: theme.palette.text.secondary,
-    '&:hover': {
-      color: theme.palette.primary.main,
+  outerCardContent: {
+    '&.MuiCardContent-root': {
+      padding: theme.spacing(2),
+    },
+    '&.MuiCardContent-root:last-child': {
+      paddingBottom: theme.spacing(2),
     },
   },
-  advancedIcon: {
-    fontSize: 18,
-    marginLeft: theme.spacing(0.5),
+  tabs: {
+    '&.MuiTabs-root': {
+      minHeight: 32,
+      marginTop: theme.spacing(1),
+      marginBottom: theme.spacing(1.5),
+    },
+  },
+  tab: {
+    '&.MuiTab-root': {
+      minHeight: 32,
+      minWidth: 'auto',
+      padding: theme.spacing(0.5, 1.5),
+      textTransform: 'none',
+      fontSize: '0.875rem',
+    },
   },
 }));
 
@@ -224,6 +231,17 @@ function getAvailableLanguageOptions(
 ): LanguageOption[] {
   const workflowSet = new Set(allowedWorkflows);
   return ALL_LANGUAGE_OPTIONS.filter(opt => workflowSet.has(opt.workflow));
+}
+
+/**
+ * Format a workflow name into a human-readable description.
+ * e.g. "google-cloud-buildpacks" → "Google Cloud Buildpacks"
+ */
+function formatWorkflowName(workflow: string): string {
+  return workflow
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 /**
@@ -260,7 +278,7 @@ export const BuildWorkflowPicker = ({
   const [selectedLanguageKey, setSelectedLanguageKey] = useState<
     string | undefined
   >(undefined);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   const classes = useLanguageSelectorStyles();
   const discoveryApi = useApi(discoveryApiRef);
@@ -370,8 +388,6 @@ export const BuildWorkflowPicker = ({
   const handleLanguageSelect = (option: LanguageOption) => {
     setSelectedLanguageKey(option.key);
     onChange(option.workflow);
-    // Collapse advanced when selecting via language cards
-    setShowAdvanced(false);
   };
 
   const label = uiSchema?.['ui:title'] || schema.title || 'Build Workflow';
@@ -379,96 +395,109 @@ export const BuildWorkflowPicker = ({
   // Render language card selector for buildpack workflows
   if (showLanguageSelector) {
     return (
-      <Box>
-        <Typography variant="body1" gutterBottom>
-          {label}
-        </Typography>
-        {schema.description && (
-          <Typography variant="body2" color="textSecondary" gutterBottom>
-            Choose the language or build method for your component
+      <Card variant="outlined">
+        <CardContent className={classes.outerCardContent}>
+          <Typography variant="body1" style={{ marginBottom: 8 }}>
+            {label}
           </Typography>
-        )}
-        <Box className={classes.grid}>
-          {languageOptions.map(option => {
-            const isSelected = selectedLanguageKey === option.key;
-            return (
-              <Card
-                key={option.key}
-                variant="outlined"
-                className={`${classes.card} ${
-                  isSelected ? classes.cardSelected : ''
-                }`}
-                onClick={() => handleLanguageSelect(option)}
-              >
-                <CardContent className={classes.cardContent}>
-                  <Box className={classes.iconWrapper}>{option.icon}</Box>
-                  <Box className={classes.labelSection}>
-                    <Typography variant="subtitle2" className={classes.label}>
-                      {option.label}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      className={classes.description}
-                    >
-                      {option.description}
-                    </Typography>
-                  </Box>
-                  <Radio
-                    checked={isSelected}
-                    className={classes.radio}
-                    color="primary"
-                    size="small"
-                  />
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Box>
-
-        {/* Advanced: raw workflow dropdown */}
-        <Link
-          component="button"
-          variant="body2"
-          className={classes.advancedToggle}
-          onClick={() => setShowAdvanced(prev => !prev)}
-          underline="none"
-        >
-          Advanced: Select workflow directly
-          {showAdvanced ? (
-            <ExpandLessIcon className={classes.advancedIcon} />
-          ) : (
-            <ExpandMoreIcon className={classes.advancedIcon} />
-          )}
-        </Link>
-        <Collapse in={showAdvanced}>
-          <FormControl
-            fullWidth
-            margin="dense"
-            variant="outlined"
-            error={!!rawErrors?.length || !!error}
+          <Tabs
+            value={activeTab}
+            onChange={(_e, newValue) => setActiveTab(newValue)}
+            indicatorColor="primary"
+            className={classes.tabs}
+            style={{ minHeight: 32, marginBottom: 12 }}
           >
-            <InputLabel id={`${idSchema?.$id}-label`}>Workflow</InputLabel>
-            <Select
-              labelId={`${idSchema?.$id}-label`}
-              label="Workflow"
-              value={formData || ''}
-              onChange={handleDropdownChange}
-              disabled={loading || workflowOptions.length === 0}
-            >
-              {workflowOptions.map(workflow => (
-                <MenuItem key={workflow} value={workflow}>
-                  {workflow}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Collapse>
+            <Tab label="Auto-detect" disableRipple className={classes.tab} style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }} />
+            <Tab label="Advanced" disableRipple className={classes.tab} style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }} />
+          </Tabs>
 
-        {error && <FormHelperText error>{error}</FormHelperText>}
-        {rawErrors?.length ? (
-          <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
-        ) : null}
-      </Box>
+          {activeTab === 0 && (
+            <Box className={classes.grid}>
+              {languageOptions.map(option => {
+                const isSelected = selectedLanguageKey === option.key;
+                return (
+                  <Card
+                    key={option.key}
+                    variant="outlined"
+                    className={`${classes.card} ${
+                      isSelected ? classes.cardSelected : ''
+                    }`}
+                    onClick={() => handleLanguageSelect(option)}
+                  >
+                    <CardContent className={classes.cardContent}>
+                      <Box className={classes.iconWrapper}>{option.icon}</Box>
+                      <Box className={classes.labelSection}>
+                        <Typography variant="subtitle2" className={classes.label}>
+                          {option.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          className={classes.description}
+                        >
+                          {option.description}
+                        </Typography>
+                      </Box>
+                      <Radio
+                        checked={isSelected}
+                        className={classes.radio}
+                        color="primary"
+                        size="small"
+                      />
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Box>
+          )}
+
+          {activeTab === 1 && (
+            <Box className={classes.grid}>
+              {workflowOptions.map(workflow => {
+                const isSelected = formData === workflow;
+                return (
+                  <Card
+                    key={workflow}
+                    variant="outlined"
+                    className={`${classes.card} ${
+                      isSelected ? classes.cardSelected : ''
+                    }`}
+                    onClick={() => {
+                      onChange(workflow);
+                      const key = languageKeyForWorkflow(workflow, languageOptions);
+                      setSelectedLanguageKey(key);
+                    }}
+                  >
+                    <CardContent className={classes.cardContent}>
+                      <Box className={classes.labelSection}>
+                        <Typography variant="subtitle2" className={classes.label}>
+                          {workflow}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          className={classes.description}
+                        >
+                          {formatWorkflowName(workflow)}
+                        </Typography>
+                      </Box>
+                      <Radio
+                        checked={isSelected}
+                        className={classes.radio}
+                        color="primary"
+                        size="small"
+                      />
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Box>
+          )}
+
+          {error && <FormHelperText error>{error}</FormHelperText>}
+          {rawErrors?.length ? (
+            <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
+          ) : null}
+        </CardContent>
+      </Card>
     );
   }
 
