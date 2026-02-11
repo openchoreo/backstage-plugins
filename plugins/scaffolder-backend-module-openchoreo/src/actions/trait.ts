@@ -4,9 +4,9 @@ import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
 
-export const createTraitAction = (config: Config) => {
+export const createTraitDefinitionAction = (config: Config) => {
   return createTemplateAction({
-    id: 'openchoreo:trait:create',
+    id: 'openchoreo:trait-definition:create',
     description: 'Create OpenChoreo Trait',
     schema: {
       input: (zImpl: typeof z) =>
@@ -99,7 +99,7 @@ export const createTraitAction = (config: Config) => {
 
       try {
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/traits',
+          '/namespaces/{namespaceName}/traits/definition',
           {
             params: {
               path: { namespaceName },
