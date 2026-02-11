@@ -109,7 +109,9 @@ export interface WorkloadOwner {
  * @public
  */
 export interface WorkloadContainer {
-  image: string;
+  image?: string;
+  env?: Array<{ key: string; value: string }>;
+  files?: Array<{ key: string; mountPath: string; value: string }>;
 }
 
 /**
@@ -117,7 +119,7 @@ export interface WorkloadContainer {
  * @public
  */
 export interface WorkloadEndpoint {
-  type: 'HTTP' | 'HTTPS' | 'TCP' | 'UDP';
+  type: 'HTTP' | 'REST' | 'GraphQL' | 'Websocket' | 'gRPC' | 'TCP' | 'UDP';
   port: number;
 }
 
