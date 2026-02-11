@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { createServiceRef } from '@backstage/backend-plugin-api';
+import { createServiceRef, LoggerService } from '@backstage/backend-plugin-api';
 
 const TABLE_NAME = 'entity_custom_annotations';
 
@@ -46,17 +46,35 @@ interface AnnotationRow {
  */
 export async function applyAnnotationStoreMigrations(
   knex: Knex,
+  logger: LoggerService,
 ): Promise<void> {
   const hasTable = await knex.schema.hasTable(TABLE_NAME);
   if (!hasTable) {
-    await knex.schema.createTableIfNotExists(TABLE_NAME, table => {
-      table.string('entity_ref', 255).notNullable();
-      table.string('annotation_key', 255).notNullable();
-      table.text('annotation_value').notNullable();
-      table.timestamp('updated_at').defaultTo(knex.fn.now());
-      table.primary(['entity_ref', 'annotation_key']);
+    try {
+      await knex.schema.createTable(TABLE_NAME, table => {
+        table.string('entity_ref', 255).notNullable();
+        table.string('annotation_key', 255).notNullable();
+        table.text('annotation_value').notNullable();
+        table.timestamp('updated_at').defaultTo(knex.fn.now());
+        table.primary(['entity_ref', 'annotation_key']);
+      });
+    } catch (error) {
+      logger.warn(
+        `Table ${TABLE_NAME} already exists, skipping creation (concurrent startup race condition)`,
+        { error: String(error) },
+      );
+    }
+  }
+
+  try {
+    await knex.schema.alterTable(TABLE_NAME, table => {
       table.index(['entity_ref'], 'idx_entity_custom_annotations_ref');
     });
+  } catch (error) {
+    logger.debug(
+      `Index idx_entity_custom_annotations_ref already exists, skipping creation`,
+      { error: String(error) },
+    );
   }
 }
 
