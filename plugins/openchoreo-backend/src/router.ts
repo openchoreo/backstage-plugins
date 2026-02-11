@@ -1095,6 +1095,96 @@ export async function createRouter({
   );
 
   // =====================
+  // Role Binding Lookup & Force-Delete Endpoints
+  // =====================
+
+  // List all bindings for a cluster role (includes NS-level bindings referencing it)
+  router.get('/clusterroles/:name/bindings', async (req, res) => {
+    const { name } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await authzService.listBindingsForRole(
+        name,
+        'cluster',
+        undefined,
+        userToken,
+      ),
+    );
+  });
+
+  // List all bindings for a namespace role
+  router.get(
+    '/namespaces/:namespace/roles/:name/bindings',
+    async (req, res) => {
+      const { namespace, name } = req.params;
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.listBindingsForRole(
+          name,
+          'namespace',
+          namespace,
+          userToken,
+        ),
+      );
+    },
+  );
+
+  // Force-delete a cluster role (delete bindings first, then the role)
+  router.post(
+    '/clusterroles/:name/force-delete',
+    requireAuth,
+    async (req, res) => {
+      const { name } = req.params;
+      const { clusterRoleBindings, namespaceRoleBindings } = req.body;
+
+      if (
+        !Array.isArray(clusterRoleBindings) ||
+        !Array.isArray(namespaceRoleBindings)
+      ) {
+        throw new InputError(
+          'clusterRoleBindings and namespaceRoleBindings arrays are required in request body',
+        );
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.forceDeleteClusterRole(
+          name,
+          clusterRoleBindings,
+          namespaceRoleBindings,
+          userToken,
+        ),
+      );
+    },
+  );
+
+  // Force-delete a namespace role (delete bindings first, then the role)
+  router.post(
+    '/namespaces/:namespace/roles/:name/force-delete',
+    requireAuth,
+    async (req, res) => {
+      const { namespace, name } = req.params;
+      const { namespaceRoleBindings } = req.body;
+
+      if (!Array.isArray(namespaceRoleBindings)) {
+        throw new InputError(
+          'namespaceRoleBindings array is required in request body',
+        );
+      }
+
+      const userToken = getUserTokenFromRequest(req);
+      res.json(
+        await authzService.forceDeleteNamespaceRole(
+          namespace,
+          name,
+          namespaceRoleBindings,
+          userToken,
+        ),
+      );
+    },
+  );
+
+  // =====================
   // Hierarchy Data Endpoints (for Access Control autocomplete)
   // =====================
 

@@ -32,6 +32,8 @@ import type {
   NamespaceRoleBindingRequest,
   ClusterRoleBindingFilters,
   NamespaceRoleBindingFilters,
+  ForceDeleteResult,
+  RoleBindingsLookup,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -1058,6 +1060,61 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       )}/rolebindings/${encodeURIComponent(name)}`,
       {
         method: 'DELETE',
+      },
+    );
+  }
+
+  // ============================================
+  // Binding Lookup & Force-Delete Operations
+  // ============================================
+
+  async listBindingsForClusterRole(name: string): Promise<RoleBindingsLookup> {
+    return this.apiFetch<RoleBindingsLookup>(
+      `${API_ENDPOINTS.CLUSTER_ROLES}/${encodeURIComponent(name)}/bindings`,
+    );
+  }
+
+  async listBindingsForNamespaceRole(
+    namespace: string,
+    name: string,
+  ): Promise<RoleBindingsLookup> {
+    return this.apiFetch<RoleBindingsLookup>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/roles/${encodeURIComponent(name)}/bindings`,
+    );
+  }
+
+  async forceDeleteClusterRole(
+    name: string,
+    bindings: {
+      clusterRoleBindings: string[];
+      namespaceRoleBindings: { namespace: string; name: string }[];
+    },
+  ): Promise<ForceDeleteResult> {
+    return this.apiFetch<ForceDeleteResult>(
+      `${API_ENDPOINTS.CLUSTER_ROLES}/${encodeURIComponent(name)}/force-delete`,
+      {
+        method: 'POST',
+        body: bindings,
+      },
+    );
+  }
+
+  async forceDeleteNamespaceRole(
+    namespace: string,
+    name: string,
+    bindings: {
+      namespaceRoleBindings: { namespace: string; name: string }[];
+    },
+  ): Promise<ForceDeleteResult> {
+    return this.apiFetch<ForceDeleteResult>(
+      `${API_ENDPOINTS.NAMESPACES}/${encodeURIComponent(
+        namespace,
+      )}/roles/${encodeURIComponent(name)}/force-delete`,
+      {
+        method: 'POST',
+        body: bindings,
       },
     );
   }

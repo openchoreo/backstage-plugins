@@ -14,7 +14,7 @@ import { useRolePermissions } from '@openchoreo/backstage-plugin-react';
 import { useClusterRoles, ClusterRole } from '../hooks';
 import { useNotification } from '../../../hooks';
 import { NotificationBanner } from '../../Environments/components';
-import { SCOPE_CLUSTER } from '../constants';
+import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import { RoleDialog } from './RoleDialog';
 import { RolesTable, BindingSummary } from './RolesTable';
 import { useApi } from '@backstage/core-plugin-api';
@@ -72,12 +72,31 @@ export const ClusterRolesContent = () => {
   const handleCheckBindings = async (
     name: string,
   ): Promise<BindingSummary[]> => {
-    const bindings = await client.listClusterRoleBindings({ roleName: name });
-    return bindings.map(b => ({
-      name: b.name,
-      entitlement: { claim: b.entitlement.claim, value: b.entitlement.value },
-      effect: b.effect,
-    }));
+    const result = await client.listBindingsForClusterRole(name);
+    const clusterSummaries: BindingSummary[] = result.clusterRoleBindings.map(
+      b => ({
+        name: b.name,
+        entitlement: {
+          claim: b.entitlement.claim,
+          value: b.entitlement.value,
+        },
+        effect: b.effect,
+        type: SCOPE_CLUSTER,
+      }),
+    );
+    const nsSummaries: BindingSummary[] = result.namespaceRoleBindings.map(
+      b => ({
+        name: b.name,
+        entitlement: {
+          claim: b.entitlement.claim,
+          value: b.entitlement.value,
+        },
+        effect: b.effect,
+        type: SCOPE_NAMESPACE,
+        namespace: b.namespace,
+      }),
+    );
+    return [...clusterSummaries, ...nsSummaries];
   };
 
   const handleDeleteRole = async (name: string) => {
@@ -98,13 +117,29 @@ export const ClusterRolesContent = () => {
     bindings: BindingSummary[],
   ) => {
     try {
-      for (const binding of bindings) {
-        await client.deleteClusterRoleBinding(binding.name);
+      const clusterRoleBindings = bindings
+        .filter(b => b.type === SCOPE_CLUSTER)
+        .map(b => b.name);
+      const namespaceRoleBindings = bindings
+        .filter(b => b.type === SCOPE_NAMESPACE)
+        .map(b => ({ namespace: b.namespace!, name: b.name }));
+
+      const result = await client.forceDeleteClusterRole(name, {
+        clusterRoleBindings,
+        namespaceRoleBindings,
+      });
+
+      if (result.roleDeleted) {
+        await fetchRoles();
+        notification.showSuccess(
+          `Cluster role "${name}" and its bindings deleted successfully`,
+        );
+      } else {
+        const failedNames = result.failedBindings.map(f => f.name).join(', ');
+        notification.showError(
+          `Role not deleted. Failed to remove binding(s): ${failedNames}`,
+        );
       }
-      await deleteRole(name);
-      notification.showSuccess(
-        `Cluster role "${name}" and its bindings deleted successfully`,
-      );
     } catch (err) {
       notification.showError(
         `Failed to delete role: ${
@@ -169,6 +204,7 @@ export const ClusterRolesContent = () => {
 
       <RolesTable
         roles={roles}
+        scope={SCOPE_CLUSTER}
         scopeLabel="Cluster Roles"
         canUpdate={canUpdate}
         canDelete={canDelete}

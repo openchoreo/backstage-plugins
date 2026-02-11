@@ -12,7 +12,11 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useActions, ClusterRole, NamespaceRole } from '../hooks';
-import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
+import {
+  SCOPE_CLUSTER,
+  SCOPE_NAMESPACE,
+  type BindingScope,
+} from '../constants';
 import { ActionSelectionDialog } from './ActionSelectionDialog';
 import { getActionDisplayLabel } from './actionUtils';
 
@@ -73,7 +77,7 @@ const ROLE_TEMPLATES = {
   },
 };
 
-export type RoleScope = typeof SCOPE_CLUSTER | typeof SCOPE_NAMESPACE;
+export type RoleScope = BindingScope;
 export type RoleInput = ClusterRole | NamespaceRole;
 
 interface RoleDialogProps {
