@@ -3,6 +3,9 @@ import { makeStyles } from '@material-ui/core/styles';
 export const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
+    maxWidth: 1200,
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
   header: {
     display: 'flex',

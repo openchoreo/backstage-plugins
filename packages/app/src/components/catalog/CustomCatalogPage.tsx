@@ -69,12 +69,12 @@ export const CustomCatalogPage = ({
             {/* Filters at the top (desktop) */}
             <Box className={classes.filterSection}>
               <Grid container spacing={2}>
-                <Grid item sm={12} md={4} lg={2}>
+                <Grid item sm={12} md={4} lg={3}>
                   <EntityNamespacePicker
                     initiallySelectedNamespaces={initiallySelectedNamespaces}
                   />
                 </Grid>
-                <Grid item sm={12} md={4} lg={2}>
+                <Grid item sm={12} md={4} lg={3}>
                   <ChoreoEntityKindPicker initialFilter={initialKind} />
                 </Grid>
               </Grid>
@@ -103,19 +103,19 @@ export const CustomCatalogPage = ({
               {/* Advanced Filters Grid - Shown when expanded, inside same section */}
               {advancedFiltersOpen && (
                 <Grid container spacing={2}>
-                  <Grid item sm={12} md={4} lg={2}>
+                  <Grid item sm={12} md={4} lg={3}>
                     <EntityTagPicker />
                   </Grid>
                   <Grid
                     item
                     sm={12}
                     md={4}
-                    lg={2}
+                    lg={3}
                     className={classes.hideWhenEmpty}
                   >
                     <EntityLifecyclePicker />
                   </Grid>
-                  <Grid item sm={12} md={4} lg={2}>
+                  <Grid item sm={12} md={4} lg={3}>
                     <EntityProcessingStatusPicker />
                   </Grid>
                 </Grid>
