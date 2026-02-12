@@ -21,3 +21,5 @@ export type {
 } from './components/SecretSelector';
 export { JsonViewer } from './components/JsonViewer';
 export type { JsonViewerProps } from './components/JsonViewer';
+export { YamlViewer } from './components/YamlViewer';
+export type { YamlViewerProps } from './components/YamlViewer';

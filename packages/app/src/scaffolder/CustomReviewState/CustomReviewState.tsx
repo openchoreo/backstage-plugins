@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { StructuredMetadataTable } from '@backstage/core-components';
 import { Box, Button, Typography } from '@material-ui/core';
 import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
+import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useStyles } from './styles';
 
 // Render a nested object as formatted key-value pairs
@@ -163,6 +164,11 @@ export const CustomReviewStep = ({
       );
     } else if (typeof value === 'boolean') {
       formattedMetadata[key] = value ? '✓ Yes' : '✗ No';
+    } else if (
+      typeof value === 'string' &&
+      ['yaml_definition', 'yaml_content'].includes(key)
+    ) {
+      formattedMetadata[key] = <YamlViewer value={value} />;
     } else {
       formattedMetadata[key] = value;
     }
