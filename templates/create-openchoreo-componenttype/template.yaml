@@ -56,7 +56,7 @@ spec:
       action: openchoreo:componenttype-definition:create
       input:
         namespaceName: ${{ parameters.namespace_name }}
-        yamlContent: ${{ parameters.yaml_content }}
+        yamlContent: ${{ parameters.yaml_definition }}
   output:
     links:
       - title: View ComponentType

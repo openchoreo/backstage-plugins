@@ -77,7 +77,11 @@ export const ScaffolderTagPicker = () => {
 
   // Sync back from external filter changes
   useEffect(() => {
-    if (filteredTags && filteredTags.length !== selectedTags.length) {
+    if (
+      filteredTags &&
+      (filteredTags.length !== selectedTags.length ||
+        !filteredTags.every((tag, i) => tag === selectedTags[i]))
+    ) {
       setSelectedTags(filteredTags);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
