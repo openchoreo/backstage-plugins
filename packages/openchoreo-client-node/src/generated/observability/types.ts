@@ -67,6 +67,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get workflow run events
+     * @description Retrieve events for a specific workflow run
+     */
+    get: operations['getWorkflowRunEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/logs/component/{componentId}': {
     parameters: {
       query?: never;
@@ -907,6 +927,30 @@ export interface components {
        */
       log: string;
     };
+    /** @description A single event entry from a component workflow run */
+    ComponentWorkflowRunEventEntry: {
+      /**
+       * Format: date-time
+       * @description Timestamp when the event entry was generated (RFC3339 format)
+       * @example 2025-01-06T10:00:00.123Z
+       */
+      timestamp: string;
+      /**
+       * @description Event type
+       * @example build-started
+       */
+      type: string;
+      /**
+       * @description Reason for the event
+       * @example Build started
+       */
+      reason: string;
+      /**
+       * @description Event message
+       * @example Build started...
+       */
+      message: string;
+    };
   };
   responses: never;
   parameters: never;
@@ -1026,6 +1070,83 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Workflow run not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getWorkflowRunEvents: {
+    parameters: {
+      query?: {
+        /** @description Filter events by a specific workflow step name */
+        step?: string;
+      };
+      header?: never;
+      path: {
+        /** @description The namespace name */
+        namespaceName: string;
+        /** @description The project name */
+        projectName: string;
+        /** @description The component name */
+        componentName: string;
+        /** @description The workflow run name */
+        runName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successfully retrieved workflow run events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowRunEventEntry'][];
         };
       };
       /** @description Bad request - invalid parameters */

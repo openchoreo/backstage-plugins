@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Typography } from '@material-ui/core';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import EventNoteOutlinedIcon from '@material-ui/icons/EventNoteOutlined';
 import {
   VerticalTabNav,
   TabItemData,
@@ -11,12 +12,12 @@ import {
   useUrlSyncedTab,
   DetailPageLayout,
 } from '@openchoreo/backstage-plugin-react';
+import type { RunDetailsTab } from '@openchoreo/backstage-plugin-react';
 import { BuildStatusChip } from '../BuildStatusChip';
 import { LogsContent } from '../BuildLogs';
+import { EventsContent } from '../BuildEvents';
 import { RunMetadataContent } from '../RunMetadataContent';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
-
-type RunDetailsTab = 'logs' | 'details';
 
 interface WorkflowRunDetailsPageProps {
   run: ModelsBuild;
@@ -47,6 +48,11 @@ export const WorkflowRunDetailsPage = ({
         icon: <DescriptionOutlinedIcon fontSize="small" />,
       },
       {
+        id: 'events',
+        label: 'Events',
+        icon: <EventNoteOutlinedIcon fontSize="small" />,
+      },
+      {
         id: 'details',
         label: 'Details',
         icon: <InfoOutlinedIcon fontSize="small" />,
@@ -59,6 +65,8 @@ export const WorkflowRunDetailsPage = ({
     switch (activeTab) {
       case 'logs':
         return <LogsContent build={run} />;
+      case 'events':
+        return <EventsContent build={run} />;
       case 'details':
         return <RunMetadataContent build={run} />;
       default:

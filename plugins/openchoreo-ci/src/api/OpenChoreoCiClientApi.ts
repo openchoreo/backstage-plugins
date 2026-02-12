@@ -21,6 +21,18 @@ export interface WorkflowSchemaResponse {
   };
 }
 
+/** Workflow run event entry for a single Kubernetes event */
+export interface WorkflowRunEventEntry {
+  /** Timestamp when the event was recorded (RFC3339 format) */
+  timestamp: string;
+  /** Event type (e.g., Normal, Warning) */
+  type: string;
+  /** Short, machine-understandable reason for the event */
+  reason: string;
+  /** Human-readable description of the event */
+  message: string;
+}
+
 // ============================================
 // API Interface
 // ============================================
@@ -84,6 +96,26 @@ export interface OpenChoreoCiClientApi {
     hasLiveObservability: boolean,
     options?: { step?: string; sinceSeconds?: number },
   ): Promise<LogEntry[]>;
+
+  /**
+   * Fetch events for a workflow run using the provided namespaceName, projectName, componentName and runName.
+   *
+   * @param namespaceName - The namespace of the workflow.
+   * @param projectName - The project the workflow belongs to.
+   * @param componentName - The component the workflow refers to.
+   * @param runName - The name or ID of the workflow run.
+   * @param step - The name of the step to fetch events for.
+   * @param hasLiveObservability - Whether live observability is enabled for this run.
+   * @returns An array of WorkflowRunEventEntry objects.
+   */
+  fetchWorkflowRunEvents(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    step: string,
+    hasLiveObservability: boolean,
+  ): Promise<WorkflowRunEventEntry[]>;
 }
 
 // ============================================

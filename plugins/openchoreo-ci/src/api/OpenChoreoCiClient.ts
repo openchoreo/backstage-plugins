@@ -10,6 +10,7 @@ import {
 import type {
   OpenChoreoCiClientApi,
   WorkflowSchemaResponse,
+  WorkflowRunEventEntry,
 } from './OpenChoreoCiClientApi';
 
 // ============================================
@@ -213,6 +214,58 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
     }
 
     const entries = (await response.json()) as LogEntry[];
+    return entries;
+  }
+
+  async fetchWorkflowRunEvents(
+    namespaceName: string,
+    projectName: string,
+    componentName: string,
+    runName: string,
+    step: string,
+    hasLiveObservability: boolean,
+  ): Promise<WorkflowRunEventEntry[]> {
+    if (!namespaceName || !projectName || !componentName || !runName || !step) {
+      throw new Error(
+        'namespaceName, projectName, componentName, runName and step are required fields for fetching workflow run events',
+      );
+    }
+
+    const baseUrl = await this.discovery.getBaseUrl('openchoreo-ci-backend');
+    const url = new URL(`${baseUrl}/workflow-run-events`);
+
+    url.searchParams.set('namespaceName', namespaceName);
+    url.searchParams.set('projectName', projectName);
+    url.searchParams.set('componentName', componentName);
+    url.searchParams.set('runName', runName);
+    url.searchParams.set(
+      'hasLiveObservability',
+      hasLiveObservability.toString(),
+    );
+    url.searchParams.set('step', step);
+
+    const response = await this.fetchApi.fetch(url.toString());
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      if (response.status === 501) {
+        // Workflow run events endpoint not implemented in the backend/environment
+        // TODO: Remove this once the endpoint is implemented in observability plane
+        throw new Error(
+          `HttpNotImplemented: ${
+            errorText ||
+            'Events are not available for past workflow runs. This feature will be available soon.'
+          }`,
+        );
+      }
+
+      throw new Error(
+        `Failed to fetch workflow run events (${response.status}): ${errorText}`,
+      );
+    }
+
+    const entries = (await response.json()) as WorkflowRunEventEntry[];
     return entries;
   }
 }

@@ -38,9 +38,11 @@ import { matchesCatalogEntityCapability } from '@openchoreo/backstage-plugin-per
 // This will be shared across the module and the service
 let scaffolderProviderInstance: ScaffolderEntityProvider | undefined;
 
-// Singleton instance of the AnnotationStore
+// Singleton promise for the AnnotationStore
 // Shared between the catalog module (processor) and the service factory (API routes)
-let annotationStoreInstance: AnnotationStore | undefined;
+// Using a promise ensures concurrent factory calls (from multiple plugins) all await
+// the same initialization — preventing duplicate migration runs.
+let annotationStorePromise: Promise<AnnotationStore> | undefined;
 
 /**
  * OpenChoreo catalog backend module
@@ -183,24 +185,23 @@ export const annotationStoreFactory = createServiceFactory({
     lifecycle: coreServices.rootLifecycle,
   },
   async factory({ rootConfig, logger, lifecycle }): Promise<AnnotationStore> {
-    if (annotationStoreInstance) {
-      return annotationStoreInstance;
+    if (!annotationStorePromise) {
+      annotationStorePromise = (async () => {
+        // Use DatabaseManager to explicitly get the catalog plugin's database
+        const { DatabaseManager } = await import(
+          '@backstage/backend-defaults/database'
+        );
+        const databaseManager = DatabaseManager.fromConfig(rootConfig);
+        const catalogDb = databaseManager.forPlugin('catalog', {
+          logger,
+          lifecycle,
+        });
+        const knex = await catalogDb.getClient();
+
+        await applyAnnotationStoreMigrations(knex, logger);
+        return new DatabaseAnnotationStore(knex);
+      })();
     }
-
-    // Use DatabaseManager to explicitly get the catalog plugin's database
-    const { DatabaseManager } = await import(
-      '@backstage/backend-defaults/database'
-    );
-    const databaseManager = DatabaseManager.fromConfig(rootConfig);
-    const catalogDb = databaseManager.forPlugin('catalog', {
-      logger,
-      lifecycle,
-    });
-    const knex = await catalogDb.getClient();
-
-    await applyAnnotationStoreMigrations(knex);
-    annotationStoreInstance = new DatabaseAnnotationStore(knex);
-
-    return annotationStoreInstance;
+    return annotationStorePromise;
   },
 });

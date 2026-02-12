@@ -115,6 +115,7 @@ export const WorkflowDetailsPage = () => {
     {
       title: 'Created',
       field: 'createdAt',
+      defaultSort: 'desc',
       render: (row: WorkflowRun) => formatRelativeTime(row.createdAt),
     },
     {

@@ -1,20 +1,23 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
-} from '@openchoreo/openchoreo-client-node';
 
 // Type for GET definition response - returns full CRD as unstructured JSON
-type ResourceDefinitionResponse =
-  OpenChoreoComponents['schemas']['APIResponse'] & {
-    data?: {
-      [key: string]: unknown;
-    };
+type ResourceDefinitionResponse = {
+  success?: boolean;
+  data?: {
+    [key: string]: unknown;
   };
+};
 
 // Type for PUT/DELETE response
-type ResourceCRUDResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: OpenChoreoComponents['schemas']['ResourceCRUDResponse'];
+type ResourceCRUDResponse = {
+  success?: boolean;
+  data?: {
+    operation?: string;
+    name?: string;
+    kind?: string;
+    apiVersion?: string;
+    namespace?: string;
+  };
 };
 
 // Supported resource kinds and their API path segments
@@ -22,7 +25,25 @@ type ResourceKind =
   | 'component-types'
   | 'traits'
   | 'workflows'
-  | 'component-workflows';
+  | 'component-workflows'
+  | 'environments'
+  | 'dataplanes'
+  | 'buildplanes'
+  | 'observabilityplanes'
+  | 'deploymentpipelines';
+
+// Mapping from ResourceKind to CRD kind (PascalCase)
+const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
+  'component-types': 'ComponentType',
+  traits: 'Trait',
+  workflows: 'Workflow',
+  'component-workflows': 'ComponentWorkflow',
+  environments: 'Environment',
+  dataplanes: 'DataPlane',
+  buildplanes: 'BuildPlane',
+  observabilityplanes: 'ObservabilityPlane',
+  deploymentpipelines: 'DeploymentPipeline',
+};
 
 export class PlatformResourceService {
   private logger: LoggerService;
@@ -33,8 +54,27 @@ export class PlatformResourceService {
     this.baseUrl = baseUrl;
   }
 
+  private getCrdKind(kind: ResourceKind): string {
+    const crdKind = RESOURCE_KIND_TO_CRD_KIND[kind];
+    if (!crdKind) {
+      throw new Error(`Unsupported resource kind: ${kind}`);
+    }
+    return crdKind;
+  }
+
+  private buildHeaders(token?: string): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
   /**
    * Get the full CRD definition for a platform resource
+   * Uses: GET /namespaces/{namespaceName}/resources/{kind}/{resourceName}
    */
   async getResourceDefinition(
     kind: ResourceKind,
@@ -42,100 +82,42 @@ export class PlatformResourceService {
     resourceName: string,
     token?: string,
   ): Promise<ResourceDefinitionResponse> {
+    const crdKind = this.getCrdKind(kind);
+
     this.logger.debug(
-      `Fetching ${kind} definition: ${resourceName} in namespace: ${namespaceName}`,
+      `Fetching ${crdKind} definition: ${resourceName} in namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
+      const url = `${this.baseUrl}/namespaces/${encodeURIComponent(
+        namespaceName,
+      )}/resources/${encodeURIComponent(crdKind)}/${encodeURIComponent(
+        resourceName,
+      )}`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(token),
       });
 
-      let data: ResourceDefinitionResponse | undefined;
-      let error: unknown;
-      let response: Response;
-
-      // Call the appropriate endpoint based on kind
-      switch (kind) {
-        case 'component-types': {
-          const result = await client.GET(
-            '/namespaces/{namespaceName}/component-types/{ctName}/definition',
-            {
-              params: {
-                path: { namespaceName, ctName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceDefinitionResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'traits': {
-          const result = await client.GET(
-            '/namespaces/{namespaceName}/traits/{traitName}/definition',
-            {
-              params: {
-                path: { namespaceName, traitName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceDefinitionResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'workflows': {
-          const result = await client.GET(
-            '/namespaces/{namespaceName}/workflows/{workflowName}/definition',
-            {
-              params: {
-                path: { namespaceName, workflowName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceDefinitionResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'component-workflows': {
-          const result = await client.GET(
-            '/namespaces/{namespaceName}/component-workflows/{cwName}/definition',
-            {
-              params: {
-                path: { namespaceName, cwName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceDefinitionResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        default:
-          throw new Error(`Unsupported resource kind: ${kind}`);
-      }
-
-      if (error || !response.ok) {
+      if (!response.ok) {
         throw new Error(
-          `Failed to fetch ${kind} definition: ${response.status} ${response.statusText}`,
+          `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
         );
       }
+
+      const data = (await response.json()) as ResourceDefinitionResponse;
 
       if (!data?.success) {
         throw new Error('API request was not successful');
       }
 
       this.logger.debug(
-        `Successfully fetched ${kind} definition: ${resourceName}`,
+        `Successfully fetched ${crdKind} definition: ${resourceName}`,
       );
       return data;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch ${kind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
+        `Failed to fetch ${crdKind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
@@ -143,6 +125,7 @@ export class PlatformResourceService {
 
   /**
    * Update (or create) a platform resource definition
+   * Uses: POST /apply with the full CRD resource as body
    */
   async updateResourceDefinition(
     kind: ResourceKind,
@@ -151,104 +134,39 @@ export class PlatformResourceService {
     resource: Record<string, unknown>,
     token?: string,
   ): Promise<ResourceCRUDResponse> {
+    const crdKind = this.getCrdKind(kind);
+
     this.logger.debug(
-      `Updating ${kind} definition: ${resourceName} in namespace: ${namespaceName}`,
+      `Applying ${crdKind} definition: ${resourceName} in namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
+      const url = `${this.baseUrl}/apply`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(token),
+        body: JSON.stringify(resource),
       });
 
-      let data: ResourceCRUDResponse | undefined;
-      let error: unknown;
-      let response: Response;
-
-      // Call the appropriate endpoint based on kind
-      switch (kind) {
-        case 'component-types': {
-          const result = await client.PUT(
-            '/namespaces/{namespaceName}/component-types/{ctName}/definition',
-            {
-              params: {
-                path: { namespaceName, ctName: resourceName },
-              },
-              body: resource,
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'traits': {
-          const result = await client.PUT(
-            '/namespaces/{namespaceName}/traits/{traitName}/definition',
-            {
-              params: {
-                path: { namespaceName, traitName: resourceName },
-              },
-              body: resource,
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'workflows': {
-          const result = await client.PUT(
-            '/namespaces/{namespaceName}/workflows/{workflowName}/definition',
-            {
-              params: {
-                path: { namespaceName, workflowName: resourceName },
-              },
-              body: resource,
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'component-workflows': {
-          const result = await client.PUT(
-            '/namespaces/{namespaceName}/component-workflows/{cwName}/definition',
-            {
-              params: {
-                path: { namespaceName, cwName: resourceName },
-              },
-              body: resource,
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        default:
-          throw new Error(`Unsupported resource kind: ${kind}`);
-      }
-
-      if (error || !response.ok) {
+      if (!response.ok) {
         throw new Error(
-          `Failed to update ${kind} definition: ${response.status} ${response.statusText}`,
+          `Failed to apply ${crdKind} definition: ${response.status} ${response.statusText}`,
         );
       }
+
+      const data = (await response.json()) as ResourceCRUDResponse;
 
       if (!data?.success) {
         throw new Error('API request was not successful');
       }
 
       this.logger.debug(
-        `Successfully updated ${kind} definition: ${resourceName}`,
+        `Successfully applied ${crdKind} definition: ${resourceName}`,
       );
       return data;
     } catch (error) {
       this.logger.error(
-        `Failed to update ${kind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
+        `Failed to apply ${crdKind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
@@ -256,6 +174,7 @@ export class PlatformResourceService {
 
   /**
    * Delete a platform resource definition
+   * Uses: DELETE /delete with the resource identifier as body
    */
   async deleteResourceDefinition(
     kind: ResourceKind,
@@ -263,100 +182,46 @@ export class PlatformResourceService {
     resourceName: string,
     token?: string,
   ): Promise<ResourceCRUDResponse> {
+    const crdKind = this.getCrdKind(kind);
+
     this.logger.debug(
-      `Deleting ${kind} definition: ${resourceName} in namespace: ${namespaceName}`,
+      `Deleting ${crdKind} definition: ${resourceName} in namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
+      const url = `${this.baseUrl}/delete`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: this.buildHeaders(token),
+        body: JSON.stringify({
+          apiVersion: 'openchoreo.dev/v1alpha1',
+          kind: crdKind,
+          metadata: {
+            name: resourceName,
+            namespace: namespaceName,
+          },
+        }),
       });
 
-      let data: ResourceCRUDResponse | undefined;
-      let error: unknown;
-      let response: Response;
-
-      // Call the appropriate endpoint based on kind
-      switch (kind) {
-        case 'component-types': {
-          const result = await client.DELETE(
-            '/namespaces/{namespaceName}/component-types/{ctName}/definition',
-            {
-              params: {
-                path: { namespaceName, ctName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'traits': {
-          const result = await client.DELETE(
-            '/namespaces/{namespaceName}/traits/{traitName}/definition',
-            {
-              params: {
-                path: { namespaceName, traitName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'workflows': {
-          const result = await client.DELETE(
-            '/namespaces/{namespaceName}/workflows/{workflowName}/definition',
-            {
-              params: {
-                path: { namespaceName, workflowName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        case 'component-workflows': {
-          const result = await client.DELETE(
-            '/namespaces/{namespaceName}/component-workflows/{cwName}/definition',
-            {
-              params: {
-                path: { namespaceName, cwName: resourceName },
-              },
-            },
-          );
-          data = result.data as ResourceCRUDResponse;
-          error = result.error;
-          response = result.response;
-          break;
-        }
-        default:
-          throw new Error(`Unsupported resource kind: ${kind}`);
-      }
-
-      if (error || !response.ok) {
+      if (!response.ok) {
         throw new Error(
-          `Failed to delete ${kind} definition: ${response.status} ${response.statusText}`,
+          `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
         );
       }
+
+      const data = (await response.json()) as ResourceCRUDResponse;
 
       if (!data?.success) {
         throw new Error('API request was not successful');
       }
 
       this.logger.debug(
-        `Successfully deleted ${kind} definition: ${resourceName}`,
+        `Successfully deleted ${crdKind} definition: ${resourceName}`,
       );
       return data;
     } catch (error) {
       this.logger.error(
-        `Failed to delete ${kind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
+        `Failed to delete ${crdKind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
