@@ -89,7 +89,11 @@ export class PlatformResourceService {
     );
 
     try {
-      const url = `${this.baseUrl}/namespaces/${encodeURIComponent(namespaceName)}/resources/${encodeURIComponent(crdKind)}/${encodeURIComponent(resourceName)}`;
+      const url = `${this.baseUrl}/namespaces/${encodeURIComponent(
+        namespaceName,
+      )}/resources/${encodeURIComponent(crdKind)}/${encodeURIComponent(
+        resourceName,
+      )}`;
       const response = await fetch(url, {
         method: 'GET',
         headers: this.buildHeaders(token),
