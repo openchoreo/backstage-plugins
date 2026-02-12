@@ -34,9 +34,7 @@ export const ScaffolderSearchBar = () => {
   );
 
   useEffect(() => {
-    if (queryParamTextFilter) {
-      setSearch(queryParamTextFilter);
-    }
+    setSearch(queryParamTextFilter ?? '');
   }, [queryParamTextFilter]);
 
   return (

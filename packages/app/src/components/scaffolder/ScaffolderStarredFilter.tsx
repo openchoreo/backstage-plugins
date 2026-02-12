@@ -85,7 +85,18 @@ export const ScaffolderStarredFilter = () => {
   return (
     <Box className={classes.container}>
       <Tooltip title="Your starred templates">
-        <Box className={classes.filterItem}>
+        <Box
+          className={classes.filterItem}
+          role="button"
+          tabIndex={0}
+          onClick={handleFilterChange}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleFilterChange();
+            }
+          }}
+        >
           <Checkbox
             checked={isStarred}
             onChange={handleFilterChange}

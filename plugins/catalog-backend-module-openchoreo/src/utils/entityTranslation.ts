@@ -163,7 +163,7 @@ export function translateProjectToEntity(
         }),
       },
       labels: {
-        'openchoreo.io/managed': 'true',
+        [CHOREO_LABELS.MANAGED]: 'true',
       },
     },
     spec: {
@@ -279,7 +279,7 @@ export function translateComponentTypeToEntity(
       tags: [
         'openchoreo',
         'component-type',
-        ct.workloadType,
+        ...(ct.workloadType ? [ct.workloadType] : []),
         'platform-engineering',
       ],
       annotations: {
