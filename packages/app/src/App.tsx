@@ -166,7 +166,7 @@ const routes = (
     <Route path="/" element={<HomePage />} />
     <Route path="/catalog" element={<CatalogIndexPage />}>
       <CustomCatalogPage
-        initialKind="component"
+        initialKind="system"
         initiallySelectedFilter="all"
         ownerPickerMode="all"
       />
