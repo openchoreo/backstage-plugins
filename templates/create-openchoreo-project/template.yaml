@@ -58,3 +58,8 @@ spec:
         projectName: ${{ parameters.project_name }}
         displayName: ${{ parameters.displayName }}
         description: ${{ parameters.description }}
+  output:
+    links:
+      - title: View Project
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-project'].output.entityRef }}

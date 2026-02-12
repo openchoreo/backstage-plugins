@@ -3,8 +3,15 @@ import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
+import {
+  type ImmediateCatalogService,
+  translateComponentWorkflowToEntity,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
 
-export const createComponentWorkflowDefinitionAction = (config: Config) => {
+export const createComponentWorkflowDefinitionAction = (
+  config: Config,
+  immediateCatalog: ImmediateCatalogService,
+) => {
   return createTemplateAction({
     id: 'openchoreo:componentworkflow-definition:create',
     description: 'Create OpenChoreo ComponentWorkflow',
@@ -30,6 +37,9 @@ export const createComponentWorkflowDefinitionAction = (config: Config) => {
             .describe(
               'The namespace where the ComponentWorkflow was created',
             ),
+          entityRef: zImpl
+            .string()
+            .describe('Entity reference for the created ComponentWorkflow'),
         }),
     },
     async handler(ctx) {
@@ -131,9 +141,48 @@ export const createComponentWorkflowDefinitionAction = (config: Config) => {
           `ComponentWorkflow created successfully: ${JSON.stringify(resultData)}`,
         );
 
+        // Immediately insert the ComponentWorkflow into the catalog
+        try {
+          ctx.logger.info(
+            `Inserting ComponentWorkflow '${resultName}' into catalog immediately...`,
+          );
+
+          // Extract metadata from the parsed YAML
+          const metadata = resourceObj.metadata as Record<string, unknown> | undefined;
+          const annotations = (metadata?.annotations || {}) as Record<string, string>;
+
+          const entity = translateComponentWorkflowToEntity(
+            {
+              name: resultName || (metadata?.name as string),
+              displayName: annotations['openchoreo.dev/display-name'],
+              description: annotations['openchoreo.dev/description'],
+              createdAt: new Date().toISOString(),
+            },
+            namespaceName,
+            {
+              locationKey: 'OpenChoreoEntityProvider',
+            },
+          );
+
+          await immediateCatalog.insertEntity(entity);
+
+          ctx.logger.info(
+            `ComponentWorkflow '${resultName}' successfully added to catalog`,
+          );
+        } catch (catalogError) {
+          ctx.logger.error(
+            `Failed to immediately add ComponentWorkflow to catalog: ${catalogError}. ` +
+              `ComponentWorkflow will be visible after the next scheduled catalog sync.`,
+          );
+        }
+
         // Set outputs for the scaffolder
         ctx.output('componentWorkflowName', resultName);
         ctx.output('namespaceName', namespaceName);
+        ctx.output(
+          'entityRef',
+          `componentworkflow:${namespaceName}/${resultName}`,
+        );
       } catch (err) {
         ctx.logger.error(`Error creating ComponentWorkflow: ${err}`);
         throw new Error(`Failed to create ComponentWorkflow: ${err}`);

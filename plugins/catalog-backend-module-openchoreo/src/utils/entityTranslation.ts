@@ -6,6 +6,12 @@ import {
   getRepositoryInfo,
   ComponentTypeUtils,
 } from '@openchoreo/backstage-plugin-common';
+import type {
+  EnvironmentEntityV1alpha1,
+  ComponentTypeEntityV1alpha1,
+  TraitTypeEntityV1alpha1,
+  ComponentWorkflowEntityV1alpha1,
+} from '../kinds';
 
 type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
 
@@ -102,4 +108,276 @@ export function translateComponentToEntity(
   };
 
   return componentEntity;
+}
+
+/**
+ * Base configuration for entity translation
+ */
+export interface EntityTranslationConfig {
+  locationKey: string;
+}
+
+/**
+ * Configuration for project entity translation
+ */
+export interface ProjectEntityTranslationConfig
+  extends EntityTranslationConfig {
+  defaultOwner: string;
+}
+
+/**
+ * Translates an OpenChoreo Project to a Backstage System entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateProjectToEntity(
+  project: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    namespaceName?: string;
+    uid?: string;
+    deletionTimestamp?: string;
+  },
+  namespaceName: string,
+  config: ProjectEntityTranslationConfig,
+): Entity {
+  const systemEntity: Entity = {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'System',
+    metadata: {
+      name: project.name,
+      title: project.displayName || project.name,
+      description: project.description || project.name,
+      namespace: project.namespaceName,
+      tags: ['openchoreo', 'project'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.PROJECT_ID]: project.name,
+        ...(project.uid && {
+          [CHOREO_ANNOTATIONS.PROJECT_UID]: project.uid,
+        }),
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        ...(project.deletionTimestamp && {
+          [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
+        }),
+      },
+      labels: {
+        'openchoreo.io/managed': 'true',
+      },
+    },
+    spec: {
+      owner: config.defaultOwner,
+      domain: `default/${namespaceName}`,
+    },
+  };
+
+  return systemEntity;
+}
+
+/**
+ * Translates an OpenChoreo Environment to a Backstage Environment entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateEnvironmentToEntity(
+  environment: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    uid?: string;
+    isProduction?: boolean;
+    dataPlaneRef?: { name?: string };
+    dnsPrefix?: string;
+    createdAt?: string;
+    status?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): EnvironmentEntityV1alpha1 {
+  const environmentEntity: EnvironmentEntityV1alpha1 = {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Environment',
+    metadata: {
+      name: environment.name,
+      namespace: namespaceName,
+      title: environment.displayName || environment.name,
+      description:
+        environment.description || `${environment.name} environment`,
+      tags: [
+        'openchoreo',
+        'environment',
+        environment.isProduction ? 'production' : 'non-production',
+      ],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.ENVIRONMENT]: environment.name,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        ...(environment.uid && {
+          [CHOREO_ANNOTATIONS.ENVIRONMENT_UID]: environment.uid,
+        }),
+        ...(environment.createdAt && {
+          [CHOREO_ANNOTATIONS.CREATED_AT]: environment.createdAt,
+        }),
+        ...(environment.status && {
+          [CHOREO_ANNOTATIONS.STATUS]: environment.status,
+        }),
+        ...(environment.dataPlaneRef?.name && {
+          'openchoreo.io/data-plane-ref': environment.dataPlaneRef.name,
+        }),
+        ...(environment.dnsPrefix && {
+          'openchoreo.io/dns-prefix': environment.dnsPrefix,
+        }),
+        ...(environment.isProduction !== undefined && {
+          'openchoreo.io/is-production': environment.isProduction.toString(),
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+        ...(environment.isProduction !== undefined && {
+          'openchoreo.io/environment-type': environment.isProduction
+            ? 'production'
+            : 'non-production',
+        }),
+      },
+    },
+    spec: {
+      type: environment.isProduction ? 'production' : 'non-production',
+      domain: `default/${namespaceName}`,
+      isProduction: environment.isProduction,
+      dataPlaneRef: environment.dataPlaneRef?.name,
+      dnsPrefix: environment.dnsPrefix,
+    },
+  };
+
+  return environmentEntity;
+}
+
+/**
+ * Translates an OpenChoreo ComponentType to a Backstage ComponentType entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateComponentTypeToEntity(
+  ct: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    workloadType?: string;
+    allowedWorkflows?: string[];
+    createdAt?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): ComponentTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ComponentType',
+    metadata: {
+      name: ct.name,
+      namespace: namespaceName,
+      title: ct.displayName || ct.name,
+      description: ct.description || `${ct.name} component type`,
+      tags: [
+        'openchoreo',
+        'component-type',
+        ct.workloadType,
+        'platform-engineering',
+      ],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: ct.createdAt || '',
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      type: 'component-type',
+      domain: `default/${namespaceName}`,
+      workloadType: ct.workloadType,
+      allowedWorkflows: ct.allowedWorkflows,
+    },
+  } as ComponentTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo Trait to a Backstage TraitType entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateTraitToEntity(
+  trait: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): TraitTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'TraitType',
+    metadata: {
+      name: trait.name,
+      namespace: namespaceName,
+      title: trait.displayName || trait.name,
+      description: trait.description || `${trait.name} trait`,
+      tags: ['openchoreo', 'trait-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: trait.createdAt || '',
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      type: 'trait-type',
+      domain: `default/${namespaceName}`,
+    },
+  };
+}
+
+/**
+ * Translates an OpenChoreo ComponentWorkflow to a Backstage ComponentWorkflow entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateComponentWorkflowToEntity(
+  cw: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): ComponentWorkflowEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ComponentWorkflow',
+    metadata: {
+      name: cw.name,
+      namespace: namespaceName,
+      title: cw.displayName || cw.name,
+      description: cw.description || `${cw.name} component workflow`,
+      tags: ['openchoreo', 'component-workflow', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: cw.createdAt || '',
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      type: 'component-workflow',
+      domain: `default/${namespaceName}`,
+    },
+  };
 }
