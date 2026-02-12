@@ -5,12 +5,7 @@ import FilterListIcon from '@material-ui/icons/FilterList';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import WidgetsOutlinedIcon from '@material-ui/icons/WidgetsOutlined';
 import { useRouteRef, useApp } from '@backstage/core-plugin-api';
-import {
-  DocsIcon,
-  Page,
-  Header,
-  Content,
-} from '@backstage/core-components';
+import { DocsIcon, Page, Header, Content } from '@backstage/core-components';
 import {
   EntityListProvider,
   EntityKindPicker,
@@ -44,7 +39,12 @@ import { CustomTemplateCard } from './CustomTemplateCard';
 import { useStyles } from './styles';
 
 const APPLICATION_TYPES = ['System (Project)'];
-const PLATFORM_TYPES = ['Environment', 'Trait', 'ComponentType', 'ComponentWorkflow'];
+const PLATFORM_TYPES = [
+  'Environment',
+  'Trait',
+  'ComponentType',
+  'ComponentWorkflow',
+];
 const KNOWN_CARD_TYPES = [...APPLICATION_TYPES, 'Component', ...PLATFORM_TYPES];
 
 const RegisterExistingButton = ({ to }: { to: string | undefined }) => {
@@ -155,7 +155,13 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       }
       const url = buildTechDocsURL(template, viewTechDocsLink);
       return url
-        ? [{ icon: app.getSystemIcon('docs') ?? DocsIcon, text: 'View TechDocs', url }]
+        ? [
+            {
+              icon: app.getSystemIcon('docs') ?? DocsIcon,
+              text: 'View TechDocs',
+              url,
+            },
+          ]
         : [];
     },
     [app, viewTechDocsLink],
@@ -179,8 +185,17 @@ const TemplateListContent = (props: TemplateListPageProps) => {
 
   const renderTemplateCards = (items: TemplateEntityV1beta3[]) =>
     items.map(template => (
-      <Grid item xs={12} sm={6} md={3} key={template.metadata.uid ?? template.metadata.name}>
-        <CustomTemplateCard template={template} onSelected={onTemplateSelected} />
+      <Grid
+        item
+        xs={12}
+        sm={6}
+        md={3}
+        key={template.metadata.uid ?? template.metadata.name}
+      >
+        <CustomTemplateCard
+          template={template}
+          onSelected={onTemplateSelected}
+        />
       </Grid>
     ));
 
@@ -230,7 +245,9 @@ const TemplateListContent = (props: TemplateListPageProps) => {
 
   const renderLandingView = () => (
     <>
-      <Typography className={`${classes.sectionTitle} ${classes.sectionTitleFirst}`}>
+      <Typography
+        className={`${classes.sectionTitle} ${classes.sectionTitleFirst}`}
+      >
         Create an OpenChoreo Resource
       </Typography>
 
@@ -257,7 +274,9 @@ const TemplateListContent = (props: TemplateListPageProps) => {
             <Box className={classes.resourceCardIcon}>
               <WidgetsOutlinedIcon fontSize="inherit" />
             </Box>
-            <Typography className={classes.resourceCardTitle}>Component</Typography>
+            <Typography className={classes.resourceCardTitle}>
+              Component
+            </Typography>
             <Typography className={classes.resourceCardDescription}>
               Browse component templates
             </Typography>

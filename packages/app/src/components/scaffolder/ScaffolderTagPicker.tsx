@@ -95,11 +95,7 @@ export const ScaffolderTagPicker = () => {
 
   return (
     <Box className={classes.root}>
-      <Typography
-        variant="body2"
-        component="label"
-        className={classes.label}
-      >
+      <Typography variant="body2" component="label" className={classes.label}>
         Tags
       </Typography>
       <FormControl

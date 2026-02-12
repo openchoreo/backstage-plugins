@@ -34,9 +34,7 @@ export const createComponentTypeDefinitionAction = (
             .describe('The name of the created ComponentType'),
           namespaceName: zImpl
             .string()
-            .describe(
-              'The namespace where the ComponentType was created',
-            ),
+            .describe('The namespace where the ComponentType was created'),
           entityRef: zImpl
             .string()
             .describe('Entity reference for the created ComponentType'),
@@ -72,9 +70,7 @@ export const createComponentTypeDefinitionAction = (
 
       // Validate required fields
       if (resourceObj.kind !== 'ComponentType') {
-        throw new Error(
-          `Kind must be ComponentType, got: ${resourceObj.kind}`,
-        );
+        throw new Error(`Kind must be ComponentType, got: ${resourceObj.kind}`);
       }
 
       if (!resourceObj.apiVersion) {
@@ -148,8 +144,13 @@ export const createComponentTypeDefinitionAction = (
           );
 
           // Extract metadata from the parsed YAML
-          const metadata = resourceObj.metadata as Record<string, unknown> | undefined;
-          const annotations = (metadata?.annotations || {}) as Record<string, string>;
+          const metadata = resourceObj.metadata as
+            | Record<string, unknown>
+            | undefined;
+          const annotations = (metadata?.annotations || {}) as Record<
+            string,
+            string
+          >;
           const spec = (resourceObj.spec || {}) as Record<string, unknown>;
 
           const entity = translateComponentTypeToEntity(
@@ -182,10 +183,7 @@ export const createComponentTypeDefinitionAction = (
         // Set outputs for the scaffolder
         ctx.output('componentTypeName', resultName);
         ctx.output('namespaceName', namespaceName);
-        ctx.output(
-          'entityRef',
-          `componenttype:${namespaceName}/${resultName}`,
-        );
+        ctx.output('entityRef', `componenttype:${namespaceName}/${resultName}`);
       } catch (err) {
         ctx.logger.error(`Error creating ComponentType: ${err}`);
         throw new Error(`Failed to create ComponentType: ${err}`);

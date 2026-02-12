@@ -16,7 +16,7 @@ spec:
         - environmentConfig
       properties:
         environmentConfig:
-          title: " "
+          title: ' '
           type: object
           ui:field: EnvironmentFormWithYaml
   steps:

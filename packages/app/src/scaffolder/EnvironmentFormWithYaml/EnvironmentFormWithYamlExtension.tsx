@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
@@ -131,8 +131,11 @@ export const EnvironmentFormWithYamlExtension = ({
 
   const initializedRef = useRef(false);
 
-  // Current form values
-  const data: EnvironmentFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  // Current form values - wrapped in useMemo to maintain stable reference
+  const data: EnvironmentFormData = useMemo(
+    () => ({ ...DEFAULT_FORM_DATA, ...formData }),
+    [formData],
+  );
 
   // Fetch Domain entities for namespace dropdown
   useEffect(() => {
@@ -143,7 +146,9 @@ export const EnvironmentFormWithYamlExtension = ({
         });
         const list = items.map(entity => ({
           name: entity.metadata.name,
-          entityRef: `domain:${entity.metadata.namespace || 'default'}/${entity.metadata.name}`,
+          entityRef: `domain:${entity.metadata.namespace || 'default'}/${
+            entity.metadata.name
+          }`,
         }));
         setNamespaces(list);
 
@@ -170,7 +175,9 @@ export const EnvironmentFormWithYamlExtension = ({
         });
         const list = items.map(entity => ({
           name: entity.metadata.name,
-          entityRef: `dataplane:${entity.metadata.namespace || 'default'}/${entity.metadata.name}`,
+          entityRef: `dataplane:${entity.metadata.namespace || 'default'}/${
+            entity.metadata.name
+          }`,
         }));
         setDataplanes(list);
 
@@ -202,7 +209,6 @@ export const EnvironmentFormWithYamlExtension = ({
       const updated = { ...data, [field]: value };
       onChange(updated);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, onChange],
   );
 
@@ -380,15 +386,12 @@ export const EnvironmentFormWithYamlExtension = ({
                 </Box>
                 <Switch
                   checked={data.isProduction}
-                  onChange={e =>
-                    updateField('isProduction', e.target.checked)
-                  }
+                  onChange={e => updateField('isProduction', e.target.checked)}
                   color="primary"
                 />
               </Box>
               <Typography variant="body2" color="textSecondary">
-                Mark this as a production environment. Production environments
-                have stricter deployment policies.
+                Mark this as a production environment.
               </Typography>
             </Grid>
           </Grid>

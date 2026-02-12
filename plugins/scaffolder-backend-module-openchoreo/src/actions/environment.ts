@@ -19,9 +19,7 @@ export const createEnvironmentAction = (
         zImpl.object({
           namespaceName: zImpl
             .string()
-            .describe(
-              'The name of the namespace to create the environment in',
-            ),
+            .describe('The name of the namespace to create the environment in'),
           environmentName: zImpl
             .string()
             .describe('The name of the environment to create'),
@@ -152,7 +150,9 @@ export const createEnvironmentAction = (
               description: ctx.input.description || data.data.description,
               uid: data.data.uid,
               isProduction: ctx.input.isProduction ?? data.data.isProduction,
-              dataPlaneRef: data.data.dataPlaneRef || (dataPlaneRefName ? { name: dataPlaneRefName } : undefined),
+              dataPlaneRef:
+                data.data.dataPlaneRef ||
+                (dataPlaneRefName ? { name: dataPlaneRefName } : undefined),
               dnsPrefix: data.data.dnsPrefix,
               createdAt: data.data.createdAt || new Date().toISOString(),
               status: data.data.status,

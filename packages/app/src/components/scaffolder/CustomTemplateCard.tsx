@@ -63,9 +63,13 @@ export const CustomTemplateCard = ({
     >
       <IconButton
         size="small"
-        className={`${classes.starButton} ${isStarredEntity ? classes.starButtonActive : ''}`}
+        className={`${classes.starButton} ${
+          isStarredEntity ? classes.starButtonActive : ''
+        }`}
         onClick={handleStarClick}
-        aria-label={isStarredEntity ? 'Remove from favorites' : 'Add to favorites'}
+        aria-label={
+          isStarredEntity ? 'Remove from favorites' : 'Add to favorites'
+        }
       >
         {isStarredEntity ? (
           <StarIcon fontSize="small" />

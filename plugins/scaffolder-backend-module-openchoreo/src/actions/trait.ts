@@ -27,9 +27,7 @@ export const createTraitDefinitionAction = (
         }),
       output: (zImpl: typeof z) =>
         zImpl.object({
-          traitName: zImpl
-            .string()
-            .describe('The name of the created Trait'),
+          traitName: zImpl.string().describe('The name of the created Trait'),
           namespaceName: zImpl
             .string()
             .describe('The namespace where the Trait was created'),
@@ -142,8 +140,13 @@ export const createTraitDefinitionAction = (
           );
 
           // Extract metadata from the parsed YAML
-          const metadata = resourceObj.metadata as Record<string, unknown> | undefined;
-          const annotations = (metadata?.annotations || {}) as Record<string, string>;
+          const metadata = resourceObj.metadata as
+            | Record<string, unknown>
+            | undefined;
+          const annotations = (metadata?.annotations || {}) as Record<
+            string,
+            string
+          >;
 
           const entity = translateTraitToEntity(
             {
