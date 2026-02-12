@@ -74,14 +74,6 @@ export class CtdToTemplateConverter {
     const description =
       componentType.metadata.description || `Create a ${title} component`;
 
-    // // Infer tags from component type name and workloadType
-    // const inferredTags = this.inferTagsFromCtd(componentType);
-    // const tags = [
-    //   'openchoreo',
-    //   ...inferredTags,
-    //   ...(componentType.metadata.tags || []),
-    // ].filter(tag => tag && tag.trim().length > 0); // Filter out empty/whitespace-only tags
-
     // Build the template entity
     const templateEntity: Entity = {
       apiVersion: 'scaffolder.backstage.io/v1beta3',
@@ -144,27 +136,6 @@ export class CtdToTemplateConverter {
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
-  }
-
-  /**
-   * Infer tags from component type name and workloadType
-   * Example: name="web-service", workloadType="deployment" -> ["web", "service", "deployment"]
-   */
-  private inferTagsFromCtd(componentType: ComponentType): string[] {
-    const tags: string[] = [];
-
-    // Add tags from component type name (split by hyphen)
-    tags.push(componentType.metadata.name);
-
-    // Add workloadType as tag if available
-    if (componentType.metadata.workloadType) {
-      const workloadType = componentType.metadata.workloadType.toLowerCase();
-      if (!tags.includes(workloadType)) {
-        tags.push(workloadType);
-      }
-    }
-
-    return tags;
   }
 
   /**
