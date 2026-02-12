@@ -201,8 +201,7 @@ export function translateEnvironmentToEntity(
       name: environment.name,
       namespace: namespaceName,
       title: environment.displayName || environment.name,
-      description:
-        environment.description || `${environment.name} environment`,
+      description: environment.description || `${environment.name} environment`,
       tags: [
         'openchoreo',
         'environment',

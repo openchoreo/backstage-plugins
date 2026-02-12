@@ -34,9 +34,7 @@ export const createComponentWorkflowDefinitionAction = (
             .describe('The name of the created ComponentWorkflow'),
           namespaceName: zImpl
             .string()
-            .describe(
-              'The namespace where the ComponentWorkflow was created',
-            ),
+            .describe('The namespace where the ComponentWorkflow was created'),
           entityRef: zImpl
             .string()
             .describe('Entity reference for the created ComponentWorkflow'),
@@ -44,7 +42,9 @@ export const createComponentWorkflowDefinitionAction = (
     },
     async handler(ctx) {
       ctx.logger.debug(
-        `Creating ComponentWorkflow with parameters: ${JSON.stringify(ctx.input)}`,
+        `Creating ComponentWorkflow with parameters: ${JSON.stringify(
+          ctx.input,
+        )}`,
       );
 
       // Extract namespace name from domain format (e.g., "domain:default/my-namespace" -> "my-namespace")
@@ -138,7 +138,9 @@ export const createComponentWorkflowDefinitionAction = (
         const resultName = (resultData.name as string) || '';
 
         ctx.logger.debug(
-          `ComponentWorkflow created successfully: ${JSON.stringify(resultData)}`,
+          `ComponentWorkflow created successfully: ${JSON.stringify(
+            resultData,
+          )}`,
         );
 
         // Immediately insert the ComponentWorkflow into the catalog
@@ -148,8 +150,13 @@ export const createComponentWorkflowDefinitionAction = (
           );
 
           // Extract metadata from the parsed YAML
-          const metadata = resourceObj.metadata as Record<string, unknown> | undefined;
-          const annotations = (metadata?.annotations || {}) as Record<string, string>;
+          const metadata = resourceObj.metadata as
+            | Record<string, unknown>
+            | undefined;
+          const annotations = (metadata?.annotations || {}) as Record<
+            string,
+            string
+          >;
 
           const entity = translateComponentWorkflowToEntity(
             {

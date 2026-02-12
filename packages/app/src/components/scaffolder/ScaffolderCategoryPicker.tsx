@@ -10,7 +10,6 @@ import {
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { useEntityTypeFilter } from '@backstage/plugin-catalog-react';
-import capitalize from 'lodash/capitalize';
 import { useFilterPickerStyles } from './filterPickerStyles';
 
 const MAX_VISIBLE_CHIPS = 1;
@@ -32,11 +31,7 @@ export const ScaffolderCategoryPicker = () => {
 
   return (
     <Box className={classes.root}>
-      <Typography
-        variant="body2"
-        component="label"
-        className={classes.label}
-      >
+      <Typography variant="body2" component="label" className={classes.label}>
         Categories
       </Typography>
       <FormControl
@@ -62,7 +57,7 @@ export const ScaffolderCategoryPicker = () => {
                 {values.slice(0, MAX_VISIBLE_CHIPS).map(value => (
                   <Chip
                     key={value}
-                    label={capitalize(value)}
+                    label={value}
                     size="small"
                     className={classes.chip}
                     onDelete={() => handleDelete(value)}
@@ -97,7 +92,7 @@ export const ScaffolderCategoryPicker = () => {
                 color="primary"
               />
               <ListItemText
-                primary={capitalize(type)}
+                primary={type}
                 primaryTypographyProps={{ style: { fontSize: 14 } }}
               />
             </MenuItem>
