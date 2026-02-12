@@ -10,29 +10,21 @@ import {
   EntityListProvider,
   EntityLifecyclePicker,
   EntityNamespacePicker,
-  EntityOwnerPicker,
   EntityProcessingStatusPicker,
   EntityTagPicker,
-  EntityTypePicker,
-  UserListFilterKind,
-  EntityOwnerPickerProps,
 } from '@backstage/plugin-catalog-react';
-import { CatalogTable } from '@backstage/plugin-catalog';
 import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
-import { choreoCatalogTableColumns } from './ChoreoCatalogTableColumns';
-import { CustomPersonalFilters } from './CustomPersonalFilters';
+import { StarredFilter } from './CustomPersonalFilters';
+import { CatalogCardList } from './CatalogCardList';
 import { useStyles } from './styles';
 
 export interface CustomCatalogPageProps {
   initialKind?: string;
-  initiallySelectedFilter?: UserListFilterKind;
-  ownerPickerMode?: EntityOwnerPickerProps['mode'];
   initiallySelectedNamespaces?: string[];
 }
 
 export const CustomCatalogPage = ({
-  initialKind = 'component',
-  ownerPickerMode = 'all',
+  initialKind = 'system',
   initiallySelectedNamespaces,
 }: CustomCatalogPageProps) => {
   const classes = useStyles();
@@ -78,22 +70,12 @@ export const CustomCatalogPage = ({
             <Box className={classes.filterSection}>
               <Grid container spacing={2}>
                 <Grid item sm={12} md={4} lg={2}>
-                  <ChoreoEntityKindPicker initialFilter={initialKind} />
-                </Grid>
-                <Grid
-                  item
-                  sm={12}
-                  md={4}
-                  lg={2}
-                  className={classes.hideWhenEmpty}
-                >
-                  <EntityTypePicker />
+                  <EntityNamespacePicker
+                    initiallySelectedNamespaces={initiallySelectedNamespaces}
+                  />
                 </Grid>
                 <Grid item sm={12} md={4} lg={2}>
-                  <EntityOwnerPicker mode={ownerPickerMode} />
-                </Grid>
-                <Grid item sm={12} md={7} lg={5} alignContent="center">
-                  <CustomPersonalFilters />
+                  <ChoreoEntityKindPicker initialFilter={initialKind} />
                 </Grid>
               </Grid>
 
@@ -136,11 +118,6 @@ export const CustomCatalogPage = ({
                   <Grid item sm={12} md={4} lg={2}>
                     <EntityProcessingStatusPicker />
                   </Grid>
-                  <Grid item sm={12} md={4} lg={2}>
-                    <EntityNamespacePicker
-                      initiallySelectedNamespaces={initiallySelectedNamespaces}
-                    />
-                  </Grid>
                 </Grid>
               )}
             </Box>
@@ -155,16 +132,15 @@ export const CustomCatalogPage = ({
               <Box className={classes.filterDrawerContent}>
                 <Box className={classes.filterGrid}>
                   <Box className={classes.filterItem}>
+                    <EntityNamespacePicker
+                      initiallySelectedNamespaces={initiallySelectedNamespaces}
+                    />
+                  </Box>
+                  <Box className={classes.filterItem}>
                     <ChoreoEntityKindPicker initialFilter={initialKind} />
                   </Box>
                   <Box className={classes.filterItem}>
-                    <EntityTypePicker />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityOwnerPicker mode={ownerPickerMode} />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <CustomPersonalFilters />
+                    <StarredFilter />
                   </Box>
                   <Box className={classes.filterItem}>
                     <EntityLifecyclePicker />
@@ -175,18 +151,13 @@ export const CustomCatalogPage = ({
                   <Box className={classes.filterItem}>
                     <EntityProcessingStatusPicker />
                   </Box>
-                  <Box className={classes.filterItem}>
-                    <EntityNamespacePicker
-                      initiallySelectedNamespaces={initiallySelectedNamespaces}
-                    />
-                  </Box>
                 </Box>
               </Box>
             </Drawer>
 
-            {/* Catalog table */}
+            {/* Catalog card list */}
             <Box className={classes.contentArea}>
-              <CatalogTable columns={choreoCatalogTableColumns} />
+              <CatalogCardList />
             </Box>
           </Box>
         </EntityListProvider>
