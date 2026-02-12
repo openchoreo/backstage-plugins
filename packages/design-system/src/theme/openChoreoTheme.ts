@@ -1,6 +1,5 @@
 import { createUnifiedTheme, createBaseThemeOptions } from '@backstage/theme';
 
-
 // Color constants for reuse - Modern & Minimal palette
 const colors = {
   primary: {
@@ -46,11 +45,21 @@ const colors = {
   },
 };
 
-
+const fontFamily = [
+  '-apple-system',
+  'BlinkMacSystemFont',
+  '"Segoe UI"',
+  '"Noto Sans"',
+  'Helvetica',
+  'Arial',
+  'sans-serif',
+  '"Apple Color Emoji"',
+  '"Segoe UI Emoji"',
+].join(', ');
 
 export const openChoreoTheme = createUnifiedTheme({
   ...createBaseThemeOptions({
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+    fontFamily,
     palette: {
       ...colors,
       // Backstage-specific palette additions
@@ -118,8 +127,7 @@ export const openChoreoTheme = createUnifiedTheme({
       },
     },
     typography: {
-      fontFamily:
-        '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+      fontFamily,
       htmlFontSize: 15,
       h1: {
         fontSize: 38, // Slightly smaller for better proportions
@@ -191,10 +199,8 @@ export const openChoreoTheme = createUnifiedTheme({
     },
     MuiCssBaseline: {
       styleOverrides: {
-
         'body, html': {
-          fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji" !important',
+          fontFamily: `${fontFamily} !important`,
         },
         // Sidebar divider opacity - use aria-label selector to work in both dev and production
         'nav[aria-label="sidebar nav"] hr': {
