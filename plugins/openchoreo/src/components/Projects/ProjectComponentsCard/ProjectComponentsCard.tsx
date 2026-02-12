@@ -138,7 +138,7 @@ export const ProjectComponentsCard = () => {
             isFreeAction: true,
             onClick: () =>
               navigate(
-                `/create?filters[type]=component&project=${entity.metadata.name}`,
+                `/create?view=components&filters[type]=component&project=${entity.metadata.name}`,
               ),
           },
         ]}
