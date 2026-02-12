@@ -52,6 +52,9 @@ export const useStyles = makeStyles(theme => ({
   tagFilter: {
     flex: '0 1 240px',
     minWidth: 180,
+    '&:empty': {
+      display: 'none',
+    },
   },
   starredFilter: {
     flex: '0 0 auto',
