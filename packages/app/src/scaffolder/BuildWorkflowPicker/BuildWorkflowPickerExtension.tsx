@@ -190,14 +190,6 @@ const useLanguageSelectorStyles = makeStyles(theme => ({
     padding: 0,
     marginLeft: theme.spacing(1),
   },
-  outerCardContent: {
-    '&.MuiCardContent-root': {
-      padding: theme.spacing(2),
-    },
-    '&.MuiCardContent-root:last-child': {
-      paddingBottom: theme.spacing(2),
-    },
-  },
   tabs: {
     '&.MuiTabs-root': {
       minHeight: 32,
@@ -395,128 +387,120 @@ export const BuildWorkflowPicker = ({
   // Render language card selector for buildpack workflows
   if (showLanguageSelector) {
     return (
-      <Card variant="outlined">
-        <CardContent className={classes.outerCardContent}>
-          <Typography variant="body1" style={{ marginBottom: 8 }}>
-            {label}
-          </Typography>
-          <Tabs
-            value={activeTab}
-            onChange={(_e, newValue) => setActiveTab(newValue)}
-            indicatorColor="primary"
-            className={classes.tabs}
-            style={{ minHeight: 32, marginBottom: 12 }}
-          >
-            <Tab
-              label="Auto-detect"
-              disableRipple
-              className={classes.tab}
-              style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }}
-            />
-            <Tab
-              label="Advanced"
-              disableRipple
-              className={classes.tab}
-              style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }}
-            />
-          </Tabs>
+      <Box>
+        <Typography variant="body1" style={{ marginBottom: 8 }}>
+          {label}
+        </Typography>
+        <Tabs
+          value={activeTab}
+          onChange={(_e, newValue) => setActiveTab(newValue)}
+          indicatorColor="primary"
+          className={classes.tabs}
+          style={{ minHeight: 32, marginBottom: 12 }}
+        >
+          <Tab
+            label="Stack"
+            disableRipple
+            className={classes.tab}
+            style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }}
+          />
+          <Tab
+            label="Advanced: Workflow"
+            disableRipple
+            className={classes.tab}
+            style={{ color: 'inherit', minHeight: 32, textTransform: 'none' }}
+          />
+        </Tabs>
 
-          {activeTab === 0 && (
-            <Box className={classes.grid}>
-              {languageOptions.map(option => {
-                const isSelected = selectedLanguageKey === option.key;
-                return (
-                  <Card
-                    key={option.key}
-                    variant="outlined"
-                    className={`${classes.card} ${
-                      isSelected ? classes.cardSelected : ''
-                    }`}
-                    onClick={() => handleLanguageSelect(option)}
-                  >
-                    <CardContent className={classes.cardContent}>
-                      <Box className={classes.iconWrapper}>{option.icon}</Box>
-                      <Box className={classes.labelSection}>
-                        <Typography
-                          variant="subtitle2"
-                          className={classes.label}
-                        >
-                          {option.label}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          className={classes.description}
-                        >
-                          {option.description}
-                        </Typography>
-                      </Box>
-                      <Radio
-                        checked={isSelected}
-                        className={classes.radio}
-                        color="primary"
-                        size="small"
-                      />
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </Box>
-          )}
+        {activeTab === 0 && (
+          <Box className={classes.grid}>
+            {languageOptions.map(option => {
+              const isSelected = selectedLanguageKey === option.key;
+              return (
+                <Card
+                  key={option.key}
+                  variant="outlined"
+                  className={`${classes.card} ${
+                    isSelected ? classes.cardSelected : ''
+                  }`}
+                  onClick={() => handleLanguageSelect(option)}
+                >
+                  <CardContent className={classes.cardContent}>
+                    <Box className={classes.iconWrapper}>{option.icon}</Box>
+                    <Box className={classes.labelSection}>
+                      <Typography variant="subtitle2" className={classes.label}>
+                        {option.label}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        className={classes.description}
+                      >
+                        {option.description}
+                      </Typography>
+                    </Box>
+                    <Radio
+                      checked={isSelected}
+                      className={classes.radio}
+                      color="primary"
+                      size="small"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
+        )}
 
-          {activeTab === 1 && (
-            <Box className={classes.grid}>
-              {workflowOptions.map(workflow => {
-                const isSelected = formData === workflow;
-                return (
-                  <Card
-                    key={workflow}
-                    variant="outlined"
-                    className={`${classes.card} ${
-                      isSelected ? classes.cardSelected : ''
-                    }`}
-                    onClick={() => {
-                      onChange(workflow);
-                      const key = languageKeyForWorkflow(
-                        workflow,
-                        languageOptions,
-                      );
-                      setSelectedLanguageKey(key);
-                    }}
-                  >
-                    <CardContent className={classes.cardContent}>
-                      <Box className={classes.labelSection}>
-                        <Typography
-                          variant="subtitle2"
-                          className={classes.label}
-                        >
-                          {workflow}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          className={classes.description}
-                        >
-                          {formatWorkflowName(workflow)}
-                        </Typography>
-                      </Box>
-                      <Radio
-                        checked={isSelected}
-                        className={classes.radio}
-                        color="primary"
-                        size="small"
-                      />
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </Box>
-          )}
+        {activeTab === 1 && (
+          <Box className={classes.grid}>
+            {workflowOptions.map(workflow => {
+              const isSelected = formData === workflow;
+              return (
+                <Card
+                  key={workflow}
+                  variant="outlined"
+                  className={`${classes.card} ${
+                    isSelected ? classes.cardSelected : ''
+                  }`}
+                  onClick={() => {
+                    onChange(workflow);
+                    const key = languageKeyForWorkflow(
+                      workflow,
+                      languageOptions,
+                    );
+                    setSelectedLanguageKey(key);
+                  }}
+                >
+                  <CardContent className={classes.cardContent}>
+                    <Box className={classes.labelSection}>
+                      <Typography variant="subtitle2" className={classes.label}>
+                        {workflow}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        className={classes.description}
+                      >
+                        {formatWorkflowName(workflow)}
+                      </Typography>
+                    </Box>
+                    <Radio
+                      checked={isSelected}
+                      className={classes.radio}
+                      color="primary"
+                      size="small"
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </Box>
+        )}
 
-          {error && <FormHelperText error>{error}</FormHelperText>}
-          {rawErrors?.length ? (
-            <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
-          ) : null}
-        </CardContent>
-      </Card>
+        {error && <FormHelperText error>{error}</FormHelperText>}
+        {rawErrors?.length ? (
+          <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
+        ) : null}
+      </Box>
     );
   }
 
