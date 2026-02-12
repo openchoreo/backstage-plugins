@@ -1,5 +1,5 @@
 import { createUnifiedTheme, createBaseThemeOptions } from '@backstage/theme';
-import Ubuntu from '../assets/fonts/Ubuntu/UbuntuSans-VariableFont_wdth,wght.ttf';
+
 
 // Color constants for reuse - Modern & Minimal palette
 const colors = {
@@ -46,22 +46,11 @@ const colors = {
   },
 };
 
-const UbuntuFont = {
-  fontFamily: 'Ubuntu Sans',
-  fontStyle: 'normal',
-  fontWeight: '100 800',
-  fontStretch: '75% 100%',
-  fontDisplay: 'swap',
-  src: `
-    local('Ubuntu Sans'),
-    local('UbuntuSans-VariableFont'),
-    url(${Ubuntu}) format('truetype')
-  `,
-};
+
 
 export const openChoreoTheme = createUnifiedTheme({
   ...createBaseThemeOptions({
-    fontFamily: 'Ubuntu Sans',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
     palette: {
       ...colors,
       // Backstage-specific palette additions
@@ -130,7 +119,7 @@ export const openChoreoTheme = createUnifiedTheme({
     },
     typography: {
       fontFamily:
-        'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
       htmlFontSize: 15,
       h1: {
         fontSize: 38, // Slightly smaller for better proportions
@@ -202,10 +191,10 @@ export const openChoreoTheme = createUnifiedTheme({
     },
     MuiCssBaseline: {
       styleOverrides: {
-        '@font-face': [UbuntuFont],
+
         'body, html': {
           fontFamily:
-            'Ubuntu Sans, Ubuntu, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji" !important',
         },
         // Sidebar divider opacity - use aria-label selector to work in both dev and production
         'nav[aria-label="sidebar nav"] hr': {
