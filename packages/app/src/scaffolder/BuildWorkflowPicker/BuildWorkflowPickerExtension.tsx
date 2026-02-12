@@ -32,6 +32,7 @@ import PhpOriginal from 'devicons-react/lib/icons/PhpOriginal';
 import DotNetOriginal from 'devicons-react/lib/icons/DotNetOriginal';
 import BallerinaOriginal from 'devicons-react/lib/icons/BallerinaOriginal';
 import DockerOriginal from 'devicons-react/lib/icons/DockerOriginal';
+import ReactOriginal from 'devicons-react/lib/icons/ReactOriginal';
 
 /*
  Schema for the Build Workflow Picker field
@@ -52,6 +53,7 @@ export const BuildWorkflowPickerSchema = {
 const BUILDPACK_WORKFLOW_NAMES = new Set([
   'google-cloud-buildpacks',
   'ballerina-buildpack',
+  'react',
 ]);
 
 const ICON_SIZE = 24;
@@ -139,6 +141,13 @@ const ALL_LANGUAGE_OPTIONS: LanguageOption[] = [
     label: 'Docker',
     description: 'Build with a Dockerfile',
     icon: <DockerOriginal size={ICON_SIZE} />,
+  },
+  {
+    key: 'react',
+    workflow: 'react',
+    label: 'React',
+    description: 'Built with React workflow',
+    icon: <ReactOriginal size={ICON_SIZE} />,
   },
 ];
 
