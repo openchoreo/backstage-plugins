@@ -3,8 +3,15 @@ import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
+import {
+  type ImmediateCatalogService,
+  translateTraitToEntity,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
 
-export const createTraitDefinitionAction = (config: Config) => {
+export const createTraitDefinitionAction = (
+  config: Config,
+  immediateCatalog: ImmediateCatalogService,
+) => {
   return createTemplateAction({
     id: 'openchoreo:trait-definition:create',
     description: 'Create OpenChoreo Trait',
@@ -26,6 +33,9 @@ export const createTraitDefinitionAction = (config: Config) => {
           namespaceName: zImpl
             .string()
             .describe('The namespace where the Trait was created'),
+          entityRef: zImpl
+            .string()
+            .describe('Entity reference for the created Trait'),
         }),
     },
     async handler(ctx) {
@@ -125,9 +135,45 @@ export const createTraitDefinitionAction = (config: Config) => {
           `Trait created successfully: ${JSON.stringify(resultData)}`,
         );
 
+        // Immediately insert the Trait into the catalog
+        try {
+          ctx.logger.info(
+            `Inserting Trait '${resultName}' into catalog immediately...`,
+          );
+
+          // Extract metadata from the parsed YAML
+          const metadata = resourceObj.metadata as Record<string, unknown> | undefined;
+          const annotations = (metadata?.annotations || {}) as Record<string, string>;
+
+          const entity = translateTraitToEntity(
+            {
+              name: resultName || (metadata?.name as string),
+              displayName: annotations['openchoreo.dev/display-name'],
+              description: annotations['openchoreo.dev/description'],
+              createdAt: new Date().toISOString(),
+            },
+            namespaceName,
+            {
+              locationKey: 'OpenChoreoEntityProvider',
+            },
+          );
+
+          await immediateCatalog.insertEntity(entity);
+
+          ctx.logger.info(
+            `Trait '${resultName}' successfully added to catalog`,
+          );
+        } catch (catalogError) {
+          ctx.logger.error(
+            `Failed to immediately add Trait to catalog: ${catalogError}. ` +
+              `Trait will be visible after the next scheduled catalog sync.`,
+          );
+        }
+
         // Set outputs for the scaffolder
         ctx.output('traitName', resultName);
         ctx.output('namespaceName', namespaceName);
+        ctx.output('entityRef', `traittype:${namespaceName}/${resultName}`);
       } catch (err) {
         ctx.logger.error(`Error creating Trait: ${err}`);
         throw new Error(`Failed to create Trait: ${err}`);

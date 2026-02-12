@@ -34,17 +34,17 @@ export const scaffolderModule = createBackendModule({
         annotationStore,
       }) {
         scaffolderActions.addActions(
-          createProjectAction(config),
+          createProjectAction(config, immediateCatalog),
           createComponentAction(
             config,
             discovery,
             immediateCatalog,
             annotationStore,
           ),
-          createComponentTypeDefinitionAction(config),
-          createTraitDefinitionAction(config),
-          createComponentWorkflowDefinitionAction(config),
-          createEnvironmentAction(config),
+          createComponentTypeDefinitionAction(config, immediateCatalog),
+          createTraitDefinitionAction(config, immediateCatalog),
+          createComponentWorkflowDefinitionAction(config, immediateCatalog),
+          createEnvironmentAction(config, immediateCatalog),
         );
       },
     });

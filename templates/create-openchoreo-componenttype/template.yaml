@@ -57,3 +57,8 @@ spec:
       input:
         namespaceName: ${{ parameters.namespace_name }}
         yamlContent: ${{ parameters.yaml_content }}
+  output:
+    links:
+      - title: View ComponentType
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-componenttype'].output.entityRef }}

@@ -30,3 +30,8 @@ spec:
         description: ${{ parameters.environmentConfig.description }}
         dataPlaneRef: ${{ parameters.environmentConfig.dataPlaneRef }}
         isProduction: ${{ parameters.environmentConfig.isProduction }}
+  output:
+    links:
+      - title: View Environment
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-environment'].output.entityRef }}

@@ -21,7 +21,14 @@ export {
 } from './service/AnnotationStore';
 export {
   translateComponentToEntity,
+  translateProjectToEntity,
+  translateEnvironmentToEntity,
+  translateComponentTypeToEntity,
+  translateTraitToEntity,
+  translateComponentWorkflowToEntity,
   type ComponentEntityTranslationConfig,
+  type EntityTranslationConfig,
+  type ProjectEntityTranslationConfig,
 } from './utils/entityTranslation';
 // Re-export relation constants from common package for convenience
 export {

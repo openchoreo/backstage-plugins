@@ -2,8 +2,15 @@ import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
+import {
+  type ImmediateCatalogService,
+  translateEnvironmentToEntity,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
 
-export const createEnvironmentAction = (config: Config) => {
+export const createEnvironmentAction = (
+  config: Config,
+  immediateCatalog: ImmediateCatalogService,
+) => {
   return createTemplateAction({
     id: 'openchoreo:environment:create',
     description: 'Create OpenChoreo Environment',
@@ -42,6 +49,9 @@ export const createEnvironmentAction = (config: Config) => {
           namespaceName: zImpl
             .string()
             .describe('The namespace where the environment was created'),
+          entityRef: zImpl
+            .string()
+            .describe('Entity reference for the created environment'),
         }),
     },
     async handler(ctx) {
@@ -127,11 +137,50 @@ export const createEnvironmentAction = (config: Config) => {
           `Environment created successfully: ${JSON.stringify(data.data)}`,
         );
 
-        ctx.output(
-          'environmentName',
-          data.data.name || ctx.input.environmentName,
-        );
+        const environmentName = data.data.name || ctx.input.environmentName;
+
+        // Immediately insert the environment into the catalog
+        try {
+          ctx.logger.info(
+            `Inserting environment '${environmentName}' into catalog immediately...`,
+          );
+
+          const entity = translateEnvironmentToEntity(
+            {
+              name: environmentName,
+              displayName: ctx.input.displayName || data.data.displayName,
+              description: ctx.input.description || data.data.description,
+              uid: data.data.uid,
+              isProduction: ctx.input.isProduction ?? data.data.isProduction,
+              dataPlaneRef: data.data.dataPlaneRef || (dataPlaneRefName ? { name: dataPlaneRefName } : undefined),
+              dnsPrefix: data.data.dnsPrefix,
+              createdAt: data.data.createdAt || new Date().toISOString(),
+              status: data.data.status,
+            },
+            namespaceName,
+            {
+              locationKey: 'OpenChoreoEntityProvider',
+            },
+          );
+
+          await immediateCatalog.insertEntity(entity);
+
+          ctx.logger.info(
+            `Environment '${environmentName}' successfully added to catalog`,
+          );
+        } catch (catalogError) {
+          ctx.logger.error(
+            `Failed to immediately add environment to catalog: ${catalogError}. ` +
+              `Environment will be visible after the next scheduled catalog sync.`,
+          );
+        }
+
+        ctx.output('environmentName', environmentName);
         ctx.output('namespaceName', namespaceName);
+        ctx.output(
+          'entityRef',
+          `environment:${namespaceName}/${environmentName}`,
+        );
       } catch (err) {
         ctx.logger.error(`Error creating environment: ${err}`);
         throw new Error(`Failed to create environment: ${err}`);
