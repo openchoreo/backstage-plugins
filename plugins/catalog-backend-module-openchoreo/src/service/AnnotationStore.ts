@@ -41,6 +41,26 @@ interface AnnotationRow {
   updated_at: string;
 }
 
+function isDuplicateObjectError(error: unknown): boolean {
+  const message = String(error).toLowerCase();
+  const code =
+    error instanceof Error
+      ? (error as Error & { code?: string }).code
+      : undefined;
+
+  // SQLite: message contains "already exists"
+  // PostgreSQL: error code 42P07 (duplicate_table) or 42710 (duplicate_object)
+  // MySQL: error code ER_TABLE_EXISTS_ERROR / ER_DUP_KEYNAME
+  return (
+    message.includes('already exists') ||
+    message.includes('duplicate') ||
+    code === '42P07' ||
+    code === '42710' ||
+    code === 'ER_TABLE_EXISTS_ERROR' ||
+    code === 'ER_DUP_KEYNAME'
+  );
+}
+
 /**
  * Creates the entity_custom_annotations table if it doesn't exist.
  */
@@ -59,10 +79,14 @@ export async function applyAnnotationStoreMigrations(
         table.primary(['entity_ref', 'annotation_key']);
       });
     } catch (error) {
-      logger.warn(
-        `Table ${TABLE_NAME} already exists, skipping creation (concurrent startup race condition)`,
-        { error: String(error) },
-      );
+      if (isDuplicateObjectError(error)) {
+        logger.warn(
+          `Table ${TABLE_NAME} already exists, skipping creation (concurrent startup race condition)`,
+          { error: String(error) },
+        );
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -71,10 +95,14 @@ export async function applyAnnotationStoreMigrations(
       table.index(['entity_ref'], 'idx_entity_custom_annotations_ref');
     });
   } catch (error) {
-    logger.debug(
-      `Index idx_entity_custom_annotations_ref already exists, skipping creation`,
-      { error: String(error) },
-    );
+    if (isDuplicateObjectError(error)) {
+      logger.debug(
+        `Index idx_entity_custom_annotations_ref already exists, skipping creation`,
+        { error: String(error) },
+      );
+    } else {
+      throw error;
+    }
   }
 }
 
