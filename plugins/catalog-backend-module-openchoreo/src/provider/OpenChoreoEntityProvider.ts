@@ -1049,7 +1049,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.io/namespace-https-port':
             dataplane.namespaceHTTPSPort?.toString() || '',
           'openchoreo.io/observability-plane-ref':
-            dataplane.observabilityPlaneRef || '',
+            this.normalizeObservabilityPlaneRef(
+              dataplane.observabilityPlaneRef,
+            ),
           ...this.mapAgentConnectionAnnotations(dataplane.agentConnection),
         },
         labels: {
@@ -1067,7 +1069,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         publicHTTPSPort: dataplane.publicHTTPSPort,
         namespaceHTTPPort: dataplane.namespaceHTTPPort,
         namespaceHTTPSPort: dataplane.namespaceHTTPSPort,
-        observabilityPlaneRef: dataplane.observabilityPlaneRef,
+        observabilityPlaneRef: this.normalizeObservabilityPlaneRef(
+          dataplane.observabilityPlaneRef,
+        ),
       },
     };
 
@@ -1097,7 +1101,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.CREATED_AT]: buildplane.createdAt || '',
           [CHOREO_ANNOTATIONS.STATUS]: buildplane.status || '',
           'openchoreo.io/observability-plane-ref':
-            buildplane.observabilityPlaneRef || '',
+            this.normalizeObservabilityPlaneRef(
+              buildplane.observabilityPlaneRef,
+            ),
           ...this.mapAgentConnectionAnnotations(buildplane.agentConnection),
         },
         labels: {
@@ -1108,7 +1114,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       spec: {
         type: 'kubernetes',
         domain: `default/${namespaceName}`,
-        observabilityPlaneRef: buildplane.observabilityPlaneRef,
+        observabilityPlaneRef: this.normalizeObservabilityPlaneRef(
+          buildplane.observabilityPlaneRef,
+        ),
       },
     };
 
@@ -1156,6 +1164,19 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     };
 
     return obsplaneEntity;
+  }
+
+  /**
+   * Normalizes an observabilityPlaneRef value to a string.
+   * The API may return this as a string or as an object { kind, name }.
+   */
+  private normalizeObservabilityPlaneRef(ref: unknown): string {
+    if (!ref) return '';
+    if (typeof ref === 'string') return ref;
+    if (typeof ref === 'object' && ref !== null && 'name' in ref) {
+      return (ref as { name: string }).name;
+    }
+    return '';
   }
 
   /**
