@@ -207,6 +207,10 @@ export {
   type UseRoleMappingPermissionsResult,
 } from './hooks/useRoleMappingPermissions';
 export {
+  useNamespacePermission,
+  type UseNamespacePermissionResult,
+} from './hooks/useNamespacePermission';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,
