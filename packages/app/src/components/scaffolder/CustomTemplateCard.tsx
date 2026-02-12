@@ -1,4 +1,6 @@
-import { Box, Typography, Chip } from '@material-ui/core';
+import { Box, Typography, Chip, IconButton } from '@material-ui/core';
+import StarIcon from '@material-ui/icons/Star';
+import StarBorderIcon from '@material-ui/icons/StarBorder';
 import FolderOutlinedIcon from '@material-ui/icons/FolderOutlined';
 import WidgetsOutlinedIcon from '@material-ui/icons/WidgetsOutlined';
 import CloudOutlinedIcon from '@material-ui/icons/CloudOutlined';
@@ -6,6 +8,7 @@ import ExtensionOutlinedIcon from '@material-ui/icons/ExtensionOutlined';
 import CategoryOutlinedIcon from '@material-ui/icons/CategoryOutlined';
 import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplicationsOutlined';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
+import { useStarredEntity } from '@backstage/plugin-catalog-react';
 import type { TemplateEntityV1beta3 } from '@backstage/plugin-scaffolder-common';
 import { useStyles } from './styles';
 
@@ -30,6 +33,7 @@ export const CustomTemplateCard = ({
   onSelected,
 }: CustomTemplateCardProps) => {
   const classes = useStyles();
+  const { toggleStarredEntity, isStarredEntity } = useStarredEntity(template);
   const title = template.metadata.title || template.metadata.name;
   const description = template.metadata.description;
   const tags = template.metadata.tags ?? [];
@@ -44,6 +48,11 @@ export const CustomTemplateCard = ({
     }
   };
 
+  const handleStarClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleStarredEntity();
+  };
+
   return (
     <Box
       className={`${classes.cardBase} ${classes.resourceCard}`}
@@ -52,6 +61,18 @@ export const CustomTemplateCard = ({
       role="button"
       tabIndex={0}
     >
+      <IconButton
+        size="small"
+        className={`${classes.starButton} ${isStarredEntity ? classes.starButtonActive : ''}`}
+        onClick={handleStarClick}
+        aria-label={isStarredEntity ? 'Remove from favorites' : 'Add to favorites'}
+      >
+        {isStarredEntity ? (
+          <StarIcon fontSize="small" />
+        ) : (
+          <StarBorderIcon fontSize="small" />
+        )}
+      </IconButton>
       <Box className={classes.resourceCardIcon}>{icon}</Box>
       <Typography className={classes.resourceCardTitle}>{title}</Typography>
       {description && (

@@ -99,6 +99,7 @@ export const useStyles = makeStyles(theme => ({
   },
   // Shared card base
   cardBase: {
+    position: 'relative',
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
@@ -142,6 +143,19 @@ export const useStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     marginTop: theme.spacing(0.5),
     lineHeight: 1.4,
+  },
+  starButton: {
+    position: 'absolute',
+    top: theme.spacing(1),
+    right: theme.spacing(1),
+    padding: theme.spacing(0.5),
+    color: theme.palette.text.disabled,
+    '&:hover': {
+      color: '#f3ba37',
+    },
+  },
+  starButtonActive: {
+    color: '#f3ba37',
   },
   templateCardFooter: {
     display: 'flex',
