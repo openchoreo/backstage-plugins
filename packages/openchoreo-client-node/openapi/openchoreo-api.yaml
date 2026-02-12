@@ -413,6 +413,14 @@ components:
             $ref: '#/components/schemas/ComponentTraitRequest'
 
     # Environment
+    DataPlaneRef:
+      type: object
+      properties:
+        kind:
+          type: string
+        name:
+          type: string
+
     EnvironmentResponse:
       type: object
       required:
@@ -423,7 +431,7 @@ components:
         - createdAt
       properties:
         uid:
-          type: string # TODO: Make this required with v0.5.0.
+          type: string
         name:
           type: string
         namespace:
@@ -433,7 +441,7 @@ components:
         description:
           type: string
         dataPlaneRef:
-          type: string
+          $ref: '#/components/schemas/DataPlaneRef'
         isProduction:
           type: boolean
         dnsPrefix:
@@ -457,11 +465,9 @@ components:
         description:
           type: string
         dataPlaneRef:
-          type: string
+          $ref: '#/components/schemas/DataPlaneRef'
         isProduction:
           type: boolean
-        dnsPrefix:
-          type: string
 
     # Agent Connection Status
     AgentConnectionStatusResponse:

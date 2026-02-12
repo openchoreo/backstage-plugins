@@ -982,8 +982,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           ...(environment.status && {
             [CHOREO_ANNOTATIONS.STATUS]: environment.status,
           }),
-          ...(environment.dataPlaneRef && {
-            'openchoreo.io/data-plane-ref': environment.dataPlaneRef,
+          ...(environment.dataPlaneRef?.name && {
+            'openchoreo.io/data-plane-ref': environment.dataPlaneRef.name,
           }),
           ...(environment.dnsPrefix && {
             'openchoreo.io/dns-prefix': environment.dnsPrefix,
@@ -1006,7 +1006,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         // Domain entities (mapped from OpenChoreo namespaces) live in the Backstage 'default' namespace
         domain: `default/${namespaceName}`,
         isProduction: environment.isProduction,
-        dataPlaneRef: environment.dataPlaneRef,
+        dataPlaneRef: environment.dataPlaneRef?.name,
         dnsPrefix: environment.dnsPrefix,
       },
     };
