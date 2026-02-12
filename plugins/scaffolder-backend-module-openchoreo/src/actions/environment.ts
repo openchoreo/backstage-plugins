@@ -33,10 +33,6 @@ export const createEnvironmentAction = (config: Config) => {
           isProduction: zImpl
             .boolean()
             .describe('Whether this is a production environment'),
-          dnsPrefix: zImpl
-            .string()
-            .optional()
-            .describe('DNS prefix for the environment gateway'),
         }),
       output: (zImpl: typeof z) =>
         zImpl.object({
@@ -65,12 +61,16 @@ export const createEnvironmentAction = (config: Config) => {
       );
 
       // Extract dataplane name from entity reference format (e.g., "dataplane:default/default" -> "default")
-      const dataPlaneRef = ctx.input.dataPlaneRef
+      const dataPlaneRefName = ctx.input.dataPlaneRef
         ? extractEntityName(ctx.input.dataPlaneRef)
         : undefined;
       ctx.logger.debug(
-        `Extracted dataplane ref: ${dataPlaneRef} from ${ctx.input.dataPlaneRef}`,
+        `Extracted dataplane ref: ${dataPlaneRefName} from ${ctx.input.dataPlaneRef}`,
       );
+
+      const dataPlaneRef = dataPlaneRefName
+        ? { kind: 'DataPlane', name: dataPlaneRefName }
+        : undefined;
 
       // Get the base URL from configuration
       const baseUrl = config.getString('openchoreo.baseUrl');
@@ -109,7 +109,6 @@ export const createEnvironmentAction = (config: Config) => {
               description: ctx.input.description,
               dataPlaneRef,
               isProduction: ctx.input.isProduction,
-              dnsPrefix: ctx.input.dnsPrefix,
             },
           },
         );

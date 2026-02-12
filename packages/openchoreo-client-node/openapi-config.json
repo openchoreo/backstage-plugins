@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "aa5d43cbd77504f5c8f10bef0f55f99a115c7fe0",
-  "lastSyncDate": "2026-02-10T00:00:00+00:00",
-  "lastSyncDescription": "Added GET endpoints for component workflow run status and logs."
+  "lastSyncCommit": "6f541d38accf45d41ca69886e87b8bf1b422e151",
+  "lastSyncDate": "2026-02-12T11:55:12+05:30",
+  "lastSyncDescription": "Updated DataPlaneRef from string to object with kind and name fields in EnvironmentResponse and CreateEnvironmentRequest"
 }

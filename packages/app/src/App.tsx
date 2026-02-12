@@ -25,6 +25,7 @@ import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTyp
 import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
+import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
 import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
@@ -219,6 +220,7 @@ const routes = (
         <ComponentTypeYamlEditorFieldExtension />
         <TraitYamlEditorFieldExtension />
         <ComponentWorkflowYamlEditorFieldExtension />
+        <EnvironmentFormWithYamlFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />

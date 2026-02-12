@@ -1531,13 +1531,17 @@ export interface components {
       /** @description Array of trait instances to attach to the component (replaces all existing traits) */
       traits: components['schemas']['ComponentTraitRequest'][];
     };
+    DataPlaneRef: {
+      kind?: string;
+      name?: string;
+    };
     EnvironmentResponse: {
       uid: string;
       name: string;
       namespace: string;
       displayName?: string;
       description?: string;
-      dataPlaneRef?: string;
+      dataPlaneRef?: components['schemas']['DataPlaneRef'];
       isProduction: boolean;
       dnsPrefix?: string;
       /** Format: date-time */
@@ -1548,9 +1552,8 @@ export interface components {
       name: string;
       displayName?: string;
       description?: string;
-      dataPlaneRef?: string;
+      dataPlaneRef?: components['schemas']['DataPlaneRef'];
       isProduction: boolean;
-      dnsPrefix?: string;
     };
     AgentConnectionStatusResponse: {
       connected?: boolean;
