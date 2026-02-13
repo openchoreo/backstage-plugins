@@ -1,6 +1,13 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Box, Drawer, Button, Typography, Grid } from '@material-ui/core';
+import {
+  Box,
+  Drawer,
+  Button,
+  Typography,
+  Grid,
+  Tooltip,
+} from '@material-ui/core';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import WidgetsOutlinedIcon from '@material-ui/icons/WidgetsOutlined';
@@ -36,6 +43,7 @@ import { ScaffolderCategoryPicker } from './ScaffolderCategoryPicker';
 import { ScaffolderTagPicker } from './ScaffolderTagPicker';
 import { ScaffolderSearchBar } from './ScaffolderSearchBar';
 import { CustomTemplateCard } from './CustomTemplateCard';
+import { useScaffolderPermissions } from './useScaffolderPermissions';
 import { useStyles } from './styles';
 
 const APPLICATION_TYPES = ['System (Project)'];
@@ -99,6 +107,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     scaffolderPlugin.externalRoutes.registerComponent,
   );
   const app = useApp();
+  const permissions = useScaffolderPermissions();
 
   // Get all template entities from the catalog (filtered by search/category/tag/starred)
   const { entities } = useEntityList();
@@ -185,20 +194,25 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   }, [setSearchParams]);
 
   const renderTemplateCards = (items: TemplateEntityV1beta3[]) =>
-    items.map(template => (
-      <Grid
-        item
-        xs={12}
-        sm={6}
-        md={3}
-        key={template.metadata.uid ?? template.metadata.name}
-      >
-        <CustomTemplateCard
-          template={template}
-          onSelected={onTemplateSelected}
-        />
-      </Grid>
-    ));
+    items.map(template => {
+      const perm = permissions[template.spec?.type];
+      const disabled = perm ? !perm.loading && !perm.allowed : false;
+      return (
+        <Grid
+          item
+          xs={12}
+          sm={6}
+          md={3}
+          key={template.metadata.uid ?? template.metadata.name}
+        >
+          <CustomTemplateCard
+            template={template}
+            onSelected={onTemplateSelected}
+            disabled={disabled}
+          />
+        </Grid>
+      );
+    });
 
   const renderFilters = () => (
     <>
@@ -260,28 +274,51 @@ const TemplateListContent = (props: TemplateListPageProps) => {
         {renderTemplateCards(applicationTemplates)}
         {/* Component — navigation card, no single backing template */}
         <Grid item xs={12} sm={6} md={3}>
-          <Box
-            className={`${classes.cardBase} ${classes.resourceCard}`}
-            onClick={navigateToComponentsView}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                navigateToComponentsView();
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <Box className={classes.resourceCardIcon}>
-              <WidgetsOutlinedIcon fontSize="inherit" />
-            </Box>
-            <Typography className={classes.resourceCardTitle}>
-              Component
-            </Typography>
-            <Typography className={classes.resourceCardDescription}>
-              Browse component templates
-            </Typography>
-          </Box>
+          {(() => {
+            const componentPerm = permissions.Component;
+            const componentDisabled =
+              componentPerm && !componentPerm.loading && !componentPerm.allowed;
+            const card = (
+              <Box
+                className={`${classes.cardBase} ${classes.resourceCard} ${
+                  componentDisabled ? classes.cardDisabled : ''
+                }`}
+                onClick={
+                  componentDisabled ? undefined : navigateToComponentsView
+                }
+                onKeyDown={
+                  componentDisabled
+                    ? undefined
+                    : e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigateToComponentsView();
+                        }
+                      }
+                }
+                role="button"
+                tabIndex={componentDisabled ? -1 : 0}
+                aria-disabled={componentDisabled || undefined}
+              >
+                <Box className={classes.resourceCardIcon}>
+                  <WidgetsOutlinedIcon fontSize="inherit" />
+                </Box>
+                <Typography className={classes.resourceCardTitle}>
+                  Component
+                </Typography>
+                <Typography className={classes.resourceCardDescription}>
+                  Browse component templates
+                </Typography>
+              </Box>
+            );
+            return componentDisabled ? (
+              <Tooltip title="You do not have permission to create this resource">
+                <Box className={classes.cardDisabledWrapper}>{card}</Box>
+              </Tooltip>
+            ) : (
+              card
+            );
+          })()}
         </Grid>
       </Grid>
 
@@ -311,6 +348,18 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     </>
   );
 
+  const ComponentTemplateCard = useMemo(() => {
+    const componentPerm = permissions.Component;
+    const disabled =
+      componentPerm && !componentPerm.loading && !componentPerm.allowed;
+    const Card = (cardProps: {
+      template: TemplateEntityV1beta3;
+      onSelected?: (template: TemplateEntityV1beta3) => void;
+    }) => <CustomTemplateCard {...cardProps} disabled={disabled} />;
+    Card.displayName = 'ComponentTemplateCard';
+    return Card;
+  }, [permissions]);
+
   const renderComponentsView = () => (
     <>
       <Box
@@ -325,7 +374,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
         <TemplateGroups
           groups={componentGroups}
           templateFilter={templateFilter}
-          TemplateCardComponent={CustomTemplateCard}
+          TemplateCardComponent={ComponentTemplateCard}
           onTemplateSelected={onTemplateSelected}
           additionalLinksForEntity={additionalLinksForEntity}
         />
