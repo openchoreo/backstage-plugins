@@ -384,7 +384,8 @@ export function translateComponentWorkflowToEntity(
 /**
  * Configuration for namespace entity translation
  */
-export interface NamespaceEntityTranslationConfig extends EntityTranslationConfig {
+export interface NamespaceEntityTranslationConfig
+  extends EntityTranslationConfig {
   defaultOwner: string;
 }
 
