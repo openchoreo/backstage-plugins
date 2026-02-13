@@ -38,12 +38,20 @@ import useMediaQuery from '@material-ui/core/useMediaQuery';
 import { Theme } from '@material-ui/core/styles';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
 import IconButton from '@material-ui/core/IconButton';
+import {
+  useProjectPermission,
+  useComponentCreatePermission,
+  useEnvironmentPermission,
+  useTraitCreatePermission,
+  useComponentTypePermission,
+  useComponentWorkflowPermission,
+  useNamespacePermission,
+} from '@openchoreo/backstage-plugin-react';
 import { ScaffolderStarredFilter } from './ScaffolderStarredFilter';
 import { ScaffolderCategoryPicker } from './ScaffolderCategoryPicker';
 import { ScaffolderTagPicker } from './ScaffolderTagPicker';
 import { ScaffolderSearchBar } from './ScaffolderSearchBar';
 import { CustomTemplateCard } from './CustomTemplateCard';
-import { useScaffolderPermissions } from './useScaffolderPermissions';
 import { useStyles } from './styles';
 
 const APPLICATION_TYPES = ['System (Project)'];
@@ -107,7 +115,50 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     scaffolderPlugin.externalRoutes.registerComponent,
   );
   const app = useApp();
-  const permissions = useScaffolderPermissions();
+
+  // Entity-specific permission hooks
+  const projectPerm = useProjectPermission();
+  const componentPerm = useComponentCreatePermission();
+  const environmentPerm = useEnvironmentPermission();
+  const traitPerm = useTraitCreatePermission();
+  const componentTypePerm = useComponentTypePermission();
+  const componentWorkflowPerm = useComponentWorkflowPermission();
+  const namespacePerm = useNamespacePermission();
+
+  // Map template spec.type to whether the card should be disabled
+  const isTemplateDisabled = useCallback(
+    (specType: string): boolean => {
+      switch (specType) {
+        case 'System (Project)':
+          return !projectPerm.loading && !projectPerm.canCreate;
+        case 'Component':
+          return !componentPerm.loading && !componentPerm.canCreate;
+        case 'Environment':
+          return !environmentPerm.loading && !environmentPerm.canCreate;
+        case 'Trait':
+          return !traitPerm.loading && !traitPerm.canCreate;
+        case 'ComponentType':
+          return !componentTypePerm.loading && !componentTypePerm.canCreate;
+        case 'ComponentWorkflow':
+          return (
+            !componentWorkflowPerm.loading && !componentWorkflowPerm.canCreate
+          );
+        case 'Namespace':
+          return !namespacePerm.loading && !namespacePerm.canCreate;
+        default:
+          return false;
+      }
+    },
+    [
+      projectPerm,
+      componentPerm,
+      environmentPerm,
+      traitPerm,
+      componentTypePerm,
+      componentWorkflowPerm,
+      namespacePerm,
+    ],
+  );
 
   // Get all template entities from the catalog (filtered by search/category/tag/starred)
   const { entities } = useEntityList();
@@ -195,8 +246,7 @@ const TemplateListContent = (props: TemplateListPageProps) => {
 
   const renderTemplateCards = (items: TemplateEntityV1beta3[]) =>
     items.map(template => {
-      const perm = permissions[template.spec?.type];
-      const disabled = perm ? !perm.loading && !perm.allowed : false;
+      const disabled = isTemplateDisabled(template.spec?.type);
       return (
         <Grid
           item
@@ -258,107 +308,102 @@ const TemplateListContent = (props: TemplateListPageProps) => {
     </>
   );
 
-  const renderLandingView = () => (
-    <>
-      <Typography
-        className={`${classes.sectionTitle} ${classes.sectionTitleFirst}`}
+  const renderLandingView = () => {
+    const componentDisabled = isTemplateDisabled('Component');
+    const componentCard = (
+      <Box
+        className={`${classes.cardBase} ${classes.resourceCard} ${
+          componentDisabled ? classes.cardDisabled : ''
+        }`}
+        onClick={componentDisabled ? undefined : navigateToComponentsView}
+        onKeyDown={
+          componentDisabled
+            ? undefined
+            : e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigateToComponentsView();
+                }
+              }
+        }
+        role="button"
+        tabIndex={componentDisabled ? -1 : 0}
+        aria-disabled={componentDisabled || undefined}
       >
-        Create an OpenChoreo Resource
-      </Typography>
+        <Box className={classes.resourceCardIcon}>
+          <WidgetsOutlinedIcon fontSize="inherit" />
+        </Box>
+        <Typography className={classes.resourceCardTitle}>Component</Typography>
+        <Typography className={classes.resourceCardDescription}>
+          Browse component templates
+        </Typography>
+      </Box>
+    );
 
-      {/* Application Resources */}
-      <Typography className={classes.sectionSubtitle}>
-        Application Resources
-      </Typography>
-      <Grid container spacing={3}>
-        {renderTemplateCards(applicationTemplates)}
-        {/* Component — navigation card, no single backing template */}
-        <Grid item xs={12} sm={6} md={3}>
-          {(() => {
-            const componentPerm = permissions.Component;
-            const componentDisabled =
-              componentPerm && !componentPerm.loading && !componentPerm.allowed;
-            const card = (
-              <Box
-                className={`${classes.cardBase} ${classes.resourceCard} ${
-                  componentDisabled ? classes.cardDisabled : ''
-                }`}
-                onClick={
-                  componentDisabled ? undefined : navigateToComponentsView
-                }
-                onKeyDown={
-                  componentDisabled
-                    ? undefined
-                    : e => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          navigateToComponentsView();
-                        }
-                      }
-                }
-                role="button"
-                tabIndex={componentDisabled ? -1 : 0}
-                aria-disabled={componentDisabled || undefined}
-              >
-                <Box className={classes.resourceCardIcon}>
-                  <WidgetsOutlinedIcon fontSize="inherit" />
+    return (
+      <>
+        <Typography
+          className={`${classes.sectionTitle} ${classes.sectionTitleFirst}`}
+        >
+          Create an OpenChoreo Resource
+        </Typography>
+
+        {/* Application Resources */}
+        <Typography className={classes.sectionSubtitle}>
+          Application Resources
+        </Typography>
+        <Grid container spacing={3}>
+          {renderTemplateCards(applicationTemplates)}
+          {/* Component — navigation card, no single backing template */}
+          <Grid item xs={12} sm={6} md={3}>
+            {componentDisabled ? (
+              <Tooltip title={componentPerm.createDeniedTooltip}>
+                <Box className={classes.cardDisabledWrapper}>
+                  {componentCard}
                 </Box>
-                <Typography className={classes.resourceCardTitle}>
-                  Component
-                </Typography>
-                <Typography className={classes.resourceCardDescription}>
-                  Browse component templates
-                </Typography>
-              </Box>
-            );
-            return componentDisabled ? (
-              <Tooltip title="You do not have permission to create this resource">
-                <Box className={classes.cardDisabledWrapper}>{card}</Box>
               </Tooltip>
             ) : (
-              card
-            );
-          })()}
+              componentCard
+            )}
+          </Grid>
         </Grid>
-      </Grid>
 
-      {/* Platform Resources */}
-      {platformTemplates.length > 0 && (
-        <>
-          <Typography className={classes.sectionSubtitle}>
-            Platform Resources
-          </Typography>
-          <Grid container spacing={3}>
-            {renderTemplateCards(platformTemplates)}
-          </Grid>
-        </>
-      )}
+        {/* Platform Resources */}
+        {platformTemplates.length > 0 && (
+          <>
+            <Typography className={classes.sectionSubtitle}>
+              Platform Resources
+            </Typography>
+            <Grid container spacing={3}>
+              {renderTemplateCards(platformTemplates)}
+            </Grid>
+          </>
+        )}
 
-      {/* Other Templates */}
-      {otherTemplates.length > 0 && (
-        <>
-          <Typography className={classes.sectionTitle}>
-            Other Templates
-          </Typography>
-          <Grid container spacing={3}>
-            {renderTemplateCards(otherTemplates)}
-          </Grid>
-        </>
-      )}
-    </>
-  );
+        {/* Other Templates */}
+        {otherTemplates.length > 0 && (
+          <>
+            <Typography className={classes.sectionTitle}>
+              Other Templates
+            </Typography>
+            <Grid container spacing={3}>
+              {renderTemplateCards(otherTemplates)}
+            </Grid>
+          </>
+        )}
+      </>
+    );
+  };
 
   const ComponentTemplateCard = useMemo(() => {
-    const componentPerm = permissions.Component;
-    const disabled =
-      componentPerm && !componentPerm.loading && !componentPerm.allowed;
+    const disabled = isTemplateDisabled('Component');
     const Card = (cardProps: {
       template: TemplateEntityV1beta3;
       onSelected?: (template: TemplateEntityV1beta3) => void;
     }) => <CustomTemplateCard {...cardProps} disabled={disabled} />;
     Card.displayName = 'ComponentTemplateCard';
     return Card;
-  }, [permissions]);
+  }, [isTemplateDisabled]);
 
   const renderComponentsView = () => (
     <>
