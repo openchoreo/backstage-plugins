@@ -54,14 +54,8 @@ describe('CtdToTemplateConverter', () => {
       expect(result.metadata.namespace).toBe('test-namespace');
       expect(result.metadata.title).toBe('Simple Service');
       expect(result.metadata.description).toBe('A simple service for testing');
-      // Tags include inferred tags from name and workloadType
-      expect(result.metadata.tags).toEqual([
-        'openchoreo',
-        'simple-service',
-        'deployment',
-        'test',
-        'simple',
-      ]);
+      // Tags are not generated (tag inference was removed)
+      expect(result.metadata.tags).toBeUndefined();
 
       // Check annotations
       expect(result.metadata.annotations?.[CHOREO_ANNOTATIONS.CTD_NAME]).toBe(
@@ -121,17 +115,13 @@ describe('CtdToTemplateConverter', () => {
 
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
 
-      // Even without explicit tags, should have inferred tags from name and workloadType
-      expect(result.metadata.tags).toEqual([
-        'openchoreo',
-        'simple-service',
-        'deployment',
-      ]);
+      // Tags are not generated (tag inference was removed)
+      expect(result.metadata.tags).toBeUndefined();
     });
   });
 
   describe('generateParameters', () => {
-    it('should generate 3 sections: Build & Deploy, Workload Details, Component Metadata', () => {
+    it('should generate 3 sections: Build & Deploy, <DisplayName> Details, Component Metadata', () => {
       const ctd: ComponentType = {
         metadata: {
           workloadType: 'deployment',
@@ -155,8 +145,8 @@ describe('CtdToTemplateConverter', () => {
       // Section 1: Build & Deploy
       expect(parameters[0].title).toBe('Build & Deploy');
 
-      // Section 2: Workload Details
-      expect(parameters[1].title).toBe('Workload Details');
+      // Section 2: Dynamic title based on displayName/name
+      expect(parameters[1].title).toBe('Test Service Details');
 
       // Section 3: Component Metadata
       expect(parameters[2].title).toBe('Component Metadata');
@@ -204,9 +194,9 @@ describe('CtdToTemplateConverter', () => {
       const result = converter.convertCtdToTemplateEntity(ctd, 'test-org');
       const parameters = result.spec?.parameters as any[];
 
-      // Section 2: Workload Details
+      // Section 2: Dynamic title based on displayName
       const workloadSection = parameters[1];
-      expect(workloadSection.title).toBe('Workload Details');
+      expect(workloadSection.title).toBe('Web Service Details');
 
       // Check it uses WorkloadDetailsField
       const workloadDetails = workloadSection.properties.workloadDetails;
@@ -463,7 +453,7 @@ describe('CtdToTemplateConverter', () => {
 
       // Verify section order
       expect(parameters[0].title).toBe('Build & Deploy');
-      expect(parameters[1].title).toBe('Workload Details');
+      expect(parameters[1].title).toBe('Web Service Details');
       expect(parameters[2].title).toBe('Component Metadata');
     });
 
