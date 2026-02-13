@@ -178,7 +178,7 @@ export const GitSourceField = ({
 
   // Autocomplete options for git secret
   const secretOptions = [
-    CREATE_NEW_SECRET,
+    ...(nsName ? [CREATE_NEW_SECRET] : []),
     NO_SECRET,
     DIVIDER,
     ...(secretsLoading ? [] : secrets.map(s => s.name)),
