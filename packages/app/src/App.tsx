@@ -9,6 +9,8 @@ import {
   CatalogImportPage,
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
+import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
+import { createTranslationMessages } from '@backstage/core-plugin-api/alpha';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
@@ -120,6 +122,22 @@ function DynamicSignInPage(props: any) {
   );
 }
 
+const catalogImportTranslations = createTranslationMessages({
+  ref: catalogImportTranslationRef,
+  full: false,
+  messages: {
+    'defaultImportPage.headerTitle': 'Register an existing catalog entity',
+    'defaultImportPage.contentHeaderTitle':
+      'Start tracking your entity in {{appTitle}}',
+    'defaultImportPage.supportTitle':
+      'Start tracking your entity in {{appTitle}} by adding it to the software catalog.',
+    'importInfoCard.title': 'Register an existing catalog entity',
+    'stepInitAnalyzeUrl.urlHelperText':
+      'Enter the full path to your entity file to start tracking',
+    'stepFinishImportLocation.locations.viewButtonText': 'View Entity',
+  },
+});
+
 const app = createApp({
   apis,
   icons: {
@@ -164,6 +182,9 @@ const app = createApp({
       ),
     },
   ],
+  __experimentalTranslations: {
+    resources: [catalogImportTranslations],
+  },
 });
 
 const routes = (
