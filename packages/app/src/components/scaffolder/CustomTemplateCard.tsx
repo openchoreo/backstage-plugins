@@ -1,4 +1,4 @@
-import { Box, Typography, Chip, IconButton } from '@material-ui/core';
+import { Box, Typography, Chip, IconButton, Tooltip } from '@material-ui/core';
 import StarIcon from '@material-ui/icons/Star';
 import StarBorderIcon from '@material-ui/icons/StarBorder';
 import FolderOutlinedIcon from '@material-ui/icons/FolderOutlined';
@@ -28,11 +28,13 @@ const DEFAULT_ICON = <DescriptionOutlinedIcon fontSize="inherit" />;
 type CustomTemplateCardProps = {
   template: TemplateEntityV1beta3;
   onSelected?: (template: TemplateEntityV1beta3) => void;
+  disabled?: boolean;
 };
 
 export const CustomTemplateCard = ({
   template,
   onSelected,
+  disabled,
 }: CustomTemplateCardProps) => {
   const classes = useStyles();
   const { toggleStarredEntity, isStarredEntity } = useStarredEntity(template);
@@ -42,9 +44,11 @@ export const CustomTemplateCard = ({
   const type = template.spec.type;
   const icon = TYPE_ICONS[type] ?? DEFAULT_ICON;
 
-  const handleClick = () => onSelected?.(template);
+  const handleClick = () => {
+    if (!disabled) onSelected?.(template);
+  };
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       handleClick();
     }
@@ -52,16 +56,19 @@ export const CustomTemplateCard = ({
 
   const handleStarClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleStarredEntity();
+    if (!disabled) toggleStarredEntity();
   };
 
-  return (
+  const card = (
     <Box
-      className={`${classes.cardBase} ${classes.resourceCard}`}
+      className={`${classes.cardBase} ${classes.resourceCard} ${
+        disabled ? classes.cardDisabled : ''
+      }`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       role="button"
-      tabIndex={0}
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
     >
       <IconButton
         size="small"
@@ -101,4 +108,14 @@ export const CustomTemplateCard = ({
       )}
     </Box>
   );
+
+  if (disabled) {
+    return (
+      <Tooltip title="You do not have permission to create this resource">
+        <Box className={classes.cardDisabledWrapper}>{card}</Box>
+      </Tooltip>
+    );
+  }
+
+  return card;
 };

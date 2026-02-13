@@ -113,6 +113,42 @@ export const openchoreoEnvironmentReadPermission = createPermission({
 });
 
 /**
+ * Permission to create a new namespace (organization).
+ * Requires organization context.
+ */
+export const openchoreoNamespaceCreatePermission = createPermission({
+  name: 'openchoreo.namespace.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to create a new trait.
+ * Requires organization context.
+ */
+export const openchoreoTraitCreatePermission = createPermission({
+  name: 'openchoreo.trait.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to create a new component type.
+ * Requires organization context.
+ */
+export const openchoreoComponentTypeCreatePermission = createPermission({
+  name: 'openchoreo.componenttype.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to create a new component workflow.
+ * Requires organization context.
+ */
+export const openchoreoComponentWorkflowCreatePermission = createPermission({
+  name: 'openchoreo.componentworkflow.create',
+  attributes: { action: 'create' },
+});
+
+/**
  * Permission to create a new component release.
  * Requires component context.
  */
@@ -246,6 +282,7 @@ export const openchoreoPermissions = [
   openchoreoProjectCreatePermission,
   openchoreoProjectReadPermission,
   openchoreoNamespaceReadPermission,
+  openchoreoNamespaceCreatePermission,
   openchoreoEnvironmentCreatePermission,
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
@@ -261,6 +298,9 @@ export const openchoreoPermissions = [
   openchoreoLogsViewPermission,
   openchoreoMetricsViewPermission,
   openchoreoTraitsViewPermission,
+  openchoreoTraitCreatePermission,
+  openchoreoComponentTypeCreatePermission,
+  openchoreoComponentWorkflowCreatePermission,
 ];
 
 /**
@@ -278,6 +318,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.project.create': 'project:create',
   'openchoreo.project.read': 'project:view',
   'openchoreo.namespace.read': 'namespace:view',
+  'openchoreo.namespace.create': 'namespace:create',
   'openchoreo.environment.create': 'environment:create',
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',
@@ -293,6 +334,9 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.logs.view': 'logs:view',
   'openchoreo.metrics.view': 'metrics:view',
   'openchoreo.traits.view': 'trait:view',
+  'openchoreo.trait.create': 'trait:create',
+  'openchoreo.componenttype.create': 'componenttype:create',
+  'openchoreo.componentworkflow.create': 'componentworkflow:create',
 };
 
 /**
