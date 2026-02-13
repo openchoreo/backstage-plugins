@@ -211,6 +211,30 @@ export {
   type UseNamespacePermissionResult,
 } from './hooks/useNamespacePermission';
 export {
+  useProjectPermission,
+  type UseProjectPermissionResult,
+} from './hooks/useProjectPermission';
+export {
+  useComponentCreatePermission,
+  type UseComponentCreatePermissionResult,
+} from './hooks/useComponentCreatePermission';
+export {
+  useEnvironmentPermission,
+  type UseEnvironmentPermissionResult,
+} from './hooks/useEnvironmentPermission';
+export {
+  useTraitCreatePermission,
+  type UseTraitCreatePermissionResult,
+} from './hooks/useTraitCreatePermission';
+export {
+  useComponentTypePermission,
+  type UseComponentTypePermissionResult,
+} from './hooks/useComponentTypePermission';
+export {
+  useComponentWorkflowPermission,
+  type UseComponentWorkflowPermissionResult,
+} from './hooks/useComponentWorkflowPermission';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,
