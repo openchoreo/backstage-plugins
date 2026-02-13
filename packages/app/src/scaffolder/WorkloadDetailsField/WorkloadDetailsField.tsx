@@ -679,6 +679,52 @@ export const WorkloadDetailsField = ({
     };
   }, [namespaceName, client]);
 
+  // Re-fetch schemas for restored traits that are missing them
+  useEffect(() => {
+    let ignore = false;
+
+    const hydrateRestoredTraits = async () => {
+      if (!namespaceName) return;
+
+      const traitsNeedingSchema = addedTraits.filter(t => !t.schema);
+      if (traitsNeedingSchema.length === 0) return;
+
+      const nsName = namespaceName.split('/').pop() || namespaceName;
+      const hydrated = await Promise.all(
+        addedTraits.map(async trait => {
+          if (trait.schema) return trait;
+          try {
+            const result = await client.fetchTraitSchemaByNamespace(
+              nsName,
+              trait.name,
+            );
+            if (result.success) {
+              return {
+                ...trait,
+                schema: result.data,
+                uiSchema: generateUiSchemaWithTitles(result.data),
+              };
+            }
+          } catch {
+            /* keep trait without schema */
+          }
+          return trait;
+        }),
+      );
+
+      if (!ignore) {
+        setAddedTraits(hydrated);
+      }
+    };
+
+    hydrateRestoredTraits();
+    return () => {
+      ignore = true;
+    };
+    // Only run on mount — addedTraits intentionally excluded to avoid re-triggering
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namespaceName, client]);
+
   const handleAddTrait = useCallback(
     async (traitName: string) => {
       if (!traitName || !namespaceName) return;
