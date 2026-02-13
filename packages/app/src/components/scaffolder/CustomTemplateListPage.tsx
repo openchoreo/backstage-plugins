@@ -40,6 +40,7 @@ import { useStyles } from './styles';
 
 const APPLICATION_TYPES = ['System (Project)'];
 const PLATFORM_TYPES = [
+  'Namespace',
   'Environment',
   'Trait',
   'ComponentType',

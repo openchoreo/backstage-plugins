@@ -380,3 +380,53 @@ export function translateComponentWorkflowToEntity(
     },
   };
 }
+
+/**
+ * Configuration for namespace entity translation
+ */
+export interface NamespaceEntityTranslationConfig extends EntityTranslationConfig {
+  defaultOwner: string;
+}
+
+/**
+ * Translates an OpenChoreo Namespace to a Backstage Domain entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateNamespaceToDomainEntity(
+  namespace: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    status?: string;
+  },
+  config: NamespaceEntityTranslationConfig,
+): Entity {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Domain',
+    metadata: {
+      name: namespace.name,
+      title: namespace.displayName || namespace.name,
+      description: namespace.description || namespace.name,
+      tags: ['openchoreo', 'namespace', 'domain'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespace.name,
+        ...(namespace.createdAt && {
+          [CHOREO_ANNOTATIONS.CREATED_AT]: namespace.createdAt,
+        }),
+        ...(namespace.status && {
+          [CHOREO_ANNOTATIONS.STATUS]: namespace.status,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      owner: config.defaultOwner,
+    },
+  };
+}
