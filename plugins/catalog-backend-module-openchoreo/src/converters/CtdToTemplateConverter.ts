@@ -248,7 +248,7 @@ export class CtdToTemplateConverter {
       workflowNameField.enum = componentType.metadata.allowedWorkflows;
     }
 
-    // Auto Deploy field - shared across all deployment source branches, rendered at the bottom
+    // Auto Deploy field - only for deploy-from-image (build-from-source and external-ci don't have an immediate image to deploy)
     const autoDeployField = {
       title: 'Auto Deploy',
       description:
@@ -302,7 +302,6 @@ export class CtdToTemplateConverter {
                     namespaceName: namespaceName,
                   },
                 },
-                autoDeploy: autoDeployField,
               },
               required: ['workflow_name', 'workflow_parameters'],
             },
@@ -343,7 +342,6 @@ export class CtdToTemplateConverter {
                   ],
                   default: 'none',
                 },
-                autoDeploy: autoDeployField,
               },
             },
           ],

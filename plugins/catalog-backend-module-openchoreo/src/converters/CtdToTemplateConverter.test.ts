@@ -335,7 +335,7 @@ describe('CtdToTemplateConverter', () => {
         'DeploymentSourcePicker',
       );
 
-      // autoDeploy is NOT a top-level property — it's in each oneOf branch (at the bottom)
+      // autoDeploy is NOT a top-level property — it's only in the deploy-from-image branch
       expect(buildDeploySection.properties.autoDeploy).toBeUndefined();
 
       // Check dependencies structure uses oneOf
@@ -392,12 +392,8 @@ describe('CtdToTemplateConverter', () => {
         buildFromSourceBranch.properties.workflow_parameters['ui:field'],
       ).toBe('BuildWorkflowParameters');
 
-      // Check autoDeploy appears in build-from-source branch
-      expect(buildFromSourceBranch.properties.autoDeploy).toBeDefined();
-      expect(buildFromSourceBranch.properties.autoDeploy.type).toBe('boolean');
-      expect(buildFromSourceBranch.properties.autoDeploy['ui:field']).toBe(
-        'SwitchField',
-      );
+      // autoDeploy should NOT appear in build-from-source branch (only in deploy-from-image)
+      expect(buildFromSourceBranch.properties.autoDeploy).toBeUndefined();
 
       // Check required fields for build-from-source
       expect(buildFromSourceBranch.required).toEqual([

@@ -17,14 +17,10 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  FormControl,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
   Link,
 } from '@material-ui/core';
-import { Alert } from '@material-ui/lab';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import DeleteIcon from '@material-ui/icons/Delete';
 import { useApi } from '@backstage/core-plugin-api';
 import Form from '@rjsf/material-ui';
@@ -169,7 +165,6 @@ export interface WorkloadDetailsData {
   endpoints: Record<string, WorkloadEndpoint>;
   envVars: EnvVar[];
   fileMounts: FileVar[];
-  useWorkloadDescriptor?: boolean;
   traits: Array<{
     name: string;
     instanceName: string;
@@ -215,13 +210,10 @@ export const WorkloadDetailsField = ({
   const isFromImage = deploymentSource === 'deploy-from-image';
   const isBuildFromSource = deploymentSource === 'build-from-source';
   const isExternalCi = deploymentSource === 'external-ci';
-  const showWorkloadApiToggle = isBuildFromSource || isExternalCi;
-  const [useWorkloadDescriptor, setUseWorkloadDescriptor] = useState(
-    formData?.useWorkloadDescriptor ?? false,
-  );
+  const showWorkloadInfoSection = isBuildFromSource || isExternalCi;
   const [workloadDescriptorDialogOpen, setWorkloadDescriptorDialogOpen] =
     useState(false);
-  const descriptorModeActive = showWorkloadApiToggle && useWorkloadDescriptor;
+  const [configInfoExpanded, setConfigInfoExpanded] = useState(false);
 
   // Extract options from uiSchema
   const namespaceName =
@@ -277,17 +269,12 @@ export const WorkloadDetailsField = ({
       newEnvVars: EnvVar[],
       newFileMounts: FileVar[],
       newTraits: AddedTrait[],
-      newUseWorkloadDescriptor?: boolean,
     ) => {
-      const descriptorActive =
-        newUseWorkloadDescriptor ?? useWorkloadDescriptor;
-      const shouldIncludeVars = !descriptorActive && isFromImage;
       onChange({
         ctdParameters: newCtd,
-        endpoints: descriptorActive ? {} : newEndpoints,
-        envVars: shouldIncludeVars ? newEnvVars : [],
-        fileMounts: shouldIncludeVars ? newFileMounts : [],
-        useWorkloadDescriptor: descriptorActive,
+        endpoints: isFromImage ? newEndpoints : {},
+        envVars: isFromImage ? newEnvVars : [],
+        fileMounts: isFromImage ? newFileMounts : [],
         traits: newTraits.map(t => ({
           name: t.name,
           instanceName: t.instanceName,
@@ -295,22 +282,7 @@ export const WorkloadDetailsField = ({
         })),
       });
     },
-    [onChange, isFromImage, useWorkloadDescriptor],
-  );
-
-  const handleWorkloadDescriptorChange = useCallback(
-    (value: boolean) => {
-      setUseWorkloadDescriptor(value);
-      emitChange(
-        ctdParameters,
-        endpoints,
-        envVars,
-        fileMounts,
-        addedTraits,
-        value,
-      );
-    },
-    [ctdParameters, endpoints, envVars, fileMounts, addedTraits, emitChange],
+    [onChange, isFromImage],
   );
 
   // ── Container wrapper for hooks ─────────────────────────────────
@@ -829,97 +801,103 @@ export const WorkloadDetailsField = ({
         </>
       )}
 
-      {/* ── Workload configuration toggle (build-from-source & external-ci) ── */}
-      {showWorkloadApiToggle && (
+      {/* ── Workload configuration info (build-from-source & external-ci) ── */}
+      {showWorkloadInfoSection && (
         <>
           <Divider className={classes.divider} />
-          <FormControl component="fieldset">
-            <Typography variant="body2" color="textSecondary" gutterBottom>
-              How would you like to configure workload settings (endpoints,
-              environment variables, file mounts)?
-            </Typography>
-            <RadioGroup
-              value={useWorkloadDescriptor ? 'yes' : 'no'}
-              onChange={e =>
-                handleWorkloadDescriptorChange(e.target.value === 'yes')
-              }
+          <Accordion
+            expanded={configInfoExpanded}
+            onChange={() => setConfigInfoExpanded(!configInfoExpanded)}
+            className={classes.accordion}
+            elevation={0}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              className={classes.accordionSummary}
             >
-              <FormControlLabel
-                value="yes"
-                control={<Radio color="primary" />}
-                label={
-                  isExternalCi
-                    ? 'My CI pipeline will configure the workload via the Workload API'
-                    : "I'll provide a workload descriptor (workload.yaml) in my repository"
-                }
-              />
-              <FormControlLabel
-                value="no"
-                control={<Radio color="primary" />}
-                label="I'll define them manually here"
-              />
-            </RadioGroup>
-          </FormControl>
+              <Box display="flex" alignItems="center">
+                <InfoOutlinedIcon
+                  color="primary"
+                  fontSize="small"
+                  style={{ marginRight: 8 }}
+                />
+                <Typography variant="subtitle2" color="primary">
+                  How do I define endpoints, environment variables, and file
+                  mounts?
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails className={classes.accordionDetails}>
+              <Typography variant="body2" color="textSecondary" component="div">
+                You have two options:
+                <ol>
+                  <li>
+                    {isBuildFromSource ? (
+                      <>
+                        <strong>Commit a workload descriptor</strong> — Place a{' '}
+                        <code>workload.yaml</code> file at the root of your
+                        application path in the repository. Endpoints,
+                        environment variables, and file mounts defined in this
+                        file will be automatically applied during the CI build.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Configure via your CI pipeline</strong> — Use
+                        the{' '}
+                        <a
+                          href="https://openchoreo.dev/docs/user-guide/ci/external-ci/#workload-api"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Workload API
+                        </a>{' '}
+                        to define endpoints, environment variables, and file
+                        mounts from your external CI pipeline.
+                      </>
+                    )}
+                  </li>
+                  <li>
+                    <strong>Configure from the Deploy page</strong> — Once a
+                    build completes and the workload is created, go to the
+                    component's <strong>Deploy</strong> page and click{' '}
+                    <strong>Configure</strong> to define them manually.
+                  </li>
+                </ol>
+              </Typography>
+              {isBuildFromSource && (
+                <Box mt={1}>
+                  <Link
+                    component="button"
+                    type="button"
+                    variant="body2"
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
+                      setWorkloadDescriptorDialogOpen(true);
+                    }}
+                  >
+                    View workload.yaml reference
+                  </Link>
+                </Box>
+              )}
+              {isExternalCi && (
+                <Box mt={1}>
+                  <Link
+                    href="https://openchoreo.dev/docs/user-guide/ci/external-ci/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="body2"
+                  >
+                    View External CI Integration Guide
+                  </Link>
+                </Box>
+              )}
+            </AccordionDetails>
+          </Accordion>
         </>
       )}
 
-      {/* Descriptor / Workload API mode content */}
-      {descriptorModeActive && (
-        <Box mt={2}>
-          <Alert severity="info">
-            {isExternalCi ? (
-              <>
-                Endpoints, environment variables, and file mounts will be
-                configured by your external CI pipeline via the{' '}
-                <a
-                  href="https://openchoreo.dev/docs/user-guide/ci/external-ci/#workload-api"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Workload API
-                </a>
-                . You do not need to configure them here.
-              </>
-            ) : (
-              <>
-                Endpoints, environment variables, and file mounts will be read
-                from the <strong>workload.yaml</strong> file in your source
-                repository. You do not need to configure them here.
-              </>
-            )}
-          </Alert>
-          {isBuildFromSource && (
-            <Box mt={1}>
-              <Link
-                component="button"
-                type="button"
-                variant="body2"
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  setWorkloadDescriptorDialogOpen(true);
-                }}
-              >
-                View workload.yaml reference
-              </Link>
-            </Box>
-          )}
-          {isExternalCi && (
-            <Box mt={1}>
-              <Link
-                href="https://openchoreo.dev/docs/user-guide/ci/external-ci/"
-                target="_blank"
-                rel="noopener noreferrer"
-                variant="body2"
-              >
-                View External CI Integration Guide
-              </Link>
-            </Box>
-          )}
-        </Box>
-      )}
-
-      {/* ── Endpoints (deployment types only, hidden in descriptor mode) ── */}
-      {isDeploymentType && !descriptorModeActive && (
+      {/* ── Endpoints (deployment types only, only for deploy-from-image) ── */}
+      {isDeploymentType && isFromImage && (
         <>
           <Divider className={classes.divider} />
           <Typography variant="subtitle1" className={classes.sectionTitle}>
@@ -938,23 +916,13 @@ export const WorkloadDetailsField = ({
         </>
       )}
 
-      {/* ── Container Configuration (env vars + file mounts, hidden in descriptor mode) ── */}
-      {!descriptorModeActive && (
+      {/* ── Container Configuration (env vars + file mounts, only for deploy-from-image) ── */}
+      {isFromImage && (
         <>
           <Divider className={classes.divider} />
           <Typography variant="subtitle1" className={classes.sectionTitle}>
             Container Configuration
           </Typography>
-
-          {!isFromImage && (
-            <Box mb={2}>
-              <Alert severity="info">
-                {isExternalCi
-                  ? 'Environment variables and file mounts will be configurable from the Deploy page once the workload is created with a container image.'
-                  : 'Environment variables and file mounts will be configurable from the Deploy page after a build completes.'}
-              </Alert>
-            </Box>
-          )}
 
           {/* Environment Variables */}
           <Typography variant="subtitle2" className={classes.sectionTitle}>
@@ -968,7 +936,7 @@ export const WorkloadDetailsField = ({
             envVars={envVars}
             secretOptions={secretOptions}
             envModes={envModes}
-            disabled={!isFromImage}
+            disabled={false}
             editBuffer={envEditBuffer}
             onEnvVarChange={handleEnvVarChange}
             onRemoveEnvVar={handleRemoveEnvVar}
@@ -989,7 +957,7 @@ export const WorkloadDetailsField = ({
               fileVars={fileMounts}
               secretOptions={secretOptions}
               fileModes={fileModes}
-              disabled={!isFromImage}
+              disabled={false}
               editBuffer={fileEditBuffer}
               onFileVarChange={handleFileVarChange}
               onRemoveFileVar={handleRemoveFileVar}
@@ -1228,30 +1196,6 @@ export const workloadDetailsFieldValidation = (
   validation: any,
 ) => {
   if (!value) return;
-
-  // Skip env var and file mount validation when using workload descriptor
-  if (value.useWorkloadDescriptor) {
-    // Still validate traits
-    if (value.traits && value.traits.length > 0) {
-      const instanceNames = new Set<string>();
-      value.traits.forEach((trait, index) => {
-        if (!trait.instanceName || trait.instanceName.trim() === '') {
-          validation.addError(`Trait #${index + 1}: Instance name is required`);
-          return;
-        }
-        if (instanceNames.has(trait.instanceName)) {
-          validation.addError(
-            `Trait #${index + 1}: Instance name "${
-              trait.instanceName
-            }" is already used.`,
-          );
-        } else {
-          instanceNames.add(trait.instanceName);
-        }
-      });
-    }
-    return;
-  }
 
   // Validate trait instance names are unique
   if (value.traits && value.traits.length > 0) {
