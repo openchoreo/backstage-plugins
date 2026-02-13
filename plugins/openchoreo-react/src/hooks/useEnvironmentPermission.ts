@@ -31,18 +31,17 @@ export interface UseEnvironmentPermissionResult {
  * );
  * ```
  */
-export const useEnvironmentPermission =
-  (): UseEnvironmentPermissionResult => {
-    const { allowed: canCreate, loading } = usePermission({
-      permission: openchoreoEnvironmentCreatePermission,
-    });
+export const useEnvironmentPermission = (): UseEnvironmentPermissionResult => {
+  const { allowed: canCreate, loading } = usePermission({
+    permission: openchoreoEnvironmentCreatePermission,
+  });
 
-    return {
-      canCreate,
-      loading,
-      createDeniedTooltip:
-        !canCreate && !loading
-          ? 'You do not have permission to create an environment'
-          : '',
-    };
+  return {
+    canCreate,
+    loading,
+    createDeniedTooltip:
+      !canCreate && !loading
+        ? 'You do not have permission to create an environment'
+        : '',
   };
+};

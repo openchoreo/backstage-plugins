@@ -32,18 +32,17 @@ export interface UseTraitCreatePermissionResult {
  * );
  * ```
  */
-export const useTraitCreatePermission =
-  (): UseTraitCreatePermissionResult => {
-    const { allowed: canCreate, loading } = usePermission({
-      permission: openchoreoTraitCreatePermission,
-    });
+export const useTraitCreatePermission = (): UseTraitCreatePermissionResult => {
+  const { allowed: canCreate, loading } = usePermission({
+    permission: openchoreoTraitCreatePermission,
+  });
 
-    return {
-      canCreate,
-      loading,
-      createDeniedTooltip:
-        !canCreate && !loading
-          ? 'You do not have permission to create a trait'
-          : '',
-    };
+  return {
+    canCreate,
+    loading,
+    createDeniedTooltip:
+      !canCreate && !loading
+        ? 'You do not have permission to create a trait'
+        : '',
   };
+};
