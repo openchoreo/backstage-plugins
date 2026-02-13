@@ -191,6 +191,21 @@ components:
         status:
           type: string
 
+    CreateNamespaceRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Namespace name (must be a valid Kubernetes name)
+        displayName:
+          type: string
+          description: Human-readable display name
+        description:
+          type: string
+          description: Description of the namespace
+
     # Project
     ProjectResponse:
       type: object
@@ -2252,6 +2267,33 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/NamespaceResponse'
+    post:
+      summary: Create a new namespace
+      operationId: createNamespace
+      tags:
+        - Namespaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNamespaceRequest'
+      responses:
+        '201':
+          description: Namespace created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceResponse'
+        '400':
+          description: Invalid input
+        '409':
+          description: Namespace already exists
 
   /namespaces/{namespaceName}:
     get:

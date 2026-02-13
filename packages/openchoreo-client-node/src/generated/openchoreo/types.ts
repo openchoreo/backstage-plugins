@@ -150,7 +150,8 @@ export interface paths {
     /** List all namespaces */
     get: operations['listNamespaces'];
     put?: never;
-    post?: never;
+    /** Create a new namespace */
+    post: operations['createNamespace'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1421,6 +1422,14 @@ export interface components {
       createdAt: string;
       status?: string;
     };
+    CreateNamespaceRequest: {
+      /** @description Namespace name (must be a valid Kubernetes name) */
+      name: string;
+      /** @description Human-readable display name */
+      displayName?: string;
+      /** @description Description of the namespace */
+      description?: string;
+    };
     ProjectResponse: {
       uid: string;
       name: string;
@@ -2530,6 +2539,46 @@ export interface operations {
             };
           };
         };
+      };
+    };
+  };
+  createNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateNamespaceRequest'];
+      };
+    };
+    responses: {
+      /** @description Namespace created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['APIResponse'] & {
+            data?: components['schemas']['NamespaceResponse'];
+          };
+        };
+      };
+      /** @description Invalid input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Namespace already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

@@ -8,6 +8,7 @@ import ExtensionOutlinedIcon from '@material-ui/icons/ExtensionOutlined';
 import CategoryOutlinedIcon from '@material-ui/icons/CategoryOutlined';
 import SettingsApplicationsOutlinedIcon from '@material-ui/icons/SettingsApplicationsOutlined';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
+import ApartmentOutlined from '@material-ui/icons/ApartmentOutlined';
 import { useStarredEntity } from '@backstage/plugin-catalog-react';
 import type { TemplateEntityV1beta3 } from '@backstage/plugin-scaffolder-common';
 import { useStyles } from './styles';
@@ -19,6 +20,7 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   Trait: <ExtensionOutlinedIcon fontSize="inherit" />,
   ComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,
+  Namespace: <ApartmentOutlined fontSize="inherit" />,
 };
 
 const DEFAULT_ICON = <DescriptionOutlinedIcon fontSize="inherit" />;
