@@ -7,7 +7,7 @@
 import { DependencyGraphTypes } from '@backstage/core-components';
 import { IconComponent } from '@backstage/core-plugin-api';
 import { useEntityPresentation } from '@backstage/plugin-catalog-react';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, useTheme } from '@material-ui/core/styles';
 import clsx from 'clsx';
 import { useLayoutEffect, useRef, useState } from 'react';
 import SvgIcon from '@material-ui/core/SvgIcon';
@@ -15,7 +15,11 @@ import { OverridableComponent } from '@material-ui/core/OverridableComponent';
 import { SvgIconTypeMap } from '@material-ui/core/SvgIcon/SvgIcon';
 import { DEFAULT_NAMESPACE, Entity } from '@backstage/catalog-model';
 import { EntityNodeData } from '@backstage/plugin-catalog-graph';
-import { getNodeColor, getNodeDisplayLabel } from '../../utils/graphUtils';
+import {
+  getNodeColor,
+  getNodeDisplayLabel,
+  getNodeTintFill,
+} from '../../utils/graphUtils';
 
 // Inline EntityIcon component to avoid import issues
 function EntityIcon({
@@ -36,18 +40,20 @@ function EntityIcon({
 const useStyles = makeStyles(
   theme => ({
     node: {
-      // Default fill will be overridden by inline style
       fill: theme.palette.grey[300],
       stroke: theme.palette.grey[300],
     },
     text: {
-      fill: theme.palette.common.white,
+      fill: theme.palette.text.primary,
       '&.focused': {
         fontWeight: 'bold',
       },
     },
     clickable: {
       cursor: 'pointer',
+      '&:hover .node-body': {
+        filter: 'url(#node-hover-glow)',
+      },
     },
   }),
   { name: 'CustomCatalogGraphNode' },
@@ -63,6 +69,8 @@ export function CustomGraphNode({
   // Cast entity to Entity type for useEntityPresentation
   const entityObj = entity as Entity;
   const classes = useStyles();
+  const theme = useTheme();
+  const isDark = theme.palette.type === 'dark';
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
   const idRef = useRef<SVGTextElement | null>(null);
@@ -87,9 +95,10 @@ export function CustomGraphNode({
 
   const hasKindIcon = !!entityRefPresentationSnapshot.Icon;
   const padding = 10;
+  const accentWidth = 8;
   const iconSize = height;
   const paddedIconWidth = hasKindIcon ? iconSize + padding : 0;
-  const paddedWidth = paddedIconWidth + width + padding * 2;
+  const paddedWidth = accentWidth + paddedIconWidth + width + padding * 2;
   const paddedHeight = height + padding * 2;
 
   // Get the base display title
@@ -98,26 +107,46 @@ export function CustomGraphNode({
   // Apply kind prefix for custom OpenChoreo kinds
   const displayTitle = getNodeDisplayLabel(entity.kind, baseTitle);
 
-  // Get kind-based color
+  // Get kind-based color and tint fill
   const nodeColor = getNodeColor(entity.kind);
+  const tintFill = getNodeTintFill(nodeColor, isDark);
+  const borderColor = `${nodeColor}B3`; // accent color at 70% opacity
+
+  // Sanitize entity ref for use as a unique clipPath ID
+  const clipId = `accent-clip-${id.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
   return (
     <g onClick={onClick} className={clsx(onClick && classes.clickable)}>
+      <defs>
+        <clipPath id={clipId}>
+          <rect width={paddedWidth} height={paddedHeight} rx={10} />
+        </clipPath>
+      </defs>
+      {/* Main body */}
       <rect
-        className={classes.node}
+        className={clsx(classes.node, 'node-body')}
         style={{
-          fill: nodeColor,
-          stroke: nodeColor,
+          fill: tintFill,
+          stroke: borderColor,
         }}
         width={paddedWidth}
         height={paddedHeight}
         rx={10}
+        strokeWidth={1.5}
+        filter="url(#node-shadow)"
+      />
+      {/* Left accent stripe — clipped to the node's rounded shape */}
+      <rect
+        width={accentWidth}
+        height={paddedHeight}
+        fill={nodeColor}
+        clipPath={`url(#${clipId})`}
       />
       {hasKindIcon && (
         <EntityIcon
           icon={entityRefPresentationSnapshot.Icon as IconComponent}
           y={padding}
-          x={padding}
+          x={accentWidth + padding}
           width={iconSize}
           height={iconSize}
           className={clsx(classes.text, focused && 'focused')}
@@ -127,7 +156,7 @@ export function CustomGraphNode({
         ref={idRef}
         className={clsx(classes.text, focused && 'focused')}
         y={paddedHeight / 2}
-        x={paddedIconWidth + (width + padding * 2) / 2}
+        x={accentWidth + paddedIconWidth + (width + padding * 2) / 2}
         textAnchor="middle"
         alignmentBaseline="middle"
       >

@@ -48,8 +48,17 @@ const useStyles = makeStyles(theme => ({
     '& svg#dependency-graph': {
       height: '100% !important',
     },
-    '& *': {
+    '& .BackstageDependencyGraphNode-node': {
       transition: 'none !important',
+    },
+    '& .BackstageDependencyGraphEdge-path': {
+      transition: 'none !important',
+    },
+    '& .BackstageDependencyGraphEdge-label': {
+      transition: 'none !important',
+    },
+    '& .node-body': {
+      transition: 'filter 200ms ease-in-out',
     },
   },
   centered: {
@@ -92,6 +101,29 @@ const useStyles = makeStyles(theme => ({
     flex: 1,
   },
 }));
+
+function GraphDefs() {
+  return (
+    <>
+      <filter id="node-shadow">
+        <feDropShadow
+          dx="0"
+          dy="1"
+          stdDeviation="2"
+          floodColor="rgba(0,0,0,0.10)"
+        />
+      </filter>
+      <filter id="node-hover-glow">
+        <feDropShadow
+          dx="0"
+          dy="2"
+          stdDeviation="4"
+          floodColor="rgba(0,0,0,0.18)"
+        />
+      </filter>
+    </>
+  );
+}
 
 export type PlatformOverviewGraphViewProps = {
   view: GraphViewDefinition;
@@ -197,6 +229,7 @@ export function PlatformOverviewGraphView({
             edges={edges}
             renderNode={CustomGraphNode}
             renderLabel={DefaultRenderLabel}
+            defs={<GraphDefs />}
             direction={direction}
             nodeMargin={nodeMargin}
             rankMargin={rankMargin}
