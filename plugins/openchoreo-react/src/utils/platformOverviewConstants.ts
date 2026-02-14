@@ -9,10 +9,6 @@ import {
   RELATION_PROMOTED_BY,
   RELATION_USES_PIPELINE,
   RELATION_PIPELINE_USED_BY,
-  RELATION_INSTANCE_OF,
-  RELATION_HAS_INSTANCE,
-  RELATION_USES_WORKFLOW,
-  RELATION_WORKFLOW_USED_BY,
   RELATION_HOSTED_ON,
   RELATION_HOSTS,
   RELATION_OBSERVED_BY,
@@ -32,11 +28,10 @@ export const APPLICATION_VIEW: GraphViewDefinition = {
   id: 'application',
   label: 'Application',
   description:
-    'Projects, Components, Component Types, Deployment Pipelines, and Environments',
+    'Projects, Components, Deployment Pipelines, and Environments',
   kinds: [
     'system',
     'component',
-    'componenttype',
     'deploymentpipeline',
     'environment',
   ],
@@ -49,18 +44,12 @@ export const APPLICATION_VIEW: GraphViewDefinition = {
     RELATION_PROMOTED_BY,
     RELATION_USES_PIPELINE,
     RELATION_PIPELINE_USED_BY,
-    RELATION_INSTANCE_OF,
-    RELATION_HAS_INSTANCE,
-    RELATION_USES_WORKFLOW,
-    RELATION_WORKFLOW_USED_BY,
   ],
   relationPairs: [
     [RELATION_PART_OF, RELATION_HAS_PART],
     [RELATION_OWNED_BY, RELATION_OWNER_OF],
     [RELATION_PROMOTES_TO, RELATION_PROMOTED_BY],
     [RELATION_USES_PIPELINE, RELATION_PIPELINE_USED_BY],
-    [RELATION_INSTANCE_OF, RELATION_HAS_INSTANCE],
-    [RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY],
   ],
 };
 
