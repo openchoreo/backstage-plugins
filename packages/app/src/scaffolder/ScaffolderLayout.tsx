@@ -7,9 +7,9 @@ const useStyles = makeStyles({
   root: {
     // Constrain the InfoCard (MuiCard) inside the Content area on the
     // scaffolder wizard page. The header banner keeps its full width.
-    // Use attribute selectors to match both dev ("BackstageContent-root")
-    // and prod ("jss4-BackstageContent-root") class name formats.
-    '& [class*="BackstageContent-root"] > [class*="MuiCard-root"]': {
+    // Target <article> directly since BackstageContent renders as <article>
+    // and its class name is mangled in production (jss4-XXXX).
+    '& article > [class*="MuiCard-root"]': {
       maxWidth: MAX_WIDTH,
       marginLeft: 'auto',
       marginRight: 'auto',
