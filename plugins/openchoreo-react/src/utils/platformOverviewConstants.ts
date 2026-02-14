@@ -27,14 +27,8 @@ export type GraphViewDefinition = {
 export const APPLICATION_VIEW: GraphViewDefinition = {
   id: 'application',
   label: 'Application',
-  description:
-    'Projects, Components, Deployment Pipelines, and Environments',
-  kinds: [
-    'system',
-    'component',
-    'deploymentpipeline',
-    'environment',
-  ],
+  description: 'Projects, Components, Deployment Pipelines, and Environments',
+  kinds: ['system', 'component', 'deploymentpipeline', 'environment'],
   relations: [
     RELATION_PART_OF,
     RELATION_HAS_PART,

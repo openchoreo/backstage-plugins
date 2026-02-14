@@ -188,6 +188,65 @@ export function PlatformOverviewGraphView({
 
   const showGraph = !loading && !error && entityCount > 0;
 
+  const renderContent = () => {
+    if (showGraph) {
+      return (
+        <Box className={classes.graph}>
+          <DependencyGraph
+            nodes={nodes}
+            edges={edges}
+            renderNode={CustomGraphNode}
+            renderLabel={DefaultRenderLabel}
+            direction={direction}
+            nodeMargin={nodeMargin}
+            rankMargin={rankMargin}
+            paddingX={20}
+            paddingY={40}
+            zoom="enabled"
+            showArrowHeads
+            curve="curveMonotoneX"
+            fit="contain"
+            labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
+            labelOffset={8}
+            allowFullscreen={false}
+          />
+        </Box>
+      );
+    }
+    if (loading) {
+      return (
+        <Box className={classes.centered}>
+          <CircularProgress />
+          <Typography variant="body2" color="textSecondary">
+            Loading entities...
+          </Typography>
+        </Box>
+      );
+    }
+    if (error) {
+      return (
+        <Box className={classes.centered}>
+          <Typography variant="h6" color="error">
+            Failed to load entities
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            {error.message}
+          </Typography>
+        </Box>
+      );
+    }
+    return (
+      <Box className={classes.centered}>
+        <Typography variant="h6" color="textSecondary">
+          No entities found
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          {view.description}
+        </Typography>
+      </Box>
+    );
+  };
+
   return (
     <FullScreen
       handle={fullscreenHandle}
@@ -198,56 +257,14 @@ export function PlatformOverviewGraphView({
       }
     >
       <div ref={graphWrapperRef} className={classes.graphWrapper}>
-        {showGraph ? (
-          <Box className={classes.graph}>
-            <DependencyGraph
-              nodes={nodes}
-              edges={edges}
-              renderNode={CustomGraphNode}
-              renderLabel={DefaultRenderLabel}
-              direction={direction}
-              nodeMargin={nodeMargin}
-              rankMargin={rankMargin}
-              paddingX={20}
-              paddingY={40}
-              zoom="enabled"
-              showArrowHeads
-              curve="curveMonotoneX"
-              fit="contain"
-              labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
-              labelOffset={8}
-              allowFullscreen={false}
-            />
-          </Box>
-        ) : loading ? (
-          <Box className={classes.centered}>
-            <CircularProgress />
-            <Typography variant="body2" color="textSecondary">
-              Loading entities...
-            </Typography>
-          </Box>
-        ) : error ? (
-          <Box className={classes.centered}>
-            <Typography variant="h6" color="error">
-              Failed to load entities
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {error.message}
-            </Typography>
-          </Box>
-        ) : (
-          <Box className={classes.centered}>
-            <Typography variant="h6" color="textSecondary">
-              No entities found
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {view.description}
-            </Typography>
-          </Box>
-        )}
+        {renderContent()}
         {hasNamespaceSelector && (
           <Box className={classes.topLeftContainer}>
-            <FormControl variant="outlined" size="small" className={classes.namespaceSelector}>
+            <FormControl
+              variant="outlined"
+              size="small"
+              className={classes.namespaceSelector}
+            >
               <InputLabel id="graph-namespace-label">Namespace</InputLabel>
               <Select
                 labelId="graph-namespace-label"
@@ -256,7 +273,9 @@ export function PlatformOverviewGraphView({
                 onChange={e => onNamespaceChange(e.target.value as string)}
               >
                 {namespaces.map(ns => (
-                  <MenuItem key={ns} value={ns}>{ns}</MenuItem>
+                  <MenuItem key={ns} value={ns}>
+                    {ns}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>

@@ -47,8 +47,15 @@ export function GraphControls({
   return (
     <Box className={classes.root}>
       {onToggleLegend && (
-        <Tooltip title={showLegend ? 'Hide legend' : 'Show legend'} placement="left">
-          <IconButton className={classes.button} onClick={onToggleLegend} size="small">
+        <Tooltip
+          title={showLegend ? 'Hide legend' : 'Show legend'}
+          placement="left"
+        >
+          <IconButton
+            className={classes.button}
+            onClick={onToggleLegend}
+            size="small"
+          >
             <InfoOutlinedIcon fontSize="small" />
           </IconButton>
         </Tooltip>

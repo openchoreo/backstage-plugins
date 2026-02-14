@@ -387,7 +387,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           // Deduplicate deployment pipelines across projects:
           // Multiple projects may reference the same pipeline (same kind/namespace/name),
           // so we collect all projectRefs into a single entity per pipeline.
-          const pipelineMap = new Map<string, DeploymentPipelineEntityV1alpha1>();
+          const pipelineMap = new Map<
+            string,
+            DeploymentPipelineEntityV1alpha1
+          >();
 
           // Get deployment pipelines and components for each project
           for (const project of projects) {
