@@ -103,17 +103,15 @@ export function useEntityGraphData(
           const existing = edgeMap.get(edgeKey);
 
           if (existing) {
-            // Merge relation types if not already present
-            for (const p of pair) {
-              if (p && !existing.relations.includes(p)) {
-                existing.relations.push(p);
-              }
+            // Merge forward relation if not already present
+            if (!existing.relations.includes(left)) {
+              existing.relations.push(left);
             }
           } else {
             edgeMap.set(edgeKey, {
               from,
               to,
-              relations: [...pair].filter((p): p is string => !!p),
+              relations: [left],
               label: 'visible',
             });
           }

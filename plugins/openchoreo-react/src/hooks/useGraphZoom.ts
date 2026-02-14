@@ -86,12 +86,8 @@ export function useGraphZoom(): UseGraphZoomResult {
       svgRef.current = svg;
       workspaceRef.current = workspace;
 
-      // Read initial values
-      const vbAttr = svg.getAttribute('viewBox');
-      if (vbAttr) setViewBox(parseViewBox(vbAttr));
-
-      const tAttr = workspace.getAttribute('transform');
-      if (tAttr) setTransform(parseTransform(tAttr));
+      // Set up observers BEFORE reading initial values to avoid race
+      // conditions where the attribute changes between read and observe.
 
       // Observe workspace transform changes
       workspaceObserver = new MutationObserver(mutations => {
@@ -120,6 +116,13 @@ export function useGraphZoom(): UseGraphZoomResult {
         attributes: true,
         attributeFilter: ['viewBox'],
       });
+
+      // Read initial values after observers are attached
+      const vbAttr = svg.getAttribute('viewBox');
+      if (vbAttr) setViewBox(parseViewBox(vbAttr));
+
+      const tAttr = workspace.getAttribute('transform');
+      if (tAttr) setTransform(parseTransform(tAttr));
 
       // Attach our own d3-zoom instance after a short delay to let the
       // upstream DependencyGraph finish its initial zoom setup.
@@ -173,8 +176,18 @@ export function useGraphZoom(): UseGraphZoomResult {
     attach();
 
     // Also observe the container for child changes (DependencyGraph renders with debounce)
+    // Re-attach whenever the SVG element is replaced (React may unmount/remount it).
     const containerObserver = new MutationObserver(() => {
-      if (!svgRef.current) attach();
+      const currentSvg = container!.querySelector('svg#dependency-graph');
+      if (currentSvg !== svgRef.current) {
+        workspaceObserver?.disconnect();
+        svgObserver?.disconnect();
+        if (attachTimer) clearTimeout(attachTimer);
+        svgRef.current = null;
+        workspaceRef.current = null;
+        zoomBehaviorRef.current = null;
+        attach();
+      }
     });
     containerObserver.observe(container, { childList: true, subtree: true });
 
