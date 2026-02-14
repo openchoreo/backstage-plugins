@@ -143,7 +143,7 @@ export const createComponentAction = (
         return parts[parts.length - 1];
       };
 
-      const namespaceName = extractNamespaceName(ctx.input.namespaceName);
+      let namespaceName = extractNamespaceName(ctx.input.namespaceName);
       const projectName = extractProjectName(ctx.input.projectName);
 
       ctx.logger.info(
@@ -153,13 +153,32 @@ export const createComponentAction = (
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
       );
 
+      const catalogApi = new CatalogClient({
+        discoveryApi: discovery,
+      });
+
+      // Resolve namespace from project entity to prevent cross-namespace mismatch
+      try {
+        const projectEntity = await catalogApi.getEntityByRef(
+          `system:${namespaceName}/${projectName}`,
+        );
+        if (projectEntity) {
+          const projectNs =
+            projectEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+          if (projectNs && projectNs !== namespaceName) {
+            ctx.logger.warn(
+              `Namespace mismatch: selected "${namespaceName}" but project "${projectName}" belongs to "${projectNs}". Using project namespace.`,
+            );
+            namespaceName = projectNs;
+          }
+        }
+      } catch (err) {
+        ctx.logger.warn(`Failed to resolve project namespace: ${err}`);
+      }
+
       // Check if component with the same name already exists in this namespace
       // Note: This requires catalog-backend to be accessible
       try {
-        const catalogApi = new CatalogClient({
-          discoveryApi: discovery,
-        });
-
         // Get all components from catalog
         const { items } = await catalogApi.getEntities({
           filter: {

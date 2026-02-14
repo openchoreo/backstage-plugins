@@ -74,6 +74,7 @@ export const ProjectNamespaceField = ({
       const { items } = await catalogApi.getEntities({
         filter: {
           kind: 'System',
+          'metadata.annotations.openchoreo.io/namespace': namespaceName,
         },
       });
 
@@ -127,7 +128,7 @@ export const ProjectNamespaceField = ({
   useEffect(() => {
     fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [namespaceName]);
 
   // Handle project selection change
   const handleProjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
