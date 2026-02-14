@@ -10,7 +10,6 @@ describe('CtdToTemplateConverter', () => {
   beforeEach(() => {
     converter = new CtdToTemplateConverter({
       defaultOwner: 'test-owner',
-      namespace: 'test-namespace',
     });
   });
 
@@ -48,10 +47,8 @@ describe('CtdToTemplateConverter', () => {
       expect(result.kind).toBe('Template');
 
       // Check metadata
-      expect(result.metadata.name).toBe(
-        'template-test-namespace-simple-service',
-      );
-      expect(result.metadata.namespace).toBe('test-namespace');
+      expect(result.metadata.name).toBe('template-simple-service');
+      expect(result.metadata.namespace).toBe('test-org');
       expect(result.metadata.title).toBe('Simple Service');
       expect(result.metadata.description).toBe('A simple service for testing');
       // Tags are not generated (tag inference was removed)
@@ -610,7 +607,7 @@ describe('CtdToTemplateConverter', () => {
       );
 
       expect(result.spec?.owner).toBe('guests');
-      expect(result.metadata.namespace).toBe('openchoreo');
+      expect(result.metadata.namespace).toBe('test-org');
     });
   });
 });

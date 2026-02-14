@@ -170,6 +170,13 @@ export const useStyles = makeStyles(theme => ({
     height: 24,
     fontSize: '0.75rem',
   },
+  namespaceChip: {
+    height: 22,
+    fontSize: '0.7rem',
+    marginTop: theme.spacing(0.75),
+    color: theme.palette.text.secondary,
+    borderColor: theme.palette.divider,
+  },
   cardDisabled: {
     opacity: 0.5,
     cursor: 'not-allowed',
