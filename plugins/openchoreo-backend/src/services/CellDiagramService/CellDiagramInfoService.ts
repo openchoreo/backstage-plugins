@@ -17,6 +17,7 @@ import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 type ModelsCompleteComponent =
   OpenChoreoComponents['schemas']['ComponentResponse'];
 type WorkloadConnection = OpenChoreoComponents['schemas']['Connection'];
+type WorkloadEndpoint = OpenChoreoComponents['schemas']['WorkloadEndpoint'];
 
 enum ComponentType {
   SERVICE = 'service',
@@ -153,16 +154,8 @@ export class CellDiagramInfoService implements CellDiagramService {
       const components: Component[] = completeComponents
         .filter(component => {
           if (!component.type) return false;
-
-          const pageVariant = this.componentTypeUtils.getPageVariant(
-            component.type,
-          );
-          this.logger.debug(
-            `Component ${component.name} has type ${component.type} mapped to variant ${pageVariant}`,
-          );
-
-          // Include service and website components in cell diagram
-          return pageVariant === 'service' || pageVariant === 'website';
+          // Exclude one-off jobs from the cell diagram
+          return !component.type.startsWith('job/');
         })
         .map(component => {
           // Get connections from workload data included in component response
@@ -175,76 +168,107 @@ export class CellDiagramInfoService implements CellDiagramService {
             completeComponents,
           );
 
-          const pageVariant = this.componentTypeUtils.getPageVariant(
-            component.type!,
-          );
-
-          // Map based on page variant instead of hardcoded type names
-          if (pageVariant === 'service') {
-            // Extract API information from the Service.apis object
-            const apis = component.service?.apis || {};
-            const services: { [key: string]: any } = {};
-
-            // Process each API in the Service
-            Object.entries(apis).forEach(
-              ([apiName, apiConfig]: [string, any]) => {
-                const exposeLevels = apiConfig.rest?.exposeLevels || [];
-                services[apiName] = {
-                  id: component.name || '',
-                  label: component.name || '',
-                  type: 'SERVICE',
-                  dependencyIds: [],
-                  deploymentMetadata: {
-                    gateways: {
-                      internet: {
-                        isExposed: exposeLevels.includes('Public'),
-                      },
-                      intranet: {
-                        isExposed: exposeLevels.includes('Organization'),
-                      },
-                    },
-                  },
-                };
-              },
-            );
-
+          // cronjob/* components render as scheduled tasks
+          if (component.type!.startsWith('cronjob/')) {
             return {
               id: component.name || '',
               label: component.name || '',
               version: '1.0.0',
-              type: ComponentType.SERVICE,
-              services: services,
-              connections: connections,
-            } as Component;
-          }
-          if (pageVariant === 'website') {
-            return {
-              id: component.name || '',
-              label: component.name || '',
-              version: '1.0.0',
-              type: ComponentType.WEB_APP,
+              type: ComponentType.SCHEDULED_TASK,
               services: {
                 main: {
                   id: component.name || '',
                   label: component.name || '',
-                  type: 'WebApplication',
+                  type: 'ScheduledTask',
                   dependencyIds: [],
-                  deploymentMetadata: {
-                    gateways: {
-                      internet: {
-                        isExposed: true,
-                      },
-                      intranet: {
-                        isExposed: false,
-                      },
-                    },
-                  },
                 },
               },
               connections: connections,
             } as Component;
           }
-          return null;
+
+          // proxy/* components render as API proxies
+          if (component.type!.startsWith('proxy/')) {
+            return {
+              id: component.name || '',
+              label: component.name || '',
+              version: '1.0.0',
+              type: ComponentType.API_PROXY,
+              services: {
+                main: {
+                  id: component.name || '',
+                  label: component.name || '',
+                  type: 'ApiProxy',
+                  dependencyIds: [],
+                },
+              },
+              connections: connections,
+            } as Component;
+          }
+
+          // deployment/* and statefulset/*:
+          // build service entries from workload endpoints
+          const endpoints = (component.workload?.endpoints || {}) as {
+            [key: string]: WorkloadEndpoint;
+          };
+          const services: { [key: string]: any } = {};
+          let hasHttpEndpoint = false;
+
+          if (Object.keys(endpoints).length > 0) {
+            Object.entries(endpoints).forEach(([endpointName, endpoint]) => {
+              const visibility = endpoint.visibility || 'project';
+              if (endpoint.type === 'HTTP') {
+                hasHttpEndpoint = true;
+              }
+              services[endpointName] = {
+                id: component.name || '',
+                label: component.name || '',
+                type: endpoint.type || 'SERVICE',
+                dependencyIds: [],
+                deploymentMetadata: {
+                  gateways: {
+                    internet: {
+                      isExposed: visibility === 'external',
+                    },
+                    intranet: {
+                      isExposed:
+                        visibility === 'external' ||
+                        visibility === 'internal' ||
+                        visibility === 'namespace',
+                    },
+                  },
+                },
+              };
+            });
+          } else {
+            // Fallback: create a default service entry so the component renders
+            services.main = {
+              id: component.name || '',
+              label: component.name || '',
+              type: 'SERVICE',
+              dependencyIds: [],
+              deploymentMetadata: {
+                gateways: {
+                  internet: { isExposed: false },
+                  intranet: { isExposed: false },
+                },
+              },
+            };
+          }
+
+          const pageVariant = this.componentTypeUtils.getPageVariant(
+            component.type!,
+          );
+          const isWebApp = pageVariant === 'website' || hasHttpEndpoint;
+
+          return {
+            id: component.name || '',
+            label: component.name || '',
+            version: '1.0.0',
+            type: isWebApp ? ComponentType.WEB_APP : ComponentType.SERVICE,
+            services: services,
+            connections: connections,
+          } as Component;
         })
         .filter((component): component is Component => component !== null);
 

@@ -1999,6 +1999,11 @@ export interface components {
       env?: components['schemas']['EnvVar'][];
     };
     WorkloadEndpoint: {
+      /**
+       * @description Access scope for the endpoint. Defaults to "project" when not specified.
+       * @enum {string}
+       */
+      visibility?: 'project' | 'namespace' | 'internal' | 'external';
       /** @enum {string} */
       type: 'TCP' | 'UDP' | 'HTTP' | 'REST' | 'gRPC' | 'Websocket' | 'GraphQL';
       port: number;

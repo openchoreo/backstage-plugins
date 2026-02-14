@@ -1358,6 +1358,10 @@ components:
         - type
         - port
       properties:
+        visibility:
+          type: string
+          enum: ['project', 'namespace', 'internal', 'external']
+          description: Access scope for the endpoint. Defaults to "project" when not specified.
         type:
           type: string
           enum: ['TCP', 'UDP', 'HTTP', 'REST', 'gRPC', 'Websocket', 'GraphQL']
