@@ -1,0 +1,1 @@
+export { DefaultRenderLabel } from './DefaultRenderLabel';

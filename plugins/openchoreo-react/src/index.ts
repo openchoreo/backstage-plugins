@@ -306,9 +306,13 @@ export {
 
 // Graph hooks
 export { useAllEntitiesOfKinds } from './hooks/useAllEntitiesOfKinds';
+export {
+  useEntityGraphData,
+  type UseEntityGraphDataResult,
+} from './hooks/useEntityGraphData';
 
 // Re-export graph types for consumers
-export { type EntityNode, Direction } from '@backstage/plugin-catalog-graph';
+export { type EntityNode } from '@backstage/plugin-catalog-graph';
 
 // Routing utilities
 export * from './routing';
