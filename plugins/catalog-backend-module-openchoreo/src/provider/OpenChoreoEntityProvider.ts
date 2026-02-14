@@ -1026,6 +1026,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.io/observability-plane-ref':
             this.normalizeObservabilityPlaneRef(
               dataplane.observabilityPlaneRef,
+              namespaceName,
             ),
           ...this.mapAgentConnectionAnnotations(dataplane.agentConnection),
         },
@@ -1046,6 +1047,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         namespaceHTTPSPort: dataplane.namespaceHTTPSPort,
         observabilityPlaneRef: this.normalizeObservabilityPlaneRef(
           dataplane.observabilityPlaneRef,
+          namespaceName,
         ),
       },
     };
@@ -1078,6 +1080,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'openchoreo.io/observability-plane-ref':
             this.normalizeObservabilityPlaneRef(
               buildplane.observabilityPlaneRef,
+              namespaceName,
             ),
           ...this.mapAgentConnectionAnnotations(buildplane.agentConnection),
         },
@@ -1091,6 +1094,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         domain: `default/${namespaceName}`,
         observabilityPlaneRef: this.normalizeObservabilityPlaneRef(
           buildplane.observabilityPlaneRef,
+          namespaceName,
         ),
       },
     };
@@ -1142,16 +1146,27 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   }
 
   /**
-   * Normalizes an observabilityPlaneRef value to a string.
+   * Normalizes an observabilityPlaneRef value to a namespace-qualified string.
    * The API may return this as a string or as an object { kind, name }.
+   * The namespace is included so that processors resolve the ref to the correct
+   * ObservabilityPlane entity (which lives in the same namespace as the parent).
    */
-  private normalizeObservabilityPlaneRef(ref: unknown): string {
+  private normalizeObservabilityPlaneRef(
+    ref: unknown,
+    namespaceName: string,
+  ): string {
     if (!ref) return '';
-    if (typeof ref === 'string') return ref;
-    if (typeof ref === 'object' && ref !== null && 'name' in ref) {
-      return (ref as { name: string }).name;
+    let name: string;
+    if (typeof ref === 'string') {
+      name = ref;
+    } else if (typeof ref === 'object' && ref !== null && 'name' in ref) {
+      name = (ref as { name: string }).name;
+    } else {
+      return '';
     }
-    return '';
+    // If the name already contains a namespace qualifier, return as-is
+    if (name.includes('/')) return name;
+    return `${namespaceName}/${name}`;
   }
 
   /**
