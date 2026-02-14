@@ -87,8 +87,13 @@ export const ProjectNamespaceField = ({
 
       setProjects(projectList);
 
-      // Auto-select project based on preselection or fallback to first
-      if (projectList.length > 0 && !formData?.project_name) {
+      // Check if current selection is still valid in the new project list
+      const currentStillValid =
+        formData?.project_name &&
+        projectList.some(p => p.entityRef === formData.project_name);
+
+      // Auto-select project if no valid selection exists
+      if (projectList.length > 0 && !currentStillValid) {
         let selectedProject = projectList[0].entityRef;
 
         // Check if we have a preselected project from context

@@ -159,9 +159,10 @@ export const createComponentAction = (
 
       // Resolve namespace from project entity to prevent cross-namespace mismatch
       try {
-        const projectEntity = await catalogApi.getEntityByRef(
-          `system:${namespaceName}/${projectName}`,
-        );
+        const projectRef = ctx.input.projectName.includes(':')
+          ? ctx.input.projectName
+          : `system:${namespaceName}/${projectName}`;
+        const projectEntity = await catalogApi.getEntityByRef(projectRef);
         if (projectEntity) {
           const projectNs =
             projectEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
