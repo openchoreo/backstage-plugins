@@ -54,7 +54,7 @@ export type GraphMinimapProps = {
   onPan: (svgX: number, svgY: number) => void;
 };
 
-export function GraphMinimap({ viewBox, viewport, onPan }: GraphMinimapProps) {
+export function GraphMinimap({ transform, viewBox, viewport, onPan }: GraphMinimapProps) {
   const classes = useStyles();
   const svgElRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -127,8 +127,10 @@ export function GraphMinimap({ viewBox, viewport, onPan }: GraphMinimapProps) {
         preserveAspectRatio="xMidYMid meet"
         onClick={handleClick}
       >
-        {/* Clone the main graph workspace */}
-        <use href="#workspace" />
+        {/* Clone the main graph workspace with inverse transform to cancel zoom */}
+        <g transform={`scale(${1 / transform.k}) translate(${-transform.x}, ${-transform.y})`}>
+          <use href="#workspace" />
+        </g>
 
         {/* Dim area outside viewport */}
         <defs>

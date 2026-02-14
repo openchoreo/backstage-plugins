@@ -7,6 +7,7 @@ import RemoveIcon from '@material-ui/icons/Remove';
 import CenterFocusStrongIcon from '@material-ui/icons/CenterFocusStrong';
 import FullscreenIcon from '@material-ui/icons/Fullscreen';
 import FullscreenExitIcon from '@material-ui/icons/FullscreenExit';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -28,6 +29,8 @@ export type GraphControlsProps = {
   onFitToView: () => void;
   onToggleFullscreen: () => void;
   isFullscreen: boolean;
+  onToggleLegend?: () => void;
+  showLegend?: boolean;
 };
 
 export function GraphControls({
@@ -36,11 +39,20 @@ export function GraphControls({
   onFitToView,
   onToggleFullscreen,
   isFullscreen,
+  onToggleLegend,
+  showLegend,
 }: GraphControlsProps) {
   const classes = useStyles();
 
   return (
     <Box className={classes.root}>
+      {onToggleLegend && (
+        <Tooltip title={showLegend ? 'Hide legend' : 'Show legend'} placement="left">
+          <IconButton className={classes.button} onClick={onToggleLegend} size="small">
+            <InfoOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      )}
       <Tooltip title="Zoom in" placement="left">
         <IconButton className={classes.button} onClick={onZoomIn} size="small">
           <AddIcon fontSize="small" />
