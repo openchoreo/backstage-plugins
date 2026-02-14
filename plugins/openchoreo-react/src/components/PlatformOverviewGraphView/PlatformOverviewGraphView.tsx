@@ -4,13 +4,15 @@ import Typography from '@material-ui/core/Typography';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { makeStyles } from '@material-ui/core/styles';
 import {
-  Direction,
-  EntityNode,
-  EntityRelationsGraph,
-} from '@backstage/plugin-catalog-graph';
+  DependencyGraph,
+  DependencyGraphTypes,
+} from '@backstage/core-components';
+import { EntityNode } from '@backstage/plugin-catalog-graph';
 import { CustomGraphNode } from '../CustomGraphNode';
 import { GraphLegend } from '../GraphLegend';
+import { DefaultRenderLabel } from '../DefaultRenderLabel';
 import { useAllEntitiesOfKinds } from '../../hooks/useAllEntitiesOfKinds';
+import { useEntityGraphData } from '../../hooks/useEntityGraphData';
 import type { GraphViewDefinition } from '../../utils/platformOverviewConstants';
 
 const useStyles = makeStyles(theme => ({
@@ -38,18 +40,36 @@ export type PlatformOverviewGraphViewProps = {
   view: GraphViewDefinition;
   namespace?: string;
   onNodeClick?: (node: EntityNode, event: MouseEvent<unknown>) => void;
+  direction?: DependencyGraphTypes.Direction;
+  nodeMargin?: number;
+  rankMargin?: number;
 };
 
 export function PlatformOverviewGraphView({
   view,
   namespace,
   onNodeClick,
+  direction = DependencyGraphTypes.Direction.LEFT_RIGHT,
+  nodeMargin = 100,
+  rankMargin = 100,
 }: PlatformOverviewGraphViewProps) {
   const classes = useStyles();
-  const { entityRefs, loading, error, entityCount } = useAllEntitiesOfKinds(
-    view.kinds,
-    namespace,
-  );
+  const {
+    entityRefs,
+    loading: refsLoading,
+    error: refsError,
+    entityCount,
+  } = useAllEntitiesOfKinds(view.kinds, namespace);
+
+  const {
+    nodes,
+    edges,
+    loading: graphLoading,
+    error: graphError,
+  } = useEntityGraphData(entityRefs, view, onNodeClick);
+
+  const loading = refsLoading || graphLoading;
+  const error = refsError || graphError;
 
   if (loading) {
     return (
@@ -90,20 +110,23 @@ export function PlatformOverviewGraphView({
 
   return (
     <Box className={classes.graphWrapper}>
-      <EntityRelationsGraph
-        rootEntityNames={entityRefs}
-        maxDepth={1}
-        kinds={view.kinds}
-        relations={view.relations}
-        relationPairs={view.relationPairs}
-        direction={Direction.TOP_BOTTOM}
-        renderNode={CustomGraphNode}
-        onNodeClick={onNodeClick}
-        zoom="enabled"
-        mergeRelations
-        showArrowHeads
-        className={classes.graph}
-      />
+      <Box className={classes.graph}>
+        <DependencyGraph
+          nodes={nodes}
+          edges={edges}
+          renderNode={CustomGraphNode}
+          renderLabel={DefaultRenderLabel}
+          direction={direction}
+          nodeMargin={nodeMargin}
+          rankMargin={rankMargin}
+          zoom="enabled"
+          showArrowHeads
+          curve="curveMonotoneX"
+          fit="contain"
+          labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
+          labelOffset={8}
+        />
+      </Box>
       <GraphLegend kinds={view.kinds} />
     </Box>
   );
