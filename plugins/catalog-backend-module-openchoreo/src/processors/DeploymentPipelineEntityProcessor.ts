@@ -58,29 +58,31 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
       name: entity.metadata.name,
     };
 
-    // Emit usesPipeline/pipelineUsedBy relationship between project and pipeline
-    if (entity.spec.projectRef) {
-      const systemRef = {
-        kind: 'system',
-        namespace: entity.spec.namespaceName || 'default',
-        name: entity.spec.projectRef,
-      };
-      // System (Project) usesPipeline DeploymentPipeline
-      emit(
-        processingResult.relation({
-          source: systemRef,
-          target: sourceRef,
-          type: RELATION_USES_PIPELINE,
-        }),
-      );
-      // DeploymentPipeline pipelineUsedBy System (inverse)
-      emit(
-        processingResult.relation({
-          source: sourceRef,
-          target: systemRef,
-          type: RELATION_PIPELINE_USED_BY,
-        }),
-      );
+    // Emit usesPipeline/pipelineUsedBy relationship between each project and pipeline
+    if (entity.spec.projectRefs) {
+      for (const projectRef of entity.spec.projectRefs as string[]) {
+        const systemRef = {
+          kind: 'system',
+          namespace: entity.spec.namespaceName || 'default',
+          name: projectRef,
+        };
+        // System (Project) usesPipeline DeploymentPipeline
+        emit(
+          processingResult.relation({
+            source: systemRef,
+            target: sourceRef,
+            type: RELATION_USES_PIPELINE,
+          }),
+        );
+        // DeploymentPipeline pipelineUsedBy System (inverse)
+        emit(
+          processingResult.relation({
+            source: sourceRef,
+            target: systemRef,
+            type: RELATION_PIPELINE_USED_BY,
+          }),
+        );
+      }
     }
 
     // Emit promotesTo relationships to all referenced environments

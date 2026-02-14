@@ -384,6 +384,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
           allEntities.push(...systemEntities);
 
+          // Deduplicate deployment pipelines across projects:
+          // Multiple projects may reference the same pipeline (same kind/namespace/name),
+          // so we collect all projectRefs into a single entity per pipeline.
+          const pipelineMap = new Map<string, DeploymentPipelineEntityV1alpha1>();
+
           // Get deployment pipelines and components for each project
           for (const project of projects) {
             // Fetch deployment pipeline for the project
@@ -410,15 +415,33 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                 pipelineData?.success &&
                 pipelineData?.data
               ) {
-                const pipelineEntity = this.translateDeploymentPipelineToEntity(
-                  pipelineData.data as ModelsDeploymentPipeline,
-                  ns.name!,
-                  project.name!,
-                );
-                allEntities.push(pipelineEntity);
-                this.logger.debug(
-                  `Created deployment pipeline entity for project: ${project.name}`,
-                );
+                const pipeline = pipelineData.data as ModelsDeploymentPipeline;
+                const pipelineKey = `${ns.name!}/${pipeline.name}`;
+                const existing = pipelineMap.get(pipelineKey);
+
+                if (existing) {
+                  // Pipeline already seen from another project — append this project ref
+                  if (!existing.spec.projectRefs?.includes(project.name!)) {
+                    existing.spec.projectRefs = [
+                      ...(existing.spec.projectRefs || []),
+                      project.name!,
+                    ];
+                  }
+                  this.logger.debug(
+                    `Added project ${project.name} to existing pipeline entity: ${pipeline.name}`,
+                  );
+                } else {
+                  const pipelineEntity =
+                    this.translateDeploymentPipelineToEntity(
+                      pipeline,
+                      ns.name!,
+                      project.name!,
+                    );
+                  pipelineMap.set(pipelineKey, pipelineEntity);
+                  this.logger.debug(
+                    `Created deployment pipeline entity for project: ${project.name}`,
+                  );
+                }
               } else {
                 this.logger.debug(
                   `No deployment pipeline found for project ${project.name}`,
@@ -569,6 +592,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               );
             }
           }
+
+          // Add all deduplicated pipeline entities for this namespace
+          allEntities.push(...pipelineMap.values());
         } catch (error) {
           this.logger.warn(
             `Failed to fetch projects for namespace ${ns.name}: ${error}`,
@@ -1210,7 +1236,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         type: 'promotion-pipeline',
-        projectRef: projectName,
+        projectRefs: [projectName],
         namespaceName: namespaceName,
         promotionPaths,
       },
