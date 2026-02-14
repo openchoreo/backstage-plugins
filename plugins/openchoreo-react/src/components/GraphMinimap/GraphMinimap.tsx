@@ -19,7 +19,13 @@ const useStyles = makeStyles(theme => ({
   root: {
     width: MINIMAP_WIDTH,
     height: MINIMAP_HEIGHT,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor:
+      theme.palette.type === 'dark'
+        ? 'rgba(30, 30, 30, 0.75)'
+        : 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     borderRadius: theme.shape.borderRadius,
     overflow: 'hidden',
     cursor: 'crosshair',
@@ -31,17 +37,20 @@ const useStyles = makeStyles(theme => ({
     height: '100%',
   },
   dimOverlay: {
-    fill: 'rgba(0, 0, 0, 0.5)',
+    fill:
+      theme.palette.type === 'dark'
+        ? 'rgba(0, 0, 0, 0.45)'
+        : 'rgba(0, 0, 0, 0.25)',
   },
   viewportRect: {
-    fill: 'rgba(255, 255, 255, 0.15)',
-    stroke: '#fff',
+    fill: 'rgba(108, 127, 216, 0.10)',
+    stroke: theme.palette.primary.main,
     strokeWidth: 2,
     cursor: 'grab',
   },
   viewportRectDragging: {
-    fill: 'rgba(255, 255, 255, 0.25)',
-    stroke: '#fff',
+    fill: 'rgba(108, 127, 216, 0.20)',
+    stroke: theme.palette.primary.main,
     strokeWidth: 2,
     cursor: 'grabbing',
   },

@@ -13,13 +13,23 @@ const useStyles = makeStyles(theme => ({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor:
+      theme.palette.type === 'dark'
+        ? 'rgba(30, 30, 30, 0.75)'
+        : 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(8px)',
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     borderRadius: theme.shape.borderRadius,
     padding: theme.spacing(0.5),
   },
   button: {
-    color: '#fff',
+    color: theme.palette.text.secondary,
     padding: theme.spacing(0.75),
+    '&:hover': {
+      color: theme.palette.text.primary,
+      backgroundColor: theme.palette.action.hover,
+    },
   },
 }));
 
