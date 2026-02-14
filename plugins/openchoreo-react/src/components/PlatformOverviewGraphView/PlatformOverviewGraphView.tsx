@@ -8,14 +8,23 @@ import {
   DependencyGraphTypes,
 } from '@backstage/core-components';
 import { EntityNode } from '@backstage/plugin-catalog-graph';
+import { FullScreen, useFullScreenHandle } from 'react-full-screen';
 import { CustomGraphNode } from '../CustomGraphNode';
 import { GraphLegend } from '../GraphLegend';
+import { GraphControls } from '../GraphControls';
+import { GraphMinimap } from '../GraphMinimap';
 import { DefaultRenderLabel } from '../DefaultRenderLabel';
 import { useAllEntitiesOfKinds } from '../../hooks/useAllEntitiesOfKinds';
 import { useEntityGraphData } from '../../hooks/useEntityGraphData';
+import { useGraphZoom } from '../../hooks/useGraphZoom';
 import type { GraphViewDefinition } from '../../utils/platformOverviewConstants';
 
 const useStyles = makeStyles(theme => ({
+  fullscreenWrapper: {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+  },
   graphWrapper: {
     position: 'relative',
     flex: 1,
@@ -23,8 +32,15 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
   },
   graph: {
-    flex: 1,
-    minHeight: 0,
+    position: 'absolute',
+    inset: 0,
+    overflow: 'hidden',
+    '& > div': {
+      maxHeight: '100%',
+    },
+    '& *': {
+      transition: 'none !important',
+    },
   },
   centered: {
     display: 'flex',
@@ -33,6 +49,21 @@ const useStyles = makeStyles(theme => ({
     flex: 1,
     flexDirection: 'column',
     gap: theme.spacing(2),
+  },
+  controlsContainer: {
+    position: 'absolute',
+    bottom: theme.spacing(2),
+    right: theme.spacing(2),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    gap: theme.spacing(1),
+    zIndex: 1,
+  },
+  fullscreen: {
+    backgroundColor: theme.palette.background.paper,
+    display: 'flex',
+    flex: 1,
   },
 }));
 
@@ -54,6 +85,19 @@ export function PlatformOverviewGraphView({
   rankMargin = 100,
 }: PlatformOverviewGraphViewProps) {
   const classes = useStyles();
+  const fullscreenHandle = useFullScreenHandle();
+
+  const {
+    containerRef: graphWrapperRef,
+    transform,
+    viewBox,
+    viewport,
+    zoomIn,
+    zoomOut,
+    fitToView,
+    panTo,
+  } = useGraphZoom();
+
   const {
     entityRefs,
     loading: refsLoading,
@@ -109,25 +153,54 @@ export function PlatformOverviewGraphView({
   }
 
   return (
-    <Box className={classes.graphWrapper}>
-      <Box className={classes.graph}>
-        <DependencyGraph
-          nodes={nodes}
-          edges={edges}
-          renderNode={CustomGraphNode}
-          renderLabel={DefaultRenderLabel}
-          direction={direction}
-          nodeMargin={nodeMargin}
-          rankMargin={rankMargin}
-          zoom="enabled"
-          showArrowHeads
-          curve="curveMonotoneX"
-          fit="contain"
-          labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
-          labelOffset={8}
-        />
-      </Box>
-      <GraphLegend kinds={view.kinds} />
-    </Box>
+    <FullScreen
+      handle={fullscreenHandle}
+      className={
+        fullscreenHandle.active
+          ? `${classes.fullscreenWrapper} ${classes.fullscreen}`
+          : classes.fullscreenWrapper
+      }
+    >
+      <div ref={graphWrapperRef} className={classes.graphWrapper}>
+        <Box className={classes.graph}>
+          <DependencyGraph
+            nodes={nodes}
+            edges={edges}
+            renderNode={CustomGraphNode}
+            renderLabel={DefaultRenderLabel}
+            direction={direction}
+            nodeMargin={nodeMargin}
+            rankMargin={rankMargin}
+            zoom="enabled"
+            showArrowHeads
+            curve="curveMonotoneX"
+            fit="contain"
+            labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
+            labelOffset={8}
+            allowFullscreen={false}
+          />
+        </Box>
+        <GraphLegend kinds={view.kinds} />
+        <Box className={classes.controlsContainer}>
+          <GraphMinimap
+            transform={transform}
+            viewBox={viewBox}
+            viewport={viewport}
+            onPan={panTo}
+          />
+          <GraphControls
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onFitToView={fitToView}
+            onToggleFullscreen={
+              fullscreenHandle.active
+                ? fullscreenHandle.exit
+                : fullscreenHandle.enter
+            }
+            isFullscreen={fullscreenHandle.active}
+          />
+        </Box>
+      </div>
+    </FullScreen>
   );
 }

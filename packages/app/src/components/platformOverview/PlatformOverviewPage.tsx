@@ -26,7 +26,7 @@ const useStyles = makeStyles(theme => ({
   namespaceSelector: {
     position: 'absolute',
     top: theme.spacing(2),
-    right: theme.spacing(2),
+    left: theme.spacing(2),
     zIndex: 1,
     minWidth: 180,
   },
