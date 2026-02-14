@@ -29,10 +29,6 @@ export interface CtdConverterConfig {
    * Default owner for generated templates (required by Backstage Template kind schema)
    */
   defaultOwner?: string;
-  /**
-   * Namespace for template entity names
-   */
-  namespace?: string;
 }
 
 /**
@@ -40,11 +36,9 @@ export interface CtdConverterConfig {
  */
 export class CtdToTemplateConverter {
   private readonly defaultOwner: string;
-  private readonly namespace: string;
 
   constructor(config?: CtdConverterConfig) {
     this.defaultOwner = config?.defaultOwner || 'guests';
-    this.namespace = config?.namespace || 'openchoreo';
   }
 
   /**
@@ -67,7 +61,7 @@ export class CtdToTemplateConverter {
       kind: 'Template',
       metadata: {
         name: templateName,
-        namespace: this.namespace,
+        namespace: namespaceName,
         title,
         description,
         // tags,
@@ -108,10 +102,10 @@ export class CtdToTemplateConverter {
 
   /**
    * Generate template name from component type name
-   * Example: "web-service" -> "template-openchoreo-web-service"
+   * Example: "web-service" -> "template-web-service"
    */
   private generateTemplateName(componentTypeName: string): string {
-    return `template-${this.namespace}-${componentTypeName}`;
+    return `template-${componentTypeName}`;
   }
 
   /**
