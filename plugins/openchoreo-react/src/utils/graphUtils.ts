@@ -34,6 +34,9 @@ export const ENTITY_KIND_COLORS: Record<string, string> = {
  */
 export const DEFAULT_NODE_COLOR = '#6b7280'; // secondary.main
 
+/** Primary-tinted edge color for graph connections. */
+export const EDGE_COLOR = '#6c7fd8'; // matches primary.main
+
 /**
  * Tint fills for node backgrounds keyed by accent color.
  * Each accent maps to a light-mode and dark-mode background tint.
