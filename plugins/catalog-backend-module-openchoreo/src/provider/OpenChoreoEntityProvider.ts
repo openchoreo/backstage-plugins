@@ -99,7 +99,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     // Initialize CTD to Template converter
     this.ctdConverter = new CtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
-      namespace: 'openchoreo',
     });
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);

@@ -88,6 +88,15 @@ export const CustomTemplateCard = ({
       </IconButton>
       <Box className={classes.resourceCardIcon}>{icon}</Box>
       <Typography className={classes.resourceCardTitle}>{title}</Typography>
+      {template.metadata.namespace &&
+        template.metadata.namespace !== 'default' && (
+          <Chip
+            label={template.metadata.namespace}
+            size="small"
+            variant="outlined"
+            className={classes.namespaceChip}
+          />
+        )}
       {description && (
         <Typography className={classes.resourceCardDescription}>
           {description}
