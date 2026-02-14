@@ -5,16 +5,12 @@ import { ENTITY_KIND_COLORS, DEFAULT_NODE_COLOR } from '../../utils/graphUtils';
 
 const useStyles = makeStyles(theme => ({
   root: {
-    position: 'absolute',
-    bottom: theme.spacing(2),
-    left: theme.spacing(2),
     display: 'flex',
     flexWrap: 'wrap',
     gap: theme.spacing(0.5),
     padding: theme.spacing(1),
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: theme.shape.borderRadius,
-    zIndex: 1,
   },
   chip: {
     height: 24,

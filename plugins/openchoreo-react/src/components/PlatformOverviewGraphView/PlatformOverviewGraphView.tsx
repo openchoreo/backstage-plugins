@@ -1,4 +1,4 @@
-import { MouseEvent } from 'react';
+import { MouseEvent, useState } from 'react';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -7,6 +7,10 @@ import {
   DependencyGraph,
   DependencyGraphTypes,
 } from '@backstage/core-components';
+import FormControl from '@material-ui/core/FormControl';
+import InputLabel from '@material-ui/core/InputLabel';
+import Select from '@material-ui/core/Select';
+import MenuItem from '@material-ui/core/MenuItem';
 import { EntityNode } from '@backstage/plugin-catalog-graph';
 import { FullScreen, useFullScreenHandle } from 'react-full-screen';
 import { CustomGraphNode } from '../CustomGraphNode';
@@ -36,7 +40,13 @@ const useStyles = makeStyles(theme => ({
     inset: 0,
     overflow: 'hidden',
     '& > div': {
-      maxHeight: '100%',
+      height: '100%',
+    },
+    '& > div > div': {
+      height: '100%',
+    },
+    '& svg#dependency-graph': {
+      height: '100% !important',
     },
     '& *': {
       transition: 'none !important',
@@ -49,6 +59,22 @@ const useStyles = makeStyles(theme => ({
     flex: 1,
     flexDirection: 'column',
     gap: theme.spacing(2),
+  },
+  topLeftContainer: {
+    position: 'absolute',
+    top: theme.spacing(2),
+    left: theme.spacing(2),
+    zIndex: 1,
+  },
+  topRightContainer: {
+    position: 'absolute',
+    top: theme.spacing(2),
+    right: theme.spacing(2),
+    zIndex: 1,
+  },
+  namespaceSelector: {
+    minWidth: 180,
+    backgroundColor: theme.palette.background.paper,
   },
   controlsContainer: {
     position: 'absolute',
@@ -70,6 +96,8 @@ const useStyles = makeStyles(theme => ({
 export type PlatformOverviewGraphViewProps = {
   view: GraphViewDefinition;
   namespace?: string;
+  namespaces?: string[];
+  onNamespaceChange?: (namespace: string) => void;
   onNodeClick?: (node: EntityNode, event: MouseEvent<unknown>) => void;
   direction?: DependencyGraphTypes.Direction;
   nodeMargin?: number;
@@ -79,6 +107,8 @@ export type PlatformOverviewGraphViewProps = {
 export function PlatformOverviewGraphView({
   view,
   namespace,
+  namespaces,
+  onNamespaceChange,
   onNodeClick,
   direction = DependencyGraphTypes.Direction.LEFT_RIGHT,
   nodeMargin = 100,
@@ -86,6 +116,7 @@ export function PlatformOverviewGraphView({
 }: PlatformOverviewGraphViewProps) {
   const classes = useStyles();
   const fullscreenHandle = useFullScreenHandle();
+  const [showLegend, setShowLegend] = useState(false);
 
   const {
     containerRef: graphWrapperRef,
@@ -171,6 +202,8 @@ export function PlatformOverviewGraphView({
             direction={direction}
             nodeMargin={nodeMargin}
             rankMargin={rankMargin}
+            paddingX={20}
+            paddingY={40}
             zoom="enabled"
             showArrowHeads
             curve="curveMonotoneX"
@@ -180,14 +213,33 @@ export function PlatformOverviewGraphView({
             allowFullscreen={false}
           />
         </Box>
-        <GraphLegend kinds={view.kinds} />
-        <Box className={classes.controlsContainer}>
+        {namespaces && onNamespaceChange && (
+          <Box className={classes.topLeftContainer}>
+            <FormControl variant="outlined" size="small" className={classes.namespaceSelector}>
+              <InputLabel id="graph-namespace-label">Namespace</InputLabel>
+              <Select
+                labelId="graph-namespace-label"
+                label="Namespace"
+                value={namespace ?? ''}
+                onChange={e => onNamespaceChange(e.target.value as string)}
+              >
+                {namespaces.map(ns => (
+                  <MenuItem key={ns} value={ns}>{ns}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
+        <Box className={classes.topRightContainer}>
           <GraphMinimap
             transform={transform}
             viewBox={viewBox}
             viewport={viewport}
             onPan={panTo}
           />
+        </Box>
+        <Box className={classes.controlsContainer}>
+          {showLegend && <GraphLegend kinds={view.kinds} />}
           <GraphControls
             onZoomIn={zoomIn}
             onZoomOut={zoomOut}
@@ -198,6 +250,8 @@ export function PlatformOverviewGraphView({
                 : fullscreenHandle.enter
             }
             isFullscreen={fullscreenHandle.active}
+            onToggleLegend={() => setShowLegend(prev => !prev)}
+            showLegend={showLegend}
           />
         </Box>
       </div>

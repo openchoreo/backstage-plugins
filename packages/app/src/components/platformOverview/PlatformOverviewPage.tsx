@@ -5,11 +5,9 @@ import {
   Header,
   Content,
   HeaderTabs,
-  Select,
 } from '@backstage/core-components';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
-import Box from '@material-ui/core/Box';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   PlatformOverviewGraphView,
@@ -17,20 +15,13 @@ import {
   type EntityNode,
 } from '@openchoreo/backstage-plugin-react';
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles({
   content: {
     minHeight: 0,
     display: 'flex',
     flexDirection: 'column',
   },
-  namespaceSelector: {
-    position: 'absolute',
-    top: theme.spacing(2),
-    left: theme.spacing(2),
-    zIndex: 1,
-    minWidth: 180,
-  },
-}));
+});
 
 const tabs = ALL_VIEWS.map(view => ({ id: view.id, label: view.label }));
 
@@ -85,27 +76,13 @@ export function PlatformOverviewPage() {
         tabs={tabs}
       />
       <Content stretch noPadding className={classes.content}>
-        <Box
-          position="relative"
-          flex={1}
-          minHeight={0}
-          display="flex"
-          flexDirection="column"
-        >
-          <Box className={classes.namespaceSelector}>
-            <Select
-              label="Namespace"
-              items={namespaces.map(ns => ({ label: ns, value: ns }))}
-              selected={namespace}
-              onChange={value => setNamespace(String(value))}
-            />
-          </Box>
-          <PlatformOverviewGraphView
-            view={ALL_VIEWS[activeTab]}
-            namespace={namespace}
-            onNodeClick={handleNodeClick}
-          />
-        </Box>
+        <PlatformOverviewGraphView
+          view={ALL_VIEWS[activeTab]}
+          namespace={namespace}
+          namespaces={namespaces}
+          onNamespaceChange={setNamespace}
+          onNodeClick={handleNodeClick}
+        />
       </Content>
     </Page>
   );
