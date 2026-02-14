@@ -29,6 +29,23 @@ spec:
     kind: ObservabilityPlane
     name: default
 ---
+# EU Observability Plane
+apiVersion: openchoreo.dev/v1alpha1
+kind: ObservabilityPlane
+metadata:
+  name: obs-eu
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Observability EU'
+    openchoreo.dev/description: 'Observability plane for EU region'
+  labels:
+    openchoreo.dev/name: obs-eu
+spec:
+  clusterAgent:
+    clientCA:
+      value: 'dummy-ca-for-demo'
+  observerURL: http://observer.eu.observability-plane:8080
+---
 # Production EU DataPlane
 apiVersion: openchoreo.dev/v1alpha1
 kind: DataPlane
@@ -49,7 +66,7 @@ spec:
     organizationVirtualHost: eu.prod.openchoreoapis.internal
   observabilityPlaneRef:
     kind: ObservabilityPlane
-    name: default
+    name: obs-eu
 ---
 # Production environment (recreated) → hosted on prod-us DataPlane
 apiVersion: openchoreo.dev/v1alpha1

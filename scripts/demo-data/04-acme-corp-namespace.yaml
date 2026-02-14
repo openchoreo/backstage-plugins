@@ -1,0 +1,217 @@
+# acme-corp namespace — full demo data for namespace switching
+# Prerequisite: kubectl create ns acme-corp
+# Apply: kubectl apply -f scripts/demo-data/
+# Cleanup: kubectl delete -f scripts/demo-data/
+
+# --- Infrastructure ---
+
+# Observability Plane
+apiVersion: openchoreo.dev/v1alpha1
+kind: ObservabilityPlane
+metadata:
+  name: obs-acme
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Observability Acme'
+    openchoreo.dev/description: 'Observability plane for Acme Corp'
+  labels:
+    openchoreo.dev/name: obs-acme
+spec:
+  clusterAgent:
+    clientCA:
+      value: 'dummy-ca-for-demo'
+  observerURL: http://observer.acme.observability-plane:8080
+---
+# DataPlane
+apiVersion: openchoreo.dev/v1alpha1
+kind: DataPlane
+metadata:
+  name: acme-prod
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Acme Production'
+    openchoreo.dev/description: 'Production data plane for Acme Corp'
+  labels:
+    openchoreo.dev/name: acme-prod
+spec:
+  clusterAgent:
+    clientCA:
+      value: 'dummy-ca-for-demo'
+  gateway:
+    publicVirtualHost: acme.prod.openchoreoapis.localhost
+    organizationVirtualHost: acme.prod.openchoreoapis.internal
+  observabilityPlaneRef:
+    kind: ObservabilityPlane
+    name: obs-acme
+---
+# Development environment
+apiVersion: openchoreo.dev/v1alpha1
+kind: Environment
+metadata:
+  name: development
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Development'
+    openchoreo.dev/description: 'Development environment for Acme Corp'
+  labels:
+    openchoreo.dev/name: development
+spec:
+  dataPlaneRef:
+    kind: DataPlane
+    name: acme-prod
+  isProduction: false
+---
+# Production environment
+apiVersion: openchoreo.dev/v1alpha1
+kind: Environment
+metadata:
+  name: production
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Production'
+    openchoreo.dev/description: 'Production environment for Acme Corp'
+  labels:
+    openchoreo.dev/name: production
+spec:
+  dataPlaneRef:
+    kind: DataPlane
+    name: acme-prod
+  isProduction: true
+---
+# Build Plane
+apiVersion: openchoreo.dev/v1alpha1
+kind: BuildPlane
+metadata:
+  name: acme-build
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Acme Build'
+    openchoreo.dev/description: 'Build plane for Acme Corp'
+  labels:
+    openchoreo.dev/name: acme-build
+spec:
+  clusterAgent:
+    clientCA:
+      value: 'dummy-ca-for-demo'
+  observabilityPlaneRef:
+    kind: ObservabilityPlane
+    name: obs-acme
+---
+# Deployment pipeline
+apiVersion: openchoreo.dev/v1alpha1
+kind: DeploymentPipeline
+metadata:
+  name: standard
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Standard Pipeline'
+    openchoreo.dev/description: 'Development to production promotion'
+  labels:
+    openchoreo.dev/name: standard
+spec:
+  promotionPaths:
+    - sourceEnvironmentRef: development
+      targetEnvironmentRefs:
+        - name: production
+          requiresApproval: true
+
+---
+# --- Projects ---
+
+apiVersion: openchoreo.dev/v1alpha1
+kind: Project
+metadata:
+  name: marketplace
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Marketplace'
+    openchoreo.dev/description: 'Online marketplace application'
+spec:
+  deploymentPipelineRef: standard
+  buildPlaneRef:
+    kind: BuildPlane
+    name: acme-build
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Project
+metadata:
+  name: notifications
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Notifications'
+    openchoreo.dev/description: 'Notification and messaging platform'
+spec:
+  deploymentPipelineRef: standard
+  buildPlaneRef:
+    kind: BuildPlane
+    name: acme-build
+
+---
+# --- Components ---
+
+# marketplace components
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: storefront-ui
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Storefront UI'
+    openchoreo.dev/description: 'Customer-facing marketplace web app'
+spec:
+  owner:
+    projectName: marketplace
+  componentType: deployment/web-app
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: catalog-service
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Catalog Service'
+    openchoreo.dev/description: 'Product catalog management API'
+spec:
+  owner:
+    projectName: marketplace
+  componentType: deployment/service
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: search-service
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Search Service'
+    openchoreo.dev/description: 'Full-text search service'
+spec:
+  owner:
+    projectName: marketplace
+  componentType: deployment/service
+---
+# notifications components
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: notification-api
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Notification API'
+    openchoreo.dev/description: 'Notification dispatch and tracking API'
+spec:
+  owner:
+    projectName: notifications
+  componentType: deployment/service
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: email-worker
+  namespace: acme-corp
+  annotations:
+    openchoreo.dev/display-name: 'Email Worker'
+    openchoreo.dev/description: 'Async email delivery worker'
+spec:
+  owner:
+    projectName: notifications
+  componentType: deployment/service
