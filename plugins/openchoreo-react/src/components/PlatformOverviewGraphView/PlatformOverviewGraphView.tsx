@@ -22,6 +22,7 @@ import { useAllEntitiesOfKinds } from '../../hooks/useAllEntitiesOfKinds';
 import { useEntityGraphData } from '../../hooks/useEntityGraphData';
 import { useGraphZoom } from '../../hooks/useGraphZoom';
 import type { GraphViewDefinition } from '../../utils/platformOverviewConstants';
+import { EDGE_COLOR } from '../../utils/graphUtils';
 
 const useStyles = makeStyles(theme => ({
   fullscreenWrapper: {
@@ -39,6 +40,11 @@ const useStyles = makeStyles(theme => ({
     position: 'absolute',
     inset: 0,
     overflow: 'hidden',
+    backgroundImage:
+      theme.palette.type === 'dark'
+        ? 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)'
+        : 'radial-gradient(circle, rgba(0,0,0,0.05) 1px, transparent 1px)',
+    backgroundSize: '20px 20px',
     '& > div': {
       height: '100%',
     },
@@ -53,6 +59,13 @@ const useStyles = makeStyles(theme => ({
     },
     '& .BackstageDependencyGraphEdge-path': {
       transition: 'none !important',
+      strokeWidth: '1.5 !important',
+      stroke:
+        theme.palette.type === 'dark'
+          ? `${EDGE_COLOR}4D !important` // 30% opacity
+          : `${EDGE_COLOR}59 !important`, // 35% opacity
+      strokeLinecap: 'round',
+      markerEnd: 'url(#custom-arrow) !important',
     },
     '& .BackstageDependencyGraphEdge-label': {
       transition: 'none !important',
@@ -121,6 +134,21 @@ function GraphDefs() {
           floodColor="rgba(0,0,0,0.18)"
         />
       </filter>
+      <marker
+        id="custom-arrow"
+        viewBox="0 0 24 24"
+        markerWidth="14"
+        markerHeight="14"
+        refX="16"
+        refY="12"
+        orient="auto"
+        markerUnits="strokeWidth"
+      >
+        <path
+          fill={`${EDGE_COLOR}80`}
+          d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"
+        />
+      </marker>
     </>
   );
 }
