@@ -145,43 +145,48 @@ export function PlatformOverviewGraphView({
 
   const loading = refsLoading || graphLoading;
   const error = refsError || graphError;
+  const hasNamespaceSelector = namespaces && onNamespaceChange;
 
-  if (loading) {
-    return (
-      <Box className={classes.centered}>
-        <CircularProgress />
-        <Typography variant="body2" color="textSecondary">
-          Loading entities...
-        </Typography>
-      </Box>
-    );
+  if (!hasNamespaceSelector) {
+    if (loading) {
+      return (
+        <Box className={classes.centered}>
+          <CircularProgress />
+          <Typography variant="body2" color="textSecondary">
+            Loading entities...
+          </Typography>
+        </Box>
+      );
+    }
+
+    if (error) {
+      return (
+        <Box className={classes.centered}>
+          <Typography variant="h6" color="error">
+            Failed to load entities
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            {error.message}
+          </Typography>
+        </Box>
+      );
+    }
+
+    if (entityCount === 0) {
+      return (
+        <Box className={classes.centered}>
+          <Typography variant="h6" color="textSecondary">
+            No entities found
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            {view.description}
+          </Typography>
+        </Box>
+      );
+    }
   }
 
-  if (error) {
-    return (
-      <Box className={classes.centered}>
-        <Typography variant="h6" color="error">
-          Failed to load entities
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          {error.message}
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (entityCount === 0) {
-    return (
-      <Box className={classes.centered}>
-        <Typography variant="h6" color="textSecondary">
-          No entities found
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          {view.description}
-        </Typography>
-      </Box>
-    );
-  }
+  const showGraph = !loading && !error && entityCount > 0;
 
   return (
     <FullScreen
@@ -193,27 +198,54 @@ export function PlatformOverviewGraphView({
       }
     >
       <div ref={graphWrapperRef} className={classes.graphWrapper}>
-        <Box className={classes.graph}>
-          <DependencyGraph
-            nodes={nodes}
-            edges={edges}
-            renderNode={CustomGraphNode}
-            renderLabel={DefaultRenderLabel}
-            direction={direction}
-            nodeMargin={nodeMargin}
-            rankMargin={rankMargin}
-            paddingX={20}
-            paddingY={40}
-            zoom="enabled"
-            showArrowHeads
-            curve="curveMonotoneX"
-            fit="contain"
-            labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
-            labelOffset={8}
-            allowFullscreen={false}
-          />
-        </Box>
-        {namespaces && onNamespaceChange && (
+        {showGraph ? (
+          <Box className={classes.graph}>
+            <DependencyGraph
+              nodes={nodes}
+              edges={edges}
+              renderNode={CustomGraphNode}
+              renderLabel={DefaultRenderLabel}
+              direction={direction}
+              nodeMargin={nodeMargin}
+              rankMargin={rankMargin}
+              paddingX={20}
+              paddingY={40}
+              zoom="enabled"
+              showArrowHeads
+              curve="curveMonotoneX"
+              fit="contain"
+              labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
+              labelOffset={8}
+              allowFullscreen={false}
+            />
+          </Box>
+        ) : loading ? (
+          <Box className={classes.centered}>
+            <CircularProgress />
+            <Typography variant="body2" color="textSecondary">
+              Loading entities...
+            </Typography>
+          </Box>
+        ) : error ? (
+          <Box className={classes.centered}>
+            <Typography variant="h6" color="error">
+              Failed to load entities
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              {error.message}
+            </Typography>
+          </Box>
+        ) : (
+          <Box className={classes.centered}>
+            <Typography variant="h6" color="textSecondary">
+              No entities found
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              {view.description}
+            </Typography>
+          </Box>
+        )}
+        {hasNamespaceSelector && (
           <Box className={classes.topLeftContainer}>
             <FormControl variant="outlined" size="small" className={classes.namespaceSelector}>
               <InputLabel id="graph-namespace-label">Namespace</InputLabel>
@@ -230,30 +262,34 @@ export function PlatformOverviewGraphView({
             </FormControl>
           </Box>
         )}
-        <Box className={classes.topRightContainer}>
-          <GraphMinimap
-            transform={transform}
-            viewBox={viewBox}
-            viewport={viewport}
-            onPan={panTo}
-          />
-        </Box>
-        <Box className={classes.controlsContainer}>
-          {showLegend && <GraphLegend kinds={view.kinds} />}
-          <GraphControls
-            onZoomIn={zoomIn}
-            onZoomOut={zoomOut}
-            onFitToView={fitToView}
-            onToggleFullscreen={
-              fullscreenHandle.active
-                ? fullscreenHandle.exit
-                : fullscreenHandle.enter
-            }
-            isFullscreen={fullscreenHandle.active}
-            onToggleLegend={() => setShowLegend(prev => !prev)}
-            showLegend={showLegend}
-          />
-        </Box>
+        {showGraph && (
+          <>
+            <Box className={classes.topRightContainer}>
+              <GraphMinimap
+                transform={transform}
+                viewBox={viewBox}
+                viewport={viewport}
+                onPan={panTo}
+              />
+            </Box>
+            <Box className={classes.controlsContainer}>
+              {showLegend && <GraphLegend kinds={view.kinds} />}
+              <GraphControls
+                onZoomIn={zoomIn}
+                onZoomOut={zoomOut}
+                onFitToView={fitToView}
+                onToggleFullscreen={
+                  fullscreenHandle.active
+                    ? fullscreenHandle.exit
+                    : fullscreenHandle.enter
+                }
+                isFullscreen={fullscreenHandle.active}
+                onToggleLegend={() => setShowLegend(prev => !prev)}
+                showLegend={showLegend}
+              />
+            </Box>
+          </>
+        )}
       </div>
     </FullScreen>
   );
