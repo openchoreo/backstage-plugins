@@ -6,10 +6,11 @@ import { EntityEdgeData } from '@backstage/plugin-catalog-graph';
 const useStyles = makeStyles(
   theme => ({
     text: {
-      fill: theme.palette.text.primary,
+      fill: theme.palette.text.secondary,
+      fontSize: '0.7rem',
     },
     secondary: {
-      fill: theme.palette.text.secondary,
+      fill: theme.palette.text.disabled,
     },
   }),
   { name: 'OpenChoreoGraphLabel' },

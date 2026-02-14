@@ -10,7 +10,7 @@
 export const ENTITY_KIND_COLORS: Record<string, string> = {
   // Standard Backstage kinds
   system: '#6c7fd8', // primary.main - Blue for projects/systems
-  component: '#6c7fd8', // primary.main - Blue for components
+  component: '#64748b', // slate - Slate for components
   api: '#6c7fd8', // primary.main - Blue for APIs
   group: '#6b7280', // secondary.main - Gray for groups
   user: '#6b7280', // secondary.main - Gray for users
@@ -33,6 +33,34 @@ export const ENTITY_KIND_COLORS: Record<string, string> = {
  * Default color for unknown entity kinds.
  */
 export const DEFAULT_NODE_COLOR = '#6b7280'; // secondary.main
+
+/**
+ * Tint fills for node backgrounds keyed by accent color.
+ * Each accent maps to a light-mode and dark-mode background tint.
+ */
+export const ENTITY_KIND_TINTS: Record<
+  string,
+  { light: string; dark: string }
+> = {
+  '#6c7fd8': { light: '#eef0fa', dark: '#1a1d2e' },
+  '#64748b': { light: '#f1f5f9', dark: '#1e2330' },
+  '#6b7280': { light: '#f3f4f6', dark: '#1f2128' },
+  '#10b981': { light: '#ecfdf5', dark: '#162a22' },
+  '#f59e0b': { light: '#fffbeb', dark: '#2a2010' },
+  '#8b5cf6': { light: '#f3f0ff', dark: '#1e1a2e' },
+  '#3b82f6': { light: '#eff6ff', dark: '#151c2e' },
+};
+
+const DEFAULT_TINT = { light: '#f3f4f6', dark: '#1f2128' };
+
+/**
+ * Returns the tint fill color for a node background based on its accent color
+ * and the current color scheme.
+ */
+export function getNodeTintFill(accentColor: string, isDark: boolean): string {
+  const tint = ENTITY_KIND_TINTS[accentColor] ?? DEFAULT_TINT;
+  return isDark ? tint.dark : tint.light;
+}
 
 /**
  * Kind label prefixes for entity display names.

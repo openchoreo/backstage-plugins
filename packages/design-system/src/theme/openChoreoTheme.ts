@@ -227,9 +227,6 @@ const theme = createUnifiedTheme({
             strokeWidth: '2px !important',
           },
         },
-        'g[data-testid="node"] text': {
-          fill: `${colors.common.white} !important`,
-        },
         '.MuiTab-root:hover': {
           backgroundColor: `${alpha(colors.common.black, 0.1)} !important`,
           color: `${colors.common.black} !important`,
