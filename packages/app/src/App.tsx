@@ -51,7 +51,8 @@ import { CustomCatalogPage } from './components/catalog/CustomCatalogPage';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 import { HomePage } from './components/Home';
-import { CustomGraphNode } from './components/catalog/CustomGraphNode';
+import { CustomGraphNode } from '@openchoreo/backstage-plugin-react';
+import { PlatformOverviewPage } from './components/platformOverview';
 
 import {
   AlertDisplay,
@@ -275,6 +276,7 @@ const routes = (
       path="/catalog-graph"
       element={<CatalogGraphPage renderNode={CustomGraphNode} />}
     />
+    <Route path="/platform-overview" element={<PlatformOverviewPage />} />
     <Route path="/admin/access-control" element={<AccessControlPage />} />
     <Route path="/admin/workflows/*" element={<GenericWorkflowsPage />} />
     <Route path="/admin/git-secrets" element={<GitSecretsPage />} />

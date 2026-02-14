@@ -15,6 +15,7 @@ import {
   BuildPlaneEntityProcessor,
   ObservabilityPlaneEntityProcessor,
   DeploymentPipelineEntityProcessor,
+  ComponentEntityProcessor,
   ComponentTypeEntityProcessor,
   TraitTypeEntityProcessor,
   WorkflowEntityProcessor,
@@ -101,6 +102,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the DeploymentPipeline entity processor
         catalog.addProcessor(new DeploymentPipelineEntityProcessor());
+
+        // Register the Component entity processor (emits instanceOf relation to ComponentType)
+        catalog.addProcessor(new ComponentEntityProcessor());
 
         // Register the ComponentType entity processor
         catalog.addProcessor(new ComponentTypeEntityProcessor());

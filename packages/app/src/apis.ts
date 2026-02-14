@@ -36,6 +36,26 @@ import {
   entityPresentationApiRef,
 } from '@backstage/plugin-catalog-react';
 import { DefaultEntityPresentationApi } from '@backstage/plugin-catalog';
+import {
+  catalogGraphApiRef,
+  DefaultCatalogGraphApi,
+  ALL_RELATIONS,
+  ALL_RELATION_PAIRS,
+} from '@backstage/plugin-catalog-graph';
+import {
+  RELATION_PROMOTES_TO,
+  RELATION_PROMOTED_BY,
+  RELATION_USES_PIPELINE,
+  RELATION_PIPELINE_USED_BY,
+  RELATION_HOSTED_ON,
+  RELATION_HOSTS,
+  RELATION_OBSERVED_BY,
+  RELATION_OBSERVES,
+  RELATION_INSTANCE_OF,
+  RELATION_HAS_INSTANCE,
+  RELATION_USES_WORKFLOW,
+  RELATION_WORKFLOW_USED_BY,
+} from '@openchoreo/backstage-plugin-common';
 import CloudIcon from '@material-ui/icons/Cloud';
 import DnsIcon from '@material-ui/icons/Dns';
 import AccountTreeIcon from '@material-ui/icons/AccountTree';
@@ -153,6 +173,42 @@ export const apis: AnyApiFactory[] = [
     },
     factory: ({ discoveryApi, fetchApi }) =>
       new OpenChoreoCiClient(discoveryApi, fetchApi),
+  }),
+
+  // Catalog graph API with custom OpenChoreo relations
+  // Without this, custom relations (promotesTo, hostedOn, instanceOf, etc.)
+  // won't appear in entity Relations cards or the catalog graph
+  createApiFactory({
+    api: catalogGraphApiRef,
+    deps: {},
+    factory: () =>
+      new DefaultCatalogGraphApi({
+        knownRelations: [
+          ...ALL_RELATIONS,
+          RELATION_PROMOTES_TO,
+          RELATION_PROMOTED_BY,
+          RELATION_USES_PIPELINE,
+          RELATION_PIPELINE_USED_BY,
+          RELATION_HOSTED_ON,
+          RELATION_HOSTS,
+          RELATION_OBSERVED_BY,
+          RELATION_OBSERVES,
+          RELATION_INSTANCE_OF,
+          RELATION_HAS_INSTANCE,
+          RELATION_USES_WORKFLOW,
+          RELATION_WORKFLOW_USED_BY,
+        ],
+        knownRelationPairs: [
+          ...ALL_RELATION_PAIRS,
+          [RELATION_PROMOTES_TO, RELATION_PROMOTED_BY],
+          [RELATION_USES_PIPELINE, RELATION_PIPELINE_USED_BY],
+          [RELATION_HOSTED_ON, RELATION_HOSTS],
+          [RELATION_OBSERVED_BY, RELATION_OBSERVES],
+          [RELATION_INSTANCE_OF, RELATION_HAS_INSTANCE],
+          [RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY],
+        ],
+        defaultRelationTypes: { exclude: [] },
+      }),
   }),
 
   // Custom EntityPresentationApi with icons for custom entity kinds

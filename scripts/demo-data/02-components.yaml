@@ -1,0 +1,110 @@
+# Demo components for Platform Overview graph
+# Apply: kubectl apply -f scripts/demo-data/
+# Cleanup: kubectl delete -f scripts/demo-data/
+
+# --- ecommerce-platform components ---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: product-api
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Product API'
+    openchoreo.dev/description: 'Product catalog and inventory service'
+spec:
+  owner:
+    projectName: ecommerce-platform
+  componentType: deployment/service
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: order-service
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Order Service'
+    openchoreo.dev/description: 'Order processing and management'
+spec:
+  owner:
+    projectName: ecommerce-platform
+  componentType: deployment/service
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: web-frontend
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Web Frontend'
+    openchoreo.dev/description: 'Customer-facing web application'
+spec:
+  owner:
+    projectName: ecommerce-platform
+  componentType: deployment/web-app
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: payment-processor
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Payment Processor'
+    openchoreo.dev/description: 'Payment gateway integration service'
+spec:
+  owner:
+    projectName: ecommerce-platform
+  componentType: deployment/service
+---
+# --- data-platform components ---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: data-ingestion
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Data Ingestion'
+    openchoreo.dev/description: 'Data collection and ingestion pipeline'
+spec:
+  owner:
+    projectName: data-platform
+  componentType: deployment/service
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: analytics-dashboard
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Analytics Dashboard'
+    openchoreo.dev/description: 'Real-time analytics visualization'
+spec:
+  owner:
+    projectName: data-platform
+  componentType: deployment/web-app
+---
+# --- identity-service components ---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: auth-api
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Auth API'
+    openchoreo.dev/description: 'Authentication and authorization API'
+spec:
+  owner:
+    projectName: identity-service
+  componentType: deployment/service
+---
+apiVersion: openchoreo.dev/v1alpha1
+kind: Component
+metadata:
+  name: user-store
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'User Store'
+    openchoreo.dev/description: 'User profile and credential storage'
+spec:
+  owner:
+    projectName: identity-service
+  componentType: deployment/service

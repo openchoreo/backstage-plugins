@@ -36,9 +36,15 @@ export const DEFAULT_NODE_COLOR = '#6b7280'; // secondary.main
 
 /**
  * Kind label prefixes for entity display names.
- * Only custom OpenChoreo kinds get prefixes to provide context.
+ * Provides context for both standard Backstage kinds and custom OpenChoreo kinds.
  */
 export const KIND_LABEL_PREFIXES: Record<string, string> = {
+  // Standard Backstage kinds
+  domain: 'NS',
+  system: 'Project',
+  component: 'Comp',
+
+  // OpenChoreo custom kinds
   dataplane: 'DP',
   environment: 'Env',
   deploymentpipeline: 'Pipeline',

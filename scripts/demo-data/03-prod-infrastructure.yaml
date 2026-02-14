@@ -1,0 +1,110 @@
+# Production infrastructure: two DataPlanes (US + EU) with environments
+# No real clusters needed — DataPlanes will show as disconnected, which is fine for demo
+#
+# IMPORTANT: Before applying, delete the existing production environment:
+#   kubectl delete environment production -n default
+#
+# Apply: kubectl apply -f scripts/demo-data/
+# Cleanup: kubectl delete -f scripts/demo-data/
+
+# Production US DataPlane
+apiVersion: openchoreo.dev/v1alpha1
+kind: DataPlane
+metadata:
+  name: prod-us
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Production US'
+    openchoreo.dev/description: 'Production data plane (US region)'
+  labels:
+    openchoreo.dev/name: prod-us
+spec:
+  clusterAgent:
+    clientCA:
+      value: 'dummy-ca-for-demo'
+  gateway:
+    publicVirtualHost: us.prod.openchoreoapis.localhost
+    organizationVirtualHost: us.prod.openchoreoapis.internal
+  observabilityPlaneRef:
+    kind: ObservabilityPlane
+    name: default
+---
+# Production EU DataPlane
+apiVersion: openchoreo.dev/v1alpha1
+kind: DataPlane
+metadata:
+  name: prod-eu
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Production EU'
+    openchoreo.dev/description: 'Production data plane (EU region)'
+  labels:
+    openchoreo.dev/name: prod-eu
+spec:
+  clusterAgent:
+    clientCA:
+      value: 'dummy-ca-for-demo'
+  gateway:
+    publicVirtualHost: eu.prod.openchoreoapis.localhost
+    organizationVirtualHost: eu.prod.openchoreoapis.internal
+  observabilityPlaneRef:
+    kind: ObservabilityPlane
+    name: default
+---
+# Production environment (recreated) → hosted on prod-us DataPlane
+apiVersion: openchoreo.dev/v1alpha1
+kind: Environment
+metadata:
+  name: production
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Production'
+    openchoreo.dev/description: 'Production environment (US region)'
+  labels:
+    openchoreo.dev/name: production
+spec:
+  dataPlaneRef:
+    kind: DataPlane
+    name: prod-us
+  isProduction: true
+---
+# Production EU environment → hosted on prod-eu DataPlane
+apiVersion: openchoreo.dev/v1alpha1
+kind: Environment
+metadata:
+  name: production-eu
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Production EU'
+    openchoreo.dev/description: 'Production environment (EU region)'
+  labels:
+    openchoreo.dev/name: production-eu
+spec:
+  dataPlaneRef:
+    kind: DataPlane
+    name: prod-eu
+  isProduction: true
+---
+# Multi-region pipeline: dev → staging → production + production-eu
+apiVersion: openchoreo.dev/v1alpha1
+kind: DeploymentPipeline
+metadata:
+  name: multi-region
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Multi-Region Pipeline'
+    openchoreo.dev/description: 'Promotes through dev, staging, then to US and EU production'
+  labels:
+    openchoreo.dev/name: multi-region
+spec:
+  promotionPaths:
+    - sourceEnvironmentRef: development
+      targetEnvironmentRefs:
+        - name: staging
+          requiresApproval: false
+    - sourceEnvironmentRef: staging
+      targetEnvironmentRefs:
+        - name: production
+          requiresApproval: true
+        - name: production-eu
+          requiresApproval: true

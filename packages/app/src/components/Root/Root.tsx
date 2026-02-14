@@ -33,6 +33,7 @@ import { MyGroupsSidebarItem } from '@backstage/plugin-org';
 import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
+import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import { AccessControlSidebarItem } from './AccessControlSidebarItem';
 import { GenericWorkflowsSidebarItem } from './GenericWorkflowsSidebarItem';
 import { GitSecretsSidebarItem } from './GitSecretsSidebarItem';
@@ -129,6 +130,11 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
             icon={CreateComponentIcon}
             to="create"
             text="Create..."
+          />
+          <SidebarItem
+            icon={BubbleChartIcon}
+            to="platform-overview"
+            text="Platform"
           />
           {/* End global nav */}
           <SidebarDivider />
