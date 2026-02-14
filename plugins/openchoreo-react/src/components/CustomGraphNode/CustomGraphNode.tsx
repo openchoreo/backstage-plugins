@@ -15,7 +15,7 @@ import { OverridableComponent } from '@material-ui/core/OverridableComponent';
 import { SvgIconTypeMap } from '@material-ui/core/SvgIcon/SvgIcon';
 import { DEFAULT_NAMESPACE, Entity } from '@backstage/catalog-model';
 import { EntityNodeData } from '@backstage/plugin-catalog-graph';
-import { getNodeColor, getNodeDisplayLabel } from './graphUtils';
+import { getNodeColor, getNodeDisplayLabel } from '../../utils/graphUtils';
 
 // Inline EntityIcon component to avoid import issues
 function EntityIcon({

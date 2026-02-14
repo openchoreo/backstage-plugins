@@ -105,9 +105,11 @@ import {
   ObservabilityRuntimeLogs,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
-import { FeatureGate } from '@openchoreo/backstage-plugin-react';
+import {
+  FeatureGate,
+  CustomGraphNode,
+} from '@openchoreo/backstage-plugin-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
-import { CustomGraphNode } from './CustomGraphNode';
 import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 
 // External CI Platform imports
@@ -825,12 +827,6 @@ const componentTypePage = (
           <EntityCatalogGraphCard
             variant="gridItem"
             height={400}
-            relations={[
-              RELATION_PART_OF,
-              RELATION_HAS_PART,
-              RELATION_USES_WORKFLOW,
-              RELATION_WORKFLOW_USED_BY,
-            ]}
             renderNode={CustomGraphNode}
           />
         </Grid>
