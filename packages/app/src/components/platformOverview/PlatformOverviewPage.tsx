@@ -1,11 +1,6 @@
 import { MouseEvent, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Page,
-  Header,
-  Content,
-  HeaderTabs,
-} from '@backstage/core-components';
+import { Page, Header, Content, HeaderTabs } from '@backstage/core-components';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
 import { makeStyles } from '@material-ui/core/styles';
