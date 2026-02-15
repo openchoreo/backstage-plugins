@@ -1,6 +1,9 @@
 import { startTestBackend } from '@backstage/backend-test-utils';
 import { createServiceFactory } from '@backstage/backend-plugin-api';
-import { observabilityServiceRef } from './services/ObservabilityService';
+import {
+  observabilityServiceRef,
+  ObservabilityNotConfiguredError,
+} from './services/ObservabilityService';
 import { openchoreoObservabilityBackendPlugin } from './plugin';
 import request from 'supertest';
 
@@ -134,6 +137,53 @@ describe('plugin', () => {
     expect(getMetricsRes.status).toBe(500);
     expect(getMetricsRes.body).toMatchObject({
       error: 'Failed to fetch metrics',
+    });
+  });
+
+  it('should return 404 when observability is not configured', async () => {
+    const { server } = await startTestBackend({
+      features: [
+        openchoreoObservabilityBackendPlugin,
+        createServiceFactory({
+          service: observabilityServiceRef,
+          deps: {},
+          factory: () => ({
+            fetchMetricsByComponent: jest
+              .fn()
+              .mockRejectedValue(
+                new ObservabilityNotConfiguredError('component-1'),
+              ),
+            fetchEnvironmentsByNamespace: jest.fn().mockResolvedValue([]),
+            fetchTracesByProject: jest.fn().mockResolvedValue({
+              traces: [],
+              tookMs: 0,
+            }),
+            fetchRuntimeLogsByComponent: jest.fn().mockResolvedValue({
+              logs: [],
+              totalCount: 0,
+            }),
+          }),
+        }),
+      ],
+    });
+
+    const getMetricsRes = await request(server)
+      .post('/api/openchoreo-observability-backend/metrics')
+      .send({
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        namespaceName: 'namespace-1',
+        projectName: 'project-1',
+        options: {
+          limit: 100,
+          offset: 0,
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      });
+    expect(getMetricsRes.status).toBe(404);
+    expect(getMetricsRes.body).toMatchObject({
+      error: 'Observability is not configured for component component-1',
     });
   });
 });

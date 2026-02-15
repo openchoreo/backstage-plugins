@@ -1,0 +1,1 @@
+export { GitSecretFieldExtension } from './extensions';

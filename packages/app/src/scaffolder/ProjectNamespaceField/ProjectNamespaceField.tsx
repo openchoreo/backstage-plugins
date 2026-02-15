@@ -74,6 +74,7 @@ export const ProjectNamespaceField = ({
       const { items } = await catalogApi.getEntities({
         filter: {
           kind: 'System',
+          'metadata.annotations.openchoreo.io/namespace': namespaceName,
         },
       });
 
@@ -86,8 +87,13 @@ export const ProjectNamespaceField = ({
 
       setProjects(projectList);
 
-      // Auto-select project based on preselection or fallback to first
-      if (projectList.length > 0 && !formData?.project_name) {
+      // Check if current selection is still valid in the new project list
+      const currentStillValid =
+        formData?.project_name &&
+        projectList.some(p => p.entityRef === formData.project_name);
+
+      // Auto-select project if no valid selection exists
+      if (projectList.length > 0 && !currentStillValid) {
         let selectedProject = projectList[0].entityRef;
 
         // Check if we have a preselected project from context
@@ -127,7 +133,7 @@ export const ProjectNamespaceField = ({
   useEffect(() => {
     fetchProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [namespaceName]);
 
   // Handle project selection change
   const handleProjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {

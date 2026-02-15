@@ -344,7 +344,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       hasComponentTypeOverrides:
         binding?.componentTypeEnvOverrides &&
         Object.keys(binding.componentTypeEnvOverrides).length > 0,
-      dataPlaneRef: envData.dataPlaneRef,
+      dataPlaneRef: envData.dataPlaneRef?.name,
       deployment: {
         status: deploymentStatus,
         lastDeployed,

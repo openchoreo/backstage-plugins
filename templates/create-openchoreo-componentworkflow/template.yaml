@@ -1,0 +1,59 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-componentworkflow
+  title: ComponentWorkflow
+  description: Define a build workflow for how components are built and delivered.
+spec:
+  owner: openchoreo-users
+  type: ComponentWorkflow
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: ComponentWorkflow Metadata
+      required:
+        - namespace_name
+        - componentworkflow_name
+      properties:
+        componentworkflow_name:
+          title: ComponentWorkflow Name
+          type: string
+          description: Name of the component workflow (must be a valid Kubernetes name)
+          ui:field: EntityNamePicker
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Namespace where the component workflow will be created
+          default: domain:default/default
+          ui:field: EntityPicker
+          ui:options:
+            allowArbitraryValues: false
+            defaultKind: Domain
+            catalogFilter:
+              - kind: Domain
+        description:
+          title: Description
+          type: string
+          description: Describe what this ComponentWorkflow is for
+    - title: ComponentWorkflow Definition
+      required:
+        - yaml_definition
+      properties:
+        yaml_definition:
+          title: ComponentWorkflow YAML
+          type: string
+          description: Edit the ComponentWorkflow YAML definition
+          ui:field: ComponentWorkflowYamlEditor
+  steps:
+    - id: create-openchoreo-componentworkflow
+      name: Create OpenChoreo ComponentWorkflow
+      action: openchoreo:componentworkflow-definition:create
+      input:
+        namespaceName: ${{ parameters.namespace_name }}
+        yamlContent: ${{ parameters.yaml_definition }}
+  output:
+    links:
+      - title: View ComponentWorkflow
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-componentworkflow'].output.entityRef }}

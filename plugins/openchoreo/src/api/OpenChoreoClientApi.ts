@@ -420,8 +420,13 @@ export interface OpenChoreoClientApi {
   /** Fetch total bindings count for dashboard */
   fetchTotalBindingsCount(components: ComponentInfo[]): Promise<number>;
 
-  /** Fetch secret references for a namespace */
+  /** Fetch secret references for a namespace (entity-based) */
   fetchSecretReferences(entity: Entity): Promise<SecretReferencesResponse>;
+
+  /** Fetch secret references by namespace name directly */
+  fetchSecretReferencesByNamespace(
+    namespaceName: string,
+  ): Promise<SecretReferencesResponse>;
 
   /** Fetch deployment pipeline for a project */
   fetchDeploymentPipeline(
@@ -439,6 +444,19 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     traits: ComponentTrait[],
   ): Promise<ComponentTrait[]>;
+
+  /** Fetch available traits for a namespace (no entity required) */
+  fetchTraitsByNamespace(
+    namespaceName: string,
+    page?: number,
+    pageSize?: number,
+  ): Promise<any>;
+
+  /** Fetch trait schema by namespace name and trait name (no entity required) */
+  fetchTraitSchemaByNamespace(
+    namespaceName: string,
+    traitName: string,
+  ): Promise<any>;
 
   // === Authorization Operations ===
 

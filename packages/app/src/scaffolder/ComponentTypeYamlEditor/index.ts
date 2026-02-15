@@ -1,0 +1,1 @@
+export { ComponentTypeYamlEditorFieldExtension } from './extensions';

@@ -63,6 +63,8 @@ const API_ENDPOINTS = {
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
   COMPONENT_TRAITS: '/component-traits',
+  TRAITS: '/traits',
+  TRAIT_SCHEMA: '/trait-schema',
   // Authorization endpoints
   AUTHZ_ACTIONS: '/authz/actions',
   // Configuration endpoints
@@ -614,6 +616,12 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       throw new Error('Missing namespace annotation');
     }
 
+    return this.fetchSecretReferencesByNamespace(namespaceName);
+  }
+
+  async fetchSecretReferencesByNamespace(
+    namespaceName: string,
+  ): Promise<SecretReferencesResponse> {
     return this.apiFetch<SecretReferencesResponse>(
       API_ENDPOINTS.SECRET_REFERENCES,
       {
@@ -660,6 +668,29 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         componentName: metadata.component,
         traits,
       },
+    });
+  }
+
+  async fetchTraitsByNamespace(
+    namespaceName: string,
+    page: number = 1,
+    pageSize: number = 100,
+  ): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.TRAITS, {
+      params: {
+        namespaceName,
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      },
+    });
+  }
+
+  async fetchTraitSchemaByNamespace(
+    namespaceName: string,
+    traitName: string,
+  ): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.TRAIT_SCHEMA, {
+      params: { namespaceName, traitName },
     });
   }
 

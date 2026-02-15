@@ -386,7 +386,7 @@ const theme = createUnifiedTheme({
       styleOverrides: {
         root: {
           backgroundColor: colors.secondary.light,
-          border: `1px solid transparent`,
+          border: `1px solid ${colors.grey[300]}`,
           transition: 'all 0.3s',
           borderRadius: 8,
           padding: '2px 4px',
@@ -402,10 +402,11 @@ const theme = createUnifiedTheme({
             display: 'none',
           },
           '&:hover:not(.Mui-focused)': {
-            borderColor: colors.indigo[200],
+            borderColor: colors.primary.light,
           },
           '&.Mui-focused': {
-            borderColor: colors.primary.light,
+            borderColor: colors.primary.main,
+            borderWidth: 2,
           },
         },
       },
@@ -577,6 +578,27 @@ const theme = createUnifiedTheme({
         },
       },
     },
+    // Scaffolder stepper form width constraint.
+    // Cast needed because the BackstageTemplateStepper type augmentation lives in
+    // @backstage/plugin-scaffolder-react/alpha, which the design-system package
+    // does not depend on. Adding it as a dependency would couple a low-level
+    // design package to a specific plugin.
+    ...({
+      BackstageTemplateStepper: {
+        styleOverrides: {
+          formWrapper: {
+            maxWidth: 900,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          },
+          footer: {
+            maxWidth: 900,
+            marginLeft: 'auto',
+            marginRight: 'auto',
+          },
+        },
+      },
+    } as any),
   },
 });
 

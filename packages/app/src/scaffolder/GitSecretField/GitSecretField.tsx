@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { FieldProps } from '@rjsf/utils';
-import type { RJSFSchema } from '@rjsf/utils';
+import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
+import type { FieldValidation } from '@rjsf/utils';
 import {
   FormControl,
   FormHelperText,
@@ -29,22 +29,25 @@ const CREATE_NEW_SECRET = '__create_new__';
 const NO_SECRET = '__no_secret__';
 const DIVIDER = '__divider__';
 
+/*
+ Schema for the Git Secret Field
+*/
+export const GitSecretFieldSchema = {
+  returnValue: { type: 'string' as const },
+};
+
 /**
- * Custom RJSF field for selecting or creating git secrets.
- * This field is used when the workflow schema contains a secretRef field
- * in the systemParameters.repository section.
+ * Scaffolder field extension for selecting or creating git secrets.
+ * Shows an autocomplete dropdown with existing secrets and an option to create new ones.
  */
 export const GitSecretField = ({
-  id,
+  onChange,
+  formData,
   schema,
   uiSchema,
-  formData,
-  disabled,
-  readonly,
-  onChange,
   rawErrors,
-  formContext,
-}: FieldProps<any, RJSFSchema, any>) => {
+  idSchema,
+}: FieldExtensionComponentProps<string>) => {
   const [secrets, setSecrets] = useState<GitSecret[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,11 +56,11 @@ export const GitSecretField = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get namespace from form context (the parent form's data)
-  // Support both nested (project_namespace.namespace_name) and flat (namespace_name) formats
+  // Get namespace from ui:options (set by the converter)
   const namespaceName =
-    formContext?.formData?.project_namespace?.namespace_name ||
-    formContext?.formData?.namespace_name;
+    typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+      ? uiSchema['ui:options'].namespaceName
+      : '';
 
   // Extract the actual namespace name from entity reference format if needed
   const extractNsName = (fullNsName: string): string => {
@@ -162,8 +165,8 @@ export const GitSecretField = ({
     }
   };
 
-  const label = schema.title || uiSchema?.['ui:title'] || 'Secret Reference';
-  const description = schema.description || uiSchema?.['ui:description'];
+  const label = uiSchema?.['ui:title'] || schema.title || 'Git Secret';
+  const description = uiSchema?.['ui:description'] || schema.description;
 
   // Build options array for Autocomplete
   const options = [
@@ -184,7 +187,6 @@ export const GitSecretField = ({
       return;
     }
     if (value === DIVIDER) {
-      // Divider is not selectable, do nothing
       return;
     }
     onChange(value || undefined);
@@ -204,11 +206,10 @@ export const GitSecretField = ({
         error={!!rawErrors?.length || !!error}
       >
         <Autocomplete
-          id={id}
+          id={idSchema?.$id}
           options={options}
           value={getDisplayValue()}
           onChange={handleAutocompleteChange}
-          disabled={disabled || readonly}
           loading={loading}
           getOptionLabel={option => {
             if (option === CREATE_NEW_SECRET) return 'Create New Git Secret';
@@ -255,44 +256,12 @@ export const GitSecretField = ({
           }
         />
 
-        {error && (
-          <FormHelperText
-            error
-            style={{
-              marginLeft: 0,
-              marginTop: 8,
-              fontSize: '0.75rem',
-              fontWeight: 400,
-            }}
-          >
-            {error}
-          </FormHelperText>
-        )}
+        {error && <FormHelperText error>{error}</FormHelperText>}
         {rawErrors?.length ? (
-          <FormHelperText
-            error
-            style={{
-              marginLeft: 0,
-              marginTop: 8,
-              fontSize: '0.75rem',
-              fontWeight: 400,
-            }}
-          >
-            {rawErrors.join(', ')}
-          </FormHelperText>
+          <FormHelperText error>{rawErrors.join(', ')}</FormHelperText>
         ) : null}
         {description && !rawErrors?.length && !error && (
-          <FormHelperText
-            style={{
-              marginLeft: 0,
-              marginTop: 8,
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              color: 'rgba(0, 0, 0, 0.54)',
-            }}
-          >
-            {description}
-          </FormHelperText>
+          <FormHelperText>{description}</FormHelperText>
         )}
       </FormControl>
 
@@ -304,4 +273,15 @@ export const GitSecretField = ({
       />
     </Box>
   );
+};
+
+/*
+ Validation function for the Git Secret Field.
+ Secret is optional, so no validation needed.
+*/
+export const gitSecretFieldValidation = (
+  _value: string,
+  _validation: FieldValidation,
+) => {
+  // No validation — secretRef is optional
 };

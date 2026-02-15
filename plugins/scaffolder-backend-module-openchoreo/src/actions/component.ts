@@ -143,7 +143,7 @@ export const createComponentAction = (
         return parts[parts.length - 1];
       };
 
-      const namespaceName = extractNamespaceName(ctx.input.namespaceName);
+      let namespaceName = extractNamespaceName(ctx.input.namespaceName);
       const projectName = extractProjectName(ctx.input.projectName);
 
       ctx.logger.info(
@@ -153,13 +153,33 @@ export const createComponentAction = (
         `Extracted project name: ${projectName} from ${ctx.input.projectName}`,
       );
 
+      const catalogApi = new CatalogClient({
+        discoveryApi: discovery,
+      });
+
+      // Resolve namespace from project entity to prevent cross-namespace mismatch
+      try {
+        const projectRef = ctx.input.projectName.includes(':')
+          ? ctx.input.projectName
+          : `system:${namespaceName}/${projectName}`;
+        const projectEntity = await catalogApi.getEntityByRef(projectRef);
+        if (projectEntity) {
+          const projectNs =
+            projectEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+          if (projectNs && projectNs !== namespaceName) {
+            ctx.logger.warn(
+              `Namespace mismatch: selected "${namespaceName}" but project "${projectName}" belongs to "${projectNs}". Using project namespace.`,
+            );
+            namespaceName = projectNs;
+          }
+        }
+      } catch (err) {
+        ctx.logger.warn(`Failed to resolve project namespace: ${err}`);
+      }
+
       // Check if component with the same name already exists in this namespace
       // Note: This requires catalog-backend to be accessible
       try {
-        const catalogApi = new CatalogClient({
-          discoveryApi: discovery,
-        });
-
         // Get all components from catalog
         const { items } = await catalogApi.getEntities({
           filter: {
@@ -199,12 +219,22 @@ export const createComponentAction = (
       }
 
       try {
+        // Extract workloadDetails if present (new nested structure from WorkloadDetailsField)
+        const workloadDetails = (ctx.input as any).workloadDetails;
+
         // Filter out UI-specific fields from traits (id, schema)
-        const cleanedTraits = (ctx.input as any).traits?.map((trait: any) => ({
+        // Traits may come from workloadDetails or top-level (backward compat)
+        const rawTraits = workloadDetails?.traits ?? (ctx.input as any).traits;
+        const cleanedTraits = rawTraits?.map((trait: any) => ({
           name: trait.name,
           instanceName: trait.instanceName,
           config: trait.config,
         }));
+
+        // Extract workload data from workloadDetails
+        const workloadEndpoints = workloadDetails?.endpoints;
+        const workloadEnvVars = workloadDetails?.envVars;
+        const workloadFileMounts = workloadDetails?.fileMounts;
 
         // Extract CI/CD setup data
         const deploymentSource =
@@ -225,33 +255,41 @@ export const createComponentAction = (
         const workflowParameters =
           workflowParametersData?.parameters || workflowParametersData;
 
-        // Extract CTD-specific parameters by filtering out known scaffolder fields
-        const knownScaffolderFields = new Set([
-          'namespaceName',
-          'projectName',
-          'componentName',
-          'displayName',
-          'description',
-          'componentType',
-          'deploymentSource',
-          'containerImage',
-          'autoDeploy',
-          'workflow_name',
-          'workflow_parameters',
-          'traits',
-          'repo_url',
-          'branch',
-          'component_path',
-          'component_type_workload_type',
-          'ciPlatform',
-          'ciIdentifier',
-          'external_ci_info', // UI-only markdown field
-        ]);
+        // Extract CTD-specific parameters
+        // If workloadDetails exists, CTD parameters come from workloadDetails.ctdParameters
+        // Otherwise, filter out known scaffolder fields (backward compat)
+        let ctdParameters: Record<string, any> = {};
+        if (workloadDetails?.ctdParameters) {
+          ctdParameters = workloadDetails.ctdParameters;
+        } else {
+          const knownScaffolderFields = new Set([
+            'namespaceName',
+            'projectName',
+            'componentName',
+            'displayName',
+            'description',
+            'componentType',
+            'deploymentSource',
+            'containerImage',
+            'autoDeploy',
+            'workflow_name',
+            'workflow_parameters',
+            'traits',
+            'repo_url',
+            'branch',
+            'component_path',
+            'component_type_workload_type',
+            'ciPlatform',
+            'ciIdentifier',
+            'external_ci_info',
+            'gitSecretRef',
+            'workloadDetails',
+          ]);
 
-        const ctdParameters: Record<string, any> = {};
-        for (const [key, value] of Object.entries(ctx.input)) {
-          if (!knownScaffolderFields.has(key)) {
-            ctdParameters[key] = value;
+          for (const [key, value] of Object.entries(ctx.input)) {
+            if (!knownScaffolderFields.has(key)) {
+              ctdParameters[key] = value;
+            }
           }
         }
 
@@ -278,6 +316,7 @@ export const createComponentAction = (
           workflowName: workflowName,
           workflowParameters: workflowParameters,
           containerImage: (ctx.input as any).containerImage,
+          gitSecretRef: (ctx.input as any).gitSecretRef,
           traits: cleanedTraits,
         });
 
@@ -342,23 +381,51 @@ export const createComponentAction = (
           )}`,
         );
 
-        // Handle deploy-from-image flow: create Workload CR with the container image
+        // Create Workload CR when there's workload data or when deploying from image.
+        //
+        // The Workload CRD requires `image` (Required, MinLength=1) on Container,
+        // so env vars and file mounts can only be included when there's an image.
+        // Endpoints live at the spec level and don't require a container.
         const containerImage = (ctx.input as any).containerImage;
+        const hasEndpoints =
+          workloadEndpoints && Object.keys(workloadEndpoints).length > 0;
+        const hasEnvVars = workloadEnvVars && workloadEnvVars.length > 0;
+        const hasFileMounts =
+          workloadFileMounts && workloadFileMounts.length > 0;
+        const hasWorkloadData = hasEndpoints || hasEnvVars || hasFileMounts;
 
-        if (isFromImage && containerImage) {
+        ctx.logger.info(
+          `Workload check: isFromImage=${isFromImage}, hasEndpoints=${hasEndpoints}, ` +
+            `hasEnvVars=${hasEnvVars}, hasFileMounts=${hasFileMounts}, ` +
+            `endpoints=${JSON.stringify(workloadEndpoints)}, ` +
+            `envVars=${JSON.stringify(workloadEnvVars)}, ` +
+            `fileMounts=${JSON.stringify(workloadFileMounts)}`,
+        );
+
+        if ((isFromImage && containerImage) || hasWorkloadData) {
           ctx.logger.info(
-            `Deploy from image flow: creating Workload with image ${containerImage}`,
+            `Creating Workload resource (deploymentSource: ${deploymentSource}, hasWorkloadData: ${hasWorkloadData}, hasImage: ${!!containerImage})`,
           );
 
-          // Extract port from CTD parameters if available
+          // Extract port from CTD parameters if available (legacy fallback)
           const port = ctdParameters.port as number | undefined;
 
+          // For non-image deployments, only pass env vars and file mounts if
+          // there's also an image, since the CRD requires image on Container.
+          const effectiveContainerImage = isFromImage
+            ? containerImage
+            : undefined;
           const workloadResource = buildWorkloadResource({
             componentName: ctx.input.componentName,
             namespaceName: namespaceName,
             projectName: projectName,
-            containerImage: containerImage,
+            containerImage: effectiveContainerImage,
             port: port,
+            endpoints: workloadEndpoints,
+            envVars: effectiveContainerImage ? workloadEnvVars : undefined,
+            fileMounts: effectiveContainerImage
+              ? workloadFileMounts
+              : undefined,
           });
 
           ctx.logger.debug(
@@ -374,26 +441,24 @@ export const createComponentAction = (
           });
 
           if (workloadError || !workloadResponse.ok) {
-            // Log error but don't fail the whole operation - component was created
             ctx.logger.error(
               `Failed to create Workload: ${workloadResponse.status} ${workloadResponse.statusText}. ` +
-                `Component was created but image deployment may need manual setup.`,
+                `Error: ${JSON.stringify(workloadError)}. ` +
+                `Component was created but workload setup may need manual configuration.`,
             );
           } else if (!workloadData?.success) {
             ctx.logger.error(
-              `Workload API request was not successful. Component was created but image deployment may need manual setup.`,
+              `Workload API request was not successful: ${JSON.stringify(
+                workloadData,
+              )}. ` +
+                `Component was created but workload setup may need manual configuration.`,
             );
           } else {
             ctx.logger.info(
-              `Workload created successfully for deploy-from-image flow: ${JSON.stringify(
-                workloadData,
-              )}`,
+              `Workload created successfully: ${JSON.stringify(workloadData)}`,
             );
           }
-        }
-
-        // For external-ci: log that no workload is created (CI will create via API)
-        if (isExternalCI) {
+        } else if (isExternalCI) {
           ctx.logger.info(
             `External CI flow: Component created without workload. ` +
               `External CI pipeline will create workloads via OpenChoreo API.`,
@@ -466,11 +531,15 @@ export const createComponentAction = (
                   systemParameters: {
                     repository: {
                       url: (ctx.input as any).repo_url,
+                      // secretRef is supported by the backend but not yet in the OpenAPI spec
+                      ...((ctx.input as any).gitSecretRef
+                        ? { secretRef: (ctx.input as any).gitSecretRef }
+                        : {}),
                       revision: {
                         branch: (ctx.input as any).branch,
                       },
                       appPath: (ctx.input as any).component_path,
-                    },
+                    } as any,
                   },
                   parameters: workflowParameters,
                 }

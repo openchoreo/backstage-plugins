@@ -624,7 +624,7 @@ export class PlatformEnvironmentInfoService
         displayName: env.displayName || env.name,
         description: env.description || '',
         namespaceName: namespaceName,
-        dataPlaneRef: env.dataPlaneRef || '',
+        dataPlaneRef: env.dataPlaneRef?.name || '',
         isProduction: env.isProduction ?? false,
         dnsPrefix: env.dnsPrefix || '',
         createdAt: env.createdAt || '',

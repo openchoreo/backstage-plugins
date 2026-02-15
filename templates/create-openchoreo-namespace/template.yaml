@@ -1,0 +1,43 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: create-openchoreo-namespace
+  title: Namespace
+  description: Organize and isolate groups of related platform resources such as projects, environments, and dataplanes.
+spec:
+  owner: openchoreo-users
+  type: Namespace
+  # Enable user token injection for user-based authorization at OpenChoreo API
+  EXPERIMENTAL_formDecorators:
+    - id: openchoreo:inject-user-token
+  parameters:
+    - title: Namespace Details
+      required:
+        - namespace_name
+      properties:
+        namespace_name:
+          title: Namespace Name
+          type: string
+          description: Name of the namespace (must be a valid Kubernetes name)
+          ui:field: EntityNamePicker
+        displayName:
+          title: Display Name
+          type: string
+          description: A human-readable display name for the namespace
+        description:
+          title: Description
+          type: string
+          description: Help others understand what this namespace is for
+  steps:
+    - id: create-openchoreo-namespace
+      name: Create OpenChoreo Namespace
+      action: openchoreo:namespace:create
+      input:
+        namespaceName: ${{ parameters.namespace_name }}
+        displayName: ${{ parameters.displayName }}
+        description: ${{ parameters.description }}
+  output:
+    links:
+      - title: View Namespace
+        icon: catalog
+        entityRef: ${{ steps['create-openchoreo-namespace'].output.entityRef }}

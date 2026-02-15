@@ -35,6 +35,56 @@ export class DataPlaneInfoService {
    * @returns {Promise<DataPlaneResponse>} Data plane details
    * @throws {Error} When there's an error fetching data from the API
    */
+  async listDataPlanes(
+    namespaceName: string,
+    token?: string,
+  ): Promise<DataPlaneResponse[]> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(`Listing data planes for namespace: ${namespaceName}`);
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/dataplanes',
+        {
+          params: {
+            path: { namespaceName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to list data planes: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data.success || !data.data) {
+        throw new Error('Invalid response from OpenChoreo API');
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Data planes list completed for ${namespaceName}: Total: ${totalTime}ms`,
+      );
+
+      const listData = data.data as { items?: DataPlaneResponse[] };
+      return listData.items ?? [];
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error listing data planes for ${namespaceName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
   async fetchDataPlaneDetails(
     request: {
       namespaceName: string;

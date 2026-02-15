@@ -139,13 +139,22 @@ export class ObservabilityClient implements ObservabilityApi {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      let error;
+      try {
+        error = await response.json();
+      } catch (e) {
+        throw new Error(
+          `Failed to fetch metrics: ${response.status} ${response.statusText}`,
+        );
+      }
       if (
-        error.error.includes('Observability is not configured for component')
+        error.error?.includes('Observability is not configured for component')
       ) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(`Failed to fetch metrics: ${response.statusText}`);
+      throw new Error(
+        error.error || `Failed to fetch metrics: ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
@@ -212,13 +221,22 @@ export class ObservabilityClient implements ObservabilityApi {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      let error;
+      try {
+        error = await response.json();
+      } catch (e) {
+        throw new Error(
+          `Failed to fetch traces: ${response.status} ${response.statusText}`,
+        );
+      }
       if (
         error.error?.includes('Observability is not configured for component')
       ) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(`Failed to fetch traces: ${response.statusText}`);
+      throw new Error(
+        error.error || `Failed to fetch traces: ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
@@ -266,7 +284,14 @@ export class ObservabilityClient implements ObservabilityApi {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      let error;
+      try {
+        error = await response.json();
+      } catch (e) {
+        throw new Error(
+          `Failed to fetch RCA reports: ${response.status} ${response.statusText}`,
+        );
+      }
       if (error.error?.includes('RCA service is not configured')) {
         throw new Error('RCA service is not configured');
       }
@@ -275,7 +300,9 @@ export class ObservabilityClient implements ObservabilityApi {
       ) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(`Failed to fetch RCA reports: ${response.statusText}`);
+      throw new Error(
+        error.error || `Failed to fetch RCA reports: ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
@@ -319,14 +346,23 @@ export class ObservabilityClient implements ObservabilityApi {
     );
 
     if (!response.ok) {
-      const error = await response.json();
+      let error;
+      try {
+        error = await response.json();
+      } catch (e) {
+        throw new Error(
+          `Failed to fetch RCA report: ${response.status} ${response.statusText}`,
+        );
+      }
       if (error.error?.includes('RCA service is not configured')) {
         throw new Error('RCA service is not configured');
       }
       if (error.error?.includes('RCA report not found')) {
         throw new Error('RCA report not found');
       }
-      throw new Error(`Failed to fetch RCA report: ${response.statusText}`);
+      throw new Error(
+        error.error || `Failed to fetch RCA report: ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
@@ -378,12 +414,22 @@ export class ObservabilityClient implements ObservabilityApi {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      if (error.message === 'observability is disabled') {
+      let error;
+      try {
+        error = await response.json();
+      } catch (e) {
+        throw new Error(
+          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
+        );
+      }
+      if (
+        error.error?.includes('Observability is not configured for component')
+      ) {
         throw new Error('Observability is not enabled for this component');
       }
       throw new Error(
-        `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
+        error.error ||
+          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
       );
     }
 

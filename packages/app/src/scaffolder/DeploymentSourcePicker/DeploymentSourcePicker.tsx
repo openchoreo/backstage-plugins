@@ -21,14 +21,13 @@ const useStyles = makeStyles(theme => ({
   card: {
     flex: 1,
     cursor: 'pointer',
+    outline: 'none',
     transition: 'border-color 0.2s ease, background-color 0.2s ease',
     '&:hover': {
-      borderColor: theme.palette.primary.light,
+      borderColor: theme.palette.primary.main,
     },
   },
   cardSelected: {
-    borderColor: theme.palette.primary.main,
-    borderWidth: 2,
     backgroundColor: alpha(theme.palette.primary.main, 0.04),
   },
   cardContent: {
@@ -108,26 +107,24 @@ export const DeploymentSourcePicker = ({
     {
       value: 'build-from-source',
       label: 'Build from Source',
-      description:
-        "Connect a git repository and build your application using OpenChoreo's built-in CI",
+      description: 'Connect a git repo and build using built-in CI',
       icon: <CodeIcon className={classes.icon} />,
     },
     {
       value: 'deploy-from-image',
-      label: 'Deploy from Image',
-      description: 'Use an existing container image from a registry',
+      label: 'Container Image',
+      description: 'Deploy an existing image from a container registry',
       icon: <ImageIcon className={classes.icon} />,
     },
     {
       value: 'external-ci',
       label: 'External CI',
-      description:
-        'Use Jenkins, GitHub Actions, or other CI platforms to build and deploy',
+      description: 'Use Jenkins, GitHub Actions, or other CI platforms',
       icon: <SettingsInputComponentIcon className={classes.icon} />,
     },
   ];
 
-  const selectedValue = formData || 'build-from-source';
+  const selectedValue = formData || '';
 
   return (
     <Box>

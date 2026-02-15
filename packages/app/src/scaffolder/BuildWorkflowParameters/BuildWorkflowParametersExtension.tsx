@@ -11,7 +11,6 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { filterEmptyObjectProperties } from '@openchoreo/backstage-plugin-common';
-import { GitSecretField } from './GitSecretField';
 
 /*
  Schema for the Build Workflow Parameters Field
@@ -39,11 +38,12 @@ export const BuildWorkflowParameters = ({
   onChange,
   formData,
   formContext,
+  uiSchema,
 }: FieldExtensionComponentProps<WorkflowParametersData>) => {
   const [workflowSchema, setWorkflowSchema] = useState<JSONSchema7 | null>(
     null,
   );
-  const [uiSchema, setUiSchema] = useState<any>({});
+  const [rjsfUiSchema, setRjsfUiSchema] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,11 +54,13 @@ export const BuildWorkflowParameters = ({
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
 
-  // Get the selected workflow and namespace from form data
-  // The workflow_name is a sibling field in the same section
-  // Support both nested (project_namespace.namespace_name) and flat (namespace_name) formats
+  // Get the selected workflow from sibling field in the same section
   const selectedWorkflowName = formContext?.formData?.workflow_name;
+  // Get namespace from ui:options (set by the converter) or fall back to form data
   const namespaceName =
+    (typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+      ? uiSchema['ui:options'].namespaceName
+      : undefined) ||
     formContext?.formData?.project_namespace?.namespace_name ||
     formContext?.formData?.namespace_name;
 
@@ -121,69 +123,27 @@ export const BuildWorkflowParameters = ({
           // This prevents rendering empty sections in the RJSF form
           schema = filterEmptyObjectProperties(schema);
 
+          // Strip systemParameters from the schema — these are now standalone
+          // fields in the wizard (repo URL, branch, app path) managed by the converter
+          if (schema.properties?.systemParameters) {
+            const { systemParameters, ...restProperties } = schema.properties;
+            schema = {
+              ...schema,
+              properties: restProperties,
+            };
+            // Also remove from required array if present
+            if (schema.required) {
+              schema.required = schema.required.filter(
+                r => r !== 'systemParameters',
+              );
+            }
+          }
+
           setWorkflowSchema(schema);
           // Generate UI schema with sanitized titles for fields without explicit titles
           const generatedUiSchema = generateUiSchemaWithTitles(schema);
 
-          // Set top-level ui:order to show systemParameters before parameters
-          generatedUiSchema['ui:order'] = [
-            'systemParameters',
-            'parameters',
-            '*',
-          ];
-
-          // Initialize systemParameters structure in uiSchema
-          if (!generatedUiSchema.systemParameters) {
-            generatedUiSchema.systemParameters = {};
-          }
-          if (!generatedUiSchema.systemParameters.repository) {
-            generatedUiSchema.systemParameters.repository = {};
-          }
-          if (!generatedUiSchema.systemParameters.repository.revision) {
-            generatedUiSchema.systemParameters.repository.revision = {};
-          }
-
-          // Hide systemParameters.repository.revision.commit field from the form
-          // This field is set dynamically when triggering the workflow
-          generatedUiSchema.systemParameters.repository.revision.commit = {
-            ...generatedUiSchema.systemParameters.repository.revision.commit,
-            'ui:widget': 'hidden',
-          };
-
-          // Use custom GitSecretField for secretRef field if it exists
-          if (schema.properties?.systemParameters) {
-            const sysParams = schema.properties.systemParameters as JSONSchema7;
-            if (sysParams.properties?.repository) {
-              const repo = sysParams.properties.repository as JSONSchema7;
-              if (repo.properties?.secretRef) {
-                generatedUiSchema.systemParameters.repository.secretRef = {
-                  ...generatedUiSchema.systemParameters.repository.secretRef,
-                  'ui:field': 'GitSecretField',
-                  'ui:title': 'Secret Reference',
-                  'ui:description': 'Git secret reference.',
-                };
-              }
-            }
-          }
-
-          // Set field order within systemParameters.repository
-          // Order: url, revision (branch), appPath, secretRef
-          generatedUiSchema.systemParameters.repository['ui:order'] = [
-            'url',
-            'revision',
-            'appPath',
-            'secretRef',
-            '*',
-          ];
-
-          // Set field order within revision (branch before commit)
-          generatedUiSchema.systemParameters.repository.revision['ui:order'] = [
-            'branch',
-            'commit',
-            '*',
-          ];
-
-          setUiSchema(generatedUiSchema);
+          setRjsfUiSchema(generatedUiSchema);
         }
       } catch (err) {
         if (!ignore) {
@@ -236,12 +196,7 @@ export const BuildWorkflowParameters = ({
 
   // Custom RJSF fields for specialized input types
   // Must be defined before any early returns to satisfy React's rules of hooks
-  const customFields = useMemo(
-    () => ({
-      GitSecretField: GitSecretField,
-    }),
-    [],
-  );
+  const customFields = useMemo(() => ({}), []);
 
   if (loading) {
     return (
@@ -281,13 +236,10 @@ export const BuildWorkflowParameters = ({
   return (
     workflowSchema && (
       <Box mt={2}>
-        <Typography variant="subtitle1" gutterBottom>
-          Workflow Parameters
-        </Typography>
         <Form
           key={resetKey}
           schema={workflowSchema}
-          uiSchema={uiSchema}
+          uiSchema={rjsfUiSchema}
           formData={formData?.parameters || {}}
           onChange={handleFormChange}
           validator={validator}

@@ -344,7 +344,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   /**
    * Handles scaffolder.task.create permission.
    *
-   * Allows if user has component:create capability for ANY scope.
+   * Allows if user has ANY create capability for scaffolder resource types.
    * This is a global check - we cannot filter by scope at this point
    * since the template hasn't been executed yet.
    */
@@ -364,20 +364,30 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         userToken,
       );
 
-      // Check if user has component:create for any scope (fall back to wildcard)
-      const componentCreateCap =
-        capabilities.capabilities?.['component:create'] ??
-        capabilities.capabilities?.['*'];
-      const hasComponentCreate = (componentCreateCap?.allowed?.length ?? 0) > 0;
+      const wildcardCap = capabilities.capabilities?.['*'];
+
+      // Check if user has any create capability for scaffolder resource types
+      const scaffolderCreateActions = [
+        'component:create',
+        'project:create',
+        'environment:create',
+        'trait:create',
+        'componenttype:create',
+        'componentworkflow:create',
+        'namespace:create',
+      ];
+
+      const hasAnyCreate = scaffolderCreateActions.some(action => {
+        const cap = capabilities.capabilities?.[action] ?? wildcardCap;
+        return (cap?.allowed?.length ?? 0) > 0;
+      });
 
       this.logger.debug(
-        `scaffolder.task.create: ${hasComponentCreate ? 'ALLOW' : 'DENY'}`,
+        `scaffolder.task.create: ${hasAnyCreate ? 'ALLOW' : 'DENY'}`,
       );
 
       return {
-        result: hasComponentCreate
-          ? AuthorizeResult.ALLOW
-          : AuthorizeResult.DENY,
+        result: hasAnyCreate ? AuthorizeResult.ALLOW : AuthorizeResult.DENY,
       };
     } catch (error) {
       this.logger.error(

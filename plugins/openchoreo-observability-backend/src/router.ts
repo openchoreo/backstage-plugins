@@ -1,7 +1,10 @@
 import { HttpAuthService } from '@backstage/backend-plugin-api';
 import express from 'express';
 import Router from 'express-promise-router';
-import { observabilityServiceRef } from './services/ObservabilityService';
+import {
+  observabilityServiceRef,
+  ObservabilityNotConfiguredError,
+} from './services/ObservabilityService';
 import { rcaAgentServiceRef } from './services/RCAAgentService';
 import {
   OpenChoreoTokenService,
@@ -49,6 +52,11 @@ export async function createRouter({
       );
       return res.status(200).json(metrics);
     } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        return res.status(404).json({
+          error: error.message,
+        });
+      }
       return res.status(500).json({
         error:
           error instanceof Error ? error.message : 'Failed to fetch metrics',
@@ -77,6 +85,11 @@ export async function createRouter({
       );
       return res.status(200).json(logs);
     } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        return res.status(404).json({
+          error: error.message,
+        });
+      }
       return res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to fetch logs',
       });
@@ -101,6 +114,11 @@ export async function createRouter({
         );
       return res.status(200).json({ environments });
     } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        return res.status(404).json({
+          error: error.message,
+        });
+      }
       return res.status(500).json({
         error:
           error instanceof Error
@@ -130,6 +148,11 @@ export async function createRouter({
       );
       return res.status(200).json(traces);
     } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        return res.status(404).json({
+          error: error.message,
+        });
+      }
       return res.status(500).json({
         error:
           error instanceof Error ? error.message : 'Failed to fetch traces',
@@ -155,6 +178,11 @@ export async function createRouter({
       );
       return res.status(200).json(reports);
     } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        return res.status(404).json({
+          error: error.message,
+        });
+      }
       return res.status(500).json({
         error:
           error instanceof Error
@@ -182,6 +210,11 @@ export async function createRouter({
       );
       return res.status(200).json(report);
     } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        return res.status(404).json({
+          error: error.message,
+        });
+      }
       return res.status(500).json({
         error:
           error instanceof Error ? error.message : 'Failed to fetch RCA report',

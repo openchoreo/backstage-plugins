@@ -9,6 +9,8 @@ import {
   CatalogImportPage,
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
+import { catalogImportTranslationRef } from '@backstage/plugin-catalog-import/alpha';
+import { createTranslationMessages } from '@backstage/core-plugin-api/alpha';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
@@ -21,9 +23,18 @@ import { SwitchFieldExtension } from './scaffolder/SwitchField';
 import { AdvancedConfigurationFieldExtension } from './scaffolder/AdvancedConfigurationField';
 import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSourcePicker';
 import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
+import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
+import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
+import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
+import { GitSecretFieldExtension } from './scaffolder/GitSecretField';
+import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
+import { EnvironmentFormWithYamlFieldExtension } from './scaffolder/EnvironmentFormWithYaml';
+import { WorkloadDetailsFieldExtension } from './scaffolder/WorkloadDetailsField';
 import { CustomReviewStep } from './scaffolder/CustomReviewState';
+import { CustomTemplateListPage } from './components/scaffolder/CustomTemplateListPage';
 import { ScaffolderPreselectionProvider } from './scaffolder/ScaffolderPreselectionContext';
+import { ScaffolderLayout } from './scaffolder/ScaffolderLayout';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -111,6 +122,22 @@ function DynamicSignInPage(props: any) {
   );
 }
 
+const catalogImportTranslations = createTranslationMessages({
+  ref: catalogImportTranslationRef,
+  full: false,
+  messages: {
+    'defaultImportPage.headerTitle': 'Register an existing catalog entity',
+    'defaultImportPage.contentHeaderTitle':
+      'Start tracking your entity in {{appTitle}}',
+    'defaultImportPage.supportTitle':
+      'Start tracking your entity in {{appTitle}} by adding it to the software catalog.',
+    'importInfoCard.title': 'Register an existing catalog entity',
+    'stepInitAnalyzeUrl.urlHelperText':
+      'Enter the full path to your entity file to start tracking',
+    'stepFinishImportLocation.locations.viewButtonText': 'View Entity',
+  },
+});
+
 const app = createApp({
   apis,
   icons: {
@@ -155,25 +182,17 @@ const app = createApp({
       ),
     },
   ],
+  __experimentalTranslations: {
+    resources: [catalogImportTranslations],
+  },
 });
-
-const templateGroups = [
-  {
-    title: 'Component Templates',
-    filter: (entity: any) => entity.spec?.type === 'Component',
-  },
-  {
-    title: 'Project Templates',
-    filter: (entity: any) => entity.spec?.type === 'System (Project)',
-  },
-];
 
 const routes = (
   <FlatRoutes>
     <Route path="/" element={<HomePage />} />
     <Route path="/catalog" element={<CatalogIndexPage />}>
       <CustomCatalogPage
-        initialKind="component"
+        initialKind="system"
         initiallySelectedFilter="all"
         ownerPickerMode="all"
       />
@@ -196,14 +215,21 @@ const routes = (
     <Route
       path="/create"
       element={
-        <ScaffolderPreselectionProvider>
-          <ScaffolderPage
-            groups={templateGroups}
-            components={{
-              ReviewStepComponent: CustomReviewStep,
-            }}
-          />
-        </ScaffolderPreselectionProvider>
+        <ScaffolderLayout>
+          <ScaffolderPreselectionProvider>
+            <ScaffolderPage
+              headerOptions={{
+                title: 'Create a new resource',
+                subtitle:
+                  'Create new resources using standard templates in your organization',
+              }}
+              components={{
+                ReviewStepComponent: CustomReviewStep,
+                EXPERIMENTAL_TemplateListPageComponent: CustomTemplateListPage,
+              }}
+            />
+          </ScaffolderPreselectionProvider>
+        </ScaffolderLayout>
       }
     >
       <ScaffolderFieldExtensions>
@@ -218,6 +244,13 @@ const routes = (
         <AdvancedConfigurationFieldExtension />
         <DeploymentSourcePickerFieldExtension />
         <ContainerImageFieldExtension />
+        <ComponentTypeYamlEditorFieldExtension />
+        <TraitYamlEditorFieldExtension />
+        <ComponentWorkflowYamlEditorFieldExtension />
+        <EnvironmentFormWithYamlFieldExtension />
+        <GitSecretFieldExtension />
+        <GitSourceFieldExtension />
+        <WorkloadDetailsFieldExtension />
       </ScaffolderFieldExtensions>
     </Route>
     <Route path="/api-docs" element={<ApiExplorerPage />} />

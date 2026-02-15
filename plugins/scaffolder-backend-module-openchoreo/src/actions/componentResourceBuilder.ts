@@ -37,6 +37,7 @@ export interface ComponentResourceInput {
   workflowName?: string;
   workflowParameters?: Record<string, any>;
   containerImage?: string; // For deploy-from-image
+  gitSecretRef?: string; // Secret reference for private repository credentials
 
   // Section 4: Traits (optional)
   traits?: Array<{
@@ -101,6 +102,22 @@ export function buildComponentResource(
       name: input.workflowName,
       ...workflowSchema, // Spread parameters and systemParameters directly
     };
+
+    // Build systemParameters.repository from standalone fields
+    // These were previously part of workflow_parameters but are now standalone wizard fields
+    if (input.repoUrl) {
+      const repository: Record<string, any> = {
+        url: input.repoUrl,
+        revision: {
+          branch: input.branch || 'main',
+        },
+        appPath: input.componentPath || '.',
+      };
+      if (input.gitSecretRef) {
+        repository.secretRef = input.gitSecretRef;
+      }
+      resource.spec.workflow.systemParameters = { repository };
+    }
   }
 
   // Add traits (traits) if provided
@@ -119,26 +136,45 @@ export function buildComponentResource(
 }
 
 /**
- * Input data for building a workload resource (for deploy-from-image flow)
+ * Input data for building a workload resource
+ * Used for deploy-from-image flow and for any deployment source when workload data exists
  */
 export interface WorkloadResourceInput {
   componentName: string;
   namespaceName: string;
   projectName: string;
-  containerImage: string;
+  containerImage?: string;
   port?: number;
+  endpoints?: Record<string, { type: string; port: number }>;
+  envVars?: Array<{
+    key: string;
+    value?: string;
+    valueFrom?: { secretRef?: { name: string; key: string } };
+  }>;
+  fileMounts?: Array<{
+    key: string;
+    mountPath: string;
+    value?: string;
+    valueFrom?: { secretRef?: { name: string; key: string } };
+  }>;
 }
 
 /**
- * Builds a WorkloadResource object for the deploy-from-image flow
+ * Builds a WorkloadResource object for component deployment.
  *
- * When a user chooses to deploy from a pre-built image instead of building from source,
- * we create a Workload CR that references the component and contains the image reference.
- * The Component controller will then use this Workload to create deployments.
+ * Created for deploy-from-image flow (with container image) or for any deployment
+ * source when workload data exists (endpoints, env vars, file mounts).
+ * The Component controller will use this Workload to create deployments.
  */
 export function buildWorkloadResource(
   input: WorkloadResourceInput,
 ): WorkloadResource {
+  // Build container spec — only if there's an image, because the CRD requires
+  // `image` (Required, MinLength=1) on Container. Without an image, containers
+  // must be omitted entirely. Env vars and file mounts live inside a container,
+  // so they can only be set when an image is provided.
+  const hasImage = !!input.containerImage;
+
   const resource: WorkloadResource = {
     apiVersion: 'openchoreo.dev/v1alpha1',
     kind: 'Workload',
@@ -151,16 +187,34 @@ export function buildWorkloadResource(
         projectName: input.projectName,
         componentName: input.componentName,
       },
-      containers: {
-        main: {
-          image: input.containerImage,
-        },
-      },
+      containers: {},
     },
   };
 
-  // Add endpoint if port is provided
-  if (input.port) {
+  if (hasImage) {
+    const mainContainer: Record<string, any> = {
+      image: input.containerImage,
+    };
+
+    // Add environment variables
+    if (input.envVars && input.envVars.length > 0) {
+      mainContainer.env = input.envVars;
+    }
+
+    // Add file mounts
+    if (input.fileMounts && input.fileMounts.length > 0) {
+      mainContainer.files = input.fileMounts;
+    }
+
+    resource.spec.containers = { main: mainContainer };
+  }
+
+  // Add endpoints from the new endpoints map
+  if (input.endpoints && Object.keys(input.endpoints).length > 0) {
+    resource.spec.endpoints = input.endpoints as any;
+  }
+  // Fallback: add endpoint if only port is provided (legacy deploy-from-image)
+  else if (input.port) {
     resource.spec.endpoints = {
       http: {
         type: 'HTTP',

@@ -7,7 +7,11 @@ import {
   immediateCatalogServiceRef,
   annotationStoreRef,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
-
+import { createComponentTypeDefinitionAction } from './actions/componentType';
+import { createTraitDefinitionAction } from './actions/trait';
+import { createComponentWorkflowDefinitionAction } from './actions/componentWorkflow';
+import { createEnvironmentAction } from './actions/environment';
+import { createNamespaceAction } from './actions/namespace';
 /**
  * A backend module that registers the actions into the scaffolder
  */
@@ -31,13 +35,18 @@ export const scaffolderModule = createBackendModule({
         annotationStore,
       }) {
         scaffolderActions.addActions(
-          createProjectAction(config),
+          createProjectAction(config, immediateCatalog),
           createComponentAction(
             config,
             discovery,
             immediateCatalog,
             annotationStore,
           ),
+          createComponentTypeDefinitionAction(config, immediateCatalog),
+          createTraitDefinitionAction(config, immediateCatalog),
+          createComponentWorkflowDefinitionAction(config, immediateCatalog),
+          createEnvironmentAction(config, immediateCatalog),
+          createNamespaceAction(config, immediateCatalog),
         );
       },
     });

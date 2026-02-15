@@ -58,7 +58,14 @@ import {
   ComponentWorkflowEntityV1alpha1,
 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
-import { translateComponentToEntity as translateComponent } from '../utils/entityTranslation';
+import {
+  translateComponentToEntity as translateComponent,
+  translateProjectToEntity as translateProject,
+  translateEnvironmentToEntity as translateEnvironment,
+  translateComponentTypeToEntity as translateCT,
+  translateTraitToEntity as translateTrait,
+  translateComponentWorkflowToEntity as translateCW,
+} from '../utils/entityTranslation';
 
 /**
  * Provides entities from OpenChoreo API
@@ -92,7 +99,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     // Initialize CTD to Template converter
     this.ctdConverter = new CtdToTemplateConverter({
       defaultOwner: this.defaultOwner,
-      namespace: 'openchoreo',
     });
     // Initialize component type utilities from config
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
@@ -911,40 +917,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     project: ModelsProject,
     namespaceName: string,
   ): Entity {
-    const systemEntity: Entity = {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'System',
-      metadata: {
-        name: project.name,
-        title: project.displayName || project.name,
-        description: project.description || project.name,
-        namespace: project.namespaceName,
-        tags: ['openchoreo', 'project'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.PROJECT_ID]: project.name,
-          ...(project.uid && {
-            [CHOREO_ANNOTATIONS.PROJECT_UID]: project.uid,
-          }),
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          ...(project.deletionTimestamp && {
-            [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
-          }),
-        },
-        labels: {
-          'openchoreo.io/managed': 'true',
-          // ...project.metadata?.labels,
-        },
-      },
-      spec: {
-        owner: this.defaultOwner,
-        // Domain entities (mapped from OpenChoreo namespaces) live in the Backstage 'default' namespace
-        domain: `default/${namespaceName}`,
-      },
-    };
-
-    return systemEntity;
+    return translateProject(project, namespaceName, {
+      locationKey: this.getProviderName(),
+      defaultOwner: this.defaultOwner,
+    });
   }
 
   /**
@@ -954,64 +930,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     environment: ModelsEnvironment,
     namespaceName: string,
   ): EnvironmentEntityV1alpha1 {
-    const environmentEntity: EnvironmentEntityV1alpha1 = {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Environment',
-      metadata: {
-        name: environment.name,
-        namespace: namespaceName,
-        title: environment.displayName || environment.name,
-        description:
-          environment.description || `${environment.name} environment`,
-        tags: [
-          'openchoreo',
-          'environment',
-          environment.isProduction ? 'production' : 'non-production',
-        ],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.ENVIRONMENT]: environment.name,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          ...(environment.uid && {
-            [CHOREO_ANNOTATIONS.ENVIRONMENT_UID]: environment.uid,
-          }),
-          ...(environment.createdAt && {
-            [CHOREO_ANNOTATIONS.CREATED_AT]: environment.createdAt,
-          }),
-          ...(environment.status && {
-            [CHOREO_ANNOTATIONS.STATUS]: environment.status,
-          }),
-          ...(environment.dataPlaneRef && {
-            'openchoreo.io/data-plane-ref': environment.dataPlaneRef,
-          }),
-          ...(environment.dnsPrefix && {
-            'openchoreo.io/dns-prefix': environment.dnsPrefix,
-          }),
-          ...(environment.isProduction !== undefined && {
-            'openchoreo.io/is-production': environment.isProduction.toString(),
-          }),
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-          ...(environment.isProduction !== undefined && {
-            'openchoreo.io/environment-type': environment.isProduction
-              ? 'production'
-              : 'non-production',
-          }),
-        },
-      },
-      spec: {
-        type: environment.isProduction ? 'production' : 'non-production',
-        // Domain entities (mapped from OpenChoreo namespaces) live in the Backstage 'default' namespace
-        domain: `default/${namespaceName}`,
-        isProduction: environment.isProduction,
-        dataPlaneRef: environment.dataPlaneRef,
-        dnsPrefix: environment.dnsPrefix,
-      },
-    };
-
-    return environmentEntity;
+    return translateEnvironment(environment, namespaceName, {
+      locationKey: this.getProviderName(),
+    });
   }
 
   /**
@@ -1481,37 +1402,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     ct: ModelsComponentType,
     namespaceName: string,
   ): ComponentTypeEntityV1alpha1 {
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'ComponentType',
-      metadata: {
-        name: ct.name,
-        namespace: namespaceName,
-        title: ct.displayName || ct.name,
-        description: ct.description || `${ct.name} component type`,
-        tags: [
-          'openchoreo',
-          'component-type',
-          ct.workloadType,
-          'platform-engineering',
-        ],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: ct.createdAt || '',
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-        },
-      },
-      spec: {
-        type: 'component-type',
-        domain: `default/${namespaceName}`,
-        workloadType: ct.workloadType,
-        allowedWorkflows: ct.allowedWorkflows,
-      },
-    };
+    return translateCT(ct, namespaceName, {
+      locationKey: this.getProviderName(),
+    });
   }
 
   /**
@@ -1521,30 +1414,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     trait: ModelsTrait,
     namespaceName: string,
   ): TraitTypeEntityV1alpha1 {
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'TraitType',
-      metadata: {
-        name: trait.name,
-        namespace: namespaceName,
-        title: trait.displayName || trait.name,
-        description: trait.description || `${trait.name} trait`,
-        tags: ['openchoreo', 'trait-type', 'platform-engineering'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: trait.createdAt || '',
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-        },
-      },
-      spec: {
-        type: 'trait-type',
-        domain: `default/${namespaceName}`,
-      },
-    };
+    return translateTrait(trait, namespaceName, {
+      locationKey: this.getProviderName(),
+    });
   }
 
   /**
@@ -1587,29 +1459,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     cw: ModelsWorkflow,
     namespaceName: string,
   ): ComponentWorkflowEntityV1alpha1 {
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'ComponentWorkflow',
-      metadata: {
-        name: cw.name,
-        namespace: namespaceName,
-        title: cw.displayName || cw.name,
-        description: cw.description || `${cw.name} component workflow`,
-        tags: ['openchoreo', 'component-workflow', 'platform-engineering'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: cw.createdAt || '',
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-        },
-      },
-      spec: {
-        type: 'component-workflow',
-        domain: `default/${namespaceName}`,
-      },
-    };
+    return translateCW(cw, namespaceName, {
+      locationKey: this.getProviderName(),
+    });
   }
 }

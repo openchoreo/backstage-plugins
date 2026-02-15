@@ -102,6 +102,26 @@ catalog:
       target: /app/templates/create-openchoreo-project/template.yaml
       rules:
         - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-componenttype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-trait/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-componentworkflow/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-environment/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-namespace/template.yaml
+      rules:
+        - allow: [Template]
 
 openchoreo:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

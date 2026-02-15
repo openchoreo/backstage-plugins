@@ -2,8 +2,15 @@ import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
+import {
+  type ImmediateCatalogService,
+  translateProjectToEntity,
+} from '@openchoreo/backstage-plugin-catalog-backend-module';
 
-export const createProjectAction = (config: Config) => {
+export const createProjectAction = (
+  config: Config,
+  immediateCatalog: ImmediateCatalogService,
+) => {
   return createTemplateAction({
     id: 'openchoreo:project:create',
     description: 'Create OpenChoreo Project',
@@ -37,6 +44,9 @@ export const createProjectAction = (config: Config) => {
           namespaceName: zImpl
             .string()
             .describe('The namespace where the project was created'),
+          entityRef: zImpl
+            .string()
+            .describe('Entity reference for the created project'),
         }),
     },
     async handler(ctx) {
@@ -117,9 +127,49 @@ export const createProjectAction = (config: Config) => {
           `Project created successfully: ${JSON.stringify(data.data)}`,
         );
 
+        const projectName = data.data.name || ctx.input.projectName;
+
+        // Immediately insert the project into the catalog
+        try {
+          ctx.logger.info(
+            `Inserting project '${projectName}' into catalog immediately...`,
+          );
+
+          const defaultOwner =
+            config.getOptionalString('openchoreo.defaultOwner') ||
+            'openchoreo-users';
+
+          const entity = translateProjectToEntity(
+            {
+              name: projectName,
+              displayName: ctx.input.displayName || data.data.displayName,
+              description: ctx.input.description || data.data.description,
+              namespaceName: namespaceName,
+              uid: data.data.uid,
+            },
+            namespaceName,
+            {
+              locationKey: 'OpenChoreoEntityProvider',
+              defaultOwner: `group:default/${defaultOwner}`,
+            },
+          );
+
+          await immediateCatalog.insertEntity(entity);
+
+          ctx.logger.info(
+            `Project '${projectName}' successfully added to catalog`,
+          );
+        } catch (catalogError) {
+          ctx.logger.error(
+            `Failed to immediately add project to catalog: ${catalogError}. ` +
+              `Project will be visible after the next scheduled catalog sync.`,
+          );
+        }
+
         // Set outputs for the scaffolder
-        ctx.output('projectName', data.data.name || ctx.input.projectName);
+        ctx.output('projectName', projectName);
         ctx.output('namespaceName', namespaceName);
+        ctx.output('entityRef', `system:${namespaceName}/${projectName}`);
       } catch (error) {
         ctx.logger.error(`Error creating project: ${error}`);
         throw new Error(`Failed to create project: ${error}`);

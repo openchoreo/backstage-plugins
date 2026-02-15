@@ -191,6 +191,21 @@ components:
         status:
           type: string
 
+    CreateNamespaceRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Namespace name (must be a valid Kubernetes name)
+        displayName:
+          type: string
+          description: Human-readable display name
+        description:
+          type: string
+          description: Description of the namespace
+
     # Project
     ProjectResponse:
       type: object
@@ -413,6 +428,14 @@ components:
             $ref: '#/components/schemas/ComponentTraitRequest'
 
     # Environment
+    DataPlaneRef:
+      type: object
+      properties:
+        kind:
+          type: string
+        name:
+          type: string
+
     EnvironmentResponse:
       type: object
       required:
@@ -423,7 +446,7 @@ components:
         - createdAt
       properties:
         uid:
-          type: string # TODO: Make this required with v0.5.0.
+          type: string
         name:
           type: string
         namespace:
@@ -433,7 +456,7 @@ components:
         description:
           type: string
         dataPlaneRef:
-          type: string
+          $ref: '#/components/schemas/DataPlaneRef'
         isProduction:
           type: boolean
         dnsPrefix:
@@ -457,11 +480,9 @@ components:
         description:
           type: string
         dataPlaneRef:
-          type: string
+          $ref: '#/components/schemas/DataPlaneRef'
         isProduction:
           type: boolean
-        dnsPrefix:
-          type: string
 
     # Agent Connection Status
     AgentConnectionStatusResponse:
@@ -1337,6 +1358,10 @@ components:
         - type
         - port
       properties:
+        visibility:
+          type: string
+          enum: ['project', 'namespace', 'internal', 'external']
+          description: Access scope for the endpoint. Defaults to "project" when not specified.
         type:
           type: string
           enum: ['TCP', 'UDP', 'HTTP', 'REST', 'gRPC', 'Websocket', 'GraphQL']
@@ -2246,6 +2271,33 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/NamespaceResponse'
+    post:
+      summary: Create a new namespace
+      operationId: createNamespace
+      tags:
+        - Namespaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNamespaceRequest'
+      responses:
+        '201':
+          description: Namespace created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NamespaceResponse'
+        '400':
+          description: Invalid input
+        '409':
+          description: Namespace already exists
 
   /namespaces/{namespaceName}:
     get:
@@ -2740,6 +2792,45 @@ paths:
                                 items:
                                   $ref: '#/components/schemas/ComponentTypeResponse'
 
+  /namespaces/{namespaceName}/component-types/definition:
+    post:
+      summary: Create a new component type
+      operationId: createComponentTypeDefinition
+      tags:
+        - ComponentTypes
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '201':
+          description: ComponentType created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '400':
+          description: Invalid request body or validation error
+        '403':
+          description: Not authorized to create ComponentType
+        '409':
+          description: ComponentType already exists
+
   /namespaces/{namespaceName}/component-types/{ctName}/schema:
     get:
       summary: Get the JSON schema for a specific component type
@@ -3074,6 +3165,45 @@ paths:
                                 items:
                                   $ref: '#/components/schemas/WorkflowResponse'
 
+  /namespaces/{namespaceName}/component-workflows/definition:
+    post:
+      summary: Create a new component workflow
+      operationId: createComponentWorkflowDefinition
+      tags:
+        - ComponentWorkflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '201':
+          description: ComponentWorkflow created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '400':
+          description: Invalid request body or validation error
+        '403':
+          description: Not authorized to create ComponentWorkflow
+        '409':
+          description: ComponentWorkflow already exists
+
   /namespaces/{namespaceName}/component-workflows/{cwName}/schema:
     get:
       summary: Get the JSON schema for a specific component workflow
@@ -3240,6 +3370,45 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/TraitResponse'
+
+  /namespaces/{namespaceName}/traits/definition:
+    post:
+      summary: Create a new trait
+      operationId: createTraitDefinition
+      tags:
+        - Traits
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Full Kubernetes CRD as unstructured JSON
+              additionalProperties: true
+      responses:
+        '201':
+          description: Trait created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/APIResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ResourceCRUDResponse'
+        '400':
+          description: Invalid request body or validation error
+        '403':
+          description: Not authorized to create Trait
+        '409':
+          description: Trait already exists
 
   /namespaces/{namespaceName}/traits/{traitName}/schema:
     get:
