@@ -1,4 +1,5 @@
 import { createUnifiedTheme, createBaseThemeOptions } from '@backstage/theme';
+import { alpha } from '@material-ui/core/styles';
 
 // Color constants for reuse - Modern & Minimal palette
 const colors = {
@@ -57,110 +58,115 @@ const fontFamily = [
   '"Segoe UI Emoji"',
 ].join(', ');
 
-export const openChoreoTheme = createUnifiedTheme({
-  ...createBaseThemeOptions({
-    fontFamily,
-    palette: {
-      ...colors,
-      // Backstage-specific palette additions
-      status: {
-        ok: '#10b981',
-        warning: '#f59e0b',
-        error: '#ef4444',
-        pending: '#6b7280',
-        running: '#6c7fd8',
-        aborted: '#374151',
+const baseThemeOptions = createBaseThemeOptions({
+  fontFamily,
+  palette: {
+    ...colors,
+    // Backstage-specific palette additions
+    status: {
+      ok: '#10b981',
+      warning: '#f59e0b',
+      error: '#ef4444',
+      pending: '#6b7280',
+      running: '#6c7fd8',
+      aborted: '#374151',
+    },
+    border: '#e5e7eb', // Lighter, more subtle
+    textContrast: '#111827', // Darker for better contrast
+    textVerySubtle: '#9ca3af', // Improved contrast
+    textSubtle: '#4b5563', // Darker for readability
+    highlight: '#6c7fd8',
+    errorBackground: '#fef2f2',
+    warningBackground: '#fffbeb',
+    infoBackground: '#eef2ff',
+    errorText: '#dc2626',
+    infoText: '#6c7fd8',
+    warningText: '#d97706',
+    linkHover: '#5568c4',
+    link: '#6c7fd8',
+    gold: '#f59e0b',
+    navigation: {
+      background: '#ffffff',
+      indicator: '#6c7fd8',
+      color: '#111827',
+      selectedColor: '#6c7fd8',
+      navItem: {
+        hoverBackground: '#f9fafb', // Lighter hover state
       },
-      border: '#e5e7eb', // Lighter, more subtle
-      textContrast: '#111827', // Darker for better contrast
-      textVerySubtle: '#9ca3af', // Improved contrast
-      textSubtle: '#4b5563', // Darker for readability
-      highlight: '#6c7fd8',
-      errorBackground: '#fef2f2',
-      warningBackground: '#fffbeb',
-      infoBackground: '#eef2ff',
-      errorText: '#dc2626',
-      infoText: '#6c7fd8',
-      warningText: '#d97706',
-      linkHover: '#5568c4',
+      submenu: {
+        background: '#fafbfc',
+      },
+    },
+    tabbar: {
+      indicator: '#6c7fd8',
+    },
+    bursts: {
+      fontColor: '#111827',
+      slackChannelText: '#6b7280',
+      backgroundColor: {
+        default: '#fafbfc',
+      },
+      gradient: {
+        linear: 'linear-gradient(135deg, #6c7fd8 0%, #a8b5ff 100%)',
+      },
+    },
+    pinSidebarButton: {
+      icon: '#6b7280',
+      background: '#fafbfc',
+    },
+    banner: {
+      info: '#6c7fd8',
+      error: '#ef4444',
+      text: '#111827',
       link: '#6c7fd8',
-      gold: '#f59e0b',
-      navigation: {
-        background: '#ffffff',
-        indicator: '#6c7fd8',
-        color: '#111827',
-        selectedColor: '#6c7fd8',
-        navItem: {
-          hoverBackground: '#f9fafb', // Lighter hover state
-        },
-        submenu: {
-          background: '#fafbfc',
-        },
-      },
-      tabbar: {
-        indicator: '#6c7fd8',
-      },
-      bursts: {
-        fontColor: '#111827',
-        slackChannelText: '#6b7280',
-        backgroundColor: {
-          default: '#fafbfc',
-        },
-        gradient: {
-          linear: 'linear-gradient(135deg, #6c7fd8 0%, #a8b5ff 100%)',
-        },
-      },
-      pinSidebarButton: {
-        icon: '#6b7280',
-        background: '#fafbfc',
-      },
-      banner: {
-        info: '#6c7fd8',
-        error: '#ef4444',
-        text: '#111827',
-        link: '#6c7fd8',
-        closeButtonColor: '#6b7280',
-        warning: '#f59e0b',
-      },
-      code: {
-        background: '#fafbfc',
-      },
+      closeButtonColor: '#6b7280',
+      warning: '#f59e0b',
     },
-    typography: {
-      fontFamily,
-      htmlFontSize: 15,
-      h1: {
-        fontSize: 38, // Slightly smaller for better proportions
-        fontWeight: 700,
-        marginBottom: 0,
-      },
-      h2: {
-        fontSize: 28,
-        fontWeight: 700,
-        marginBottom: 0,
-      },
-      h3: {
-        fontSize: 20, // More refined scale
-        fontWeight: 600,
-        marginBottom: 0,
-      },
-      h4: {
-        fontSize: 16,
-        fontWeight: 600,
-        marginBottom: 0,
-      },
-      h5: {
-        fontSize: 14,
-        fontWeight: 600,
-        marginBottom: 0,
-      },
-      h6: {
-        fontSize: 13,
-        fontWeight: 600,
-        marginBottom: 0,
-      },
+    code: {
+      background: '#fafbfc',
     },
-  }),
+  },
+  typography: {
+    fontFamily,
+    htmlFontSize: 15,
+    h1: {
+      fontSize: 38, // Slightly smaller for better proportions
+      fontWeight: 700,
+      marginBottom: 0,
+    },
+    h2: {
+      fontSize: 28,
+      fontWeight: 700,
+      marginBottom: 0,
+    },
+    h3: {
+      fontSize: 20, // More refined scale
+      fontWeight: 600,
+      marginBottom: 0,
+    },
+    h4: {
+      fontSize: 16,
+      fontWeight: 600,
+      marginBottom: 0,
+    },
+    h5: {
+      fontSize: 14,
+      fontWeight: 600,
+      marginBottom: 0,
+    },
+    h6: {
+      fontSize: 13,
+      fontWeight: 600,
+      marginBottom: 0,
+    },
+  },
+});
+
+/** Replacement for theme.spacing() from mui */
+const spacing = (...args: number[]) => args.map(v => `${v * 8}px`).join(' ');
+
+const theme = createUnifiedTheme({
+  ...baseThemeOptions,
   components: {
     BackstageHeader: {
       styleOverrides: {
@@ -221,6 +227,19 @@ export const openChoreoTheme = createUnifiedTheme({
         },
         'g[data-testid="node"] text': {
           fill: `${colors.common.white} !important`,
+        },
+        '.MuiTab-root:hover': {
+          backgroundColor: `${colors.common.black} !important`,
+          color: `${colors.common.white} !important`,
+        },
+        'a[role="tab"]:hover': {
+          backgroundColor: `${colors.common.black} !important`,
+          color: `${colors.common.white} !important`,
+        },
+        // Target specific Backstage class
+        '[class*="BackstageHeaderTabs-tabRoot"]:hover': {
+          backgroundColor: `${colors.common.black} !important`,
+          color: `${colors.common.white} !important`,
         },
       },
     },
@@ -529,5 +548,36 @@ export const openChoreoTheme = createUnifiedTheme({
         },
       },
     },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          minHeight: spacing(6.25),
+          padding: `${spacing(1.5, 2)} !important`,
+          transition: 'background-color 0.2s',
+          // Target Backstage specific class via attribute selector
+          '&[class*="BackstageHeaderTabs-tabRoot"]:hover': {
+            backgroundColor: `${alpha(colors.common.black, 0.1)} !important`,
+            color: `${colors.common.black} !important`,
+            opacity: 1,
+            textDecoration: 'none',
+          },
+          '@media (min-width: 960px)': {
+            // Backstage uses the whole parent width in smaller
+            // screens for horizontal scrolling. This prevents that in desktop resolutions.
+            // If this overflows, it still scrolls.
+            minWidth: 'auto',
+          },
+        },
+      },
+    },
+    MuiTabs: {
+      styleOverrides: {
+        root: {
+          minHeight: spacing(6.25),
+        },
+      },
+    },
   },
 });
+
+export const openChoreoTheme = theme;
