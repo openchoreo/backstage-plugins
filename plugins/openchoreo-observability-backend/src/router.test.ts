@@ -7,7 +7,10 @@ import express from 'express';
 import request from 'supertest';
 
 import { createRouter } from './router';
-import { observabilityServiceRef } from './services/ObservabilityService';
+import {
+  observabilityServiceRef,
+  ObservabilityNotConfiguredError,
+} from './services/ObservabilityService';
 import { rcaAgentServiceRef } from './services/RCAAgentService';
 import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
@@ -142,5 +145,82 @@ describe('createRouter', () => {
       .set('Authorization', mockCredentials.none.header());
 
     expect(response.status).toBe(401);
+  });
+
+  it('should return 404 when observability is not configured for metrics', async () => {
+    observabilityService.fetchMetricsByComponent.mockRejectedValue(
+      new ObservabilityNotConfiguredError('component-1'),
+    );
+
+    const response = await request(app)
+      .post('/metrics')
+      .send({
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        namespaceName: 'org-1',
+        projectName: 'project-1',
+        options: {
+          limit: 100,
+          offset: 0,
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      error: 'Observability is not configured for component component-1',
+    });
+  });
+
+  it('should return 404 when observability is not configured for logs', async () => {
+    observabilityService.fetchRuntimeLogsByComponent.mockRejectedValue(
+      new ObservabilityNotConfiguredError('component-1'),
+    );
+
+    const response = await request(app)
+      .post('/logs/component/test-component')
+      .send({
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        namespaceName: 'org-1',
+        projectName: 'project-1',
+        environmentName: 'env-1',
+        componentName: 'test-component',
+        options: {
+          limit: 100,
+        },
+      });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      error: 'Observability is not configured for component component-1',
+    });
+  });
+
+  it('should return 500 for other errors', async () => {
+    observabilityService.fetchMetricsByComponent.mockRejectedValue(
+      new Error('Failed to fetch metrics'),
+    );
+
+    const response = await request(app)
+      .post('/metrics')
+      .send({
+        componentId: 'component-1',
+        environmentId: 'environment-1',
+        namespaceName: 'org-1',
+        projectName: 'project-1',
+        options: {
+          limit: 100,
+          offset: 0,
+          startTime: '2025-01-01T00:00:00Z',
+          endTime: '2025-12-31T23:59:59Z',
+        },
+      });
+
+    expect(response.status).toBe(500);
+    expect(response.body).toMatchObject({
+      error: 'Failed to fetch metrics',
+    });
   });
 });

@@ -379,7 +379,9 @@ export class ObservabilityClient implements ObservabilityApi {
 
     if (!response.ok) {
       const error = await response.json();
-      if (error.message === 'observability is disabled') {
+      if (
+        error.error?.includes('Observability is not configured for component')
+      ) {
         throw new Error('Observability is not enabled for this component');
       }
       throw new Error(
