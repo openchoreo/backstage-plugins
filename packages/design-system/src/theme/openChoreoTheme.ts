@@ -173,8 +173,10 @@ const theme = createUnifiedTheme({
         header: {
           backgroundColor: colors.primary.main,
           backgroundImage: 'linear-gradient(90deg, #6c7fd8 0%, #7c8ee0 100%)', // Subtle gradient
-          height: 72, // Reduced from 98px for modern look
+          minHeight: spacing(6), // Reduced from 98px for modern look
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)', // Subtle shadow
+          rowGap: spacing(2),
+          columnGap: spacing(2),
         },
         title: {
           fontSize: 22, // Slightly smaller, more proportional
