@@ -259,4 +259,29 @@ export const useCardListStyles = makeStyles(theme => ({
     borderRadius: 4,
     fontWeight: 500,
   },
+  typeContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    marginRight: theme.spacing(1),
+    flexShrink: 0,
+  },
+  agentStatus: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    fontSize: '0.75rem',
+    whiteSpace: 'nowrap' as const,
+    marginRight: theme.spacing(1),
+  },
+  agentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+  },
+  agentConnected: {
+    backgroundColor: theme.palette.success.main,
+  },
+  agentDisconnected: {
+    backgroundColor: theme.palette.error.main,
+  },
 }));

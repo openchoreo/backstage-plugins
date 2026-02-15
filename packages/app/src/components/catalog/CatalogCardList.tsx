@@ -22,6 +22,18 @@ import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
 import { StarredChip, TypeChip } from './CustomPersonalFilters';
 
+const kindPluralNames: Record<string, string> = {
+  Project: 'Projects', Component: 'Components', API: 'APIs',
+  User: 'Users', Group: 'Groups', Resource: 'Resources',
+  Location: 'Locations', Template: 'Templates', Dataplane: 'Dataplanes',
+  'Build Plane': 'Build Planes', 'Observability Plane': 'Observability Planes',
+  Environment: 'Environments', 'Deployment Pipeline': 'Deployment Pipelines',
+  'Component Type': 'Component Types', 'Trait Type': 'Trait Types',
+  Workflow: 'Workflows', 'Component Workflow': 'Component Workflows',
+};
+
+const PLANE_KINDS = new Set(['dataplane', 'buildplane', 'observabilityplane']);
+
 function EntityKindIcon({ entity }: { entity: Entity }) {
   const app = useApp();
   const kind = entity.kind?.toLowerCase();
@@ -43,18 +55,11 @@ export const CatalogCardList = () => {
     setOffset,
   } = useEntityList();
 
-  const kindLabel = filters.kind?.label || filters.kind?.value || 'Entities';
-  const titleText = `All ${kindLabel}${
+  const kindLabel = filters.kind?.label || filters.kind?.value || 'Entity';
+  const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
+  const titleText = `All ${totalItems === 1 ? kindLabel : pluralLabel}${
     totalItems !== undefined ? ` (${totalItems})` : ''
   }`;
-
-  if (loading) {
-    return (
-      <Box className={classes.loadingContainer}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Box>
@@ -63,13 +68,21 @@ export const CatalogCardList = () => {
         <Box display="flex" alignItems="center" style={{ gap: 8 }}>
           <TypeChip />
           <StarredChip />
-          <EntitySearchBar />
+          <form onSubmit={e => e.preventDefault()}>
+            <EntitySearchBar />
+          </form>
         </Box>
       </Box>
 
-      {entities.length === 0 ? (
+      {loading && (
+        <Box className={classes.loadingContainer}>
+          <CircularProgress />
+        </Box>
+      )}
+      {!loading && entities.length === 0 && (
         <Box className={classes.emptyState}>No entities found</Box>
-      ) : (
+      )}
+      {!loading && entities.length > 0 && (
         <Box className={classes.listContainer}>
           {entities.map(entity => {
             const name =
@@ -79,6 +92,11 @@ export const CatalogCardList = () => {
             const namespace = entity.metadata.namespace;
             const selectedKind = filters.kind?.value?.toLowerCase();
             const componentType = (entity.spec as any)?.type;
+
+            const agentConnected =
+              entity.metadata.annotations?.[
+                'openchoreo.io/agent-connected'
+              ] === 'true';
 
             return (
               <Box
@@ -104,15 +122,6 @@ export const CatalogCardList = () => {
                           className={classes.metadataChip}
                         />
                       )}
-                      {selectedKind === 'component' && componentType && (
-                        <Chip
-                          label={componentType}
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          className={classes.metadataChip}
-                        />
-                      )}
                       <DeletionBadge />
                     </Box>
                   ) : (
@@ -133,15 +142,6 @@ export const CatalogCardList = () => {
                           className={classes.metadataChip}
                         />
                       )}
-                      {selectedKind === 'component' && componentType && (
-                        <Chip
-                          label={componentType}
-                          size="small"
-                          variant="outlined"
-                          color="primary"
-                          className={classes.metadataChip}
-                        />
-                      )}
                     </Box>
                   )}
                   {description && (
@@ -150,6 +150,40 @@ export const CatalogCardList = () => {
                     </Typography>
                   )}
                 </Box>
+                {selectedKind === 'component' && componentType && (
+                  <Box className={classes.typeContainer}>
+                    <Chip
+                      label={componentType}
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      className={classes.metadataChip}
+                    />
+                  </Box>
+                )}
+                {selectedKind === 'environment' && componentType && (
+                  <Box className={classes.typeContainer}>
+                    <Chip
+                      label={componentType}
+                      size="small"
+                      variant="outlined"
+                      color={componentType === 'production' ? 'secondary' : 'default'}
+                      className={classes.metadataChip}
+                    />
+                  </Box>
+                )}
+                {selectedKind && PLANE_KINDS.has(selectedKind) && (
+                  <Box className={classes.agentStatus}>
+                    <Box
+                      className={`${classes.agentDot} ${
+                        agentConnected
+                          ? classes.agentConnected
+                          : classes.agentDisconnected
+                      }`}
+                    />
+                    {agentConnected ? 'Connected' : 'Disconnected'}
+                  </Box>
+                )}
                 <Box className={classes.actionsContainer}>
                   <FavoriteEntity entity={entity} />
                   {!markedForDeletion && (
@@ -166,7 +200,7 @@ export const CatalogCardList = () => {
         </Box>
       )}
 
-      {totalItems !== undefined && totalItems > 0 && (
+      {!loading && totalItems !== undefined && totalItems > 0 && (
         <Box className={classes.paginationContainer}>
           <TablePagination
             count={totalItems}

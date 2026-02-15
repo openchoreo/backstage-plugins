@@ -152,7 +152,7 @@ export const TypeChip = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
 
-  if (availableTypes.length === 0) return null;
+  if (availableTypes.length <= 1) return null;
 
   const handleToggleType = (type: string) => {
     const newTypes = selectedTypes.includes(type)
