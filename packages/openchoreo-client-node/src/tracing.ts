@@ -7,7 +7,7 @@
  */
 
 import type { Middleware } from 'openapi-fetch';
-import type { LoggerService } from '@backstage/backend-plugin-api';
+import type { Logger } from './logger';
 
 /** Environment variable name to enable/disable tracing */
 export const TRACE_ENV_VAR = 'CHOREO_CLIENT_TRACE_ENABLED';
@@ -40,7 +40,7 @@ export function isTracingEnabled(): boolean {
  * client.use(createTracingMiddleware(logger));
  * ```
  */
-export function createTracingMiddleware(logger?: LoggerService): Middleware {
+export function createTracingMiddleware(logger?: Logger): Middleware {
   return {
     async onRequest({ request, schemaPath }) {
       if (!isTracingEnabled()) return undefined;
