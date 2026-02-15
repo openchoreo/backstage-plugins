@@ -1,5 +1,6 @@
 import {
   Box,
+  Chip,
   CircularProgress,
   IconButton,
   Typography,
@@ -75,6 +76,9 @@ export const CatalogCardList = () => {
               entity.metadata.title || entity.metadata.name || 'Unnamed';
             const description = entity.metadata.description || '';
             const markedForDeletion = isMarkedForDeletion(entity);
+            const namespace = entity.metadata.namespace;
+            const selectedKind = filters.kind?.value?.toLowerCase();
+            const componentType = (entity.spec as any)?.type;
 
             return (
               <Box
@@ -92,17 +96,53 @@ export const CatalogCardList = () => {
                       <Typography className={classes.entityNameDisabled}>
                         {name}
                       </Typography>
+                      {namespace && namespace !== 'default' && (
+                        <Chip
+                          label={namespace}
+                          size="small"
+                          variant="outlined"
+                          className={classes.metadataChip}
+                        />
+                      )}
+                      {selectedKind === 'component' && componentType && (
+                        <Chip
+                          label={componentType}
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          className={classes.metadataChip}
+                        />
+                      )}
                       <DeletionBadge />
                     </Box>
                   ) : (
-                    <Typography className={classes.entityName}>
-                      <EntityRefLink
-                        entityRef={entity}
-                        defaultKind={entity.kind}
-                      >
-                        {name}
-                      </EntityRefLink>
-                    </Typography>
+                    <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+                      <Typography className={classes.entityName}>
+                        <EntityRefLink
+                          entityRef={entity}
+                          defaultKind={entity.kind}
+                        >
+                          {name}
+                        </EntityRefLink>
+                      </Typography>
+                      {namespace && namespace !== 'default' && (
+                        <Chip
+                          label={namespace}
+                          size="small"
+                          variant="outlined"
+                          className={classes.metadataChip}
+                        />
+                      )}
+                      {selectedKind === 'component' && componentType && (
+                        <Chip
+                          label={componentType}
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          className={classes.metadataChip}
+                        />
+                      )}
+                    </Box>
                   )}
                   {description && (
                     <Typography className={classes.description}>

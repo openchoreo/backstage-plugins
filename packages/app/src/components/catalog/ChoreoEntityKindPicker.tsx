@@ -1,7 +1,8 @@
-import { alertApiRef, useApi } from '@backstage/core-plugin-api';
+import { alertApiRef, useApi, useApp } from '@backstage/core-plugin-api';
 import Box from '@material-ui/core/Box';
 import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
@@ -47,7 +48,7 @@ const kindCategories: KindCategory[] = [
     kinds: ['system', 'component', 'api', 'resource'],
   },
   {
-    label: 'Platform',
+    label: 'Infrastructure',
     platformOnly: true,
     kinds: [
       'dataplane',
@@ -96,6 +97,13 @@ const useStyles = makeStyles((theme: Theme) =>
       letterSpacing: '0.5px',
       lineHeight: '32px',
       pointerEvents: 'none',
+    },
+    listItemIcon: {
+      minWidth: 32,
+      color: theme.palette.text.secondary,
+      '& svg': {
+        fontSize: '1.2rem',
+      },
     },
   }),
 );
@@ -231,6 +239,7 @@ export interface ChoreoEntityKindPickerProps {
 export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
   const { allowedKinds, hidden, initialFilter = 'component' } = props;
   const classes = useStyles();
+  const app = useApp();
 
   const alertApi = useApi(alertApiRef);
 
@@ -294,8 +303,14 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
       );
 
       for (const kind of visibleKinds) {
+        const KindIcon = app.getSystemIcon(`kind:${kind}`);
         items.push(
           <MenuItem key={kind} value={kind}>
+            {KindIcon && (
+              <ListItemIcon className={classes.listItemIcon}>
+                <KindIcon />
+              </ListItemIcon>
+            )}
             {kindDisplayNames[kind] || kind}
           </MenuItem>,
         );
@@ -303,7 +318,7 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     }
 
     return items;
-  }, [availableKinds, isPlatformEngineer, error, classes]);
+  }, [availableKinds, isPlatformEngineer, error, classes, app]);
 
   if (error) return null;
 
@@ -319,6 +334,9 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
           onChange={e => setSelectedKind(e.target.value as string)}
           variant="outlined"
           fullWidth
+          renderValue={value =>
+            kindDisplayNames[value as string] || (value as string)
+          }
           MenuProps={{
             anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
             transformOrigin: { vertical: 'top', horizontal: 'left' },

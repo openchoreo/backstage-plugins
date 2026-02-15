@@ -253,4 +253,10 @@ export const useCardListStyles = makeStyles(theme => ({
     justifyContent: 'center',
     padding: theme.spacing(6),
   },
+  metadataChip: {
+    fontSize: '0.7rem',
+    height: 20,
+    borderRadius: 4,
+    fontWeight: 500,
+  },
 }));
