@@ -40,6 +40,24 @@ export class ObservabilityNotConfiguredError extends Error {
   }
 }
 
+/**
+ * Extracts the actual error message from an openapi-fetch error object
+ */
+function extractErrorMessage(error: unknown, response: Response): string {
+  if (!error) {
+    return `HTTP ${response.status} ${response.statusText}`;
+  }
+
+  const err = error as Record<string, unknown>;
+  if (typeof err.error === 'string') {
+    return err.error;
+  }
+  if (typeof err.message === 'string') {
+    return err.message;
+  }
+  return JSON.stringify(error);
+}
+
 export class ObservabilityService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
@@ -262,14 +280,11 @@ export class ObservabilityService {
       );
 
       if (error || !response.ok) {
-        const errorText = await response.text();
+        const errorMessage = extractErrorMessage(error, response);
         this.logger.error(
-          `Failed to fetch runtime logs for component ${componentId}: ${response.status} ${response.statusText}`,
-          { error: errorText },
+          `Failed to fetch runtime logs for component ${componentId}: ${errorMessage}`,
         );
-        throw new Error(
-          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
-        );
+        throw new Error(`Failed to fetch runtime logs: ${errorMessage}`);
       }
 
       this.logger.debug(
@@ -464,25 +479,19 @@ export class ObservabilityService {
       });
 
       if (error || !response.ok) {
-        const errorText = await response.text();
+        const errorMessage = extractErrorMessage(error, response);
         this.logger.error(
-          `Failed to fetch metrics for component ${componentId}: ${response.status} ${response.statusText}`,
-          { error: errorText },
+          `Failed to fetch metrics for component ${componentId}: ${errorMessage}`,
         );
-        throw new Error(
-          `Failed to fetch metrics: ${response.status} ${response.statusText}`,
-        );
+        throw new Error(`Failed to fetch metrics: ${errorMessage}`);
       }
 
       if (httpError || !httpResponse.ok) {
-        const errorText = await httpResponse.text();
+        const errorMessage = extractErrorMessage(httpError, httpResponse);
         this.logger.error(
-          `Failed to fetch HTTP metrics for component ${componentId}: ${httpResponse.status} ${httpResponse.statusText}`,
-          { error: errorText },
+          `Failed to fetch HTTP metrics for component ${componentId}: ${errorMessage}`,
         );
-        throw new Error(
-          `Failed to fetch HTTP metrics: ${httpResponse.status} ${httpResponse.statusText}`,
-        );
+        throw new Error(`Failed to fetch HTTP metrics: ${errorMessage}`);
       }
 
       this.logger.debug(
@@ -638,9 +647,7 @@ export class ObservabilityService {
       });
 
       if (error || !response.ok) {
-        const errorMessage = error
-          ? JSON.stringify(error)
-          : `HTTP ${response.status} ${response.statusText}`;
+        const errorMessage = extractErrorMessage(error, response);
         const fullUrl = `${observerUrl}/api/traces`;
         this.logger.error(
           `Failed to fetch traces for project ${projectId} from ${fullUrl}: ${errorMessage}`,
