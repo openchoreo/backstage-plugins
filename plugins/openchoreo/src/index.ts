@@ -47,3 +47,4 @@ export { TraitTypeOverviewCard } from './components/TraitTypeOverview';
 export { WorkflowOverviewCard } from './components/WorkflowOverview';
 export { ComponentWorkflowOverviewCard } from './components/ComponentWorkflowOverview';
 export { ResourceDefinitionTab } from './components/ResourceDefinition';
+export { useQueryParams } from './hooks/useQueryParams';

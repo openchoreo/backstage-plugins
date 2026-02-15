@@ -9,6 +9,7 @@ import {
   ALL_VIEWS,
   type EntityNode,
 } from '@openchoreo/backstage-plugin-react';
+import { useQueryParams } from '@openchoreo/backstage-plugin';
 
 const useStyles = makeStyles({
   content: {
@@ -44,11 +45,18 @@ function useNamespaces() {
 
 export function PlatformOverviewPage() {
   const classes = useStyles();
-  const [activeTab, setActiveTab] = useState(0);
-  const [namespace, setNamespace] = useState('default');
+  const [params, setParams] = useQueryParams<{ view: string; ns: string }>({
+    view: { defaultValue: 'application' },
+    ns: { defaultValue: 'default' },
+  });
   const navigate = useNavigate();
   const catalogEntityRoute = useRouteRef(entityRouteRef);
   const namespaces = useNamespaces();
+
+  const activeTabIndex = Math.max(
+    0,
+    ALL_VIEWS.findIndex(v => v.id === params.view),
+  );
 
   const handleNodeClick = (node: EntityNode, _event: MouseEvent<unknown>) => {
     const route = catalogEntityRoute({
@@ -63,19 +71,19 @@ export function PlatformOverviewPage() {
     <Page themeId="tool">
       <Header
         title="Platform Overview"
-        subtitle={ALL_VIEWS[activeTab].description}
+        subtitle={ALL_VIEWS[activeTabIndex].description}
       />
       <HeaderTabs
-        selectedIndex={activeTab}
-        onChange={setActiveTab}
+        selectedIndex={activeTabIndex}
+        onChange={index => setParams({ view: ALL_VIEWS[index].id })}
         tabs={tabs}
       />
       <Content stretch noPadding className={classes.content}>
         <PlatformOverviewGraphView
-          view={ALL_VIEWS[activeTab]}
-          namespace={namespace}
+          view={ALL_VIEWS[activeTabIndex]}
+          namespace={params.ns}
           namespaces={namespaces}
-          onNamespaceChange={setNamespace}
+          onNamespaceChange={ns => setParams({ ns })}
           onNodeClick={handleNodeClick}
         />
       </Content>
