@@ -11,6 +11,7 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { filterEmptyObjectProperties } from '@openchoreo/backstage-plugin-common';
+import createSchemaUtils from '@rjsf/utils/lib/createSchemaUtils';
 
 /*
  Schema for the Build Workflow Parameters Field
@@ -139,6 +140,23 @@ export const BuildWorkflowParameters = ({
             }
           }
 
+          // Unwrap the parameters wrapper — the API returns schema with
+          // developer params nested under a "parameters" key, but RJSF should
+          // render the inner properties directly (e.g., docker.context).
+          // The parameters nesting is re-added by componentResourceBuilder.
+          if (
+            schema.properties?.parameters &&
+            typeof schema.properties.parameters === 'object' &&
+            'properties' in (schema.properties.parameters as JSONSchema7)
+          ) {
+            const innerParams = schema.properties.parameters as JSONSchema7;
+            schema = {
+              ...schema,
+              ...innerParams,
+              properties: innerParams.properties,
+            };
+          }
+
           setWorkflowSchema(schema);
           // Generate UI schema with sanitized titles for fields without explicit titles
           const generatedUiSchema = generateUiSchemaWithTitles(schema);
@@ -163,19 +181,32 @@ export const BuildWorkflowParameters = ({
     };
   }, [selectedWorkflowName, namespaceName, discoveryApi, fetchApi]);
 
-  // Sync schema to formData when workflow changes (not just when schema loads)
+  // Sync schema to formData when workflow changes (not just when schema loads).
+  // Compute default values from the schema so they are always included — RJSF
+  // does not fire onChange on initial render, so without this, users who accept
+  // defaults without editing get parameters: {}.
   useEffect(() => {
-    if (workflowSchema && resetKey > 0) {
-      // Clear old parameters only when workflow actually changes (resetKey increments)
-      // This prevents clearing when user navigates back to this step
+    if (!workflowSchema) return;
+
+    const schemaUtils = createSchemaUtils(validator, workflowSchema, {
+      emptyObjectFields: 'populateAllDefaults',
+    });
+    const defaults =
+      (schemaUtils.getDefaultFormState(workflowSchema, {}) as Record<
+        string,
+        any
+      >) || {};
+
+    if (resetKey > 0) {
+      // Workflow changed: initialize with schema defaults
       onChange({
-        parameters: {},
+        parameters: defaults,
         schema: workflowSchema,
       });
-    } else if (workflowSchema && resetKey === 0 && !formData?.schema) {
-      // First time loading: initialize with existing or empty parameters
+    } else if (!formData?.schema) {
+      // First time loading: merge existing parameters over defaults
       onChange({
-        parameters: formData?.parameters || {},
+        parameters: { ...defaults, ...(formData?.parameters || {}) },
         schema: workflowSchema,
       });
     }
@@ -249,6 +280,9 @@ export const BuildWorkflowParameters = ({
           tagName="div"
           fields={customFields}
           formContext={formContext}
+          experimental_defaultFormStateBehavior={{
+            emptyObjectFields: 'populateAllDefaults',
+          }}
         >
           {/* Hide the default submit button - we're just using this for the form fields */}
           <div style={{ display: 'none' }} />
