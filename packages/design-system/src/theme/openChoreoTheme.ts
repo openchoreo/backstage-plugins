@@ -231,17 +231,14 @@ const theme = createUnifiedTheme({
           fill: `${colors.common.white} !important`,
         },
         '.MuiTab-root:hover': {
-          backgroundColor: `${colors.common.black} !important`,
-          color: `${colors.common.white} !important`,
+          backgroundColor: `${alpha(colors.common.black, 0.1)} !important`,
+          color: `${colors.common.black} !important`,
+          textDecoration: 'none !important',
         },
         'a[role="tab"]:hover': {
-          backgroundColor: `${colors.common.black} !important`,
-          color: `${colors.common.white} !important`,
-        },
-        // Target specific Backstage class
-        '[class*="BackstageHeaderTabs-tabRoot"]:hover': {
-          backgroundColor: `${colors.common.black} !important`,
-          color: `${colors.common.white} !important`,
+          backgroundColor: `${alpha(colors.common.black, 0.1)} !important`,
+          color: `${colors.common.black} !important`,
+          textDecoration: 'none !important',
         },
       },
     },
@@ -557,13 +554,6 @@ const theme = createUnifiedTheme({
           minHeight: spacing(6.25),
           padding: `${spacing(1.5, 2)} !important`,
           transition: 'background-color 0.2s',
-          // Target Backstage specific class via attribute selector
-          '&[class*="BackstageHeaderTabs-tabRoot"]:hover': {
-            backgroundColor: `${alpha(colors.common.black, 0.1)} !important`,
-            color: `${colors.common.black} !important`,
-            opacity: 1,
-            textDecoration: 'none',
-          },
           '@media (min-width: 960px)': {
             // Backstage uses the whole parent width in smaller
             // screens for horizontal scrolling. This prevents that in desktop resolutions.
