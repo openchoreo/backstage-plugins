@@ -27,7 +27,24 @@ spec:
     organizationVirtualHost: us.prod.openchoreoapis.internal
   observabilityPlaneRef:
     kind: ObservabilityPlane
-    name: default
+    name: default-observability-plane
+---
+# Default Observability Plane
+apiVersion: openchoreo.dev/v1alpha1
+kind: ObservabilityPlane
+metadata:
+  name: default-observability-plane
+  namespace: default
+  annotations:
+    openchoreo.dev/display-name: 'Default Observability Plane'
+    openchoreo.dev/description: 'Default observability plane for the cluster'
+  labels:
+    openchoreo.dev/name: default-observability-plane
+spec:
+  clusterAgent:
+    clientCA:
+      value: 'dummy-ca-for-demo'
+  observerURL: http://observer.default.observability-plane:8080
 ---
 # EU Observability Plane
 apiVersion: openchoreo.dev/v1alpha1
