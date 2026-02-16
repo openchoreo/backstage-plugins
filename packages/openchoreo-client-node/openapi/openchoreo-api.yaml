@@ -361,7 +361,6 @@ components:
       type: object
       required:
         - name
-        - type
       properties:
         name:
           type: string
@@ -371,8 +370,88 @@ components:
           type: string
         type:
           type: string
+          deprecated: true
+        componentType:
+          type: string
+          description: 'Component type reference (format: {workloadType}/{componentTypeName})'
+        autoDeploy:
+          type: boolean
+          description: Whether to automatically deploy to default environment
+          default: false
+        parameters:
+          type: object
+          description: Component type parameters
+          additionalProperties: true
+        traits:
+          type: array
+          description: Trait instances to attach to the component
+          items:
+            $ref: '#/components/schemas/ComponentTraitInput'
         workflow:
-          $ref: '#/components/schemas/ComponentWorkflow'
+          $ref: '#/components/schemas/ComponentWorkflowInput'
+
+    ComponentTraitInput:
+      type: object
+      description: Trait instance to attach to a component
+      required:
+        - name
+        - instanceName
+      properties:
+        name:
+          type: string
+          description: Trait resource name
+        instanceName:
+          type: string
+          description: Unique instance name within the component
+        parameters:
+          type: object
+          description: Trait parameter values
+          additionalProperties: true
+
+    ComponentWorkflowInput:
+      type: object
+      description: Workflow configuration for component creation
+      required:
+        - name
+        - systemParameters
+      properties:
+        name:
+          type: string
+          description: ComponentWorkflow resource name
+        systemParameters:
+          type: object
+          description: System parameters including repository configuration
+          required:
+            - repository
+          properties:
+            repository:
+              type: object
+              required:
+                - url
+                - revision
+                - appPath
+              properties:
+                url:
+                  type: string
+                  description: Git repository URL
+                revision:
+                  type: object
+                  required:
+                    - branch
+                  properties:
+                    branch:
+                      type: string
+                      description: Git branch to build from
+                    commit:
+                      type: string
+                      description: Specific commit SHA (optional)
+                appPath:
+                  type: string
+                  description: Path to application within repository
+        parameters:
+          type: object
+          description: User-defined workflow parameters
+          additionalProperties: true
 
     PatchComponentRequest:
       type: object

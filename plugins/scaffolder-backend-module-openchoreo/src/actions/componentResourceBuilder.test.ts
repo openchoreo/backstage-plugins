@@ -7,62 +7,49 @@ import {
 describe('buildComponentResource', () => {
   const minimalInput: ComponentResourceInput = {
     componentName: 'my-service',
-    namespaceName: 'default',
-    projectName: 'my-project',
     componentType: 'service',
     componentTypeWorkloadType: 'deployment',
   };
 
-  it('should build basic component resource with correct structure', () => {
+  it('should build basic component request with correct structure', () => {
     const result = buildComponentResource(minimalInput);
 
-    expect(result.apiVersion).toBe('openchoreo.dev/v1alpha1');
-    expect(result.kind).toBe('Component');
-    expect(result.metadata.name).toBe('my-service');
-    expect(result.metadata.namespace).toBe('default');
-    expect(result.spec.owner.projectName).toBe('my-project');
-    expect(result.spec.parameters).toEqual({});
-    expect(result.spec.autoDeploy).toBe(false);
+    expect(result.name).toBe('my-service');
+    expect(result.componentType).toBe('deployment/service');
+    expect(result.parameters).toEqual({});
+    expect(result.autoDeploy).toBe(false);
   });
 
   it('should format componentType as workloadType/componentType', () => {
     const result = buildComponentResource(minimalInput);
-    expect(result.spec.componentType).toBe('deployment/service');
+    expect(result.componentType).toBe('deployment/service');
   });
 
-  it('should set display name and description annotations when provided', () => {
+  it('should set display name and description when provided', () => {
     const result = buildComponentResource({
       ...minimalInput,
       displayName: 'My Service',
       description: 'A test service',
     });
 
-    expect(result.metadata.annotations!['openchoreo.dev/display-name']).toBe(
-      'My Service',
-    );
-    expect(result.metadata.annotations!['openchoreo.dev/description']).toBe(
-      'A test service',
-    );
+    expect(result.displayName).toBe('My Service');
+    expect(result.description).toBe('A test service');
   });
 
-  it('should not set display name or description annotations when not provided', () => {
+  it('should not set display name or description when not provided', () => {
     const result = buildComponentResource(minimalInput);
 
-    expect(
-      result.metadata.annotations!['openchoreo.dev/display-name'],
-    ).toBeUndefined();
-    expect(
-      result.metadata.annotations!['openchoreo.dev/description'],
-    ).toBeUndefined();
+    expect(result.displayName).toBeUndefined();
+    expect(result.description).toBeUndefined();
   });
 
-  it('should include CTD parameters in spec.parameters', () => {
+  it('should include CTD parameters in parameters', () => {
     const result = buildComponentResource({
       ...minimalInput,
       ctdParameters: { port: 8080, replicas: 3 },
     });
 
-    expect(result.spec.parameters).toEqual({ port: 8080, replicas: 3 });
+    expect(result.parameters).toEqual({ port: 8080, replicas: 3 });
   });
 
   it('should set autoDeploy when provided', () => {
@@ -71,12 +58,12 @@ describe('buildComponentResource', () => {
       autoDeploy: true,
     });
 
-    expect(result.spec.autoDeploy).toBe(true);
+    expect(result.autoDeploy).toBe(true);
   });
 
   it('should default autoDeploy to false when not provided', () => {
     const result = buildComponentResource(minimalInput);
-    expect(result.spec.autoDeploy).toBe(false);
+    expect(result.autoDeploy).toBe(false);
   });
 
   describe('workflow (build-from-source)', () => {
@@ -91,11 +78,13 @@ describe('buildComponentResource', () => {
         },
       });
 
-      expect(result.spec.workflow).toBeDefined();
-      expect(result.spec.workflow!.name).toBe('google-cloud-buildpacks');
-      expect(result.spec.workflow!.docker).toEqual({
-        context: '/app',
-        filePath: '/Dockerfile',
+      expect(result.workflow).toBeDefined();
+      expect(result.workflow!.name).toBe('google-cloud-buildpacks');
+      expect(result.workflow!.parameters).toEqual({
+        docker: {
+          context: '/app',
+          filePath: '/Dockerfile',
+        },
       });
     });
 
@@ -110,7 +99,7 @@ describe('buildComponentResource', () => {
         componentPath: 'services/api',
       });
 
-      expect(result.spec.workflow!.systemParameters).toEqual({
+      expect(result.workflow!.systemParameters).toEqual({
         repository: {
           url: 'https://github.com/org/repo.git',
           revision: { branch: 'develop' },
@@ -131,7 +120,7 @@ describe('buildComponentResource', () => {
         gitSecretRef: 'my-git-secret',
       });
 
-      expect(result.spec.workflow!.systemParameters).toEqual({
+      expect(result.workflow!.systemParameters).toEqual({
         repository: {
           url: 'https://github.com/org/private-repo.git',
           revision: { branch: 'main' },
@@ -153,7 +142,7 @@ describe('buildComponentResource', () => {
       });
 
       expect(
-        result.spec.workflow!.systemParameters!.repository.secretRef,
+        (result.workflow!.systemParameters as any).repository.secretRef,
       ).toBeUndefined();
     });
 
@@ -166,7 +155,7 @@ describe('buildComponentResource', () => {
         repoUrl: 'https://github.com/org/repo.git',
       });
 
-      expect(result.spec.workflow!.systemParameters).toEqual({
+      expect(result.workflow!.systemParameters).toEqual({
         repository: {
           url: 'https://github.com/org/repo.git',
           revision: { branch: 'main' },
@@ -175,7 +164,7 @@ describe('buildComponentResource', () => {
       });
     });
 
-    it('should not build systemParameters when repoUrl is not provided', () => {
+    it('should build workflow with empty systemParameters when repoUrl is not provided', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
@@ -183,8 +172,10 @@ describe('buildComponentResource', () => {
         workflowParameters: {},
       });
 
-      expect(result.spec.workflow).toBeDefined();
-      expect(result.spec.workflow!.systemParameters).toBeUndefined();
+      expect(result.workflow).toBeDefined();
+      expect(result.workflow!.name).toBe('google-cloud-buildpacks');
+      // systemParameters is required by the type, so a default is provided
+      expect(result.workflow!.systemParameters).toBeDefined();
     });
   });
 
@@ -195,7 +186,7 @@ describe('buildComponentResource', () => {
       containerImage: 'nginx:latest',
     });
 
-    expect(result.spec.workflow).toBeUndefined();
+    expect(result.workflow).toBeUndefined();
   });
 
   it('should not add workflow for external-ci', () => {
@@ -204,7 +195,7 @@ describe('buildComponentResource', () => {
       deploymentSource: 'external-ci',
     });
 
-    expect(result.spec.workflow).toBeUndefined();
+    expect(result.workflow).toBeUndefined();
   });
 
   it('should build traits with nested parameters', () => {
@@ -222,7 +213,7 @@ describe('buildComponentResource', () => {
       ],
     });
 
-    expect(result.spec.traits).toEqual([
+    expect(result.traits).toEqual([
       {
         name: 'ingress',
         instanceName: 'my-ingress',
@@ -235,46 +226,31 @@ describe('buildComponentResource', () => {
 });
 
 describe('buildWorkloadResource', () => {
-  it('should build basic workload resource with correct structure', () => {
+  it('should build basic workload body with correct structure', () => {
     const result = buildWorkloadResource({
-      componentName: 'my-service',
-      namespaceName: 'default',
-      projectName: 'my-project',
       containerImage: 'nginx:latest',
     });
 
-    expect(result.apiVersion).toBe('openchoreo.dev/v1alpha1');
-    expect(result.kind).toBe('Workload');
-    expect(result.metadata.name).toBe('my-service-workload');
-    expect(result.metadata.namespace).toBe('default');
-    expect(result.spec.owner.projectName).toBe('my-project');
-    expect(result.spec.owner.componentName).toBe('my-service');
-    expect(result.spec.containers.main.image).toBe('nginx:latest');
-    expect(result.spec.endpoints).toBeUndefined();
+    expect(result.containers.main.image).toBe('nginx:latest');
+    expect(result.endpoints).toBeUndefined();
   });
 
   it('should add endpoint when port is provided', () => {
     const result = buildWorkloadResource({
-      componentName: 'my-service',
-      namespaceName: 'default',
-      projectName: 'my-project',
       containerImage: 'nginx:latest',
       port: 8080,
     });
 
-    expect(result.spec.endpoints).toEqual({
-      http: { type: 'HTTP', port: 8080, visibility: 'external' },
+    expect(result.endpoints).toEqual({
+      http: { type: 'HTTP', port: 8080 },
     });
   });
 
   it('should not add endpoint when port is not provided', () => {
     const result = buildWorkloadResource({
-      componentName: 'my-service',
-      namespaceName: 'default',
-      projectName: 'my-project',
       containerImage: 'nginx:latest',
     });
 
-    expect(result.spec.endpoints).toBeUndefined();
+    expect(result.endpoints).toBeUndefined();
   });
 });

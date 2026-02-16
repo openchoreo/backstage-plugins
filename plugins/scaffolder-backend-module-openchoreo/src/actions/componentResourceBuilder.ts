@@ -4,6 +4,10 @@ import {
   WorkloadEndpoint,
   WorkloadResource,
 } from './componentResourceInterface';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+
+type CreateComponentRequest =
+  OpenChoreoComponents['schemas']['CreateComponentRequest'];
 
 /**
  * Deployment source type for component creation
@@ -21,8 +25,6 @@ export interface ComponentResourceInput {
   componentName: string;
   displayName?: string;
   description?: string;
-  namespaceName: string;
-  projectName: string;
 
   // Section 2: Component Type Configuration
   componentType: string; // The component type name (e.g., "nodejs-service")
@@ -47,65 +49,37 @@ export interface ComponentResourceInput {
     config: Record<string, any>;
   }>;
 }
+
 /**
- * Builds a ComponentResource object from scaffolder form input
+ * Builds a CreateComponentRequest body from scaffolder form input
  *
- * This converts the form data into the structure required by the OpenChoreo API /apply endpoint
+ * This converts the form data into the structure required by the
+ * POST /namespaces/{ns}/projects/{proj}/components REST endpoint
  */
 export function buildComponentResource(
   input: ComponentResourceInput,
-): ComponentResource {
-  // Build the component resource
-  const resource: ComponentResource = {
-    apiVersion: 'openchoreo.dev/v1alpha1',
-    kind: 'Component',
-    metadata: {
-      name: input.componentName,
-      namespace: input.namespaceName,
-      annotations: {},
-    },
-    spec: {
-      owner: {
-        projectName: input.projectName,
-      },
-      componentType: `${input.componentTypeWorkloadType}/${input.componentType}`,
-      parameters: input.ctdParameters || {},
-      autoDeploy: input.autoDeploy ?? false,
-    },
+): CreateComponentRequest {
+  const request: CreateComponentRequest = {
+    name: input.componentName,
+    displayName: input.displayName,
+    description: input.description,
+    componentType: `${input.componentTypeWorkloadType}/${input.componentType}`,
+    autoDeploy: input.autoDeploy ?? false,
+    parameters: input.ctdParameters || {},
   };
-
-  // Add display name annotation if provided
-  if (input.displayName) {
-    resource.metadata.annotations!['openchoreo.dev/display-name'] =
-      input.displayName;
-  }
-
-  // Add description annotation if provided
-  if (input.description) {
-    resource.metadata.annotations!['openchoreo.dev/description'] =
-      input.description;
-  }
 
   // Add workflow configuration only for build-from-source deployment source
   // For external-ci and deploy-from-image, no workflow is attached to the component
-  // External CI will create workloads via API, deploy-from-image creates a workload directly
   if (
     input.deploymentSource === 'build-from-source' &&
     input.workflowName &&
     input.workflowParameters
   ) {
     // Build workflow schema from flat workflow parameters
-    // Workflow parameters come in dot-notation (e.g., "docker.context", "repository.url")
+    // Workflow parameters come in dot-notation (e.g., "docker.context", "docker.filePath")
     // Need to convert to nested structure
-    const workflowSchema = convertFlatToNested(input.workflowParameters);
+    const workflowParams = convertFlatToNested(input.workflowParameters);
 
-    resource.spec.workflow = {
-      name: input.workflowName,
-      parameters: workflowSchema,
-    };
-
-    // Build systemParameters.repository from standalone fields
-    // These were previously part of workflow_parameters but are now standalone wizard fields
     if (input.repoUrl) {
       const repository: Record<string, any> = {
         url: input.repoUrl,
@@ -117,33 +91,43 @@ export function buildComponentResource(
       if (input.gitSecretRef) {
         repository.secretRef = input.gitSecretRef;
       }
-      resource.spec.workflow.systemParameters = { repository };
+
+      request.workflow = {
+        name: input.workflowName,
+        systemParameters: { repository } as any,
+        parameters: workflowParams,
+      };
+    } else {
+      request.workflow = {
+        name: input.workflowName,
+        // systemParameters is required by the type but may not always be present
+        // (e.g., if no repo URL is given)
+        systemParameters: {
+          repository: { url: '', revision: { branch: 'main' }, appPath: '.' },
+        },
+        parameters: workflowParams,
+      };
     }
   }
 
-  // Add traits (traits) if provided
+  // Add traits if provided
   if (input.traits && input.traits.length > 0) {
-    resource.spec.traits = input.traits.map(
-      (trait): ComponentTrait => ({
-        name: trait.name,
-        instanceName: trait.instanceName,
-        // Convert flat dot-notation config to nested structure (same as workflow parameters)
-        parameters: convertFlatToNested(trait.config),
-      }),
-    );
+    request.traits = input.traits.map(trait => ({
+      name: trait.name,
+      instanceName: trait.instanceName,
+      // Convert flat dot-notation config to nested structure (same as workflow parameters)
+      parameters: convertFlatToNested(trait.config),
+    }));
   }
 
-  return resource;
+  return request;
 }
 
 /**
- * Input data for building a workload resource
+ * Input data for building a workload request body
  * Used for deploy-from-image flow and for any deployment source when workload data exists
  */
 export interface WorkloadResourceInput {
-  componentName: string;
-  namespaceName: string;
-  projectName: string;
   containerImage?: string;
   port?: number;
   endpoints?: Record<string, WorkloadEndpoint>;
@@ -161,35 +145,30 @@ export interface WorkloadResourceInput {
 }
 
 /**
- * Builds a WorkloadResource object for component deployment.
+ * Workload request body for the createWorkload REST endpoint.
+ */
+export interface WorkloadBody {
+  containers: Record<string, Record<string, any>>;
+  endpoints?: Record<string, { type: string; port: number; visibility: 'project' | 'namespace' | 'internal' | 'external'; }>;
+}
+
+/**
+ * Builds a workload request body for the createWorkload REST endpoint.
  *
  * Created for deploy-from-image flow (with container image) or for any deployment
  * source when workload data exists (endpoints, env vars, file mounts).
- * The Component controller will use this Workload to create deployments.
  */
 export function buildWorkloadResource(
   input: WorkloadResourceInput,
-): WorkloadResource {
-  // Build container spec — only if there's an image, because the CRD requires
-  // `image` (Required, MinLength=1) on Container. Without an image, containers
-  // must be omitted entirely. Env vars and file mounts live inside a container,
-  // so they can only be set when an image is provided.
+): WorkloadBody {
+  // Build container spec — only if there's an image, because the API requires
+  // `image` on Container. Without an image, containers must be omitted entirely.
+  // Env vars and file mounts live inside a container, so they can only be set
+  // when an image is provided.
   const hasImage = !!input.containerImage;
 
-  const resource: WorkloadResource = {
-    apiVersion: 'openchoreo.dev/v1alpha1',
-    kind: 'Workload',
-    metadata: {
-      name: `${input.componentName}-workload`,
-      namespace: input.namespaceName,
-    },
-    spec: {
-      owner: {
-        projectName: input.projectName,
-        componentName: input.componentName,
-      },
-      containers: {},
-    },
+  const body: WorkloadBody = {
+    containers: {},
   };
 
   if (hasImage) {
@@ -207,16 +186,16 @@ export function buildWorkloadResource(
       mainContainer.files = input.fileMounts;
     }
 
-    resource.spec.containers = { main: mainContainer };
+    body.containers = { main: mainContainer };
   }
 
   // Add endpoints from the new endpoints map
   if (input.endpoints && Object.keys(input.endpoints).length > 0) {
-    resource.spec.endpoints = input.endpoints as any;
+    body.endpoints = input.endpoints;
   }
   // Fallback: add endpoint if only port is provided (legacy deploy-from-image)
   else if (input.port) {
-    resource.spec.endpoints = {
+    body.endpoints = {
       http: {
         type: 'HTTP',
         port: input.port,
@@ -225,7 +204,7 @@ export function buildWorkloadResource(
     };
   }
 
-  return resource;
+  return body;
 }
 
 /**
