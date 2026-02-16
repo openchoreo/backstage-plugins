@@ -27,9 +27,11 @@ export const useStyles = makeStyles(theme => ({
   },
   logsContainer: {
     flex: 'auto',
-    backgroundColor: theme.palette.background.default,
-    fontFamily: 'monospace',
+    backgroundColor: theme.palette.type === 'dark' ? '#1e1e1e' : '#f5f5f5',
+    fontFamily:
+      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
     fontSize: '12px',
+    lineHeight: '1.6',
     minHeight: '300px',
     overflow: 'auto',
     border: `1px solid ${theme.palette.divider}`,
@@ -40,6 +42,10 @@ export const useStyles = makeStyles(theme => ({
   logText: {
     fontSize: '12px',
     color: theme.palette.text.primary,
+    fontFamily:
+      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+    lineHeight: '1.6',
+    marginBottom: theme.spacing(0.5),
   },
   noLogsText: {
     fontSize: '12px',
