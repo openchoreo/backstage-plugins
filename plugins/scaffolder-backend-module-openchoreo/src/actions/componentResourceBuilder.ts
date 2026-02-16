@@ -100,7 +100,7 @@ export function buildComponentResource(
 
     resource.spec.workflow = {
       name: input.workflowName,
-      ...workflowSchema, // Spread parameters and systemParameters directly
+      parameters: workflowSchema,
     };
 
     // Build systemParameters.repository from standalone fields
