@@ -27,7 +27,7 @@ export const useStyles = makeStyles(theme => ({
   },
   eventsContainer: {
     flex: 'auto',
-    backgroundColor: theme.palette.background.default,
+    backgroundColor: theme.palette.type === 'dark' ? '#1e1e1e' : '#f5f5f5',
     minHeight: '200px',
     overflow: 'auto',
     border: `1px solid ${theme.palette.divider}`,
@@ -58,11 +58,17 @@ export const useStyles = makeStyles(theme => ({
   },
   tableCell: {
     fontSize: '12px',
+    fontFamily:
+      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+    lineHeight: '1.6',
   },
   messageCell: {
     maxWidth: 480,
     whiteSpace: 'normal',
     wordBreak: 'break-word',
     fontSize: '12px',
+    fontFamily:
+      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+    lineHeight: '1.6',
   },
 }));
