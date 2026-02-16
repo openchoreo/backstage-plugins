@@ -157,7 +157,7 @@ export const createTraitDefinitionAction = (
             },
             namespaceName,
             {
-              locationKey: 'OpenChoreoEntityProvider',
+              locationKey: 'provider:OpenChoreoEntityProvider',
             },
           );
 

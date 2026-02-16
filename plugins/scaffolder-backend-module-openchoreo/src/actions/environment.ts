@@ -159,7 +159,7 @@ export const createEnvironmentAction = (
             },
             namespaceName,
             {
-              locationKey: 'OpenChoreoEntityProvider',
+              locationKey: 'provider:OpenChoreoEntityProvider',
             },
           );
 
