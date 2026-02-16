@@ -366,7 +366,19 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             `Found ${projects.length} projects in namespace: ${ns.name}`,
           );
 
-          const systemEntities: Entity[] = projects.map(project =>
+          // Filter out projects marked for deletion
+          const activeProjects = projects.filter(
+            project => !project.deletionTimestamp,
+          );
+          if (projects.length !== activeProjects.length) {
+            this.logger.debug(
+              `Filtered out ${
+                projects.length - activeProjects.length
+              } deleted projects in namespace: ${ns.name}`,
+            );
+          }
+
+          const systemEntities: Entity[] = activeProjects.map(project =>
             this.translateProjectToEntity(project, ns.name!),
           );
           allEntities.push(...systemEntities);
@@ -444,13 +456,25 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
               const components =
                 compData.success && compData.data?.items
-                  ? compData.data.items
+                  ? (compData.data.items as ModelsComponent[])
                   : [];
               this.logger.debug(
                 `Found ${components.length} components in project: ${project.name}`,
               );
 
-              for (const component of components) {
+              // Filter out components marked for deletion
+              const activeComponents = components.filter(
+                component => !component.deletionTimestamp,
+              );
+              if (components.length !== activeComponents.length) {
+                this.logger.debug(
+                  `Filtered out ${
+                    components.length - activeComponents.length
+                  } deleted components in project: ${project.name}`,
+                );
+              }
+
+              for (const component of activeComponents) {
                 // If the component is a Service (has endpoints), fetch complete details and create both component and API entities
                 const pageVariant = this.componentTypeUtils.getPageVariant(
                   component.type || '',

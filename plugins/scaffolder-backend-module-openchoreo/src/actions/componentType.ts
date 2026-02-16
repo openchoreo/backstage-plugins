@@ -164,7 +164,7 @@ export const createComponentTypeDefinitionAction = (
             },
             namespaceName,
             {
-              locationKey: 'OpenChoreoEntityProvider',
+              locationKey: 'provider:OpenChoreoEntityProvider',
             },
           );
 

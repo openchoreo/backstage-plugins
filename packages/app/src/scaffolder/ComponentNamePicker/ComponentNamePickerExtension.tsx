@@ -101,10 +101,15 @@ export const ComponentNamePicker = ({
         });
 
         // Filter components by namespace annotation and check if name exists
+        // Exclude components marked for deletion
         const existsInOrg = items.some(
           component =>
             component.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ===
-              nsName && component.metadata.name === componentName,
+              nsName &&
+            component.metadata.name === componentName &&
+            !component.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.DELETION_TIMESTAMP
+            ],
         );
 
         return existsInOrg;

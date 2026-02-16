@@ -167,7 +167,7 @@ export const createComponentWorkflowDefinitionAction = (
             },
             namespaceName,
             {
-              locationKey: 'OpenChoreoEntityProvider',
+              locationKey: 'provider:OpenChoreoEntityProvider',
             },
           );
 

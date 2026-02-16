@@ -78,7 +78,13 @@ export const ProjectNamespaceField = ({
         },
       });
 
-      const projectList = items.map(entity => ({
+      // Filter out entities marked for deletion
+      const activeItems = items.filter(
+        entity =>
+          !entity.metadata.annotations?.['openchoreo.io/deletion-timestamp'],
+      );
+
+      const projectList = activeItems.map(entity => ({
         name: entity.metadata.name,
         entityRef: `system:${entity.metadata.namespace || 'default'}/${
           entity.metadata.name

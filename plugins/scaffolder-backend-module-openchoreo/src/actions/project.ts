@@ -149,7 +149,7 @@ export const createProjectAction = (
             },
             namespaceName,
             {
-              locationKey: 'OpenChoreoEntityProvider',
+              locationKey: 'provider:OpenChoreoEntityProvider',
               defaultOwner: `group:default/${defaultOwner}`,
             },
           );
