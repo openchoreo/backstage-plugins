@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   Chip,
   CircularProgress,
   IconButton,
@@ -7,7 +8,9 @@ import {
 } from '@material-ui/core';
 import { TablePagination } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
-import { useApp } from '@backstage/core-plugin-api';
+import { useApp, useRouteRef } from '@backstage/core-plugin-api';
+import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
+import { Link } from 'react-router-dom';
 import {
   EntitySearchBar,
   EntityRefLink,
@@ -20,16 +23,26 @@ import {
 } from '@openchoreo/backstage-plugin';
 import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
-import { StarredChip, TypeChip } from './CustomPersonalFilters';
+import { StarredChip, TypeChip, ProjectChip } from './CustomPersonalFilters';
 
 const kindPluralNames: Record<string, string> = {
-  Project: 'Projects', Component: 'Components', API: 'APIs',
-  User: 'Users', Group: 'Groups', Resource: 'Resources',
-  Location: 'Locations', Template: 'Templates', Dataplane: 'Dataplanes',
-  'Build Plane': 'Build Planes', 'Observability Plane': 'Observability Planes',
-  Environment: 'Environments', 'Deployment Pipeline': 'Deployment Pipelines',
-  'Component Type': 'Component Types', 'Trait Type': 'Trait Types',
-  Workflow: 'Workflows', 'Component Workflow': 'Component Workflows',
+  Project: 'Projects',
+  Component: 'Components',
+  API: 'APIs',
+  User: 'Users',
+  Group: 'Groups',
+  Resource: 'Resources',
+  Location: 'Locations',
+  Template: 'Templates',
+  Dataplane: 'Dataplanes',
+  'Build Plane': 'Build Planes',
+  'Observability Plane': 'Observability Planes',
+  Environment: 'Environments',
+  'Deployment Pipeline': 'Deployment Pipelines',
+  'Component Type': 'Component Types',
+  'Trait Type': 'Trait Types',
+  Workflow: 'Workflows',
+  'Component Workflow': 'Component Workflows',
 };
 
 const PLANE_KINDS = new Set(['dataplane', 'buildplane', 'observabilityplane']);
@@ -44,6 +57,7 @@ function EntityKindIcon({ entity }: { entity: Entity }) {
 
 export const CatalogCardList = () => {
   const classes = useCardListStyles();
+  const createComponentLink = useRouteRef(scaffolderPlugin.routes.root);
   const {
     entities,
     totalItems,
@@ -66,11 +80,21 @@ export const CatalogCardList = () => {
       <Box className={classes.searchAndTitle}>
         <Typography className={classes.titleText}>{titleText}</Typography>
         <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+          <ProjectChip />
           <TypeChip />
           <StarredChip />
           <form onSubmit={e => e.preventDefault()}>
             <EntitySearchBar />
           </form>
+          <Button
+            variant="contained"
+            color="primary"
+            component={Link}
+            to={createComponentLink()}
+            size="small"
+          >
+            Create
+          </Button>
         </Box>
       </Box>
 
@@ -93,10 +117,11 @@ export const CatalogCardList = () => {
             const selectedKind = filters.kind?.value?.toLowerCase();
             const componentType = (entity.spec as any)?.type;
 
+            const projectName =
+              entity.metadata.annotations?.['openchoreo.io/project'];
             const agentConnected =
-              entity.metadata.annotations?.[
-                'openchoreo.io/agent-connected'
-              ] === 'true';
+              entity.metadata.annotations?.['openchoreo.io/agent-connected'] ===
+              'true';
 
             return (
               <Box
@@ -116,9 +141,18 @@ export const CatalogCardList = () => {
                       </Typography>
                       {namespace && namespace !== 'default' && (
                         <Chip
-                          label={namespace}
+                          label={`ns: ${namespace}`}
                           size="small"
                           variant="outlined"
+                          className={classes.metadataChip}
+                        />
+                      )}
+                      {selectedKind === 'component' && projectName && (
+                        <Chip
+                          label={`project: ${projectName}`}
+                          size="small"
+                          variant="outlined"
+                          color="primary"
                           className={classes.metadataChip}
                         />
                       )}
@@ -136,9 +170,18 @@ export const CatalogCardList = () => {
                       </Typography>
                       {namespace && namespace !== 'default' && (
                         <Chip
-                          label={namespace}
+                          label={`ns: ${namespace}`}
                           size="small"
                           variant="outlined"
+                          className={classes.metadataChip}
+                        />
+                      )}
+                      {selectedKind === 'component' && projectName && (
+                        <Chip
+                          label={`project: ${projectName}`}
+                          size="small"
+                          variant="outlined"
+                          color="primary"
                           className={classes.metadataChip}
                         />
                       )}
@@ -156,7 +199,7 @@ export const CatalogCardList = () => {
                       label={componentType}
                       size="small"
                       variant="outlined"
-                      color="primary"
+                      color="default"
                       className={classes.metadataChip}
                     />
                   </Box>
@@ -167,7 +210,9 @@ export const CatalogCardList = () => {
                       label={componentType}
                       size="small"
                       variant="outlined"
-                      color={componentType === 'production' ? 'secondary' : 'default'}
+                      color={
+                        componentType === 'production' ? 'secondary' : 'default'
+                      }
                       className={classes.metadataChip}
                     />
                   </Box>

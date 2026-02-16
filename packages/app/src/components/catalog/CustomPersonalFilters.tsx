@@ -18,6 +18,7 @@ import {
   useStarredEntities,
   EntityUserFilter,
 } from '@backstage/plugin-catalog-react';
+import { Entity } from '@backstage/catalog-model';
 import { usePersonalFilterStyles } from './styles';
 
 export const StarredFilter = () => {
@@ -198,6 +199,126 @@ export const TypeChip = () => {
               style={{ padding: 4, marginRight: 8 }}
             />
             {type}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
+class EntityProjectFilter {
+  readonly values: string[];
+  constructor(values: string[]) {
+    this.values = values;
+  }
+  getCatalogFilters() {
+    return {
+      'metadata.annotations.openchoreo.io/project': this.values,
+    };
+  }
+  filterEntity(entity: Entity): boolean {
+    const project = entity.metadata.annotations?.['openchoreo.io/project'];
+    return project !== undefined && this.values.includes(project);
+  }
+  toQueryValue() {
+    return this.values;
+  }
+}
+
+export const ProjectChip = () => {
+  const catalogApi = useApi(catalogApiRef);
+  const { filters, updateFilters } = useEntityList();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [availableProjects, setAvailableProjects] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+
+  const kind = filters.kind?.value;
+  const prevKindRef = useRef(kind);
+
+  useEffect(() => {
+    if (prevKindRef.current !== kind) {
+      prevKindRef.current = kind;
+      setSelectedProjects([]);
+      updateFilters({ project: undefined } as any);
+    }
+    if (kind?.toLowerCase() !== 'component') {
+      setAvailableProjects([]);
+      return undefined;
+    }
+    let cancelled = false;
+    catalogApi
+      .getEntityFacets({
+        filter: { kind: 'component' },
+        facets: ['metadata.annotations.openchoreo.io/project'],
+      })
+      .then(response => {
+        if (cancelled) return;
+        const projects = (
+          response.facets['metadata.annotations.openchoreo.io/project'] || []
+        ).map(f => f.value);
+        setAvailableProjects([...new Set(projects)].sort());
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, catalogApi]);
+
+  if (kind?.toLowerCase() !== 'component' || availableProjects.length <= 1) {
+    return null;
+  }
+
+  const handleToggleProject = (project: string) => {
+    const newProjects = selectedProjects.includes(project)
+      ? selectedProjects.filter(p => p !== project)
+      : [...selectedProjects, project];
+    setSelectedProjects(newProjects);
+    updateFilters({
+      project: newProjects.length
+        ? new EntityProjectFilter(newProjects)
+        : undefined,
+    } as any);
+  };
+
+  let label = 'Project';
+  if (selectedProjects.length === 1) {
+    label = selectedProjects[0];
+  } else if (selectedProjects.length > 1) {
+    label = `${selectedProjects.length} projects`;
+  }
+
+  return (
+    <>
+      <Chip
+        size="small"
+        label={label}
+        deleteIcon={<ArrowDropDownIcon />}
+        onDelete={() => {}}
+        onClick={e => setAnchorEl(e.currentTarget)}
+        variant={selectedProjects.length > 0 ? 'default' : 'outlined'}
+        color={selectedProjects.length > 0 ? 'primary' : 'default'}
+      />
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        {availableProjects.map(project => (
+          <MenuItem
+            key={project}
+            dense
+            onClick={() => handleToggleProject(project)}
+          >
+            <Checkbox
+              checked={selectedProjects.includes(project)}
+              size="small"
+              color="primary"
+              style={{ padding: 4, marginRight: 8 }}
+            />
+            {project}
           </MenuItem>
         ))}
       </Menu>

@@ -12,11 +12,8 @@ export const useStyles = makeStyles(theme => ({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing(2),
-  },
-  createButton: {
-    [theme.breakpoints.down('sm')]: {
-      padding: theme.spacing(1, 1.5),
-      fontSize: '0.875rem',
+    [theme.breakpoints.up('md')]: {
+      display: 'none',
     },
   },
   filterButton: {
@@ -67,6 +64,14 @@ export const useStyles = makeStyles(theme => ({
     },
     [theme.breakpoints.down('sm')]: {
       marginBottom: theme.spacing(0.5),
+    },
+  },
+  advancedFiltersGridItem: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    paddingBottom: theme.spacing(1),
+    [theme.breakpoints.down('sm')]: {
+      display: 'none',
     },
   },
   advancedFiltersToggle: {
