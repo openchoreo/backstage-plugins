@@ -122,7 +122,7 @@ export const createNamespaceAction = (
               status: data.data.status,
             },
             {
-              locationKey: 'OpenChoreoEntityProvider',
+              locationKey: 'provider:OpenChoreoEntityProvider',
               defaultOwner: `group:default/${defaultOwner}`,
             },
           );
