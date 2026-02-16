@@ -372,7 +372,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           );
           if (projects.length !== activeProjects.length) {
             this.logger.debug(
-              `Filtered out ${projects.length - activeProjects.length} deleted projects in namespace: ${ns.name}`,
+              `Filtered out ${
+                projects.length - activeProjects.length
+              } deleted projects in namespace: ${ns.name}`,
             );
           }
 
@@ -466,7 +468,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               );
               if (components.length !== activeComponents.length) {
                 this.logger.debug(
-                  `Filtered out ${components.length - activeComponents.length} deleted components in project: ${project.name}`,
+                  `Filtered out ${
+                    components.length - activeComponents.length
+                  } deleted components in project: ${project.name}`,
                 );
               }
 
