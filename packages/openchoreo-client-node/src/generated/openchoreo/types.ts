@@ -2000,10 +2000,10 @@ export interface components {
     };
     WorkloadEndpoint: {
       /**
-       * @description Access scope for the endpoint. Defaults to "project" when not specified.
+       * @description Access scope for the endpoint.
        * @enum {string}
        */
-      visibility?: 'project' | 'namespace' | 'internal' | 'external';
+      visibility: 'project' | 'namespace' | 'internal' | 'external';
       /** @enum {string} */
       type: 'TCP' | 'UDP' | 'HTTP' | 'REST' | 'gRPC' | 'Websocket' | 'GraphQL';
       port: number;

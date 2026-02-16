@@ -68,6 +68,18 @@ const PROTOCOL_TYPES = [
   'GraphQL',
 ] as const;
 
+const VISIBILITY_LABELS: Record<string, string> = {
+  external: 'External',
+  project: 'Project',
+  namespace: 'Namespace',
+  internal: 'Internal',
+};
+
+const VISIBILITY_SELECT_OPTIONS = [
+  { value: 'external', label: VISIBILITY_LABELS.external },
+  { value: 'project', label: VISIBILITY_LABELS.project },
+] as const;
+
 export interface EndpointEditorProps {
   /** The endpoint name */
   endpointName: string;
@@ -132,6 +144,14 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             </Typography>
             <Typography className={classes.readOnlyDetails}>
               {endpoint.type} : {endpoint.port}
+              {endpoint.visibility && (
+                <>
+                  {' '}
+                  &middot;{' '}
+                  {VISIBILITY_LABELS[endpoint.visibility] ??
+                    endpoint.visibility}
+                </>
+              )}
             </Typography>
           </Box>
           <Button
@@ -205,6 +225,23 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                 size="small"
                 disabled={disabled}
               />
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth variant="outlined" size="small">
+                <InputLabel>Visibility</InputLabel>
+                <Select
+                  value={endpoint.visibility ?? ''}
+                  onChange={e => onChange('visibility', e.target.value)}
+                  label="Visibility"
+                  disabled={disabled}
+                >
+                  {VISIBILITY_SELECT_OPTIONS.map(opt => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={6}>
               <TextField
