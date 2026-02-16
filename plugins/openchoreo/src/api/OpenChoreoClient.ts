@@ -767,6 +767,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       )}/projects/${encodeURIComponent(
         project,
       )}/components/${encodeURIComponent(component)}`,
+      {
+        method: 'DELETE',
+      },
     );
   }
   // Cluster Roles Operations
@@ -866,6 +869,9 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
       `/namespaces/${encodeURIComponent(
         namespaceName,
       )}/projects/${encodeURIComponent(project)}`,
+      {
+        method: 'DELETE',
+      },
     );
   }
   // ============================================
