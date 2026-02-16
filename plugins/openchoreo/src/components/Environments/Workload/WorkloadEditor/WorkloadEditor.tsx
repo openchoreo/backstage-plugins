@@ -277,6 +277,7 @@ export function WorkloadEditor({
       [endpointName]: {
         type: 'HTTP',
         port: 8080,
+        visibility: 'external',
       } as WorkloadEndpoint,
     };
     const updatedData = { ...formData, endpoints: updatedEndpoints };

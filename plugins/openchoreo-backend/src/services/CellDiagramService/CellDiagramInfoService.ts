@@ -216,7 +216,7 @@ export class CellDiagramInfoService implements CellDiagramService {
 
           if (Object.keys(endpoints).length > 0) {
             Object.entries(endpoints).forEach(([endpointName, endpoint]) => {
-              const visibility = endpoint.visibility || 'project';
+              const visibility = endpoint.visibility;
               if (endpoint.type === 'HTTP') {
                 hasHttpEndpoint = true;
               }

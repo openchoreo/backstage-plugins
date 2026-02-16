@@ -263,7 +263,7 @@ describe('buildWorkloadResource', () => {
     });
 
     expect(result.spec.endpoints).toEqual({
-      http: { type: 'HTTP', port: 8080 },
+      http: { type: 'HTTP', port: 8080, visibility: 'external' },
     });
   });
 

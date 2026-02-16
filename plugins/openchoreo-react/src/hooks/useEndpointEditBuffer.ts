@@ -132,7 +132,7 @@ export function useEndpointEditBuffer(
       setEditBuffer(
         endpoint
           ? JSON.parse(JSON.stringify(endpoint))
-          : { type: 'HTTP', port: 8080 },
+          : { type: 'HTTP', port: 8080, visibility: 'external' as const },
       );
       setEditBufferName(endpointName);
       setEditingRow({
@@ -149,7 +149,7 @@ export function useEndpointEditBuffer(
       setEditBuffer(
         initialEndpoint
           ? JSON.parse(JSON.stringify(initialEndpoint))
-          : { type: 'HTTP', port: 8080 },
+          : { type: 'HTTP', port: 8080, visibility: 'external' as const },
       );
       setEditBufferName(endpointName);
       setEditingRow({

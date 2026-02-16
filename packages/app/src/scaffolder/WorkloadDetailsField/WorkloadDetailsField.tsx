@@ -476,7 +476,11 @@ export const WorkloadDetailsField = ({
 
   const handleAddEndpoint = useCallback((): string => {
     const name = `endpoint-${Object.keys(endpoints).length + 1}`;
-    const newEndpoint: WorkloadEndpoint = { type: 'HTTP', port: 8080 };
+    const newEndpoint: WorkloadEndpoint = {
+      type: 'HTTP',
+      port: 8080,
+      visibility: 'external',
+    };
     const newEndpoints: Record<string, WorkloadEndpoint> = {
       ...endpoints,
       [name]: newEndpoint,

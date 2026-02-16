@@ -1,6 +1,7 @@
 import {
   ComponentResource,
   ComponentTrait,
+  WorkloadEndpoint,
   WorkloadResource,
 } from './componentResourceInterface';
 
@@ -145,7 +146,7 @@ export interface WorkloadResourceInput {
   projectName: string;
   containerImage?: string;
   port?: number;
-  endpoints?: Record<string, { type: string; port: number }>;
+  endpoints?: Record<string, WorkloadEndpoint>;
   envVars?: Array<{
     key: string;
     value?: string;
@@ -219,6 +220,7 @@ export function buildWorkloadResource(
       http: {
         type: 'HTTP',
         port: input.port,
+        visibility: 'external',
       },
     };
   }
