@@ -61,6 +61,7 @@ export function useGraphZoom(): UseGraphZoomResult {
     SVGSVGElement,
     null
   > | null>(null);
+  const fittedTransformRef = useRef<d3Zoom.ZoomTransform>(d3Zoom.zoomIdentity);
 
   // Callback ref for the container element
   const containerRef = useCallback((node: HTMLElement | null) => {
@@ -132,9 +133,21 @@ export function useGraphZoom(): UseGraphZoomResult {
           ? parseViewBox(vb)
           : { width: 0, height: 0 };
 
+        // Read the upstream fitted transform so we can allow zooming
+        // out to it (k may be < 1 for large graphs) and restore it
+        // via fitToView.
+        const fittedAttr = workspace.getAttribute('transform');
+        const fitted = fittedAttr
+          ? parseTransform(fittedAttr)
+          : { x: 0, y: 0, k: 1 };
+        const minScale = Math.min(fitted.k, 1);
+        fittedTransformRef.current = d3Zoom.zoomIdentity
+          .translate(fitted.x, fitted.y)
+          .scale(fitted.k);
+
         const zoomBehavior = d3Zoom
           .zoom<SVGSVGElement, null>()
-          .scaleExtent([1, Infinity])
+          .scaleExtent([minScale, Infinity])
           .on('zoom', event => {
             // Clamp transform to prevent panning beyond content bounds
             // (mirrors upstream DependencyGraph logic)
@@ -221,7 +234,7 @@ export function useGraphZoom(): UseGraphZoomResult {
     const zoomBehavior = zoomBehaviorRef.current;
     if (!svg || !zoomBehavior) return;
     const selection = d3Selection.select<SVGSVGElement, null>(svg);
-    zoomBehavior.transform(selection, d3Zoom.zoomIdentity);
+    zoomBehavior.transform(selection, fittedTransformRef.current);
   }, []);
 
   const panTo = useCallback((svgX: number, svgY: number) => {
