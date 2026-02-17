@@ -159,62 +159,65 @@ export function CustomGraphNode({
         <EntityIcon
           icon={entityRefPresentationSnapshot.Icon as IconComponent}
           y={padding}
-          x={accentWidth + padding}
+          x={accentWidth + width + padding * 2}
           width={iconSize}
           height={iconSize}
           className={clsx(classes.text, focused && 'focused')}
         />
       )}
       {/* Kind badge — tab integrated into node top border */}
-      {kindLabel && (() => {
-        const badgePadX = 5;
-        const badgeH = 14;
-        const badgeX = accentWidth + 4;
-        const badgeY = -(badgeH / 2);
-        const badgeW = badgeWidth + badgePadX * 2;
-        const r = 4;
-        return (
-          <g>
-            {/* Fill covers badge area and node border beneath */}
-            <rect
-              x={badgeX + 0.75}
-              y={badgeY}
-              width={badgeW - 1.5}
-              height={badgeH / 2 + 1}
-              fill={tintFill}
-            />
-            {/* Open-bottom border (top + sides only) */}
-            <path
-              d={[
-                `M ${badgeX},0`,
-                `L ${badgeX},${badgeY + r}`,
-                `Q ${badgeX},${badgeY} ${badgeX + r},${badgeY}`,
-                `L ${badgeX + badgeW - r},${badgeY}`,
-                `Q ${badgeX + badgeW},${badgeY} ${badgeX + badgeW},${badgeY + r}`,
-                `L ${badgeX + badgeW},0`,
-              ].join(' ')}
-              fill="none"
-              stroke={borderColor}
-              strokeWidth={1.5}
-            />
-            <text
-              ref={badgeRef}
-              x={badgeX + badgePadX}
-              y={badgeY + badgeH / 2}
-              textAnchor="start"
-              dominantBaseline="central"
-              className={classes.kindBadgeText}
-            >
-              {kindLabel}
-            </text>
-          </g>
-        );
-      })()}
+      {kindLabel &&
+        (() => {
+          const badgePadX = 5;
+          const badgeH = 14;
+          const badgeX = accentWidth + 4;
+          const badgeY = -(badgeH / 2);
+          const badgeW = badgeWidth + badgePadX * 2;
+          const r = 4;
+          return (
+            <g>
+              {/* Fill covers badge area and node border beneath */}
+              <rect
+                x={badgeX + 0.75}
+                y={badgeY}
+                width={badgeW - 1.5}
+                height={badgeH / 2 + 1}
+                fill={tintFill}
+              />
+              {/* Open-bottom border (top + sides only) */}
+              <path
+                d={[
+                  `M ${badgeX},0`,
+                  `L ${badgeX},${badgeY + r}`,
+                  `Q ${badgeX},${badgeY} ${badgeX + r},${badgeY}`,
+                  `L ${badgeX + badgeW - r},${badgeY}`,
+                  `Q ${badgeX + badgeW},${badgeY} ${badgeX + badgeW},${
+                    badgeY + r
+                  }`,
+                  `L ${badgeX + badgeW},0`,
+                ].join(' ')}
+                fill="none"
+                stroke={borderColor}
+                strokeWidth={1.5}
+              />
+              <text
+                ref={badgeRef}
+                x={badgeX + badgePadX}
+                y={badgeY + badgeH / 2}
+                textAnchor="start"
+                dominantBaseline="central"
+                className={classes.kindBadgeText}
+              >
+                {kindLabel}
+              </text>
+            </g>
+          );
+        })()}
       <text
         ref={idRef}
         className={clsx(classes.text, focused && 'focused')}
         y={paddedHeight / 2}
-        x={accentWidth + paddedIconWidth + (width + padding * 2) / 2}
+        x={accentWidth + (width + padding * 2) / 2}
         textAnchor="middle"
         alignmentBaseline="middle"
       >
