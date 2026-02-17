@@ -165,14 +165,14 @@ export function CustomGraphNode({
           className={clsx(classes.text, focused && 'focused')}
         />
       )}
-      {/* Kind badge — tab integrated into node top border */}
+      {/* Kind badge — tab integrated into node top-right border */}
       {kindLabel && (() => {
         const badgePadX = 5;
         const badgeH = 14;
-        const badgeX = accentWidth + 4;
-        const badgeY = -(badgeH / 2);
         const badgeW = badgeWidth + badgePadX * 2;
         const r = 4;
+        const badgeX = paddedWidth - badgeW - 12;
+        const badgeY = -(badgeH / 2);
         return (
           <g>
             {/* Fill covers badge area and node border beneath */}
