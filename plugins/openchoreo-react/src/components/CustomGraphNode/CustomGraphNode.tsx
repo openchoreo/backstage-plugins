@@ -17,7 +17,7 @@ import { DEFAULT_NAMESPACE, Entity } from '@backstage/catalog-model';
 import { EntityNodeData } from '@backstage/plugin-catalog-graph';
 import {
   getNodeColor,
-  getNodeDisplayLabel,
+  getNodeKindLabel,
   getNodeTintFill,
 } from '../../utils/graphUtils';
 
@@ -48,6 +48,11 @@ const useStyles = makeStyles(
       '&.focused': {
         fontWeight: 'bold',
       },
+    },
+    kindLabel: {
+      fontSize: '0.65rem',
+      fill: theme.palette.text.secondary,
+      fontWeight: 500,
     },
     clickable: {
       cursor: 'pointer',
@@ -101,11 +106,9 @@ export function CustomGraphNode({
   const paddedWidth = accentWidth + paddedIconWidth + width + padding * 2;
   const paddedHeight = height + padding * 2;
 
-  // Get the base display title
+  // Get the base display title and kind label
   const baseTitle = entityRefPresentationSnapshot.primaryTitle ?? id;
-
-  // Apply kind prefix for custom OpenChoreo kinds
-  const displayTitle = getNodeDisplayLabel(entity.kind, baseTitle);
+  const kindLabel = getNodeKindLabel(entity.kind);
 
   // Get kind-based color and tint fill
   const nodeColor = getNodeColor(entity.kind);
@@ -156,11 +159,25 @@ export function CustomGraphNode({
         ref={idRef}
         className={clsx(classes.text, focused && 'focused')}
         y={paddedHeight / 2}
-        x={accentWidth + paddedIconWidth + (width + padding * 2) / 2}
-        textAnchor="middle"
+        x={accentWidth + paddedIconWidth + padding}
+        textAnchor="start"
         alignmentBaseline="middle"
       >
-        {displayTitle}
+        {kindLabel && (
+          <tspan
+            x={accentWidth + paddedIconWidth + padding}
+            dy="-0.55em"
+            className={classes.kindLabel}
+          >
+            {kindLabel}
+          </tspan>
+        )}
+        <tspan
+          x={accentWidth + paddedIconWidth + padding}
+          dy={kindLabel ? '1.15em' : '0'}
+        >
+          {baseTitle}
+        </tspan>
       </text>
       <title>{entityRefPresentationSnapshot.entityRef}</title>
     </g>

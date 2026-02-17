@@ -158,7 +158,9 @@ export function GraphKindFilter({
               backgroundColor: isSelected
                 ? getNodeTintFill(color, isDark)
                 : 'transparent',
-              border: `1px solid ${isSelected ? `${color}B3` : theme.palette.divider}`,
+              border: `1px solid ${
+                isSelected ? `${color}B3` : theme.palette.divider
+              }`,
               opacity: isSelected ? 1 : 0.5,
               color: theme.palette.text.primary,
               ['--dot-color' as string]: isSelected

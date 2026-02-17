@@ -286,8 +286,10 @@ export {
   ENTITY_KIND_COLORS,
   DEFAULT_NODE_COLOR,
   KIND_LABEL_PREFIXES,
+  KIND_FULL_LABELS,
   getNodeColor,
   getNodeDisplayLabel,
+  getNodeKindLabel,
 } from './utils/graphUtils';
 export {
   type GraphViewDefinition,
