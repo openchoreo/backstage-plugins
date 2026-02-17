@@ -291,14 +291,22 @@ export {
 } from './utils/graphUtils';
 export {
   type GraphViewDefinition,
+  type FilterPreset,
   APPLICATION_VIEW,
   INFRASTRUCTURE_VIEW,
   ALL_VIEWS,
+  FILTER_PRESETS,
+  ALL_FILTERABLE_KINDS,
+  buildDynamicView,
 } from './utils/platformOverviewConstants';
 
 // Graph components
 export { CustomGraphNode } from './components/CustomGraphNode';
 export { GraphLegend, type GraphLegendProps } from './components/GraphLegend';
+export {
+  GraphKindFilter,
+  type GraphKindFilterProps,
+} from './components/GraphKindFilter';
 export {
   PlatformOverviewGraphView,
   type PlatformOverviewGraphViewProps,

@@ -7,10 +7,6 @@ import {
   DependencyGraph,
   DependencyGraphTypes,
 } from '@backstage/core-components';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
 import { EntityNode } from '@backstage/plugin-catalog-graph';
 import { FullScreen, useFullScreenHandle } from 'react-full-screen';
 import { CustomGraphNode } from '../CustomGraphNode';
@@ -82,21 +78,11 @@ const useStyles = makeStyles(theme => ({
     flexDirection: 'column',
     gap: theme.spacing(2),
   },
-  topLeftContainer: {
-    position: 'absolute',
-    top: theme.spacing(2),
-    left: theme.spacing(2),
-    zIndex: 1,
-  },
   topRightContainer: {
     position: 'absolute',
     top: theme.spacing(2),
     right: theme.spacing(2),
     zIndex: 1,
-  },
-  namespaceSelector: {
-    minWidth: 180,
-    backgroundColor: theme.palette.background.paper,
   },
   controlsContainer: {
     position: 'absolute',
@@ -156,8 +142,6 @@ function GraphDefs() {
 export type PlatformOverviewGraphViewProps = {
   view: GraphViewDefinition;
   namespace?: string;
-  namespaces?: string[];
-  onNamespaceChange?: (namespace: string) => void;
   onNodeClick?: (node: EntityNode, event: MouseEvent<unknown>) => void;
   direction?: DependencyGraphTypes.Direction;
   nodeMargin?: number;
@@ -167,8 +151,6 @@ export type PlatformOverviewGraphViewProps = {
 export function PlatformOverviewGraphView({
   view,
   namespace,
-  namespaces,
-  onNamespaceChange,
   onNodeClick,
   direction = DependencyGraphTypes.Direction.LEFT_RIGHT,
   nodeMargin = 100,
@@ -205,47 +187,6 @@ export function PlatformOverviewGraphView({
 
   const loading = refsLoading || graphLoading;
   const error = refsError || graphError;
-  const hasNamespaceSelector = namespaces && onNamespaceChange;
-
-  if (!hasNamespaceSelector) {
-    if (loading) {
-      return (
-        <Box className={classes.centered}>
-          <CircularProgress />
-          <Typography variant="body2" color="textSecondary">
-            Loading entities...
-          </Typography>
-        </Box>
-      );
-    }
-
-    if (error) {
-      return (
-        <Box className={classes.centered}>
-          <Typography variant="h6" color="error">
-            Failed to load entities
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            {error.message}
-          </Typography>
-        </Box>
-      );
-    }
-
-    if (entityCount === 0) {
-      return (
-        <Box className={classes.centered}>
-          <Typography variant="h6" color="textSecondary">
-            No entities found
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            {view.description}
-          </Typography>
-        </Box>
-      );
-    }
-  }
-
   const showGraph = !loading && !error && entityCount > 0;
 
   const renderContent = () => {
@@ -319,29 +260,6 @@ export function PlatformOverviewGraphView({
     >
       <div ref={graphWrapperRef} className={classes.graphWrapper}>
         {renderContent()}
-        {hasNamespaceSelector && (
-          <Box className={classes.topLeftContainer}>
-            <FormControl
-              variant="outlined"
-              size="small"
-              className={classes.namespaceSelector}
-            >
-              <InputLabel id="graph-namespace-label">Namespace</InputLabel>
-              <Select
-                labelId="graph-namespace-label"
-                label="Namespace"
-                value={namespace ?? ''}
-                onChange={e => onNamespaceChange(e.target.value as string)}
-              >
-                {namespaces.map(ns => (
-                  <MenuItem key={ns} value={ns}>
-                    {ns}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        )}
         {showGraph && (
           <>
             <Box className={classes.topRightContainer}>
