@@ -30,6 +30,9 @@ export interface RuntimeLogsFilters {
   selectedFields: LogEntryField[];
   environmentId: string;
   timeRange: string;
+  searchQuery?: string;
+  sortOrder?: 'asc' | 'desc';
+  isLive?: boolean;
 }
 
 export interface RuntimeLogsPagination {
@@ -75,14 +78,10 @@ export enum LogEntryField {
   Timestamp = 'Timestamp',
   Log = 'Log',
   LogLevel = 'LogLevel',
-  Pod = 'Pod',
-  Container = 'Container',
 }
 
 export const SELECTED_FIELDS = [
   LogEntryField.Timestamp,
   LogEntryField.LogLevel,
   LogEntryField.Log,
-  LogEntryField.Pod,
-  LogEntryField.Container,
 ];
