@@ -19,7 +19,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "6f541d38accf45d41ca69886e87b8bf1b422e151",
-  "lastSyncDate": "2026-02-12T11:55:12+05:30",
-  "lastSyncDescription": "Updated DataPlaneRef from string to object with kind and name fields in EnvironmentResponse and CreateEnvironmentRequest"
+  "lastSyncCommit": "15beb0f9fe96110cf0b4a2c102a9f0cc38a4054c",
+  "lastSyncDate": "2026-02-17T10:24:51+05:30",
+  "lastSyncDescription": "Added allowedTraits field to ComponentTypeResponse schema"
 }

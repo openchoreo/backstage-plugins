@@ -739,6 +739,10 @@ components:
           type: array
           items:
             type: string
+        allowedTraits:
+          type: array
+          items:
+            type: string
         createdAt:
           type: string
           format: date-time
