@@ -20,6 +20,8 @@ export interface ObservabilityApi {
       startTime?: string;
       endTime?: string;
       logLevels?: string[];
+      searchQuery?: string;
+      sortOrder?: 'asc' | 'desc';
     },
   ): Promise<LogsResponse>;
 
@@ -382,6 +384,8 @@ export class ObservabilityClient implements ObservabilityApi {
       startTime?: string;
       endTime?: string;
       logLevels?: string[];
+      searchQuery?: string;
+      sortOrder?: 'asc' | 'desc';
     },
   ): Promise<LogsResponse> {
     const baseUrl = await this.discoveryApi.getBaseUrl(
@@ -406,6 +410,8 @@ export class ObservabilityClient implements ObservabilityApi {
           startTime: options?.startTime,
           endTime: options?.endTime,
           logLevels: options?.logLevels,
+          searchQuery: options?.searchQuery,
+          sortOrder: options?.sortOrder,
         },
       }),
       headers: {

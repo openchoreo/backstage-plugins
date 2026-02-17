@@ -42,6 +42,12 @@ export function useUrlFiltersForRuntimeLogs({
     const logLevel = logLevelParam
       ? logLevelParam.split(',').filter(Boolean)
       : [];
+    const searchQuery = searchParams.get('search') || undefined;
+    const rawSortOrder = searchParams.get('sort');
+    const sortOrder: 'asc' | 'desc' =
+      rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc';
+
+    const isLive = searchParams.get('live') === 'true';
 
     // Parse selectedFields from URL
     const fieldsParam = searchParams.get('fields');
@@ -60,8 +66,8 @@ export function useUrlFiltersForRuntimeLogs({
         selectedFields.includes(field),
       );
     } else {
-      // Default to Timestamp and Log fields
-      selectedFields = [LogEntryField.Timestamp, LogEntryField.Log];
+      // Default to all fields
+      selectedFields = [...SELECTED_FIELDS];
     }
 
     // Find environment by ID
@@ -74,6 +80,9 @@ export function useUrlFiltersForRuntimeLogs({
       timeRange,
       logLevel,
       selectedFields,
+      searchQuery,
+      sortOrder,
+      isLive: isLive || false,
     };
   }, [searchParams, environments]);
 
@@ -122,15 +131,48 @@ export function useUrlFiltersForRuntimeLogs({
         if (!fields.includes(LogEntryField.Log)) {
           fields = [...fields, LogEntryField.Log];
         }
-        // Only store in URL if not the default [Timestamp, Log] fields
+
+        // Normalize order to match SELECTED_FIELDS
+        const normalizedFields = SELECTED_FIELDS.filter(field =>
+          fields.includes(field),
+        );
+
+        // Only store in URL if not the default (all fields selected)
         const isDefaultFields =
-          fields.length === 2 &&
-          fields.includes(LogEntryField.Log) &&
-          fields.includes(LogEntryField.Timestamp);
+          normalizedFields.length === SELECTED_FIELDS.length &&
+          normalizedFields.every(
+            (field, index) => field === SELECTED_FIELDS[index],
+          );
+
         if (isDefaultFields) {
           newParams.delete('fields');
         } else {
-          newParams.set('fields', fields.join(','));
+          newParams.set('fields', normalizedFields.join(','));
+        }
+      }
+
+      if (newFilters.searchQuery !== undefined) {
+        if (newFilters.searchQuery) {
+          newParams.set('search', newFilters.searchQuery);
+        } else {
+          newParams.delete('search');
+        }
+      }
+
+      if (newFilters.sortOrder !== undefined) {
+        if (newFilters.sortOrder === 'desc') {
+          // Default value - remove from URL
+          newParams.delete('sort');
+        } else {
+          newParams.set('sort', newFilters.sortOrder);
+        }
+      }
+
+      if (newFilters.isLive !== undefined) {
+        if (newFilters.isLive) {
+          newParams.set('live', 'true');
+        } else {
+          newParams.delete('live');
         }
       }
 

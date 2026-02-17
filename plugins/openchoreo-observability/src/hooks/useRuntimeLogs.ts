@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import {
   useApi,
   discoveryApiRef,
@@ -92,6 +92,9 @@ export interface UseRuntimeLogsOptions {
   timeRange: string;
   logLevels?: string[];
   limit?: number;
+  searchQuery?: string;
+  sortOrder?: 'asc' | 'desc';
+  isLive?: boolean;
 }
 
 export interface UseRuntimeLogsResult {
@@ -134,6 +137,8 @@ export function useRuntimeLogs(
   const [hasMore, setHasMore] = useState(true);
   const [componentId, setComponentId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const inFlightRef = useRef<boolean>(false);
 
   // Fetch component and project IDs
   useEffect(() => {
@@ -168,7 +173,13 @@ export function useRuntimeLogs(
         return;
       }
 
+      // Check if a fetch is already in progress
+      if (inFlightRef.current) {
+        return;
+      }
+
       try {
+        inFlightRef.current = true;
         setLoading(true);
         setError(null);
 
@@ -179,16 +190,23 @@ export function useRuntimeLogs(
         }
 
         // Calculate the start and end times based on the time range
-        const { startTime, endTime: initialEndTime } = calculateTimeRange(
-          options.timeRange,
-        );
+        const { startTime: initialStartTime, endTime: initialEndTime } =
+          calculateTimeRange(options.timeRange);
 
         // Use timestamp-based pagination instead of offset
         let endTime = initialEndTime;
+        let startTime = initialStartTime;
         if (!reset && logs.length > 0) {
-          // For load more, use the timestamp of the last log as the new endTime
+          // For load more, use the timestamp of the last log as the new endTime or startTime based on the sort order
           const lastLog = logs[logs.length - 1];
-          endTime = lastLog.timestamp;
+          const sortOrder = options.sortOrder || 'desc';
+          if (sortOrder === 'desc') {
+            // For descending (newest first), use the timestamp of the last log as the new endTime
+            endTime = lastLog.timestamp;
+          } else {
+            // For ascending (oldest first), use the timestamp of the last log as the new startTime
+            startTime = lastLog.timestamp;
+          }
         }
 
         const response = await observabilityApi.getRuntimeLogs(
@@ -204,6 +222,8 @@ export function useRuntimeLogs(
             startTime,
             endTime,
             logLevels: options.logLevels,
+            searchQuery: options.searchQuery,
+            sortOrder: options.sortOrder || 'desc',
           },
         );
 
@@ -219,6 +239,7 @@ export function useRuntimeLogs(
         setError(err instanceof Error ? err.message : 'Failed to fetch logs');
       } finally {
         setLoading(false);
+        inFlightRef.current = false;
       }
     },
     [
@@ -228,6 +249,8 @@ export function useRuntimeLogs(
       options.timeRange,
       options.logLevels,
       options.limit,
+      options.searchQuery,
+      options.sortOrder,
       logs,
       namespaceName,
       project,
@@ -236,6 +259,43 @@ export function useRuntimeLogs(
       entity,
     ],
   );
+
+  // Live polling effect
+  useEffect(() => {
+    // Always clear any existing interval first
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+
+    if (
+      !options.isLive ||
+      !componentId ||
+      !projectId ||
+      !options.environmentId
+    ) {
+      return undefined;
+    }
+
+    // Set up polling interval (5 seconds)
+    pollingIntervalRef.current = setInterval(() => {
+      fetchLogs(true);
+    }, 5000);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      inFlightRef.current = false;
+    };
+  }, [
+    options.isLive,
+    componentId,
+    projectId,
+    options.environmentId,
+    fetchLogs,
+  ]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore && !error && logs.length > 0) {

@@ -223,14 +223,14 @@ const serviceEntityPage = (
       <Environments />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
+    <EntityLayout.Route path="/traits" title="Traits">
+      <Traits />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/runtime-logs" title="Logs">
       <FeatureGatedContent feature="observability">
         <ObservabilityRuntimeLogs />
       </FeatureGatedContent>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/traits" title="Traits">
-      <Traits />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/metrics" title="Metrics">
@@ -316,14 +316,14 @@ const websiteEntityPage = (
       <Environments />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/runtime-logs" title="Runtime Logs">
+    <EntityLayout.Route path="/traits" title="Traits">
+      <Traits />
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/runtime-logs" title="Logs">
       <FeatureGatedContent feature="observability">
         <ObservabilityRuntimeLogs />
       </FeatureGatedContent>
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/traits" title="Traits">
-      <Traits />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/metrics" title="Metrics">

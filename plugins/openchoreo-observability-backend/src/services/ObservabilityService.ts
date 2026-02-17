@@ -228,6 +228,8 @@ export class ObservabilityService {
       startTime?: string;
       endTime?: string;
       logLevels?: string[];
+      searchQuery?: string;
+      sortOrder?: 'asc' | 'desc';
     },
     userToken?: string,
   ): Promise<RuntimeLogsResponse> {
@@ -272,9 +274,10 @@ export class ObservabilityService {
             namespaceName,
             environmentName,
             limit: options?.limit || 100,
-            sortOrder: 'desc',
+            sortOrder: options?.sortOrder || 'desc',
             ...(options?.logLevels &&
               options.logLevels.length > 0 && { logLevels: options.logLevels }),
+            ...(options?.searchQuery && { searchPhrase: options.searchQuery }),
           },
         },
       );

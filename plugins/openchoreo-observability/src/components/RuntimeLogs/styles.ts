@@ -74,7 +74,7 @@ export const useLogEntryStyles = makeStyles(theme => ({
   },
   timestampCell: {
     fontFamily: 'monospace',
-    fontSize: '0.75rem',
+    fontSize: '11px',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -110,7 +110,7 @@ export const useLogEntryStyles = makeStyles(theme => ({
   },
   logMessage: {
     fontFamily: 'monospace',
-    fontSize: '0.75rem',
+    fontSize: '11px',
     wordBreak: 'break-word',
     overflow: 'hidden',
     textOverflow: 'ellipsis',

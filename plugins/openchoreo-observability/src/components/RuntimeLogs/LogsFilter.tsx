@@ -1,4 +1,4 @@
-import { FC, ChangeEvent } from 'react';
+import { FC, ChangeEvent, useState, useEffect } from 'react';
 import {
   FormControl,
   InputLabel,
@@ -6,8 +6,10 @@ import {
   MenuItem,
   Checkbox,
   Grid,
+  TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
+import { useDebounce } from 'react-use';
 import {
   RuntimeLogsFilters,
   Environment,
@@ -32,6 +34,27 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   environmentsLoading,
   disabled = false,
 }) => {
+  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
+
+  // Sync searchInput with filters.searchQuery when it changes externally
+  useEffect(() => {
+    setSearchInput(filters.searchQuery || '');
+  }, [filters.searchQuery]);
+
+  // Debounce the search query
+  const DEFAULT_DEBOUNCE_TIME_MS = 1000;
+  useDebounce(
+    () => {
+      onFiltersChange({ searchQuery: searchInput });
+    },
+    DEFAULT_DEBOUNCE_TIME_MS,
+    [searchInput, onFiltersChange],
+  );
+
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(event.target.value);
+  };
+
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ environmentId: event.target.value as string });
   };
@@ -64,29 +87,19 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   };
 
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={3}>
-        <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="log-levels-label">Log Levels</InputLabel>
-          <Select
-            multiple
-            value={filters.logLevel}
-            onChange={handleLogLevelSelectChange}
-            labelId="log-levels-label"
-            label="Log Levels"
-            renderValue={selected => (selected as string[]).join(', ')}
-          >
-            {LOG_LEVELS.map(level => (
-              <MenuItem key={level} value={level}>
-                <Checkbox checked={filters.logLevel.includes(level)} />
-                {level}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+    <Grid container spacing={2}>
+      <Grid item xs={12} md={4}>
+        <TextField
+          fullWidth
+          placeholder="Search Logs..."
+          variant="outlined"
+          value={searchInput}
+          onChange={handleSearchChange}
+          disabled={disabled}
+        />
       </Grid>
 
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={2}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
           <Select
@@ -114,7 +127,28 @@ export const LogsFilter: FC<LogsFilterProps> = ({
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={2}>
+        <FormControl fullWidth disabled={disabled} variant="outlined">
+          <InputLabel id="log-levels-label">Log Levels</InputLabel>
+          <Select
+            multiple
+            value={filters.logLevel}
+            onChange={handleLogLevelSelectChange}
+            labelId="log-levels-label"
+            label="Log Levels"
+            renderValue={selected => (selected as string[]).join(', ')}
+          >
+            {LOG_LEVELS.map(level => (
+              <MenuItem key={level} value={level}>
+                <Checkbox checked={filters.logLevel.includes(level)} />
+                {level}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Grid>
+
+      <Grid item xs={12} md={2}>
         <FormControl
           fullWidth
           disabled={disabled || environmentsLoading}
@@ -140,7 +174,7 @@ export const LogsFilter: FC<LogsFilterProps> = ({
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} md={3}>
+      <Grid item xs={12} md={2}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="time-range-label">Time Range</InputLabel>
           <Select

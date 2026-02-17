@@ -32,40 +32,25 @@ export const LogsTable: FC<LogsTableProps> = ({
 }) => {
   const classes = useLogsTableStyles();
 
-  const getFieldWidth = (field: LogEntryField): string | undefined => {
-    switch (field) {
-      case LogEntryField.Timestamp:
-        return '12%';
-      case LogEntryField.LogLevel:
-        return '8%';
-      case LogEntryField.Container:
-        return '8%';
-      case LogEntryField.Pod:
-        return '10%';
-      case LogEntryField.Log:
-        return 'auto';
-      default:
-        return undefined;
-    }
-  };
-
-  const totalColumns = selectedFields.length + 1; // +1 for Details column
-
+  const totalColumns = selectedFields.length;
   const renderLoadingSkeletons = () => {
     return Array.from({ length: 5 }).map((_, index) => (
       <TableRow key={`skeleton-${index}`}>
-        {selectedFields.map(field => (
-          <TableCell key={field}>
-            <Skeleton
-              variant={field === LogEntryField.LogLevel ? 'rect' : 'text'}
-              width={field === LogEntryField.LogLevel ? 60 : '100%'}
-              height={field === LogEntryField.LogLevel ? 24 : undefined}
-            />
+        {selectedFields.includes(LogEntryField.Timestamp) && (
+          <TableCell width="15%">
+            <Skeleton variant="text" width="100%" />
           </TableCell>
-        ))}
-        <TableCell>
-          <Skeleton variant="rect" width={24} height={24} />
-        </TableCell>
+        )}
+        {selectedFields.includes(LogEntryField.LogLevel) && (
+          <TableCell width="10%">
+            <Skeleton variant="text" width="100%" />
+          </TableCell>
+        )}
+        {selectedFields.includes(LogEntryField.Log) && (
+          <TableCell>
+            <Skeleton variant="text" width="100%" />
+          </TableCell>
+        )}
       </TableRow>
     ));
   };
@@ -97,18 +82,27 @@ export const LogsTable: FC<LogsTableProps> = ({
         <Table className={classes.table} stickyHeader>
           <TableHead>
             <TableRow>
-              {selectedFields.map(field => (
-                <TableCell
-                  key={field}
-                  className={classes.headerCell}
-                  width={getFieldWidth(field)}
-                >
-                  {field}
-                </TableCell>
-              ))}
-              <TableCell className={classes.headerCell} width="80px">
-                Details
-              </TableCell>
+              {selectedFields.map(field => {
+                let width: string | undefined;
+
+                if (field === LogEntryField.Timestamp) {
+                  width = '15%';
+                } else if (field === LogEntryField.LogLevel) {
+                  width = '10%';
+                } else {
+                  width = '75%';
+                }
+
+                return (
+                  <TableCell
+                    key={field}
+                    className={classes.headerCell}
+                    width={width}
+                  >
+                    {field}
+                  </TableCell>
+                );
+              })}
             </TableRow>
           </TableHead>
           <TableBody>
