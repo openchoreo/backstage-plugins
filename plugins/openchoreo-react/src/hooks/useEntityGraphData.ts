@@ -127,6 +127,7 @@ export function useEntityGraphData(
     if (entityRefs.length === 0) {
       setNodes([]);
       setEdges([]);
+      setError(undefined);
       setLoading(false);
       return undefined;
     }
