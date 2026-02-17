@@ -241,14 +241,15 @@ export const ProjectChip = () => {
       setSelectedProjects([]);
       updateFilters({ project: undefined } as any);
     }
-    if (kind?.toLowerCase() !== 'component') {
+    const kindLower = kind?.toLowerCase();
+    if (kindLower !== 'component' && kindLower !== 'api') {
       setAvailableProjects([]);
       return undefined;
     }
     let cancelled = false;
     catalogApi
       .getEntityFacets({
-        filter: { kind: 'component' },
+        filter: { kind: kindLower },
         facets: ['metadata.annotations.openchoreo.io/project'],
       })
       .then(response => {
@@ -264,7 +265,10 @@ export const ProjectChip = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
 
-  if (kind?.toLowerCase() !== 'component' || availableProjects.length <= 1) {
+  if (
+    (kind?.toLowerCase() !== 'component' && kind?.toLowerCase() !== 'api') ||
+    availableProjects.length <= 1
+  ) {
     return null;
   }
 
@@ -319,6 +323,126 @@ export const ProjectChip = () => {
               style={{ padding: 4, marginRight: 8 }}
             />
             {project}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
+class EntityComponentFilter {
+  readonly values: string[];
+  constructor(values: string[]) {
+    this.values = values;
+  }
+  getCatalogFilters() {
+    return {
+      'metadata.annotations.openchoreo.io/component': this.values,
+    };
+  }
+  filterEntity(entity: Entity): boolean {
+    const component = entity.metadata.annotations?.['openchoreo.io/component'];
+    return component !== undefined && this.values.includes(component);
+  }
+  toQueryValue() {
+    return this.values;
+  }
+}
+
+export const ComponentChip = () => {
+  const catalogApi = useApi(catalogApiRef);
+  const { filters, updateFilters } = useEntityList();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [availableComponents, setAvailableComponents] = useState<string[]>([]);
+  const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
+
+  const kind = filters.kind?.value;
+  const prevKindRef = useRef(kind);
+
+  useEffect(() => {
+    if (prevKindRef.current !== kind) {
+      prevKindRef.current = kind;
+      setSelectedComponents([]);
+      updateFilters({ component: undefined } as any);
+    }
+    if (kind?.toLowerCase() !== 'api') {
+      setAvailableComponents([]);
+      return undefined;
+    }
+    let cancelled = false;
+    catalogApi
+      .getEntityFacets({
+        filter: { kind: 'api' },
+        facets: ['metadata.annotations.openchoreo.io/component'],
+      })
+      .then(response => {
+        if (cancelled) return;
+        const components = (
+          response.facets['metadata.annotations.openchoreo.io/component'] || []
+        ).map(f => f.value);
+        setAvailableComponents([...new Set(components)].sort());
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, catalogApi]);
+
+  if (kind?.toLowerCase() !== 'api' || availableComponents.length <= 1) {
+    return null;
+  }
+
+  const handleToggleComponent = (component: string) => {
+    const newComponents = selectedComponents.includes(component)
+      ? selectedComponents.filter(c => c !== component)
+      : [...selectedComponents, component];
+    setSelectedComponents(newComponents);
+    updateFilters({
+      component: newComponents.length
+        ? new EntityComponentFilter(newComponents)
+        : undefined,
+    } as any);
+  };
+
+  let label = 'Component';
+  if (selectedComponents.length === 1) {
+    label = selectedComponents[0];
+  } else if (selectedComponents.length > 1) {
+    label = `${selectedComponents.length} components`;
+  }
+
+  return (
+    <>
+      <Chip
+        size="small"
+        label={label}
+        deleteIcon={<ArrowDropDownIcon />}
+        onDelete={() => {}}
+        onClick={e => setAnchorEl(e.currentTarget)}
+        variant={selectedComponents.length > 0 ? 'default' : 'outlined'}
+        color={selectedComponents.length > 0 ? 'primary' : 'default'}
+      />
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        {availableComponents.map(component => (
+          <MenuItem
+            key={component}
+            dense
+            onClick={() => handleToggleComponent(component)}
+          >
+            <Checkbox
+              checked={selectedComponents.includes(component)}
+              size="small"
+              color="primary"
+              style={{ padding: 4, marginRight: 8 }}
+            />
+            {component}
           </MenuItem>
         ))}
       </Menu>

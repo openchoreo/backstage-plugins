@@ -1,6 +1,6 @@
+import React from 'react';
 import {
   Box,
-  Button,
   Chip,
   CircularProgress,
   IconButton,
@@ -8,9 +8,7 @@ import {
 } from '@material-ui/core';
 import { TablePagination } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
-import { useApp, useRouteRef } from '@backstage/core-plugin-api';
-import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
-import { Link } from 'react-router-dom';
+import { useApp } from '@backstage/core-plugin-api';
 import {
   EntitySearchBar,
   EntityRefLink,
@@ -23,7 +21,12 @@ import {
 } from '@openchoreo/backstage-plugin';
 import { Entity } from '@backstage/catalog-model';
 import { useCardListStyles } from './styles';
-import { StarredChip, TypeChip, ProjectChip } from './CustomPersonalFilters';
+import {
+  StarredChip,
+  TypeChip,
+  ProjectChip,
+  ComponentChip,
+} from './CustomPersonalFilters';
 
 const kindPluralNames: Record<string, string> = {
   Project: 'Projects',
@@ -55,9 +58,12 @@ function EntityKindIcon({ entity }: { entity: Entity }) {
   return <Icon />;
 }
 
-export const CatalogCardList = () => {
+interface CatalogCardListProps {
+  actionButton?: React.ReactNode;
+}
+
+export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   const classes = useCardListStyles();
-  const createComponentLink = useRouteRef(scaffolderPlugin.routes.root);
   const {
     entities,
     totalItems,
@@ -81,20 +87,13 @@ export const CatalogCardList = () => {
         <Typography className={classes.titleText}>{titleText}</Typography>
         <Box display="flex" alignItems="center" style={{ gap: 8 }}>
           <ProjectChip />
+          <ComponentChip />
           <TypeChip />
           <StarredChip />
           <form onSubmit={e => e.preventDefault()}>
             <EntitySearchBar />
           </form>
-          <Button
-            variant="contained"
-            color="primary"
-            component={Link}
-            to={createComponentLink()}
-            size="small"
-          >
-            Create
-          </Button>
+          {actionButton}
         </Box>
       </Box>
 
@@ -119,6 +118,8 @@ export const CatalogCardList = () => {
 
             const projectName =
               entity.metadata.annotations?.['openchoreo.io/project'];
+            const componentName =
+              entity.metadata.annotations?.['openchoreo.io/component'];
             const agentConnected =
               entity.metadata.annotations?.['openchoreo.io/agent-connected'] ===
               'true';
@@ -147,12 +148,22 @@ export const CatalogCardList = () => {
                           className={classes.metadataChip}
                         />
                       )}
-                      {selectedKind === 'component' && projectName && (
+                      {(selectedKind === 'component' ||
+                        selectedKind === 'api') &&
+                        projectName && (
+                          <Chip
+                            label={`project: ${projectName}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            className={classes.metadataChip}
+                          />
+                        )}
+                      {selectedKind === 'api' && componentName && (
                         <Chip
-                          label={`project: ${projectName}`}
+                          label={`component: ${componentName}`}
                           size="small"
                           variant="outlined"
-                          color="primary"
                           className={classes.metadataChip}
                         />
                       )}
@@ -176,12 +187,22 @@ export const CatalogCardList = () => {
                           className={classes.metadataChip}
                         />
                       )}
-                      {selectedKind === 'component' && projectName && (
+                      {(selectedKind === 'component' ||
+                        selectedKind === 'api') &&
+                        projectName && (
+                          <Chip
+                            label={`project: ${projectName}`}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            className={classes.metadataChip}
+                          />
+                        )}
+                      {selectedKind === 'api' && componentName && (
                         <Chip
-                          label={`project: ${projectName}`}
+                          label={`component: ${componentName}`}
                           size="small"
                           variant="outlined"
-                          color="primary"
                           className={classes.metadataChip}
                         />
                       )}
@@ -193,17 +214,18 @@ export const CatalogCardList = () => {
                     </Typography>
                   )}
                 </Box>
-                {selectedKind === 'component' && componentType && (
-                  <Box className={classes.typeContainer}>
-                    <Chip
-                      label={componentType}
-                      size="small"
-                      variant="outlined"
-                      color="default"
-                      className={classes.metadataChip}
-                    />
-                  </Box>
-                )}
+                {(selectedKind === 'component' || selectedKind === 'api') &&
+                  componentType && (
+                    <Box className={classes.typeContainer}>
+                      <Chip
+                        label={componentType}
+                        size="small"
+                        variant="outlined"
+                        color="default"
+                        className={classes.metadataChip}
+                      />
+                    </Box>
+                  )}
                 {selectedKind === 'environment' && componentType && (
                   <Box className={classes.typeContainer}>
                     <Chip
