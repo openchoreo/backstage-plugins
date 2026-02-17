@@ -1,11 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated types from OpenAPI spec
-type DataPlaneResponse = OpenChoreoComponents['schemas']['DataPlaneResponse'];
+type DataPlaneResponse =
+  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
 
 /**
  * Service for managing and retrieving data plane information.
@@ -43,7 +44,7 @@ export class DataPlaneInfoService {
     try {
       this.logger.debug(`Listing data planes for namespace: ${namespaceName}`);
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -98,7 +99,7 @@ export class DataPlaneInfoService {
         `Fetching data plane details for: ${request.dataplaneName} in namespace: ${request.namespaceName}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

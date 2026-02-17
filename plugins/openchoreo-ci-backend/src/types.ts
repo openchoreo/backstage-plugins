@@ -1,6 +1,6 @@
 import type {
   ObservabilityComponents,
-  OpenChoreoComponents,
+  OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Import generated types from observability client
@@ -10,4 +10,4 @@ export type RuntimeLogsResponse =
 
 // Kubernetes events from the OpenChoreo API
 export type ComponentWorkflowRunEventEntry =
-  OpenChoreoComponents['schemas']['ComponentWorkflowRunEventEntry'];
+  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunEventEntry'];

@@ -7,30 +7,35 @@ import { SchedulerServiceTaskRunner } from '@backstage/backend-plugin-api';
 import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
 // Use generated types from OpenAPI spec
-type ModelsProject = OpenChoreoComponents['schemas']['ProjectResponse'];
-type ModelsNamespace = OpenChoreoComponents['schemas']['NamespaceResponse'];
-type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
-type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
-type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
-type ModelsBuildPlane = OpenChoreoComponents['schemas']['BuildPlaneResponse'];
+type ModelsProject = OpenChoreoLegacyComponents['schemas']['ProjectResponse'];
+type ModelsNamespace =
+  OpenChoreoLegacyComponents['schemas']['NamespaceResponse'];
+type ModelsComponent =
+  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+type ModelsEnvironment =
+  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
+type ModelsDataPlane =
+  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
+type ModelsBuildPlane =
+  OpenChoreoLegacyComponents['schemas']['BuildPlaneResponse'];
 type ModelsObservabilityPlane =
-  OpenChoreoComponents['schemas']['ObservabilityPlaneResponse'];
+  OpenChoreoLegacyComponents['schemas']['ObservabilityPlaneResponse'];
 type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['ComponentResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
 type ModelsDeploymentPipeline =
-  OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
+  OpenChoreoLegacyComponents['schemas']['DeploymentPipelineResponse'];
 type ModelsAgentConnectionStatus =
-  OpenChoreoComponents['schemas']['AgentConnectionStatusResponse'];
+  OpenChoreoLegacyComponents['schemas']['AgentConnectionStatusResponse'];
 type ModelsComponentType =
-  OpenChoreoComponents['schemas']['ComponentTypeResponse'];
-type ModelsWorkflow = OpenChoreoComponents['schemas']['WorkflowResponse'];
-type ModelsTrait = OpenChoreoComponents['schemas']['TraitResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentTypeResponse'];
+type ModelsWorkflow = OpenChoreoLegacyComponents['schemas']['WorkflowResponse'];
+type ModelsTrait = OpenChoreoLegacyComponents['schemas']['TraitResponse'];
 
 // WorkloadEndpoint is part of the workload.endpoints structure
 // Since Workload uses additionalProperties, we define this locally
@@ -141,7 +146,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       }
 
       // Create client instance with service token
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -637,7 +642,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           }
 
           const componentTypeItems = listData.data
-            .items as OpenChoreoComponents['schemas']['ComponentTypeResponse'][];
+            .items as OpenChoreoLegacyComponents['schemas']['ComponentTypeResponse'][];
           this.logger.debug(
             `Found ${componentTypeItems.length} CTDs in namespace: ${ns.name} (total: ${listData.data.totalCount})`,
           );

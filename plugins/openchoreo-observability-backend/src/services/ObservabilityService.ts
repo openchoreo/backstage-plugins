@@ -6,7 +6,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { Expand } from '@backstage/types';
 import {
-  createOpenChoreoApiClient,
+  createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentMetricsTimeSeries, Environment } from '../types';
@@ -88,7 +88,7 @@ export class ObservabilityService {
       throw new Error('Environment is required to resolve observer URL');
     }
 
-    const mainClient = createOpenChoreoApiClient({
+    const mainClient = createOpenChoreoLegacyApiClient({
       baseUrl: this.baseUrl,
       token: userToken,
       logger: this.logger,
@@ -150,7 +150,7 @@ export class ObservabilityService {
         `Starting environment fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         logger: this.logger,
         token: userToken,
@@ -389,7 +389,7 @@ export class ObservabilityService {
       );
 
       // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoApiClient({
+      const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,

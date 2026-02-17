@@ -2,9 +2,14 @@
   "outputDir": "src/generated",
   "specs": [
     {
+      "name": "openchoreo-legacy",
+      "input": "openapi/openchoreo-api-legacy.yaml",
+      "description": "OpenChoreo API (Legacy/Pre-1.0)"
+    },
+    {
       "name": "openchoreo",
       "input": "openapi/openchoreo-api.yaml",
-      "description": "OpenChoreo Main API"
+      "description": "OpenChoreo API"
     },
     {
       "name": "observability",

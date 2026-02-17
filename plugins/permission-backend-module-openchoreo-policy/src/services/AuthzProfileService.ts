@@ -1,13 +1,13 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { AuthzProfileCache } from './AuthzProfileCache';
 import type { UserCapabilitiesResponse, OpenChoreoScope } from './types';
 
 // Response type from API
-type ProfileResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
+type ProfileResponse = OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
   data?: UserCapabilitiesResponse;
 };
 
@@ -72,7 +72,7 @@ export class AuthzProfileService {
    * Creates an OpenChoreo API client with the given user token.
    */
   private createClient(token: string) {
-    return createOpenChoreoApiClient({
+    return createOpenChoreoLegacyApiClient({
       baseUrl: this.baseUrl,
       token,
       logger: this.logger,

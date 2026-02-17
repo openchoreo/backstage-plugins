@@ -1,14 +1,14 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
+  createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
-  type OpenChoreoComponents,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { RuntimeLogsResponse } from '../../types';
 
 // Use generated type from OpenAPI spec
 type ModelsBuild =
-  OpenChoreoComponents['schemas']['ComponentWorkflowRunResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -37,7 +37,7 @@ export class BuildInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -88,7 +88,7 @@ export class BuildInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -137,7 +137,7 @@ export class BuildInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -190,7 +190,7 @@ export class BuildInfoService {
 
     try {
       // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoApiClient({
+      const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

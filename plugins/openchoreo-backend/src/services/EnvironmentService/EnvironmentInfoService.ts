@@ -1,14 +1,15 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { EnvironmentService, Environment, EndpointInfo } from '../../types';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated types from OpenAPI spec
-type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
+type ModelsEnvironment =
+  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
 type ReleaseBindingResponse =
-  OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
+  OpenChoreoLegacyComponents['schemas']['ReleaseBindingResponse'];
 
 /**
  * Service for managing and retrieving environment-related information for deployments.
@@ -84,7 +85,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           });
       };
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -525,7 +526,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Starting promotion for component: ${request.componentName} from ${request.sourceEnvironment} to ${request.targetEnvironment}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -613,7 +614,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Deleting release binding for component: ${request.componentName} from environment: ${request.environment}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -697,7 +698,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Starting binding update for component: ${request.componentName}, binding: ${request.bindingName}, new state: ${request.releaseState}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -781,7 +782,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -853,7 +854,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -941,7 +942,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -1006,7 +1007,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -1080,7 +1081,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -1158,7 +1159,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

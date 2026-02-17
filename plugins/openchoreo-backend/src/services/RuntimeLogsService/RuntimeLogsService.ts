@@ -1,7 +1,7 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { RuntimeLogsService, RuntimeLogsResponse } from '../../types';
 import {
-  createOpenChoreoApiClient,
+  createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
 
@@ -75,7 +75,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       );
 
       // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoApiClient({
+      const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

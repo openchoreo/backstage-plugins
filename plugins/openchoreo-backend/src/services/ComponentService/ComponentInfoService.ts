@@ -1,12 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use the generated type from OpenAPI spec
 export type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['ComponentResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
 
 export class ComponentInfoService {
   private logger: LoggerService;
@@ -36,7 +36,7 @@ export class ComponentInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -96,7 +96,7 @@ export class ComponentInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -153,7 +153,7 @@ export class ComponentInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

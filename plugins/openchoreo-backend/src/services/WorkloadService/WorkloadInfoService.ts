@@ -1,12 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { WorkloadService } from '../../types';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated type from OpenAPI spec
-type ModelsWorkload = OpenChoreoComponents['schemas']['WorkloadResponse'];
+type ModelsWorkload = OpenChoreoLegacyComponents['schemas']['WorkloadResponse'];
 
 /**
  * Service for managing and retrieving workload information.
@@ -51,7 +51,7 @@ export class WorkloadInfoService implements WorkloadService {
         `Fetching workload info for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -114,7 +114,7 @@ export class WorkloadInfoService implements WorkloadService {
         `Applying workload for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
