@@ -157,6 +157,12 @@ export const useLogEntryStyles = makeStyles(theme => ({
   metadataTitle: {
     fontWeight: 'bold',
     marginBottom: theme.spacing(1),
+    fontSize: '11px',
+  },
+  metadataGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, 1fr)',
+    gap: theme.spacing(1),
   },
   metadataItem: {
     display: 'flex',
@@ -166,10 +172,11 @@ export const useLogEntryStyles = makeStyles(theme => ({
     fontWeight: 'bold',
     minWidth: '120px',
     marginRight: theme.spacing(1),
+    fontSize: '11px',
   },
   metadataValue: {
     fontFamily: 'monospace',
-    fontSize: '0.875rem',
+    fontSize: '11px',
     color: theme.palette.text.secondary,
   },
   copyButton: {
@@ -178,7 +185,7 @@ export const useLogEntryStyles = makeStyles(theme => ({
   },
   fullLogMessage: {
     fontFamily: 'monospace',
-    fontSize: '0.875rem',
+    fontSize: '11px',
     whiteSpace: 'pre-wrap',
     backgroundColor: theme.palette.background.paper,
     padding: theme.spacing(1),
@@ -186,5 +193,15 @@ export const useLogEntryStyles = makeStyles(theme => ({
     border: `1px solid ${theme.palette.divider}`,
     maxHeight: '200px',
     overflow: 'auto',
+  },
+  metadataBox: {
+    backgroundColor: theme.palette.background.paper,
+    padding: theme.spacing(1),
+    borderRadius: theme.shape.borderRadius,
+    border: `1px solid ${theme.palette.divider}`,
+  },
+  expandedSectionTitle: {
+    fontSize: '11px',
+    fontWeight: 'bold',
   },
 }));

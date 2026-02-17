@@ -16,9 +16,18 @@ import { useLogEntryStyles } from './styles';
 interface LogEntryProps {
   log: LogEntryType;
   selectedFields: LogEntryField[];
+  environmentName?: string;
+  projectName?: string;
+  componentName?: string;
 }
 
-export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
+export const LogEntry: FC<LogEntryProps> = ({
+  log,
+  selectedFields,
+  environmentName,
+  projectName,
+  componentName,
+}) => {
   const classes = useLogEntryStyles();
   const [expanded, setExpanded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -134,82 +143,106 @@ export const LogEntry: FC<LogEntryProps> = ({ log, selectedFields }) => {
           >
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={classes.expandedContent}>
-                <Typography variant="h6" gutterBottom>
+                <Typography
+                  className={classes.expandedSectionTitle}
+                  gutterBottom
+                >
                   Full Log Message
                 </Typography>
                 <Box className={classes.fullLogMessage}>{log.log}</Box>
 
                 <Box className={classes.metadataSection}>
-                  <Typography variant="h6" className={classes.metadataTitle}>
+                  <Typography
+                    className={`${classes.metadataTitle} ${classes.expandedSectionTitle}`}
+                  >
                     Metadata
                   </Typography>
 
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Component:</span>
-                    <span className={classes.metadataValue}>
-                      {log.componentId}
-                    </span>
-                  </Box>
+                  <Box className={classes.metadataBox}>
+                    <Box className={classes.metadataGrid}>
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Environment Name:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {environmentName}
+                        </span>
+                      </Box>
 
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Environment:</span>
-                    <span className={classes.metadataValue}>
-                      {log.environmentId}
-                    </span>
-                  </Box>
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Environment UID:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {log.environmentId}
+                        </span>
+                      </Box>
 
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Project:</span>
-                    <span className={classes.metadataValue}>
-                      {log.projectId}
-                    </span>
-                  </Box>
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Project Name:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {projectName}
+                        </span>
+                      </Box>
 
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Namespace:</span>
-                    <span className={classes.metadataValue}>
-                      {log.namespace}
-                    </span>
-                  </Box>
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Project UID:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {log.projectId}
+                        </span>
+                      </Box>
 
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Pod ID:</span>
-                    <span className={classes.metadataValue}>{log.podId}</span>
-                  </Box>
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Component Name:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {componentName}
+                        </span>
+                      </Box>
 
-                  <Box className={classes.metadataItem}>
-                    <span className={classes.metadataKey}>Container:</span>
-                    <span className={classes.metadataValue}>
-                      {log.containerName}
-                    </span>
-                  </Box>
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>
+                          Component UID:
+                        </span>
+                        <span className={classes.metadataValue}>
+                          {log.componentId}
+                        </span>
+                      </Box>
 
-                  {log.version && (
-                    <Box className={classes.metadataItem}>
-                      <span className={classes.metadataKey}>Version:</span>
-                      <span className={classes.metadataValue}>
-                        {log.version}
-                      </span>
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>Pod Name:</span>
+                        <span className={classes.metadataValue}>
+                          NOT AVAILABLE
+                        </span>
+                      </Box>
+
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>Pod ID:</span>
+                        <span className={classes.metadataValue}>
+                          {log.podId}
+                        </span>
+                      </Box>
+
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>Namespace:</span>
+                        <span className={classes.metadataValue}>
+                          {log.namespace}
+                        </span>
+                      </Box>
+
+                      <Box className={classes.metadataItem}>
+                        <span className={classes.metadataKey}>Container:</span>
+                        <span className={classes.metadataValue}>
+                          {log.containerName}
+                        </span>
+                      </Box>
                     </Box>
-                  )}
-
-                  {Object.keys(log.labels).length > 0 && (
-                    <>
-                      <Typography
-                        variant="subtitle1"
-                        className={classes.metadataTitle}
-                        style={{ marginTop: 16 }}
-                      >
-                        Labels
-                      </Typography>
-                      {Object.entries(log.labels).map(([key, value]) => (
-                        <Box key={key} className={classes.metadataItem}>
-                          <span className={classes.metadataKey}>{key}:</span>
-                          <span className={classes.metadataValue}>{value}</span>
-                        </Box>
-                      ))}
-                    </>
-                  )}
+                  </Box>
                 </Box>
               </Box>
             </Collapse>
