@@ -35,13 +35,17 @@ function useNamespaces() {
   const [namespaces, setNamespaces] = useState<string[]>(['default']);
 
   const fetchNamespaces = useCallback(async () => {
-    const response = await catalogApi.getEntities({
-      filter: { kind: 'Domain' },
-      fields: ['metadata.name'],
-    });
-    const names = response.items.map(e => e.metadata.name).sort();
-    if (names.length > 0) {
-      setNamespaces(names);
+    try {
+      const response = await catalogApi.getEntities({
+        filter: { kind: 'Domain' },
+        fields: ['metadata.name'],
+      });
+      const names = response.items.map(e => e.metadata.name).sort();
+      if (names.length > 0) {
+        setNamespaces(names);
+      }
+    } catch {
+      // Namespace fetch is non-critical; fall back to initial ['default']
     }
   }, [catalogApi]);
 
