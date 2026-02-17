@@ -87,7 +87,11 @@ const ALL_KINDS = [
 
 export const FILTER_PRESETS: FilterPreset[] = [
   { id: 'all', label: 'All', kinds: ALL_KINDS },
-  { id: 'developer', label: 'Developer Resources', kinds: APPLICATION_VIEW.kinds },
+  {
+    id: 'developer',
+    label: 'Developer Resources',
+    kinds: APPLICATION_VIEW.kinds,
+  },
   {
     id: 'platform',
     label: 'Platform Resources',
@@ -129,8 +133,7 @@ export function buildDynamicView(selectedKinds: string[]): GraphViewDefinition {
   const matchingPreset = FILTER_PRESETS.find(p => {
     const presetSet = new Set(p.kinds);
     return (
-      presetSet.size === kindsSet.size &&
-      p.kinds.every(k => kindsSet.has(k))
+      presetSet.size === kindsSet.size && p.kinds.every(k => kindsSet.has(k))
     );
   });
 

@@ -99,6 +99,32 @@ export function getNodeColor(kind: string | undefined): string {
 }
 
 /**
+ * Full kind labels for two-row node display.
+ */
+export const KIND_FULL_LABELS: Record<string, string> = {
+  domain: 'Namespace',
+  system: 'Project',
+  component: 'Component',
+  dataplane: 'Data Plane',
+  environment: 'Environment',
+  deploymentpipeline: 'Pipeline',
+  observabilityplane: 'Obs Plane',
+  buildplane: 'Build Plane',
+  componenttype: 'Component Type',
+  traittype: 'Trait Type',
+  workflow: 'Workflow',
+  componentworkflow: 'Component Workflow',
+};
+
+/**
+ * Gets the full kind label for an entity kind.
+ */
+export function getNodeKindLabel(kind: string | undefined): string | undefined {
+  if (!kind) return undefined;
+  return KIND_FULL_LABELS[kind.toLowerCase()];
+}
+
+/**
  * Gets the display label for an entity, adding kind prefix for custom OpenChoreo kinds.
  *
  * @param kind - The entity kind

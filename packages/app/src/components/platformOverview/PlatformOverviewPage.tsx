@@ -95,10 +95,7 @@ export function PlatformOverviewPage() {
 
   return (
     <Page themeId="tool">
-      <Header
-        title="Platform Overview"
-        subtitle={currentView.description}
-      />
+      <Header title="Platform Overview" subtitle={currentView.description} />
       <Content stretch noPadding className={classes.content}>
         <GraphKindFilter
           selectedKinds={selectedKinds}
