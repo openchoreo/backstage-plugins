@@ -97,6 +97,10 @@ import {
 import { EntityLayoutWithDelete } from './EntityLayoutWithDelete';
 
 import { Workflows } from '@openchoreo/backstage-plugin-openchoreo-ci';
+import {
+  WorkflowRunsContent,
+  EntityNamespaceProvider,
+} from '@openchoreo/backstage-plugin-openchoreo-workflows';
 
 import {
   ObservabilityMetrics,
@@ -889,6 +893,11 @@ const workflowPage = (
     </EntityLayout.Route>
     <EntityLayout.Route path="/definition" title="Definition">
       <ResourceDefinitionTab />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/runs" title="Runs">
+      <EntityNamespaceProvider>
+        <WorkflowRunsContent />
+      </EntityNamespaceProvider>
     </EntityLayout.Route>
   </EntityLayout>
 );

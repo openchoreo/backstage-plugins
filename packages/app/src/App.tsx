@@ -77,7 +77,6 @@ import {
   AccessControlPage,
   GitSecretsPage,
 } from '@openchoreo/backstage-plugin';
-import { GenericWorkflowsPage } from '@openchoreo/backstage-plugin-openchoreo-workflows';
 import CategoryIcon from '@material-ui/icons/Category';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import PlayCircleOutlineIcon from '@material-ui/icons/PlayCircleOutline';
@@ -278,7 +277,6 @@ const routes = (
     />
     <Route path="/platform-overview" element={<PlatformOverviewPage />} />
     <Route path="/admin/access-control" element={<AccessControlPage />} />
-    <Route path="/admin/workflows/*" element={<GenericWorkflowsPage />} />
     <Route path="/admin/git-secrets" element={<GitSecretsPage />} />
   </FlatRoutes>
 );

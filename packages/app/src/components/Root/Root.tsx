@@ -35,7 +35,6 @@ import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
 import { AccessControlSidebarItem } from './AccessControlSidebarItem';
-import { GenericWorkflowsSidebarItem } from './GenericWorkflowsSidebarItem';
 import { GitSecretsSidebarItem } from './GitSecretsSidebarItem';
 
 const useSidebarLogoStyles = makeStyles({
@@ -141,7 +140,6 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
           {/* Admin section */}
           <AccessControlSidebarItem />
           <GitSecretsSidebarItem />
-          <GenericWorkflowsSidebarItem />
           <SidebarScrollWrapper>
             {/* Items in this group will be scrollable if they run out of space */}
           </SidebarScrollWrapper>
