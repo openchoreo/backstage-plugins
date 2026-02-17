@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
 
 export interface DashboardMetrics {
   totalBindings: number;
@@ -25,7 +25,7 @@ export class DashboardInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

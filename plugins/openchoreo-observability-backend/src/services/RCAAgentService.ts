@@ -6,7 +6,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { Expand } from '@backstage/types';
 import {
-  createOpenChoreoApiClient,
+  createOpenChoreoLegacyApiClient,
   createOpenChoreoAIRCAAgentApiClient,
   AIRCAAgentComponents,
 } from '@openchoreo/openchoreo-client-node';
@@ -45,7 +45,7 @@ export class RCAAgentService {
       throw new Error('Environment is required to resolve RCA agent URL');
     }
 
-    const mainClient = createOpenChoreoApiClient({
+    const mainClient = createOpenChoreoLegacyApiClient({
       baseUrl: this.baseUrl,
       token: userToken,
       logger: this.logger,

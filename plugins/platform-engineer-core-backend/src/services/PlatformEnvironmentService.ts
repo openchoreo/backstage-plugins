@@ -1,14 +1,16 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated types from OpenAPI spec
-type ModelsEnvironment = OpenChoreoComponents['schemas']['EnvironmentResponse'];
-type ModelsDataPlane = OpenChoreoComponents['schemas']['DataPlaneResponse'];
+type ModelsEnvironment =
+  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
+type ModelsDataPlane =
+  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
 type ReleaseBindingResponse =
-  OpenChoreoComponents['schemas']['ReleaseBindingResponse'];
+  OpenChoreoLegacyComponents['schemas']['ReleaseBindingResponse'];
 
 import {
   PlatformEnvironmentService,
@@ -83,7 +85,7 @@ export class PlatformEnvironmentInfoService
         `Starting environment fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -175,7 +177,7 @@ export class PlatformEnvironmentInfoService
         `Starting dataplane fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -341,7 +343,7 @@ export class PlatformEnvironmentInfoService
         `Starting component counts fetch for ${components.length} components`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -428,7 +430,7 @@ export class PlatformEnvironmentInfoService
         `Starting distinct deployed components count for ${components.length} components`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -515,7 +517,7 @@ export class PlatformEnvironmentInfoService
         `Starting healthy workload count for ${components.length} components`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -589,7 +591,7 @@ export class PlatformEnvironmentInfoService
    * Fetches the list of namespace names from the OpenChoreo API.
    */
   private async fetchNamespaceNames(userToken?: string): Promise<string[]> {
-    const client = createOpenChoreoApiClient({
+    const client = createOpenChoreoLegacyApiClient({
       baseUrl: this.baseUrl,
       token: userToken,
       logger: this.logger,

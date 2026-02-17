@@ -8,16 +8,17 @@ import {
 } from '@wso2/cell-diagram';
 import { CellDiagramService } from '../../types';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
 
 // Use generated type from OpenAPI spec
 type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['ComponentResponse'];
-type WorkloadConnection = OpenChoreoComponents['schemas']['Connection'];
-type WorkloadEndpoint = OpenChoreoComponents['schemas']['WorkloadEndpoint'];
+  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+type WorkloadConnection = OpenChoreoLegacyComponents['schemas']['Connection'];
+type WorkloadEndpoint =
+  OpenChoreoLegacyComponents['schemas']['WorkloadEndpoint'];
 
 enum ComponentType {
   SERVICE = 'service',
@@ -81,7 +82,7 @@ export class CellDiagramInfoService implements CellDiagramService {
     token?: string,
   ): Promise<Project | undefined> {
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

@@ -11,8 +11,11 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Health check endpoint */
-    get: operations['health'];
+    /**
+     * Health check
+     * @description Returns OK if the server is healthy. Used for liveness probes.
+     */
+    get: operations['getHealth'];
     put?: never;
     post?: never;
     delete?: never;
@@ -28,8 +31,11 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Readiness check endpoint */
-    get: operations['ready'];
+    /**
+     * Readiness check
+     * @description Returns Ready if the server is ready to accept requests. Used for readiness probes.
+     */
+    get: operations['getReady'];
     put?: never;
     post?: never;
     delete?: never;
@@ -45,7 +51,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get server version information */
+    /**
+     * Get server version
+     * @description Returns version information about the API server.
+     */
     get: operations['getVersion'];
     put?: never;
     post?: never;
@@ -55,102 +64,89 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/webhooks/github': {
+  '/openapi.json': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
-    put?: never;
-    /** Handle GitHub webhook events */
-    post: operations['handleGitHubWebhook'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/webhooks/gitlab': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Handle GitLab webhook events */
-    post: operations['handleGitLabWebhook'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/webhooks/bitbucket': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Handle Bitbucket webhook events */
-    post: operations['handleBitbucketWebhook'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/apply': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Apply a resource (kubectl-like) */
-    post: operations['applyResource'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/delete': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
+    /**
+     * Get OpenAPI specification
+     * @description Returns the OpenAPI 3.0 specification for this API in JSON format.
+     */
+    get: operations['getOpenAPISpec'];
     put?: never;
     post?: never;
-    /** Delete a resource (kubectl-like) */
-    delete: operations['deleteResource'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces': {
+  '/.well-known/oauth-protected-resource': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List all namespaces */
+    /**
+     * Get OAuth protected resource metadata
+     * @description Returns OAuth 2.0 protected resource metadata as defined in RFC 9728.
+     *     Used by MCP clients to discover authorization server information.
+     */
+    get: operations['getOAuthProtectedResourceMetadata'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/.well-known/openid-configuration': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get OpenID configuration
+     * @description Returns OpenID Connect configuration for CLI authentication.
+     *     Includes OAuth2 endpoints, external client configurations, and security status.
+     */
+    get: operations['getOpenIDConfiguration'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List namespaces
+     * @description Returns a paginated list of OpenChoreo control plane namespaces the user has access to.
+     *     Only namespaces with the label `openchoreo.dev/controlplane-namespace=true` are returned.
+     *     This filters out system namespaces (e.g., openchoreo-control-plane, kube-system) and
+     *     data plane runtime namespaces.
+     */
     get: operations['listNamespaces'];
     put?: never;
-    /** Create a new namespace */
+    /**
+     * Create namespace
+     * @description Creates a new OpenChoreo control plane namespace.
+     *     The namespace is automatically labeled with `openchoreo.dev/controlplane-namespace=true`.
+     */
     post: operations['createNamespace'];
     delete?: never;
     options?: never;
@@ -158,121 +154,127 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}': {
+  '/api/v1/namespaces/{namespaceName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get a specific namespace */
+    /**
+     * Get namespace
+     * @description Returns details of a specific namespace.
+     */
     get: operations['getNamespace'];
-    put?: never;
+    /**
+     * Update namespace
+     * @description Replaces an existing namespace (full update).
+     */
+    put: operations['updateNamespace'];
     post?: never;
-    delete?: never;
+    /**
+     * Delete namespace
+     * @description Deletes a namespace by name.
+     */
+    delete: operations['deleteNamespace'];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/secret-references': {
+  '/api/v1/namespaces/{namespaceName}/projects': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List secret references for a namespace */
-    get: operations['listSecretReferences'];
+    /**
+     * List projects
+     * @description Returns a paginated list of projects within an namespace.
+     */
+    get: operations['listProjects'];
     put?: never;
+    /**
+     * Create project
+     * @description Creates a new project within an namespace.
+     */
+    post: operations['createProject'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get project
+     * @description Returns details of a specific project.
+     */
+    get: operations['getProject'];
+    /**
+     * Update project
+     * @description Replaces an existing project (full update).
+     */
+    put: operations['updateProject'];
     post?: never;
+    /**
+     * Delete project
+     * @description Deletes a project by name.
+     */
+    delete: operations['deleteProject'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/components': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List components
+     * @description Returns a paginated list of components within a namespace, optionally filtered by project.
+     */
+    get: operations['listComponents'];
+    put?: never;
+    /**
+     * Create component
+     * @description Creates a new component within a namespace.
+     */
+    post: operations['createComponent'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/git-secrets': {
+  '/api/v1/namespaces/{namespaceName}/environments': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List git secrets for a namespace */
-    get: operations['listGitSecrets'];
-    put?: never;
-    /** Create a new git secret */
-    post: operations['createGitSecret'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/git-secrets/{secretName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete a git secret */
-    delete: operations['deleteGitSecret'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/dataplanes': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all data planes */
-    get: operations['listDataPlanes'];
-    put?: never;
-    /** Create a new data plane */
-    post: operations['createDataPlane'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/dataplanes/{dpName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get a specific data plane */
-    get: operations['getDataPlane'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/environments': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all environments */
+    /**
+     * List environments
+     * @description Returns a paginated list of environments within an namespace.
+     */
     get: operations['listEnvironments'];
     put?: never;
-    /** Create a new environment */
+    /**
+     * Create environment
+     * @description Creates a new environment within a namespace.
+     */
     post: operations['createEnvironment'];
     delete?: never;
     options?: never;
@@ -280,31 +282,45 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/environments/{envName}': {
+  '/api/v1/namespaces/{namespaceName}/environments/{envName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get a specific environment */
+    /**
+     * Get environment
+     * @description Returns details of a specific environment.
+     */
     get: operations['getEnvironment'];
-    put?: never;
+    /**
+     * Update environment
+     * @description Replaces an existing environment (full update).
+     */
+    put: operations['updateEnvironment'];
     post?: never;
-    delete?: never;
+    /**
+     * Delete environment
+     * @description Deletes an environment by name.
+     */
+    delete: operations['deleteEnvironment'];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/environments/{envName}/observer-url': {
+  '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get environment observer URL */
+    /**
+     * Get environment observer URL
+     * @description Returns the observer URL for accessing logs and metrics for this environment.
+     */
     get: operations['getEnvironmentObserverURL'];
     put?: never;
     post?: never;
@@ -314,7 +330,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/environments/{envName}/rca-agent-url': {
+  '/api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url': {
     parameters: {
       query?: never;
       header?: never;
@@ -334,48 +350,329 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/buildplanes': {
+  '/api/v1/namespaces/{namespaceName}/dataplanes': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List build planes */
+    /**
+     * List data planes
+     * @description Returns a paginated list of data planes within an namespace.
+     */
+    get: operations['listDataPlanes'];
+    put?: never;
+    /**
+     * Create data plane
+     * @description Creates a new data plane within a namespace.
+     */
+    post: operations['createDataPlane'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/dataplanes/{dpName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get data plane
+     * @description Returns details of a specific data plane.
+     */
+    get: operations['getDataPlane'];
+    /**
+     * Update data plane
+     * @description Replaces an existing data plane (full update).
+     */
+    put: operations['updateDataPlane'];
+    post?: never;
+    /**
+     * Delete data plane
+     * @description Deletes a data plane by name.
+     */
+    delete: operations['deleteDataPlane'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/buildplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List build planes
+     * @description Returns a list of build planes within a namespace. Typically one per namespace.
+     */
     get: operations['listBuildPlanes'];
     put?: never;
-    post?: never;
+    /**
+     * Create build plane
+     * @description Creates a new build plane within a namespace.
+     */
+    post: operations['createBuildPlane'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/observabilityplanes': {
+  '/api/v1/namespaces/{namespaceName}/buildplanes/{bpName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List observability planes */
+    /**
+     * Get build plane
+     * @description Returns details of a specific build plane.
+     */
+    get: operations['getBuildPlane'];
+    /**
+     * Update build plane
+     * @description Replaces an existing build plane (full update).
+     */
+    put: operations['updateBuildPlane'];
+    post?: never;
+    /**
+     * Delete build plane
+     * @description Deletes a build plane by name.
+     */
+    delete: operations['deleteBuildPlane'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/observabilityplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List observability planes
+     * @description Returns a list of observability planes within a namespace.
+     */
     get: operations['listObservabilityPlanes'];
     put?: never;
-    post?: never;
+    /**
+     * Create observability plane
+     * @description Creates a new observability plane within a namespace.
+     */
+    post: operations['createObservabilityPlane'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/component-types': {
+  '/api/v1/namespaces/{namespaceName}/observabilityplanes/{opName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List all component types for a namespace */
+    /**
+     * Get observability plane
+     * @description Returns details of a specific observability plane.
+     */
+    get: operations['getObservabilityPlane'];
+    /**
+     * Update observability plane
+     * @description Replaces an existing observability plane (full update).
+     */
+    put: operations['updateObservabilityPlane'];
+    post?: never;
+    /**
+     * Delete observability plane
+     * @description Deletes an observability plane by name.
+     */
+    delete: operations['deleteObservabilityPlane'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterdataplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster data planes
+     * @description Returns a paginated list of cluster-scoped data planes.
+     */
+    get: operations['listClusterDataPlanes'];
+    put?: never;
+    /**
+     * Create cluster data plane
+     * @description Creates a new cluster-scoped data plane.
+     */
+    post: operations['createClusterDataPlane'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterdataplanes/{cdpName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster data plane
+     * @description Returns details of a specific cluster-scoped data plane.
+     */
+    get: operations['getClusterDataPlane'];
+    /**
+     * Update cluster data plane
+     * @description Replaces an existing cluster-scoped data plane (full update).
+     */
+    put: operations['updateClusterDataPlane'];
+    post?: never;
+    /**
+     * Delete cluster data plane
+     * @description Deletes a cluster-scoped data plane by name.
+     */
+    delete: operations['deleteClusterDataPlane'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterbuildplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster build planes
+     * @description Returns a list of cluster-scoped build planes.
+     */
+    get: operations['listClusterBuildPlanes'];
+    put?: never;
+    /**
+     * Create cluster build plane
+     * @description Creates a new cluster-scoped build plane.
+     */
+    post: operations['createClusterBuildPlane'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterbuildplanes/{cbpName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster build plane
+     * @description Returns details of a specific cluster-scoped build plane.
+     */
+    get: operations['getClusterBuildPlane'];
+    /**
+     * Update cluster build plane
+     * @description Replaces an existing cluster-scoped build plane (full update).
+     */
+    put: operations['updateClusterBuildPlane'];
+    post?: never;
+    /**
+     * Delete cluster build plane
+     * @description Deletes a cluster-scoped build plane by name.
+     */
+    delete: operations['deleteClusterBuildPlane'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterobservabilityplanes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster observability planes
+     * @description Returns a list of cluster-scoped observability planes.
+     */
+    get: operations['listClusterObservabilityPlanes'];
+    put?: never;
+    /**
+     * Create cluster observability plane
+     * @description Creates a new cluster-scoped observability plane.
+     */
+    post: operations['createClusterObservabilityPlane'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterobservabilityplanes/{copName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster observability plane
+     * @description Returns details of a specific cluster-scoped observability plane.
+     */
+    get: operations['getClusterObservabilityPlane'];
+    /**
+     * Update cluster observability plane
+     * @description Replaces an existing cluster-scoped observability plane (full update).
+     */
+    put: operations['updateClusterObservabilityPlane'];
+    post?: never;
+    /**
+     * Delete cluster observability plane
+     * @description Deletes a cluster-scoped observability plane by name.
+     */
+    delete: operations['deleteClusterObservabilityPlane'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/component-types': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List component types
+     * @description Returns a list of component types available in the namespace.
+     */
     get: operations['listComponentTypes'];
     put?: never;
     post?: never;
@@ -385,31 +682,17 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/component-types/definition': {
+  '/api/v1/namespaces/{namespaceName}/component-types/{ctName}/schema': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create a new component type */
-    post: operations['createComponentTypeDefinition'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/component-types/{ctName}/schema': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get the JSON schema for a specific component type */
+    /**
+     * Get component type schema
+     * @description Returns the parameter schema for a specific component type.
+     */
     get: operations['getComponentTypeSchema'];
     put?: never;
     post?: never;
@@ -419,156 +702,17 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/component-types/{ctName}/definition': {
+  '/api/v1/namespaces/{namespaceName}/traits': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get the full CRD definition for a specific component type */
-    get: operations['getComponentTypeDefinition'];
-    /** Create or update a component type definition */
-    put: operations['updateComponentTypeDefinition'];
-    post?: never;
-    /** Delete a component type definition */
-    delete: operations['deleteComponentTypeDefinition'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/workflows': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all workflows for a namespace */
-    get: operations['listWorkflows'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/workflows/{workflowName}/schema': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get the JSON schema for a specific workflow */
-    get: operations['getWorkflowSchema'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/workflows/{workflowName}/definition': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get the full CRD definition for a specific workflow */
-    get: operations['getWorkflowDefinition'];
-    /** Create or update a workflow definition */
-    put: operations['updateWorkflowDefinition'];
-    post?: never;
-    /** Delete a workflow definition */
-    delete: operations['deleteWorkflowDefinition'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/component-workflows': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all component workflows for a namespace */
-    get: operations['listComponentWorkflows'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/component-workflows/definition': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Create a new component workflow */
-    post: operations['createComponentWorkflowDefinition'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/component-workflows/{cwName}/schema': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get the JSON schema for a specific component workflow */
-    get: operations['getComponentWorkflowSchema'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/component-workflows/{cwName}/definition': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get the full CRD definition for a specific component workflow */
-    get: operations['getComponentWorkflowDefinition'];
-    /** Create or update a component workflow definition */
-    put: operations['updateComponentWorkflowDefinition'];
-    post?: never;
-    /** Delete a component workflow definition */
-    delete: operations['deleteComponentWorkflowDefinition'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/traits': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all traits for a namespace */
+    /**
+     * List traits
+     * @description Returns a list of traits available in the namespace.
+     */
     get: operations['listTraits'];
     put?: never;
     post?: never;
@@ -578,31 +722,17 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/traits/definition': {
+  '/api/v1/namespaces/{namespaceName}/traits/{traitName}/schema': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create a new trait */
-    post: operations['createTraitDefinition'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/traits/{traitName}/schema': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get the JSON schema for a specific trait */
+    /**
+     * Get trait schema
+     * @description Returns the parameter schema for a specific trait.
+     */
     get: operations['getTraitSchema'];
     put?: never;
     post?: never;
@@ -612,70 +742,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/traits/{traitName}/definition': {
+  '/api/v1/namespaces/{namespaceName}/workflows': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get the full CRD definition for a specific trait */
-    get: operations['getTraitDefinition'];
-    /** Create or update a trait definition */
-    put: operations['updateTraitDefinition'];
-    post?: never;
-    /** Delete a trait definition */
-    delete: operations['deleteTraitDefinition'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all projects in a namespace */
-    get: operations['listProjects'];
+    /**
+     * List workflows
+     * @description Returns a list of generic workflows available in the namespace.
+     */
+    get: operations['listWorkflows'];
     put?: never;
-    /** Create a new project */
-    post: operations['createProject'];
+    /**
+     * Create workflow
+     * @description Creates a new generic workflow in the namespace.
+     */
+    post: operations['createWorkflow'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}': {
+  '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get a specific project */
-    get: operations['getProject'];
-    put?: never;
+    /**
+     * Get workflow
+     * @description Returns details of a specific workflow.
+     */
+    get: operations['getWorkflow'];
+    /**
+     * Update workflow
+     * @description Replaces an existing workflow (full update).
+     */
+    put: operations['updateWorkflow'];
     post?: never;
-    /** Delete a project */
-    delete: operations['deleteProject'];
+    /**
+     * Delete workflow
+     * @description Deletes a workflow by name.
+     */
+    delete: operations['deleteWorkflow'];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/deployment-pipeline': {
+  '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}/schema': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get project deployment pipeline */
-    get: operations['getProjectDeploymentPipeline'];
+    /**
+     * Get workflow schema
+     * @description Returns the parameter schema for a specific workflow.
+     */
+    get: operations['getWorkflowSchema'];
     put?: never;
     post?: never;
     delete?: never;
@@ -684,51 +814,133 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components': {
+  '/api/v1/namespaces/{namespaceName}/workflow-runs': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List all components in a project */
-    get: operations['listComponents'];
+    /**
+     * List workflow runs
+     * @description Returns a list of generic workflow runs in the namespace.
+     */
+    get: operations['listWorkflowRuns'];
     put?: never;
-    /** Create a new component */
-    post: operations['createComponent'];
+    /**
+     * Create workflow run
+     * @description Triggers a new generic workflow run.
+     */
+    post: operations['createWorkflowRun'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}': {
+  '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get a specific component */
+    /**
+     * Get workflow run
+     * @description Returns details of a specific workflow run.
+     */
+    get: operations['getWorkflowRun'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete workflow run
+     * @description Deletes a workflow run by name.
+     */
+    delete: operations['deleteWorkflowRun'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/component-workflows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List component workflows
+     * @description Returns a list of component workflow templates available in the namespace.
+     */
+    get: operations['listComponentWorkflows'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/component-workflows/{cwName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component workflow schema
+     * @description Returns the parameter schema for a specific component workflow.
+     */
+    get: operations['getComponentWorkflowSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component
+     * @description Returns details of a specific component.
+     */
     get: operations['getComponent'];
-    put?: never;
+    /**
+     * Update component
+     * @description Replaces an existing component (full update).
+     */
+    put: operations['updateComponent'];
     post?: never;
-    /** Delete a component */
+    /**
+     * Delete component
+     * @description Deletes a component by name.
+     */
     delete: operations['deleteComponent'];
     options?: never;
     head?: never;
-    /** Patch a component */
-    patch: operations['patchComponent'];
+    patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/schema': {
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/schema': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get the JSON schema for a specific component */
+    /**
+     * Get component schema
+     * @description Returns the combined parameter schema for a component (ComponentType + Traits).
+     */
     get: operations['getComponentSchema'];
     put?: never;
     post?: never;
@@ -738,77 +950,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/traits': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all traits attached to a component */
-    get: operations['listComponentTraits'];
-    /** Update all traits on a component */
-    put: operations['updateComponentTraits'];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-parameters': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Update component workflow parameters */
-    patch: operations['updateComponentWorkflowParameters'];
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List component workflow runs */
-    get: operations['listComponentWorkflowRuns'];
-    put?: never;
-    /** Create a component workflow run */
-    post: operations['createComponentWorkflowRun'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get a specific component workflow run */
-    get: operations['getComponentWorkflowRun'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/status': {
+  '/api/v1/namespaces/{namespaceName}/component-releases': {
     parameters: {
       query?: never;
       header?: never;
@@ -816,144 +958,53 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get component workflow run status
-     * @description Returns the status of a component workflow run including overall status,
-     *     step-level statuses, and the log URL indicating where logs should be fetched from.
-     *     The log URL is determined based on the workflow run age and observability configuration.
-     *
+     * List component releases
+     * @description Returns immutable release snapshots in a namespace, optionally filtered by project or component.
      */
-    get: operations['getComponentWorkflowRunStatus'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get component workflow run logs
-     * @description Returns logs from a component workflow run. Logs are fetched from the build plane
-     *     through the cluster gateway. For multi-container pods, logs from all containers
-     *     (excluding Argo sidecar containers) are merged.
-     *
-     */
-    get: operations['getComponentWorkflowRunLogs'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get component workflow run events
-     * @description Returns Kubernetes events associated with a component workflow run. Events are
-     *     fetched from the build plane through the cluster gateway and aggregated across
-     *     all relevant pods for the workflow and optional step filter.
-     *
-     */
-    get: operations['getComponentWorkflowRunEvents'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get component bindings */
-    get: operations['getComponentBinding'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Update a component binding */
-    patch: operations['updateComponentBinding'];
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List component releases */
     get: operations['listComponentReleases'];
     put?: never;
-    /** Create a component release */
-    post: operations['createComponentRelease'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}': {
+  '/api/v1/namespaces/{namespaceName}/component-releases/{releaseName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get a specific component release */
+    /**
+     * Get component release
+     * @description Returns details of a specific component release.
+     */
     get: operations['getComponentRelease'];
     put?: never;
     post?: never;
-    delete?: never;
+    /**
+     * Delete component release
+     * @description Deletes a component release.
+     */
+    delete: operations['deleteComponentRelease'];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema': {
+  '/api/v1/namespaces/{namespaceName}/component-releases/{releaseName}/schema': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get the JSON schema for a specific component release */
+    /**
+     * Get component release schema
+     * @description Returns the parameter schema for a component release.
+     */
     get: operations['getComponentReleaseSchema'];
     put?: never;
     post?: never;
@@ -963,15 +1014,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings': {
+  '/api/v1/namespaces/{namespaceName}/release-bindings': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List release bindings */
+    /**
+     * List release bindings
+     * @description Returns environment-specific release bindings in a namespace, optionally filtered by project, component, or environment.
+     */
     get: operations['listReleaseBindings'];
+    put?: never;
+    /**
+     * Create release binding
+     * @description Creates a new environment-specific release binding.
+     */
+    post: operations['createReleaseBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/release-bindings/{bindingName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get release binding
+     * @description Returns details of a specific release binding.
+     */
+    get: operations['getReleaseBinding'];
+    /**
+     * Update release binding
+     * @description Replaces a release binding with environment-specific overrides (full update).
+     */
+    put: operations['updateReleaseBinding'];
+    post?: never;
+    /**
+     * Delete release binding
+     * @description Deletes a release binding.
+     */
+    delete: operations['deleteReleaseBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releases': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List releases
+     * @description Returns deployed releases in a namespace, optionally filtered by component or environment.
+     */
+    get: operations['listReleases'];
     put?: never;
     post?: never;
     delete?: never;
@@ -980,7 +1086,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}': {
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/deploy': {
     parameters: {
       query?: never;
       header?: never;
@@ -989,24 +1095,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Patch a release binding */
-    patch: operations['patchReleaseBinding'];
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/deploy': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /** Deploy a release to the lowest environment */
+    /**
+     * Deploy release
+     * @description Deploys a component release to an environment.
+     */
     post: operations['deployRelease'];
     delete?: never;
     options?: never;
@@ -1014,7 +1106,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/promote': {
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/promote': {
     parameters: {
       query?: never;
       header?: never;
@@ -1023,7 +1115,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Promote component to environment */
+    /**
+     * Promote component
+     * @description Promotes a component release from one environment to another.
+     */
     post: operations['promoteComponent'];
     delete?: never;
     options?: never;
@@ -1031,31 +1126,17 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url': {
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/observer-url': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get runtime logs observer URL */
-    get: operations['getComponentObserverURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get build logs observer URL */
+    /**
+     * Get build observer URL
+     * @description Returns the observer URL for component build logs.
+     */
     get: operations['getBuildObserverURL'];
     put?: never;
     post?: never;
@@ -1065,16 +1146,19 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release': {
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/workflow-parameters': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get environment release */
-    get: operations['getEnvironmentRelease'];
-    put?: never;
+    get?: never;
+    /**
+     * Update component workflow parameters
+     * @description Updates the workflow parameters for a component.
+     */
+    put: operations['updateComponentWorkflowParameters'];
     post?: never;
     delete?: never;
     options?: never;
@@ -1082,32 +1166,65 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workloads': {
+  '/api/v1/namespaces/{namespaceName}/component-workflow-runs': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get workload for component */
-    get: operations['getWorkloads'];
+    /**
+     * List component workflow runs
+     * @description Returns a list of workflow runs in a namespace, optionally filtered by project or component.
+     */
+    get: operations['listComponentWorkflowRuns'];
     put?: never;
-    /** Create or update workload */
-    post: operations['createWorkload'];
+    /**
+     * Trigger component workflow run
+     * @description Triggers a new workflow run (build) for a component.
+     */
+    post: operations['createComponentWorkflowRun'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/authz/actions': {
+  '/api/v1/namespaces/{namespaceName}/component-workflow-runs/{runName}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** List all available actions */
+    /**
+     * Get component workflow run
+     * @description Returns details of a specific workflow run.
+     */
+    get: operations['getComponentWorkflowRun'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete component workflow run
+     * @description Deletes a component workflow run.
+     */
+    delete: operations['deleteComponentWorkflowRun'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/authz/actions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List actions
+     * @description Returns all defined authorization actions.
+     */
     get: operations['listActions'];
     put?: never;
     post?: never;
@@ -1117,172 +1234,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/clusterroles': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all cluster roles */
-    get: operations['listClusterRoles'];
-    put?: never;
-    /** Create a new cluster role */
-    post: operations['createClusterRole'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/clusterroles/{name}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get a specific cluster role */
-    get: operations['getClusterRole'];
-    /** Update a cluster role */
-    put: operations['updateClusterRole'];
-    post?: never;
-    /** Delete a cluster role */
-    delete: operations['deleteClusterRole'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespace}/roles': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all namespace roles */
-    get: operations['listNamespaceRoles'];
-    put?: never;
-    /** Create a new namespace role */
-    post: operations['createNamespaceRole'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespace}/roles/{name}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get a specific namespace role */
-    get: operations['getNamespaceRole'];
-    /** Update a namespace role */
-    put: operations['updateNamespaceRole'];
-    post?: never;
-    /** Delete a namespace role */
-    delete: operations['deleteNamespaceRole'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/clusterrolebindings': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all cluster role bindings */
-    get: operations['listClusterRoleBindings'];
-    put?: never;
-    /** Create a new cluster role binding */
-    post: operations['createClusterRoleBinding'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/clusterrolebindings/{name}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get a specific cluster role binding */
-    get: operations['getClusterRoleBinding'];
-    /** Update a cluster role binding */
-    put: operations['updateClusterRoleBinding'];
-    post?: never;
-    /** Delete a cluster role binding */
-    delete: operations['deleteClusterRoleBinding'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespace}/rolebindings': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all namespace role bindings */
-    get: operations['listNamespaceRoleBindings'];
-    put?: never;
-    /** Create a new namespace role binding */
-    post: operations['createNamespaceRoleBinding'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespace}/rolebindings/{name}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get a specific namespace role binding */
-    get: operations['getNamespaceRoleBinding'];
-    /** Update a namespace role binding */
-    put: operations['updateNamespaceRoleBinding'];
-    post?: never;
-    /** Delete a namespace role binding */
-    delete: operations['deleteNamespaceRoleBinding'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/user-types': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** List all configured user types */
-    get: operations['listUserTypes'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/authz/evaluate': {
+  '/api/v1/authz/evaluate': {
     parameters: {
       query?: never;
       header?: never;
@@ -1291,7 +1243,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Evaluate a single authorization request */
+    /**
+     * Evaluate authorization
+     * @description Evaluates a single authorization request.
+     */
     post: operations['evaluate'];
     delete?: never;
     options?: never;
@@ -1299,7 +1254,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/authz/batch-evaluate': {
+  '/api/v1/authz/batch-evaluate': {
     parameters: {
       query?: never;
       header?: never;
@@ -1308,7 +1263,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Evaluate multiple authorization requests */
+    /**
+     * Batch evaluate authorization
+     * @description Evaluates multiple authorization requests in a single call.
+     */
     post: operations['batchEvaluate'];
     delete?: never;
     options?: never;
@@ -1316,14 +1274,17 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/authz/profile': {
+  '/api/v1/authz/profile': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /** Get subject's authorization profile */
+    /**
+     * Get subject profile
+     * @description Returns the authorization profile for the authenticated subject.
+     */
     get: operations['getSubjectProfile'];
     put?: never;
     post?: never;
@@ -1333,419 +1294,1509 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clusterroles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster roles
+     * @description Returns all cluster-scoped authorization roles.
+     */
+    get: operations['listClusterRoles'];
+    put?: never;
+    /**
+     * Create cluster role
+     * @description Creates a new cluster-scoped authorization role.
+     */
+    post: operations['createClusterRole'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterroles/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster role
+     * @description Returns details of a specific cluster role.
+     */
+    get: operations['getClusterRole'];
+    /**
+     * Update cluster role
+     * @description Updates an existing cluster role's actions and description.
+     */
+    put: operations['updateClusterRole'];
+    post?: never;
+    /**
+     * Delete cluster role
+     * @description Deletes a cluster role.
+     */
+    delete: operations['deleteClusterRole'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterrolebindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster role bindings
+     * @description Returns all cluster-scoped role bindings. Supports filtering by role name and/or entitlement.
+     */
+    get: operations['listClusterRoleBindings'];
+    put?: never;
+    /**
+     * Create cluster role binding
+     * @description Creates a new cluster-scoped role binding.
+     */
+    post: operations['createClusterRoleBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterrolebindings/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster role binding
+     * @description Returns details of a specific cluster role binding.
+     */
+    get: operations['getClusterRoleBinding'];
+    /**
+     * Update cluster role binding
+     * @description Updates an existing cluster role binding.
+     */
+    put: operations['updateClusterRoleBinding'];
+    post?: never;
+    /**
+     * Delete cluster role binding
+     * @description Deletes a cluster role binding.
+     */
+    delete: operations['deleteClusterRoleBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/roles': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List namespace roles
+     * @description Returns all namespace-scoped authorization roles.
+     */
+    get: operations['listNamespaceRoles'];
+    put?: never;
+    /**
+     * Create namespace role
+     * @description Creates a new namespace-scoped authorization role.
+     */
+    post: operations['createNamespaceRole'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/roles/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get namespace role
+     * @description Returns details of a specific namespace role.
+     */
+    get: operations['getNamespaceRole'];
+    /**
+     * Update namespace role
+     * @description Updates an existing namespace role's actions and description.
+     */
+    put: operations['updateNamespaceRole'];
+    post?: never;
+    /**
+     * Delete namespace role
+     * @description Deletes a namespace role.
+     */
+    delete: operations['deleteNamespaceRole'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/rolebindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List namespace role bindings
+     * @description Returns all namespace-scoped role bindings. Supports filtering by role reference and/or entitlement.
+     */
+    get: operations['listNamespaceRoleBindings'];
+    put?: never;
+    /**
+     * Create namespace role binding
+     * @description Creates a new namespace-scoped role binding.
+     */
+    post: operations['createNamespaceRoleBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/rolebindings/{name}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get namespace role binding
+     * @description Returns details of a specific namespace role binding.
+     */
+    get: operations['getNamespaceRoleBinding'];
+    /**
+     * Update namespace role binding
+     * @description Updates an existing namespace role binding.
+     */
+    put: operations['updateNamespaceRoleBinding'];
+    post?: never;
+    /**
+     * Delete namespace role binding
+     * @description Deletes a namespace role binding.
+     */
+    delete: operations['deleteNamespaceRoleBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/user-types': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List user types
+     * @description Returns the configured user types for authentication and authorization.
+     */
+    get: operations['listUserTypes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/webhooks/github': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Handle GitHub webhook
+     * @description Processes incoming GitHub webhook events to trigger builds.
+     */
+    post: operations['handleGitHubWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/webhooks/gitlab': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Handle GitLab webhook
+     * @description Processes incoming GitLab webhook events to trigger builds.
+     */
+    post: operations['handleGitLabWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/webhooks/bitbucket': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Handle Bitbucket webhook
+     * @description Processes incoming Bitbucket webhook events to trigger builds.
+     */
+    post: operations['handleBitbucketWebhook'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/secret-references': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List secret references
+     * @description Returns a list of secret references within a namespace.
+     */
+    get: operations['listSecretReferences'];
+    put?: never;
+    /**
+     * Create secret reference
+     * @description Creates a new secret reference within a namespace.
+     */
+    post: operations['createSecretReference'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/secret-references/{secretRefName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get secret reference
+     * @description Returns details of a specific secret reference.
+     */
+    get: operations['getSecretReference'];
+    /**
+     * Update secret reference
+     * @description Replaces an existing secret reference (full update).
+     */
+    put: operations['updateSecretReference'];
+    post?: never;
+    /**
+     * Delete secret reference
+     * @description Deletes a secret reference by name.
+     */
+    delete: operations['deleteSecretReference'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/workloads': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List workloads
+     * @description Returns workload definitions in a namespace, optionally filtered by project or component.
+     */
+    get: operations['listWorkloads'];
+    put?: never;
+    /**
+     * Create workload
+     * @description Creates a new workload definition in a namespace.
+     */
+    post: operations['createWorkload'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get workload
+     * @description Returns details of a specific workload.
+     */
+    get: operations['getWorkload'];
+    /**
+     * Update workload
+     * @description Replaces an existing workload (full update).
+     */
+    put: operations['updateWorkload'];
+    post?: never;
+    /**
+     * Delete workload
+     * @description Deletes a workload by name.
+     */
+    delete: operations['deleteWorkload'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/deployment-pipelines': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List deployment pipelines
+     * @description Returns deployment pipelines in a namespace, optionally filtered by project.
+     */
+    get: operations['listDeploymentPipelines'];
+    put?: never;
+    /**
+     * Create deployment pipeline
+     * @description Creates a new deployment pipeline in a namespace.
+     */
+    post: operations['createDeploymentPipeline'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{pipelineName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get deployment pipeline
+     * @description Returns details of a specific deployment pipeline.
+     */
+    get: operations['getDeploymentPipeline'];
+    /**
+     * Update deployment pipeline
+     * @description Replaces an existing deployment pipeline (full update).
+     */
+    put: operations['updateDeploymentPipeline'];
+    post?: never;
+    /**
+     * Delete deployment pipeline
+     * @description Deletes a deployment pipeline by name.
+     */
+    delete: operations['deleteDeploymentPipeline'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    APIResponse: {
-      success?: boolean;
-      data?: {
-        [key: string]: unknown;
-      };
-      error?: string;
-      code?: string;
-    };
-    ListResponse: {
-      items?: {
-        [key: string]: unknown;
-      }[];
-      totalCount?: number;
-      page?: number;
-      pageSize?: number;
-    };
-    /** @description Wrapped schema containing component-type and trait environment override schemas */
-    ComponentSchemaResponse: {
-      /** @description JSON Schema for component-type environment overrides */
-      componentTypeEnvOverrides?: {
-        [key: string]: unknown;
-      };
-      /** @description Object mapping trait instance names to their JSON Schemas for environment overrides */
-      traitOverrides?: {
-        [key: string]: {
-          [key: string]: unknown;
-        };
-      };
-    };
-    GitSecretResponse: {
-      /** @description Name of the git secret */
-      name: string;
-      /** @description Namespace the secret belongs to */
-      namespace: string;
-    };
-    CreateGitSecretRequest: {
-      /** @description Name of the git secret to create */
-      secretName: string;
+    /** @description Standard error response format */
+    ErrorResponse: {
       /**
-       * @description Authentication type - "basic-auth" for token-based auth, "ssh-auth" for SSH key-based auth
+       * @description Human-readable error message
+       * @example Project 'my-project' not found
+       */
+      error: string;
+      /**
+       * @description Machine-readable error code
+       * @example NOT_FOUND
        * @enum {string}
        */
-      secretType: 'basic-auth' | 'ssh-auth';
-      /** @description Git personal access token or password (required for basic-auth) */
-      token?: string;
-      /** @description SSH private key for git authentication (required for ssh-auth) */
-      sshKey?: string;
+      code:
+        | 'BAD_REQUEST'
+        | 'UNAUTHORIZED'
+        | 'FORBIDDEN'
+        | 'NOT_FOUND'
+        | 'CONFLICT'
+        | 'INTERNAL_ERROR';
+      /** @description Additional error details (e.g., validation errors) */
+      details?: {
+        /**
+         * @description Field that caused the error
+         * @example name
+         */
+        field?: string;
+        /**
+         * @description Error message for this field
+         * @example must be at least 1 character
+         */
+        message?: string;
+      }[];
     };
-    SecretReferenceResponse: {
-      name: string;
-      namespace: string;
-      displayName?: string;
-      description?: string;
-      secretStores?: components['schemas']['SecretStoreReference'][];
-      /** @description Duration string for refresh interval (e.g., "5m", "1h") */
-      refreshInterval?: string;
-      data?: components['schemas']['SecretDataSourceInfo'][];
-      /** Format: date-time */
-      createdAt: string;
-      /** Format: date-time */
-      lastRefreshTime?: string;
-      status: string;
-    };
-    SecretStoreReference: {
-      name: string;
-      namespace: string;
-      kind: string;
-    };
-    SecretDataSourceInfo: {
-      secretKey: string;
-      remoteRef: components['schemas']['RemoteReferenceInfo'];
-    };
-    RemoteReferenceInfo: {
-      key: string;
-      property?: string;
-      version?: string;
-    };
-    NamespaceResponse: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
-    };
-    CreateNamespaceRequest: {
-      /** @description Namespace name (must be a valid Kubernetes name) */
-      name: string;
-      /** @description Human-readable display name */
-      displayName?: string;
-      /** @description Description of the namespace */
-      description?: string;
-    };
-    ProjectResponse: {
-      uid: string;
-      name: string;
-      namespaceName: string;
-      displayName?: string;
-      description?: string;
-      deploymentPipeline?: string;
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
+    /**
+     * @description Standard Kubernetes object metadata (without kind/apiVersion).
+     *     Matches the structure of metav1.ObjectMeta for the fields exposed via the API.
+     */
+    ObjectMeta: {
       /**
-       * Format: date-time
-       * @description Timestamp when the project was marked for deletion
+       * @description Name of the resource (unique within namespace)
+       * @example my-project
        */
-      deletionTimestamp?: string;
-    };
-    CreateProjectRequest: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      deploymentPipeline?: string;
-    };
-    DeploymentPipelineResponse: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      namespaceName: string;
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
-      promotionPaths?: components['schemas']['PromotionPath'][];
-    };
-    PromotionPath: {
-      sourceEnvironmentRef: string;
-      targetEnvironmentRefs: components['schemas']['TargetEnvironmentRef'][];
-    };
-    TargetEnvironmentRef: {
-      name: string;
-      requiresApproval?: boolean;
-      isManualApprovalRequired?: boolean;
-    };
-    ComponentResponse: {
-      uid: string;
-      name: string;
-      displayName?: string;
-      description?: string;
-      type: string;
-      projectName: string;
-      namespaceName: string;
-      /** Format: date-time */
-      createdAt: string;
-      /**
-       * Format: date-time
-       * @description Timestamp when the component was marked for deletion
-       */
-      deletionTimestamp?: string | null;
-      status?: string;
-      autoDeploy?: boolean;
-      service?: {
-        [key: string]: unknown;
-      };
-      webApplication?: {
-        [key: string]: unknown;
-      };
-      scheduledTask?: {
-        [key: string]: unknown;
-      };
-      api?: {
-        [key: string]: unknown;
-      };
-      workload?: {
-        [key: string]: unknown;
-      };
-      componentWorkflow?: components['schemas']['ComponentWorkflow'];
-    };
-    CreateComponentRequest: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      type: string;
-      workflow?: components['schemas']['ComponentWorkflow'];
-    };
-    PatchComponentRequest: {
-      /** @description Controls whether the component should automatically deploy to the default environment */
-      autoDeploy?: boolean;
-    };
-    ComponentTraitResponse: {
-      /** @description Name of the Trait resource */
-      name: string;
-      /** @description Unique instance name for this trait within the component */
-      instanceName: string;
-      /** @description Trait parameter values */
-      parameters?: {
-        [key: string]: unknown;
-      };
-    };
-    ComponentTraitRequest: {
-      /** @description Name of the Trait resource to use */
-      name: string;
-      /** @description Unique instance name for this trait within the component */
-      instanceName: string;
-      /** @description Trait parameter values */
-      parameters?: {
-        [key: string]: unknown;
-      };
-    };
-    UpdateComponentTraitsRequest: {
-      /** @description Array of trait instances to attach to the component (replaces all existing traits) */
-      traits: components['schemas']['ComponentTraitRequest'][];
-    };
-    DataPlaneRef: {
-      kind?: string;
       name?: string;
+      /**
+       * @description Kubernetes namespace
+       * @example my-namespace
+       */
+      namespace?: string;
+      /**
+       * @description Unique identifier (Kubernetes UID)
+       * @example 550e8400-e29b-41d4-a716-446655440000
+       */
+      uid?: string;
+      /** @description Map of string keys and values for organizing resources */
+      labels?: {
+        [key: string]: string;
+      };
+      /** @description Map of string keys and values for storing auxiliary data */
+      annotations?: {
+        [key: string]: string;
+      };
+      /**
+       * Format: date-time
+       * @description Creation timestamp
+       * @example 2025-01-06T10:00:00Z
+       */
+      creationTimestamp?: string;
     };
-    EnvironmentResponse: {
-      uid: string;
-      name: string;
-      namespace: string;
-      displayName?: string;
-      description?: string;
-      dataPlaneRef?: components['schemas']['DataPlaneRef'];
-      isProduction: boolean;
-      dnsPrefix?: string;
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
-    };
-    CreateEnvironmentRequest: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      dataPlaneRef?: components['schemas']['DataPlaneRef'];
-      isProduction: boolean;
-    };
-    AgentConnectionStatusResponse: {
-      connected?: boolean;
-      connectedAgents?: number;
-      /** Format: date-time */
-      lastConnectedTime?: string;
-      /** Format: date-time */
-      lastDisconnectedTime?: string;
-      /** Format: date-time */
-      lastHeartbeatTime?: string;
+    /** @description Kubernetes-style condition */
+    Condition: {
+      /**
+       * @description Type of condition (e.g., Ready)
+       * @example Ready
+       */
+      type: string;
+      /**
+       * @description Status of the condition
+       * @example True
+       * @enum {string}
+       */
+      status: 'True' | 'False' | 'Unknown';
+      /**
+       * Format: int64
+       * @description Generation observed when this condition was set
+       */
+      observedGeneration?: number;
+      /**
+       * Format: date-time
+       * @description Last time the condition transitioned
+       * @example 2025-01-06T10:00:05Z
+       */
+      lastTransitionTime: string;
+      /**
+       * @description Machine-readable reason for the condition
+       * @example Reconciled
+       */
+      reason: string;
+      /**
+       * @description Human-readable message
+       * @example Project is ready
+       */
       message?: string;
     };
-    DataPlaneResponse: {
+    /** @description Reference to a DataPlane or ClusterDataPlane */
+    DataPlaneRef: {
+      /**
+       * @description Kind of data plane (DataPlane or ClusterDataPlane)
+       * @example DataPlane
+       * @enum {string}
+       */
+      kind: 'DataPlane' | 'ClusterDataPlane';
+      /**
+       * @description Name of the data plane resource
+       * @example default
+       */
       name: string;
-      namespace: string;
-      displayName?: string;
-      description?: string;
-      imagePullSecretRefs?: string[];
-      secretStoreRef?: string;
-      publicVirtualHost: string;
-      namespaceVirtualHost: string;
-      /** Format: int32 */
-      publicHTTPPort: number;
-      /** Format: int32 */
-      publicHTTPSPort: number;
-      /** Format: int32 */
-      namespaceHTTPPort: number;
-      /** Format: int32 */
-      namespaceHTTPSPort: number;
-      observabilityPlaneRef?: string;
-      agentConnection?: components['schemas']['AgentConnectionStatusResponse'];
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
     };
-    CreateDataPlaneRequest: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      clusterAgentClientCA: string;
-      publicVirtualHost: string;
-      organizationVirtualHost: string;
-      /** Format: int32 */
+    /** @description Status of the cluster agent connection */
+    AgentConnectionStatus: {
+      /**
+       * @description Whether the cluster agent is currently connected
+       * @example true
+       */
+      connected?: boolean;
+      /**
+       * @description Number of connected agent instances
+       * @example 1
+       */
+      connectedAgents?: number;
+      /**
+       * Format: date-time
+       * @description Timestamp of last successful agent connection
+       * @example 2025-01-06T10:00:00Z
+       */
+      lastConnectedTime?: string;
+    };
+    /** @description Gateway configuration for a plane */
+    GatewaySpec: {
+      /**
+       * @description Public virtual host for external traffic
+       * @example apps.example.com
+       */
+      publicVirtualHost?: string;
+      /**
+       * @description Organization virtual host for internal traffic
+       * @example internal.example.com
+       */
+      organizationVirtualHost?: string;
+      /**
+       * Format: int32
+       * @description Public HTTP port
+       * @example 80
+       */
       publicHTTPPort?: number;
-      /** Format: int32 */
+      /**
+       * Format: int32
+       * @description Public HTTPS port
+       * @example 443
+       */
       publicHTTPSPort?: number;
-      /** Format: int32 */
-      organizationHTTPPort?: number;
-      /** Format: int32 */
-      organizationHTTPSPort?: number;
-      observabilityPlaneRef?: string;
     };
-    BuildPlaneResponse: {
+    /** @description Configuration for the cluster agent */
+    ClusterAgentConfig: {
+      /**
+       * @description CA certificate for cluster agent client authentication (PEM format)
+       * @example -----BEGIN CERTIFICATE-----
+       *     ...
+       *     -----END CERTIFICATE-----
+       */
+      clientCA?: string;
+    };
+    /** @description Server version information */
+    VersionResponse: {
+      /**
+       * @description Application name
+       * @example openchoreo-api
+       */
       name: string;
-      namespace: string;
+      /**
+       * @description Version string
+       * @example v0.1.0
+       */
+      version: string;
+      /**
+       * @description Git commit SHA
+       * @example abc1234
+       */
+      gitRevision: string;
+      /**
+       * @description Build timestamp
+       * @example 2025-01-06T10:00:00Z
+       */
+      buildTime: string;
+      /**
+       * @description Target operating system
+       * @example linux
+       */
+      goOS: string;
+      /**
+       * @description Target architecture
+       * @example amd64
+       */
+      goArch: string;
+      /**
+       * @description Go version used to build
+       * @example go1.24.2
+       */
+      goVersion: string;
+    };
+    /** @description OAuth 2.0 protected resource metadata as defined in RFC 9728 */
+    OAuthProtectedResourceMetadata: {
+      /**
+       * @description Human-readable name of the protected resource
+       * @example OpenChoreo MCP Server
+       */
+      resource_name: string;
+      /**
+       * @description URL of the protected resource
+       * @example https://api.openchoreo.dev/mcp
+       */
+      resource: string;
+      /**
+       * @description List of authorization server URLs
+       * @example [
+       *       "https://auth.openchoreo.dev"
+       *     ]
+       */
+      authorization_servers: string[];
+      /**
+       * @description Supported bearer token methods
+       * @example [
+       *       "header"
+       *     ]
+       */
+      bearer_methods_supported: string[];
+      /** @description Supported OAuth scopes */
+      scopes_supported: string[];
+    };
+    /** @description External client configuration */
+    ExternalClient: {
+      /**
+       * @description Name of the external client
+       * @example cli
+       */
+      name: string;
+      /**
+       * @description OAuth2 client ID for this client type
+       * @example openchoreo-cli
+       */
+      client_id: string;
+      /**
+       * @description OAuth2 scopes for this client
+       * @example [
+       *       "openid",
+       *       "profile",
+       *       "email"
+       *     ]
+       */
+      scopes: string[];
+    };
+    /** @description OpenID Connect configuration response */
+    ClientConfigList: {
+      /**
+       * @description OIDC issuer URL
+       * @example https://auth.openchoreo.dev
+       */
+      issuer?: string;
+      /**
+       * @description OAuth2 token endpoint URL
+       * @example https://auth.openchoreo.dev/oauth2/token
+       */
+      token_endpoint: string;
+      /**
+       * @description OAuth2 authorization endpoint URL
+       * @example https://auth.openchoreo.dev/authorize
+       */
+      authorization_endpoint: string;
+      /**
+       * @description Whether authentication is enabled on the server
+       * @example true
+       */
+      security_enabled: boolean;
+      /** @description Array of external client configurations */
+      external_clients: components['schemas']['ExternalClient'][];
+    };
+    /** @description Configuration for a user type used in authentication and authorization */
+    UserTypeConfig: {
+      /**
+       * @description User type identifier (e.g., "user", "service_account")
+       * @example user
+       */
+      type: string;
+      /**
+       * @description Human-readable name for the user type
+       * @example Human User
+       */
+      displayName: string;
+      /**
+       * @description Check order for user type detection (lower = higher priority)
+       * @example 1
+       */
+      priority: number;
+      /** @description Supported authentication mechanisms for this user type */
+      authMechanisms: components['schemas']['AuthMechanismConfig'][];
+    };
+    /** @description Configuration for an authentication mechanism */
+    AuthMechanismConfig: {
+      /**
+       * @description Authentication mechanism type (e.g., "jwt", "oauth2", "api_key")
+       * @example jwt
+       */
+      type: string;
+      entitlement: components['schemas']['EntitlementConfig'];
+    };
+    /** @description Configuration for extracting entitlement claims from tokens */
+    EntitlementConfig: {
+      /**
+       * @description Claim name for detection and entitlement (e.g., "groups", "scopes")
+       * @example groups
+       */
+      claim: string;
+      /**
+       * @description Human-readable name for the claim
+       * @example Groups
+       */
+      displayName: string;
+    };
+    /**
+     * @description Cursor-based pagination metadata. Uses Kubernetes-native continuation tokens
+     *     for efficient pagination through large result sets.
+     */
+    Pagination: {
+      /**
+       * @description Opaque cursor for fetching the next page. Pass this value as the
+       *     `cursor` query parameter in the next request. Absent when there
+       *     are no more items.
+       * @example eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30=
+       */
+      nextCursor?: string;
+      /**
+       * Format: int64
+       * @description Approximate number of items remaining after this page.
+       *     This is an estimate provided by Kubernetes and may not be exact.
+       *     Use for UI hints like "~50 more items". May be absent for
+       *     filtered queries.
+       * @example 42
+       */
+      remainingCount?: number;
+    };
+    /** @description Paginated list of namespaces */
+    NamespaceList: {
+      items: components['schemas']['Namespace'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /**
+     * @description Namespace resource representing an OpenChoreo control plane namespace.
+     *     Control plane namespaces hold resources like Projects, Components, and Environments.
+     *     These namespaces are identified by the label `openchoreo.dev/controlplane-namespace=true`.
+     */
+    Namespace: {
+      /**
+       * @description Namespace name (unique identifier)
+       * @example my-namespace
+       */
+      name: string;
+      /**
+       * @description Human-readable display name
+       * @example My Namespace
+       */
       displayName?: string;
+      /**
+       * @description Namespace description
+       * @example Main development namespace
+       */
       description?: string;
-      observabilityPlaneRef?: string;
-      agentConnection?: components['schemas']['AgentConnectionStatusResponse'];
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
-    };
-    ObservabilityPlaneResponse: {
-      name: string;
-      namespace: string;
-      displayName?: string;
-      description?: string;
-      observerURL?: string;
-      agentConnection?: components['schemas']['AgentConnectionStatusResponse'];
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
-    };
-    BuildResponse: {
-      name: string;
-      uuid: string;
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      commit?: string;
-      status?: string;
-      /** Format: date-time */
-      createdAt: string;
-      image?: string;
-    };
-    BuildTemplateResponse: {
-      name: string;
-      parameters?: components['schemas']['BuildTemplateParameter'][];
-      /** Format: date-time */
-      createdAt: string;
-    };
-    BuildTemplateParameter: {
-      name: string;
-      default?: string;
-    };
-    ResourceCRUDResponse: {
-      apiVersion?: string;
-      kind?: string;
-      name?: string;
+      /**
+       * @description Kubernetes namespace for the namespace
+       * @example my-namespace
+       */
       namespace?: string;
-      /** @description The operation performed - created, updated, deleted, or not_found */
-      operation?: string;
-    };
-    ComponentTypeResponse: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      workloadType: string;
-      allowedWorkflows?: string[];
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description Creation timestamp
+       * @example 2025-01-06T10:00:00Z
+       */
       createdAt: string;
-    };
-    WorkflowResponse: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      /** Format: date-time */
-      createdAt: string;
-    };
-    ComponentWorkflowRunResponse: {
-      name: string;
-      uuid: string;
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      commit?: string;
+      /**
+       * @description Namespace status
+       * @example Ready
+       */
       status?: string;
-      /** Format: date-time */
-      createdAt: string;
-      image?: string;
-      workflow?: components['schemas']['ComponentWorkflowConfigResponse'];
     };
-    ComponentWorkflowConfigResponse: {
+    /** @description Reference to a BuildPlane or ClusterBuildPlane */
+    BuildPlaneRef: {
+      /**
+       * @description Kind of build plane
+       * @example BuildPlane
+       * @enum {string}
+       */
+      kind: 'BuildPlane' | 'ClusterBuildPlane';
+      /**
+       * @description Name of the build plane resource
+       * @example default
+       */
       name: string;
-      systemParameters?: components['schemas']['SystemParametersResponse'];
-      /** @description Developer-defined workflow parameters as arbitrary JSON */
+    };
+    /** @description Desired state of a Project */
+    ProjectSpec: {
+      /**
+       * @description Reference to the DeploymentPipeline that defines the environments
+       *     and deployment progression for components in this project.
+       * @example default
+       */
+      deploymentPipelineRef?: string;
+      buildPlaneRef?: components['schemas']['BuildPlaneRef'];
+    };
+    /** @description Observed state of a Project */
+    ProjectStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed Project
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the Project */
+      conditions?: components['schemas']['Condition'][];
+    };
+    /**
+     * @description Project resource (Kubernetes object without kind/apiVersion).
+     *     Projects group components within a namespace and reference a deployment pipeline.
+     */
+    Project: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ProjectSpec'];
+      status?: components['schemas']['ProjectStatus'];
+    };
+    /** @description Paginated list of projects */
+    ProjectList: {
+      items: components['schemas']['Project'][];
+      pagination?: components['schemas']['Pagination'];
+    };
+    /** @description Paginated list of components */
+    ComponentList: {
+      items: components['schemas']['Component'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Ownership information for a Component */
+    ComponentOwner: {
+      /**
+       * @description Name of the owning Project
+       * @example my-project
+       */
+      projectName: string;
+    };
+    /** @description Workflow configuration for a Component (references a ComponentWorkflow CR) */
+    ComponentWorkflowRunConfig: {
+      /**
+       * @description Name of the ComponentWorkflow CR to use
+       * @example docker-build
+       */
+      name: string;
+      systemParameters: components['schemas']['SystemParametersValues'];
+      /** @description User-defined workflow parameters */
       parameters?: {
         [key: string]: unknown;
       };
     };
-    SystemParametersResponse: {
-      repository?: components['schemas']['RepositoryResponse'];
+    /** @description System parameters containing repository information */
+    SystemParametersValues: {
+      repository: {
+        /**
+         * @description Git repository URL
+         * @example https://github.com/org/repo.git
+         */
+        url: string;
+        revision: {
+          /**
+           * @description Git branch to build from
+           * @example main
+           */
+          branch: string;
+          /**
+           * @description Specific commit SHA (optional)
+           * @example abc1234def5678
+           */
+          commit?: string;
+        };
+        /**
+         * @description Path to application within repository
+         * @example ./services/api
+         */
+        appPath: string;
+      };
     };
-    RepositoryResponse: {
-      url: string;
-      appPath: string;
-      revision?: components['schemas']['RepositoryRevisionResponse'];
-    };
-    RepositoryRevisionResponse: {
-      branch: string;
-      commit?: string;
-    };
-    /** @description Status response for a component workflow run */
-    ComponentWorkflowRunStatusResponse: {
+    /** @description Information about the latest ComponentRelease for a Component */
+    ComponentLatestRelease: {
       /**
-       * @description Overall workflow status
-       * @example Running
-       * @enum {string}
-       */
-      status: 'Pending' | 'Running' | 'Completed' | 'Failed' | 'Succeeded';
-      /** @description Array of step-level statuses */
-      steps: components['schemas']['WorkflowStepStatus'][];
-      /** @description Whether the workflow run has live observability (logs/events are available via openchoreo-api).
-       *     - If workflow run is recent (< TTL), returns true
-       *     - If workflow run is older than TTL, returns false
-       *     - This field is used to determine whether the workflow run logs/events should be fetched from openchoreo-api or observer-api.
-       *      */
-      hasLiveObservability: boolean;
-    };
-    /** @description Status of an individual workflow step */
-    WorkflowStepStatus: {
-      /**
-       * @description Step name or template name
-       * @example build-step
+       * @description Name of the ComponentRelease resource
+       * @example api-service-abc123
        */
       name: string;
       /**
-       * @description Step execution phase
+       * @description Hash of the ComponentRelease spec
+       * @example sha256:abc123
+       */
+      releaseHash: string;
+    };
+    /**
+     * @description Component resource (Kubernetes object without kind/apiVersion).
+     *     Components group source code and deployment configuration within a Project.
+     */
+    Component: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the Component */
+      spec?: {
+        owner: components['schemas']['ComponentOwner'];
+        /**
+         * @deprecated
+         * @description LEGACY: Component type (e.g., Service, WebApplication). Use componentType for new components.
+         * @example Service
+         */
+        type?: string;
+        /**
+         * @description Component type reference in format: {workloadType}/{componentTypeName}
+         * @example deployment/go-service
+         */
+        componentType?: string;
+        /**
+         * @description Whether to automatically deploy to default environment when created
+         * @default false
+         * @example true
+         */
+        autoDeploy: boolean;
+        /**
+         * @description Whether to automatically trigger builds on code push
+         * @example false
+         */
+        autoBuild?: boolean;
+        /** @description ComponentType parameters (schema defined by the referenced ComponentType) */
+        parameters?: {
+          [key: string]: unknown;
+        };
+        /** @description Trait instances to compose into this component */
+        traits?: components['schemas']['ComponentTrait'][];
+        workflow?: components['schemas']['ComponentWorkflowRunConfig'];
+      };
+      /** @description Observed state of the Component */
+      status?: {
+        /**
+         * Format: int64
+         * @description Generation most recently observed by the controller
+         */
+        observedGeneration?: number;
+        /** @description Current state conditions */
+        conditions?: components['schemas']['Condition'][];
+        latestRelease?: components['schemas']['ComponentLatestRelease'];
+      };
+    };
+    /** @description Component workflow configuration (legacy schema, prefer ComponentWorkflowRunConfig) */
+    ComponentWorkflowConfig: {
+      /**
+       * @description Workflow name
+       * @example docker-build
+       */
+      name?: string;
+      systemParameters?: components['schemas']['SystemParametersValues'];
+      /** @description User-defined workflow parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Paginated list of environments */
+    EnvironmentList: {
+      items: components['schemas']['Environment'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Environment resource (Kubernetes object without kind/apiVersion). */
+    Environment: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the Environment */
+      spec?: {
+        dataPlaneRef?: components['schemas']['DataPlaneRef'];
+        /**
+         * @description Whether this is a production environment
+         * @example false
+         */
+        isProduction?: boolean;
+        gateway?: components['schemas']['GatewaySpec'];
+      };
+      /** @description Observed state of the Environment */
+      status?: {
+        /**
+         * Format: int64
+         * @description Generation most recently observed by the controller
+         */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+      };
+    };
+    /** @description Observer URL response for accessing logs and metrics */
+    ObserverURLResponse: {
+      /**
+       * @description URL to the observer service for logs and metrics
+       * @example https://observer.example.com/api/v1
+       */
+      observerUrl?: string;
+      /**
+       * @description Additional information or status message
+       * @example Observer URL is available
+       */
+      message?: string;
+    };
+    /** @description RCA agent URL response for AI-powered root cause analysis */
+    RCAAgentURLResponse: {
+      /**
+       * @description URL to the RCA agent service for AI-powered root cause analysis
+       * @example https://rca-agent.example.com
+       */
+      rcaAgentUrl?: string;
+      /**
+       * @description Additional information or status message
+       * @example RCA agent URL is available
+       */
+      message?: string;
+    };
+    /** @description Paginated list of data planes */
+    DataPlaneList: {
+      items: components['schemas']['DataPlane'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description DataPlane resource (Kubernetes object without kind/apiVersion). */
+    DataPlane: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the DataPlane */
+      spec?: {
+        /**
+         * @description Logical plane identifier for the physical cluster
+         * @example prod-cluster
+         */
+        planeID?: string;
+        clusterAgent: components['schemas']['ClusterAgentConfig'];
+        gateway: components['schemas']['GatewaySpec'];
+        /**
+         * @description References to SecretReference resources for image pull secrets
+         * @example [
+         *       "docker-registry-secret"
+         *     ]
+         */
+        imagePullSecretRefs?: string[];
+        /** @description Reference to an ESO ClusterSecretStore */
+        secretStoreRef?: {
+          /** @example vault-secret-store */
+          name?: string;
+        };
+        observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
+      };
+      /** @description Observed state of the DataPlane */
+      status?: {
+        /** Format: int64 */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+        agentConnection?: components['schemas']['AgentConnectionStatus'];
+      };
+    };
+    /** @description Paginated list of build planes */
+    BuildPlaneList: {
+      items: components['schemas']['BuildPlane'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description BuildPlane resource (Kubernetes object without kind/apiVersion). */
+    BuildPlane: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the BuildPlane */
+      spec?: {
+        /**
+         * @description Logical plane identifier for the physical cluster
+         * @example ci-cluster
+         */
+        planeID?: string;
+        clusterAgent: components['schemas']['ClusterAgentConfig'];
+        /** @description Reference to an ESO ClusterSecretStore */
+        secretStoreRef?: {
+          /** @example vault-secret-store */
+          name?: string;
+        };
+        observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
+      };
+      /** @description Observed state of the BuildPlane */
+      status?: {
+        /** Format: int64 */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+        agentConnection?: components['schemas']['AgentConnectionStatus'];
+      };
+    };
+    /** @description Reference to an ObservabilityPlane or ClusterObservabilityPlane */
+    ObservabilityPlaneRef: {
+      /**
+       * @description Kind of observability plane (ObservabilityPlane or ClusterObservabilityPlane)
+       * @example ObservabilityPlane
+       * @enum {string}
+       */
+      kind: 'ObservabilityPlane' | 'ClusterObservabilityPlane';
+      /**
+       * @description Name of the observability plane resource. Must be a valid DNS-1123 label.
+       * @example default
+       */
+      name: string;
+    };
+    /** @description Paginated list of observability planes */
+    ObservabilityPlaneList: {
+      items: components['schemas']['ObservabilityPlane'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description ObservabilityPlane resource (Kubernetes object without kind/apiVersion). */
+    ObservabilityPlane: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ObservabilityPlane */
+      spec?: {
+        /**
+         * @description Logical plane identifier for the physical cluster
+         * @example monitoring-cluster
+         */
+        planeID?: string;
+        clusterAgent: components['schemas']['ClusterAgentConfig'];
+        /**
+         * @description Base URL of the Observer API
+         * @example http://observer.observability-plane.svc:8080
+         */
+        observerURL: string;
+        /**
+         * @description Base URL of the RCA Agent API
+         * @example http://rca-agent.observability-plane.svc:8080
+         */
+        rcaAgentURL?: string;
+      };
+      /** @description Observed state of the ObservabilityPlane */
+      status?: {
+        /** Format: int64 */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+        agentConnection?: components['schemas']['AgentConnectionStatus'];
+      };
+    };
+    /** @description Paginated list of cluster-scoped data planes */
+    ClusterDataPlaneList: {
+      items: components['schemas']['ClusterDataPlane'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Cluster-scoped DataPlane resource (Kubernetes object without kind/apiVersion). */
+    ClusterDataPlane: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ClusterDataPlane */
+      spec?: {
+        /**
+         * @description Logical plane identifier for the physical cluster
+         * @example us-west-prod-cluster
+         */
+        planeID: string;
+        clusterAgent: components['schemas']['ClusterAgentConfig'];
+        gateway: components['schemas']['GatewaySpec'];
+        /**
+         * @description References to SecretReference resources for image pull secrets
+         * @example [
+         *       "docker-registry-secret"
+         *     ]
+         */
+        imagePullSecretRefs?: string[];
+        /** @description Reference to an ESO ClusterSecretStore */
+        secretStoreRef?: {
+          /** @example vault-secret-store */
+          name?: string;
+        };
+        observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
+      };
+      /** @description Observed state of the ClusterDataPlane */
+      status?: {
+        /** Format: int64 */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+        agentConnection?: components['schemas']['AgentConnectionStatus'];
+      };
+    };
+    /** @description List of cluster-scoped build planes */
+    ClusterBuildPlaneList: {
+      items: components['schemas']['ClusterBuildPlane'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Cluster-scoped BuildPlane resource (Kubernetes object without kind/apiVersion). */
+    ClusterBuildPlane: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ClusterBuildPlane */
+      spec?: {
+        /**
+         * @description Logical plane identifier for the physical cluster
+         * @example ci-cluster
+         */
+        planeID: string;
+        clusterAgent: components['schemas']['ClusterAgentConfig'];
+        /** @description Reference to an ESO ClusterSecretStore */
+        secretStoreRef?: {
+          /** @example vault-secret-store */
+          name?: string;
+        };
+        observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
+      };
+      /** @description Observed state of the ClusterBuildPlane */
+      status?: {
+        /** Format: int64 */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+        agentConnection?: components['schemas']['AgentConnectionStatus'];
+      };
+    };
+    /** @description Reference to a ClusterObservabilityPlane (cluster-scoped only) */
+    ClusterObservabilityPlaneRef: {
+      /**
+       * @description Kind of observability plane (only ClusterObservabilityPlane allowed)
+       * @example ClusterObservabilityPlane
+       * @enum {string}
+       */
+      kind: 'ClusterObservabilityPlane';
+      /**
+       * @description Name of the ClusterObservabilityPlane resource
+       * @example default
+       */
+      name: string;
+    };
+    /** @description List of cluster-scoped observability planes */
+    ClusterObservabilityPlaneList: {
+      items: components['schemas']['ClusterObservabilityPlane'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Cluster-scoped ObservabilityPlane resource (Kubernetes object without kind/apiVersion). */
+    ClusterObservabilityPlane: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ClusterObservabilityPlane */
+      spec?: {
+        /**
+         * @description Logical plane identifier for the physical cluster
+         * @example monitoring-cluster
+         */
+        planeID: string;
+        clusterAgent: components['schemas']['ClusterAgentConfig'];
+        /**
+         * @description Base URL of the Observer API
+         * @example http://observer.observability-plane.svc:8080
+         */
+        observerURL: string;
+        /**
+         * @description Base URL of the RCA Agent API
+         * @example http://rca-agent.observability-plane.svc:8080
+         */
+        rcaAgentURL?: string;
+      };
+      /** @description Observed state of the ClusterObservabilityPlane */
+      status?: {
+        /** Format: int64 */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+        agentConnection?: components['schemas']['AgentConnectionStatus'];
+      };
+    };
+    /** @description Paginated list of component types */
+    ComponentTypeList: {
+      items: components['schemas']['ComponentType'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description ComponentType resource (Kubernetes object without kind/apiVersion). Read-only — defined by platform engineers. */
+    ComponentType: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ComponentType */
+      spec?: {
+        /**
+         * @description Type of workload (deployment, statefulset, cronjob, job, proxy)
+         * @example deployment
+         * @enum {string}
+         */
+        workloadType:
+          | 'deployment'
+          | 'statefulset'
+          | 'cronjob'
+          | 'job'
+          | 'proxy';
+        /**
+         * @description List of allowed ComponentWorkflow names for components of this type
+         * @example [
+         *       "docker-build",
+         *       "buildpack-build"
+         *     ]
+         */
+        allowedWorkflows?: string[];
+        /** @description Developer-facing parameter schema */
+        schema?: {
+          [key: string]: unknown;
+        };
+        /** @description Pre-configured trait instances embedded in this ComponentType */
+        traits?: {
+          [key: string]: unknown;
+        }[];
+        /**
+         * @description List of allowed Trait names developers can attach
+         * @example [
+         *       "autoscaler",
+         *       "logger"
+         *     ]
+         */
+        allowedTraits?: string[];
+      };
+      /** @description Observed state of the ComponentType */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+      };
+    };
+    /** @description Paginated list of traits */
+    TraitList: {
+      items: components['schemas']['Trait'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Trait resource (Kubernetes object without kind/apiVersion). Read-only — defined by platform engineers. */
+    Trait: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the Trait */
+      spec?: {
+        /** @description Trait parameter schema */
+        schema?: {
+          [key: string]: unknown;
+        };
+        /** @description CEL-based validation rules */
+        validations?: {
+          [key: string]: unknown;
+        }[];
+        /** @description Kubernetes resources to create when trait is applied */
+        creates?: {
+          [key: string]: unknown;
+        }[];
+        /** @description Patches to apply to existing resources */
+        patches?: {
+          [key: string]: unknown;
+        }[];
+      };
+      /** @description Observed state of the Trait */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+      };
+    };
+    /**
+     * @description JSON Schema response for component types, traits, or workflows
+     * @example {
+     *       "type": "object",
+     *       "properties": {
+     *         "replicas": {
+     *           "type": "integer",
+     *           "default": 1
+     *         },
+     *         "port": {
+     *           "type": "integer",
+     *           "default": 8080
+     *         }
+     *       }
+     *     }
+     */
+    SchemaResponse: {
+      [key: string]: unknown;
+    };
+    /** @description Paginated list of workflows */
+    WorkflowList: {
+      items: components['schemas']['Workflow'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Workflow resource (Kubernetes object without kind/apiVersion). */
+    Workflow: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the Workflow */
+      spec?: {
+        /** @description Developer-facing parameter schema for workflow runs */
+        schema?: {
+          [key: string]: unknown;
+        };
+        /** @description Kubernetes resource template to render and apply to the cluster */
+        runTemplate?: {
+          [key: string]: unknown;
+        };
+        /** @description Additional Kubernetes resources to create alongside the run template */
+        resources?: {
+          [key: string]: unknown;
+        }[];
+        /**
+         * @description Time-to-live for workflow runs after completion (e.g., "90d", "1h30m")
+         * @example 90d
+         */
+        ttlAfterCompletion?: string;
+      };
+      /** @description Observed state of the Workflow */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+      };
+    };
+    /** @description Paginated list of workflow runs */
+    WorkflowRunList: {
+      items: components['schemas']['WorkflowRun'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description WorkflowRun resource (Kubernetes object without kind/apiVersion). */
+    WorkflowRun: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the WorkflowRun */
+      spec?: {
+        /** @description Workflow configuration referencing the Workflow CR */
+        workflow: {
+          /**
+           * @description Name of the Workflow CR to execute
+           * @example database-migration
+           */
+          name: string;
+          /** @description Developer-provided workflow parameter values */
+          parameters?: {
+            [key: string]: unknown;
+          };
+        };
+        /**
+         * @description Time-to-live after completion (e.g., "90d", "1h30m")
+         * @example 90d
+         */
+        ttlAfterCompletion?: string;
+      };
+      /** @description Observed state of the WorkflowRun */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+        /** @description Workflow tasks with execution status */
+        tasks?: components['schemas']['WorkflowTask'][];
+        /**
+         * Format: date-time
+         * @description Timestamp when execution started
+         */
+        startedAt?: string;
+        /**
+         * Format: date-time
+         * @description Timestamp when execution completed
+         */
+        completedAt?: string;
+      };
+    };
+    /** @description A single task/step in a workflow execution */
+    WorkflowTask: {
+      /**
+       * @description Task name
+       * @example clone
+       */
+      name?: string;
+      /**
+       * @description Execution phase
        * @example Succeeded
        * @enum {string}
        */
-      phase:
+      phase?:
         | 'Pending'
         | 'Running'
         | 'Succeeded'
@@ -1754,571 +2805,1139 @@ export interface components {
         | 'Error';
       /**
        * Format: date-time
-       * @description Timestamp when the step started (null if not started)
-       * @example 2025-01-06T10:00:00Z
+       * @description Timestamp when task started
        */
-      startedAt?: string | null;
+      startedAt?: string;
       /**
        * Format: date-time
-       * @description Timestamp when the step finished (null if not finished)
-       * @example 2025-01-06T10:05:00Z
+       * @description Timestamp when task completed
        */
-      finishedAt?: string | null;
+      completedAt?: string;
+      /**
+       * @description Additional details about task status
+       * @example Build failed: out of memory
+       */
+      message?: string;
     };
-    /** @description A single log entry from a component workflow run */
-    ComponentWorkflowRunLogEntry: {
-      /**
-       * Format: date-time
-       * @description Timestamp when the log entry was generated (RFC3339 format)
-       * @example 2025-01-06T10:00:00.123Z
-       */
-      timestamp?: string;
-      /**
-       * @description The log message content
-       * @example Building application...
-       */
-      log: string;
+    /** @description Paginated list of component workflow templates */
+    ComponentWorkflowTemplateList: {
+      items: components['schemas']['ComponentWorkflowTemplate'][];
+      pagination: components['schemas']['Pagination'];
     };
-    /** @description A single Kubernetes event entry from a component workflow run */
-    ComponentWorkflowRunEventEntry: {
+    /** @description Component workflow template resource */
+    ComponentWorkflowTemplate: {
       /**
-       * Format: date-time
-       * @description Timestamp when the event was recorded (RFC3339 format)
-       * @example 2025-01-06T10:00:00Z
+       * @description ComponentWorkflow name (unique within namespace)
+       * @example docker-build
        */
-      timestamp: string;
-      /**
-       * @description Event type (e.g., Normal, Warning)
-       * @example Warning
-       */
-      type: string;
-      /**
-       * @description Short, machine-understandable reason for the event
-       * @example BackOff
-       */
-      reason: string;
-      /**
-       * @description Human-readable description of the event
-       * @example Back-off restarting failed container
-       */
-      message: string;
-    };
-    TraitResponse: {
       name: string;
+      /**
+       * @description Human-readable display name
+       * @example Docker Build
+       */
       displayName?: string;
+      /**
+       * @description ComponentWorkflow description
+       * @example Builds container images using Docker
+       */
       description?: string;
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description Creation timestamp
+       * @example 2025-01-06T10:00:00Z
+       */
       createdAt: string;
     };
-    BindingResponse: {
-      name: string;
-      type: string;
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environment: string;
-      status: components['schemas']['BindingStatus'];
-      serviceBinding?: components['schemas']['ServiceBinding'];
-      webApplicationBinding?: components['schemas']['WebApplicationBinding'];
-      scheduledTaskBinding?: components['schemas']['ScheduledTaskBinding'];
-    };
-    BindingStatus: {
-      reason: string;
-      message: string;
-      /** @enum {string} */
-      status:
-        | 'InProgress'
-        | 'Active'
-        | 'Failed'
-        | 'Suspended'
-        | 'NotYetDeployed';
-      /** Format: date-time */
-      lastTransitioned: string;
-    };
-    ServiceBinding: {
-      endpoints?: components['schemas']['EndpointStatus'][];
-      image?: string;
-      releaseState?: string;
-    };
-    WebApplicationBinding: {
-      endpoints?: components['schemas']['EndpointStatus'][];
-      image?: string;
-      releaseState?: string;
-    };
-    ScheduledTaskBinding: {
-      image?: string;
-      releaseState?: string;
-    };
-    EndpointStatus: {
-      name: string;
-      type: string;
-      project?: components['schemas']['ExposedEndpoint'];
-      namespace?: components['schemas']['ExposedEndpoint'];
-      public?: components['schemas']['ExposedEndpoint'];
-    };
-    ExposedEndpoint: {
-      host: string;
-      port: number;
-      scheme?: string;
-      basePath?: string;
-      uri?: string;
-    };
-    UpdateBindingRequest: {
-      /** @enum {string} */
-      releaseState: 'Active' | 'Suspend' | 'Undeploy';
-    };
-    PromoteComponentRequest: {
-      sourceEnv: string;
-      targetEnv: string;
-    };
-    WorkloadResponse: {
-      name?: string;
+    /** @description Request to update component workflow parameters */
+    UpdateComponentWorkflowRequest: {
       /**
-       * @description The workload type determines how the workload is deployed
-       * @enum {string}
+       * @description ComponentWorkflow template name to use
+       * @example docker-build
        */
-      type?: 'Service' | 'ManualTask' | 'ScheduledTask' | 'WebApplication';
-      owner?: components['schemas']['WorkloadOwner'];
-      metadata?: {
-        [key: string]: unknown;
+      workflowName?: string;
+      /** @description System parameters including repository configuration */
+      systemParameters?: {
+        repository?: {
+          /**
+           * @description Git repository URL
+           * @example https://github.com/org/repo.git
+           */
+          url?: string;
+          revision?: {
+            /**
+             * @description Git branch
+             * @example main
+             */
+            branch?: string;
+            /**
+             * @description Specific commit SHA
+             * @example abc1234
+             */
+            commit?: string;
+          };
+          /**
+           * @description Path to application within repository
+           * @example ./services/api
+           */
+          appPath?: string;
+        };
       };
-      spec?: {
-        [key: string]: unknown;
-      };
-      containers?: {
-        [key: string]: components['schemas']['Container'];
-      };
-      endpoints?: {
-        [key: string]: components['schemas']['WorkloadEndpoint'];
-      };
-      connections?: {
-        [key: string]: components['schemas']['Connection'];
-      };
-    };
-    ComponentWorkflow: {
-      name: string;
-      systemParameters: components['schemas']['ComponentWorkflowSystemParams'];
-      /** @description Developer-defined workflow parameters as arbitrary JSON */
+      /** @description User-defined workflow parameters */
       parameters?: {
         [key: string]: unknown;
       };
     };
-    ObserverUrlData: {
-      observerUrl?: string;
-      /** @description Message returned when observability is not configured */
-      message?: string;
+    /** @description Paginated list of component workflow runs */
+    ComponentWorkflowRunList: {
+      items: components['schemas']['ComponentWorkflowRun'][];
+      pagination: components['schemas']['Pagination'];
     };
-    RCAAgentUrlData: {
-      /** @description URL to the RCA agent service for AI-powered root cause analysis */
-      rcaAgentUrl?: string;
-      /** @description Additional information or status message */
-      message?: string;
+    /** @description ComponentWorkflowRun resource (Kubernetes object without kind/apiVersion). */
+    ComponentWorkflowRun: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ComponentWorkflowRun */
+      spec?: {
+        /** @description Identifies the Component that owns this run */
+        owner: {
+          /** @example my-project */
+          projectName: string;
+          /** @example api-service */
+          componentName: string;
+        };
+        workflow: components['schemas']['ComponentWorkflowRunConfig'];
+        /**
+         * @description Time-to-live after completion (e.g., "90d", "1h30m")
+         * @example 90d
+         */
+        ttlAfterCompletion?: string;
+      };
+      /** @description Observed state of the ComponentWorkflowRun */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+        /** @description Built container image information */
+        imageStatus?: {
+          /**
+           * @description Fully qualified image name
+           * @example registry.example.com/my-namespace/api-service:abc1234
+           */
+          image?: string;
+        };
+        /** @description Workflow tasks with execution status */
+        tasks?: components['schemas']['WorkflowTask'][];
+        /**
+         * Format: date-time
+         * @description Timestamp when execution started
+         */
+        startedAt?: string;
+        /**
+         * Format: date-time
+         * @description Timestamp when execution completed
+         */
+        completedAt?: string;
+      };
     };
-    /** @description Immutable snapshot of component configuration.
-     *     Note: The following fields are immutable after creation and cannot be modified:
-     *     - componentType
-     *     - traits
-     *     - componentProfile
-     *     - workload
-     *      */
-    ComponentReleaseResponse: {
+    /** @description List of component traits */
+    ComponentTraitList: {
+      items: components['schemas']['ComponentTrait'][];
+    };
+    /** @description Trait attached to a component */
+    ComponentTrait: {
+      /**
+       * @description Trait template name
+       * @example autoscaler
+       */
       name: string;
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
-    };
-    CreateComponentReleaseRequest: {
-      releaseName?: string;
-    };
-    ReleaseBindingResponse: {
-      name: string;
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environment: string;
-      releaseName: string;
-      componentTypeEnvOverrides?: {
+      /**
+       * @description Instance name for this trait attachment
+       * @example my-autoscaler
+       */
+      instanceName: string;
+      /** @description Trait parameters */
+      parameters?: {
         [key: string]: unknown;
       };
-      traitOverrides?: {
-        [key: string]: unknown;
-      };
-      workloadOverrides?: components['schemas']['WorkloadOverrides'];
-      /** Format: date-time */
-      createdAt: string;
-      status?: string;
     };
-    PatchReleaseBindingRequest: {
-      releaseName?: string;
-      environment?: string;
-      componentTypeEnvOverrides?: {
-        [key: string]: unknown;
-      };
-      traitOverrides?: {
-        [key: string]: unknown;
-      };
-      workloadOverrides?: components['schemas']['WorkloadOverrides'];
+    /** @description Paginated list of component releases */
+    ComponentReleaseList: {
+      items: components['schemas']['ComponentRelease'][];
+      pagination: components['schemas']['Pagination'];
     };
+    /** @description ComponentRelease resource — immutable snapshot of a Component at release time (Kubernetes object without kind/apiVersion). */
+    ComponentRelease: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ComponentRelease (immutable once created) */
+      spec?: {
+        /** @description Identifies the component and project this release belongs to */
+        owner: {
+          /** @example my-project */
+          projectName: string;
+          /** @example api-service */
+          componentName: string;
+        };
+        /** @description Immutable snapshot of the ComponentType spec at release time */
+        componentType: {
+          [key: string]: unknown;
+        };
+        /** @description Immutable snapshot of trait specs at release time (keyed by trait name) */
+        traits?: {
+          [key: string]: unknown;
+        };
+        /** @description Snapshot of component parameter values and trait configs at release time */
+        componentProfile?: {
+          parameters?: {
+            [key: string]: unknown;
+          };
+          traits?: components['schemas']['ComponentTrait'][];
+        };
+        /** @description Immutable snapshot of the Workload spec at release time (with built image) */
+        workload: {
+          [key: string]: unknown;
+        };
+      };
+      /** @description Observed state of the ComponentRelease */
+      status?: Record<string, never>;
+    };
+    /** @description Paginated list of release bindings */
+    ReleaseBindingList: {
+      items: components['schemas']['ReleaseBinding'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description ReleaseBinding resource — binds a ComponentRelease to an Environment (Kubernetes object without kind/apiVersion). */
+    ReleaseBinding: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the ReleaseBinding */
+      spec?: {
+        /** @description Identifies the component and project this binding belongs to */
+        owner: {
+          /** @example my-project */
+          projectName: string;
+          /** @example api-service */
+          componentName: string;
+        };
+        /**
+         * @description Target environment name (immutable once set)
+         * @example dev
+         */
+        environment: string;
+        /**
+         * @description Name of the ComponentRelease to bind
+         * @example api-service-abc1234
+         */
+        releaseName?: string;
+        /** @description Environment-specific ComponentType parameter overrides */
+        componentTypeEnvOverrides?: {
+          [key: string]: unknown;
+        };
+        /** @description Environment-specific trait overrides keyed by instanceName */
+        traitOverrides?: {
+          [key: string]: unknown;
+        };
+        workloadOverrides?: components['schemas']['WorkloadOverrides'];
+        /**
+         * @description Controls whether resources are deployed or undeployed
+         * @default Active
+         * @example Active
+         * @enum {string}
+         */
+        state: 'Active' | 'Undeploy';
+      };
+      /** @description Observed state of the ReleaseBinding */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+        /** @description Resolved invoke URLs for each named workload endpoint */
+        endpoints?: {
+          /**
+           * @description Endpoint name
+           * @example http
+           */
+          name?: string;
+          /**
+           * @description Resolved public URL
+           * @example https://api.example.com
+           */
+          invokeURL?: string;
+        }[];
+      };
+    };
+    /** @description Environment-specific workload overrides */
     WorkloadOverrides: {
+      /** @description Container overrides keyed by container name */
       containers?: {
         [key: string]: components['schemas']['ContainerOverride'];
       };
     };
+    /** @description Container-level overrides */
     ContainerOverride: {
       env?: components['schemas']['EnvVar'][];
       files?: components['schemas']['FileVar'][];
     };
-    FileVar: {
-      key: string;
-      mountPath: string;
-      value?: string;
-      valueFrom?: components['schemas']['EnvVarValueFrom'];
-    };
-    DeployReleaseRequest: {
-      releaseName: string;
-    };
+    /** @description Environment variable */
     EnvVar: {
+      /**
+       * @description Variable key/name
+       * @example DATABASE_URL
+       */
       key: string;
+      /**
+       * @description Variable value
+       * @example postgres://localhost:5432/db
+       */
       value?: string;
       valueFrom?: components['schemas']['EnvVarValueFrom'];
     };
+    /** @description Value source reference */
     EnvVarValueFrom: {
-      secretRef?: components['schemas']['SecretKeyRef'];
-    };
-    SecretKeyRef: {
-      name: string;
-      key: string;
-    };
-    Container: {
-      image: string;
-      command?: string[];
-      args?: string[];
-      env?: components['schemas']['EnvVar'][];
-    };
-    WorkloadEndpoint: {
-      /**
-       * @description Access scope for the endpoint.
-       * @enum {string}
-       */
-      visibility: 'project' | 'namespace' | 'internal' | 'external';
-      /** @enum {string} */
-      type: 'TCP' | 'UDP' | 'HTTP' | 'REST' | 'gRPC' | 'Websocket' | 'GraphQL';
-      port: number;
-      schema?: components['schemas']['Schema'];
-    };
-    Connection: {
-      inject?: components['schemas']['ConnectionInject'];
-      params: components['schemas']['ConnectionParams'];
-      type: string;
-    };
-    WorkloadOwner: {
-      projectName: string;
-      componentName: string;
-    };
-    ConnectionParams: {
-      componentName: string;
-      endpoint: string;
-      projectName: string;
-    };
-    ConnectionInject: {
-      env?: components['schemas']['ConnectionInjectEnv'][];
-    };
-    ConnectionInjectEnv: {
-      name: string;
-      value: string;
-    };
-    Schema: {
-      type?: string;
-      content?: string;
-    };
-    ReleaseResponse: {
-      spec: components['schemas']['ReleaseSpec'];
-      status: components['schemas']['ReleaseStatus'];
-    };
-    ReleaseSpec: {
-      owner: components['schemas']['ReleaseOwner'];
-      environmentName: string;
-      resources?: components['schemas']['Resource'][];
-      /** @description Watch interval for release resources when stable (default 5m) */
-      interval?: string;
-      /** @description Watch interval for release resources when transitioning (default 10s) */
-      progressingInterval?: string;
-    };
-    ReleaseStatus: {
-      resources?: components['schemas']['ResourceStatus'][];
-      conditions?: components['schemas']['Condition'][];
-    };
-    ReleaseOwner: {
-      projectName: string;
-      componentName: string;
-    };
-    Resource: {
-      /** @description Unique identifier for the resource */
-      id: string;
-      /** @description Complete Kubernetes resource definition */
-      object: {
-        [key: string]: unknown;
+      /** @description Secret reference */
+      secretRef?: {
+        /** @description Secret name */
+        name?: string;
+        /** @description Secret key */
+        key?: string;
       };
     };
-    ResourceStatus: {
-      id: string;
-      /** @description API group of the resource (empty for core resources) */
-      group?: string;
-      version: string;
-      kind: string;
-      name: string;
-      /** @description Namespace (empty for cluster-scoped resources) */
-      namespace?: string;
-      /** @description Entire .status field of the resource */
+    /** @description File mount variable */
+    FileVar: {
+      /**
+       * @description File key/name
+       * @example config.yaml
+       */
+      key: string;
+      /**
+       * @description Mount path in container
+       * @example /app/config
+       */
+      mountPath: string;
+      /** @description File content */
+      value?: string;
+      valueFrom?: components['schemas']['EnvVarValueFrom'];
+    };
+    /** @description Deployed release with Kubernetes resources */
+    Release: {
+      /** @description Release specification */
+      spec?: {
+        /** @description Kubernetes resources in this release */
+        resources?: {
+          [key: string]: unknown;
+        }[];
+      };
+      /** @description Release status */
       status?: {
         [key: string]: unknown;
       };
-      /** @enum {string} */
-      healthStatus?:
-        | 'Unknown'
-        | 'Progressing'
-        | 'Healthy'
-        | 'Suspended'
-        | 'Degraded';
-      /** Format: date-time */
-      lastObservedTime?: string;
     };
-    Condition: {
-      type: string;
-      /** @enum {string} */
-      status: 'True' | 'False' | 'Unknown';
-      /** Format: int64 */
-      observedGeneration?: number;
-      /** Format: date-time */
-      lastTransitionTime: string;
-      reason?: string;
-      message?: string;
+    /** @description Request to deploy a release */
+    DeployReleaseRequest: {
+      /**
+       * @description Component release name to deploy
+       * @example v1.0.0
+       */
+      releaseName: string;
     };
-    UpdateComponentWorkflowRequest: {
-      /** @description Name of the workflow to initialize (optional, required for initialization) */
-      workflowName?: string;
-      systemParameters?: components['schemas']['ComponentWorkflowSystemParams'];
-      /** @description Developer-defined workflow parameters as arbitrary JSON */
-      parameters?: {
-        [key: string]: unknown;
-      };
+    /** @description Request to promote a component between environments */
+    PromoteComponentRequest: {
+      /**
+       * @description Source environment name
+       * @example dev
+       */
+      sourceEnv: string;
+      /**
+       * @description Target environment name
+       * @example staging
+       */
+      targetEnv: string;
     };
-    ComponentWorkflowSystemParams: {
-      repository: components['schemas']['ComponentWorkflowRepository'];
+    /** @description Simple message response */
+    MessageResponse: {
+      /**
+       * @description Response message
+       * @example Operation completed successfully
+       */
+      message: string;
     };
-    ComponentWorkflowRepository: {
-      url: string;
-      revision: components['schemas']['ComponentWorkflowRepositoryRevision'];
-      appPath?: string;
+    /** @description Authorization role with permitted actions */
+    Role: {
+      /**
+       * @description Unique role name
+       * @example admin
+       */
+      name: string;
+      /**
+       * @description List of actions this role permits
+       * @example [
+       *       "read",
+       *       "write",
+       *       "delete"
+       *     ]
+       */
+      actions: string[];
+      /**
+       * @description Namespace for namespace-scoped roles, empty for cluster roles
+       * @example my-namespace
+       */
+      namespace?: string;
+      /**
+       * @description Human-readable description of the role
+       * @example Full administrative access
+       */
+      description?: string;
     };
-    ComponentWorkflowRepositoryRevision: {
-      branch: string;
-      commit?: string;
+    /** @description Request to update a role's actions */
+    UpdateRoleRequest: {
+      /**
+       * @description New list of actions for the role
+       * @example [
+       *       "read",
+       *       "write"
+       *     ]
+       */
+      actions: string[];
     };
-    /** @enum {string} */
-    SubjectType: 'user' | 'service_account';
-    /** @enum {string} */
-    PolicyEffectType: 'allow' | 'deny';
+    /** @description Entitlement with claim and value */
     Entitlement: {
+      /**
+       * @description JWT claim name
+       * @example group
+       */
       claim: string;
+      /**
+       * @description Entitlement value
+       * @example admin-group
+       */
       value: string;
     };
-    AuthzResourceHierarchy: {
+    /** @description Resource hierarchy scope */
+    ResourceHierarchy: {
+      /**
+       * @description Namespace name
+       * @example my-namespace
+       */
       namespace?: string;
+      /**
+       * @description Project name
+       * @example my-project
+       */
       project?: string;
+      /**
+       * @description Component name
+       * @example api-service
+       */
       component?: string;
     };
-    ClusterRole: {
-      /** @description Name of the cluster role */
-      name: string;
-      /** @description List of actions granted by this role */
-      actions: string[];
-      /** @description Optional description of the role */
-      description?: string;
-    };
-    NamespaceRole: {
-      /** @description Name of the namespace role */
-      name: string;
-      /** @description Namespace this role belongs to */
-      namespace: string;
-      /** @description List of actions granted by this role */
-      actions: string[];
-      /** @description Optional description of the role */
-      description?: string;
-    };
-    ClusterRoleBinding: {
-      /** @description Name of the cluster role binding */
-      name: string;
-      role: {
-        /** @description Name of the cluster role to bind */
-        name: string;
-      };
-      entitlement: components['schemas']['Entitlement'];
-      effect: components['schemas']['PolicyEffectType'];
-    };
-    ClusterRoleBindingRequest: {
-      /** @description Name of the cluster role binding */
-      name: string;
-      /** @description Name of the cluster role to bind */
-      role: string;
-      entitlement: {
-        /** @description The claim type (e.g., 'sub', 'email') */
-        claim: string;
-        /** @description The claim value to match */
-        value: string;
-      };
+    /** @description Target resource path within a namespace (project/component only) */
+    TargetPath: {
       /**
-       * @description Access control effect
+       * @description Project name
+       * @example my-project
+       */
+      project?: string;
+      /**
+       * @description Component name
+       * @example api-service
+       */
+      component?: string;
+    };
+    /** @description Additional context for authorization */
+    AuthzContext: {
+      [key: string]: unknown;
+    };
+    /** @description Mapping of a role to an entitlement within a scope */
+    RoleEntitlementMapping: {
+      /**
+       * @description Unique mapping name
+       * @example admin-binding
+       */
+      name: string;
+      role: components['schemas']['RoleRef'];
+      entitlement: components['schemas']['Entitlement'];
+      hierarchy: components['schemas']['ResourceHierarchy'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
        * @enum {string}
        */
       effect: 'allow' | 'deny';
-      /** @description Optional context information */
+      context?: components['schemas']['AuthzContext'];
+    };
+    /** @description Request to update a role mapping */
+    UpdateRoleMappingRequest: {
+      role: components['schemas']['RoleRef'];
+      entitlement: components['schemas']['Entitlement'];
+      hierarchy: components['schemas']['ResourceHierarchy'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+      context?: components['schemas']['AuthzContext'];
+    };
+    /** @description Authenticated subject context */
+    SubjectContext: {
+      /**
+       * @description Subject type
+       * @example user
+       * @enum {string}
+       */
+      type: 'user' | 'service_account';
+      /**
+       * @description Entitlement claim name
+       * @example group
+       */
+      entitlement_claim: string;
+      /**
+       * @description Entitlement values
+       * @example [
+       *       "admin-group",
+       *       "dev-group"
+       *     ]
+       */
+      entitlement_values: string[];
+    };
+    /** @description Resource for authorization evaluation */
+    Resource: {
+      /**
+       * @description Resource type
+       * @example component
+       */
+      type: string;
+      /**
+       * @description Resource ID
+       * @example api-service
+       */
+      id?: string;
+      hierarchy: components['schemas']['ResourceHierarchy'];
+    };
+    /** @description Single authorization evaluation request */
+    EvaluateRequest: {
+      subject_context: components['schemas']['SubjectContext'];
+      resource: components['schemas']['Resource'];
+      /**
+       * @description Action to evaluate
+       * @example read
+       */
+      action: string;
+      context?: components['schemas']['AuthzContext'];
+    };
+    /** @description Authorization decision */
+    Decision: {
+      /**
+       * @description Authorization result (true = allowed)
+       * @example true
+       */
+      decision: boolean;
+      /** @description Additional decision context */
       context?: {
+        /**
+         * @description Reason for the decision
+         * @example User has admin role
+         */
+        reason?: string;
+      };
+    };
+    /** @description Batch authorization evaluation request */
+    BatchEvaluateRequest: {
+      /** @description List of evaluation requests */
+      requests: components['schemas']['EvaluateRequest'][];
+    };
+    /** @description Batch authorization evaluation response */
+    BatchEvaluateResponse: {
+      /** @description List of decisions (in same order as requests) */
+      decisions: components['schemas']['Decision'][];
+    };
+    /** @description Capabilities for a specific action */
+    ActionCapability: {
+      /** @description Resources where action is allowed */
+      allowed?: components['schemas']['CapabilityResource'][];
+      /** @description Resources where action is denied */
+      denied?: components['schemas']['CapabilityResource'][];
+    };
+    /** @description Resource with permission details */
+    CapabilityResource: {
+      /**
+       * @description Full resource path
+       * @example namespace/acme/project/payment
+       */
+      path?: string;
+      /** @description Additional instance-level restrictions */
+      constraints?: {
         [key: string]: unknown;
       };
     };
-    NamespaceRoleBinding: {
-      /** @description Name of the namespace role binding */
-      name: string;
-      /** @description Namespace this binding belongs to */
-      namespace: string;
-      role: {
-        /** @description Name of the role to bind */
-        name: string;
-        /** @description Namespace of the role */
-        namespace?: string;
-      };
-      entitlement: components['schemas']['Entitlement'];
-      /** @description Hierarchy scope for the binding */
-      hierarchy?: {
-        /** @description Namespace scope of the binding */
-        namespace?: string;
-        /** @description Project name to scope the binding */
-        project?: string;
-        /** @description Component name to scope the binding */
-        component?: string;
-      };
-      effect: components['schemas']['PolicyEffectType'];
-    };
-    NamespaceRoleBindingRequest: {
-      /** @description Name of the namespace role binding */
-      name: string;
-      role: {
-        /** @description Name of the role to bind */
-        name: string;
-        /** @description Namespace of the role */
-        namespace: string;
-      };
-      entitlement: {
-        /** @description The claim type (e.g., 'sub', 'email') */
-        claim: string;
-        /** @description The claim value to match */
-        value: string;
-      };
-      /** @description Target path scope for the binding */
-      targetPath?: {
-        /** @description Project name to scope the binding */
-        project?: string;
-        /** @description Component name to scope the binding */
-        component?: string;
-      };
-      /**
-       * @description Access control effect
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-    };
-    EntitlementConfig: {
-      claim: string;
-      displayName: string;
-    };
-    AuthMechanismConfig: {
-      /** @description Authentication mechanism type (e.g., "jwt", "oauth2", "api_key") */
-      type: string;
-      entitlement: components['schemas']['EntitlementConfig'];
-    };
-    UserTypeConfig: {
-      type: components['schemas']['SubjectType'];
-      displayName: string;
-      priority: number;
-      authMechanisms: components['schemas']['AuthMechanismConfig'][];
-    };
-    Subject: {
-      jwt_token: string;
-    };
-    AuthzResource: {
-      type: string;
-      id?: string;
-      hierarchy: components['schemas']['AuthzResourceHierarchy'];
-    };
-    EvaluateRequest: {
-      subject: components['schemas']['Subject'];
-      resource: components['schemas']['AuthzResource'];
-      action: string;
-      context?: Record<string, never>;
-    };
-    BatchEvaluateRequest: {
-      requests: components['schemas']['EvaluateRequest'][];
-    };
-    DecisionContext: {
-      reason?: string;
-    };
-    Decision: {
-      decision: boolean;
-      context?: components['schemas']['DecisionContext'];
-    };
-    BatchEvaluateResponse: {
-      decisions: components['schemas']['Decision'][];
-    };
-    CapabilityResource: {
-      path: string;
-      constraints?: Record<string, never>;
-    };
-    ActionCapability: {
-      allowed?: components['schemas']['CapabilityResource'][];
-      denied?: components['schemas']['CapabilityResource'][];
-    };
-    SubjectContext: {
-      Type?: components['schemas']['SubjectType'];
-      EntitlementClaim?: string;
-      EntitlementValues?: string[];
-    };
+    /** @description User authorization profile response */
     UserCapabilitiesResponse: {
       user?: components['schemas']['SubjectContext'];
+      /** @description Map of action to capabilities */
       capabilities?: {
         [key: string]: components['schemas']['ActionCapability'];
       };
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description Time when capabilities were evaluated
+       * @example 2025-01-06T10:00:00Z
+       */
       evaluatedAt?: string;
     };
+    /** @description Reference to a cluster role by name only */
+    ClusterRoleRef: {
+      /**
+       * @description Cluster role name
+       * @example admin
+       */
+      name: string;
+    };
+    /** @description Reference to a role by name and namespace */
+    RoleRef: {
+      /**
+       * @description Role name
+       * @example developer
+       */
+      name: string;
+      /**
+       * @description Namespace for namespace-scoped roles, empty for cluster roles
+       * @example my-namespace
+       */
+      namespace?: string;
+    };
+    /** @description Request to create a cluster-scoped role */
+    CreateClusterRoleRequest: {
+      /**
+       * @description Unique cluster role name
+       * @example cluster-admin
+       */
+      name: string;
+      /**
+       * @description List of actions this role permits
+       * @example [
+       *       "read",
+       *       "write",
+       *       "delete"
+       *     ]
+       */
+      actions: string[];
+      /**
+       * @description Human-readable description of the role
+       * @example Full cluster administration access
+       */
+      description?: string;
+    };
+    /** @description Request to update a cluster role */
+    UpdateClusterRoleRequest: {
+      /**
+       * @description List of actions this role permits
+       * @example [
+       *       "read",
+       *       "write"
+       *     ]
+       */
+      actions: string[];
+      /**
+       * @description Human-readable description of the role
+       * @example Updated cluster admin role
+       */
+      description?: string;
+    };
+    /** @description Request to create a cluster-scoped role binding */
+    CreateClusterRoleBindingRequest: {
+      /**
+       * @description Unique cluster role binding name
+       * @example admin-binding
+       */
+      name: string;
+      entitlement: components['schemas']['Entitlement'];
+      /**
+       * @description Cluster role name
+       * @example admin
+       */
+      role: string;
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+    };
+    /** @description Request to update a cluster role binding */
+    UpdateClusterRoleBindingRequest: {
+      entitlement: components['schemas']['Entitlement'];
+      /**
+       * @description Cluster role name
+       * @example admin
+       */
+      role: string;
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+    };
+    /** @description Request to create a namespace-scoped role */
+    CreateNamespaceRoleRequest: {
+      /**
+       * @description Unique namespace role name
+       * @example developer
+       */
+      name: string;
+      /**
+       * @description List of actions this role permits
+       * @example [
+       *       "read",
+       *       "write"
+       *     ]
+       */
+      actions: string[];
+      /**
+       * @description Human-readable description of the role
+       * @example Developer access within namespace
+       */
+      description?: string;
+    };
+    /** @description Request to update a namespace role */
+    UpdateNamespaceRoleRequest: {
+      /**
+       * @description List of actions this role permits
+       * @example [
+       *       "read",
+       *       "write"
+       *     ]
+       */
+      actions: string[];
+      /**
+       * @description Human-readable description of the role
+       * @example Updated developer role
+       */
+      description?: string;
+    };
+    /** @description Request to create a namespace-scoped role binding */
+    CreateNamespaceRoleBindingRequest: {
+      /**
+       * @description Unique namespace role binding name
+       * @example developer-binding
+       */
+      name: string;
+      entitlement: components['schemas']['Entitlement'];
+      role: components['schemas']['RoleRef'];
+      targetPath?: components['schemas']['TargetPath'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+    };
+    /** @description Request to update a namespace role binding */
+    UpdateNamespaceRoleBindingRequest: {
+      entitlement: components['schemas']['Entitlement'];
+      role: components['schemas']['RoleRef'];
+      targetPath: components['schemas']['TargetPath'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+    };
+    /** @description Response after processing a webhook event */
     WebhookEventResponse: {
+      /**
+       * @description Whether the webhook was processed successfully
+       * @example true
+       */
       success: boolean;
+      /**
+       * @description Status message
+       * @example Webhook processed successfully
+       */
       message: string;
+      /**
+       * @description List of components affected by this webhook
+       * @example [
+       *       "api-service",
+       *       "web-app"
+       *     ]
+       */
       affectedComponents?: string[];
+      /**
+       * @description Number of builds triggered
+       * @example 2
+       */
       triggeredBuilds: number;
     };
-    VersionResponse: {
+    /** @description Paginated list of secret references */
+    SecretReferenceList: {
+      items: components['schemas']['SecretReference'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description SecretReference resource (Kubernetes object without kind/apiVersion). */
+    SecretReference: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the SecretReference */
+      spec?: {
+        /** @description Structure of the resulting Kubernetes Secret */
+        template: {
+          /**
+           * @description Kubernetes secret type
+           * @default Opaque
+           * @example Opaque
+           * @enum {string}
+           */
+          type:
+            | 'Opaque'
+            | 'kubernetes.io/dockerconfigjson'
+            | 'kubernetes.io/dockercfg'
+            | 'kubernetes.io/basic-auth'
+            | 'kubernetes.io/ssh-auth'
+            | 'kubernetes.io/tls'
+            | 'bootstrap.kubernetes.io/token';
+          /** @description Additional metadata for the generated secret */
+          metadata?: {
+            annotations?: {
+              [key: string]: string;
+            };
+            labels?: {
+              [key: string]: string;
+            };
+          };
+        };
+        /** @description Secret data sources mapping secret keys to external references */
+        data: components['schemas']['SecretDataSource'][];
+        /**
+         * @description Refresh interval for secret sync (e.g., "1h", "30m")
+         * @example 1h
+         */
+        refreshInterval?: string;
+      };
+      /** @description Observed state of the SecretReference */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+        /**
+         * Format: date-time
+         * @description Last time the secret was refreshed
+         * @example 2025-01-06T11:00:00Z
+         */
+        lastRefreshTime?: string;
+        /** @description Secret stores currently using this reference */
+        secretStores?: components['schemas']['SecretStoreReference'][];
+      };
+    };
+    /** @description Reference to a secret store */
+    SecretStoreReference: {
+      /**
+       * @description Secret store name
+       * @example vault-store
+       */
       name: string;
-      version: string;
-      gitRevision: string;
-      buildTime: string;
-      goOS: string;
-      goArch: string;
-      goVersion: string;
+      /**
+       * @description Secret store namespace
+       * @example my-namespace
+       */
+      namespace?: string;
+      /**
+       * @description Secret store kind
+       * @example SecretStore
+       */
+      kind: string;
+    };
+    /** @description Secret data source information */
+    SecretDataSource: {
+      /**
+       * @description Key in the Kubernetes secret
+       * @example database-password
+       */
+      secretKey: string;
+      remoteRef: components['schemas']['RemoteReference'];
+    };
+    /** @description Remote secret reference */
+    RemoteReference: {
+      /**
+       * @description Key in the external secret store
+       * @example prod/database/password
+       */
+      key: string;
+      /**
+       * @description Property within the secret
+       * @example password
+       */
+      property?: string;
+      /**
+       * @description Secret version
+       * @example 1
+       */
+      version?: string;
+    };
+    /** @description Paginated list of workloads */
+    WorkloadList: {
+      items: components['schemas']['Workload'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Workload resource defining source code for a component */
+    Workload: {
+      metadata: components['schemas']['ObjectMeta'];
+      /**
+       * @description Workload specification
+       * @example {
+       *       "containers": {
+       *         "main": {
+       *           "image": "registry.example.com/my-namespace/api:v1.0.0",
+       *           "ports": [
+       *             {
+       *               "containerPort": 8080
+       *             }
+       *           ]
+       *         }
+       *       },
+       *       "endpoints": [
+       *         {
+       *           "name": "http",
+       *           "port": 8080
+       *         }
+       *       ]
+       *     }
+       */
+      spec?: {
+        [key: string]: unknown;
+      };
+      /** @description Workload status */
+      status?: {
+        conditions?: components['schemas']['Condition'][];
+      };
+    };
+    /**
+     * @description Workload specification (source code definition)
+     * @example {
+     *       "containers": {
+     *         "main": {
+     *           "image": "registry.example.com/my-namespace/api:v1.0.0",
+     *           "ports": [
+     *             {
+     *               "containerPort": 8080
+     *             }
+     *           ]
+     *         }
+     *       },
+     *       "endpoints": [
+     *         {
+     *           "name": "http",
+     *           "port": 8080
+     *         }
+     *       ]
+     *     }
+     */
+    WorkloadSpec: {
+      [key: string]: unknown;
+    };
+    /** @description Paginated list of releases */
+    ReleaseList: {
+      items: components['schemas']['Release'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Paginated list of deployment pipelines */
+    DeploymentPipelineList: {
+      items: components['schemas']['DeploymentPipeline'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description DeploymentPipeline resource (Kubernetes object without kind/apiVersion). */
+    DeploymentPipeline: {
+      metadata: components['schemas']['ObjectMeta'];
+      /** @description Desired state of the DeploymentPipeline */
+      spec?: {
+        /** @description Promotion paths between environments */
+        promotionPaths?: components['schemas']['PromotionPath'][];
+      };
+      /** @description Observed state of the DeploymentPipeline */
+      status?: {
+        /** Format: int64 */
+        observedGeneration?: number;
+        conditions?: components['schemas']['Condition'][];
+      };
+    };
+    /** @description Promotion path between environments */
+    PromotionPath: {
+      /**
+       * @description Source environment name
+       * @example dev
+       */
+      sourceEnvironmentRef: string;
+      /** @description Target environments for promotion */
+      targetEnvironmentRefs: components['schemas']['TargetEnvironmentRef'][];
+    };
+    /** @description Target environment reference with approval settings */
+    TargetEnvironmentRef: {
+      /**
+       * @description Target environment name
+       * @example staging
+       */
+      name: string;
+      /**
+       * @description Whether promotion requires approval
+       * @example false
+       */
+      requiresApproval?: boolean;
+      /**
+       * @description Whether manual approval is required
+       * @example true
+       */
+      isManualApprovalRequired?: boolean;
     };
   };
-  responses: never;
-  parameters: never;
+  responses: {
+    /** @description Invalid request parameters */
+    BadRequest: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Invalid request: name is required",
+         *       "code": "BAD_REQUEST",
+         *       "details": [
+         *         {
+         *           "field": "name",
+         *           "message": "is required"
+         *         }
+         *       ]
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description Authentication required or token invalid */
+    Unauthorized: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Authentication required",
+         *       "code": "UNAUTHORIZED"
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description Insufficient permissions to access the resource */
+    Forbidden: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "You do not have permission to access this resource",
+         *       "code": "FORBIDDEN"
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description Resource not found */
+    NotFound: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Project 'my-project' not found",
+         *       "code": "NOT_FOUND"
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description Resource already exists */
+    Conflict: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Project 'my-project' already exists",
+         *       "code": "CONFLICT"
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+    /** @description Internal server error */
+    InternalError: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": "Internal server error",
+         *       "code": "INTERNAL_ERROR"
+         *     }
+         */
+        'application/json': components['schemas']['ErrorResponse'];
+      };
+    };
+  };
+  parameters: {
+    /** @description Namespace name */
+    NamespaceNameParam: string;
+    /** @description Project name */
+    ProjectNameParam: string;
+    /** @description Environment name */
+    EnvironmentNameParam: string;
+    /** @description Environment name for component-scoped operations */
+    ComponentEnvironmentNameParam: string;
+    /** @description DataPlane name */
+    DataPlaneNameParam: string;
+    /** @description ClusterDataPlane name */
+    ClusterDataPlaneNameParam: string;
+    /** @description ComponentType name */
+    ComponentTypeNameParam: string;
+    /** @description Trait name */
+    TraitNameParam: string;
+    /** @description Workflow name */
+    WorkflowNameParam: string;
+    /** @description ComponentWorkflow name */
+    ComponentWorkflowNameParam: string;
+    /** @description Component name */
+    ComponentNameParam: string;
+    /** @description Workflow run name */
+    WorkflowRunNameParam: string;
+    /** @description Binding name */
+    BindingNameParam: string;
+    /** @description Release name */
+    ReleaseNameParam: string;
+    /** @description Role name */
+    RoleNameParam: string;
+    /** @description Role mapping ID */
+    MappingIdParam: number;
+    /** @description Maximum number of items to return per page */
+    LimitParam: number;
+    /**
+     * @description Opaque pagination cursor from a previous response.
+     *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+     */
+    CursorParam: string;
+    /** @description Filter by project name */
+    ProjectQueryParam: string;
+    /** @description Filter by component name */
+    ComponentQueryParam: string;
+    /** @description Filter by environment name */
+    EnvironmentQueryParam: string;
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  health: {
+  getHealth: {
     parameters: {
       query?: never;
       header?: never;
@@ -2327,7 +3946,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Service is healthy */
+      /** @description Server is healthy */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2338,7 +3957,7 @@ export interface operations {
       };
     };
   };
-  ready: {
+  getReady: {
     parameters: {
       query?: never;
       header?: never;
@@ -2347,7 +3966,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Service is ready */
+      /** @description Server is ready */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2367,7 +3986,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Server version information */
+      /** @description Version information */
       200: {
         headers: {
           [name: string]: unknown;
@@ -2376,6 +3995,3454 @@ export interface operations {
           'application/json': components['schemas']['VersionResponse'];
         };
       };
+    };
+  };
+  getOpenAPISpec: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OpenAPI specification */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': Record<string, never>;
+        };
+      };
+    };
+  };
+  getOAuthProtectedResourceMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OAuth protected resource metadata */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['OAuthProtectedResourceMetadata'];
+        };
+      };
+    };
+  };
+  getOpenIDConfiguration: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OpenID configuration */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClientConfigList'];
+        };
+      };
+    };
+  };
+  listNamespaces: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of namespaces */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['NamespaceList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Namespace'];
+      };
+    };
+    responses: {
+      /** @description Namespace created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Namespace'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      /** @description Namespace already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      500: components['responses']['InternalError'];
+    };
+  };
+  getNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Namespace'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Namespace'];
+      };
+    };
+    responses: {
+      /** @description Namespace updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Namespace'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listProjects: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of projects */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProjectList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Project'];
+      };
+    };
+    responses: {
+      /** @description Project created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Project'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Project'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Project'];
+      };
+    };
+    responses: {
+      /** @description Project updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Project'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteProject: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Project deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listComponents: {
+    parameters: {
+      query?: {
+        /** @description Filter by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of components */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Component'];
+      };
+    };
+    responses: {
+      /** @description Component created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Component'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listEnvironments: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of environments */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['EnvironmentList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Environment'];
+      };
+    };
+    responses: {
+      /** @description Environment created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Environment'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Environment details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Environment'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Environment'];
+      };
+    };
+    responses: {
+      /** @description Environment updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Environment'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Environment deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getEnvironmentObserverURL: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Observer URL information */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObserverURLResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getRCAAgentURL: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description RCA agent URL information */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RCAAgentURLResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listDataPlanes: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of data planes */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DataPlaneList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DataPlane'];
+      };
+    };
+    responses: {
+      /** @description DataPlane created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DataPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description DataPlane name */
+        dpName: components['parameters']['DataPlaneNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description DataPlane details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DataPlane'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description DataPlane name */
+        dpName: components['parameters']['DataPlaneNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DataPlane'];
+      };
+    };
+    responses: {
+      /** @description DataPlane updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DataPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description DataPlane name */
+        dpName: components['parameters']['DataPlaneNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description DataPlane deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listBuildPlanes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of build planes */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BuildPlaneList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BuildPlane'];
+      };
+    };
+    responses: {
+      /** @description BuildPlane created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BuildPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description BuildPlane name */
+        bpName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description BuildPlane details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BuildPlane'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description BuildPlane name */
+        bpName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BuildPlane'];
+      };
+    };
+    responses: {
+      /** @description BuildPlane updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BuildPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description BuildPlane name */
+        bpName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description BuildPlane deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listObservabilityPlanes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of observability planes */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityPlaneList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ObservabilityPlane'];
+      };
+    };
+    responses: {
+      /** @description ObservabilityPlane created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ObservabilityPlane name */
+        opName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ObservabilityPlane details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityPlane'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ObservabilityPlane name */
+        opName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ObservabilityPlane'];
+      };
+    };
+    responses: {
+      /** @description ObservabilityPlane updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ObservabilityPlane name */
+        opName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ObservabilityPlane deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listClusterDataPlanes: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster data planes */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterDataPlaneList'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterDataPlane'];
+      };
+    };
+    responses: {
+      /** @description ClusterDataPlane created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterDataPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterDataPlane name */
+        cdpName: components['parameters']['ClusterDataPlaneNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterDataPlane details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterDataPlane'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterDataPlane name */
+        cdpName: components['parameters']['ClusterDataPlaneNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterDataPlane'];
+      };
+    };
+    responses: {
+      /** @description ClusterDataPlane updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterDataPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterDataPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterDataPlane name */
+        cdpName: components['parameters']['ClusterDataPlaneNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterDataPlane deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listClusterBuildPlanes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster build planes */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterBuildPlaneList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterBuildPlane'];
+      };
+    };
+    responses: {
+      /** @description ClusterBuildPlane created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterBuildPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterBuildPlane name */
+        cbpName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterBuildPlane details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterBuildPlane'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterBuildPlane name */
+        cbpName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterBuildPlane'];
+      };
+    };
+    responses: {
+      /** @description ClusterBuildPlane updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterBuildPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterBuildPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterBuildPlane name */
+        cbpName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterBuildPlane deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listClusterObservabilityPlanes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster observability planes */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterObservabilityPlaneList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterObservabilityPlane'];
+      };
+    };
+    responses: {
+      /** @description ClusterObservabilityPlane created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterObservabilityPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterObservabilityPlane name */
+        copName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterObservabilityPlane details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterObservabilityPlane'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterObservabilityPlane name */
+        copName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterObservabilityPlane'];
+      };
+    };
+    responses: {
+      /** @description ClusterObservabilityPlane updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterObservabilityPlane'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterObservabilityPlane: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterObservabilityPlane name */
+        copName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterObservabilityPlane deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listComponentTypes: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of component types */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentTypeList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ComponentType name */
+        ctName: components['parameters']['ComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component type schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listTraits: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of traits */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TraitList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getTraitSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Trait name */
+        traitName: components['parameters']['TraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Trait schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listWorkflows: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of workflows */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Workflow'];
+      };
+    };
+    responses: {
+      /** @description Workflow created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workflow'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow name */
+        workflowName: components['parameters']['WorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workflow'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow name */
+        workflowName: components['parameters']['WorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Workflow'];
+      };
+    };
+    responses: {
+      /** @description Workflow updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Workflow'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow name */
+        workflowName: components['parameters']['WorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getWorkflowSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow name */
+        workflowName: components['parameters']['WorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listWorkflowRuns: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of workflow runs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRunList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WorkflowRun'];
+      };
+    };
+    responses: {
+      /** @description Workflow run created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRun'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRun'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listComponentWorkflows: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of component workflows */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowTemplateList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentWorkflowSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ComponentWorkflow name */
+        cwName: components['parameters']['ComponentWorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component workflow schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Component'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Component'];
+      };
+    };
+    responses: {
+      /** @description Component updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Component'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listComponentReleases: {
+    parameters: {
+      query?: {
+        /** @description Filter by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /** @description Filter by component name */
+        component?: components['parameters']['ComponentQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of component releases */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentReleaseList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release name */
+        releaseName: components['parameters']['ReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component release details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentRelease'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteComponentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release name */
+        releaseName: components['parameters']['ReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component release deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentReleaseSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release name */
+        releaseName: components['parameters']['ReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component release schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listReleaseBindings: {
+    parameters: {
+      query?: {
+        /** @description Filter by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /** @description Filter by component name */
+        component?: components['parameters']['ComponentQueryParam'];
+        /** @description Filter by environment name */
+        environment?: components['parameters']['EnvironmentQueryParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of release bindings */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBindingList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Release binding created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Binding name */
+        bindingName: components['parameters']['BindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release binding details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Binding name */
+        bindingName: components['parameters']['BindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Release binding updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Binding name */
+        bindingName: components['parameters']['BindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release binding deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listReleases: {
+    parameters: {
+      query?: {
+        /** @description Filter by component name */
+        component?: components['parameters']['ComponentQueryParam'];
+        /** @description Filter by environment name */
+        environment?: components['parameters']['EnvironmentQueryParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of releases */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deployRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeployReleaseRequest'];
+      };
+    };
+    responses: {
+      /** @description Release deployed */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  promoteComponent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['PromoteComponentRequest'];
+      };
+    };
+    responses: {
+      /** @description Component promoted */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getBuildObserverURL: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Observer URL */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObserverURLResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateComponentWorkflowParameters: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateComponentWorkflowRequest'];
+      };
+    };
+    responses: {
+      /** @description Workflow parameters updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Component'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listComponentWorkflowRuns: {
+    parameters: {
+      query?: {
+        /** @description Filter by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /** @description Filter by component name */
+        component?: components['parameters']['ComponentQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of workflow runs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowRunList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createComponentWorkflowRun: {
+    parameters: {
+      query?: {
+        /** @description Specific git commit SHA to build (optional) */
+        commit?: string;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ComponentWorkflowRun'];
+      };
+    };
+    responses: {
+      /** @description Workflow run triggered */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowRun'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentWorkflowRun'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteComponentWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component workflow run deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listActions: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of actions */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': string[];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  evaluate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['EvaluateRequest'];
+      };
+    };
+    responses: {
+      /** @description Authorization decision */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Decision'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  batchEvaluate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BatchEvaluateRequest'];
+      };
+    };
+    responses: {
+      /** @description Authorization decisions */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BatchEvaluateResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getSubjectProfile: {
+    parameters: {
+      query?: {
+        /** @description Namespace scope */
+        namespace?: string;
+        /** @description Project scope */
+        project?: string;
+        /** @description Component scope */
+        component?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Subject profile */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserCapabilitiesResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listClusterRoles: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster roles */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateClusterRoleRequest'];
+      };
+    };
+    responses: {
+      /** @description Cluster role created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Cluster role name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster role details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Cluster role name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateClusterRoleRequest'];
+      };
+    };
+    responses: {
+      /** @description Cluster role updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Cluster role name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster role deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listClusterRoleBindings: {
+    parameters: {
+      query?: {
+        /** @description Filter by role name */
+        roleName?: string;
+        /** @description Filter by entitlement claim (must be used with value parameter) */
+        claim?: string;
+        /** @description Filter by entitlement value (must be used with claim parameter) */
+        value?: string;
+        /** @description filter by binding effect (allow or deny) */
+        effect?: 'allow' | 'deny';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster role bindings */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateClusterRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Cluster role binding created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Cluster role binding name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster role binding details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Cluster role binding name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateClusterRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Cluster role binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Cluster role binding name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster role binding deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listNamespaceRoles: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of namespace roles */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'][];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateNamespaceRoleRequest'];
+      };
+    };
+    responses: {
+      /** @description Namespace role created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Namespace role name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace role details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Namespace role name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateNamespaceRoleRequest'];
+      };
+    };
+    responses: {
+      /** @description Namespace role updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Role'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteNamespaceRole: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Namespace role name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace role deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listNamespaceRoleBindings: {
+    parameters: {
+      query?: {
+        /** @description Filter by role reference name */
+        roleName?: string;
+        /** @description Filter by role reference namespace (optional, for namespace-scoped roles) */
+        roleNamespace?: string;
+        /** @description Filter by entitlement claim (must be used with value parameter) */
+        claim?: string;
+        /** @description Filter by entitlement value (must be used with claim parameter) */
+        value?: string;
+        /** @description filter by binding effect (allow or deny) */
+        effect?: 'allow' | 'deny';
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of namespace role bindings */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'][];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateNamespaceRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Namespace role binding created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Namespace role binding name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace role binding details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Namespace role binding name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateNamespaceRoleBindingRequest'];
+      };
+    };
+    responses: {
+      /** @description Namespace role binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RoleEntitlementMapping'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteNamespaceRoleBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Namespace role binding name */
+        name: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace role binding deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listUserTypes: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of configured user types */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserTypeConfig'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
     };
   };
   handleGitHubWebhook: {
@@ -2399,11 +7466,12 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['WebhookEventResponse'];
-          };
+          'application/json': components['schemas']['WebhookEventResponse'];
         };
       };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
     };
   };
   handleGitLabWebhook: {
@@ -2427,11 +7495,12 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['WebhookEventResponse'];
-          };
+          'application/json': components['schemas']['WebhookEventResponse'];
         };
       };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
     };
   };
   handleBitbucketWebhook: {
@@ -2455,167 +7524,12 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['WebhookEventResponse'];
-          };
+          'application/json': components['schemas']['WebhookEventResponse'];
         };
       };
-    };
-  };
-  applyResource: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Resource applied successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
-      };
-      /** @description Resource created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
-      };
-    };
-  };
-  deleteResource: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Resource deleted successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
-      };
-    };
-  };
-  listNamespaces: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['NamespaceResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createNamespace: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateNamespaceRequest'];
-      };
-    };
-    responses: {
-      /** @description Namespace created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceResponse'];
-          };
-        };
-      };
-      /** @description Invalid input */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Namespace already exists */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getNamespace: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceResponse'];
-          };
-        };
-      };
-      /** @description Namespace not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      500: components['responses']['InternalError'];
     };
   };
   listSecretReferences: {
@@ -2623,2333 +7537,181 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        namespaceName: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Successful response */
+      /** @description List of secret references */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['SecretReferenceResponse'][];
-            };
-          };
+          'application/json': components['schemas']['SecretReferenceList'];
         };
       };
-      /** @description Namespace not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
-  listGitSecrets: {
+  createSecretReference: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['GitSecretResponse'][];
-            };
-          };
-        };
-      };
-      /** @description Namespace not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  createGitSecret: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateGitSecretRequest'];
+        'application/json': components['schemas']['SecretReference'];
       };
     };
     responses: {
-      /** @description Git secret created successfully */
+      /** @description SecretReference created successfully */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['GitSecretResponse'];
-          };
+          'application/json': components['schemas']['SecretReference'];
         };
       };
-      /** @description Invalid request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Git secret already exists */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
     };
   };
-  deleteGitSecret: {
+  getSecretReference: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        namespaceName: string;
-        secretName: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description SecretReference name */
+        secretRefName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Git secret deleted successfully */
+      /** @description SecretReference details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SecretReference'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateSecretReference: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description SecretReference name */
+        secretRefName: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SecretReference'];
+      };
+    };
+    responses: {
+      /** @description SecretReference updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SecretReference'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteSecretReference: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description SecretReference name */
+        secretRefName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description SecretReference deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      /** @description Git secret not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
-  listDataPlanes: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['DataPlaneResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createDataPlane: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateDataPlaneRequest'];
-      };
-    };
-    responses: {
-      /** @description Data plane created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['DataPlaneResponse'];
-          };
-        };
-      };
-    };
-  };
-  getDataPlane: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        dpName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['DataPlaneResponse'];
-          };
-        };
-      };
-    };
-  };
-  listEnvironments: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['EnvironmentResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createEnvironment: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateEnvironmentRequest'];
-      };
-    };
-    responses: {
-      /** @description Environment created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['EnvironmentResponse'];
-          };
-        };
-      };
-    };
-  };
-  getEnvironment: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        envName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['EnvironmentResponse'];
-          };
-        };
-      };
-    };
-  };
-  getEnvironmentObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        envName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ObserverUrlData'];
-          };
-        };
-      };
-      /** @description Environment or DataPlane not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getRCAAgentURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        envName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description RCA agent URL information */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['RCAAgentUrlData'];
-          };
-        };
-      };
-      /** @description Environment or RCA agent not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listBuildPlanes: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['BuildPlaneResponse'][];
-          };
-        };
-      };
-    };
-  };
-  listObservabilityPlanes: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ObservabilityPlaneResponse'][];
-          };
-        };
-      };
-    };
-  };
-  listComponentTypes: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['ComponentTypeResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createComponentTypeDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description ComponentType created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-      /** @description Invalid request body or validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not authorized to create ComponentType */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description ComponentType already exists */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentTypeSchema: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        ctName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description JSON Schema for the component type */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Component type not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentTypeDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        ctName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description Full Kubernetes CRD as unstructured JSON */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Component type not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateComponentTypeDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        ctName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Resource applied successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-    };
-  };
-  deleteComponentTypeDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        ctName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Resource deleted successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-      /** @description Component type not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listWorkflows: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['WorkflowResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  getWorkflowSchema: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        workflowName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description JSON Schema for the workflow */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Workflow not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getWorkflowDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        workflowName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description Full Kubernetes CRD as unstructured JSON */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Workflow not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateWorkflowDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        workflowName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Resource applied successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-    };
-  };
-  deleteWorkflowDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        workflowName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Resource deleted successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-      /** @description Workflow not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listComponentWorkflows: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['WorkflowResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createComponentWorkflowDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description ComponentWorkflow created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-      /** @description Invalid request body or validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not authorized to create ComponentWorkflow */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description ComponentWorkflow already exists */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentWorkflowSchema: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        cwName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description JSON Schema for the component workflow */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Component workflow not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentWorkflowDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        cwName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description Full Kubernetes CRD as unstructured JSON */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Component workflow not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateComponentWorkflowDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        cwName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Resource applied successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-    };
-  };
-  deleteComponentWorkflowDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        cwName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Resource deleted successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-      /** @description Component workflow not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listTraits: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['TraitResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createTraitDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Trait created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-      /** @description Invalid request body or validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Not authorized to create Trait */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Trait already exists */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getTraitSchema: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        traitName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description JSON Schema for the trait */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Trait not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getTraitDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        traitName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            /** @description Full Kubernetes CRD as unstructured JSON */
-            data?: {
-              [key: string]: unknown;
-            };
-          };
-        };
-      };
-      /** @description Trait not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateTraitDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        traitName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Resource applied successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-    };
-  };
-  deleteTraitDefinition: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        traitName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Resource deleted successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ResourceCRUDResponse'];
-          };
-        };
-      };
-      /** @description Trait not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listProjects: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['ProjectResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createProject: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateProjectRequest'];
-      };
-    };
-    responses: {
-      /** @description Project created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ProjectResponse'];
-          };
-        };
-      };
-    };
-  };
-  getProject: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ProjectResponse'];
-          };
-        };
-      };
-    };
-  };
-  deleteProject: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Project deleted successfully */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Project not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getProjectDeploymentPipeline: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['DeploymentPipelineResponse'];
-          };
-        };
-      };
-    };
-  };
-  listComponents: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['ComponentResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createComponent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateComponentRequest'];
-      };
-    };
-    responses: {
-      /** @description Component created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentResponse'];
-          };
-        };
-      };
-    };
-  };
-  getComponent: {
+  listWorkloads: {
     parameters: {
       query?: {
-        /** @description Additional resources to include in the response. Valid values are "type" and "workload". */
-        include?: string;
+        /** @description Filter by project name */
+        project?: components['parameters']['ProjectQueryParam'];
+        /** @description Filter by component name */
+        component?: components['parameters']['ComponentQueryParam'];
       };
       header?: never;
       path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Successful response */
+      /** @description List of workloads */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentResponse'];
-          };
+          'application/json': components['schemas']['WorkloadList'];
         };
       };
-    };
-  };
-  deleteComponent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Component deleted successfully */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Component or project not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  patchComponent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PatchComponentRequest'];
-      };
-    };
-    responses: {
-      /** @description Component successfully patched */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentResponse'];
-          };
-        };
-      };
-      /** @description Bad request - invalid input */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Component or project not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentSchema: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentSchemaResponse'];
-          };
-        };
-      };
-      /** @description Component not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listComponentTraits: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'];
-            totalCount?: number;
-            page?: number;
-            pageSize?: number;
-          };
-        };
-      };
-      /** @description Bad request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Component not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateComponentTraits: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UpdateComponentTraitsRequest'];
-      };
-    };
-    responses: {
-      /** @description Traits updated successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'];
-            totalCount?: number;
-            page?: number;
-            pageSize?: number;
-          };
-        };
-      };
-      /** @description Bad request */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Component or trait not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateComponentWorkflowParameters: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UpdateComponentWorkflowRequest'];
-      };
-    };
-    responses: {
-      /** @description Workflow parameters updated successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentResponse'];
-          };
-        };
-      };
-    };
-  };
-  listComponentWorkflowRuns: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['ComponentWorkflowRunResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createComponentWorkflowRun: {
-    parameters: {
-      query?: {
-        /** @description Git commit SHA (7-40 hexadecimal characters) */
-        commit?: string;
-      };
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Component workflow run created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentWorkflowRunResponse'];
-          };
-        };
-      };
-      /** @description Invalid commit SHA format */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentWorkflowRun: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        runName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentWorkflowRunResponse'];
-          };
-        };
-      };
-      /** @description Component workflow run not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentWorkflowRunStatus: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        runName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Workflow run status */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentWorkflowRunStatusResponse'];
-          };
-        };
-      };
-      /** @description Unauthorized */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Component workflow run not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentWorkflowRunLogs: {
-    parameters: {
-      query?: {
-        /** @description Filter logs by specific workflow step name */
-        step?: string;
-        /** @description Only return logs from the last N seconds. If not specified, all available logs are returned.
-         *     This is useful for getting recent logs from long-running workflows.
-         *      */
-        sinceSeconds?: number;
-      };
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        runName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Workflow run logs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
-        };
-      };
-      /** @description Unauthorized */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Component workflow run not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentWorkflowRunEvents: {
-    parameters: {
-      query?: {
-        /** @description Filter events by specific workflow step name */
-        step?: string;
-      };
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        runName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Workflow run events */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ComponentWorkflowRunEventEntry'][];
-        };
-      };
-      /** @description Unauthorized */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Forbidden */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Component workflow run not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getComponentBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['BindingResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  updateComponentBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        bindingName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UpdateBindingRequest'];
-      };
-    };
-    responses: {
-      /** @description Binding updated successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
-      };
-    };
-  };
-  listComponentReleases: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['ComponentReleaseResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  createComponentRelease: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateComponentReleaseRequest'];
-      };
-    };
-    responses: {
-      /** @description Component release created successfully */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentReleaseResponse'];
-          };
-        };
-      };
-    };
-  };
-  getComponentRelease: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        releaseName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentReleaseResponse'];
-          };
-        };
-      };
-    };
-  };
-  getComponentReleaseSchema: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        releaseName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ComponentSchemaResponse'];
-          };
-        };
-      };
-      /** @description Component release not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listReleaseBindings: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['ReleaseBindingResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  patchReleaseBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        bindingName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PatchReleaseBindingRequest'];
-      };
-    };
-    responses: {
-      /** @description Release binding updated successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
-      };
-    };
-  };
-  deployRelease: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['DeployReleaseRequest'];
-      };
-    };
-    responses: {
-      /** @description Release deployed successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'];
-        };
-      };
-    };
-  };
-  promoteComponent: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['PromoteComponentRequest'];
-      };
-    };
-    responses: {
-      /** @description Component promoted successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ListResponse'] & {
-              items?: components['schemas']['BindingResponse'][];
-            };
-          };
-        };
-      };
-    };
-  };
-  getComponentObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        environmentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ObserverUrlData'];
-          };
-        };
-      };
-    };
-  };
-  getBuildObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ObserverUrlData'];
-          };
-        };
-      };
-    };
-  };
-  getEnvironmentRelease: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        environmentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ReleaseResponse'];
-          };
-        };
-      };
-      /** @description Release not found for the specified environment */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getWorkloads: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['WorkloadResponse'];
-          };
-        };
-      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
   createWorkload: {
@@ -4957,725 +7719,275 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
+        'application/json': components['schemas']['Workload'];
       };
     };
     responses: {
       /** @description Workload created successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['WorkloadResponse'];
-          };
-        };
-      };
-    };
-  };
-  listActions: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: string[];
-          };
-        };
-      };
-    };
-  };
-  listClusterRoles: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRole'][];
-          };
-        };
-      };
-    };
-  };
-  createClusterRole: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ClusterRole'];
-      };
-    };
-    responses: {
-      /** @description Cluster role created */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRole'];
-          };
+          'application/json': components['schemas']['Workload'];
         };
       };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
-  getClusterRole: {
+  getWorkload: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        name: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workload name */
+        workloadName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Successful response */
+      /** @description Workload details */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRole'];
-          };
+          'application/json': components['schemas']['Workload'];
         };
       };
-      /** @description Cluster role not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
-  updateClusterRole: {
+  updateWorkload: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        name: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workload name */
+        workloadName: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': {
-          actions?: string[];
-          description?: string;
-        };
+        'application/json': components['schemas']['Workload'];
       };
     };
     responses: {
-      /** @description Cluster role updated */
+      /** @description Workload updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRole'];
-          };
+          'application/json': components['schemas']['Workload'];
         };
       };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
     };
   };
-  deleteClusterRole: {
+  deleteWorkload: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        name: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workload name */
+        workloadName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Cluster role deleted */
+      /** @description Workload deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      /** @description Cluster role not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
-  listNamespaceRoles: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRole'][];
-          };
-        };
-      };
-    };
-  };
-  createNamespaceRole: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NamespaceRole'];
-      };
-    };
-    responses: {
-      /** @description Namespace role created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRole'];
-          };
-        };
-      };
-    };
-  };
-  getNamespaceRole: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-        name: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRole'];
-          };
-        };
-      };
-      /** @description Namespace role not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateNamespaceRole: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-        name: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          actions?: string[];
-          description?: string;
-        };
-      };
-    };
-    responses: {
-      /** @description Namespace role updated */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRole'];
-          };
-        };
-      };
-    };
-  };
-  deleteNamespaceRole: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-        name: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Namespace role deleted */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Namespace role not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listClusterRoleBindings: {
+  listDeploymentPipelines: {
     parameters: {
       query?: {
-        roleName?: string;
-        claim?: string;
-        value?: string;
-        effect?: components['schemas']['PolicyEffectType'];
+        /** @description Filter by project name */
+        project?: components['parameters']['ProjectQueryParam'];
       };
       header?: never;
-      path?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Successful response */
+      /** @description List of deployment pipelines */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRoleBinding'][];
-          };
+          'application/json': components['schemas']['DeploymentPipelineList'];
         };
       };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
-  createClusterRoleBinding: {
+  createDeploymentPipeline: {
     parameters: {
       query?: never;
       header?: never;
-      path?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['ClusterRoleBindingRequest'];
+        'application/json': components['schemas']['DeploymentPipeline'];
       };
     };
     responses: {
-      /** @description Cluster role binding created */
+      /** @description DeploymentPipeline created successfully */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRoleBinding'];
-          };
+          'application/json': components['schemas']['DeploymentPipeline'];
         };
       };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
     };
   };
-  getClusterRoleBinding: {
+  getDeploymentPipeline: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        name: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description DeploymentPipeline name */
+        pipelineName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Successful response */
+      /** @description DeploymentPipeline details */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRoleBinding'];
-          };
+          'application/json': components['schemas']['DeploymentPipeline'];
         };
       };
-      /** @description Cluster role binding not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
-  updateClusterRoleBinding: {
+  updateDeploymentPipeline: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        name: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description DeploymentPipeline name */
+        pipelineName: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['ClusterRoleBindingRequest'];
+        'application/json': components['schemas']['DeploymentPipeline'];
       };
     };
     responses: {
-      /** @description Cluster role binding updated */
+      /** @description DeploymentPipeline updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ClusterRoleBinding'];
-          };
+          'application/json': components['schemas']['DeploymentPipeline'];
         };
       };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
     };
   };
-  deleteClusterRoleBinding: {
+  deleteDeploymentPipeline: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        name: string;
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description DeploymentPipeline name */
+        pipelineName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Cluster role binding deleted */
+      /** @description DeploymentPipeline deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      /** @description Cluster role binding not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listNamespaceRoleBindings: {
-    parameters: {
-      query?: {
-        roleName?: string;
-        roleNamespace?: string;
-        claim?: string;
-        value?: string;
-        effect?: components['schemas']['PolicyEffectType'];
-      };
-      header?: never;
-      path: {
-        namespace: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRoleBinding'][];
-          };
-        };
-      };
-    };
-  };
-  createNamespaceRoleBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NamespaceRoleBindingRequest'];
-      };
-    };
-    responses: {
-      /** @description Namespace role binding created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRoleBinding'];
-          };
-        };
-      };
-    };
-  };
-  getNamespaceRoleBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-        name: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRoleBinding'];
-          };
-        };
-      };
-      /** @description Namespace role binding not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  updateNamespaceRoleBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-        name: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NamespaceRoleBindingRequest'];
-      };
-    };
-    responses: {
-      /** @description Namespace role binding updated */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['NamespaceRoleBinding'];
-          };
-        };
-      };
-    };
-  };
-  deleteNamespaceRoleBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespace: string;
-        name: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Namespace role binding deleted */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Namespace role binding not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  listUserTypes: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['UserTypeConfig'][];
-          };
-        };
-      };
-    };
-  };
-  evaluate: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['EvaluateRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['Decision'];
-          };
-        };
-      };
-    };
-  };
-  batchEvaluate: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['BatchEvaluateRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['BatchEvaluateResponse'];
-          };
-        };
-      };
-    };
-  };
-  getSubjectProfile: {
-    parameters: {
-      query?: {
-        /** @description Namespace scope (optional, omit for global profile) */
-        namespace?: string;
-        /** @description Project name (optional) */
-        project?: string;
-        /** @description Component name (optional) */
-        component?: string;
-        /** @description Namespace units scope (optional) */
-        ou?: string[];
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['UserCapabilitiesResponse'];
-          };
-        };
-      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
     };
   };
 }

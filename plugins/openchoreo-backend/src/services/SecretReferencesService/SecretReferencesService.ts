@@ -1,12 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use the generated type from OpenAPI spec
 export type ModelsSecretReferences =
-  OpenChoreoComponents['schemas']['SecretReferenceResponse'];
+  OpenChoreoLegacyComponents['schemas']['SecretReferenceResponse'];
 
 export class SecretReferencesService {
   private logger: LoggerService;
@@ -26,7 +26,7 @@ export class SecretReferencesService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

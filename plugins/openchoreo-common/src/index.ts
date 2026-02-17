@@ -71,42 +71,44 @@ export type { OpenChoreoFeatures, FeatureName } from './types/features';
 
 // Re-export types from the generated OpenAPI client for use in frontend plugins
 export type {
-  OpenChoreoComponents,
+  OpenChoreoLegacyComponents,
   ObservabilityComponents,
   AIRCAAgentComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Export commonly used type aliases for convenience
 import type {
-  OpenChoreoComponents,
+  OpenChoreoLegacyComponents,
   ObservabilityComponents,
 } from '@openchoreo/openchoreo-client-node';
 
-export type ModelsBuild = OpenChoreoComponents['schemas']['BuildResponse'];
+export type ModelsBuild =
+  OpenChoreoLegacyComponents['schemas']['BuildResponse'];
 export type ModelsWorkload =
-  OpenChoreoComponents['schemas']['WorkloadResponse'];
+  OpenChoreoLegacyComponents['schemas']['WorkloadResponse'];
 export type ModelsCompleteComponent =
-  OpenChoreoComponents['schemas']['ComponentResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
 
 // Workload-related types
-export type Container = OpenChoreoComponents['schemas']['Container'];
-export type EnvVar = OpenChoreoComponents['schemas']['EnvVar'];
-export type FileVar = OpenChoreoComponents['schemas']['FileVar'];
+export type Container = OpenChoreoLegacyComponents['schemas']['Container'];
+export type EnvVar = OpenChoreoLegacyComponents['schemas']['EnvVar'];
+export type FileVar = OpenChoreoLegacyComponents['schemas']['FileVar'];
 export type WorkloadEndpoint =
-  OpenChoreoComponents['schemas']['WorkloadEndpoint'];
-export type Connection = OpenChoreoComponents['schemas']['Connection'];
-export type WorkloadOwner = OpenChoreoComponents['schemas']['WorkloadOwner'];
+  OpenChoreoLegacyComponents['schemas']['WorkloadEndpoint'];
+export type Connection = OpenChoreoLegacyComponents['schemas']['Connection'];
+export type WorkloadOwner =
+  OpenChoreoLegacyComponents['schemas']['WorkloadOwner'];
 export type ConnectionParams =
-  OpenChoreoComponents['schemas']['ConnectionParams'];
+  OpenChoreoLegacyComponents['schemas']['ConnectionParams'];
 export type ConnectionInject =
-  OpenChoreoComponents['schemas']['ConnectionInject'];
-export type Schema = OpenChoreoComponents['schemas']['Schema'];
+  OpenChoreoLegacyComponents['schemas']['ConnectionInject'];
+export type Schema = OpenChoreoLegacyComponents['schemas']['Schema'];
 
 // Workflow run / build logs status types
 export type WorkflowRunStatusResponse =
-  OpenChoreoComponents['schemas']['ComponentWorkflowRunStatusResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunStatusResponse'];
 export type WorkflowStepStatus =
-  OpenChoreoComponents['schemas']['WorkflowStepStatus'];
+  OpenChoreoLegacyComponents['schemas']['WorkflowStepStatus'];
 
 // Define WorkloadType as a string union since it's defined as enum in OpenAPI
 export type WorkloadType =

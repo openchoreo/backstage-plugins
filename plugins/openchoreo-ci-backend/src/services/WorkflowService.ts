@@ -1,8 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
+  createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
-  type OpenChoreoComponents,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 import {
   LogEntry,
@@ -12,23 +12,25 @@ import {
 
 // Use generated type from OpenAPI spec
 type ModelsBuild =
-  OpenChoreoComponents['schemas']['ComponentWorkflowRunResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
 
 // Type definitions matching the API response structures
-type WorkflowSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: {
-    [key: string]: unknown;
+type WorkflowSchemaResponse =
+  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
+    data?: {
+      [key: string]: unknown;
+    };
   };
-};
 
 type WorkflowRunStatusResponse =
-  OpenChoreoComponents['schemas']['ComponentWorkflowRunStatusResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunStatusResponse'];
 
-type WorkflowListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data: OpenChoreoComponents['schemas']['ListResponse'] & {
-    items: OpenChoreoComponents['schemas']['WorkflowResponse'][];
+type WorkflowListResponse =
+  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
+    data: OpenChoreoLegacyComponents['schemas']['ListResponse'] & {
+      items: OpenChoreoLegacyComponents['schemas']['WorkflowResponse'][];
+    };
   };
-};
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -63,7 +65,7 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -114,7 +116,7 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -161,7 +163,7 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -210,7 +212,7 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -263,7 +265,7 @@ export class WorkflowService {
 
     try {
       // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoApiClient({
+      const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -390,7 +392,7 @@ export class WorkflowService {
     try {
       if (hasLiveObservability) {
         // Use OpenChoreo API directly for recent workflow runs
-        const client = createOpenChoreoApiClient({
+        const client = createOpenChoreoLegacyApiClient({
           baseUrl: this.baseUrl,
           token,
           logger: this.logger,
@@ -436,7 +438,7 @@ export class WorkflowService {
 
       // Use observer API for older workflow runs
       // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoApiClient({
+      const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -561,7 +563,7 @@ export class WorkflowService {
     try {
       if (hasLiveObservability) {
         // Use OpenChoreo API directly for recent workflow runs
-        const client = createOpenChoreoApiClient({
+        const client = createOpenChoreoLegacyApiClient({
           baseUrl: this.baseUrl,
           token,
           logger: this.logger,
@@ -609,7 +611,7 @@ export class WorkflowService {
 
       // Use observer API for older workflow runs
       // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoApiClient({
+      const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -726,7 +728,7 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -778,7 +780,7 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -828,13 +830,13 @@ export class WorkflowService {
     systemParameters: { [key: string]: unknown },
     parameters?: { [key: string]: unknown },
     token?: string,
-  ): Promise<OpenChoreoComponents['schemas']['APIResponse']> {
+  ): Promise<OpenChoreoLegacyComponents['schemas']['APIResponse']> {
     this.logger.debug(
       `Updating workflow parameters for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

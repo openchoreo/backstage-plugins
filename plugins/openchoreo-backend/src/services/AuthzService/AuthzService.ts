@@ -1,21 +1,24 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Type definitions from the OpenAPI spec
-export type Entitlement = OpenChoreoComponents['schemas']['Entitlement'];
-export type UserTypeConfig = OpenChoreoComponents['schemas']['UserTypeConfig'];
+export type Entitlement = OpenChoreoLegacyComponents['schemas']['Entitlement'];
+export type UserTypeConfig =
+  OpenChoreoLegacyComponents['schemas']['UserTypeConfig'];
 
 // Response types
-type ActionsListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: string[];
-};
+type ActionsListResponse =
+  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
+    data?: string[];
+  };
 
-type UserTypesListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: UserTypeConfig[];
-};
+type UserTypesListResponse =
+  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
+    data?: UserTypeConfig[];
+  };
 
 // Helper to extract error message from API response
 function extractErrorMessage(
@@ -50,7 +53,7 @@ export class AuthzService {
   }
 
   private createClient(token?: string) {
-    return createOpenChoreoApiClient({
+    return createOpenChoreoLegacyApiClient({
       baseUrl: this.baseUrl,
       token,
       logger: this.logger,

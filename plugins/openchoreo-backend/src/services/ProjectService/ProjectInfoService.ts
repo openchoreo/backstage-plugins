@@ -1,13 +1,14 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use the generated types from OpenAPI spec
-export type ModelsProject = OpenChoreoComponents['schemas']['ProjectResponse'];
+export type ModelsProject =
+  OpenChoreoLegacyComponents['schemas']['ProjectResponse'];
 export type ModelsDeploymentPipeline =
-  OpenChoreoComponents['schemas']['DeploymentPipelineResponse'];
+  OpenChoreoLegacyComponents['schemas']['DeploymentPipelineResponse'];
 
 export class ProjectInfoService {
   private logger: LoggerService;
@@ -28,7 +29,7 @@ export class ProjectInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -76,7 +77,7 @@ export class ProjectInfoService {
       `Fetching deployment pipeline for project: ${projectName} in namespace: ${namespaceName}`,
     );
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -132,7 +133,7 @@ export class ProjectInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,

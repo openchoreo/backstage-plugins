@@ -1,12 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use the generated types from OpenAPI spec
 export type GitSecretResponse =
-  OpenChoreoComponents['schemas']['GitSecretResponse'];
+  OpenChoreoLegacyComponents['schemas']['GitSecretResponse'];
 
 export interface GitSecretListResponse {
   items: GitSecretResponse[];
@@ -31,7 +31,7 @@ export class GitSecretsService {
     this.logger.debug(`Listing git secrets for namespace: ${namespaceName}`);
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -89,7 +89,7 @@ export class GitSecretsService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -149,7 +149,7 @@ export class GitSecretsService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,

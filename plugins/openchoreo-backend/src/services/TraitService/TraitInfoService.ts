@@ -1,33 +1,35 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Type definitions matching the API response structure
-type TraitListResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: OpenChoreoComponents['schemas']['ListResponse'] & {
-    items?: OpenChoreoComponents['schemas']['TraitResponse'][];
+type TraitListResponse =
+  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
+    data?: OpenChoreoLegacyComponents['schemas']['ListResponse'] & {
+      items?: OpenChoreoLegacyComponents['schemas']['TraitResponse'][];
+    };
   };
-};
 
-type TraitSchemaResponse = OpenChoreoComponents['schemas']['APIResponse'] & {
-  data?: {
-    [key: string]: unknown;
+type TraitSchemaResponse =
+  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
+    data?: {
+      [key: string]: unknown;
+    };
   };
-};
 
 type ComponentTraitListResponse =
-  OpenChoreoComponents['schemas']['APIResponse'] & {
-    data?: OpenChoreoComponents['schemas']['ListResponse'] & {
-      items?: OpenChoreoComponents['schemas']['ComponentTraitResponse'][];
+  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
+    data?: OpenChoreoLegacyComponents['schemas']['ListResponse'] & {
+      items?: OpenChoreoLegacyComponents['schemas']['ComponentTraitResponse'][];
     };
   };
 
 export type ComponentTrait =
-  OpenChoreoComponents['schemas']['ComponentTraitResponse'];
+  OpenChoreoLegacyComponents['schemas']['ComponentTraitResponse'];
 export type UpdateComponentTraitsRequest =
-  OpenChoreoComponents['schemas']['UpdateComponentTraitsRequest'];
+  OpenChoreoLegacyComponents['schemas']['UpdateComponentTraitsRequest'];
 
 export class TraitInfoService {
   private logger: LoggerService;
@@ -49,7 +51,7 @@ export class TraitInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -100,7 +102,7 @@ export class TraitInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -148,7 +150,7 @@ export class TraitInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -201,7 +203,7 @@ export class TraitInfoService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,

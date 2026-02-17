@@ -1,6 +1,6 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoApiClient,
+  createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
 import {
@@ -51,7 +51,7 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -109,7 +109,7 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -164,7 +164,7 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -235,7 +235,7 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -286,7 +286,7 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -357,7 +357,7 @@ export class GenericWorkflowService {
       const runId = workflowRun.name || runName;
 
       // Get the observer URL from the environment
-      const mainClient = createOpenChoreoApiClient({
+      const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
