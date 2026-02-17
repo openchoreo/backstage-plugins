@@ -49,8 +49,8 @@ const useStyles = makeStyles(
         fontWeight: 'bold',
       },
     },
-    kindLabel: {
-      fontSize: '0.65rem',
+    kindBadgeText: {
+      fontSize: '0.6rem',
       fill: theme.palette.text.secondary,
       fontWeight: 500,
     },
@@ -78,13 +78,14 @@ export function CustomGraphNode({
   const isDark = theme.palette.type === 'dark';
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(0);
+  const [badgeWidth, setBadgeWidth] = useState(0);
   const idRef = useRef<SVGTextElement | null>(null);
+  const badgeRef = useRef<SVGTextElement | null>(null);
   const entityRefPresentationSnapshot = useEntityPresentation(entityObj, {
     defaultNamespace: DEFAULT_NAMESPACE,
   });
 
   useLayoutEffect(() => {
-    // Set the width to the length of the ID
     if (idRef.current) {
       let { height: renderedHeight, width: renderedWidth } =
         idRef.current.getBBox();
@@ -97,6 +98,15 @@ export function CustomGraphNode({
       }
     }
   }, [width, height]);
+
+  useLayoutEffect(() => {
+    if (badgeRef.current) {
+      const renderedWidth = Math.round(badgeRef.current.getBBox().width);
+      if (renderedWidth !== badgeWidth) {
+        setBadgeWidth(renderedWidth);
+      }
+    }
+  }, [badgeWidth]);
 
   const hasKindIcon = !!entityRefPresentationSnapshot.Icon;
   const padding = 10;
@@ -155,29 +165,60 @@ export function CustomGraphNode({
           className={clsx(classes.text, focused && 'focused')}
         />
       )}
+      {/* Kind badge — tab integrated into node top border */}
+      {kindLabel && (() => {
+        const badgePadX = 5;
+        const badgeH = 14;
+        const badgeX = accentWidth + 4;
+        const badgeY = -(badgeH / 2);
+        const badgeW = badgeWidth + badgePadX * 2;
+        const r = 4;
+        return (
+          <g>
+            {/* Fill covers badge area and node border beneath */}
+            <rect
+              x={badgeX + 0.75}
+              y={badgeY}
+              width={badgeW - 1.5}
+              height={badgeH / 2 + 1}
+              fill={tintFill}
+            />
+            {/* Open-bottom border (top + sides only) */}
+            <path
+              d={[
+                `M ${badgeX},0`,
+                `L ${badgeX},${badgeY + r}`,
+                `Q ${badgeX},${badgeY} ${badgeX + r},${badgeY}`,
+                `L ${badgeX + badgeW - r},${badgeY}`,
+                `Q ${badgeX + badgeW},${badgeY} ${badgeX + badgeW},${badgeY + r}`,
+                `L ${badgeX + badgeW},0`,
+              ].join(' ')}
+              fill="none"
+              stroke={borderColor}
+              strokeWidth={1.5}
+            />
+            <text
+              ref={badgeRef}
+              x={badgeX + badgePadX}
+              y={badgeY + badgeH / 2}
+              textAnchor="start"
+              dominantBaseline="central"
+              className={classes.kindBadgeText}
+            >
+              {kindLabel}
+            </text>
+          </g>
+        );
+      })()}
       <text
         ref={idRef}
         className={clsx(classes.text, focused && 'focused')}
         y={paddedHeight / 2}
-        x={accentWidth + paddedIconWidth + padding}
-        textAnchor="start"
+        x={accentWidth + paddedIconWidth + (width + padding * 2) / 2}
+        textAnchor="middle"
         alignmentBaseline="middle"
       >
-        {kindLabel && (
-          <tspan
-            x={accentWidth + paddedIconWidth + padding}
-            dy="-0.55em"
-            className={classes.kindLabel}
-          >
-            {kindLabel}
-          </tspan>
-        )}
-        <tspan
-          x={accentWidth + paddedIconWidth + padding}
-          dy={kindLabel ? '1.15em' : '0'}
-        >
-          {baseTitle}
-        </tspan>
+        {baseTitle}
       </text>
       <title>{entityRefPresentationSnapshot.entityRef}</title>
     </g>
