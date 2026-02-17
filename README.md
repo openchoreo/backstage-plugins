@@ -202,6 +202,25 @@ yarn build:all      # Build all packages
 yarn tsc            # TypeScript check
 ```
 
+### 6. Testing with Production Build
+
+Some issues only appear in production builds. It's recommended to periodically test with a production build to catch these early:
+
+- **CSS class name mangling**: Material-UI generates descriptive class names in development (e.g., `makeStyles-root-123`) but short, mangled names in production (e.g., `jss1`). Any custom CSS selectors that rely on development class name patterns will silently break in production.
+- **Stricter plugin initialization**: Some plugins start without issues when their configuration is missing in development mode, but fail at startup in production mode. For example, the Jenkins plugin tolerates missing config in dev but throws errors in production.
+
+```bash
+# Build all packages with production optimizations
+yarn build:all
+
+# Start the backend serving the production frontend bundle
+NODE_ENV=production yarn workspace backend start
+
+# Access at http://localhost:7007
+```
+
+**Note:** This still uses your local development config files (`app-config.yaml` + `app-config.local.yaml`), not `app-config.production.yaml`. The production build behavior (CSS minification, stricter plugin initialization) is determined by `NODE_ENV=production`, not by which config file is loaded.
+
 ## Plugin Development
 
 To develop individual plugins in isolation:
