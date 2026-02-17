@@ -1,12 +1,18 @@
-import { MouseEvent, useCallback, useEffect, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Page, Header, Content, HeaderTabs } from '@backstage/core-components';
+import { Page, Header, Content } from '@backstage/core-components';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
 import { catalogApiRef, entityRouteRef } from '@backstage/plugin-catalog-react';
 import { makeStyles } from '@material-ui/core/styles';
+import FormControl from '@material-ui/core/FormControl';
+import InputLabel from '@material-ui/core/InputLabel';
+import Select from '@material-ui/core/Select';
+import MenuItem from '@material-ui/core/MenuItem';
 import {
   PlatformOverviewGraphView,
-  ALL_VIEWS,
+  GraphKindFilter,
+  buildDynamicView,
+  APPLICATION_VIEW,
   type EntityNode,
 } from '@openchoreo/backstage-plugin-react';
 import { useQueryParams } from '@openchoreo/backstage-plugin';
@@ -17,9 +23,12 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
   },
+  namespaceSelector: {
+    minWidth: 160,
+  },
 });
 
-const tabs = ALL_VIEWS.map(view => ({ id: view.id, label: view.label }));
+const DEFAULT_KINDS = APPLICATION_VIEW.kinds;
 
 function useNamespaces() {
   const catalogApi = useApi(catalogApiRef);
@@ -45,17 +54,34 @@ function useNamespaces() {
 
 export function PlatformOverviewPage() {
   const classes = useStyles();
-  const [params, setParams] = useQueryParams<{ view: string; ns: string }>({
-    view: { defaultValue: 'application' },
+  const [params, setParams] = useQueryParams<{ kinds: string; ns: string }>({
+    kinds: {
+      defaultValue: DEFAULT_KINDS.join(','),
+    },
     ns: { defaultValue: 'default' },
   });
   const navigate = useNavigate();
   const catalogEntityRoute = useRouteRef(entityRouteRef);
   const namespaces = useNamespaces();
 
-  const activeTabIndex = Math.max(
-    0,
-    ALL_VIEWS.findIndex(v => v.id === params.view),
+  const selectedKinds = useMemo(
+    () =>
+      typeof params.kinds === 'string'
+        ? params.kinds.split(',').filter(Boolean)
+        : DEFAULT_KINDS,
+    [params.kinds],
+  );
+
+  const currentView = useMemo(
+    () => buildDynamicView(selectedKinds),
+    [selectedKinds],
+  );
+
+  const handleKindsChange = useCallback(
+    (kinds: string[]) => {
+      setParams({ kinds: kinds.join(',') });
+    },
+    [setParams],
   );
 
   const handleNodeClick = (node: EntityNode, _event: MouseEvent<unknown>) => {
@@ -71,19 +97,37 @@ export function PlatformOverviewPage() {
     <Page themeId="tool">
       <Header
         title="Platform Overview"
-        subtitle={ALL_VIEWS[activeTabIndex].description}
-      />
-      <HeaderTabs
-        selectedIndex={activeTabIndex}
-        onChange={index => setParams({ view: ALL_VIEWS[index].id })}
-        tabs={tabs}
+        subtitle={currentView.description}
       />
       <Content stretch noPadding className={classes.content}>
+        <GraphKindFilter
+          selectedKinds={selectedKinds}
+          onKindsChange={handleKindsChange}
+          leading={
+            <FormControl
+              variant="outlined"
+              size="small"
+              className={classes.namespaceSelector}
+            >
+              <InputLabel id="graph-namespace-label">Namespace</InputLabel>
+              <Select
+                labelId="graph-namespace-label"
+                label="Namespace"
+                value={params.ns}
+                onChange={e => setParams({ ns: e.target.value as string })}
+              >
+                {namespaces.map(ns => (
+                  <MenuItem key={ns} value={ns}>
+                    {ns}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          }
+        />
         <PlatformOverviewGraphView
-          view={ALL_VIEWS[activeTabIndex]}
+          view={currentView}
           namespace={params.ns}
-          namespaces={namespaces}
-          onNamespaceChange={ns => setParams({ ns })}
           onNodeClick={handleNodeClick}
         />
       </Content>
