@@ -1,0 +1,1 @@
+export { EntityNamespaceProvider } from './EntityNamespaceProvider';

@@ -32,6 +32,10 @@ import {
   OpenChoreoCiClient,
 } from '@openchoreo/backstage-plugin-openchoreo-ci';
 import {
+  genericWorkflowsClientApiRef,
+  GenericWorkflowsClient,
+} from '@openchoreo/backstage-plugin-openchoreo-workflows';
+import {
   catalogApiRef,
   entityPresentationApiRef,
 } from '@backstage/plugin-catalog-react';
@@ -209,6 +213,17 @@ export const apis: AnyApiFactory[] = [
         ],
         defaultRelationTypes: { exclude: [] },
       }),
+  }),
+
+  // Generic Workflows client - provides API for org-level workflow operations
+  createApiFactory({
+    api: genericWorkflowsClientApiRef,
+    deps: {
+      discoveryApi: discoveryApiRef,
+      fetchApi: fetchApiRef,
+    },
+    factory: ({ discoveryApi, fetchApi }) =>
+      new GenericWorkflowsClient(discoveryApi, fetchApi),
   }),
 
   // Custom EntityPresentationApi with icons for custom entity kinds

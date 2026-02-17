@@ -10788,6 +10788,7 @@ __metadata:
     "@backstage/core-components": "npm:0.18.1"
     "@backstage/core-plugin-api": "npm:1.11.0"
     "@backstage/dev-utils": "npm:1.1.14"
+    "@backstage/plugin-catalog-react": "npm:1.21.1"
     "@backstage/test-utils": "npm:1.7.11"
     "@backstage/theme": "npm:0.6.8"
     "@material-ui/core": "npm:4.12.4"

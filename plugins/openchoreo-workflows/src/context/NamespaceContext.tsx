@@ -1,4 +1,11 @@
-import { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useEffect,
+  ReactNode,
+} from 'react';
 
 interface NamespaceContextValue {
   selectedNamespace: string;
@@ -11,14 +18,23 @@ const NamespaceContext = createContext<NamespaceContextValue | undefined>(
 
 interface NamespaceProviderProps {
   children: ReactNode;
+  initialNamespace?: string;
 }
 
 /**
  * Provider component for the namespace context.
  * Wrap the workflows page with this to enable namespace selection.
  */
-export function NamespaceProvider({ children }: NamespaceProviderProps) {
-  const [selectedNamespace, setSelectedNamespace] = useState<string>('');
+export function NamespaceProvider({
+  children,
+  initialNamespace = '',
+}: NamespaceProviderProps) {
+  const [selectedNamespace, setSelectedNamespace] =
+    useState<string>(initialNamespace);
+
+  useEffect(() => {
+    setSelectedNamespace(initialNamespace);
+  }, [initialNamespace]);
 
   const value = useMemo(
     () => ({ selectedNamespace, setSelectedNamespace }),
