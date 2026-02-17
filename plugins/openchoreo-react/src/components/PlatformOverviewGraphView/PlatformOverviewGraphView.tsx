@@ -1,4 +1,4 @@
-import { MouseEvent, useState } from 'react';
+import { MouseEvent, useEffect, useState } from 'react';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -10,6 +10,7 @@ import {
 import { EntityNode } from '@backstage/plugin-catalog-graph';
 import { FullScreen, useFullScreenHandle } from 'react-full-screen';
 import { CustomGraphNode } from '../CustomGraphNode';
+import { GraphSkeleton } from '../GraphSkeleton';
 import { GraphLegend } from '../GraphLegend';
 import { GraphControls } from '../GraphControls';
 import { GraphMinimap } from '../GraphMinimap';
@@ -83,6 +84,7 @@ const useStyles = makeStyles(theme => ({
     top: theme.spacing(2),
     right: theme.spacing(2),
     zIndex: 1,
+    animation: '$fadeIn 300ms ease-in',
   },
   controlsContainer: {
     position: 'absolute',
@@ -93,11 +95,30 @@ const useStyles = makeStyles(theme => ({
     alignItems: 'flex-end',
     gap: theme.spacing(1),
     zIndex: 1,
+    animation: '$fadeIn 300ms ease-in',
   },
   fullscreen: {
     backgroundColor: theme.palette.background.paper,
     display: 'flex',
     flex: 1,
+  },
+  graphSkeleton: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    '& g': {
+      animation: '$pulse 1.5s ease-in-out infinite',
+    },
+  },
+  '@keyframes pulse': {
+    '0%, 100%': { opacity: 0.4 },
+    '50%': { opacity: 1 },
+  },
+  '@keyframes fadeIn': {
+    from: { opacity: 0 },
+    to: { opacity: 1 },
   },
 }));
 
@@ -189,30 +210,48 @@ export function PlatformOverviewGraphView({
   const error = refsError || graphError;
   const showGraph = !loading && !error && entityCount > 0;
 
+  // Hide the graph until the dagre layout settles to prevent the
+  // initial viewBox animation (0 0 0 0 → actual dimensions).
+  const [graphReady, setGraphReady] = useState(false);
+  useEffect(() => {
+    if (!showGraph) {
+      setGraphReady(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setGraphReady(true), 400);
+    return () => clearTimeout(timer);
+  }, [showGraph]);
+
   const renderContent = () => {
     if (showGraph) {
       return (
-        <Box className={classes.graph}>
-          <DependencyGraph
-            nodes={nodes}
-            edges={edges}
-            renderNode={CustomGraphNode}
-            renderLabel={DefaultRenderLabel}
-            defs={<GraphDefs />}
-            direction={direction}
-            nodeMargin={nodeMargin}
-            rankMargin={rankMargin}
-            paddingX={20}
-            paddingY={40}
-            zoom="enabled"
-            showArrowHeads
-            curve="curveMonotoneX"
-            fit="contain"
-            labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
-            labelOffset={8}
-            allowFullscreen={false}
-          />
-        </Box>
+        <>
+          {!graphReady && <GraphSkeleton className={classes.graphSkeleton} />}
+          <Box
+            className={classes.graph}
+            style={{ opacity: graphReady ? 1 : 0 }}
+          >
+            <DependencyGraph
+              nodes={nodes}
+              edges={edges}
+              renderNode={CustomGraphNode}
+              renderLabel={DefaultRenderLabel}
+              defs={<GraphDefs />}
+              direction={direction}
+              nodeMargin={nodeMargin}
+              rankMargin={rankMargin}
+              paddingX={20}
+              paddingY={40}
+              zoom="enabled"
+              showArrowHeads
+              curve="curveMonotoneX"
+              fit="contain"
+              labelPosition={DependencyGraphTypes.LabelPosition.RIGHT}
+              labelOffset={8}
+              allowFullscreen={false}
+            />
+          </Box>
+        </>
       );
     }
     if (loading) {
@@ -260,7 +299,7 @@ export function PlatformOverviewGraphView({
     >
       <div ref={graphWrapperRef} className={classes.graphWrapper}>
         {renderContent()}
-        {showGraph && (
+        {showGraph && graphReady && (
           <>
             <Box className={classes.topRightContainer}>
               <GraphMinimap
