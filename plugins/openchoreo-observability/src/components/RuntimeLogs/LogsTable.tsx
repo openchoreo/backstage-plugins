@@ -21,6 +21,9 @@ interface LogsTableProps {
   loading: boolean;
   hasMore: boolean;
   loadingRef: RefObject<HTMLDivElement>;
+  environmentName?: string;
+  projectName?: string;
+  componentName?: string;
 }
 
 export const LogsTable: FC<LogsTableProps> = ({
@@ -29,6 +32,9 @@ export const LogsTable: FC<LogsTableProps> = ({
   loading,
   hasMore,
   loadingRef,
+  environmentName,
+  projectName,
+  componentName,
 }) => {
   const classes = useLogsTableStyles();
 
@@ -115,6 +121,9 @@ export const LogsTable: FC<LogsTableProps> = ({
                 key={`${log.timestamp}-${index}`}
                 log={log}
                 selectedFields={selectedFields}
+                environmentName={environmentName}
+                projectName={projectName}
+                componentName={componentName}
               />
             ))}
 

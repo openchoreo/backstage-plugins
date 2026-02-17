@@ -3,6 +3,7 @@ import { Box, Typography, Button } from '@material-ui/core';
 import { EmptyState, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { LogsFilter } from './LogsFilter';
 import { LogsTable } from './LogsTable';
 import { LogsActions } from './LogsActions';
@@ -57,6 +58,10 @@ export const ObservabilityRuntimeLogsPage = () => {
   const selectedEnvironment = environments.find(
     env => env.id === filters.environmentId,
   );
+
+  // Get component name from entity annotations
+  const componentName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
 
   // Track last updated time
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -244,6 +249,9 @@ export const ObservabilityRuntimeLogsPage = () => {
             loading={logsLoading}
             hasMore={hasMore}
             loadingRef={loadingRef}
+            environmentName={selectedEnvironment?.name}
+            projectName={project}
+            componentName={componentName}
           />
         </>
       )}
