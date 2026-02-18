@@ -4,6 +4,7 @@ import Router from 'express-promise-router';
 import {
   GenericWorkflowService,
   ObservabilityNotConfiguredError,
+  HttpNotImplementedError,
 } from './services';
 import {
   OpenChoreoTokenService,
@@ -84,6 +85,26 @@ export async function createRouter({
     );
   });
 
+  // GET /workflow-runs/:runName/status - Get workflow run status with steps
+  router.get('/workflow-runs/:runName/status', async (req, res) => {
+    const { runName } = req.params;
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await workflowService.getWorkflowRunStatus(
+        namespaceName as string,
+        runName,
+        userToken,
+      ),
+    );
+  });
+
   // GET /workflow-runs/:runName - Get workflow run details
   router.get('/workflow-runs/:runName', async (req, res) => {
     const { runName } = req.params;
@@ -104,10 +125,10 @@ export async function createRouter({
     );
   });
 
-  // GET /workflow-runs/:runName/logs - Get workflow run logs
+  // GET /workflow-runs/:runName/logs - Get workflow run logs (supports step and sinceSeconds params)
   router.get('/workflow-runs/:runName/logs', async (req, res) => {
     const { runName } = req.params;
-    const { namespaceName, environmentName } = req.query;
+    const { namespaceName, environmentName, step, sinceSeconds } = req.query;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -116,6 +137,20 @@ export async function createRouter({
     const userToken = getUserTokenFromRequest(req);
 
     try {
+      // If step is requested, return LogEntry[] directly for per-step UI
+      if (step) {
+        const logs = await workflowService.getWorkflowRunStepLogs(
+          namespaceName as string,
+          runName,
+          step as string,
+          sinceSeconds ? parseInt(sinceSeconds as string, 10) : undefined,
+          (environmentName as string) || 'development',
+          userToken,
+        );
+        res.json(logs);
+        return;
+      }
+
       const logs = await workflowService.getWorkflowRunLogs(
         namespaceName as string,
         runName,
@@ -126,12 +161,56 @@ export async function createRouter({
     } catch (error) {
       // Handle observability not configured gracefully
       if (error instanceof ObservabilityNotConfiguredError) {
+        if (req.query.step) {
+          // Return empty array for step-based requests
+          res.status(503).json({ error: 'OBSERVABILITY_NOT_CONFIGURED', message: (error as Error).message });
+          return;
+        }
         res.json({
           logs: [],
           totalCount: 0,
           tookMs: 0,
           error: 'OBSERVABILITY_NOT_CONFIGURED',
           message: error.message,
+        });
+        return;
+      }
+      throw error;
+    }
+  });
+
+  // GET /workflow-runs/:runName/events - Get workflow run events per step
+  router.get('/workflow-runs/:runName/events', async (req, res) => {
+    const { runName } = req.params;
+    const { namespaceName, environmentName, step } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    try {
+      const events = await workflowService.getWorkflowRunEvents(
+        namespaceName as string,
+        runName,
+        step as string | undefined,
+        (environmentName as string) || 'development',
+        userToken,
+      );
+      res.json(events);
+    } catch (error) {
+      if (error instanceof ObservabilityNotConfiguredError) {
+        res.status(503).json({
+          error: 'OBSERVABILITY_NOT_CONFIGURED',
+          message: (error as Error).message,
+        });
+        return;
+      }
+      if (error instanceof HttpNotImplementedError) {
+        res.status(501).json({
+          error: 'NOT_IMPLEMENTED',
+          message: (error as Error).message,
         });
         return;
       }

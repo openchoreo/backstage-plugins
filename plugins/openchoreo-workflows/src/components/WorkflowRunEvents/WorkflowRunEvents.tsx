@@ -1,36 +1,31 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Typography,
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
 } from '@material-ui/core';
-import { useApi } from '@backstage/core-plugin-api';
-import { Alert } from '@material-ui/lab';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import { Alert } from '@material-ui/lab';
+import { useApi } from '@backstage/core-plugin-api';
 import { genericWorkflowsClientApiRef } from '../../api';
 import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
 import { useStyles } from './styles';
-import type { LogEntry, WorkflowStepStatus } from '../../types';
+import type { WorkflowRunEventEntry, WorkflowStepStatus } from '../../types';
 
-interface WorkflowRunLogsProps {
+interface WorkflowRunEventsProps {
   runName: string;
 }
 
-function deduplicateLogs(logs: LogEntry[]): LogEntry[] {
-  const seen = new Set<string>();
-  return logs.filter(entry => {
-    const key = `${entry.timestamp ?? ''}-${entry.log}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
+export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
   const classes = useStyles();
   const client = useApi(genericWorkflowsClientApiRef);
   const namespaceName = useSelectedNamespace();
@@ -44,9 +39,11 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
   const [statusError, setStatusError] = useState<string | null>(null);
 
   const [activeStepName, setActiveStepName] = useState<string | null>(null);
-  const [logsByStep, setLogsByStep] = useState<Record<string, LogEntry[]>>({});
-  const [logsLoading, setLogsLoading] = useState(false);
-  const [logsError, setLogsError] = useState<string | null>(null);
+  const [eventsByStep, setEventsByStep] = useState<
+    Record<string, WorkflowRunEventEntry[]>
+  >({});
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const [isObservabilityNotConfigured, setIsObservabilityNotConfigured] =
     useState(false);
 
@@ -57,8 +54,6 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
 
   const isTerminalStatus = (status?: string) =>
     status ? terminalStatuses.includes(status.toLowerCase()) : false;
-
-  const hasAutoSelectedStepRef = useRef(false);
 
   // Fetch workflow run status (including steps) with polling
   useEffect(() => {
@@ -81,11 +76,7 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
         setStatusState(data);
 
         // Auto-select initial step if none selected yet
-        if (
-          !hasAutoSelectedStepRef.current &&
-          data.steps &&
-          data.steps.length > 0
-        ) {
+        if (!activeStepName && data.steps && data.steps.length > 0) {
           const runningStep = data.steps.find(
             step => step.phase?.toLowerCase() === 'running',
           );
@@ -96,7 +87,6 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
 
           if (defaultStep?.name) {
             setActiveStepName(defaultStep.name);
-            hasAutoSelectedStepRef.current = true;
           }
         }
 
@@ -116,7 +106,7 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
         ) {
           setIsObservabilityNotConfigured(true);
           setStatusError(
-            'Observability is not configured for this workflow run. Logs cannot be retrieved.',
+            'Observability is not configured for this workflow run. Events cannot be retrieved.',
           );
         } else {
           setStatusError(errorMessage);
@@ -140,7 +130,7 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, namespaceName, runName]);
 
-  // Fetch logs for the active step, with short polling for running steps
+  // Fetch events for the active step
   useEffect(() => {
     if (!statusState?.steps || !activeStepName || !namespaceName) return;
 
@@ -154,60 +144,62 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
       activeStep?.phase?.toLowerCase() === 'running' &&
       !isTerminalStatus(statusState.status);
 
-    const fetchLogs = async (useSinceSeconds: boolean) => {
+    const fetchEvents = async () => {
       try {
-        if (!cancelled && !useSinceSeconds) {
-          setLogsLoading(true);
-          setLogsError(null);
+        if (!cancelled) {
+          setEventsLoading(true);
+          setEventsError(null);
         }
 
-        const entries = await client.getWorkflowRunStepLogs(
+        const entries = await client.getWorkflowRunEvents(
           namespaceName,
           runName,
-          {
-            step: activeStepName,
-            sinceSeconds: useSinceSeconds ? 20 : undefined,
-          },
+          activeStepName,
         );
 
         if (cancelled) return;
 
-        setLogsByStep(prev => ({
+        setEventsByStep(prev => ({
           ...prev,
-          [activeStepName]: useSinceSeconds
-            ? deduplicateLogs([...(prev[activeStepName] ?? []), ...entries])
-            : entries,
+          [activeStepName]: entries,
         }));
       } catch (err) {
         if (cancelled) return;
 
         const errorMessage =
-          err instanceof Error ? err.message : 'Failed to fetch logs';
+          err instanceof Error ? err.message : 'Failed to fetch events';
 
         if (
           errorMessage.includes('ObservabilityNotConfigured') ||
           errorMessage.includes('OBSERVABILITY_NOT_CONFIGURED')
         ) {
           setIsObservabilityNotConfigured(true);
-          setLogsError(
-            'Observability is not configured for this workflow run. Logs cannot be retrieved.',
+          setEventsError(
+            'Observability is not configured for this workflow run. Events cannot be retrieved.',
+          );
+        } else if (
+          errorMessage.includes('NOT_IMPLEMENTED') ||
+          errorMessage.includes('501')
+        ) {
+          setIsObservabilityNotConfigured(true);
+          setEventsError(
+            'Events are not available for generic workflow runs. This feature will be available soon.',
           );
         } else {
-          setLogsError(errorMessage);
+          setEventsError(errorMessage);
         }
       } finally {
-        if (!cancelled && !useSinceSeconds) {
-          setLogsLoading(false);
+        if (!cancelled) {
+          setEventsLoading(false);
         }
       }
     };
 
-    // Initial fetch (full history)
-    fetchLogs(false);
+    fetchEvents();
 
     if (isRunningStep) {
       intervalId = window.setInterval(() => {
-        fetchLogs(true);
+        fetchEvents();
       }, 10_000);
     }
 
@@ -219,13 +211,7 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    client,
-    namespaceName,
-    runName,
-    activeStepName,
-    statusState?.status,
-  ]);
+  }, [client, namespaceName, runName, activeStepName, statusState?.status]);
 
   const handleStepChange = (stepName: string) => {
     setActiveStepName(prev => (prev === stepName ? null : stepName));
@@ -242,7 +228,7 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
     );
   }
 
-  const combinedError = statusError || logsError;
+  const combinedError = statusError || eventsError;
 
   if (combinedError) {
     if (isObservabilityNotConfigured) {
@@ -267,8 +253,16 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
     );
   }
 
-  const activeLogs: LogEntry[] =
-    (activeStepName && logsByStep[activeStepName]) || [];
+  const activeEvents: WorkflowRunEventEntry[] =
+    (activeStepName && eventsByStep[activeStepName]) || [];
+
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      return new Date(timestamp).toLocaleString();
+    } catch {
+      return timestamp;
+    }
+  };
 
   return (
     <Box>
@@ -296,33 +290,67 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
             </AccordionSummary>
             <AccordionDetails>
               {activeStepName === step.name ? (
-                <Box className={classes.logsContainer}>
-                  {logsLoading && activeLogs.length === 0 && (
+                <Box className={classes.eventsContainer}>
+                  {eventsLoading && activeEvents.length === 0 && (
                     <Box className={classes.inlineLoadingContainer}>
                       <CircularProgress size={18} />
                       <Typography variant="body2" color="textSecondary">
-                        Loading logs...
+                        Loading events...
                       </Typography>
                     </Box>
                   )}
 
-                  {!logsLoading && activeLogs.length === 0 && (
-                    <Typography variant="body2" className={classes.noLogsText}>
-                      No logs available for this step
+                  {!eventsLoading && activeEvents.length === 0 && (
+                    <Typography
+                      variant="body2"
+                      className={classes.noEventsText}
+                    >
+                      No events available for this step
                     </Typography>
                   )}
 
-                  {activeLogs.map((logEntry, index) => (
-                    <Box key={index} style={{ marginBottom: '4px' }}>
-                      <Typography variant="body2" className={classes.logText}>
-                        {logEntry.log}
-                      </Typography>
-                    </Box>
-                  ))}
+                  {activeEvents.length > 0 && (
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell className={classes.tableHeaderCell}>
+                            Type
+                          </TableCell>
+                          <TableCell className={classes.tableHeaderCell}>
+                            Reason
+                          </TableCell>
+                          <TableCell className={classes.tableHeaderCell}>
+                            Message
+                          </TableCell>
+                          <TableCell className={classes.tableHeaderCell}>
+                            Last Seen
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {activeEvents.map((event, index) => (
+                          <TableRow key={`${event.timestamp}-${index}`}>
+                            <TableCell className={classes.tableCell}>
+                              {event.type}
+                            </TableCell>
+                            <TableCell className={classes.tableCell}>
+                              {event.reason}
+                            </TableCell>
+                            <TableCell className={classes.messageCell}>
+                              {event.message}
+                            </TableCell>
+                            <TableCell className={classes.tableCell}>
+                              {formatTimestamp(event.timestamp)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </Box>
               ) : (
-                <Typography variant="body2" className={classes.noLogsText}>
-                  Expand this step to view logs.
+                <Typography variant="body2" className={classes.noEventsText}>
+                  Expand this step to view events.
                 </Typography>
               )}
             </AccordionDetails>

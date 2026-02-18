@@ -18,4 +18,7 @@ export type {
   WorkflowRunStatus,
   CreateWorkflowRunRequest,
   PaginatedResponse,
+  WorkflowStepStatus,
+  WorkflowRunStatusResponse,
+  WorkflowRunEventEntry,
 } from './types';

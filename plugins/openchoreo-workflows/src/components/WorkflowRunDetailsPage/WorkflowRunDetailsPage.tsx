@@ -13,9 +13,9 @@ import { makeStyles } from '@material-ui/core/styles';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { useWorkflowRunDetails } from '../../hooks/useWorkflowRunDetails';
-import { useWorkflowRunLogs } from '../../hooks/useWorkflowRunLogs';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
 import { WorkflowRunLogs } from '../WorkflowRunLogs';
+import { WorkflowRunEvents } from '../WorkflowRunEvents';
 
 const useStyles = makeStyles(theme => ({
   header: {
@@ -76,24 +76,17 @@ export const WorkflowRunDetailsPage = () => {
   const isActive =
     normalizedStatus === 'pending' || normalizedStatus === 'running';
 
-  const {
-    logs,
-    loading: logsLoading,
-    error: logsError,
-    refetch: refetchLogs,
-  } = useWorkflowRunLogs(decodedRunName, isActive);
-
   const handleBack = () => {
     navigate(-1);
   };
 
   const handleRefresh = () => {
     refetch();
-    refetchLogs();
   };
 
   const tabs = [
     { id: 'logs', label: 'Logs' },
+    { id: 'events', label: 'Events' },
     { id: 'details', label: 'Details' },
   ];
 
@@ -178,15 +171,11 @@ export const WorkflowRunDetailsPage = () => {
       />
 
       <Box className={classes.tabContent}>
-        {activeTab === 0 && (
-          <WorkflowRunLogs
-            logs={logs}
-            loading={logsLoading}
-            error={logsError}
-          />
-        )}
+        {activeTab === 0 && <WorkflowRunLogs runName={decodedRunName} />}
 
-        {activeTab === 1 && (
+        {activeTab === 1 && <WorkflowRunEvents runName={decodedRunName} />}
+
+        {activeTab === 2 && (
           <>
             <InfoCard title="Run Details">
               <StructuredMetadataTable metadata={metadata} />

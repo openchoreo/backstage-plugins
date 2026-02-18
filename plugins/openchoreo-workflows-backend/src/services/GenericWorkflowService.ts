@@ -9,6 +9,10 @@ import {
   CreateWorkflowRunRequest,
   PaginatedResponse,
   LogsResponse,
+  LogEntry,
+  WorkflowStepStatus,
+  WorkflowRunStatusResponse,
+  WorkflowRunEventEntry,
 } from '../types';
 
 /**
@@ -328,12 +332,74 @@ export class GenericWorkflowService {
   }
 
   /**
+   * Get status and step information for a specific workflow run.
+   * Attempts to call the upstream status API. Falls back to deriving status
+   * from the basic workflow run data if the endpoint is not yet available.
+   */
+  async getWorkflowRunStatus(
+    namespaceName: string,
+    runName: string,
+    token?: string,
+  ): Promise<WorkflowRunStatusResponse> {
+    this.logger.debug(
+      `Fetching status for workflow run: ${runName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // Try the upstream status endpoint (may not exist yet for generic workflows)
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/workflow-runs/{runName}/status' as any,
+        {
+          params: {
+            path: { namespaceName, runName },
+          },
+        },
+      );
+
+      if (!error && response.ok && data?.success && data.data) {
+        const statusData = data.data as any;
+        return {
+          status: statusData.status || 'Unknown',
+          steps: (statusData.steps || []) as WorkflowStepStatus[],
+          hasLiveObservability: statusData.hasLiveObservability ?? false,
+        };
+      }
+    } catch {
+      // Fallback to deriving from workflow run data
+    }
+
+    // Fallback: derive from basic workflow run data
+    try {
+      const run = await this.getWorkflowRun(namespaceName, runName, token);
+      const phase = run.phase || run.status || 'Unknown';
+      return {
+        status: phase,
+        steps: [{ name: runName, phase }],
+        hasLiveObservability: false,
+      };
+    } catch (err) {
+      this.logger.error(
+        `Failed to fetch workflow run status for ${runName}: ${err}`,
+      );
+      throw err;
+    }
+  }
+
+  /**
    * Get logs for a specific workflow run using the observability service.
    * Uses the pattern: get observer URL from environment, then fetch logs.
    *
    * @param namespaceName - The namespace name
    * @param runName - The workflow run name
    * @param environmentName - The environment name to get observer URL from (defaults to 'development')
+   * @param step - Optional step name to filter logs
+   * @param sinceSeconds - Only return logs from the last N seconds
    * @param token - Optional auth token
    */
   async getWorkflowRunLogs(
@@ -341,6 +407,8 @@ export class GenericWorkflowService {
     runName: string,
     environmentName: string = 'development',
     token?: string,
+    step?: string,
+    sinceSeconds?: number,
   ): Promise<LogsResponse> {
     this.logger.debug(
       `Fetching logs for workflow run: ${runName} in namespace: ${namespaceName}`,
@@ -438,6 +506,8 @@ export class GenericWorkflowService {
               limit: 1000,
               sortOrder: 'asc',
               namespaceName,
+              ...(step ? { step } : {}),
+              ...(sinceSeconds ? { sinceSeconds } : {}),
             },
           },
         );
@@ -502,5 +572,181 @@ export class GenericWorkflowService {
       );
       throw error;
     }
+  }
+
+  /**
+   * Get logs for a specific step of a workflow run.
+   * Returns LogEntry[] directly (for per-step accordion UI).
+   *
+   * @param namespaceName - The namespace name
+   * @param runName - The workflow run name
+   * @param step - The step name to filter logs by
+   * @param sinceSeconds - Only return logs from the last N seconds
+   * @param environmentName - The environment name (defaults to 'development')
+   * @param token - Optional auth token
+   */
+  async getWorkflowRunStepLogs(
+    namespaceName: string,
+    runName: string,
+    step?: string,
+    sinceSeconds?: number,
+    environmentName: string = 'development',
+    token?: string,
+  ): Promise<LogEntry[]> {
+    const logsResponse = await this.getWorkflowRunLogs(
+      namespaceName,
+      runName,
+      environmentName,
+      token,
+      step,
+      sinceSeconds,
+    );
+    return logsResponse.logs;
+  }
+
+  /**
+   * Get Kubernetes events for a specific step of a workflow run.
+   * Attempts to call the upstream events API. Returns empty array if not available.
+   *
+   * @param namespaceName - The namespace name
+   * @param runName - The workflow run name
+   * @param step - The step name to filter events by
+   * @param environmentName - The environment name (defaults to 'development')
+   * @param token - Optional auth token
+   */
+  async getWorkflowRunEvents(
+    namespaceName: string,
+    runName: string,
+    step?: string,
+    environmentName: string = 'development',
+    token?: string,
+  ): Promise<WorkflowRunEventEntry[]> {
+    this.logger.debug(
+      `Fetching events for workflow run: ${runName} in namespace: ${namespaceName}, step: ${step}`,
+    );
+
+    try {
+      // First, get the workflow run to obtain its name/UUID
+      const workflowRun = await this.getWorkflowRun(
+        namespaceName,
+        runName,
+        token,
+      );
+      const runId = workflowRun.name || runName;
+
+      // Get the observer URL from the environment
+      const mainClient = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const {
+        data: urlData,
+        error: urlError,
+        response: urlResponse,
+      } = await mainClient.GET(
+        '/namespaces/{namespaceName}/environments/{envName}/observer-url',
+        {
+          params: {
+            path: {
+              namespaceName,
+              envName: environmentName,
+            },
+          },
+        },
+      );
+
+      if (urlError || !urlResponse.ok) {
+        if (urlResponse.status === 404) {
+          throw new ObservabilityNotConfiguredError(runName);
+        }
+        throw new Error(
+          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
+        );
+      }
+
+      if (!urlData || !urlData.success || !urlData.data) {
+        throw new ObservabilityNotConfiguredError(runName);
+      }
+
+      const observerUrl = urlData.data?.observerUrl;
+      if (!observerUrl) {
+        throw new ObservabilityNotConfiguredError(runName);
+      }
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        token,
+        this.logger,
+      );
+
+      try {
+        const result = await obsClient.GET(
+          '/api/v1/workflow-runs/{runId}/events' as any,
+          {
+            params: {
+              path: { runId },
+              query: {
+                namespaceName,
+                ...(step ? { step } : {}),
+              },
+            },
+          },
+        );
+
+        if (result.error || !result.response.ok) {
+          if (result.response.status === 404) {
+            throw new ObservabilityNotConfiguredError(runName);
+          }
+          if (result.response.status === 501) {
+            // Events not yet implemented for generic workflow runs
+            throw new HttpNotImplementedError(
+              'Events are not yet available for generic workflow runs.',
+            );
+          }
+          throw new Error(
+            `Failed to fetch workflow run events: ${result.response.status} ${result.response.statusText}`,
+          );
+        }
+
+        return (result.data as WorkflowRunEventEntry[]) || [];
+      } catch (obsError: unknown) {
+        if (
+          obsError instanceof ObservabilityNotConfiguredError ||
+          obsError instanceof HttpNotImplementedError
+        ) {
+          throw obsError;
+        }
+        this.logger.info(
+          `Could not fetch workflow run events: ${obsError}. Events may not be supported yet.`,
+        );
+        throw new HttpNotImplementedError(
+          'Events are not yet available for generic workflow runs.',
+        );
+      }
+    } catch (error: unknown) {
+      if (
+        error instanceof ObservabilityNotConfiguredError ||
+        error instanceof HttpNotImplementedError
+      ) {
+        throw error;
+      }
+      this.logger.error(
+        `Error fetching events for workflow run ${runName} in namespace ${namespaceName}:`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+}
+
+/**
+ * Error thrown when an endpoint is not yet implemented
+ */
+export class HttpNotImplementedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'HttpNotImplementedError';
   }
 }

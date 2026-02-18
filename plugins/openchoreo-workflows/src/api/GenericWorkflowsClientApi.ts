@@ -4,6 +4,9 @@ import type {
   WorkflowRun,
   PaginatedResponse,
   LogsResponse,
+  LogEntry,
+  WorkflowRunStatusResponse,
+  WorkflowRunEventEntry,
 } from '../types';
 
 /**
@@ -48,6 +51,26 @@ export interface GenericWorkflowsClientApi {
     namespaceName: string,
     runName: string,
   ): Promise<LogsResponse>;
+
+  /** Get status and step information for a workflow run */
+  getWorkflowRunStatus(
+    namespaceName: string,
+    runName: string,
+  ): Promise<WorkflowRunStatusResponse>;
+
+  /** Get logs for a specific step of a workflow run */
+  getWorkflowRunStepLogs(
+    namespaceName: string,
+    runName: string,
+    options?: { step?: string; sinceSeconds?: number },
+  ): Promise<LogEntry[]>;
+
+  /** Get Kubernetes events for a specific step of a workflow run */
+  getWorkflowRunEvents(
+    namespaceName: string,
+    runName: string,
+    step?: string,
+  ): Promise<WorkflowRunEventEntry[]>;
 }
 
 /**
