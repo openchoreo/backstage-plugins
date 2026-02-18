@@ -118,6 +118,10 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the ComponentWorkflow entity processor
         catalog.addProcessor(new ComponentWorkflowEntityProcessor());
 
+        // Check if new OpenChoreo 1.0 API should be used (defaults to false)
+        const useNewApi =
+          config.getOptionalBoolean('openchoreo.useNewApi') ?? false;
+
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(
           new OpenChoreoEntityProvider(
@@ -125,6 +129,7 @@ export const catalogModuleOpenchoreo = createBackendModule({
             logger,
             config,
             tokenService,
+            useNewApi,
           ),
         );
 

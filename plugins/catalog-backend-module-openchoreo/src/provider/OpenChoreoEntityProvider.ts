@@ -8,7 +8,17 @@ import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
+  fetchAllPages,
+  getName,
+  getNamespace,
+  getUid,
+  getCreatedAt,
+  getDisplayName,
+  getDescription,
+  isReady,
   type OpenChoreoLegacyComponents,
+  type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
@@ -36,6 +46,26 @@ type ModelsComponentType =
   OpenChoreoLegacyComponents['schemas']['ComponentTypeResponse'];
 type ModelsWorkflow = OpenChoreoLegacyComponents['schemas']['WorkflowResponse'];
 type ModelsTrait = OpenChoreoLegacyComponents['schemas']['TraitResponse'];
+
+// New API types
+type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];
+type NewProject = OpenChoreoComponents['schemas']['Project'];
+type NewComponent = OpenChoreoComponents['schemas']['Component'];
+type NewEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type NewDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
+type NewBuildPlane = OpenChoreoComponents['schemas']['BuildPlane'];
+type NewObservabilityPlane =
+  OpenChoreoComponents['schemas']['ObservabilityPlane'];
+type NewDeploymentPipeline =
+  OpenChoreoComponents['schemas']['DeploymentPipeline'];
+type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
+type NewTrait = OpenChoreoComponents['schemas']['Trait'];
+type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
+type NewComponentWorkflowTemplate =
+  OpenChoreoComponents['schemas']['ComponentWorkflowTemplate'];
+type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
+type NewAgentConnectionStatus =
+  OpenChoreoComponents['schemas']['AgentConnectionStatus'];
 
 // WorkloadEndpoint is part of the workload.endpoints structure
 // Since Workload uses additionalProperties, we define this locally
@@ -85,17 +115,20 @@ export class OpenChoreoEntityProvider implements EntityProvider {
   private readonly ctdConverter: CtdToTemplateConverter;
   private readonly componentTypeUtils: ComponentTypeUtils;
   private readonly tokenService?: OpenChoreoTokenService;
+  private readonly useNewApi: boolean;
 
   constructor(
     taskRunner: SchedulerServiceTaskRunner,
     logger: LoggerService,
     config: Config,
     tokenService?: OpenChoreoTokenService,
+    useNewApi?: boolean,
   ) {
     this.taskRunner = taskRunner;
     this.logger = logger;
     this.baseUrl = config.getString('openchoreo.baseUrl');
     this.tokenService = tokenService;
+    this.useNewApi = useNewApi ?? false;
     // Default owner for built-in Backstage entities (Domain, System, Component, API)
     // These kinds require owner field per Backstage schema validation
     const ownerName =
@@ -129,6 +162,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       throw new Error('Connection not initialized');
     }
 
+    if (this.useNewApi) {
+      return this.runNew();
+    }
+    return this.runLegacy();
+  }
+
+  private async runLegacy(): Promise<void> {
     try {
       this.logger.info('Fetching namespaces and projects from OpenChoreo API');
 
@@ -886,7 +926,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         }
       }
 
-      await this.connection.applyMutation({
+      await this.connection!.applyMutation({
         type: 'full',
         entities: allEntities.map(entity => ({
           entity,
@@ -934,10 +974,714 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     }
   }
 
+  private async runNew(): Promise<void> {
+    try {
+      this.logger.info(
+        'Fetching namespaces and projects from OpenChoreo API (new API)',
+      );
+
+      // Get service token for background task (client credentials flow)
+      let token: string | undefined;
+      if (this.tokenService?.hasServiceCredentials()) {
+        try {
+          token = await this.tokenService.getServiceToken();
+          this.logger.debug('Using service token for OpenChoreo API requests');
+        } catch (error) {
+          this.logger.warn(
+            `Failed to get service token, continuing without auth: ${error}`,
+          );
+        }
+      }
+
+      // Create new API client
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // Fetch all namespaces
+      const namespaces = await fetchAllPages<NewNamespace>(cursor =>
+        client
+          .GET('/api/v1/namespaces', {
+            params: { query: { limit: 100, cursor } },
+          })
+          .then(res => {
+            if (res.error) throw new Error('Failed to fetch namespaces');
+            return res.data;
+          }),
+      );
+
+      this.logger.debug(
+        `Found ${namespaces.length} namespaces from OpenChoreo`,
+      );
+
+      const allEntities: Entity[] = [];
+
+      // Create Domain entities for each namespace
+      const domainEntities: Entity[] = namespaces.map(ns =>
+        this.translateNamespaceToDomain(ns),
+      );
+      allEntities.push(...domainEntities);
+
+      // Get environments for each namespace
+      for (const ns of namespaces) {
+        try {
+          const environments = await fetchAllPages<NewEnvironment>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/environments', {
+                params: {
+                  path: { namespaceName: ns.name },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(
+                    `Failed to fetch environments for ${ns.name}`,
+                  );
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${environments.length} environments in namespace: ${ns.name}`,
+          );
+
+          const environmentEntities: Entity[] = environments.map(env =>
+            this.translateNewEnvironmentToEntity(env, ns.name),
+          );
+          allEntities.push(...environmentEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch environments for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get dataplanes for each namespace
+      for (const ns of namespaces) {
+        try {
+          const dataplanes = await fetchAllPages<NewDataPlane>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/dataplanes', {
+                params: {
+                  path: { namespaceName: ns.name },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch dataplanes for ${ns.name}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${dataplanes.length} dataplanes in namespace: ${ns.name}`,
+          );
+
+          const dataplaneEntities: Entity[] = dataplanes.map(dp =>
+            this.translateNewDataplaneToEntity(dp, ns.name),
+          );
+          allEntities.push(...dataplaneEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch dataplanes for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get buildplanes for each namespace
+      for (const ns of namespaces) {
+        try {
+          const buildplanes = await fetchAllPages<NewBuildPlane>(() =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/buildplanes', {
+                params: {
+                  path: { namespaceName: ns.name },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch buildplanes for ${ns.name}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${buildplanes.length} buildplanes in namespace: ${ns.name}`,
+          );
+
+          const buildplaneEntities: Entity[] = buildplanes.map(bp =>
+            this.translateNewBuildPlaneToEntity(bp, ns.name),
+          );
+          allEntities.push(...buildplaneEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch buildplanes for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get observabilityplanes for each namespace
+      for (const ns of namespaces) {
+        try {
+          const observabilityplanes =
+            await fetchAllPages<NewObservabilityPlane>(() =>
+              client
+                .GET('/api/v1/namespaces/{namespaceName}/observabilityplanes', {
+                  params: {
+                    path: { namespaceName: ns.name },
+                  },
+                })
+                .then(res => {
+                  if (res.error)
+                    throw new Error(
+                      `Failed to fetch observabilityplanes for ${ns.name}`,
+                    );
+                  return res.data;
+                }),
+            );
+
+          this.logger.debug(
+            `Found ${observabilityplanes.length} observabilityplanes in namespace: ${ns.name}`,
+          );
+
+          const observabilityplaneEntities: Entity[] = observabilityplanes.map(
+            op => this.translateNewObservabilityPlaneToEntity(op, ns.name),
+          );
+          allEntities.push(...observabilityplaneEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch observabilityplanes for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get projects for each namespace and create System entities
+      for (const ns of namespaces) {
+        try {
+          const projects = await fetchAllPages<NewProject>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/projects', {
+                params: {
+                  path: { namespaceName: ns.name },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch projects for ${ns.name}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${projects.length} projects in namespace: ${ns.name}`,
+          );
+
+          // New API does not return deleted resources, no filtering needed
+          const systemEntities: Entity[] = projects.map(project =>
+            this.translateNewProjectToEntity(project, ns.name),
+          );
+          allEntities.push(...systemEntities);
+
+          // Fetch all deployment pipelines for this namespace (once, not per-project)
+          const pipelineMap = new Map<
+            string,
+            DeploymentPipelineEntityV1alpha1
+          >();
+
+          try {
+            const pipelines = await fetchAllPages<NewDeploymentPipeline>(() =>
+              client
+                .GET(
+                  '/api/v1/namespaces/{namespaceName}/deployment-pipelines',
+                  {
+                    params: {
+                      path: { namespaceName: ns.name },
+                    },
+                  },
+                )
+                .then(res => {
+                  if (res.error)
+                    throw new Error(
+                      `Failed to fetch deployment pipelines for ${ns.name}`,
+                    );
+                  return res.data;
+                }),
+            );
+
+            // Match pipelines to projects via project.spec.deploymentPipelineRef
+            for (const pipeline of pipelines) {
+              const pipelineName = getName(pipeline)!;
+              const pipelineKey = `${ns.name}/${pipelineName}`;
+
+              // Find all projects that reference this pipeline
+              const referencingProjects = projects.filter(
+                p => p.spec?.deploymentPipelineRef === pipelineName,
+              );
+
+              if (referencingProjects.length > 0) {
+                const firstProjectName = getName(referencingProjects[0])!;
+                const pipelineEntity =
+                  this.translateNewDeploymentPipelineToEntity(
+                    pipeline,
+                    ns.name,
+                    firstProjectName,
+                  );
+
+                // Add all additional project refs
+                for (let i = 1; i < referencingProjects.length; i++) {
+                  const projName = getName(referencingProjects[i])!;
+                  if (!pipelineEntity.spec.projectRefs?.includes(projName)) {
+                    pipelineEntity.spec.projectRefs = [
+                      ...(pipelineEntity.spec.projectRefs || []),
+                      projName,
+                    ];
+                  }
+                }
+
+                pipelineMap.set(pipelineKey, pipelineEntity);
+              } else {
+                // Pipeline exists but no project references it — still create entity
+                const pipelineEntity =
+                  this.translateNewDeploymentPipelineToEntity(
+                    pipeline,
+                    ns.name,
+                    '',
+                  );
+                pipelineMap.set(pipelineKey, pipelineEntity);
+              }
+            }
+          } catch (error) {
+            this.logger.warn(
+              `Failed to fetch deployment pipelines for namespace ${ns.name}: ${error}`,
+            );
+          }
+
+          // Get components for each project
+          for (const project of projects) {
+            const projectName = getName(project)!;
+
+            try {
+              const components = await fetchAllPages<NewComponent>(cursor =>
+                client
+                  .GET('/api/v1/namespaces/{namespaceName}/components', {
+                    params: {
+                      path: { namespaceName: ns.name },
+                      query: { project: projectName, limit: 100, cursor },
+                    },
+                  })
+                  .then(res => {
+                    if (res.error)
+                      throw new Error(
+                        `Failed to fetch components for project ${projectName}`,
+                      );
+                    return res.data;
+                  }),
+              );
+
+              this.logger.debug(
+                `Found ${components.length} components in project: ${projectName}`,
+              );
+
+              // New API does not return deleted resources, no filtering needed
+              for (const component of components) {
+                const componentName = getName(component)!;
+                const componentType =
+                  component.spec?.type ?? component.spec?.componentType ?? '';
+
+                // If the component is a Service (has endpoints), fetch workload
+                const pageVariant =
+                  this.componentTypeUtils.getPageVariant(componentType);
+                if (pageVariant === 'service') {
+                  try {
+                    const { data: workloadData, error: workloadError } =
+                      await client.GET(
+                        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
+                        {
+                          params: {
+                            path: {
+                              namespaceName: ns.name,
+                              workloadName: componentName,
+                            },
+                          },
+                        },
+                      );
+
+                    if (!workloadError && workloadData) {
+                      // Create component entity with providesApis
+                      const endpoints =
+                        this.extractWorkloadEndpoints(workloadData);
+                      const providesApis = Object.keys(endpoints).map(
+                        epName => `${componentName}-${epName}`,
+                      );
+
+                      const componentEntity =
+                        this.translateNewComponentToEntity(
+                          component,
+                          ns.name,
+                          projectName,
+                          providesApis,
+                        );
+                      allEntities.push(componentEntity);
+
+                      // Create API entities from workload endpoints
+                      const apiEntities = this.createApiEntitiesFromNewWorkload(
+                        componentName,
+                        endpoints,
+                        ns.name,
+                        projectName,
+                      );
+                      allEntities.push(...apiEntities);
+                    } else {
+                      // Workload not found — fallback to basic component entity
+                      const componentEntity =
+                        this.translateNewComponentToEntity(
+                          component,
+                          ns.name,
+                          projectName,
+                        );
+                      allEntities.push(componentEntity);
+                    }
+                  } catch (error) {
+                    this.logger.warn(
+                      `Failed to fetch workload for component ${componentName}: ${error}`,
+                    );
+                    const componentEntity = this.translateNewComponentToEntity(
+                      component,
+                      ns.name,
+                      projectName,
+                    );
+                    allEntities.push(componentEntity);
+                  }
+                } else {
+                  // Create basic component entity for non-Service components
+                  const componentEntity = this.translateNewComponentToEntity(
+                    component,
+                    ns.name,
+                    projectName,
+                  );
+                  allEntities.push(componentEntity);
+                }
+              }
+            } catch (error) {
+              this.logger.warn(
+                `Failed to fetch components for project ${projectName} in namespace ${ns.name}: ${error}`,
+              );
+            }
+          }
+
+          // Add all deduplicated pipeline entities for this namespace
+          allEntities.push(...pipelineMap.values());
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch projects for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Fetch Component Type Definitions and generate Template entities
+      for (const ns of namespaces) {
+        try {
+          this.logger.info(
+            `Fetching Component Type Definitions from OpenChoreo API for namespace: ${ns.name}`,
+          );
+
+          const componentTypes = await fetchAllPages<NewComponentType>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/component-types', {
+                params: {
+                  path: { namespaceName: ns.name },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(
+                    `Failed to fetch component types for ${ns.name}`,
+                  );
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${componentTypes.length} CTDs in namespace: ${ns.name}`,
+          );
+
+          // Fetch schemas in parallel for better performance
+          const ctdsWithSchemas = await Promise.all(
+            componentTypes.map(async ct => {
+              const ctName = getName(ct);
+              if (!ctName) return null;
+              try {
+                const { data: schemaData, error: schemaError } =
+                  await client.GET(
+                    '/api/v1/namespaces/{namespaceName}/component-types/{ctName}/schema',
+                    {
+                      params: {
+                        path: { namespaceName: ns.name, ctName },
+                      },
+                    },
+                  );
+
+                if (schemaError || !schemaData) {
+                  this.logger.warn(
+                    `Failed to fetch schema for CTD ${ctName} in namespace ${ns.name}`,
+                  );
+                  return null;
+                }
+
+                // Combine metadata from list item + schema into full object
+                const fullComponentType = {
+                  metadata: {
+                    name: ctName,
+                    displayName: getDisplayName(ct),
+                    description: getDescription(ct),
+                    workloadType: ct.spec?.workloadType ?? 'deployment',
+                    allowedWorkflows: ct.spec?.allowedWorkflows,
+                    createdAt: getCreatedAt(ct) || '',
+                  },
+                  spec: {
+                    inputParametersSchema: schemaData as any,
+                  },
+                };
+
+                return fullComponentType;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to fetch schema for CTD ${ctName} in namespace ${ns.name}: ${error}`,
+                );
+                return null;
+              }
+            }),
+          );
+
+          // Filter out failed schema fetches
+          const validCTDs = ctdsWithSchemas.filter(
+            (ctd): ctd is NonNullable<typeof ctd> => ctd !== null,
+          );
+
+          // Convert CTDs to template entities
+          const templateEntities: Entity[] = validCTDs
+            .map(ctd => {
+              try {
+                const templateEntity =
+                  this.ctdConverter.convertCtdToTemplateEntity(ctd, ns.name);
+                if (!templateEntity.metadata.annotations) {
+                  templateEntity.metadata.annotations = {};
+                }
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-location'
+                ] = `provider:${this.getProviderName()}`;
+                templateEntity.metadata.annotations[
+                  'backstage.io/managed-by-origin-location'
+                ] = `provider:${this.getProviderName()}`;
+                return templateEntity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to convert CTD ${ctd.metadata.name} to template: ${error}`,
+                );
+                return null;
+              }
+            })
+            .filter((entity): entity is Entity => entity !== null);
+
+          allEntities.push(...templateEntities);
+          this.logger.info(
+            `Successfully generated ${templateEntities.length} template entities from CTDs in namespace: ${ns.name}`,
+          );
+
+          // Also generate ComponentType entities
+          const componentTypeEntities = componentTypes
+            .map(ct => {
+              try {
+                return this.translateNewComponentTypeToEntity(
+                  ct,
+                  ns.name,
+                ) as Entity;
+              } catch (error) {
+                this.logger.warn(
+                  `Failed to translate ComponentType ${getName(ct)}: ${error}`,
+                );
+                return null;
+              }
+            })
+            .filter((entity): entity is Entity => entity !== null);
+
+          allEntities.push(...componentTypeEntities);
+          this.logger.debug(
+            `Generated ${componentTypeEntities.length} ComponentType entities in namespace: ${ns.name}`,
+          );
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch Component Type Definitions for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get traits for each namespace
+      for (const ns of namespaces) {
+        try {
+          const traits = await fetchAllPages<NewTrait>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/traits', {
+                params: {
+                  path: { namespaceName: ns.name },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch traits for ${ns.name}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${traits.length} traits in namespace: ${ns.name}`,
+          );
+
+          const traitEntities: Entity[] = traits.map(trait =>
+            this.translateNewTraitToEntity(trait, ns.name),
+          );
+          allEntities.push(...traitEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch traits for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get workflows for each namespace
+      for (const ns of namespaces) {
+        try {
+          const workflows = await fetchAllPages<NewWorkflow>(cursor =>
+            client
+              .GET('/api/v1/namespaces/{namespaceName}/workflows', {
+                params: {
+                  path: { namespaceName: ns.name },
+                  query: { limit: 100, cursor },
+                },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(`Failed to fetch workflows for ${ns.name}`);
+                return res.data;
+              }),
+          );
+
+          this.logger.debug(
+            `Found ${workflows.length} workflows in namespace: ${ns.name}`,
+          );
+
+          const workflowEntities: Entity[] = workflows.map(wf =>
+            this.translateNewWorkflowToEntity(wf, ns.name),
+          );
+          allEntities.push(...workflowEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch workflows for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      // Get component workflows for each namespace
+      for (const ns of namespaces) {
+        try {
+          const componentWorkflows =
+            await fetchAllPages<NewComponentWorkflowTemplate>(cursor =>
+              client
+                .GET('/api/v1/namespaces/{namespaceName}/component-workflows', {
+                  params: {
+                    path: { namespaceName: ns.name },
+                    query: { limit: 100, cursor },
+                  },
+                })
+                .then(res => {
+                  if (res.error)
+                    throw new Error(
+                      `Failed to fetch component workflows for ${ns.name}`,
+                    );
+                  return res.data;
+                }),
+            );
+
+          this.logger.debug(
+            `Found ${componentWorkflows.length} component workflows in namespace: ${ns.name}`,
+          );
+
+          // ComponentWorkflowTemplate is flat (name, displayName, description, createdAt)
+          // — same shape as legacy, reuse translateComponentWorkflowToEntity
+          const cwEntities: Entity[] = componentWorkflows.map(cw =>
+            this.translateComponentWorkflowToEntity(cw, ns.name),
+          );
+          allEntities.push(...cwEntities);
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch component workflows for namespace ${ns.name}: ${error}`,
+          );
+        }
+      }
+
+      await this.connection!.applyMutation({
+        type: 'full',
+        entities: allEntities.map(entity => ({
+          entity,
+          locationKey: `provider:${this.getProviderName()}`,
+        })),
+      });
+
+      this.logEntityCounts(allEntities, domainEntities.length);
+    } catch (error) {
+      this.logger.error(`Failed to run OpenChoreoEntityProvider: ${error}`);
+    }
+  }
+
+  private logEntityCounts(allEntities: Entity[], domainCount: number): void {
+    const systemCount = allEntities.filter(e => e.kind === 'System').length;
+    const componentCount = allEntities.filter(
+      e => e.kind === 'Component',
+    ).length;
+    const apiCount = allEntities.filter(e => e.kind === 'API').length;
+    const environmentCount = allEntities.filter(
+      e => e.kind === 'Environment',
+    ).length;
+    const dataplaneCount = allEntities.filter(
+      e => e.kind === 'Dataplane',
+    ).length;
+    const buildplaneCount = allEntities.filter(
+      e => e.kind === 'BuildPlane',
+    ).length;
+    const observabilityplaneCount = allEntities.filter(
+      e => e.kind === 'ObservabilityPlane',
+    ).length;
+    const pipelineCount = allEntities.filter(
+      e => e.kind === 'DeploymentPipeline',
+    ).length;
+    const componentTypeCount = allEntities.filter(
+      e => e.kind === 'ComponentType',
+    ).length;
+    const traitTypeCount = allEntities.filter(
+      e => e.kind === 'TraitType',
+    ).length;
+    const workflowCount = allEntities.filter(e => e.kind === 'Workflow').length;
+    const componentWorkflowCount = allEntities.filter(
+      e => e.kind === 'ComponentWorkflow',
+    ).length;
+    this.logger.info(
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${workflowCount} workflows, ${componentWorkflowCount} component workflows)`,
+    );
+  }
+
   /**
    * Translates a ModelsNamespace from OpenChoreo API to a Backstage Domain entity
    */
-  private translateNamespaceToDomain(namespace: ModelsNamespace): Entity {
+  private translateNamespaceToDomain(
+    namespace: ModelsNamespace | NewNamespace,
+  ): Entity {
     const domainEntity: Entity = {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'Domain',
@@ -1532,11 +2276,493 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    * Translates a WorkflowResponse (component workflow) from OpenChoreo API to a Backstage ComponentWorkflow entity
    */
   private translateComponentWorkflowToEntity(
-    cw: ModelsWorkflow,
+    cw: ModelsWorkflow | NewComponentWorkflowTemplate,
     namespaceName: string,
   ): ComponentWorkflowEntityV1alpha1 {
     return translateCW(cw, namespaceName, {
       locationKey: this.getProviderName(),
     });
+  }
+
+  // ───────────────────────────────────────────────────────────
+  // New API translation methods
+  // ───────────────────────────────────────────────────────────
+
+  /**
+   * Translates a new API Environment to a Backstage Environment entity.
+   * Adapts K8s-style fields to the shared translation function's input shape.
+   */
+  private translateNewEnvironmentToEntity(
+    env: NewEnvironment,
+    namespaceName: string,
+  ): EnvironmentEntityV1alpha1 {
+    return translateEnvironment(
+      {
+        name: getName(env)!,
+        displayName: getDisplayName(env),
+        description: getDescription(env),
+        uid: getUid(env),
+        isProduction: env.spec?.isProduction,
+        dataPlaneRef: env.spec?.dataPlaneRef
+          ? { name: env.spec.dataPlaneRef.name }
+          : undefined,
+        dnsPrefix: env.spec?.gateway?.publicVirtualHost,
+        createdAt: getCreatedAt(env),
+        status: isReady(env) ? 'Ready' : 'Not Ready',
+      },
+      namespaceName,
+      { locationKey: this.getProviderName() },
+    );
+  }
+
+  /**
+   * Translates a new API DataPlane to a Backstage Dataplane entity.
+   */
+  private translateNewDataplaneToEntity(
+    dp: NewDataPlane,
+    namespaceName: string,
+  ): DataplaneEntityV1alpha1 {
+    const dpName = getName(dp)!;
+    const gateway = dp.spec?.gateway;
+    const obsPlaneRef = dp.spec?.observabilityPlaneRef;
+    const normalizedObsRef = this.normalizeObservabilityPlaneRef(
+      obsPlaneRef?.name,
+      namespaceName,
+    );
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Dataplane',
+      metadata: {
+        name: dpName,
+        namespace: namespaceName,
+        title: getDisplayName(dp) || dpName,
+        description: getDescription(dp) || `${dpName} dataplane`,
+        tags: ['openchoreo', 'dataplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(dp) ? 'Ready' : 'Not Ready',
+          'openchoreo.io/public-virtual-host': gateway?.publicVirtualHost || '',
+          'openchoreo.io/namespace-virtual-host':
+            gateway?.organizationVirtualHost || '',
+          'openchoreo.io/public-http-port':
+            gateway?.publicHTTPPort?.toString() || '',
+          'openchoreo.io/public-https-port':
+            gateway?.publicHTTPSPort?.toString() || '',
+          'openchoreo.io/namespace-http-port': '',
+          'openchoreo.io/namespace-https-port': '',
+          'openchoreo.io/observability-plane-ref': normalizedObsRef,
+          ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/dataplane': 'true',
+        },
+      },
+      spec: {
+        type: 'kubernetes',
+        domain: `default/${namespaceName}`,
+        publicVirtualHost: gateway?.publicVirtualHost,
+        namespaceVirtualHost: gateway?.organizationVirtualHost,
+        publicHTTPPort: gateway?.publicHTTPPort,
+        publicHTTPSPort: gateway?.publicHTTPSPort,
+        namespaceHTTPPort: undefined,
+        namespaceHTTPSPort: undefined,
+        observabilityPlaneRef: normalizedObsRef,
+      },
+    };
+  }
+
+  /**
+   * Translates a new API BuildPlane to a Backstage BuildPlane entity.
+   */
+  private translateNewBuildPlaneToEntity(
+    bp: NewBuildPlane,
+    namespaceName: string,
+  ): BuildPlaneEntityV1alpha1 {
+    const bpName = getName(bp)!;
+    const obsPlaneRef = bp.spec?.observabilityPlaneRef;
+    const normalizedObsRef = this.normalizeObservabilityPlaneRef(
+      obsPlaneRef?.name,
+      namespaceName,
+    );
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'BuildPlane',
+      metadata: {
+        name: bpName,
+        namespace: namespaceName,
+        title: getDisplayName(bp) || bpName,
+        description: getDescription(bp) || `${bpName} build plane`,
+        tags: ['openchoreo', 'buildplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(bp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(bp) ? 'Ready' : 'Not Ready',
+          'openchoreo.io/observability-plane-ref': normalizedObsRef,
+          ...this.mapNewAgentConnectionAnnotations(bp.status?.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/buildplane': 'true',
+        },
+      },
+      spec: {
+        type: 'kubernetes',
+        domain: `default/${namespaceName}`,
+        observabilityPlaneRef: normalizedObsRef,
+      },
+    };
+  }
+
+  /**
+   * Translates a new API ObservabilityPlane to a Backstage ObservabilityPlane entity.
+   */
+  private translateNewObservabilityPlaneToEntity(
+    op: NewObservabilityPlane,
+    namespaceName: string,
+  ): ObservabilityPlaneEntityV1alpha1 {
+    const opName = getName(op)!;
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ObservabilityPlane',
+      metadata: {
+        name: opName,
+        namespace: namespaceName,
+        title: getDisplayName(op) || opName,
+        description: getDescription(op) || `${opName} observability plane`,
+        tags: ['openchoreo', 'observabilityplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(op) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(op) ? 'Ready' : 'Not Ready',
+          ...(op.spec?.observerURL && {
+            [CHOREO_ANNOTATIONS.OBSERVER_URL]: op.spec.observerURL,
+          }),
+          ...this.mapNewAgentConnectionAnnotations(op.status?.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/observabilityplane': 'true',
+        },
+      },
+      spec: {
+        type: 'kubernetes',
+        domain: `default/${namespaceName}`,
+        observerURL: op.spec?.observerURL,
+      },
+    };
+  }
+
+  /**
+   * Maps new API agent connection status to Backstage entity annotations.
+   */
+  private mapNewAgentConnectionAnnotations(
+    agentConnection?: NewAgentConnectionStatus,
+  ): Record<string, string> {
+    if (!agentConnection) {
+      return {};
+    }
+
+    const annotations: Record<string, string> = {
+      [CHOREO_ANNOTATIONS.AGENT_CONNECTED]:
+        agentConnection.connected?.toString() || 'false',
+      [CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT]:
+        agentConnection.connectedAgents?.toString() || '0',
+    };
+
+    if (agentConnection.lastConnectedTime) {
+      annotations[CHOREO_ANNOTATIONS.AGENT_LAST_CONNECTED] =
+        agentConnection.lastConnectedTime;
+    }
+
+    return annotations;
+  }
+
+  /**
+   * Translates a new API Project to a Backstage System entity.
+   */
+  private translateNewProjectToEntity(
+    project: NewProject,
+    namespaceName: string,
+  ): Entity {
+    return translateProject(
+      {
+        name: getName(project)!,
+        displayName: getDisplayName(project),
+        description: getDescription(project),
+        namespaceName: getNamespace(project) ?? namespaceName,
+        uid: getUid(project),
+      },
+      namespaceName,
+      {
+        locationKey: this.getProviderName(),
+        defaultOwner: this.defaultOwner,
+      },
+    );
+  }
+
+  /**
+   * Translates a new API Component to a Backstage Component entity.
+   */
+  private translateNewComponentToEntity(
+    component: NewComponent,
+    namespaceName: string,
+    projectName: string,
+    providesApis?: string[],
+  ): Entity {
+    const componentName = getName(component)!;
+    const componentType =
+      component.spec?.type ?? component.spec?.componentType ?? '';
+
+    // Adapt to the legacy-shaped ModelsComponent for the shared translation function
+    return translateComponent(
+      {
+        name: componentName,
+        uid: getUid(component),
+        type: componentType,
+        status: isReady(component) ? 'Ready' : 'Not Ready',
+        createdAt: getCreatedAt(component),
+        description: getDescription(component),
+        deletionTimestamp: undefined,
+        // Pass componentWorkflow for repository info extraction
+        componentWorkflow: component.spec?.workflow
+          ? {
+              name: component.spec.workflow.name,
+              systemParameters: {
+                repository: {
+                  url: component.spec.workflow.systemParameters.repository.url,
+                  appPath:
+                    component.spec.workflow.systemParameters.repository.appPath,
+                  revision: {
+                    branch:
+                      component.spec.workflow.systemParameters.repository
+                        .revision.branch,
+                    commit:
+                      component.spec.workflow.systemParameters.repository
+                        .revision.commit,
+                  },
+                },
+              },
+              parameters: component.spec.workflow.parameters,
+            }
+          : undefined,
+      } as ModelsComponent,
+      namespaceName,
+      projectName,
+      {
+        defaultOwner: this.defaultOwner,
+        componentTypeUtils: this.componentTypeUtils,
+        locationKey: `provider:${this.getProviderName()}`,
+      },
+      providesApis,
+    );
+  }
+
+  /**
+   * Translates a new API DeploymentPipeline to a Backstage DeploymentPipeline entity.
+   */
+  private translateNewDeploymentPipelineToEntity(
+    pipeline: NewDeploymentPipeline,
+    namespaceName: string,
+    projectName: string,
+  ): DeploymentPipelineEntityV1alpha1 {
+    const pipelineName = getName(pipeline)!;
+
+    const promotionPaths =
+      pipeline.spec?.promotionPaths?.map(path => ({
+        sourceEnvironment: path.sourceEnvironmentRef,
+        targetEnvironments:
+          path.targetEnvironmentRefs?.map(target => ({
+            name: target.name,
+            requiresApproval: target.requiresApproval,
+            isManualApprovalRequired: target.isManualApprovalRequired,
+          })) || [],
+      })) || [];
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'DeploymentPipeline',
+      metadata: {
+        name: pipelineName,
+        namespace: namespaceName,
+        title: getDisplayName(pipeline) || pipelineName,
+        description:
+          getDescription(pipeline) ||
+          `Deployment pipeline${projectName ? ` for ${projectName}` : ''}`,
+        tags: ['openchoreo', 'deployment-pipeline', 'platform-engineering'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          ...(projectName && {
+            [CHOREO_ANNOTATIONS.PROJECT]: projectName,
+          }),
+          ...(getCreatedAt(pipeline) && {
+            [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(pipeline)!,
+          }),
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(pipeline)
+            ? 'Ready'
+            : 'Not Ready',
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/deployment-pipeline': 'true',
+        },
+      },
+      spec: {
+        type: 'promotion-pipeline',
+        projectRefs: projectName ? [projectName] : [],
+        namespaceName: namespaceName,
+        promotionPaths,
+      },
+    };
+  }
+
+  /**
+   * Translates a new API ComponentType to a Backstage ComponentType entity.
+   */
+  private translateNewComponentTypeToEntity(
+    ct: NewComponentType,
+    namespaceName: string,
+  ): ComponentTypeEntityV1alpha1 {
+    return translateCT(
+      {
+        name: getName(ct)!,
+        displayName: getDisplayName(ct),
+        description: getDescription(ct),
+        workloadType: ct.spec?.workloadType,
+        allowedWorkflows: ct.spec?.allowedWorkflows,
+        createdAt: getCreatedAt(ct),
+      },
+      namespaceName,
+      { locationKey: this.getProviderName() },
+    );
+  }
+
+  /**
+   * Translates a new API Trait to a Backstage TraitType entity.
+   */
+  private translateNewTraitToEntity(
+    trait: NewTrait,
+    namespaceName: string,
+  ): TraitTypeEntityV1alpha1 {
+    return translateTrait(
+      {
+        name: getName(trait)!,
+        displayName: getDisplayName(trait),
+        description: getDescription(trait),
+        createdAt: getCreatedAt(trait),
+      },
+      namespaceName,
+      { locationKey: this.getProviderName() },
+    );
+  }
+
+  /**
+   * Translates a new API Workflow to a Backstage Workflow entity.
+   */
+  private translateNewWorkflowToEntity(
+    wf: NewWorkflow,
+    namespaceName: string,
+  ): WorkflowEntityV1alpha1 {
+    const wfName = getName(wf)!;
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'Workflow',
+      metadata: {
+        name: wfName,
+        namespace: namespaceName,
+        title: getDisplayName(wf) || wfName,
+        description: getDescription(wf) || `${wfName} workflow`,
+        tags: ['openchoreo', 'workflow', 'platform-engineering'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(wf) || '',
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+        },
+      },
+      spec: {
+        type: 'workflow',
+        domain: `default/${namespaceName}`,
+      },
+    };
+  }
+
+  /**
+   * Extracts workload endpoints from new API Workload resource.
+   * Workload spec is Record<string, unknown>, endpoints live under spec.endpoints.
+   */
+  private extractWorkloadEndpoints(
+    workload: NewWorkload,
+  ): Record<string, WorkloadEndpoint> {
+    const spec = workload.spec as
+      | { endpoints?: Record<string, WorkloadEndpoint> }
+      | undefined;
+    return spec?.endpoints || {};
+  }
+
+  /**
+   * Creates API entities from a new API Workload's endpoints.
+   */
+  private createApiEntitiesFromNewWorkload(
+    componentName: string,
+    endpoints: Record<string, WorkloadEndpoint>,
+    namespaceName: string,
+    projectName: string,
+  ): Entity[] {
+    const apiEntities: Entity[] = [];
+
+    Object.entries(endpoints).forEach(([endpointName, endpoint]) => {
+      const apiEntity: Entity = {
+        apiVersion: 'backstage.io/v1alpha1',
+        kind: 'API',
+        metadata: {
+          name: `${componentName}-${endpointName}`,
+          namespace: namespaceName,
+          title: `${componentName} ${endpointName} API`,
+          description: `${endpoint.type} endpoint for ${componentName} service on port ${endpoint.port}`,
+          tags: ['openchoreo', 'api', endpoint.type.toLowerCase()],
+          annotations: {
+            'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+            'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+            [CHOREO_ANNOTATIONS.COMPONENT]: componentName,
+            [CHOREO_ANNOTATIONS.ENDPOINT_NAME]: endpointName,
+            [CHOREO_ANNOTATIONS.ENDPOINT_TYPE]: endpoint.type,
+            [CHOREO_ANNOTATIONS.ENDPOINT_PORT]: endpoint.port.toString(),
+            [CHOREO_ANNOTATIONS.ENDPOINT_VISIBILITY]: endpoint.visibility,
+            [CHOREO_ANNOTATIONS.PROJECT]: projectName,
+            [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+          },
+          labels: {
+            'openchoreo.io/managed': 'true',
+          },
+        },
+        spec: {
+          type: this.mapWorkloadEndpointTypeToBackstageType(endpoint.type),
+          lifecycle: 'production',
+          owner: this.defaultOwner,
+          system: projectName,
+          definition: this.createApiDefinitionFromWorkloadEndpoint(endpoint),
+        },
+      };
+
+      apiEntities.push(apiEntity);
+    });
+
+    return apiEntities;
   }
 }
