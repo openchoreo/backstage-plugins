@@ -40,10 +40,7 @@ export function WorkflowsOrExternalCICard() {
       <>
         <AnnotationGate annotation="jenkins.io/job-full-name">
           <Grid item md={4} xs={12}>
-            <EntityLatestJenkinsRunCard
-              branch="main,master"
-              variant="gridItem"
-            />
+            <EntityLatestJenkinsRunCard branch="" variant="gridItem" />
           </Grid>
         </AnnotationGate>
 
