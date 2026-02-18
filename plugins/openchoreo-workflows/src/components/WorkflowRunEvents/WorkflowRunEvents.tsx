@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -19,6 +19,10 @@ import { genericWorkflowsClientApiRef } from '../../api';
 import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
 import { useStyles } from './styles';
+import {
+  useWorkflowRunStatus,
+  isTerminalStatus,
+} from '../../hooks/useWorkflowRunStatus';
 import type { WorkflowRunEventEntry, WorkflowStepStatus } from '../../types';
 
 interface WorkflowRunEventsProps {
@@ -30,112 +34,25 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
   const client = useApi(genericWorkflowsClientApiRef);
   const namespaceName = useSelectedNamespace();
 
-  const [statusState, setStatusState] = useState<{
-    status: string;
-    steps: WorkflowStepStatus[];
-    hasLiveObservability: boolean;
-  } | null>(null);
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
+  const {
+    statusState,
+    statusLoading,
+    statusError,
+    isObservabilityNotConfigured: isStatusObsNotConfigured,
+    activeStepName,
+    setActiveStepName,
+  } = useWorkflowRunStatus(
+    runName,
+    'Observability is not configured for this workflow run. Events cannot be retrieved.',
+  );
 
-  const [activeStepName, setActiveStepName] = useState<string | null>(null);
   const [eventsByStep, setEventsByStep] = useState<
     Record<string, WorkflowRunEventEntry[]>
   >({});
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState<string | null>(null);
-  const [isObservabilityNotConfigured, setIsObservabilityNotConfigured] =
+  const [isEventsObsNotConfigured, setIsEventsObsNotConfigured] =
     useState(false);
-
-  const terminalStatuses = useMemo(
-    () => ['completed', 'failed', 'succeeded', 'error'],
-    [],
-  );
-
-  const isTerminalStatus = (status?: string) =>
-    status ? terminalStatuses.includes(status.toLowerCase()) : false;
-
-  const hasAutoSelectedStepRef = useRef(false);
-
-  // Fetch workflow run status (including steps) with polling
-  useEffect(() => {
-    if (!namespaceName || !runName) return;
-
-    let cancelled = false;
-    let intervalId: number | undefined;
-
-    const fetchStatus = async () => {
-      try {
-        if (!cancelled) {
-          setStatusLoading(true);
-          setStatusError(null);
-        }
-
-        const data = await client.getWorkflowRunStatus(namespaceName, runName);
-
-        if (cancelled) return;
-
-        setStatusState(data);
-
-        // Auto-select initial step only once (use ref to avoid re-selecting on each poll)
-        if (
-          !hasAutoSelectedStepRef.current &&
-          data.steps &&
-          data.steps.length > 0
-        ) {
-          const runningStep = data.steps.find(
-            step => step.phase?.toLowerCase() === 'running',
-          );
-          const defaultStep =
-            isTerminalStatus(data.status) || !runningStep
-              ? data.steps[data.steps.length - 1]
-              : runningStep;
-
-          if (defaultStep?.name) {
-            setActiveStepName(defaultStep.name);
-            hasAutoSelectedStepRef.current = true;
-          }
-        }
-
-        // Stop polling once workflow reaches a terminal state
-        if (isTerminalStatus(data.status) && intervalId !== undefined) {
-          window.clearInterval(intervalId);
-          intervalId = undefined;
-        }
-      } catch (err) {
-        if (cancelled) return;
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to fetch run status';
-
-        if (
-          errorMessage.includes('ObservabilityNotConfigured') ||
-          errorMessage.includes('OBSERVABILITY_NOT_CONFIGURED')
-        ) {
-          setIsObservabilityNotConfigured(true);
-          setStatusError(
-            'Observability is not configured for this workflow run. Events cannot be retrieved.',
-          );
-        } else {
-          setStatusError(errorMessage);
-        }
-      } finally {
-        if (!cancelled) {
-          setStatusLoading(false);
-        }
-      }
-    };
-
-    fetchStatus();
-    intervalId = window.setInterval(fetchStatus, 10_000);
-
-    return () => {
-      cancelled = true;
-      if (intervalId !== undefined) {
-        window.clearInterval(intervalId);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, namespaceName, runName]);
 
   // Fetch events for the active step
   useEffect(() => {
@@ -180,7 +97,7 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
           errorMessage.includes('ObservabilityNotConfigured') ||
           errorMessage.includes('OBSERVABILITY_NOT_CONFIGURED')
         ) {
-          setIsObservabilityNotConfigured(true);
+          setIsEventsObsNotConfigured(true);
           setEventsError(
             'Observability is not configured for this workflow run. Events cannot be retrieved.',
           );
@@ -188,7 +105,7 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
           errorMessage.includes('NOT_IMPLEMENTED') ||
           errorMessage.includes('501')
         ) {
-          setIsObservabilityNotConfigured(true);
+          setIsEventsObsNotConfigured(true);
           setEventsError(
             'Events are not available for generic workflow runs. This feature will be available soon.',
           );
@@ -242,6 +159,8 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
     );
   }
 
+  const isObservabilityNotConfigured =
+    isStatusObsNotConfigured || isEventsObsNotConfigured;
   const combinedError = statusError || eventsError;
 
   if (combinedError) {
@@ -303,70 +222,61 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
               </Box>
             </AccordionSummary>
             <AccordionDetails>
-              {activeStepName === step.name ? (
-                <Box className={classes.eventsContainer}>
-                  {eventsLoading && activeEvents.length === 0 && (
-                    <Box className={classes.inlineLoadingContainer}>
-                      <CircularProgress size={18} />
-                      <Typography variant="body2" color="textSecondary">
-                        Loading events...
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {!eventsLoading && activeEvents.length === 0 && (
-                    <Typography
-                      variant="body2"
-                      className={classes.noEventsText}
-                    >
-                      No events available for this step
+              <Box className={classes.eventsContainer}>
+                {eventsLoading && activeEvents.length === 0 && (
+                  <Box className={classes.inlineLoadingContainer}>
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="textSecondary">
+                      Loading events...
                     </Typography>
-                  )}
+                  </Box>
+                )}
 
-                  {activeEvents.length > 0 && (
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell className={classes.tableHeaderCell}>
-                            Type
+                {!eventsLoading && activeEvents.length === 0 && (
+                  <Typography variant="body2" className={classes.noEventsText}>
+                    No events available for this step
+                  </Typography>
+                )}
+
+                {activeEvents.length > 0 && (
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell className={classes.tableHeaderCell}>
+                          Type
+                        </TableCell>
+                        <TableCell className={classes.tableHeaderCell}>
+                          Reason
+                        </TableCell>
+                        <TableCell className={classes.tableHeaderCell}>
+                          Message
+                        </TableCell>
+                        <TableCell className={classes.tableHeaderCell}>
+                          Last Seen
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {activeEvents.map((event, index) => (
+                        <TableRow key={`${event.timestamp}-${index}`}>
+                          <TableCell className={classes.tableCell}>
+                            {event.type}
                           </TableCell>
-                          <TableCell className={classes.tableHeaderCell}>
-                            Reason
+                          <TableCell className={classes.tableCell}>
+                            {event.reason}
                           </TableCell>
-                          <TableCell className={classes.tableHeaderCell}>
-                            Message
+                          <TableCell className={classes.messageCell}>
+                            {event.message}
                           </TableCell>
-                          <TableCell className={classes.tableHeaderCell}>
-                            Last Seen
+                          <TableCell className={classes.tableCell}>
+                            {formatTimestamp(event.timestamp)}
                           </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {activeEvents.map((event, index) => (
-                          <TableRow key={`${event.timestamp}-${index}`}>
-                            <TableCell className={classes.tableCell}>
-                              {event.type}
-                            </TableCell>
-                            <TableCell className={classes.tableCell}>
-                              {event.reason}
-                            </TableCell>
-                            <TableCell className={classes.messageCell}>
-                              {event.message}
-                            </TableCell>
-                            <TableCell className={classes.tableCell}>
-                              {formatTimestamp(event.timestamp)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </Box>
-              ) : (
-                <Typography variant="body2" className={classes.noEventsText}>
-                  Expand this step to view events.
-                </Typography>
-              )}
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </Box>
             </AccordionDetails>
           </Accordion>
         ))}

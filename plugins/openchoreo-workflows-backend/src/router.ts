@@ -4,7 +4,6 @@ import Router from 'express-promise-router';
 import {
   GenericWorkflowService,
   ObservabilityNotConfiguredError,
-  HttpNotImplementedError,
 } from './services';
 import {
   OpenChoreoTokenService,
@@ -137,7 +136,7 @@ export async function createRouter({
     let parsedSinceSeconds: number | undefined;
     if (sinceSeconds !== undefined) {
       const parsed = Number(sinceSeconds);
-      if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed < 0) {
+      if (!Number.isFinite(parsed) || parsed < 0) {
         throw new InputError('sinceSeconds must be a non-negative integer');
       }
       parsedSinceSeconds = Math.floor(parsed);
@@ -165,12 +164,14 @@ export async function createRouter({
         runName,
         (environmentName as string) || 'development',
         userToken,
+        undefined,
+        parsedSinceSeconds,
       );
       res.json(logs);
     } catch (error) {
       // Handle observability not configured gracefully
       if (error instanceof ObservabilityNotConfiguredError) {
-        if (req.query.step) {
+        if (step) {
           // Return empty array for step-based requests
           res.status(503).json({
             error: 'OBSERVABILITY_NOT_CONFIGURED',
@@ -194,7 +195,7 @@ export async function createRouter({
   // GET /workflow-runs/:runName/events - Get workflow run events per step
   router.get('/workflow-runs/:runName/events', async (req, res) => {
     const { runName } = req.params;
-    const { namespaceName, environmentName, step } = req.query;
+    const { namespaceName, step } = req.query;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -202,32 +203,13 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    try {
-      const events = await workflowService.getWorkflowRunEvents(
-        namespaceName as string,
-        runName,
-        step as string | undefined,
-        (environmentName as string) || 'development',
-        userToken,
-      );
-      res.json(events);
-    } catch (error) {
-      if (error instanceof ObservabilityNotConfiguredError) {
-        res.status(503).json({
-          error: 'OBSERVABILITY_NOT_CONFIGURED',
-          message: (error as Error).message,
-        });
-        return;
-      }
-      if (error instanceof HttpNotImplementedError) {
-        res.status(501).json({
-          error: 'NOT_IMPLEMENTED',
-          message: (error as Error).message,
-        });
-        return;
-      }
-      throw error;
-    }
+    const events = await workflowService.getWorkflowRunEvents(
+      namespaceName as string,
+      runName,
+      step as string | undefined,
+      userToken,
+    );
+    res.json(events);
   });
 
   // POST /workflow-runs - Create (trigger) a new workflow run
