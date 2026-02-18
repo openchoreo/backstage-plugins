@@ -163,7 +163,10 @@ export async function createRouter({
       if (error instanceof ObservabilityNotConfiguredError) {
         if (req.query.step) {
           // Return empty array for step-based requests
-          res.status(503).json({ error: 'OBSERVABILITY_NOT_CONFIGURED', message: (error as Error).message });
+          res.status(503).json({
+            error: 'OBSERVABILITY_NOT_CONFIGURED',
+            message: (error as Error).message,
+          });
           return;
         }
         res.json({

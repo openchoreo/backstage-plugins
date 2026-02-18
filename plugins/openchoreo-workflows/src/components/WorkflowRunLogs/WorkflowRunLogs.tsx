@@ -219,13 +219,7 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    client,
-    namespaceName,
-    runName,
-    activeStepName,
-    statusState?.status,
-  ]);
+  }, [client, namespaceName, runName, activeStepName, statusState?.status]);
 
   const handleStepChange = (stepName: string) => {
     setActiveStepName(prev => (prev === stepName ? null : stepName));
