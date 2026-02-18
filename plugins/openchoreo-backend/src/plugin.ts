@@ -87,6 +87,7 @@ export const choreoPlugin = createBackendPlugin({
           logger,
           baseUrl,
           config,
+          useNewApi,
         );
 
         const buildInfoService = new BuildInfoService(
@@ -133,7 +134,7 @@ export const choreoPlugin = createBackendPlugin({
 
         const gitSecretsService = new GitSecretsService(logger, baseUrl);
 
-        const authzService = new AuthzService(logger, baseUrl);
+        const authzService = new AuthzService(logger, baseUrl, useNewApi);
 
         const dataPlaneInfoService = new DataPlaneInfoService(
           logger,

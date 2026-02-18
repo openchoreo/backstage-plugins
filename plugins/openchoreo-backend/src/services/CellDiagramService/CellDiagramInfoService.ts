@@ -9,6 +9,8 @@ import {
 import { CellDiagramService } from '../../types';
 import {
   createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
+  fetchAllPages,
   type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
@@ -49,29 +51,37 @@ export class CellDiagramInfoService implements CellDiagramService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
   private readonly componentTypeUtils: ComponentTypeUtils;
+  private readonly useNewApi: boolean;
 
-  /**
-   * Private constructor for CellDiagramInfoService.
-   * Use the static create method to instantiate.
-   * @param {LoggerService} logger - Logger service instance
-   * @param {string} baseUrl - Base url of openchoreo api
-   * @param {Config} config - Backstage config for component type mappings
-   * @private
-   */
-  public constructor(logger: LoggerService, baseUrl: string, config: Config) {
+  public constructor(
+    logger: LoggerService,
+    baseUrl: string,
+    config: Config,
+    useNewApi = false,
+  ) {
     this.baseUrl = baseUrl;
     this.logger = logger;
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
+    this.useNewApi = useNewApi;
   }
 
-  /**
-   * Fetches project information including its components and their configurations.
-   * @param {Object} request - The request object
-   * @param {string} request.projectName - Name of the project to fetch
-   * @param {string} request.namespaceName - Name of the namespace the project belongs to
-   * @returns {Promise<Project | undefined>} Project information if found, undefined otherwise
-   */
   async fetchProjectInfo(
+    {
+      projectName,
+      namespaceName,
+    }: {
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<Project | undefined> {
+    if (this.useNewApi) {
+      return this.fetchProjectInfoNew({ projectName, namespaceName }, token);
+    }
+    return this.fetchProjectInfoLegacy({ projectName, namespaceName }, token);
+  }
+
+  private async fetchProjectInfoLegacy(
     {
       projectName,
       namespaceName,
@@ -152,143 +162,244 @@ export class CellDiagramInfoService implements CellDiagramService {
         }
       }
 
-      const components: Component[] = completeComponents
-        .filter(component => {
-          if (!component.type) return false;
-          // Exclude one-off jobs from the cell diagram
-          return !component.type.startsWith('job/');
-        })
-        .map(component => {
-          // Get connections from workload data included in component response
-          const connections = this.generateConnections(
-            component.workload?.connections as
-              | { [key: string]: WorkloadConnection }
-              | undefined,
-            namespaceName,
-            projectName,
-            completeComponents,
-          );
-
-          // cronjob/* components render as scheduled tasks
-          if (component.type!.startsWith('cronjob/')) {
-            return {
-              id: component.name || '',
-              label: component.name || '',
-              version: '1.0.0',
-              type: ComponentType.SCHEDULED_TASK,
-              services: {
-                main: {
-                  id: component.name || '',
-                  label: component.name || '',
-                  type: 'ScheduledTask',
-                  dependencyIds: [],
-                },
-              },
-              connections: connections,
-            } as Component;
-          }
-
-          // proxy/* components render as API proxies
-          if (component.type!.startsWith('proxy/')) {
-            return {
-              id: component.name || '',
-              label: component.name || '',
-              version: '1.0.0',
-              type: ComponentType.API_PROXY,
-              services: {
-                main: {
-                  id: component.name || '',
-                  label: component.name || '',
-                  type: 'ApiProxy',
-                  dependencyIds: [],
-                },
-              },
-              connections: connections,
-            } as Component;
-          }
-
-          // deployment/* and statefulset/*:
-          // build service entries from workload endpoints
-          const endpoints = (component.workload?.endpoints || {}) as {
-            [key: string]: WorkloadEndpoint;
-          };
-          const services: { [key: string]: any } = {};
-          let hasHttpEndpoint = false;
-
-          if (Object.keys(endpoints).length > 0) {
-            Object.entries(endpoints).forEach(([endpointName, endpoint]) => {
-              const visibility = endpoint.visibility;
-              if (endpoint.type === 'HTTP') {
-                hasHttpEndpoint = true;
-              }
-              services[endpointName] = {
-                id: component.name || '',
-                label: component.name || '',
-                type: endpoint.type || 'SERVICE',
-                dependencyIds: [],
-                deploymentMetadata: {
-                  gateways: {
-                    internet: {
-                      isExposed: visibility === 'external',
-                    },
-                    intranet: {
-                      isExposed:
-                        visibility === 'external' ||
-                        visibility === 'internal' ||
-                        visibility === 'namespace',
-                    },
-                  },
-                },
-              };
-            });
-          } else {
-            // Fallback: create a default service entry so the component renders
-            services.main = {
-              id: component.name || '',
-              label: component.name || '',
-              type: 'SERVICE',
-              dependencyIds: [],
-              deploymentMetadata: {
-                gateways: {
-                  internet: { isExposed: false },
-                  intranet: { isExposed: false },
-                },
-              },
-            };
-          }
-
-          const pageVariant = this.componentTypeUtils.getPageVariant(
-            component.type!,
-          );
-          const isWebApp = pageVariant === 'website' || hasHttpEndpoint;
-
-          return {
-            id: component.name || '',
-            label: component.name || '',
-            version: '1.0.0',
-            type: isWebApp ? ComponentType.WEB_APP : ComponentType.SERVICE,
-            services: services,
-            connections: connections,
-          } as Component;
-        })
-        .filter((component): component is Component => component !== null);
-
-      const project: Project = {
-        id: projectName,
-        name: projectName,
-        modelVersion: '1.0.0',
-        components: components,
-        connections: [],
-        configurations: [],
-      };
-
-      return project;
+      return this.buildProject(projectName, namespaceName, completeComponents);
     } catch (error: unknown) {
       this.logger.error(
         `Error fetching project info for ${projectName}: ${error}`,
       );
       return undefined;
     }
+  }
+
+  private async fetchProjectInfoNew(
+    {
+      projectName,
+      namespaceName,
+    }: {
+      projectName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<Project | undefined> {
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // Fetch components and workloads in parallel (2 calls instead of N+1)
+      const [componentItems, workloadItems] = await Promise.all([
+        fetchAllPages(cursor =>
+          client
+            .GET('/api/v1/namespaces/{namespaceName}/components', {
+              params: {
+                path: { namespaceName },
+                query: { project: projectName, limit: 100, cursor },
+              },
+            })
+            .then(res => {
+              if (res.error || !res.response.ok) {
+                throw new Error(
+                  `Failed to fetch components: ${res.response.status} ${res.response.statusText}`,
+                );
+              }
+              return res.data;
+            }),
+        ),
+        fetchAllPages(cursor =>
+          client
+            .GET('/api/v1/namespaces/{namespaceName}/workloads', {
+              params: {
+                path: { namespaceName },
+                query: { project: projectName, limit: 100, cursor },
+              },
+            })
+            .then(res => {
+              if (res.error || !res.response.ok) {
+                throw new Error(
+                  `Failed to fetch workloads: ${res.response.status} ${res.response.statusText}`,
+                );
+              }
+              return res.data;
+            }),
+        ),
+      ]);
+
+      if (!componentItems.length) {
+        this.logger.warn('No components found in API response');
+        return undefined;
+      }
+
+      // Build a map from component name to workload spec
+      const workloadMap = new Map<string, Record<string, unknown>>();
+      for (const workload of workloadItems) {
+        const wlName = workload.metadata?.name;
+        if (wlName && workload.spec) {
+          workloadMap.set(wlName, workload.spec);
+        }
+      }
+
+      // Convert new API components to the legacy ModelsCompleteComponent shape
+      // so we can reuse the existing buildProject logic
+      const completeComponents: ModelsCompleteComponent[] = componentItems
+        .map(comp => {
+          const name = comp.metadata?.name ?? '';
+          const componentType =
+            comp.spec?.type ?? comp.spec?.componentType ?? '';
+          const workloadSpec = workloadMap.get(name);
+
+          return {
+            name,
+            type: componentType,
+            workload: workloadSpec as ModelsCompleteComponent['workload'],
+          } as ModelsCompleteComponent;
+        })
+        .filter(comp => comp.name);
+
+      return this.buildProject(projectName, namespaceName, completeComponents);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error fetching project info for ${projectName}: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  private buildProject(
+    projectName: string,
+    namespaceName: string,
+    completeComponents: ModelsCompleteComponent[],
+  ): Project {
+    const components: Component[] = completeComponents
+      .filter(component => {
+        if (!component.type) return false;
+        // Exclude one-off jobs from the cell diagram
+        return !component.type.startsWith('job/');
+      })
+      .map(component => {
+        // Get connections from workload data included in component response
+        const connections = this.generateConnections(
+          component.workload?.connections as
+            | { [key: string]: WorkloadConnection }
+            | undefined,
+          namespaceName,
+          projectName,
+          completeComponents,
+        );
+
+        // cronjob/* components render as scheduled tasks
+        if (component.type!.startsWith('cronjob/')) {
+          return {
+            id: component.name || '',
+            label: component.name || '',
+            version: '1.0.0',
+            type: ComponentType.SCHEDULED_TASK,
+            services: {
+              main: {
+                id: component.name || '',
+                label: component.name || '',
+                type: 'ScheduledTask',
+                dependencyIds: [],
+              },
+            },
+            connections: connections,
+          } as Component;
+        }
+
+        // proxy/* components render as API proxies
+        if (component.type!.startsWith('proxy/')) {
+          return {
+            id: component.name || '',
+            label: component.name || '',
+            version: '1.0.0',
+            type: ComponentType.API_PROXY,
+            services: {
+              main: {
+                id: component.name || '',
+                label: component.name || '',
+                type: 'ApiProxy',
+                dependencyIds: [],
+              },
+            },
+            connections: connections,
+          } as Component;
+        }
+
+        // deployment/* and statefulset/*:
+        // build service entries from workload endpoints
+        const endpoints = (component.workload?.endpoints || {}) as {
+          [key: string]: WorkloadEndpoint;
+        };
+        const services: { [key: string]: any } = {};
+        let hasHttpEndpoint = false;
+
+        if (Object.keys(endpoints).length > 0) {
+          Object.entries(endpoints).forEach(([endpointName, endpoint]) => {
+            const visibility = endpoint.visibility;
+            if (endpoint.type === 'HTTP') {
+              hasHttpEndpoint = true;
+            }
+            services[endpointName] = {
+              id: component.name || '',
+              label: component.name || '',
+              type: endpoint.type || 'SERVICE',
+              dependencyIds: [],
+              deploymentMetadata: {
+                gateways: {
+                  internet: {
+                    isExposed: visibility === 'external',
+                  },
+                  intranet: {
+                    isExposed:
+                      visibility === 'external' ||
+                      visibility === 'internal' ||
+                      visibility === 'namespace',
+                  },
+                },
+              },
+            };
+          });
+        } else {
+          // Fallback: create a default service entry so the component renders
+          services.main = {
+            id: component.name || '',
+            label: component.name || '',
+            type: 'SERVICE',
+            dependencyIds: [],
+            deploymentMetadata: {
+              gateways: {
+                internet: { isExposed: false },
+                intranet: { isExposed: false },
+              },
+            },
+          };
+        }
+
+        const pageVariant = this.componentTypeUtils.getPageVariant(
+          component.type!,
+        );
+        const isWebApp = pageVariant === 'website' || hasHttpEndpoint;
+
+        return {
+          id: component.name || '',
+          label: component.name || '',
+          version: '1.0.0',
+          type: isWebApp ? ComponentType.WEB_APP : ComponentType.SERVICE,
+          services: services,
+          connections: connections,
+        } as Component;
+      })
+      .filter((component): component is Component => component !== null);
+
+    return {
+      id: projectName,
+      name: projectName,
+      modelVersion: '1.0.0',
+      components: components,
+      connections: [],
+      configurations: [],
+    };
   }
 
   private generateConnections(
