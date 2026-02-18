@@ -2,7 +2,13 @@ import type {
   OpenChoreoComponents,
   OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { getName, getNamespace, getUid, getCreatedAt, deriveStatus } from './common';
+import {
+  getName,
+  getNamespace,
+  getUid,
+  getCreatedAt,
+  deriveStatus,
+} from './common';
 
 type ComponentWorkflowRun =
   OpenChoreoComponents['schemas']['ComponentWorkflowRun'];
@@ -20,8 +26,7 @@ export function transformComponentWorkflowRun(
     componentName: run.spec?.owner?.componentName ?? '',
     projectName: run.spec?.owner?.projectName ?? '',
     namespaceName: getNamespace(run) ?? '',
-    commit:
-      workflow?.systemParameters?.repository?.revision?.commit,
+    commit: workflow?.systemParameters?.repository?.revision?.commit,
     status: deriveStatus(run),
     createdAt: getCreatedAt(run) ?? '',
     image: run.status?.imageStatus?.image,
@@ -33,10 +38,8 @@ export function transformComponentWorkflowRun(
               url: workflow.systemParameters.repository.url,
               appPath: workflow.systemParameters.repository.appPath,
               revision: {
-                branch:
-                  workflow.systemParameters.repository.revision.branch,
-                commit:
-                  workflow.systemParameters.repository.revision.commit,
+                branch: workflow.systemParameters.repository.revision.branch,
+                commit: workflow.systemParameters.repository.revision.commit,
               },
             },
           },

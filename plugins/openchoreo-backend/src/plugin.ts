@@ -71,6 +71,10 @@ export const choreoPlugin = createBackendPlugin({
         const authEnabled =
           config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
+        // Check if new OpenChoreo 1.0 API should be used (defaults to false)
+        const useNewApi =
+          config.getOptionalBoolean('openchoreo.useNewApi') ?? false;
+
         // All services use user tokens forwarded from the frontend
         // No default token - services require token parameter for each API call
         const environmentInfoService = new EnvironmentInfoService(
@@ -86,26 +90,51 @@ export const choreoPlugin = createBackendPlugin({
 
         const buildInfoService = new BuildInfoService(logger, baseUrl);
 
-        const componentInfoService = new ComponentInfoService(logger, baseUrl);
+        const componentInfoService = new ComponentInfoService(
+          logger,
+          baseUrl,
+          useNewApi,
+        );
 
-        const projectInfoService = new ProjectInfoService(logger, baseUrl);
+        const projectInfoService = new ProjectInfoService(
+          logger,
+          baseUrl,
+          useNewApi,
+        );
 
-        const workloadInfoService = new WorkloadInfoService(logger, baseUrl);
+        const workloadInfoService = new WorkloadInfoService(
+          logger,
+          baseUrl,
+          useNewApi,
+        );
 
-        const dashboardInfoService = new DashboardInfoService(logger, baseUrl);
+        const dashboardInfoService = new DashboardInfoService(
+          logger,
+          baseUrl,
+          useNewApi,
+        );
 
-        const traitInfoService = new TraitInfoService(logger, baseUrl);
+        const traitInfoService = new TraitInfoService(
+          logger,
+          baseUrl,
+          useNewApi,
+        );
 
         const secretReferencesInfoService = new SecretReferencesService(
           logger,
           baseUrl,
+          useNewApi,
         );
 
         const gitSecretsService = new GitSecretsService(logger, baseUrl);
 
         const authzService = new AuthzService(logger, baseUrl);
 
-        const dataPlaneInfoService = new DataPlaneInfoService(logger, baseUrl);
+        const dataPlaneInfoService = new DataPlaneInfoService(
+          logger,
+          baseUrl,
+          useNewApi,
+        );
 
         const platformResourceService = new PlatformResourceService(
           logger,

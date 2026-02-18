@@ -13,8 +13,7 @@ import {
 } from './common';
 
 type Project = OpenChoreoComponents['schemas']['Project'];
-type ProjectResponse =
-  OpenChoreoLegacyComponents['schemas']['ProjectResponse'];
+type ProjectResponse = OpenChoreoLegacyComponents['schemas']['ProjectResponse'];
 
 export function transformProject(project: Project): ProjectResponse {
   return {

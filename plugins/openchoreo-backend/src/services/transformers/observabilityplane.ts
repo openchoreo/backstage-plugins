@@ -11,8 +11,7 @@ import {
   deriveStatus,
 } from './common';
 
-type ObservabilityPlane =
-  OpenChoreoComponents['schemas']['ObservabilityPlane'];
+type ObservabilityPlane = OpenChoreoComponents['schemas']['ObservabilityPlane'];
 type ObservabilityPlaneResponse =
   OpenChoreoLegacyComponents['schemas']['ObservabilityPlaneResponse'];
 

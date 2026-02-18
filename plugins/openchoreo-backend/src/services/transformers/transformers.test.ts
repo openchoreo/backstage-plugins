@@ -135,9 +135,9 @@ describe('transformComponent', () => {
     const result = transformComponent(component);
     expect(result.componentWorkflow).toBeDefined();
     expect(result.componentWorkflow!.name).toBe('docker-build');
-    expect(
-      result.componentWorkflow!.systemParameters.repository.url,
-    ).toBe('https://github.com/org/repo.git');
+    expect(result.componentWorkflow!.systemParameters.repository.url).toBe(
+      'https://github.com/org/repo.git',
+    );
     expect(
       result.componentWorkflow!.systemParameters.repository.revision.branch,
     ).toBe('main');
@@ -382,9 +382,9 @@ describe('transformComponentWorkflowRun', () => {
   it('maps workflow config', () => {
     const result = transformComponentWorkflowRun(run);
     expect(result.workflow?.name).toBe('docker-build');
-    expect(
-      result.workflow?.systemParameters?.repository?.url,
-    ).toBe('https://github.com/org/repo.git');
+    expect(result.workflow?.systemParameters?.repository?.url).toBe(
+      'https://github.com/org/repo.git',
+    );
   });
 });
 
@@ -399,9 +399,7 @@ describe('transformDeploymentPipeline', () => {
       promotionPaths: [
         {
           sourceEnvironmentRef: 'dev',
-          targetEnvironmentRefs: [
-            { name: 'staging', requiresApproval: true },
-          ],
+          targetEnvironmentRefs: [{ name: 'staging', requiresApproval: true }],
         },
       ],
     },

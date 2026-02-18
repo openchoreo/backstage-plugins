@@ -2,41 +2,51 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import { WorkloadService } from '../../types';
 import {
   createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
   type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Use generated type from OpenAPI spec
 type ModelsWorkload = OpenChoreoLegacyComponents['schemas']['WorkloadResponse'];
 
-/**
- * Service for managing and retrieving workload information.
- * This service handles fetching and applying workload configurations.
- */
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
+  private readonly useNewApi: boolean;
 
-  public constructor(logger: LoggerService, baseUrl: string) {
+  public constructor(
+    logger: LoggerService,
+    baseUrl: string,
+    useNewApi = false,
+  ) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+    this.useNewApi = useNewApi;
   }
 
-  static create(logger: LoggerService, baseUrl: string): WorkloadInfoService {
-    return new WorkloadInfoService(logger, baseUrl);
+  static create(
+    logger: LoggerService,
+    baseUrl: string,
+    useNewApi = false,
+  ): WorkloadInfoService {
+    return new WorkloadInfoService(logger, baseUrl, useNewApi);
   }
 
-  /**
-   * Fetches workload information for a specific component in a project.
-   * First tries the dedicated workload endpoint, falls back to component endpoint if needed.
-   *
-   * @param {Object} request - The request parameters
-   * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.componentName - Name of the component to fetch workload info for
-   * @param {string} request.namespaceName - Name of the namespace owning the project
-   * @returns {Promise<ModelsWorkload>} The workload configuration
-   * @throws {Error} When there's an error fetching data from the API
-   */
   async fetchWorkloadInfo(
+    request: {
+      projectName: string;
+      componentName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<ModelsWorkload> {
+    if (this.useNewApi) {
+      return this.fetchWorkloadInfoNew(request, token);
+    }
+    return this.fetchWorkloadInfoLegacy(request, token);
+  }
+
+  private async fetchWorkloadInfoLegacy(
     request: {
       projectName: string;
       componentName: string;
@@ -87,18 +97,74 @@ export class WorkloadInfoService implements WorkloadService {
     }
   }
 
-  /**
-   * Applies workload configuration for a specific component in a project.
-   *
-   * @param {Object} request - The request parameters
-   * @param {string} request.projectName - Name of the project containing the component
-   * @param {string} request.componentName - Name of the component to apply workload for
-   * @param {string} request.namespaceName - Name of the namespace owning the project
-   * @param {ModelsWorkload} request.workloadSpec - The workload specification to apply
-   * @returns {Promise<any>} The result of the apply operation
-   * @throws {Error} When there's an error applying the workload
-   */
+  private async fetchWorkloadInfoNew(
+    request: {
+      projectName: string;
+      componentName: string;
+      namespaceName: string;
+    },
+    token?: string,
+  ): Promise<ModelsWorkload> {
+    const { componentName, namespaceName } = request;
+
+    try {
+      this.logger.info(
+        `Fetching workload info (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // List workloads filtered by component name
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workloads',
+        {
+          params: {
+            path: { namespaceName },
+            query: { component: componentName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workloads: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const workload = data.items[0];
+      if (!workload) {
+        throw new Error('No workload data returned');
+      }
+
+      // Return the spec directly — the spec object contains the same
+      // flexible structure the frontend expects
+      return workload.spec as ModelsWorkload;
+    } catch (error) {
+      this.logger.error(`Failed to fetch workload info: ${error}`);
+      throw new Error('Failed to fetch workload info', { cause: error });
+    }
+  }
+
   async applyWorkload(
+    request: {
+      projectName: string;
+      componentName: string;
+      namespaceName: string;
+      workloadSpec: ModelsWorkload;
+    },
+    token?: string,
+  ): Promise<any> {
+    if (this.useNewApi) {
+      return this.applyWorkloadNew(request, token);
+    }
+    return this.applyWorkloadLegacy(request, token);
+  }
+
+  private async applyWorkloadLegacy(
     request: {
       projectName: string;
       componentName: string;
@@ -145,6 +211,82 @@ export class WorkloadInfoService implements WorkloadService {
       }
 
       return data.data;
+    } catch (error) {
+      this.logger.error(`Failed to apply workload: ${error}`);
+      throw error;
+    }
+  }
+
+  private async applyWorkloadNew(
+    request: {
+      projectName: string;
+      componentName: string;
+      namespaceName: string;
+      workloadSpec: ModelsWorkload;
+    },
+    token?: string,
+  ): Promise<any> {
+    const { componentName, namespaceName, workloadSpec } = request;
+
+    try {
+      this.logger.info(
+        `Applying workload (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // First find the existing workload for this component
+      const {
+        data: listData,
+        error: listError,
+        response: listResponse,
+      } = await client.GET('/api/v1/namespaces/{namespaceName}/workloads', {
+        params: {
+          path: { namespaceName },
+          query: { component: componentName },
+        },
+      });
+
+      if (listError || !listResponse.ok) {
+        throw new Error(
+          `Failed to list workloads: ${listResponse.status} ${listResponse.statusText}`,
+        );
+      }
+
+      const existingWorkload = listData.items[0];
+      if (!existingWorkload) {
+        throw new Error(
+          `No existing workload found for component: ${componentName}`,
+        );
+      }
+
+      const workloadName = existingWorkload.metadata.name;
+
+      // Update the workload with the new spec
+      const { data, error, response } = await client.PUT(
+        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
+        {
+          params: {
+            path: { namespaceName, workloadName },
+          },
+          body: {
+            ...existingWorkload,
+            spec: workloadSpec as { [key: string]: unknown },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to update workload: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      return data.spec;
     } catch (error) {
       this.logger.error(`Failed to apply workload: ${error}`);
       throw error;

@@ -11,8 +11,7 @@ import {
   deriveStatus,
 } from './common';
 
-type DeploymentPipeline =
-  OpenChoreoComponents['schemas']['DeploymentPipeline'];
+type DeploymentPipeline = OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type DeploymentPipelineResponse =
   OpenChoreoLegacyComponents['schemas']['DeploymentPipelineResponse'];
 
