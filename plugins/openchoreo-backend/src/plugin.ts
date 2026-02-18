@@ -145,6 +145,7 @@ export const choreoPlugin = createBackendPlugin({
         const platformResourceService = new PlatformResourceService(
           logger,
           baseUrl,
+          useNewApi,
         );
 
         // Register OpenChoreo component permissions with the permissions registry
