@@ -47,7 +47,6 @@ export const WorkflowTriggerContent = () => {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<Error | null>(null);
-  const [triggeredRun, setTriggeredRun] = useState<string | null>(null);
 
   const handleSubmit = async (data: IChangeEvent) => {
     try {
@@ -60,7 +59,6 @@ export const WorkflowTriggerContent = () => {
         data.formData ?? {},
       );
 
-      setTriggeredRun(run.name);
       // Navigate to the runs tab to view the triggered run
       navigate(`../runs?run=${encodeURIComponent(run.name)}`);
     } catch (err) {
@@ -103,12 +101,6 @@ export const WorkflowTriggerContent = () => {
 
   return (
     <Content>
-      {triggeredRun && (
-        <Alert severity="success" style={{ marginBottom: 16 }}>
-          Workflow run "{triggeredRun}" triggered successfully.
-        </Alert>
-      )}
-
       <InfoCard title={`Trigger: ${entity.metadata.title || workflowName}`}>
         {submitError && (
           <Alert severity="error" style={{ marginBottom: 16 }}>
