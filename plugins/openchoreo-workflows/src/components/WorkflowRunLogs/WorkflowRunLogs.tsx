@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -15,6 +15,8 @@ import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
 import { useStyles } from './styles';
 import type { LogEntry, WorkflowStepStatus } from '../../types';
+
+const TERMINAL_STATUSES = ['completed', 'failed', 'succeeded', 'error'];
 
 interface WorkflowRunLogsProps {
   runName: string;
@@ -50,13 +52,8 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
   const [isObservabilityNotConfigured, setIsObservabilityNotConfigured] =
     useState(false);
 
-  const terminalStatuses = useMemo(
-    () => ['completed', 'failed', 'succeeded', 'error'],
-    [],
-  );
-
   const isTerminalStatus = (status?: string) =>
-    status ? terminalStatuses.includes(status.toLowerCase()) : false;
+    status ? TERMINAL_STATUSES.includes(status.toLowerCase()) : false;
 
   const hasAutoSelectedStepRef = useRef(false);
 
@@ -219,7 +216,14 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, namespaceName, runName, activeStepName, statusState?.status]);
+  }, [
+    client,
+    namespaceName,
+    runName,
+    activeStepName,
+    statusState?.status,
+    statusState?.steps,
+  ]);
 
   const handleStepChange = (stepName: string) => {
     setActiveStepName(prev => (prev === stepName ? null : stepName));
@@ -307,7 +311,13 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
                   )}
 
                   {activeLogs.map((logEntry, index) => (
-                    <Box key={index} style={{ marginBottom: '4px' }}>
+                    <Box
+                      key={`${logEntry.timestamp ?? ''}-${logEntry.log.slice(
+                        0,
+                        40,
+                      )}-${index}`}
+                      style={{ marginBottom: '4px' }}
+                    >
                       <Typography variant="body2" className={classes.logText}>
                         {logEntry.log}
                       </Typography>

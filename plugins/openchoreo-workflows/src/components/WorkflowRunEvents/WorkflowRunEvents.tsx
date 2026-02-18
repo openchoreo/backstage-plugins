@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -55,6 +55,8 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
   const isTerminalStatus = (status?: string) =>
     status ? terminalStatuses.includes(status.toLowerCase()) : false;
 
+  const hasAutoSelectedStepRef = useRef(false);
+
   // Fetch workflow run status (including steps) with polling
   useEffect(() => {
     if (!namespaceName || !runName) return;
@@ -75,8 +77,12 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
 
         setStatusState(data);
 
-        // Auto-select initial step if none selected yet
-        if (!activeStepName && data.steps && data.steps.length > 0) {
+        // Auto-select initial step only once (use ref to avoid re-selecting on each poll)
+        if (
+          !hasAutoSelectedStepRef.current &&
+          data.steps &&
+          data.steps.length > 0
+        ) {
           const runningStep = data.steps.find(
             step => step.phase?.toLowerCase() === 'running',
           );
@@ -87,6 +93,7 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
 
           if (defaultStep?.name) {
             setActiveStepName(defaultStep.name);
+            hasAutoSelectedStepRef.current = true;
           }
         }
 
@@ -211,7 +218,14 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, namespaceName, runName, activeStepName, statusState?.status]);
+  }, [
+    client,
+    namespaceName,
+    runName,
+    activeStepName,
+    statusState?.status,
+    statusState?.steps,
+  ]);
 
   const handleStepChange = (stepName: string) => {
     setActiveStepName(prev => (prev === stepName ? null : stepName));

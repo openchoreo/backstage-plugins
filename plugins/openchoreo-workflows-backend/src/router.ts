@@ -134,6 +134,15 @@ export async function createRouter({
       throw new InputError('namespaceName is required query parameter');
     }
 
+    let parsedSinceSeconds: number | undefined;
+    if (sinceSeconds !== undefined) {
+      const parsed = Number(sinceSeconds);
+      if (!Number.isFinite(parsed) || Number.isNaN(parsed) || parsed < 0) {
+        throw new InputError('sinceSeconds must be a non-negative integer');
+      }
+      parsedSinceSeconds = Math.floor(parsed);
+    }
+
     const userToken = getUserTokenFromRequest(req);
 
     try {
@@ -143,7 +152,7 @@ export async function createRouter({
           namespaceName as string,
           runName,
           step as string,
-          sinceSeconds ? parseInt(sinceSeconds as string, 10) : undefined,
+          parsedSinceSeconds,
           (environmentName as string) || 'development',
           userToken,
         );
