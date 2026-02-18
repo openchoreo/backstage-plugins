@@ -159,21 +159,18 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
     );
   }
 
-  const isObservabilityNotConfigured =
-    isStatusObsNotConfigured || isEventsObsNotConfigured;
-  const combinedError = statusError || eventsError;
-
-  if (combinedError) {
-    if (isObservabilityNotConfigured) {
+  // Only status/observability errors block the whole view; eventsError is shown inline.
+  if (statusError) {
+    if (isStatusObsNotConfigured) {
       return (
         <Alert severity="info">
-          <Typography variant="body1">{combinedError}</Typography>
+          <Typography variant="body1">{statusError}</Typography>
         </Alert>
       );
     }
     return (
       <Alert severity="error">
-        <Typography variant="body1">{combinedError}</Typography>
+        <Typography variant="body1">{statusError}</Typography>
       </Alert>
     );
   }
@@ -190,11 +187,8 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
     (activeStepName && eventsByStep[activeStepName]) || [];
 
   const formatTimestamp = (timestamp: string) => {
-    try {
-      return new Date(timestamp).toLocaleString();
-    } catch {
-      return timestamp;
-    }
+    const d = new Date(timestamp);
+    return Number.isNaN(d.getTime()) ? timestamp : d.toLocaleString();
   };
 
   return (
@@ -223,7 +217,13 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
             </AccordionSummary>
             <AccordionDetails>
               <Box className={classes.eventsContainer}>
-                {eventsLoading && activeEvents.length === 0 && (
+                {eventsError && (
+                  <Alert severity={isEventsObsNotConfigured ? 'info' : 'error'}>
+                    <Typography variant="body2">{eventsError}</Typography>
+                  </Alert>
+                )}
+
+                {!eventsError && eventsLoading && activeEvents.length === 0 && (
                   <Box className={classes.inlineLoadingContainer}>
                     <CircularProgress size={18} />
                     <Typography variant="body2" color="textSecondary">
@@ -232,11 +232,16 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
                   </Box>
                 )}
 
-                {!eventsLoading && activeEvents.length === 0 && (
-                  <Typography variant="body2" className={classes.noEventsText}>
-                    No events available for this step
-                  </Typography>
-                )}
+                {!eventsError &&
+                  !eventsLoading &&
+                  activeEvents.length === 0 && (
+                    <Typography
+                      variant="body2"
+                      className={classes.noEventsText}
+                    >
+                      No events available for this step
+                    </Typography>
+                  )}
 
                 {activeEvents.length > 0 && (
                   <Table size="small">

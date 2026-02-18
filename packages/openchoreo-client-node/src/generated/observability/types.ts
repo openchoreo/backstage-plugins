@@ -56,6 +56,7 @@ export interface paths {
      * @description Returns logs from a workflow run stored in the observability plane.
      *     This endpoint is used when logs are older than the TTL and have been archived to OpenSearch.
      *     Logs are returned as a JSON array of log entries with timestamps, optionally filtered by step.
+     *
      */
     get: operations['getComponentWorkflowRunLogs'];
     put?: never;
@@ -80,6 +81,26 @@ export interface paths {
     get: operations['getWorkflowRunEvents'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/workflow-runs/{runId}/logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Get workflow run logs
+     * @description Retrieve logs for a specific workflow run by its run ID
+     */
+    post: operations['getWorkflowRunLogs'];
     delete?: never;
     options?: never;
     head?: never;
@@ -488,6 +509,7 @@ export interface components {
        *     - Prefix match: `63d7c3065ab2537*`
        *     - Suffix match: `*135a77db`
        *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
+       *
        * @example 63d7c3065ab25375*
        */
       traceId?: string;
@@ -630,8 +652,7 @@ export interface components {
        */
       tookMs?: number;
     };
-    /**
-     * @example {
+    /** @example {
      *       "traces": [
      *         {
      *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
@@ -650,8 +671,7 @@ export interface components {
      *         }
      *       ],
      *       "tookMs": 15
-     *     }
-     */
+     *     } */
     TraceResponse: {
       /** @description Array of traces with their spans */
       traces?: components['schemas']['Trace'][];
@@ -731,8 +751,7 @@ export interface components {
        */
       value?: number;
     };
-    /**
-     * @example {
+    /** @example {
      *       "cpuUsage": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -793,8 +812,7 @@ export interface components {
      *           "value": 2147483648
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     ResourceMetricsTimeSeries: {
       /** @description CPU usage time series (in cores) */
       cpuUsage?: components['schemas']['TimeValuePoint'][];
@@ -809,8 +827,7 @@ export interface components {
       /** @description Memory limits time series (in bytes) */
       memoryLimits?: components['schemas']['TimeValuePoint'][];
     };
-    /**
-     * @example {
+    /** @example {
      *       "requestCount": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -881,8 +898,7 @@ export interface components {
      *           "value": 0.52
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     HTTPMetricsTimeSeries: {
       /** @description Total HTTP request count time series (requests per second) */
       requestCount?: components['schemas']['TimeValuePoint'][];
@@ -916,6 +932,43 @@ export interface components {
        * @example Invalid request format
        */
       message: string;
+    };
+    WorkflowRunLogsRequest: {
+      /**
+       * @description Namespace name (required for authorization)
+       * @example reading-list-service-workflow-290506e5
+       */
+      namespaceName: string;
+      /**
+       * Format: date-time
+       * @description Start time for log query in RFC3339 format
+       * @example 2025-01-10T00:00:00Z
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description End time for log query in RFC3339 format
+       * @example 2025-01-10T23:59:59Z
+       */
+      endTime: string;
+      /**
+       * @description Maximum number of log entries to return
+       * @default 100
+       * @example 100
+       */
+      limit: number;
+      /**
+       * @description Sort order for logs (workflow run logs are sorted in ascending order by default)
+       * @default asc
+       * @example asc
+       * @enum {string}
+       */
+      sortOrder: 'asc' | 'desc';
+      /**
+       * @description Filter logs by a specific workflow step name. When provided, only logs from pods matching {runId}-{step}-* are returned.
+       * @example build-step
+       */
+      step?: string;
     };
     /** @description A single log entry from a component workflow run */
     ComponentWorkflowRunLogEntry: {
@@ -1073,26 +1126,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example [
-           *       {
-           *         "timestamp": "2025-01-06T10:00:00.123Z",
-           *         "log": "Building application..."
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:05.456Z",
-           *         "log": "Build completed successfully"
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:10.789Z",
-           *         "log": "Pushing image to registry..."
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:15.012Z",
-           *         "log": "Image pushed successfully"
-           *       }
-           *     ]
-           */
           'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
         };
       };
@@ -1170,15 +1203,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example [
-           *       {
-           *         "timestamp": "2025-01-06T10:00:00.123Z",
-           *         "type": "build-started",
-           *         "reason": "Build started"
-           *       }
-           *     ]
-           */
           'application/json': components['schemas']['ComponentWorkflowRunEventEntry'][];
         };
       };
@@ -1211,6 +1235,69 @@ export interface operations {
       };
       /** @description Workflow run not found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getWorkflowRunLogs: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The unique identifier of the workflow run */
+        runId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WorkflowRunLogsRequest'];
+      };
+    };
+    responses: {
+      /** @description Successfully retrieved workflow run logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['LogResponse'];
+        };
+      };
+      /** @description Bad request - invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
         headers: {
           [name: string]: unknown;
         };

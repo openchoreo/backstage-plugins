@@ -1,5 +1,6 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
+  createOpenChoreoApiClient,
   createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
@@ -363,13 +364,20 @@ export class GenericWorkflowService {
         },
       );
 
-      if (!error && response.ok && data?.success && data.data) {
-        const statusData = data.data as any;
-        return {
-          status: statusData.status || 'Unknown',
-          steps: (statusData.steps || []) as WorkflowStepStatus[],
-          hasLiveObservability: statusData.hasLiveObservability ?? false,
+      if (!error && response.ok) {
+        // Handle both wrapped ({ success: true, data: {...} }) and direct response formats.
+        // The status endpoint is not yet in the new API types (cast as any), so the
+        // backend may omit the APIResponse envelope and return the status object directly.
+        const statusData: any = (data as any)?.data ?? data;
+        const result: WorkflowRunStatusResponse = {
+          status: statusData?.status || 'Unknown',
+          steps: (statusData?.steps || []) as WorkflowStepStatus[],
+          hasLiveObservability: statusData?.hasLiveObservability ?? false,
         };
+        this.logger.info(
+          `Workflow run ${runName}: status=${result.status}, hasLiveObservability=${result.hasLiveObservability}, steps=${result.steps.length}`,
+        );
+        return result;
       }
 
       if (response.status === 404 || response.status === 501) {
@@ -432,34 +440,90 @@ export class GenericWorkflowService {
     );
 
     try {
-      // First, get the workflow run to obtain its UUID
-      const workflowRun = await this.getWorkflowRun(
-        namespaceName,
-        runName,
-        token,
-      );
-      // Use run name for observability API (not UUID)
-      const runId = workflowRun.name || runName;
+      // Get status to determine whether live logs (build plane) or archived
+      // logs (observer/OpenSearch) should be used — mirrors CI plugin pattern.
+      let hasLiveObservability = false;
+      try {
+        const status = await this.getWorkflowRunStatus(
+          namespaceName,
+          runName,
+          token,
+        );
+        hasLiveObservability = status.hasLiveObservability ?? false;
+      } catch (statusErr) {
+        this.logger.info(
+          `Could not determine hasLiveObservability for ${runName}, defaulting to observer: ${statusErr}`,
+        );
+      }
 
-      // Get the observer URL from the environment
-      const mainClient = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
+      if (hasLiveObservability) {
+        // ── Path A: live logs from the new API (direct from Kubernetes/Argo) ──
+        const newApiClient = createOpenChoreoApiClient({
+          baseUrl: this.baseUrl,
+          token,
+          logger: this.logger,
+        });
+        const { data, error, response } = await (newApiClient as any).GET(
+          '/namespaces/{namespaceName}/workflow-runs/{runName}/logs',
+          {
+            params: {
+              path: { namespaceName, runName },
+              query: {
+                ...(step ? { step } : {}),
+                ...(sinceSeconds !== undefined ? { sinceSeconds } : {}),
+              },
+            },
+          },
+        );
+
+        this.logger.info(
+          `Live logs response for ${runName}: ${response.status} ${response.statusText}`,
+        );
+
+        if (!error && response.ok) {
+          const logsArray: any[] = Array.isArray(data)
+            ? data
+            : Array.isArray((data as any)?.data)
+              ? (data as any).data
+              : [];
+          const entries = logsArray.map((e: any) => ({
+            timestamp: e.timestamp,
+            log: e.log,
+          }));
+          this.logger.info(
+            `Fetched ${entries.length} live log entries for ${runName}`,
+          );
+          return { logs: entries, totalCount: entries.length, tookMs: 0 };
+        }
+
+        if (!error && !response.ok && response.status !== 404) {
+          throw new Error(
+            `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        // Live endpoint not yet implemented (404); fall through to observer.
+        this.logger.info(
+          `Live logs endpoint not available (404) for ${runName}, falling back to observer`,
+        );
+      }
+
+      // ── Path B: archived logs from the observer service (OpenSearch) ──────────
       const {
         data: urlData,
         error: urlError,
         response: urlResponse,
-      } = await mainClient.GET(
+      } = await client.GET(
         '/namespaces/{namespaceName}/environments/{envName}/observer-url',
         {
           params: {
-            path: {
-              namespaceName,
-              envName: environmentName,
-            },
+            path: { namespaceName, envName: environmentName },
           },
         },
       );
@@ -473,116 +537,68 @@ export class GenericWorkflowService {
         );
       }
 
-      if (!urlData || !urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data?.observerUrl;
-      if (!observerUrl) {
+      if (!urlData?.success || !urlData.data?.observerUrl) {
         throw new ObservabilityNotConfiguredError(runName);
       }
 
-      // Now use the observability client with the resolved URL
+      const observerUrl = urlData.data.observerUrl;
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         token,
         this.logger,
       );
 
-      this.logger.debug(
-        `Sending workflow run logs request for run ${runName} with id: ${runId}`,
-      );
-
-      // Call the observability service to get workflow run logs
-      // Wrap in try-catch to handle cases where endpoint doesn't exist
-      let data: any;
-      let response: Response;
-
-      // Calculate timestamps for the request
       const startTime = new Date(
         Date.now() - 30 * 24 * 60 * 60 * 1000,
       ).toISOString(); // 30 days ago
       const endTime = new Date().toISOString();
 
       this.logger.info(
-        `Workflow run logs request timestamps - startTime: ${startTime}, endTime: ${endTime}, runId: ${runId}`,
+        `Fetching archived logs from observer for ${runName}: startTime=${startTime}, step=${step ?? 'none'}`,
       );
 
       try {
-        const result = await obsClient.POST(
-          '/api/v1/workflow-runs/{runId}/logs' as any,
-          {
-            params: {
-              path: { runId },
-            },
+        const { data: obsData, error: obsError, response: obsResponse } =
+          await obsClient.POST('/api/v1/workflow-runs/{runId}/logs', {
+            params: { path: { runId: runName } },
             body: {
+              namespaceName,
               startTime,
               endTime,
               limit: 1000,
               sortOrder: 'asc',
-              namespaceName,
-              ...(step !== undefined ? { step } : {}),
-              ...(sinceSeconds !== undefined ? { sinceSeconds } : {}),
+              ...(step ? { step } : {}),
             },
-          },
-        );
-        data = result.data;
-        response = result.response;
+          });
 
-        if (result.error || !response.ok) {
-          // If endpoint doesn't exist (404), treat as not configured
-          if (response.status === 404) {
-            this.logger.info(
-              `Workflow run logs endpoint not available (404). The observability service may not support workflow run logs yet.`,
-            );
-            throw new ObservabilityNotConfiguredError(runName);
-          }
-          this.logger.error(
-            `Failed to fetch workflow run logs for ${runName}: ${response.status} ${response.statusText}`,
-            {
-              error: result.error
-                ? JSON.stringify(result.error)
-                : 'Unknown error',
-            },
+        if (obsError || !obsResponse.ok) {
+          this.logger.info(
+            `Observer returned ${obsResponse.status} for ${runName}: ${JSON.stringify(obsError)}`,
           );
-          throw new Error(
-            `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
-          );
+          throw new ObservabilityNotConfiguredError(runName);
         }
-      } catch (obsError: unknown) {
-        // If it's already our error type, rethrow
-        if (obsError instanceof ObservabilityNotConfiguredError) {
-          throw obsError;
-        }
-        // For any other error (connection refused, endpoint not found, etc.)
-        // treat as observability not configured
+
         this.logger.info(
-          `Could not fetch workflow run logs: ${obsError}. The observability service may not support workflow run logs yet.`,
+          `Fetched ${obsData?.logs?.length || 0} archived log entries for ${runName}`,
+        );
+        return {
+          logs: obsData?.logs || [],
+          totalCount: obsData?.totalCount || 0,
+          tookMs: obsData?.tookMs || 0,
+        };
+      } catch (obsErr: unknown) {
+        if (obsErr instanceof ObservabilityNotConfiguredError) throw obsErr;
+        // Network error or other failure calling observer
+        this.logger.info(
+          `Observer call failed for ${runName}: ${obsErr}`,
         );
         throw new ObservabilityNotConfiguredError(runName);
       }
-
-      this.logger.debug(
-        `Successfully fetched ${
-          data?.logs?.length || 0
-        } log entries for workflow run: ${runName}`,
-      );
-
-      return {
-        logs: data?.logs || [],
-        totalCount: data?.totalCount || 0,
-        tookMs: data?.tookMs || 0,
-      };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
-        this.logger.info(
-          `Observability not configured for workflow run ${runName}`,
-        );
+        this.logger.info(`Logs not available for ${runName}: ${error.message}`);
         throw error;
       }
-
       this.logger.error(
         `Error fetching logs for workflow run ${runName} in namespace ${namespaceName}:`,
         error as Error,
@@ -641,6 +657,33 @@ export class GenericWorkflowService {
     );
 
     try {
+      // Events are only available when the Argo workflow is still alive on the
+      // build plane (hasLiveObservability=true). Kubernetes events are not
+      // archived in OpenSearch, so return empty for completed/TTL-expired runs.
+      let hasLiveObservability = false;
+      try {
+        const status = await this.getWorkflowRunStatus(
+          namespaceName,
+          runName,
+          token,
+        );
+        hasLiveObservability = status.hasLiveObservability ?? false;
+        this.logger.info(
+          `Workflow run ${runName} events: hasLiveObservability=${hasLiveObservability}`,
+        );
+      } catch (statusErr) {
+        this.logger.info(
+          `Could not determine hasLiveObservability for ${runName} events: ${statusErr}`,
+        );
+      }
+
+      if (!hasLiveObservability) {
+        this.logger.debug(
+          `Events not available for ${runName} (hasLiveObservability=false), returning empty list`,
+        );
+        return [];
+      }
+
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
@@ -648,7 +691,7 @@ export class GenericWorkflowService {
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/workflow-runs/{runName}/events' as any,
+        '/namespaces/{namespaceName}/workflow-runs/{runName}/events',
         {
           params: {
             path: { namespaceName, runName },
@@ -663,35 +706,33 @@ export class GenericWorkflowService {
       );
 
       if (error || !response.ok) {
+        // 404 means the events endpoint is not yet available in the backend.
+        if (response.status === 404) {
+          this.logger.debug(
+            `Events endpoint not implemented for ${runName}, returning empty list`,
+          );
+          return [];
+        }
         throw new Error(
           `Failed to fetch workflow run events: ${response.status} ${response.statusText}`,
         );
       }
 
-      if (!(data as any)?.success) {
-        throw new Error(
-          `Failed to fetch workflow run events: ${
-            (data as any)?.error ?? response.statusText
-          }`,
-        );
-      }
+      const eventsData: any[] = Array.isArray(data)
+        ? data
+        : Array.isArray((data as any)?.data)
+          ? (data as any).data
+          : [];
 
-      const eventsData = (data as any).data;
-      if (!Array.isArray(eventsData)) {
-        throw new Error(
-          `Unexpected events payload for workflow run ${runName}`,
-        );
-      }
-
-      const entries: WorkflowRunEventEntry[] = eventsData.map((entry: any) => ({
+      const entries: WorkflowRunEventEntry[] = eventsData.map(entry => ({
         timestamp: entry.timestamp,
         type: entry.type,
         reason: entry.reason,
         message: entry.message,
       }));
 
-      this.logger.debug(
-        `Successfully fetched ${entries.length} events for workflow run: ${runName}`,
+      this.logger.info(
+        `Fetched ${entries.length} events for workflow run: ${runName}`,
       );
 
       return entries;
@@ -702,15 +743,5 @@ export class GenericWorkflowService {
       );
       throw error;
     }
-  }
-}
-
-/**
- * Error thrown when an endpoint is not yet implemented
- */
-export class HttpNotImplementedError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'HttpNotImplementedError';
   }
 }

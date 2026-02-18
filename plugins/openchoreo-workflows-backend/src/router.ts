@@ -137,7 +137,9 @@ export async function createRouter({
     if (sinceSeconds !== undefined) {
       const parsed = Number(sinceSeconds);
       if (!Number.isFinite(parsed) || parsed < 0) {
-        throw new InputError('sinceSeconds must be a non-negative integer');
+        throw new InputError(
+          'sinceSeconds must be a non-negative number; fractional values are floored',
+        );
       }
       parsedSinceSeconds = Math.floor(parsed);
     }
@@ -171,20 +173,9 @@ export async function createRouter({
     } catch (error) {
       // Handle observability not configured gracefully
       if (error instanceof ObservabilityNotConfiguredError) {
-        if (step) {
-          // Return empty array for step-based requests
-          res.status(503).json({
-            error: 'OBSERVABILITY_NOT_CONFIGURED',
-            message: (error as Error).message,
-          });
-          return;
-        }
-        res.json({
-          logs: [],
-          totalCount: 0,
-          tookMs: 0,
+        res.status(503).json({
           error: 'OBSERVABILITY_NOT_CONFIGURED',
-          message: error.message,
+          message: (error as Error).message,
         });
         return;
       }

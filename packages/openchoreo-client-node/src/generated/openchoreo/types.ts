@@ -95,6 +95,7 @@ export interface paths {
      * Get OAuth protected resource metadata
      * @description Returns OAuth 2.0 protected resource metadata as defined in RFC 9728.
      *     Used by MCP clients to discover authorization server information.
+     *
      */
     get: operations['getOAuthProtectedResourceMetadata'];
     put?: never;
@@ -116,6 +117,7 @@ export interface paths {
      * Get OpenID configuration
      * @description Returns OpenID Connect configuration for CLI authentication.
      *     Includes OAuth2 endpoints, external client configurations, and security status.
+     *
      */
     get: operations['getOpenIDConfiguration'];
     put?: never;
@@ -139,6 +141,7 @@ export interface paths {
      *     Only namespaces with the label `openchoreo.dev/controlplane-namespace=true` are returned.
      *     This filters out system namespaces (e.g., openchoreo-control-plane, kube-system) and
      *     data plane runtime namespaces.
+     *
      */
     get: operations['listNamespaces'];
     put?: never;
@@ -146,6 +149,7 @@ export interface paths {
      * Create namespace
      * @description Creates a new OpenChoreo control plane namespace.
      *     The namespace is automatically labeled with `openchoreo.dev/controlplane-namespace=true`.
+     *
      */
     post: operations['createNamespace'];
     delete?: never;
@@ -857,6 +861,29 @@ export interface paths {
      * @description Deletes a workflow run by name.
      */
     delete: operations['deleteWorkflowRun'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get workflow run events
+     * @description Returns Kubernetes events associated with a namespace-level workflow run.
+     *     Events are fetched from the build plane through the cluster gateway and
+     *     aggregated across all relevant pods for the workflow and optional step filter.
+     *
+     */
+    get: operations['getWorkflowRunEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -1775,10 +1802,9 @@ export interface components {
         message?: string;
       }[];
     };
-    /**
-     * @description Standard Kubernetes object metadata (without kind/apiVersion).
+    /** @description Standard Kubernetes object metadata (without kind/apiVersion).
      *     Matches the structure of metav1.ObjectMeta for the fields exposed via the API.
-     */
+     *      */
     ObjectMeta: {
       /**
        * @description Name of the resource (unique within namespace)
@@ -2069,15 +2095,15 @@ export interface components {
        */
       displayName: string;
     };
-    /**
-     * @description Cursor-based pagination metadata. Uses Kubernetes-native continuation tokens
+    /** @description Cursor-based pagination metadata. Uses Kubernetes-native continuation tokens
      *     for efficient pagination through large result sets.
-     */
+     *      */
     Pagination: {
       /**
        * @description Opaque cursor for fetching the next page. Pass this value as the
        *     `cursor` query parameter in the next request. Absent when there
        *     are no more items.
+       *
        * @example eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30=
        */
       nextCursor?: string;
@@ -2087,6 +2113,7 @@ export interface components {
        *     This is an estimate provided by Kubernetes and may not be exact.
        *     Use for UI hints like "~50 more items". May be absent for
        *     filtered queries.
+       *
        * @example 42
        */
       remainingCount?: number;
@@ -2096,11 +2123,10 @@ export interface components {
       items: components['schemas']['Namespace'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description Namespace resource representing an OpenChoreo control plane namespace.
+    /** @description Namespace resource representing an OpenChoreo control plane namespace.
      *     Control plane namespaces hold resources like Projects, Components, and Environments.
      *     These namespaces are identified by the label `openchoreo.dev/controlplane-namespace=true`.
-     */
+     *      */
     Namespace: {
       /**
        * @description Namespace name (unique identifier)
@@ -2153,6 +2179,7 @@ export interface components {
       /**
        * @description Reference to the DeploymentPipeline that defines the environments
        *     and deployment progression for components in this project.
+       *
        * @example default
        */
       deploymentPipelineRef?: string;
@@ -2168,10 +2195,9 @@ export interface components {
       /** @description Current state conditions of the Project */
       conditions?: components['schemas']['Condition'][];
     };
-    /**
-     * @description Project resource (Kubernetes object without kind/apiVersion).
+    /** @description Project resource (Kubernetes object without kind/apiVersion).
      *     Projects group components within a namespace and reference a deployment pipeline.
-     */
+     *      */
     Project: {
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ProjectSpec'];
@@ -2248,10 +2274,9 @@ export interface components {
        */
       releaseHash: string;
     };
-    /**
-     * @description Component resource (Kubernetes object without kind/apiVersion).
+    /** @description Component resource (Kubernetes object without kind/apiVersion).
      *     Components group source code and deployment configuration within a Project.
-     */
+     *      */
     Component: {
       metadata: components['schemas']['ObjectMeta'];
       /** @description Desired state of the Component */
@@ -2738,6 +2763,30 @@ export interface components {
       status?: {
         conditions?: components['schemas']['Condition'][];
       };
+    };
+    /** @description A single Kubernetes event entry from a workflow run */
+    WorkflowRunEventEntry: {
+      /**
+       * Format: date-time
+       * @description Timestamp when the event was generated (RFC3339 format)
+       * @example 2025-01-06T10:00:00.123Z
+       */
+      timestamp: string;
+      /**
+       * @description Event type
+       * @example Normal
+       */
+      type: string;
+      /**
+       * @description Reason for the event
+       * @example Started
+       */
+      reason: string;
+      /**
+       * @description Event message
+       * @example Started workflow step
+       */
+      message: string;
     };
     /** @description Paginated list of workflow runs */
     WorkflowRunList: {
@@ -3793,18 +3842,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Invalid request: name is required",
-         *       "code": "BAD_REQUEST",
-         *       "details": [
-         *         {
-         *           "field": "name",
-         *           "message": "is required"
-         *         }
-         *       ]
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3814,12 +3851,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Authentication required",
-         *       "code": "UNAUTHORIZED"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3829,12 +3860,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "You do not have permission to access this resource",
-         *       "code": "FORBIDDEN"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3844,12 +3869,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Project 'my-project' not found",
-         *       "code": "NOT_FOUND"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3859,12 +3878,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Project 'my-project' already exists",
-         *       "code": "CONFLICT"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3874,12 +3887,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Internal server error",
-         *       "code": "INTERNAL_ERROR"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3919,10 +3926,9 @@ export interface components {
     MappingIdParam: number;
     /** @description Maximum number of items to return per page */
     LimitParam: number;
-    /**
-     * @description Opaque pagination cursor from a previous response.
+    /** @description Opaque pagination cursor from a previous response.
      *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-     */
+     *      */
     CursorParam: string;
     /** @description Filter by project name */
     ProjectQueryParam: string;
@@ -4062,10 +4068,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4215,10 +4220,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4375,10 +4379,9 @@ export interface operations {
         project?: components['parameters']['ProjectQueryParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4443,10 +4446,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4658,10 +4660,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5113,10 +5114,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5533,10 +5533,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5596,10 +5595,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5659,10 +5657,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5845,10 +5842,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5962,15 +5958,68 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  getWorkflowRunEvents: {
+    parameters: {
+      query?: {
+        /** @description Filter events by specific workflow step name */
+        step?: string;
+      };
+      header?: never;
+      path: {
+        namespaceName: string;
+        runName: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRunEventEntry'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Workflow run not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   listComponentWorkflows: {
     parameters: {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6153,10 +6202,9 @@ export interface operations {
         component?: components['parameters']['ComponentQueryParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -6596,10 +6644,9 @@ export interface operations {
         component?: components['parameters']['ComponentQueryParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;

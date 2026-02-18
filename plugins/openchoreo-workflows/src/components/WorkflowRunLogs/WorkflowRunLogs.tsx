@@ -27,7 +27,9 @@ interface WorkflowRunLogsProps {
 function deduplicateLogs(logs: LogEntry[]): LogEntry[] {
   const seen = new Set<string>();
   return logs.filter(entry => {
-    const key = `${entry.timestamp ?? ''}-${entry.log}`;
+    // Entries without a timestamp cannot be reliably deduplicated; always include them.
+    if (entry.timestamp === undefined || entry.timestamp === null) return true;
+    const key = `${entry.timestamp}-${entry.log}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -102,6 +104,8 @@ export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
             ? deduplicateLogs([...(prev[activeStepName] ?? []), ...entries])
             : entries,
         }));
+        setLogsError(null);
+        setIsLogsObsNotConfigured(false);
       } catch (err) {
         if (cancelled) return;
 
