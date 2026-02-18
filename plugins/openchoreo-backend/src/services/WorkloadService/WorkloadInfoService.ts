@@ -265,6 +265,11 @@ export class WorkloadInfoService implements WorkloadService {
       }
 
       const workloadName = existingWorkload.metadata.name;
+      if (!workloadName) {
+        throw new Error(
+          `Workload for component ${componentName} has no name in metadata`,
+        );
+      }
 
       // Update the workload with the new spec
       const { data, error, response } = await client.PUT(

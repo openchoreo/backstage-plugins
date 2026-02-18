@@ -512,11 +512,16 @@ export class TraitInfoService {
         );
       }
 
+      if (!component.spec?.owner) {
+        throw new Error(`Component ${componentName} is missing spec.owner`);
+      }
+
       // Update the component with the new traits
       const updatedComponent = {
-        ...component,
+        metadata: component.metadata,
         spec: {
           ...component.spec,
+          owner: component.spec.owner,
           traits: traits.traits,
         },
       };

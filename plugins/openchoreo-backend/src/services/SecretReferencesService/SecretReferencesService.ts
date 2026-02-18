@@ -6,9 +6,18 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 import { transformSecretReference } from '../transformers';
 
-// Use the generated type from OpenAPI spec
-export type ModelsSecretReferences =
+// Single secret reference item type from legacy OpenAPI spec
+type SecretReferenceItem =
   OpenChoreoLegacyComponents['schemas']['SecretReferenceResponse'];
+
+// The actual response shape returned by both legacy and new API code paths
+export interface ModelsSecretReferences {
+  success: boolean;
+  data: {
+    items: SecretReferenceItem[];
+    total: number;
+  };
+}
 
 export class SecretReferencesService {
   private logger: LoggerService;
@@ -67,8 +76,7 @@ export class SecretReferencesService {
         );
       }
 
-      const secretReferences: ModelsSecretReferences =
-        data as ModelsSecretReferences;
+      const secretReferences = data as ModelsSecretReferences;
       this.logger.debug(
         `Successfully fetched secret references for namespace: ${namespaceName}`,
       );
@@ -124,7 +132,7 @@ export class SecretReferencesService {
           items,
           total: items.length,
         },
-      } as ModelsSecretReferences;
+      };
     } catch (error) {
       this.logger.error(
         `Failed to fetch secret references for ${namespaceName}: ${error}`,
