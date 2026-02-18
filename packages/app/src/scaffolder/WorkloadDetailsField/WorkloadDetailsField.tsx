@@ -41,6 +41,7 @@ import {
   useFileVarEditBuffer,
   useModeState,
   YamlEditor,
+  TraitConfigToggle,
 } from '@openchoreo/backstage-plugin-react';
 import type { SecretOption } from '@openchoreo/backstage-design-system';
 import type {
@@ -672,9 +673,7 @@ export const WorkloadDetailsField = ({
         if (!ignore && result.success) {
           const items = result.data.items as TraitListItem[];
           setAvailableTraits(
-            items.filter((t: TraitListItem) =>
-              allowedTraits!.includes(t.name),
-            ),
+            items.filter((t: TraitListItem) => allowedTraits!.includes(t.name)),
           );
         }
       } catch (err) {
@@ -1196,18 +1195,26 @@ export const WorkloadDetailsField = ({
                         </Box>
 
                         {trait.schema && (
-                          <Form
+                          <TraitConfigToggle
                             schema={trait.schema}
-                            uiSchema={trait.uiSchema || {}}
                             formData={trait.config}
                             onChange={data =>
-                              handleTraitConfigChange(trait.id, data.formData)
+                              handleTraitConfigChange(trait.id, data)
                             }
-                            validator={validator}
-                            showErrorList={false}
-                            tagName="div"
-                            children={<div />}
-                          />
+                          >
+                            <Form
+                              schema={trait.schema}
+                              uiSchema={trait.uiSchema || {}}
+                              formData={trait.config}
+                              onChange={data =>
+                                handleTraitConfigChange(trait.id, data.formData)
+                              }
+                              validator={validator}
+                              showErrorList={false}
+                              tagName="div"
+                              children={<div />}
+                            />
+                          </TraitConfigToggle>
                         )}
                       </AccordionDetails>
                     </Accordion>

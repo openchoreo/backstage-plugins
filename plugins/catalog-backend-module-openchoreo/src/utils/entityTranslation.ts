@@ -263,6 +263,7 @@ export function translateComponentTypeToEntity(
     description?: string;
     workloadType?: string;
     allowedWorkflows?: string[];
+    allowedTraits?: string[];
     createdAt?: string;
   },
   namespaceName: string,
@@ -297,6 +298,7 @@ export function translateComponentTypeToEntity(
       domain: `default/${namespaceName}`,
       workloadType: ct.workloadType,
       allowedWorkflows: ct.allowedWorkflows,
+      allowedTraits: ct.allowedTraits,
     },
   } as ComponentTypeEntityV1alpha1;
 }

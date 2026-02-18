@@ -34,5 +34,9 @@ export interface ComponentTypeEntityV1alpha1 extends Entity {
      * List of allowed component workflow names
      */
     allowedWorkflows?: string[];
+    /**
+     * List of allowed trait names for this component type
+     */
+    allowedTraits?: string[];
   };
 }

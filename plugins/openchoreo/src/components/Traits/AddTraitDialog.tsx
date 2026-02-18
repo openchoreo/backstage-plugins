@@ -19,14 +19,18 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import Form from '@rjsf/material-ui';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
+import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { ComponentTrait } from '../../api/OpenChoreoClientApi';
 import { extractEntityMetadata } from '../../utils/entityUtils';
-import { sanitizeLabel } from '@openchoreo/backstage-plugin-common';
+import {
+  sanitizeLabel,
+  CHOREO_ANNOTATIONS,
+} from '@openchoreo/backstage-plugin-common';
 
 interface AddTraitDialogProps {
   open: boolean;
@@ -38,6 +42,34 @@ interface AddTraitDialogProps {
 interface TraitListItem {
   name: string;
   createdAt: string;
+}
+
+/**
+ * Checks whether any required field defined in the schema is missing or
+ * effectively empty in the given data.  JSON Schema `required` only checks
+ * key presence, so `{ name: '' }` passes ajv validation even though the
+ * user hasn't provided a meaningful value.  This helper fills that gap.
+ */
+function hasEmptyRequiredFields(
+  schema: JSONSchema7,
+  data: Record<string, any>,
+): boolean {
+  if (!schema.required || !schema.properties) return false;
+
+  for (const field of schema.required) {
+    const value = data[field];
+    if (value === undefined || value === null) return true;
+
+    const propSchema = schema.properties[field];
+    if (
+      typeof propSchema === 'object' &&
+      propSchema.type === 'string' &&
+      value === ''
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -121,6 +153,10 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
   const { entity } = useEntity();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
+  const catalogApi = useApi(catalogApiRef);
+
+  const componentTypeName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
 
   const [availableTraits, setAvailableTraits] = useState<TraitListItem[]>([]);
   const [selectedTrait, setSelectedTrait] = useState<string>('');
@@ -135,8 +171,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
 
   const [instanceNameError, setInstanceNameError] = useState<string>('');
   const [formValid, setFormValid] = useState(false);
-  const [formErrors, setFormErrors] = useState<any[]>([]);
-  const [formTouched, setFormTouched] = useState(false);
+  const [showFormErrors, setShowFormErrors] = useState(false);
 
   // Extract entity metadata
   const metadata = extractEntityMetadata(entity);
@@ -167,7 +202,34 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         const result = await response.json();
 
         if (!ignore && result.success) {
-          setAvailableTraits(result.data.items || []);
+          let items: TraitListItem[] = result.data.items || [];
+
+          // Filter by component type's allowedTraits if available
+          if (componentTypeName) {
+            try {
+              const ctEntities = await catalogApi.getEntities({
+                filter: { kind: 'ComponentType' },
+              });
+              // componentTypeName is in format 'workloadType/name' (e.g. 'deployment/service'),
+              // but entity metadata.name is just the name part (e.g. 'service')
+              // console.log('ctName', ctName);
+              const matchingCt = ctEntities.items.find(
+                e =>
+                  `${e.spec?.workloadType}/${e.metadata.name}` ===
+                  componentTypeName,
+              );
+              const allowedTraits = (matchingCt?.spec as any)?.allowedTraits as
+                | string[]
+                | undefined;
+              if (allowedTraits && allowedTraits.length > 0) {
+                items = items.filter(t => allowedTraits.includes(t.name));
+              }
+            } catch {
+              // If fetching component types fails, show all traits
+            }
+          }
+
+          setAvailableTraits(items);
         }
       } catch (err) {
         if (!ignore) {
@@ -185,7 +247,14 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [open, metadata.namespace, discoveryApi, fetchApi]);
+  }, [
+    open,
+    metadata.namespace,
+    discoveryApi,
+    fetchApi,
+    catalogApi,
+    componentTypeName,
+  ]);
 
   // Fetch schema when trait is selected
   useEffect(() => {
@@ -225,8 +294,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
           setTraitSchema(schema);
           setUiSchema(generatedUiSchema);
           setParameters({});
-          setFormErrors([]);
-          setFormTouched(false);
+          setShowFormErrors(false);
           // Set default instance name
           setInstanceName(`${selectedTrait}-1`);
         }
@@ -268,22 +336,15 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
       return;
     }
 
-    // Only validate if form has been touched or if no schema validation is required
-    if (!formTouched) {
-      // Check if schema has required fields, if not, form is valid
-      const hasRequiredFields =
-        traitSchema.required && traitSchema.required.length > 0;
-      setFormValid(!hasRequiredFields);
-      return;
-    }
-
     try {
       const result = validator.validateFormData(parameters, traitSchema);
-      setFormValid(result.errors.length === 0);
+      const hasSchemaErrors = result.errors.length > 0;
+      const hasEmptyRequired = hasEmptyRequiredFields(traitSchema, parameters);
+      setFormValid(!hasSchemaErrors && !hasEmptyRequired);
     } catch (err) {
       setFormValid(false);
     }
-  }, [parameters, traitSchema, formTouched]);
+  }, [parameters, traitSchema]);
 
   const handleClose = () => {
     // Reset state
@@ -294,9 +355,8 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     setUiSchema({});
     setError(null);
     setInstanceNameError('');
-    setFormErrors([]);
     setFormValid(false);
-    setFormTouched(false);
+    setShowFormErrors(false);
     onClose();
   };
 
@@ -320,8 +380,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     instanceName.trim() &&
     !instanceNameError &&
     !loadingSchema &&
-    formValid &&
-    formErrors.length === 0;
+    formValid;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -394,35 +453,28 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
               <Typography variant="subtitle2" gutterBottom>
                 Parameters
               </Typography>
-              <Form
+              <TraitConfigToggle
                 schema={traitSchema}
-                uiSchema={uiSchema}
                 formData={parameters}
-                onChange={data => {
-                  setFormTouched(true);
-                  setParameters(data.formData);
-                }}
-                onBlur={() => {
-                  // Trigger validation on blur
-                  if (traitSchema) {
-                    try {
-                      const result = validator.validateFormData(
-                        parameters,
-                        traitSchema,
-                      );
-                      setFormErrors(result.errors || []);
-                    } catch (err) {
-                      // Validation error
-                    }
-                  }
-                }}
-                validator={validator}
-                showErrorList={false}
-                noHtml5Validate
-                omitExtraData
-                tagName="div"
-                children={<div />} // Hide submit button
-              />
+                onChange={setParameters}
+              >
+                <Form
+                  schema={traitSchema}
+                  uiSchema={uiSchema}
+                  formData={parameters}
+                  onChange={data => {
+                    setShowFormErrors(true);
+                    setParameters(data.formData);
+                  }}
+                  validator={validator}
+                  liveValidate={showFormErrors}
+                  showErrorList={false}
+                  noHtml5Validate
+                  omitExtraData
+                  tagName="div"
+                  children={<div />}
+                />
+              </TraitConfigToggle>
             </Box>
           </>
         )}

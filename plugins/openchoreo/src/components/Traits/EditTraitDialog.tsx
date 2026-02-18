@@ -19,6 +19,7 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import Form from '@rjsf/material-ui';
 import { JSONSchema7 } from 'json-schema';
 import validator from '@rjsf/validator-ajv8';
+import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { ComponentTrait } from '../../api/OpenChoreoClientApi';
 import { extractEntityMetadata } from '../../utils/entityUtils';
@@ -30,6 +31,34 @@ interface EditTraitDialogProps {
   onSave: (trait: ComponentTrait) => void;
   trait: ComponentTrait | null;
   existingInstanceNames: string[];
+}
+
+/**
+ * Checks whether any required field defined in the schema is missing or
+ * effectively empty in the given data.  JSON Schema `required` only checks
+ * key presence, so `{ name: '' }` passes ajv validation even though the
+ * user hasn't provided a meaningful value.  This helper fills that gap.
+ */
+function hasEmptyRequiredFields(
+  schema: JSONSchema7,
+  data: Record<string, any>,
+): boolean {
+  if (!schema.required || !schema.properties) return false;
+
+  for (const field of schema.required) {
+    const value = data[field];
+    if (value === undefined || value === null) return true;
+
+    const propSchema = schema.properties[field];
+    if (
+      typeof propSchema === 'object' &&
+      propSchema.type === 'string' &&
+      value === ''
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -125,8 +154,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
 
   const [instanceNameError, setInstanceNameError] = useState<string>('');
   const [formValid, setFormValid] = useState(false);
-  const [formErrors, setFormErrors] = useState<any[]>([]);
-  const [formTouched, setFormTouched] = useState(false);
+  const [showFormErrors, setShowFormErrors] = useState(false);
 
   // Extract entity metadata
   const metadata = extractEntityMetadata(entity);
@@ -139,7 +167,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
 
     setInstanceName(trait.instanceName);
     setParameters(trait.parameters || {});
-    setFormTouched(false);
+    setShowFormErrors(false);
   }, [trait, open]);
 
   // Fetch schema when dialog opens
@@ -219,22 +247,15 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       return;
     }
 
-    // Only validate if form has been touched or if no schema validation is required
-    if (!formTouched) {
-      // Check if schema has required fields, if not, form is valid
-      const hasRequiredFields =
-        traitSchema.required && traitSchema.required.length > 0;
-      setFormValid(!hasRequiredFields);
-      return;
-    }
-
     try {
       const result = validator.validateFormData(parameters, traitSchema);
-      setFormValid(result.errors.length === 0);
+      const hasSchemaErrors = result.errors.length > 0;
+      const hasEmptyRequired = hasEmptyRequiredFields(traitSchema, parameters);
+      setFormValid(!hasSchemaErrors && !hasEmptyRequired);
     } catch (err) {
       setFormValid(false);
     }
-  }, [parameters, traitSchema, formTouched]);
+  }, [parameters, traitSchema]);
 
   const handleClose = () => {
     // Reset state
@@ -244,9 +265,8 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     setUiSchema({});
     setError(null);
     setInstanceNameError('');
-    setFormErrors([]);
     setFormValid(false);
-    setFormTouched(false);
+    setShowFormErrors(false);
     onClose();
   };
 
@@ -270,8 +290,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     instanceName.trim() &&
     !instanceNameError &&
     !loadingSchema &&
-    formValid &&
-    formErrors.length === 0;
+    formValid;
 
   if (!trait) {
     return null;
@@ -319,35 +338,28 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
                 <Typography variant="subtitle2" gutterBottom>
                   Configuration:
                 </Typography>
-                <Form
+                <TraitConfigToggle
                   schema={traitSchema}
-                  uiSchema={uiSchema}
                   formData={parameters}
-                  onChange={data => {
-                    setFormTouched(true);
-                    setParameters(data.formData);
-                  }}
-                  onBlur={() => {
-                    // Trigger validation on blur
-                    if (traitSchema) {
-                      try {
-                        const result = validator.validateFormData(
-                          parameters,
-                          traitSchema,
-                        );
-                        setFormErrors(result.errors || []);
-                      } catch (err) {
-                        // Validation error
-                      }
-                    }
-                  }}
-                  validator={validator}
-                  showErrorList={false}
-                  noHtml5Validate
-                  omitExtraData
-                  tagName="div"
-                  children={<div />} // Hide submit button
-                />
+                  onChange={setParameters}
+                >
+                  <Form
+                    schema={traitSchema}
+                    uiSchema={uiSchema}
+                    formData={parameters}
+                    onChange={data => {
+                      setShowFormErrors(true);
+                      setParameters(data.formData);
+                    }}
+                    validator={validator}
+                    liveValidate={showFormErrors}
+                    showErrorList={false}
+                    noHtml5Validate
+                    omitExtraData
+                    tagName="div"
+                    children={<div />}
+                  />
+                </TraitConfigToggle>
               </Box>
             )}
           </>
