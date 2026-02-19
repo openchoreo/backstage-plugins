@@ -177,7 +177,15 @@ export const TraitConfigToggle = ({
       }
       setMode(newMode);
     },
-    [mode, schema, formData, yamlContent, onChange, onValidityChange, parseYaml],
+    [
+      mode,
+      schema,
+      formData,
+      yamlContent,
+      onChange,
+      onValidityChange,
+      parseYaml,
+    ],
   );
 
   const handleYamlChange = useCallback(
