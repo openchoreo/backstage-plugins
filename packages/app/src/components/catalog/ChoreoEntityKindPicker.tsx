@@ -44,11 +44,11 @@ interface KindCategory {
 
 const kindCategories: KindCategory[] = [
   {
-    label: 'Application',
+    label: 'Developer Resources',
     kinds: ['system', 'component', 'api', 'resource'],
   },
   {
-    label: 'Infrastructure',
+    label: 'Platform Resources',
     platformOnly: true,
     kinds: [
       'dataplane',
