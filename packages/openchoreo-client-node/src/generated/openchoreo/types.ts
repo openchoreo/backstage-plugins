@@ -2122,17 +2122,11 @@ export interface components {
        * @example my-namespace
        */
       namespace?: string;
-      /** @description The operation performed - created, updated, deleted, or not_found */
-      operation?: string;
-    };
-    ComponentTypeResponse: {
-      name: string;
-      displayName?: string;
-      description?: string;
-      workloadType: string;
-      allowedWorkflows?: string[];
-      allowedTraits?: string[];
-      /** Format: date-time */
+      /**
+       * Format: date-time
+       * @description Creation timestamp
+       * @example 2025-01-06T10:00:00Z
+       */
       createdAt: string;
       /**
        * @description Namespace status

@@ -1670,6 +1670,7 @@ export interface components {
       description?: string;
       workloadType: string;
       allowedWorkflows?: string[];
+      allowedTraits?: string[];
       /** Format: date-time */
       createdAt: string;
     };
