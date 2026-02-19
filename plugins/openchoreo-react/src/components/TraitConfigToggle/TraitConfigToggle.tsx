@@ -71,33 +71,12 @@ function buildYamlData(
  * Build a YAML string from merged data, annotating required fields with
  * an inline `# required` comment so the user knows what must be filled in.
  */
-/**
- * Recursively walk a YAML document node and set QUOTE_DOUBLE on every
- * string scalar so the output always shows `key: "value"`.
- */
-function quoteStrings(node: unknown): void {
-  if (YAML.isScalar(node) && typeof node.value === 'string') {
-    node.type = YAML.Scalar.QUOTE_DOUBLE;
-  } else if (YAML.isMap(node)) {
-    for (const item of node.items) {
-      quoteStrings(item.value);
-    }
-  } else if (YAML.isSeq(node)) {
-    for (const item of node.items) {
-      quoteStrings(item);
-    }
-  }
-}
-
 function buildYamlString(
   schema: JSONSchema7 | undefined,
   formData: Record<string, any>,
 ): string {
   const data = buildYamlData(schema, formData);
   const doc = new YAML.Document(data);
-
-  // Force double-quoted strings for consistency
-  quoteStrings(doc.contents);
 
   if (schema?.required && doc.contents && 'items' in doc.contents) {
     const requiredSet = new Set(schema.required);
