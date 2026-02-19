@@ -83,6 +83,10 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
 
         const baseUrl = openchoreoConfig.getString('baseUrl');
 
+        // Check if new OpenChoreo 1.0 API should be used (defaults to false)
+        const useNewApi =
+          config.getOptionalBoolean('openchoreo.useNewApi') ?? false;
+
         // Create the cache for capabilities (TTL derived from token expiration)
         const authzCache = new AuthzProfileCache(cache);
 
@@ -91,6 +95,7 @@ export const permissionModuleOpenChoreoPolicy = createBackendModule({
           baseUrl,
           logger,
           cache: authzCache,
+          useNewApi,
         });
 
         // Create and register the policy

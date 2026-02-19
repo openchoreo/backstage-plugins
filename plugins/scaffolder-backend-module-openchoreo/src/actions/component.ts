@@ -1,7 +1,7 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import {
-  createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  createOpenChoreoLegacyApiClient,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
@@ -37,7 +37,8 @@ function getCIAnnotationKey(platform: string): string | undefined {
   }
 }
 
-type ModelsComponent = OpenChoreoComponents['schemas']['ComponentResponse'];
+type ModelsComponent =
+  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
 
 // Kubernetes DNS subdomain name validation
 const K8S_NAME_PATTERN =
@@ -346,7 +347,7 @@ export const createComponentAction = (
           );
         }
 
-        const client = createOpenChoreoApiClient({
+        const client = createOpenChoreoLegacyApiClient({
           baseUrl,
           token,
           logger: ctx.logger,

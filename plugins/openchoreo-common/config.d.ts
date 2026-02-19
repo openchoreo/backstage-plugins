@@ -95,6 +95,14 @@ export interface Config {
     };
 
     /**
+     * Use the new OpenChoreo 1.0 API instead of the legacy pre-1.0 API.
+     * When true, BFF services and the catalog provider will use K8s-style
+     * resource endpoints with cursor-based pagination.
+     * @visibility backend
+     */
+    useNewApi?: boolean;
+
+    /**
      * Schedule configuration for entity providers
      * @visibility backend
      */

@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import {
@@ -72,7 +72,7 @@ export const createNamespaceAction = (
         );
       }
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl,
         token,
         logger: ctx.logger,

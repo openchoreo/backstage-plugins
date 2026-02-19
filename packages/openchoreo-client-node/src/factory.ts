@@ -7,9 +7,15 @@
 import { Config } from '@backstage/config';
 import { LoggerService } from '@backstage/backend-plugin-api';
 import createClient, { type ClientOptions } from 'openapi-fetch';
+import type { paths as OpenChoreoLegacyPaths } from './generated/openchoreo-legacy/types';
 import type { paths as OpenChoreoPaths } from './generated/openchoreo/types';
 import type { paths as ObservabilityPaths } from './generated/observability/types';
 import type { paths as AIRCAAgentPaths } from './generated/ai-rca-agent/types';
+
+/**
+ * Header name used to route requests to new API handlers on the OpenChoreo backend.
+ */
+export const OPENCHOREO_API_VERSION_HEADER = 'X-Use-OpenAPI';
 import { isTracingEnabled, createTracingMiddleware } from './tracing';
 
 /**
@@ -98,14 +104,14 @@ export interface OpenChoreoAIRCAAgentClientConfig {
 }
 
 /**
- * Creates an OpenChoreo API client
+ * Creates an OpenChoreo Legacy API client (pre-1.0)
  *
  * @param config - Configuration options for the client
- * @returns Configured OpenChoreo API client instance
+ * @returns Configured OpenChoreo Legacy API client instance
  *
  * @example
  * ```typescript
- * const client = createOpenChoreoApiClient({
+ * const client = createOpenChoreoLegacyApiClient({
  *   baseUrl: 'https://openchoreo.example.com',
  *   token: 'your-auth-token'
  * });
@@ -115,10 +121,14 @@ export interface OpenChoreoAIRCAAgentClientConfig {
  * });
  * ```
  */
-export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
+export function createOpenChoreoLegacyApiClient(
+  config: OpenChoreoClientConfig,
+) {
   const { baseUrl, token, fetchApi, logger } = config;
 
-  logger?.debug(`Creating OpenChoreo API client with baseUrl: ${baseUrl}`);
+  logger?.debug(
+    `Creating OpenChoreo Legacy API client with baseUrl: ${baseUrl}`,
+  );
 
   const clientOptions: ClientOptions = {
     baseUrl: baseUrl,
@@ -130,9 +140,46 @@ export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
       : undefined,
   };
 
-  const client = createClient<OpenChoreoPaths>(clientOptions);
+  const client = createClient<OpenChoreoLegacyPaths>(clientOptions);
 
   // Register tracing middleware if enabled via CHOREO_CLIENT_TRACE_ENABLED env var
+  if (isTracingEnabled()) {
+    client.use(createTracingMiddleware(logger));
+    logger?.info('OpenChoreo Legacy API client tracing enabled');
+  }
+
+  return client;
+}
+
+/**
+ * Creates an OpenChoreo API client (new 1.0 API)
+ *
+ * Uses K8s-style resource descriptors (metadata/spec/status) and dedicated
+ * per-resource CRUD endpoints. Attaches the API version routing header.
+ *
+ * @param config - Configuration options for the client
+ * @returns Configured OpenChoreo API client instance
+ */
+export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
+  const { baseUrl, token, fetchApi, logger } = config;
+
+  logger?.debug(`Creating OpenChoreo API client with baseUrl: ${baseUrl}`);
+
+  const headers: Record<string, string> = {
+    [OPENCHOREO_API_VERSION_HEADER]: 'true',
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const clientOptions: ClientOptions = {
+    baseUrl,
+    fetch: fetchApi,
+    headers,
+  };
+
+  const client = createClient<OpenChoreoPaths>(clientOptions);
+
   if (isTracingEnabled()) {
     client.use(createTracingMiddleware(logger));
     logger?.info('OpenChoreo API client tracing enabled');
@@ -279,7 +326,7 @@ export function createOpenChoreoClientFromConfig(
 
   logger?.info('Initializing OpenChoreo API client');
 
-  return createOpenChoreoApiClient({
+  return createOpenChoreoLegacyApiClient({
     baseUrl,
     token,
     logger,

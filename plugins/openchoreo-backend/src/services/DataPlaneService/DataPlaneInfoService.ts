@@ -1,11 +1,15 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
+  createOpenChoreoLegacyApiClient,
   createOpenChoreoApiClient,
-  type OpenChoreoComponents,
+  fetchAllPages,
+  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
+import { transformDataPlane } from '../transformers';
 
 // Use generated types from OpenAPI spec
-type DataPlaneResponse = OpenChoreoComponents['schemas']['DataPlaneResponse'];
+type DataPlaneResponse =
+  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
 
 /**
  * Service for managing and retrieving data plane information.
@@ -15,27 +19,37 @@ type DataPlaneResponse = OpenChoreoComponents['schemas']['DataPlaneResponse'];
 export class DataPlaneInfoService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
+  private readonly useNewApi: boolean;
 
-  public constructor(logger: LoggerService, baseUrl: string) {
+  public constructor(
+    logger: LoggerService,
+    baseUrl: string,
+    useNewApi = false,
+  ) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+    this.useNewApi = useNewApi;
   }
 
-  static create(logger: LoggerService, baseUrl: string): DataPlaneInfoService {
-    return new DataPlaneInfoService(logger, baseUrl);
+  static create(
+    logger: LoggerService,
+    baseUrl: string,
+    useNewApi = false,
+  ): DataPlaneInfoService {
+    return new DataPlaneInfoService(logger, baseUrl, useNewApi);
   }
 
-  /**
-   * Fetches details for a specific data plane.
-   *
-   * @param {Object} request - The request parameters
-   * @param {string} request.namespaceName - Name of the namespace owning the data plane
-   * @param {string} request.dataplaneName - Name of the data plane to fetch
-   * @param {string} [token] - Optional user token for authentication
-   * @returns {Promise<DataPlaneResponse>} Data plane details
-   * @throws {Error} When there's an error fetching data from the API
-   */
   async listDataPlanes(
+    namespaceName: string,
+    token?: string,
+  ): Promise<DataPlaneResponse[]> {
+    if (this.useNewApi) {
+      return this.listDataPlanesNew(namespaceName, token);
+    }
+    return this.listDataPlanesLegacy(namespaceName, token);
+  }
+
+  private async listDataPlanesLegacy(
     namespaceName: string,
     token?: string,
   ): Promise<DataPlaneResponse[]> {
@@ -43,7 +57,7 @@ export class DataPlaneInfoService {
     try {
       this.logger.debug(`Listing data planes for namespace: ${namespaceName}`);
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -85,7 +99,70 @@ export class DataPlaneInfoService {
     }
   }
 
+  private async listDataPlanesNew(
+    namespaceName: string,
+    token?: string,
+  ): Promise<DataPlaneResponse[]> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Listing data planes (new API) for namespace: ${namespaceName}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const allDataPlanes = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/dataplanes', {
+            params: {
+              path: { namespaceName },
+              query: { limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            if (res.error) {
+              throw new Error(
+                `Failed to list data planes: ${res.response.status} ${res.response.statusText}`,
+              );
+            }
+            return res.data;
+          }),
+      );
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Data planes list completed for ${namespaceName}: Total: ${totalTime}ms, count: ${allDataPlanes.length}`,
+      );
+
+      return allDataPlanes.map(transformDataPlane);
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error listing data planes for ${namespaceName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
   async fetchDataPlaneDetails(
+    request: {
+      namespaceName: string;
+      dataplaneName: string;
+    },
+    token?: string,
+  ): Promise<DataPlaneResponse> {
+    if (this.useNewApi) {
+      return this.fetchDataPlaneDetailsNew(request, token);
+    }
+    return this.fetchDataPlaneDetailsLegacy(request, token);
+  }
+
+  private async fetchDataPlaneDetailsLegacy(
     request: {
       namespaceName: string;
       dataplaneName: string;
@@ -98,7 +175,7 @@ export class DataPlaneInfoService {
         `Fetching data plane details for: ${request.dataplaneName} in namespace: ${request.namespaceName}`,
       );
 
-      const client = createOpenChoreoApiClient({
+      const client = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -132,6 +209,59 @@ export class DataPlaneInfoService {
       );
 
       return data.data as DataPlaneResponse;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching data plane ${request.dataplaneName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  private async fetchDataPlaneDetailsNew(
+    request: {
+      namespaceName: string;
+      dataplaneName: string;
+    },
+    token?: string,
+  ): Promise<DataPlaneResponse> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching data plane details (new API) for: ${request.dataplaneName} in namespace: ${request.namespaceName}`,
+      );
+
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/dataplanes/{dpName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              dpName: request.dataplaneName,
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch data plane: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Data plane fetch completed for ${request.dataplaneName}: Total: ${totalTime}ms`,
+      );
+
+      return transformDataPlane(data);
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
