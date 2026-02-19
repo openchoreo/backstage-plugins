@@ -13,10 +13,9 @@ import type { paths as ObservabilityPaths } from './generated/observability/type
 import type { paths as AIRCAAgentPaths } from './generated/ai-rca-agent/types';
 
 /**
- * Header name used to route requests to the new API version.
- * TBD: Confirm with OpenChoreo team.
+ * Header name used to route requests to new API handlers on the OpenChoreo backend.
  */
-export const OPENCHOREO_API_VERSION_HEADER = 'X-OpenChoreo-API-Version';
+export const OPENCHOREO_API_VERSION_HEADER = 'X-Use-OpenAPI';
 import { isTracingEnabled, createTracingMiddleware } from './tracing';
 
 /**
@@ -167,7 +166,7 @@ export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
   logger?.debug(`Creating OpenChoreo API client with baseUrl: ${baseUrl}`);
 
   const headers: Record<string, string> = {
-    [OPENCHOREO_API_VERSION_HEADER]: 'v1',
+    [OPENCHOREO_API_VERSION_HEADER]: 'true',
   };
   if (token) {
     headers.Authorization = `Bearer ${token}`;

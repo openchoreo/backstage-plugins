@@ -78,7 +78,7 @@ export function getAnnotation(
 /**
  * Returns the human-readable display name for a resource.
  * Checks annotation `openchoreo.dev/display-name`, then falls back to the
- * resource name. TBD: confirm annotation key with OpenChoreo team.
+ * resource name.
  */
 export function getDisplayName(resource: HasMetadata): string | undefined {
   return (
@@ -89,7 +89,6 @@ export function getDisplayName(resource: HasMetadata): string | undefined {
 /**
  * Returns the description for a resource.
  * Checks annotation `openchoreo.dev/description`.
- * TBD: confirm annotation key with OpenChoreo team.
  */
 export function getDescription(resource: HasMetadata): string | undefined {
   return getAnnotation(resource, 'openchoreo.dev/description');

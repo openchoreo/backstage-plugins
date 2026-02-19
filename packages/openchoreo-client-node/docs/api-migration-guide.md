@@ -199,7 +199,7 @@ getCondition(project, 'Ready'); // { type: 'Ready', status: 'True', ... }
 
 ## 7. Assumptions
 
-- Legacy and new API share the same base URL, differentiated by the `X-OpenChoreo-API-Version` header
+- Legacy and new API share the same base URL, differentiated by the `X-Use-OpenAPI` header
 - New API will have full CRUD for all resource types before 1.0 (component-types, traits, component-workflows currently WIP)
 - List endpoints return full resource descriptors (metadata + spec + status) -- no summary/lightweight list mode
 - The new API response is NOT wrapped in `{ success, data }` -- resources are returned directly
@@ -230,10 +230,3 @@ Step-by-step for adding a new resource (e.g., when OpenChoreo adds a new CRD):
 4. Add/update BFF service methods
 5. Add integration tests
 6. Update catalog provider if the resource should appear in the Backstage catalog
-
-## Key Open Items (TBD with OpenChoreo team)
-
-- [ ] API version routing header name (placeholder: `X-OpenChoreo-API-Version`)
-- [ ] Where `displayName` and `description` live in K8s-style resources (annotations? labels? dedicated fields?)
-- [ ] Confirm Workload resource includes endpoint info needed for API entity creation
-- [ ] Confirm list endpoints support `limit=100` or higher for efficient batch fetching
