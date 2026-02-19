@@ -679,6 +679,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     description: listItem.description,
                     workloadType: listItem.workloadType!,
                     allowedWorkflows: listItem.allowedWorkflows,
+                    allowedTraits: listItem.allowedTraits,
                     createdAt: listItem.createdAt!,
                   },
                   spec: {

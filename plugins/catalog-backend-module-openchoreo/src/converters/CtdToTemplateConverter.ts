@@ -13,6 +13,7 @@ export interface ComponentType {
     description?: string;
     workloadType: string;
     allowedWorkflows?: string[];
+    allowedTraits?: string[];
     tags?: string[];
     createdAt?: string;
   };
@@ -208,6 +209,7 @@ export class CtdToTemplateConverter {
             ctdDisplayName:
               componentType.metadata.displayName ||
               this.formatTitle(componentType.metadata.name),
+            allowedTraits: componentType.metadata.allowedTraits,
           },
         },
       },

@@ -109,6 +109,10 @@ export {
   type UseYamlEditorOptions,
   type UseYamlEditorResult,
 } from './components/YamlEditor';
+export {
+  TraitConfigToggle,
+  type TraitConfigToggleProps,
+} from './components/TraitConfigToggle';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';

@@ -51,6 +51,7 @@
     "clsx": "^2.1.1",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
+    "json-schema": "^0.4.0",
     "react-full-screen": "^1.1.1",
     "yaml": "^2.0.0"
   },
