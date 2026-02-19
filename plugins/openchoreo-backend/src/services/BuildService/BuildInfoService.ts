@@ -259,7 +259,13 @@ export class BuildInfoService {
     token?: string,
   ): Promise<ModelsBuild> {
     if (this.useNewApi) {
-      return this.triggerBuildNew(namespaceName, componentName, commit, token);
+      return this.triggerBuildNew(
+        namespaceName,
+        projectName,
+        componentName,
+        commit,
+        token,
+      );
     }
     return this.triggerBuildLegacy(
       namespaceName,
@@ -324,12 +330,13 @@ export class BuildInfoService {
 
   private async triggerBuildNew(
     namespaceName: string,
+    projectName: string,
     componentName: string,
     commit?: string,
     token?: string,
   ): Promise<ModelsBuild> {
     this.logger.info(
-      `Triggering component workflow (new API) for component: ${componentName} in namespace: ${namespaceName}${
+      `Triggering component workflow (new API) for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}${
         commit ? ` with commit: ${commit}` : ''
       }`,
     );
@@ -349,8 +356,9 @@ export class BuildInfoService {
             query: commit ? { commit } : undefined,
           },
           body: {
+            metadata: { name: `${componentName}-run` },
             spec: {
-              owner: { componentName },
+              owner: { projectName, componentName },
             },
           } as any,
         },

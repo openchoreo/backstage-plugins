@@ -32,8 +32,8 @@ export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
       dataPlane.spec?.gateway?.organizationVirtualHost ?? '',
     publicHTTPPort: dataPlane.spec?.gateway?.publicHTTPPort ?? 80,
     publicHTTPSPort: dataPlane.spec?.gateway?.publicHTTPSPort ?? 443,
-    // Legacy API had namespace ports; new API only has public + organization.
-    // Map organization ports to namespace ports for backward compatibility.
+    // Legacy API had separate namespace ports; new API only has public + organization.
+    // Map public ports to legacy namespace ports for backward compatibility.
     namespaceHTTPPort: dataPlane.spec?.gateway?.publicHTTPPort ?? 80,
     namespaceHTTPSPort: dataPlane.spec?.gateway?.publicHTTPSPort ?? 443,
     observabilityPlaneRef: dataPlane.spec?.observabilityPlaneRef?.name,

@@ -105,7 +105,7 @@ export class WorkloadInfoService implements WorkloadService {
     },
     token?: string,
   ): Promise<ModelsWorkload> {
-    const { componentName, namespaceName } = request;
+    const { projectName, componentName, namespaceName } = request;
 
     try {
       this.logger.info(
@@ -118,13 +118,13 @@ export class WorkloadInfoService implements WorkloadService {
         logger: this.logger,
       });
 
-      // List workloads filtered by component name
+      // List workloads filtered by project and component name
       const { data, error, response } = await client.GET(
         '/api/v1/namespaces/{namespaceName}/workloads',
         {
           params: {
             path: { namespaceName },
-            query: { component: componentName },
+            query: { project: projectName, component: componentName },
           },
         },
       );
@@ -226,7 +226,7 @@ export class WorkloadInfoService implements WorkloadService {
     },
     token?: string,
   ): Promise<any> {
-    const { componentName, namespaceName, workloadSpec } = request;
+    const { projectName, componentName, namespaceName, workloadSpec } = request;
 
     try {
       this.logger.info(
@@ -247,7 +247,7 @@ export class WorkloadInfoService implements WorkloadService {
       } = await client.GET('/api/v1/namespaces/{namespaceName}/workloads', {
         params: {
           path: { namespaceName },
-          query: { component: componentName },
+          query: { project: projectName, component: componentName },
         },
       });
 

@@ -1442,6 +1442,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     description: getDescription(ct),
                     workloadType: ct.spec?.workloadType ?? 'deployment',
                     allowedWorkflows: ct.spec?.allowedWorkflows,
+                    allowedTraits: ct.spec?.allowedTraits,
                     createdAt: getCreatedAt(ct) || '',
                   },
                   spec: {
@@ -2352,8 +2353,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             gateway?.publicHTTPPort?.toString() || '',
           'openchoreo.io/public-https-port':
             gateway?.publicHTTPSPort?.toString() || '',
-          'openchoreo.io/namespace-http-port': '',
-          'openchoreo.io/namespace-https-port': '',
+          'openchoreo.io/namespace-http-port':
+            gateway?.publicHTTPPort?.toString() || '',
+          'openchoreo.io/namespace-https-port':
+            gateway?.publicHTTPSPort?.toString() || '',
           'openchoreo.io/observability-plane-ref': normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
         },
@@ -2369,8 +2372,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         namespaceVirtualHost: gateway?.organizationVirtualHost,
         publicHTTPPort: gateway?.publicHTTPPort,
         publicHTTPSPort: gateway?.publicHTTPSPort,
-        namespaceHTTPPort: undefined,
-        namespaceHTTPSPort: undefined,
+        namespaceHTTPPort: gateway?.publicHTTPPort,
+        namespaceHTTPSPort: gateway?.publicHTTPSPort,
         observabilityPlaneRef: normalizedObsRef,
       },
     };
@@ -2642,6 +2645,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         description: getDescription(ct),
         workloadType: ct.spec?.workloadType,
         allowedWorkflows: ct.spec?.allowedWorkflows,
+        allowedTraits: ct.spec?.allowedTraits,
         createdAt: getCreatedAt(ct),
       },
       namespaceName,
