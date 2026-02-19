@@ -1509,8 +1509,57 @@ export interface components {
       name: string;
       displayName?: string;
       description?: string;
-      type: string;
-      workflow?: components['schemas']['ComponentWorkflow'];
+      /** @deprecated */
+      type?: string;
+      /** @description Component type reference (format: {workloadType}/{componentTypeName}) */
+      componentType?: string;
+      /**
+       * @description Whether to automatically deploy to default environment
+       * @default false
+       */
+      autoDeploy: boolean;
+      /** @description Component type parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
+      /** @description Trait instances to attach to the component */
+      traits?: components['schemas']['ComponentTraitInput'][];
+      workflow?: components['schemas']['ComponentWorkflowInput'];
+    };
+    /** @description Trait instance to attach to a component */
+    ComponentTraitInput: {
+      /** @description Trait resource name */
+      name: string;
+      /** @description Unique instance name within the component */
+      instanceName: string;
+      /** @description Trait parameter values */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Workflow configuration for component creation */
+    ComponentWorkflowInput: {
+      /** @description ComponentWorkflow resource name */
+      name: string;
+      /** @description System parameters including repository configuration */
+      systemParameters: {
+        repository: {
+          /** @description Git repository URL */
+          url: string;
+          revision: {
+            /** @description Git branch to build from */
+            branch: string;
+            /** @description Specific commit SHA (optional) */
+            commit?: string;
+          };
+          /** @description Path to application within repository */
+          appPath: string;
+        };
+      };
+      /** @description User-defined workflow parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
     };
     PatchComponentRequest: {
       /** @description Controls whether the component should automatically deploy to the default environment */

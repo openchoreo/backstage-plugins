@@ -297,13 +297,11 @@ export const createComponentAction = (
           `Extracted CTD parameters: ${JSON.stringify(ctdParameters)}`,
         );
 
-        // Build the ComponentResource from form input
-        const componentResource = buildComponentResource({
+        // Build the CreateComponentRequest body from form input
+        const componentRequest = buildComponentResource({
           componentName: ctx.input.componentName,
           displayName: ctx.input.displayName,
           description: ctx.input.description,
-          namespaceName: namespaceName,
-          projectName: projectName,
           componentType: ctx.input.componentType,
           componentTypeWorkloadType:
             (ctx.input as any).component_type_workload_type || 'deployment',
@@ -353,32 +351,34 @@ export const createComponentAction = (
         });
 
         ctx.logger.debug(
-          `Invoking /apply resource for component: ${componentResource.metadata.name}`,
+          `Creating component via REST endpoint: ${componentRequest.name}`,
         );
 
-        // Call the apply API to create the component
+        // Call the createComponent REST endpoint
         const {
-          data: applyData,
-          error: applyError,
-          response: applyResponse,
-        } = await client.POST('/apply', {
-          body: componentResource as any,
-        });
+          data: createData,
+          error: createError,
+          response: createResponse,
+        } = await client.POST(
+          '/namespaces/{namespaceName}/projects/{projectName}/components',
+          {
+            params: { path: { namespaceName, projectName } },
+            body: componentRequest,
+          },
+        );
 
-        if (applyError || !applyResponse.ok) {
+        if (createError || !createResponse.ok) {
           throw new Error(
-            `Failed to create component: ${applyResponse.status} ${applyResponse.statusText}`,
+            `Failed to create component: ${createResponse.status} ${createResponse.statusText}`,
           );
         }
 
-        if (!applyData?.success) {
+        if (!createData?.success) {
           throw new Error('API request was not successful');
         }
 
         ctx.logger.info(
-          `Component created successfully via /apply: ${JSON.stringify(
-            applyData,
-          )}`,
+          `Component created successfully: ${JSON.stringify(createData)}`,
         );
 
         // Create Workload CR when there's workload data or when deploying from image.
@@ -411,14 +411,11 @@ export const createComponentAction = (
           const port = ctdParameters.port as number | undefined;
 
           // For non-image deployments, only pass env vars and file mounts if
-          // there's also an image, since the CRD requires image on Container.
+          // there's also an image, since the API requires image on Container.
           const effectiveContainerImage = isFromImage
             ? containerImage
             : undefined;
-          const workloadResource = buildWorkloadResource({
-            componentName: ctx.input.componentName,
-            namespaceName: namespaceName,
-            projectName: projectName,
+          const workloadBody = buildWorkloadResource({
             containerImage: effectiveContainerImage,
             port: port,
             endpoints: workloadEndpoints,
@@ -429,20 +426,32 @@ export const createComponentAction = (
           });
 
           ctx.logger.debug(
-            `Creating Workload resource: ${JSON.stringify(workloadResource)}`,
+            `Creating workload via REST endpoint: ${JSON.stringify(
+              workloadBody,
+            )}`,
           );
 
           const {
             data: workloadData,
             error: workloadError,
             response: workloadResponse,
-          } = await client.POST('/apply', {
-            body: workloadResource as any,
-          });
+          } = await client.POST(
+            '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workloads',
+            {
+              params: {
+                path: {
+                  namespaceName,
+                  projectName,
+                  componentName: ctx.input.componentName,
+                },
+              },
+              body: workloadBody as any,
+            },
+          );
 
           if (workloadError || !workloadResponse.ok) {
             ctx.logger.error(
-              `Failed to create Workload: ${workloadResponse.status} ${workloadResponse.statusText}. ` +
+              `Failed to create workload: ${workloadResponse.status} ${workloadResponse.statusText}. ` +
                 `Error: ${JSON.stringify(workloadError)}. ` +
                 `Component was created but workload setup may need manual configuration.`,
             );
