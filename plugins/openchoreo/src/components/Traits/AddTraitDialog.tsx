@@ -172,6 +172,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
   const [instanceNameError, setInstanceNameError] = useState<string>('');
   const [formValid, setFormValid] = useState(false);
   const [showFormErrors, setShowFormErrors] = useState(false);
+  const [yamlValid, setYamlValid] = useState(true);
 
   // Extract entity metadata
   const metadata = extractEntityMetadata(entity);
@@ -295,6 +296,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
           setUiSchema(generatedUiSchema);
           setParameters({});
           setShowFormErrors(false);
+          setYamlValid(true);
           // Set default instance name
           setInstanceName(`${selectedTrait}-1`);
         }
@@ -357,6 +359,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     setInstanceNameError('');
     setFormValid(false);
     setShowFormErrors(false);
+    setYamlValid(true);
     onClose();
   };
 
@@ -380,7 +383,8 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     instanceName.trim() &&
     !instanceNameError &&
     !loadingSchema &&
-    formValid;
+    formValid &&
+    yamlValid;
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
@@ -457,6 +461,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
                 schema={traitSchema}
                 formData={parameters}
                 onChange={setParameters}
+                onValidityChange={setYamlValid}
               >
                 <Form
                   schema={traitSchema}

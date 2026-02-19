@@ -155,6 +155,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
   const [instanceNameError, setInstanceNameError] = useState<string>('');
   const [formValid, setFormValid] = useState(false);
   const [showFormErrors, setShowFormErrors] = useState(false);
+  const [yamlValid, setYamlValid] = useState(true);
 
   // Extract entity metadata
   const metadata = extractEntityMetadata(entity);
@@ -168,6 +169,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     setInstanceName(trait.instanceName);
     setParameters(trait.parameters || {});
     setShowFormErrors(false);
+    setYamlValid(true);
   }, [trait, open]);
 
   // Fetch schema when dialog opens
@@ -267,6 +269,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     setInstanceNameError('');
     setFormValid(false);
     setShowFormErrors(false);
+    setYamlValid(true);
     onClose();
   };
 
@@ -290,7 +293,8 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     instanceName.trim() &&
     !instanceNameError &&
     !loadingSchema &&
-    formValid;
+    formValid &&
+    yamlValid;
 
   if (!trait) {
     return null;
@@ -342,6 +346,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
                   schema={traitSchema}
                   formData={parameters}
                   onChange={setParameters}
+                  onValidityChange={setYamlValid}
                 >
                   <Form
                     schema={traitSchema}

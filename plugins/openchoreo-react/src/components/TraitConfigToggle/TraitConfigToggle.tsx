@@ -71,12 +71,33 @@ function buildYamlData(
  * Build a YAML string from merged data, annotating required fields with
  * an inline `# required` comment so the user knows what must be filled in.
  */
+/**
+ * Recursively walk a YAML document node and set QUOTE_DOUBLE on every
+ * string scalar so the output always shows `key: "value"`.
+ */
+function quoteStrings(node: unknown): void {
+  if (YAML.isScalar(node) && typeof node.value === 'string') {
+    node.type = YAML.Scalar.QUOTE_DOUBLE;
+  } else if (YAML.isMap(node)) {
+    for (const item of node.items) {
+      quoteStrings(item.value);
+    }
+  } else if (YAML.isSeq(node)) {
+    for (const item of node.items) {
+      quoteStrings(item);
+    }
+  }
+}
+
 function buildYamlString(
   schema: JSONSchema7 | undefined,
   formData: Record<string, any>,
 ): string {
   const data = buildYamlData(schema, formData);
   const doc = new YAML.Document(data);
+
+  // Force double-quoted strings for consistency
+  quoteStrings(doc.contents);
 
   if (schema?.required && doc.contents && 'items' in doc.contents) {
     const requiredSet = new Set(schema.required);
@@ -99,6 +120,8 @@ export interface TraitConfigToggleProps {
   schema?: JSONSchema7;
   formData: Record<string, any>;
   onChange: (formData: Record<string, any>) => void;
+  /** Called whenever YAML validity changes so the parent can disable Save/Add. */
+  onValidityChange?: (isValid: boolean) => void;
   children: ReactNode;
 }
 
@@ -106,6 +129,7 @@ export const TraitConfigToggle = ({
   schema,
   formData,
   onChange,
+  onValidityChange,
   children,
 }: TraitConfigToggleProps) => {
   const classes = useStyles();
@@ -115,6 +139,22 @@ export const TraitConfigToggle = ({
   );
   const [yamlError, setYamlError] = useState<string | undefined>();
 
+  /** Try to parse YAML content; returns the parsed object or undefined on failure. */
+  const parseYaml = useCallback(
+    (content: string): Record<string, any> | undefined => {
+      try {
+        const parsed = YAML.parse(content);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed;
+        }
+        return undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    [],
+  );
+
   const handleModeChange = useCallback(
     (_: unknown, newMode: 'form' | 'yaml' | null) => {
       if (!newMode || newMode === mode) return;
@@ -122,37 +162,38 @@ export const TraitConfigToggle = ({
       if (newMode === 'yaml') {
         setYamlContent(buildYamlString(schema, formData));
         setYamlError(undefined);
+        onValidityChange?.(true);
       } else {
-        try {
-          const parsed = YAML.parse(yamlContent);
-          if (parsed && typeof parsed === 'object') {
-            onChange(parsed);
-          }
+        // Switching to form — block if YAML is invalid
+        const parsed = parseYaml(yamlContent);
+        if (parsed) {
+          onChange(parsed);
           setYamlError(undefined);
-        } catch (err) {
-          setYamlError(`Invalid YAML: ${err}`);
+          onValidityChange?.(true);
+        } else {
+          setYamlError('YAML must be a valid object to switch to form view');
           return;
         }
       }
       setMode(newMode);
     },
-    [mode, schema, formData, yamlContent, onChange],
+    [mode, schema, formData, yamlContent, onChange, onValidityChange, parseYaml],
   );
 
   const handleYamlChange = useCallback(
     (content: string) => {
       setYamlContent(content);
-      try {
-        const parsed = YAML.parse(content);
+      const parsed = parseYaml(content);
+      if (parsed) {
         setYamlError(undefined);
-        if (parsed && typeof parsed === 'object') {
-          onChange(parsed);
-        }
-      } catch (err) {
-        setYamlError(`YAML parse error: ${err}`);
+        onValidityChange?.(true);
+        onChange(parsed);
+      } else {
+        setYamlError('Invalid YAML: must be a valid YAML object');
+        onValidityChange?.(false);
       }
     },
-    [onChange],
+    [onChange, onValidityChange, parseYaml],
   );
 
   return (
