@@ -26,9 +26,11 @@ import {
   TypeChip,
   ProjectChip,
   ComponentChip,
+  NamespaceChip,
 } from './CustomPersonalFilters';
 
 const kindPluralNames: Record<string, string> = {
+  Namespace: 'Namespaces',
   Project: 'Projects',
   Component: 'Components',
   API: 'APIs',
@@ -86,6 +88,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
       <Box className={classes.searchAndTitle}>
         <Typography className={classes.titleText}>{titleText}</Typography>
         <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+          <NamespaceChip />
           <ProjectChip />
           <ComponentChip />
           <TypeChip />

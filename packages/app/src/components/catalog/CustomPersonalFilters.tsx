@@ -13,6 +13,7 @@ import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   catalogApiRef,
+  EntityNamespaceFilter,
   EntityTypeFilter,
   useEntityList,
   useStarredEntities,
@@ -443,6 +444,105 @@ export const ComponentChip = () => {
               style={{ padding: 4, marginRight: 8 }}
             />
             {component}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+};
+
+export const NamespaceChip = () => {
+  const catalogApi = useApi(catalogApiRef);
+  const { filters, updateFilters } = useEntityList();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [availableNamespaces, setAvailableNamespaces] = useState<string[]>([]);
+  const [selectedNamespaces, setSelectedNamespaces] = useState<string[]>([]);
+
+  const kind = filters.kind?.value;
+  const prevKindRef = useRef(kind);
+
+  useEffect(() => {
+    if (prevKindRef.current !== kind) {
+      prevKindRef.current = kind;
+      setSelectedNamespaces([]);
+      updateFilters({ namespace: undefined });
+    }
+    if (!kind) {
+      setAvailableNamespaces([]);
+      return undefined;
+    }
+    let cancelled = false;
+    catalogApi
+      .getEntityFacets({
+        filter: { kind },
+        facets: ['metadata.namespace'],
+      })
+      .then(response => {
+        if (cancelled) return;
+        const namespaces = (response.facets['metadata.namespace'] || []).map(
+          f => f.value,
+        );
+        setAvailableNamespaces([...new Set(namespaces)].sort());
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, catalogApi]);
+
+  if (availableNamespaces.length <= 1) return null;
+
+  const handleToggleNamespace = (namespace: string) => {
+    const newNamespaces = selectedNamespaces.includes(namespace)
+      ? selectedNamespaces.filter(n => n !== namespace)
+      : [...selectedNamespaces, namespace];
+    setSelectedNamespaces(newNamespaces);
+    updateFilters({
+      namespace: newNamespaces.length
+        ? new EntityNamespaceFilter(newNamespaces)
+        : undefined,
+    });
+  };
+
+  let label = 'Namespace';
+  if (selectedNamespaces.length === 1) {
+    label = selectedNamespaces[0];
+  } else if (selectedNamespaces.length > 1) {
+    label = `${selectedNamespaces.length} namespaces`;
+  }
+
+  return (
+    <>
+      <Chip
+        size="small"
+        label={label}
+        deleteIcon={<ArrowDropDownIcon />}
+        onDelete={() => {}}
+        onClick={e => setAnchorEl(e.currentTarget)}
+        variant={selectedNamespaces.length > 0 ? 'default' : 'outlined'}
+        color={selectedNamespaces.length > 0 ? 'primary' : 'default'}
+      />
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+        getContentAnchorEl={null}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      >
+        {availableNamespaces.map(namespace => (
+          <MenuItem
+            key={namespace}
+            dense
+            onClick={() => handleToggleNamespace(namespace)}
+          >
+            <Checkbox
+              checked={selectedNamespaces.includes(namespace)}
+              size="small"
+              color="primary"
+              style={{ padding: 4, marginRight: 8 }}
+            />
+            {namespace}
           </MenuItem>
         ))}
       </Menu>

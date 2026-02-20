@@ -1,11 +1,10 @@
 import { alertApiRef, useApi, useApp } from '@backstage/core-plugin-api';
 import Box from '@material-ui/core/Box';
-import FormControl from '@material-ui/core/FormControl';
-import InputLabel from '@material-ui/core/InputLabel';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
+import Typography from '@material-ui/core/Typography';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import {
@@ -46,7 +45,7 @@ interface KindCategory {
 const kindCategories: KindCategory[] = [
   {
     label: 'Developer Resources',
-    kinds: ['domain', 'system', 'component', 'api', 'resource'],
+    kinds: ['system', 'component', 'api', 'resource'],
   },
   {
     label: 'Platform Resources',
@@ -72,23 +71,29 @@ const kindCategories: KindCategory[] = [
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
-    formControl: {
-      margin: theme.spacing(1, 0),
-      minWidth: 120,
+    container: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing(1.5),
     },
     label: {
-      transform: 'initial',
       fontWeight: 'bold',
       fontSize: theme.typography.body2.fontSize,
       fontFamily: theme.typography.fontFamily,
       color: theme.palette.text.primary,
-      position: 'relative',
-      '&.Mui-focused': {
-        color: theme.palette.text.primary,
-      },
+      whiteSpace: 'nowrap',
     },
     select: {
-      marginTop: theme.spacing(1),
+      minWidth: 180,
+    },
+    renderValue: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing(1),
+      '& svg': {
+        fontSize: '1.2rem',
+        color: theme.palette.text.secondary,
+      },
     },
     subheader: {
       color: theme.palette.text.secondary,
@@ -283,6 +288,21 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
 
     const items: ReactNode[] = [];
 
+    // Add Namespace (domain) as a standalone top-level item
+    if (availableKinds.has('domain')) {
+      const DomainIcon = app.getSystemIcon('kind:domain');
+      items.push(
+        <MenuItem key="domain" value="domain">
+          {DomainIcon && (
+            <ListItemIcon className={classes.listItemIcon}>
+              <DomainIcon />
+            </ListItemIcon>
+          )}
+          {kindDisplayNames.domain}
+        </MenuItem>,
+      );
+    }
+
     for (const category of kindCategories) {
       // Skip platform-only categories for non-platform engineers
       if (category.platformOnly && !isPlatformEngineer) continue;
@@ -324,29 +344,32 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
   if (error) return null;
 
   return hidden ? null : (
-    <Box pb={1} pt={1}>
-      <FormControl className={classes.formControl} fullWidth>
-        <InputLabel className={classes.label} shrink disableAnimation>
-          Kind
-        </InputLabel>
-        <Select
-          className={classes.select}
-          value={selectedKind.toLowerCase()}
-          onChange={e => setSelectedKind(e.target.value as string)}
-          variant="outlined"
-          fullWidth
-          renderValue={value =>
-            kindDisplayNames[value as string] || (value as string)
-          }
-          MenuProps={{
-            anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
-            transformOrigin: { vertical: 'top', horizontal: 'left' },
-            getContentAnchorEl: null,
-          }}
-        >
-          {menuItems}
-        </Select>
-      </FormControl>
+    <Box pb={1} pt={1} className={classes.container}>
+      <Typography className={classes.label}>Kind</Typography>
+      <Select
+        className={classes.select}
+        value={selectedKind.toLowerCase()}
+        onChange={e => setSelectedKind(e.target.value as string)}
+        variant="outlined"
+        fullWidth
+        renderValue={value => {
+          const kind = value as string;
+          const KindIcon = app.getSystemIcon(`kind:${kind}`);
+          return (
+            <Box className={classes.renderValue}>
+              {KindIcon && <KindIcon />}
+              {kindDisplayNames[kind] || kind}
+            </Box>
+          );
+        }}
+        MenuProps={{
+          anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+          transformOrigin: { vertical: 'top', horizontal: 'left' },
+          getContentAnchorEl: null,
+        }}
+      >
+        {menuItems}
+      </Select>
     </Box>
   );
 };
