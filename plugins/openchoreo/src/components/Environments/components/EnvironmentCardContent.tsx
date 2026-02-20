@@ -1,9 +1,15 @@
 /* eslint-disable no-nested-ternary */
 import { useState } from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@material-ui/core';
+import {
+  Box,
+  Typography,
+  IconButton,
+  Tooltip,
+  Button,
+} from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
-import DescriptionIcon from '@material-ui/icons/Description';
+import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
@@ -66,30 +72,39 @@ export const EnvironmentCardContent = ({
         </Box>
       )}
 
-      <Box display="flex" alignItems="center" mt={2}>
-        <Typography variant="body2" style={{ fontWeight: 500, marginRight: 8 }}>
-          Deployment Status:
-        </Typography>
-        <StatusBadge
-          status={
-            status === 'Ready'
-              ? 'active'
-              : status === 'NotReady'
-              ? 'pending'
-              : status === 'Failed'
-              ? 'failed'
-              : 'not-deployed'
-          }
-        />
-        {releaseName && (
-          <IconButton
-            onClick={onOpenReleaseDetails}
-            size="small"
-            title="View release details"
-            style={{ marginLeft: 'auto' }}
+      <Box mt={2}>
+        <Box display="flex" alignItems="center">
+          <Typography
+            variant="body2"
+            style={{ fontWeight: 500, marginRight: 8 }}
           >
-            <DescriptionIcon fontSize="small" />
-          </IconButton>
+            Deployment Status:
+          </Typography>
+          <StatusBadge
+            status={
+              status === 'Ready'
+                ? 'active'
+                : status === 'NotReady'
+                ? 'pending'
+                : status === 'Failed'
+                ? 'failed'
+                : 'not-deployed'
+            }
+          />
+        </Box>
+        {releaseName && (
+          <Box mt={1.5}>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<DescriptionOutlinedIcon />}
+              onClick={onOpenReleaseDetails}
+              style={{ textTransform: 'none' }}
+            >
+              View Release
+            </Button>
+          </Box>
         )}
       </Box>
 
