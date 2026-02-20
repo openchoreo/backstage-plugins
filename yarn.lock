@@ -10929,10 +10929,12 @@ __metadata:
     d3-zoom: "npm:^3.0.0"
     json-schema: "npm:^0.4.0"
     react-full-screen: "npm:^1.1.1"
+    react-use: "npm:^17.2.4"
     yaml: "npm:^2.0.0"
   peerDependencies:
     react: ^18.0.0
     react-dom: ^18.0.0
+    react-router-dom: ^6.0.0
   languageName: unknown
   linkType: soft
 

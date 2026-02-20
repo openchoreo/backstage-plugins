@@ -1,4 +1,3 @@
-import { useEffect, useRef } from 'react';
 import { Grid } from '@material-ui/core';
 import {
   EntityApiDefinitionCard,
@@ -113,8 +112,9 @@ import {
 import {
   FeatureGate,
   CustomGraphNode,
+  OpenChoreoEntityLayout,
 } from '@openchoreo/backstage-plugin-react';
-import { EntityTable, useEntity } from '@backstage/plugin-catalog-react';
+import { EntityTable } from '@backstage/plugin-catalog-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
 import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 
@@ -122,40 +122,6 @@ import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 import { EntityJenkinsContent } from '@backstage-community/plugin-jenkins';
 import { EntityGithubActionsContent } from '@backstage-community/plugin-github-actions';
 import { EntityGitlabContent } from '@immobiliarelabs/backstage-plugin-gitlab';
-
-/**
- * Replaces the header type label text within a container element.
- * Used to show "PROJECT" instead of "SYSTEM" on System entity pages,
- * and "NAMESPACE" instead of "DOMAIN" on OpenChoreo domain pages.
- * Uses a MutationObserver to handle React re-renders.
- */
-function useHeaderTypeOverride(
-  ref: React.RefObject<HTMLDivElement | null>,
-  from: string,
-  to: string,
-) {
-  useEffect(() => {
-    const container = ref.current;
-    if (!container || !from) return undefined;
-
-    const replace = () => {
-      // The header type is rendered as a <p> inside a <header> element
-      const header = container.querySelector('header');
-      if (!header) return;
-      // The type label is the first <p> child of the header's first div
-      const typeEl = header.querySelector('p');
-      if (typeEl && typeEl.textContent?.toLowerCase().startsWith(from)) {
-        typeEl.textContent = typeEl.textContent.toLowerCase().replace(from, to);
-      }
-    };
-
-    replace();
-
-    const observer = new MutationObserver(replace);
-    observer.observe(container, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [ref, from, to]);
-}
 
 // Annotation predicates for conditionally showing CI tabs
 const hasJenkinsAnnotation = (entity: Entity) =>
@@ -563,126 +529,109 @@ const groupPage = (
 
 /**
  * System page (for Projects) with delete menu support.
- * Wrapped in a component to override header type label ("project" instead of "system").
- * Routes are defined as static JSX children so routable extensions are discoverable.
+ * Uses OpenChoreoEntityLayout (via EntityLayoutWithDelete) for compact header
+ * with kind display name override: system → Project.
  */
-const SystemPage = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  useHeaderTypeOverride(ref, 'system', 'project');
-  return (
-    <div ref={ref}>
-      <EntityLayoutWithDelete>
-        <EntityLayout.Route path="/" title="Overview">
-          <Grid container spacing={3} alignItems="stretch">
-            {entityWarningContent}
-            {/* Row 1: Has Components + Deployment Pipeline */}
-            <Grid item md={8} xs={12}>
-              <ProjectComponentsCard />
-            </Grid>
-            <Grid item md={4} xs={12}>
-              <DeploymentPipelineCard />
-            </Grid>
+const systemPage = (
+  <EntityLayoutWithDelete>
+    <EntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Has Components + Deployment Pipeline */}
+        <Grid item md={8} xs={12}>
+          <ProjectComponentsCard />
+        </Grid>
+        <Grid item md={4} xs={12}>
+          <DeploymentPipelineCard />
+        </Grid>
 
-            {/* Row 2: About + Catalog Relations */}
-            <Grid item md={6} xs={12}>
-              <EntityAboutCard variant="gridItem" />
-            </Grid>
-            <Grid item md={6} xs={12}>
-              <EntityCatalogGraphCard
-                variant="gridItem"
-                height={400}
-                renderNode={CustomGraphNode}
-              />
-            </Grid>
-          </Grid>
-        </EntityLayout.Route>
-        <EntityLayout.Route path="/cell-diagram" title="Cell Diagram">
-          <CellDiagram />
-        </EntityLayout.Route>
-        <EntityLayout.Route path="/diagram" title="Diagram">
+        {/* Row 2: About + Catalog Relations */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
             variant="gridItem"
-            direction={Direction.TOP_BOTTOM}
-            title="System Diagram"
-            height={700}
-            relations={[
-              RELATION_PART_OF,
-              RELATION_HAS_PART,
-              RELATION_API_CONSUMED_BY,
-              RELATION_API_PROVIDED_BY,
-              RELATION_CONSUMES_API,
-              RELATION_PROVIDES_API,
-              RELATION_DEPENDENCY_OF,
-              RELATION_DEPENDS_ON,
-            ]}
-            unidirectional={false}
+            height={400}
             renderNode={CustomGraphNode}
           />
-        </EntityLayout.Route>
-        <EntityLayout.Route path="/traces" title="Traces">
-          <FeatureGatedContent feature="observability">
-            <ObservabilityTraces />
-          </FeatureGatedContent>
-        </EntityLayout.Route>
-        <EntityLayout.Route path="/rca-reports" title="RCA Reports">
-          <FeatureGatedContent feature="observability">
-            <ObservabilityRCA />
-          </FeatureGatedContent>
-        </EntityLayout.Route>
-      </EntityLayoutWithDelete>
-    </div>
-  );
-};
-const systemPage = <SystemPage />;
+        </Grid>
+      </Grid>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/cell-diagram" title="Cell Diagram">
+      <CellDiagram />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/diagram" title="Diagram">
+      <EntityCatalogGraphCard
+        variant="gridItem"
+        direction={Direction.TOP_BOTTOM}
+        title="System Diagram"
+        height={700}
+        relations={[
+          RELATION_PART_OF,
+          RELATION_HAS_PART,
+          RELATION_API_CONSUMED_BY,
+          RELATION_API_PROVIDED_BY,
+          RELATION_CONSUMES_API,
+          RELATION_PROVIDES_API,
+          RELATION_DEPENDENCY_OF,
+          RELATION_DEPENDS_ON,
+        ]}
+        unidirectional={false}
+        renderNode={CustomGraphNode}
+      />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/traces" title="Traces">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityTraces />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/rca-reports" title="RCA Reports">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityRCA />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+  </EntityLayoutWithDelete>
+);
 
 /**
- * Domain page. For OpenChoreo-created domains (namespaces), overrides the header
- * type label from "domain" to "namespace".
+ * Domain page. Uses OpenChoreoEntityLayout with kindDisplayNames
+ * to show "Namespace" instead of "Domain" for OpenChoreo domains.
  */
-const DomainPage = () => {
-  const { entity } = useEntity();
-  const ref = useRef<HTMLDivElement>(null);
-  const isOpenChoreoDomain = Boolean(
-    entity.metadata.annotations?.['openchoreo.io/namespace'],
-  );
-  useHeaderTypeOverride(ref, isOpenChoreoDomain ? 'domain' : '', 'namespace');
-  return (
-    <div ref={ref}>
-      <EntityLayout
-        UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}
-      >
-        <EntityLayout.Route path="/" title="Overview">
-          <Grid container spacing={3} alignItems="stretch">
-            {entityWarningContent}
-            <Grid item md={6}>
-              <EntityHasSystemsCard
-                variant="gridItem"
-                title="Has Projects"
-                columns={[
-                  EntityTable.columns.createEntityRefColumn({
-                    defaultKind: 'system',
-                  }),
-                  EntityTable.columns.createMetadataDescriptionColumn(),
-                ]}
-              />
-            </Grid>
-            <Grid item md={6} xs={12}>
-              <EntityCatalogGraphCard
-                variant="gridItem"
-                height={400}
-                renderNode={CustomGraphNode}
-              />
-            </Grid>
-            <Grid item md={6}>
-              <EntityAboutCard variant="gridItem" />
-            </Grid>
-          </Grid>
-        </EntityLayout.Route>
-      </EntityLayout>
-    </div>
-  );
-};
-const domainPage = <DomainPage />;
+const domainPage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={{ domain: 'Namespace' }}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6}>
+          <EntityHasSystemsCard
+            variant="gridItem"
+            title="Has Projects"
+            columns={[
+              EntityTable.columns.createEntityRefColumn({
+                defaultKind: 'system',
+              }),
+              EntityTable.columns.createMetadataDescriptionColumn(),
+            ]}
+          />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={6}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
 
 const resourcePage = (
   <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>

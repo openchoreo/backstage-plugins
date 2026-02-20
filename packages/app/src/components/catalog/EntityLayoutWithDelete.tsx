@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 import { Box } from '@material-ui/core';
-import { EntityLayout } from '@backstage/plugin-catalog';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { EmptyState, Progress } from '@backstage/core-components';
 import {
@@ -8,22 +7,24 @@ import {
   useEntityExistsCheck,
   useAnnotationEditorMenuItems,
 } from '@openchoreo/backstage-plugin';
+import { OpenChoreoEntityLayout } from '@openchoreo/backstage-plugin-react';
+
+const KIND_DISPLAY_NAMES: Record<string, string> = {
+  system: 'Project',
+  domain: 'Namespace',
+};
 
 /**
  * Gets the display label for an entity kind.
  * Maps Backstage entity kinds to OpenChoreo terminology.
  */
 function getEntityTypeLabel(kind: string): string {
-  // System in Backstage = Project in OpenChoreo
-  if (kind.toLowerCase() === 'system') {
-    return 'Project';
-  }
-  return kind;
+  return KIND_DISPLAY_NAMES[kind.toLowerCase()] ?? kind;
 }
 
 /**
- * Wrapper component that adds delete menu functionality to EntityLayout.
- * Children (EntityLayout.Route elements) are passed through, keeping them
+ * Wrapper component that adds delete menu functionality to OpenChoreoEntityLayout.
+ * Children (OpenChoreoEntityLayout.Route elements) are passed through, keeping them
  * in static JSX so Backstage can discover routable extensions.
  *
  * Also checks if the entity exists in OpenChoreo:
@@ -53,11 +54,12 @@ export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
   // Show empty state with header if entity not found in OpenChoreo
   if (status === 'not-found') {
     return (
-      <EntityLayout
-        UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}
+      <OpenChoreoEntityLayout
+        contextMenuOptions={{ disableUnregister: 'hidden' }}
         parentEntityRelations={['partOf']}
+        kindDisplayNames={KIND_DISPLAY_NAMES}
       >
-        <EntityLayout.Route path="/" title="Overview">
+        <OpenChoreoEntityLayout.Route path="/" title="Overview">
           <Box py={4}>
             <EmptyState
               missing="data"
@@ -70,19 +72,20 @@ export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
               }
             />
           </Box>
-        </EntityLayout.Route>
-      </EntityLayout>
+        </OpenChoreoEntityLayout.Route>
+      </OpenChoreoEntityLayout>
     );
   }
 
   // Show empty state with header if entity is marked for deletion
   if (status === 'marked-for-deletion') {
     return (
-      <EntityLayout
-        UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}
+      <OpenChoreoEntityLayout
+        contextMenuOptions={{ disableUnregister: 'hidden' }}
         parentEntityRelations={['partOf']}
+        kindDisplayNames={KIND_DISPLAY_NAMES}
       >
-        <EntityLayout.Route path="/" title="Overview">
+        <OpenChoreoEntityLayout.Route path="/" title="Overview">
           <Box py={4}>
             <EmptyState
               missing="data"
@@ -95,20 +98,21 @@ export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
               }
             />
           </Box>
-        </EntityLayout.Route>
-      </EntityLayout>
+        </OpenChoreoEntityLayout.Route>
+      </OpenChoreoEntityLayout>
     );
   }
 
   return (
     <>
-      <EntityLayout
-        UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}
-        UNSTABLE_extraContextMenuItems={extraMenuItems}
+      <OpenChoreoEntityLayout
+        contextMenuOptions={{ disableUnregister: 'hidden' }}
+        extraContextMenuItems={extraMenuItems}
         parentEntityRelations={['partOf']}
+        kindDisplayNames={KIND_DISPLAY_NAMES}
       >
         {children}
-      </EntityLayout>
+      </OpenChoreoEntityLayout>
       <DeleteConfirmationDialog />
       <AnnotationEditorDialog />
     </>
