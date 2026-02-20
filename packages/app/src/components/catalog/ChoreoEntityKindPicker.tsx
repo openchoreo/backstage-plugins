@@ -17,6 +17,7 @@ import { useUserGroups } from '../../hooks';
 
 // Mapping of internal kind names to OpenChoreo display names
 const kindDisplayNames: Record<string, string> = {
+  domain: 'Namespace',
   system: 'Project',
   component: 'Component',
   api: 'API',
@@ -45,7 +46,7 @@ interface KindCategory {
 const kindCategories: KindCategory[] = [
   {
     label: 'Developer Resources',
-    kinds: ['system', 'component', 'api', 'resource'],
+    kinds: ['domain', 'system', 'component', 'api', 'resource'],
   },
   {
     label: 'Platform Resources',
