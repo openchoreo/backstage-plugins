@@ -4,7 +4,11 @@ import {
   processingResult,
 } from '@backstage/plugin-catalog-node';
 import { LocationSpec } from '@backstage/plugin-catalog-common';
-import { RELATION_PART_OF, parseEntityRef } from '@backstage/catalog-model';
+import {
+  RELATION_HAS_PART,
+  RELATION_PART_OF,
+  parseEntityRef,
+} from '@backstage/catalog-model';
 import {
   RELATION_OBSERVED_BY,
   RELATION_OBSERVES,
@@ -47,15 +51,23 @@ export class DataplaneEntityProcessor implements CatalogProcessor {
           defaultKind: 'domain',
           defaultNamespace: entity.metadata.namespace || 'default',
         });
+        const domainTarget = {
+          kind: domainRef.kind,
+          namespace: domainRef.namespace,
+          name: domainRef.name,
+        };
         emit(
           processingResult.relation({
             source: sourceRef,
-            target: {
-              kind: domainRef.kind,
-              namespace: domainRef.namespace,
-              name: domainRef.name,
-            },
+            target: domainTarget,
             type: RELATION_PART_OF,
+          }),
+        );
+        emit(
+          processingResult.relation({
+            source: domainTarget,
+            target: sourceRef,
+            type: RELATION_HAS_PART,
           }),
         );
       }
