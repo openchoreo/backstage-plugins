@@ -77,6 +77,7 @@ import {
   DeploymentPipelineCard,
   ProjectComponentsCard,
   NamespaceProjectsCard,
+  NamespaceResourcesCard,
   Traits,
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
@@ -621,15 +622,20 @@ const domainPage = (
         <Grid item md={6}>
           <NamespaceProjectsCard />
         </Grid>
-        <Grid item md={6} xs={12}>
-          <EntityCatalogGraphCard
-            variant="gridItem"
-            height={400}
-            renderNode={CustomGraphNode}
-          />
+        <Grid item md={6}>
+          <NamespaceResourcesCard />
         </Grid>
         <Grid item md={6}>
           <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={500}
+            zoom="enabled"
+            maxDepth={1}
+            renderNode={CustomGraphNode}
+          />
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
