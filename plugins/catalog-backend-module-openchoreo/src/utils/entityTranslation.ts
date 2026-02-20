@@ -72,6 +72,10 @@ export function translateComponentToEntity(
         ...(component.type && {
           [CHOREO_ANNOTATIONS.COMPONENT_TYPE]: component.type,
         }),
+        ...(component.componentType?.kind && {
+          [CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND]:
+            component.componentType.kind,
+        }),
         [CHOREO_ANNOTATIONS.PROJECT]: projectName,
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         ...(component.createdAt && {
@@ -264,7 +268,7 @@ export function translateComponentTypeToEntity(
     description?: string;
     workloadType?: string;
     allowedWorkflows?: string[];
-    allowedTraits?: string[];
+    allowedTraits?: Array<{ kind?: string; name: string }>;
     createdAt?: string;
   },
   namespaceName: string,

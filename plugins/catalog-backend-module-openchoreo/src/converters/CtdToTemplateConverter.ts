@@ -13,7 +13,7 @@ export interface ComponentType {
     description?: string;
     workloadType: string;
     allowedWorkflows?: string[];
-    allowedTraits?: string[];
+    allowedTraits?: Array<{ kind?: string; name: string }>;
     tags?: string[];
     createdAt?: string;
   };

@@ -520,6 +520,10 @@ export const createComponentAction = (
             displayName: ctx.input.displayName,
             description: ctx.input.description,
             type: fullComponentType, // Use full type format: deployment/service
+            componentType: {
+              kind: 'ComponentType',
+              name: fullComponentType,
+            },
             projectName: projectName,
             namespaceName: namespaceName,
             status: 'Active', // New components are active by default

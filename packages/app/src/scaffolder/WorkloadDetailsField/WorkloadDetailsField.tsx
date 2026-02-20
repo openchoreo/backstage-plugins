@@ -229,7 +229,7 @@ export const WorkloadDetailsField = ({
     | JSONSchema7
     | undefined;
   const allowedTraits = uiSchema?.['ui:options']?.allowedTraits as
-    | string[]
+    | Array<{ kind?: string; name: string }>
     | undefined;
   const isDeploymentType = workloadType.startsWith('deployment');
 
@@ -673,7 +673,9 @@ export const WorkloadDetailsField = ({
         if (!ignore && result.success) {
           const items = result.data.items as TraitListItem[];
           setAvailableTraits(
-            items.filter((t: TraitListItem) => allowedTraits!.includes(t.name)),
+            items.filter((t: TraitListItem) =>
+              allowedTraits!.some(at => at.name === t.name),
+            ),
           );
         }
       } catch (err) {

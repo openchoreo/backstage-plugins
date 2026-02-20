@@ -24,7 +24,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "15beb0f9fe96110cf0b4a2c102a9f0cc38a4054c",
-  "lastSyncDate": "2026-02-17T10:24:51+05:30",
-  "lastSyncDescription": "Added allowedTraits field to ComponentTypeResponse schema"
+  "lastSyncCommit": "69f42d25bd8b05dd59b43532fcff9b3b48a7a3c6",
+  "lastSyncDate": "2026-02-20T10:20:43+05:30",
+  "lastSyncDescription": "Changed allowedTraits from string[] to AllowedTraitResponse[] (object with kind and name fields)"
 }

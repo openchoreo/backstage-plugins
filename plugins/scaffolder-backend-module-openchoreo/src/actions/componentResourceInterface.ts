@@ -50,8 +50,8 @@ export interface ComponentTrait {
 export interface ComponentSpec {
   /** Owner of the component */
   owner: ComponentOwner;
-  /** Component type in format: {workloadType}/{componentTypeName} */
-  componentType: string;
+  /** Component type reference with kind and name */
+  componentType: { kind: string; name: string };
   /** Parameters from the component type (user provided values) */
   parameters: Record<string, any>;
   /** Auto deploy flag - automatically deploy when build succeeds */

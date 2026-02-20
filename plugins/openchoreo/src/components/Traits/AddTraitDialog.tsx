@@ -220,10 +220,12 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
                   componentTypeName,
               );
               const allowedTraits = (matchingCt?.spec as any)?.allowedTraits as
-                | string[]
+                | Array<{ kind?: string; name: string }>
                 | undefined;
               if (allowedTraits && allowedTraits.length > 0) {
-                items = items.filter(t => allowedTraits.includes(t.name));
+                items = items.filter(t =>
+                  allowedTraits.some(at => at.name === t.name),
+                );
               }
             } catch {
               // If fetching component types fails, show all traits
