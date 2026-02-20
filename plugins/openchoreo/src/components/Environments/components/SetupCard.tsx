@@ -49,7 +49,7 @@ export const SetupCard = ({
 
   return (
     <>
-      <Card style={{ minHeight: '300px' }}>
+      <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>
         <Box className={classes.setupCard}>
           <CardContent className={classes.cardContent}>
             <Typography variant="h6" component="h4">
