@@ -15,7 +15,7 @@ import {
 } from '@backstage/plugin-catalog-react';
 import { useUserGroups } from '../../hooks';
 
-// Mapping of internal kind names to Choreo entity kind names
+// Mapping of internal kind names to OpenChoreo display names
 const kindDisplayNames: Record<string, string> = {
   system: 'Project',
   component: 'Component',
@@ -227,8 +227,8 @@ function useEntityKindFilter(opts: { initialFilter: string }): {
 }
 
 /**
- * Custom EntityKindPicker that displays Choreo names for entity kinds
- * Maps: Domain -> Org, System -> Project
+ * Custom EntityKindPicker that displays OpenChoreo names for entity kinds
+ * Maps: Domain -> Namespace, System -> Project
  */
 export interface ChoreoEntityKindPickerProps {
   allowedKinds?: string[];

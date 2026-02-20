@@ -55,6 +55,7 @@ export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
     return (
       <EntityLayout
         UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}
+        parentEntityRelations={['partOf']}
       >
         <EntityLayout.Route path="/" title="Overview">
           <Box py={4}>
@@ -79,6 +80,7 @@ export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
     return (
       <EntityLayout
         UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}
+        parentEntityRelations={['partOf']}
       >
         <EntityLayout.Route path="/" title="Overview">
           <Box py={4}>
@@ -103,6 +105,7 @@ export function EntityLayoutWithDelete({ children }: { children: ReactNode }) {
       <EntityLayout
         UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}
         UNSTABLE_extraContextMenuItems={extraMenuItems}
+        parentEntityRelations={['partOf']}
       >
         {children}
       </EntityLayout>
