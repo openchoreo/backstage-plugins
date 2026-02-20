@@ -118,6 +118,11 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
           {/* Global nav, not org-specific */}
           <SidebarItem icon={HomeIcon} to="/" text="Home" />
           <SidebarItem icon={CategoryIcon} to="catalog" text="Catalog" />
+          <SidebarItem
+            icon={BubbleChartIcon}
+            to="platform-overview"
+            text="Platform"
+          />
           <MyGroupsSidebarItem
             singularTitle="My Group"
             pluralTitle="My Groups"
@@ -129,11 +134,6 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
             icon={CreateComponentIcon}
             to="create"
             text="Create..."
-          />
-          <SidebarItem
-            icon={BubbleChartIcon}
-            to="platform-overview"
-            text="Platform"
           />
           {/* End global nav */}
           <SidebarDivider />
