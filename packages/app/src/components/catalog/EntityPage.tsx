@@ -11,7 +11,6 @@ import {
   EntityDependsOnComponentsCard,
   EntityDependsOnResourcesCard,
   EntityHasComponentsCard,
-  EntityHasSystemsCard,
   EntityLayout,
   EntityLinksCard,
   EntitySwitch,
@@ -77,6 +76,7 @@ import {
   RuntimeHealthCard,
   DeploymentPipelineCard,
   ProjectComponentsCard,
+  NamespaceProjectsCard,
   Traits,
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
@@ -112,6 +112,7 @@ import {
 import {
   FeatureGate,
   CustomGraphNode,
+  OpenChoreoEntityLayout,
 } from '@openchoreo/backstage-plugin-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
 import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
@@ -527,7 +528,8 @@ const groupPage = (
 
 /**
  * System page (for Projects) with delete menu support.
- * Routes are defined as static JSX children so routable extensions are discoverable.
+ * Uses OpenChoreoEntityLayout (via EntityLayoutWithDelete) for compact header
+ * with kind display name override: system → Project.
  */
 const systemPage = (
   <EntityLayoutWithDelete>
@@ -591,13 +593,20 @@ const systemPage = (
   </EntityLayoutWithDelete>
 );
 
+/**
+ * Domain page. Uses OpenChoreoEntityLayout with kindDisplayNames
+ * to show "Namespace" instead of "Domain" for OpenChoreo domains.
+ */
 const domainPage = (
-  <EntityLayout UNSTABLE_contextMenuOptions={{ disableUnregister: 'hidden' }}>
-    <EntityLayout.Route path="/" title="Overview">
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={{ domain: 'Namespace' }}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6}>
-          <EntityAboutCard variant="gridItem" />
+          <NamespaceProjectsCard />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard
@@ -607,11 +616,11 @@ const domainPage = (
           />
         </Grid>
         <Grid item md={6}>
-          <EntityHasSystemsCard variant="gridItem" />
+          <EntityAboutCard variant="gridItem" />
         </Grid>
       </Grid>
-    </EntityLayout.Route>
-  </EntityLayout>
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
 );
 
 const resourcePage = (

@@ -70,12 +70,16 @@ export const ProjectComponentsCard = () => {
       ),
     },
     {
-      title: 'Owner',
-      field: 'spec.owner',
+      title: 'Description',
+      field: 'metadata.description',
       width: '18%',
       render: (component: ComponentWithDeployment) => (
-        <Typography variant="body2">
-          {String(component.spec?.owner || '-')}
+        <Typography
+          variant="body2"
+          noWrap
+          title={component.metadata.description || ''}
+        >
+          {component.metadata.description || '-'}
         </Typography>
       ),
     },

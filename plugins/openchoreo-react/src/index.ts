@@ -113,6 +113,11 @@ export {
   TraitConfigToggle,
   type TraitConfigToggleProps,
 } from './components/TraitConfigToggle';
+export {
+  OpenChoreoEntityLayout,
+  type OpenChoreoEntityLayoutProps,
+  type ExtraContextMenuItem,
+} from './components/OpenChoreoEntityLayout';
 
 // Hooks
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';

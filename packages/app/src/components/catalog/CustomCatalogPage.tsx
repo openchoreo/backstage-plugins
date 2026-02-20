@@ -9,7 +9,6 @@ import { PageWithHeader, Content } from '@backstage/core-components';
 import {
   EntityListProvider,
   EntityLifecyclePicker,
-  EntityNamespacePicker,
   EntityProcessingStatusPicker,
   EntityTagPicker,
 } from '@backstage/plugin-catalog-react';
@@ -20,12 +19,10 @@ import { useStyles } from './styles';
 
 export interface CustomCatalogPageProps {
   initialKind?: string;
-  initiallySelectedNamespaces?: string[];
 }
 
 export const CustomCatalogPage = ({
   initialKind = 'system',
-  initiallySelectedNamespaces,
 }: CustomCatalogPageProps) => {
   const classes = useStyles();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -55,11 +52,6 @@ export const CustomCatalogPage = ({
             {/* Filters at the top (desktop) */}
             <Box className={classes.filterSection}>
               <Grid container spacing={2} alignItems="center">
-                <Grid item sm={12} md={4} lg={3}>
-                  <EntityNamespacePicker
-                    initiallySelectedNamespaces={initiallySelectedNamespaces}
-                  />
-                </Grid>
                 <Grid item sm={12} md={4} lg={3}>
                   <ChoreoEntityKindPicker initialFilter={initialKind} />
                 </Grid>
@@ -112,11 +104,6 @@ export const CustomCatalogPage = ({
             >
               <Box className={classes.filterDrawerContent}>
                 <Box className={classes.filterGrid}>
-                  <Box className={classes.filterItem}>
-                    <EntityNamespacePicker
-                      initiallySelectedNamespaces={initiallySelectedNamespaces}
-                    />
-                  </Box>
                   <Box className={classes.filterItem}>
                     <ChoreoEntityKindPicker initialFilter={initialKind} />
                   </Box>
