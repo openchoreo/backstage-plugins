@@ -483,7 +483,7 @@ export const WorkloadDetailsField = ({
     const newEndpoint: WorkloadEndpoint = {
       type: 'HTTP',
       port: 8080,
-      visibility: 'external',
+      visibility: ['external'],
     };
     const newEndpoints: Record<string, WorkloadEndpoint> = {
       ...endpoints,

@@ -2009,11 +2009,8 @@ export interface components {
       env?: components['schemas']['EnvVar'][];
     };
     WorkloadEndpoint: {
-      /**
-       * @description Access scope for the endpoint.
-       * @enum {string}
-       */
-      visibility: 'project' | 'namespace' | 'internal' | 'external';
+      /** @description Access scope for the endpoint. */
+      visibility?: ('project' | 'namespace' | 'internal' | 'external')[];
       /** @enum {string} */
       type: 'TCP' | 'UDP' | 'HTTP' | 'REST' | 'gRPC' | 'Websocket' | 'GraphQL';
       port: number;

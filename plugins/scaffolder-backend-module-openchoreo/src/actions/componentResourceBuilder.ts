@@ -223,7 +223,7 @@ export function buildWorkloadResource(
       http: {
         type: 'HTTP',
         port: input.port,
-        visibility: 'external',
+        visibility: ['external'],
       },
     };
   }

@@ -121,7 +121,7 @@ export interface WorkloadContainer {
 export interface WorkloadEndpoint {
   type: 'HTTP' | 'REST' | 'GraphQL' | 'Websocket' | 'gRPC' | 'TCP' | 'UDP';
   port: number;
-  visibility: 'project' | 'namespace' | 'internal' | 'external';
+  visibility?: ('project' | 'namespace' | 'internal' | 'external')[];
 }
 
 /**

@@ -1385,11 +1385,12 @@ components:
       required:
         - type
         - port
-        - visibility
       properties:
         visibility:
-          type: string
-          enum: ['project', 'namespace', 'internal', 'external']
+          type: array
+          items:
+            type: string
+            enum: ['project', 'namespace', 'internal', 'external']
           description: Access scope for the endpoint.
         type:
           type: string

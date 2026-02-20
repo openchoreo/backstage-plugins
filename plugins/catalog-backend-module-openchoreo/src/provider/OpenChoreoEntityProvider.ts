@@ -72,7 +72,7 @@ type NewAgentConnectionStatus =
 interface WorkloadEndpoint {
   type: string;
   port: number;
-  visibility: string;
+  visibility?: string[];
   schema?: {
     content?: string;
   };
@@ -2094,7 +2094,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               [CHOREO_ANNOTATIONS.ENDPOINT_NAME]: endpointName,
               [CHOREO_ANNOTATIONS.ENDPOINT_TYPE]: endpoint.type,
               [CHOREO_ANNOTATIONS.ENDPOINT_PORT]: endpoint.port.toString(),
-              [CHOREO_ANNOTATIONS.ENDPOINT_VISIBILITY]: endpoint.visibility,
+              [CHOREO_ANNOTATIONS.ENDPOINT_VISIBILITY]:
+                endpoint.visibility?.join(',') ?? '',
               [CHOREO_ANNOTATIONS.PROJECT]: projectName,
               [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
             },
@@ -2739,7 +2740,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             [CHOREO_ANNOTATIONS.ENDPOINT_NAME]: endpointName,
             [CHOREO_ANNOTATIONS.ENDPOINT_TYPE]: endpoint.type,
             [CHOREO_ANNOTATIONS.ENDPOINT_PORT]: endpoint.port.toString(),
-            [CHOREO_ANNOTATIONS.ENDPOINT_VISIBILITY]: endpoint.visibility,
+            [CHOREO_ANNOTATIONS.ENDPOINT_VISIBILITY]:
+              endpoint.visibility?.join(',') ?? '',
             [CHOREO_ANNOTATIONS.PROJECT]: projectName,
             [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           },

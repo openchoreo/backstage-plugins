@@ -144,12 +144,13 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             </Typography>
             <Typography className={classes.readOnlyDetails}>
               {endpoint.type} : {endpoint.port}
-              {endpoint.visibility && (
+              {endpoint.visibility && endpoint.visibility.length > 0 && (
                 <>
                   {' '}
                   &middot;{' '}
-                  {VISIBILITY_LABELS[endpoint.visibility] ??
-                    endpoint.visibility}
+                  {endpoint.visibility
+                    .map(v => VISIBILITY_LABELS[v] ?? v)
+                    .join(', ')}
                 </>
               )}
             </Typography>
@@ -230,10 +231,18 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
               <FormControl fullWidth variant="outlined" size="small">
                 <InputLabel>Visibility</InputLabel>
                 <Select
-                  value={endpoint.visibility ?? ''}
-                  onChange={e => onChange('visibility', e.target.value)}
+                  multiple
+                  value={endpoint.visibility ?? []}
+                  onChange={e =>
+                    onChange('visibility', e.target.value as string[])
+                  }
                   label="Visibility"
                   disabled={disabled}
+                  renderValue={selected =>
+                    (selected as string[])
+                      .map(v => VISIBILITY_LABELS[v] ?? v)
+                      .join(', ')
+                  }
                 >
                   {VISIBILITY_SELECT_OPTIONS.map(opt => (
                     <MenuItem key={opt.value} value={opt.value}>

@@ -145,7 +145,7 @@ const k8sWorkload = {
   metadata: k8sMeta('api-service'),
   spec: {
     endpoints: {
-      http: { type: 'REST', port: 8080, visibility: 'public' },
+      http: { type: 'REST', port: 8080, visibility: ['external'] },
     },
   },
 };
