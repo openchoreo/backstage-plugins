@@ -45,6 +45,17 @@ export class GenericWorkflowService {
   }
 
   /**
+   * Base URL for the versioned OpenChoreo API (openchoreo-api.yaml paths include /api/v1/).
+   * openapi-fetch concatenates baseUrl + path, so the baseUrl must NOT already contain /api/v1
+   * when using the new typed client whose spec paths begin with /api/v1/.
+   * The configured baseUrl (e.g. http://api.openchoreo.localhost:8080/api/v1) is intended for
+   * the legacy client whose spec paths do NOT include the /api/v1 prefix.
+   */
+  private get newApiBaseUrl(): string {
+    return this.baseUrl.replace(/\/api\/v1\/?$/, '');
+  }
+
+  /**
    * List all generic workflow templates for a namespace
    */
   async listWorkflows(
@@ -347,7 +358,7 @@ export class GenericWorkflowService {
     );
 
     const client = createOpenChoreoApiClient({
-      baseUrl: this.baseUrl,
+      baseUrl: this.newApiBaseUrl,
       token,
       logger: this.logger,
     });
@@ -356,7 +367,7 @@ export class GenericWorkflowService {
     let shouldFallback = false;
     try {
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/workflow-runs/{runName}/status' as any,
+        '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/status',
         {
           params: {
             path: { namespaceName, runName },
@@ -365,14 +376,10 @@ export class GenericWorkflowService {
       );
 
       if (!error && response.ok) {
-        // Handle both wrapped ({ success: true, data: {...} }) and direct response formats.
-        // The status endpoint is not yet in the new API types (cast as any), so the
-        // backend may omit the APIResponse envelope and return the status object directly.
-        const statusData: any = (data as any)?.data ?? data;
         const result: WorkflowRunStatusResponse = {
-          status: statusData?.status || 'Unknown',
-          steps: (statusData?.steps || []) as WorkflowStepStatus[],
-          hasLiveObservability: statusData?.hasLiveObservability ?? false,
+          status: data?.status || 'Unknown',
+          steps: (data?.steps || []) as WorkflowStepStatus[],
+          hasLiveObservability: data?.hasLiveObservability ?? false,
         };
         this.logger.info(
           `Workflow run ${runName}: status=${result.status}, hasLiveObservability=${result.hasLiveObservability}, steps=${result.steps.length}`,
@@ -399,14 +406,17 @@ export class GenericWorkflowService {
       }
     }
 
-    // Fallback: derive from basic workflow run data
+    // Fallback: derive from basic workflow run data.
+    // For Running/Pending phases, optimistically set hasLiveObservability=true
+    // so the caller still attempts live logs from the build plane.
     try {
       const run = await this.getWorkflowRun(namespaceName, runName, token);
       const phase = run.phase || run.status || 'Unknown';
+      const isActive = phase === 'Running' || phase === 'Pending';
       return {
         status: phase,
         steps: [{ name: runName, phase }],
-        hasLiveObservability: false,
+        hasLiveObservability: isActive,
       };
     } catch (err) {
       this.logger.error(
@@ -449,7 +459,14 @@ export class GenericWorkflowService {
           runName,
           token,
         );
-        hasLiveObservability = status.hasLiveObservability ?? false;
+        // Only stream live logs for actively-running workflows.
+        // The backend sometimes returns hasLiveObservability=true even for
+        // completed runs, but Argo pod logs are gone once the workflow is
+        // terminal. In that case fall through to archived logs from the observer.
+        const isActive =
+          status.status === 'Running' || status.status === 'Pending';
+        hasLiveObservability =
+          (status.hasLiveObservability ?? false) && isActive;
       } catch (statusErr) {
         this.logger.info(
           `Could not determine hasLiveObservability for ${runName}, defaulting to observer: ${statusErr}`,
@@ -465,12 +482,12 @@ export class GenericWorkflowService {
       if (hasLiveObservability) {
         // ── Path A: live logs from the new API (direct from Kubernetes/Argo) ──
         const newApiClient = createOpenChoreoApiClient({
-          baseUrl: this.baseUrl,
+          baseUrl: this.newApiBaseUrl,
           token,
           logger: this.logger,
         });
-        const { data, error, response } = await (newApiClient as any).GET(
-          '/namespaces/{namespaceName}/workflow-runs/{runName}/logs',
+        const { data, error, response } = await newApiClient.GET(
+          '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/logs',
           {
             params: {
               path: { namespaceName, runName },
@@ -487,13 +504,8 @@ export class GenericWorkflowService {
         );
 
         if (!error && response.ok) {
-          const logsArray: any[] = Array.isArray(data)
-            ? data
-            : Array.isArray((data as any)?.data)
-              ? (data as any).data
-              : [];
-          const entries = logsArray.map((e: any) => ({
-            timestamp: e.timestamp,
+          const entries = (data ?? []).map(e => ({
+            timestamp: e.timestamp ?? '',
             log: e.log,
           }));
           this.logger.info(
@@ -554,44 +566,54 @@ export class GenericWorkflowService {
       const endTime = new Date().toISOString();
 
       this.logger.info(
-        `Fetching archived logs from observer for ${runName}: startTime=${startTime}, step=${step ?? 'none'}`,
+        `Fetching archived logs from observer for ${runName}: startTime=${startTime}, step=${
+          step ?? 'none'
+        }`,
       );
 
       try {
-        const { data: obsData, error: obsError, response: obsResponse } =
-          await obsClient.POST('/api/v1/workflow-runs/{runId}/logs', {
-            params: { path: { runId: runName } },
-            body: {
-              namespaceName,
-              startTime,
-              endTime,
-              limit: 1000,
-              sortOrder: 'asc',
-              ...(step ? { step } : {}),
-            },
-          });
+        const {
+          data: obsData,
+          error: obsError,
+          response: obsResponse,
+        } = await obsClient.POST('/api/v1/workflow-runs/{runId}/logs', {
+          params: { path: { runId: runName } },
+          body: {
+            namespaceName,
+            startTime,
+            endTime,
+            limit: 1000,
+            sortOrder: 'asc',
+            ...(step ? { step } : {}),
+          },
+        });
 
         if (obsError || !obsResponse.ok) {
           this.logger.info(
-            `Observer returned ${obsResponse.status} for ${runName}: ${JSON.stringify(obsError)}`,
+            `Observer returned ${
+              obsResponse.status
+            } for ${runName}: ${JSON.stringify(obsError)}`,
           );
           throw new ObservabilityNotConfiguredError(runName);
         }
 
         this.logger.info(
-          `Fetched ${obsData?.logs?.length || 0} archived log entries for ${runName}`,
+          `Fetched ${
+            obsData?.logs?.length || 0
+          } archived log entries for ${runName}`,
         );
         return {
-          logs: obsData?.logs || [],
+          logs: (obsData?.logs || []).map(e => ({
+            timestamp: e.timestamp ?? '',
+            log: e.log ?? '',
+          })),
           totalCount: obsData?.totalCount || 0,
           tookMs: obsData?.tookMs || 0,
         };
       } catch (obsErr: unknown) {
         if (obsErr instanceof ObservabilityNotConfiguredError) throw obsErr;
         // Network error or other failure calling observer
-        this.logger.info(
-          `Observer call failed for ${runName}: ${obsErr}`,
-        );
+        this.logger.info(`Observer call failed for ${runName}: ${obsErr}`);
         throw new ObservabilityNotConfiguredError(runName);
       }
     } catch (error: unknown) {
@@ -685,13 +707,13 @@ export class GenericWorkflowService {
       }
 
       const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
+        baseUrl: this.newApiBaseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/workflow-runs/{runName}/events',
+        '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/events',
         {
           params: {
             path: { namespaceName, runName },
@@ -718,13 +740,7 @@ export class GenericWorkflowService {
         );
       }
 
-      const eventsData: any[] = Array.isArray(data)
-        ? data
-        : Array.isArray((data as any)?.data)
-          ? (data as any).data
-          : [];
-
-      const entries: WorkflowRunEventEntry[] = eventsData.map(entry => ({
+      const entries: WorkflowRunEventEntry[] = (data ?? []).map(entry => ({
         timestamp: entry.timestamp,
         type: entry.type,
         reason: entry.reason,

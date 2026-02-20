@@ -866,6 +866,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get workflow run status
+     * @description Returns the overall status and per-step status of a specific workflow run.
+     */
+    get: operations['getWorkflowRunStatus'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get workflow run logs
+     * @description Returns logs for a specific workflow run from the build plane. Logs are fetched live from the build plane; no archived logs are returned for completed runs.
+     */
+    get: operations['getWorkflowRunLogs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/events': {
     parameters: {
       query?: never;
@@ -2763,6 +2803,68 @@ export interface components {
       status?: {
         conditions?: components['schemas']['Condition'][];
       };
+    };
+    /** @description Status of a workflow run including per-step details */
+    WorkflowRunStatusResponse: {
+      /**
+       * @description Overall workflow run status
+       * @example Running
+       * @enum {string}
+       */
+      status: 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Error';
+      /** @description Per-step status details */
+      steps: components['schemas']['WorkflowStepStatus'][];
+      /**
+       * @description Whether live logs/events are available from the build plane
+       * @example true
+       */
+      hasLiveObservability: boolean;
+    };
+    /** @description Status of an individual workflow step */
+    WorkflowStepStatus: {
+      /**
+       * @description Step name
+       * @example clone-step
+       */
+      name: string;
+      /**
+       * @description Step phase
+       * @example Succeeded
+       * @enum {string}
+       */
+      phase:
+        | 'Pending'
+        | 'Running'
+        | 'Succeeded'
+        | 'Failed'
+        | 'Skipped'
+        | 'Error';
+      /**
+       * Format: date-time
+       * @description When the step started
+       * @example 2025-01-06T10:00:00Z
+       */
+      startedAt?: string;
+      /**
+       * Format: date-time
+       * @description When the step finished
+       * @example 2025-01-06T10:01:00Z
+       */
+      finishedAt?: string;
+    };
+    /** @description A single log entry from a workflow run */
+    WorkflowRunLogEntry: {
+      /**
+       * Format: date-time
+       * @description Log entry timestamp
+       * @example 2025-01-06T10:00:00Z
+       */
+      timestamp?: string;
+      /**
+       * @description Log message
+       * @example Step 1: Cloning repository...
+       */
+      log: string;
     };
     /** @description A single Kubernetes event entry from a workflow run */
     WorkflowRunEventEntry: {
@@ -5953,6 +6055,68 @@ export interface operations {
         content?: never;
       };
       401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getWorkflowRunStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run status */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRunStatusResponse'];
+        };
+      };
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getWorkflowRunLogs: {
+    parameters: {
+      query?: {
+        /** @description Filter logs by step name */
+        step?: string;
+        /** @description Return logs newer than a relative duration in seconds */
+        sinceSeconds?: number;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workflow run logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRunLogEntry'][];
+        };
+      };
+      400: components['responses']['BadRequest'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
