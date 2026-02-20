@@ -3,17 +3,17 @@ import { makeStyles } from '@material-ui/core/styles';
 export const useStyles = makeStyles(theme => ({
   root: {
     width: '100%',
+    maxWidth: 1200,
+    marginLeft: 'auto',
+    marginRight: 'auto',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: theme.spacing(2),
-  },
-  createButton: {
-    [theme.breakpoints.down('sm')]: {
-      padding: theme.spacing(1, 1.5),
-      fontSize: '0.875rem',
+    [theme.breakpoints.up('md')]: {
+      display: 'none',
     },
   },
   filterButton: {
@@ -66,6 +66,14 @@ export const useStyles = makeStyles(theme => ({
       marginBottom: theme.spacing(0.5),
     },
   },
+  advancedFiltersGridItem: {
+    display: 'flex',
+    alignItems: 'flex-end',
+    paddingBottom: theme.spacing(1),
+    [theme.breakpoints.down('sm')]: {
+      display: 'none',
+    },
+  },
   advancedFiltersToggle: {
     display: 'flex',
     alignItems: 'center',
@@ -105,11 +113,6 @@ export const useStyles = makeStyles(theme => ({
 export const usePersonalFilterStyles = makeStyles(theme => ({
   container: {
     display: 'flex',
-    gap: theme.spacing(2),
-    [theme.breakpoints.down('sm')]: {
-      flexDirection: 'column',
-      gap: theme.spacing(1),
-    },
     marginTop: theme.spacing(2.5),
   },
   filterItem: {
@@ -157,5 +160,133 @@ export const usePersonalFilterStyles = makeStyles(theme => ({
     justifyContent: 'center',
     textAlign: 'center',
     minWidth: theme.spacing(3),
+  },
+}));
+
+export const useCardListStyles = makeStyles(theme => ({
+  searchAndTitle: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing(2),
+  },
+  titleText: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+  },
+  listContainer: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: theme.spacing(1.5),
+  },
+  entityCard: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: theme.spacing(1.5, 2),
+    border: `1px solid ${theme.palette.grey[100]}`,
+    borderRadius: 10,
+    backgroundColor: theme.palette.background.paper,
+    transition: 'box-shadow 0.2s ease-in-out',
+    '&:hover': {
+      boxShadow: theme.shadows[2],
+    },
+  },
+  iconContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing(1.5),
+    color: theme.palette.text.secondary,
+    '& svg': {
+      fontSize: '1.5rem',
+    },
+  },
+  contentContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
+  entityName: {
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    color: theme.palette.text.primary,
+    '& a': {
+      color: 'inherit',
+      textDecoration: 'none',
+      '&:hover': {
+        textDecoration: 'underline',
+      },
+    },
+  },
+  entityNameDisabled: {
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    color: theme.palette.text.disabled,
+  },
+  description: {
+    fontSize: '0.85rem',
+    color: theme.palette.text.secondary,
+    marginTop: theme.spacing(0.25),
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  actionsContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    marginLeft: theme.spacing(1),
+    flexShrink: 0,
+  },
+  paginationContainer: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginTop: theme.spacing(2),
+  },
+  emptyState: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing(6),
+    color: theme.palette.text.secondary,
+    fontSize: '0.95rem',
+  },
+  loadingContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    padding: theme.spacing(6),
+  },
+  metadataChip: {
+    fontSize: '0.7rem',
+    height: 20,
+    borderRadius: 4,
+    fontWeight: 500,
+  },
+  typeContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    marginRight: theme.spacing(1),
+    flexShrink: 0,
+  },
+  agentStatus: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    fontSize: '0.75rem',
+    whiteSpace: 'nowrap' as const,
+    marginRight: theme.spacing(1),
+  },
+  agentDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+  },
+  agentConnected: {
+    backgroundColor: theme.palette.success.main,
+  },
+  agentDisconnected: {
+    backgroundColor: theme.palette.error.main,
   },
 }));

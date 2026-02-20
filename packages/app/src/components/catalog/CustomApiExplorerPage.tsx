@@ -3,39 +3,32 @@ import { Box, Button, Drawer, Grid } from '@material-ui/core';
 import FilterListIcon from '@material-ui/icons/FilterList';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { useRouteRef } from '@backstage/core-plugin-api';
-import { scaffolderPlugin } from '@backstage/plugin-scaffolder';
+import { catalogImportPlugin } from '@backstage/plugin-catalog-import';
 import { Link } from 'react-router-dom';
 import { PageWithHeader, Content } from '@backstage/core-components';
 import {
+  EntityKindPicker,
   EntityListProvider,
   EntityLifecyclePicker,
   EntityNamespacePicker,
   EntityProcessingStatusPicker,
   EntityTagPicker,
 } from '@backstage/plugin-catalog-react';
-import { ChoreoEntityKindPicker } from './ChoreoEntityKindPicker';
 import { StarredFilter } from './CustomPersonalFilters';
 import { CatalogCardList } from './CatalogCardList';
 import { useStyles } from './styles';
 
-export interface CustomCatalogPageProps {
-  initialKind?: string;
-  initiallySelectedNamespaces?: string[];
-}
-
-export const CustomCatalogPage = ({
-  initialKind = 'system',
-  initiallySelectedNamespaces,
-}: CustomCatalogPageProps) => {
+export const CustomApiExplorerPage = () => {
   const classes = useStyles();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
-  const createComponentLink = useRouteRef(scaffolderPlugin.routes.root);
+  const registerApiLink = useRouteRef(catalogImportPlugin.routes.importPage);
 
   return (
-    <PageWithHeader title="OpenChoreo Catalog" themeId="home">
+    <PageWithHeader title="APIs" themeId="home">
       <Content>
         <EntityListProvider pagination={{ mode: 'offset', limit: 25 }}>
+          <EntityKindPicker initialFilter="api" hidden />
           <Box className={classes.root}>
             {/* Header with Filter button (mobile only) */}
             <Box className={classes.header}>
@@ -56,12 +49,7 @@ export const CustomCatalogPage = ({
             <Box className={classes.filterSection}>
               <Grid container spacing={2} alignItems="center">
                 <Grid item sm={12} md={4} lg={3}>
-                  <EntityNamespacePicker
-                    initiallySelectedNamespaces={initiallySelectedNamespaces}
-                  />
-                </Grid>
-                <Grid item sm={12} md={4} lg={3}>
-                  <ChoreoEntityKindPicker initialFilter={initialKind} />
+                  <EntityNamespacePicker />
                 </Grid>
                 <Grid item className={classes.advancedFiltersGridItem}>
                   <button
@@ -81,7 +69,7 @@ export const CustomCatalogPage = ({
                 </Grid>
               </Grid>
 
-              {/* Advanced Filters Grid - Shown when expanded, inside same section */}
+              {/* Advanced Filters Grid - Shown when expanded */}
               {advancedFiltersOpen && (
                 <Grid container spacing={2}>
                   <Grid item sm={12} md={4} lg={3}>
@@ -113,12 +101,7 @@ export const CustomCatalogPage = ({
               <Box className={classes.filterDrawerContent}>
                 <Box className={classes.filterGrid}>
                   <Box className={classes.filterItem}>
-                    <EntityNamespacePicker
-                      initiallySelectedNamespaces={initiallySelectedNamespaces}
-                    />
-                  </Box>
-                  <Box className={classes.filterItem}>
-                    <ChoreoEntityKindPicker initialFilter={initialKind} />
+                    <EntityNamespacePicker />
                   </Box>
                   <Box className={classes.filterItem}>
                     <StarredFilter />
@@ -136,7 +119,7 @@ export const CustomCatalogPage = ({
               </Box>
             </Drawer>
 
-            {/* Catalog card list */}
+            {/* API card list */}
             <Box className={classes.contentArea}>
               <CatalogCardList
                 actionButton={
@@ -144,10 +127,10 @@ export const CustomCatalogPage = ({
                     variant="contained"
                     color="primary"
                     component={Link}
-                    to={createComponentLink()}
+                    to={registerApiLink()}
                     size="small"
                   >
-                    Create
+                    Register
                   </Button>
                 }
               />
