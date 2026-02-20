@@ -19,10 +19,6 @@ export interface TraitTypeEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * The type of entity (always 'trait-type')
-     */
-    type: string;
-    /**
      * The domain this trait type belongs to
      */
     domain?: string;

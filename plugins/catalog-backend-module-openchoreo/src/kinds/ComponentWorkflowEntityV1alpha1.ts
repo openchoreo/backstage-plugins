@@ -19,10 +19,6 @@ export interface ComponentWorkflowEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * The type of entity (always 'component-workflow')
-     */
-    type: string;
-    /**
      * The domain this component workflow belongs to
      */
     domain?: string;

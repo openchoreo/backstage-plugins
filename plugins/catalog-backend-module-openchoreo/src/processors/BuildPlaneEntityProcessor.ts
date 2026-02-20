@@ -33,10 +33,6 @@ export class BuildPlaneEntityProcessor implements CatalogProcessor {
     emit: CatalogProcessorEmit,
   ): Promise<BuildPlaneEntityV1alpha1> {
     if (entity.kind === 'BuildPlane') {
-      if (!entity.spec?.type) {
-        throw new Error('BuildPlane entity must have spec.type');
-      }
-
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -109,12 +105,6 @@ export class BuildPlaneEntityProcessor implements CatalogProcessor {
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
   ): Promise<BuildPlaneEntityV1alpha1> {
-    if (entity.kind === 'BuildPlane' && entity.spec) {
-      if (!entity.spec.type) {
-        entity.spec.type = 'kubernetes';
-      }
-    }
-
     return entity;
   }
 

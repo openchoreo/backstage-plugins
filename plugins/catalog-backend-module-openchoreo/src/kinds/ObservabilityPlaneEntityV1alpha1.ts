@@ -19,10 +19,6 @@ export interface ObservabilityPlaneEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * The type of observability plane (e.g., 'kubernetes')
-     */
-    type: string;
-    /**
      * The domain this observability plane belongs to
      */
     domain?: string;

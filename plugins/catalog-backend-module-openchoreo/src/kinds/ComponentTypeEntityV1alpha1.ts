@@ -19,10 +19,6 @@ export interface ComponentTypeEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * The type of entity (always 'component-type')
-     */
-    type: string;
-    /**
      * The domain this component type belongs to
      */
     domain?: string;

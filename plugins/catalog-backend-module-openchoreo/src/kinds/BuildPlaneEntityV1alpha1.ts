@@ -19,10 +19,6 @@ export interface BuildPlaneEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * The type of build plane (e.g., 'kubernetes')
-     */
-    type: string;
-    /**
      * The domain this build plane belongs to
      */
     domain?: string;

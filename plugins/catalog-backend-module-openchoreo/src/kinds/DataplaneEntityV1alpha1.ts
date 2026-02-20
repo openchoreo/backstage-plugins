@@ -19,10 +19,6 @@ export interface DataplaneEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * The type of dataplane (e.g., 'kubernetes', 'cloud')
-     */
-    type: string;
-    /**
      * The domain this dataplane belongs to
      */
     domain?: string;

@@ -29,10 +29,6 @@ export class WorkflowEntityProcessor implements CatalogProcessor {
     emit: CatalogProcessorEmit,
   ): Promise<WorkflowEntityV1alpha1> {
     if (entity.kind === 'Workflow') {
-      if (!entity.spec?.type) {
-        throw new Error('Workflow entity must have spec.type');
-      }
-
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -75,12 +71,6 @@ export class WorkflowEntityProcessor implements CatalogProcessor {
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
   ): Promise<WorkflowEntityV1alpha1> {
-    if (entity.kind === 'Workflow' && entity.spec) {
-      if (!entity.spec.type) {
-        entity.spec.type = 'workflow';
-      }
-    }
-
     return entity;
   }
 

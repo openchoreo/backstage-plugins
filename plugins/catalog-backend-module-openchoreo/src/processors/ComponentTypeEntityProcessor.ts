@@ -35,10 +35,6 @@ export class ComponentTypeEntityProcessor implements CatalogProcessor {
     emit: CatalogProcessorEmit,
   ): Promise<ComponentTypeEntityV1alpha1> {
     if (entity.kind === 'ComponentType') {
-      if (!entity.spec?.type) {
-        throw new Error('ComponentType entity must have spec.type');
-      }
-
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -106,12 +102,6 @@ export class ComponentTypeEntityProcessor implements CatalogProcessor {
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
   ): Promise<ComponentTypeEntityV1alpha1> {
-    if (entity.kind === 'ComponentType' && entity.spec) {
-      if (!entity.spec.type) {
-        entity.spec.type = 'component-type';
-      }
-    }
-
     return entity;
   }
 

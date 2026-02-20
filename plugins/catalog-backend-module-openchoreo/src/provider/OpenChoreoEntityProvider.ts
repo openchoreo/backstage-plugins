@@ -1789,7 +1789,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'kubernetes',
         // Domain entities (mapped from OpenChoreo namespaces) live in the Backstage 'default' namespace
         domain: `default/${namespaceName}`,
         publicVirtualHost: dataplane.publicVirtualHost,
@@ -1843,7 +1842,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'kubernetes',
         domain: `default/${namespaceName}`,
         observabilityPlaneRef: this.normalizeObservabilityPlaneRef(
           buildplane.observabilityPlaneRef,
@@ -1889,7 +1887,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'kubernetes',
         domain: `default/${namespaceName}`,
         observerURL: obsplane.observerURL,
       },
@@ -2006,7 +2003,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'promotion-pipeline',
         projectRefs: [projectName],
         namespaceName: namespaceName,
         promotionPaths,
@@ -2269,7 +2265,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'workflow',
         domain: `default/${namespaceName}`,
       },
     };
@@ -2368,7 +2363,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'kubernetes',
         domain: `default/${namespaceName}`,
         publicVirtualHost: gateway?.publicVirtualHost,
         namespaceVirtualHost: gateway?.organizationVirtualHost,
@@ -2419,7 +2413,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'kubernetes',
         domain: `default/${namespaceName}`,
         observabilityPlaneRef: normalizedObsRef,
       },
@@ -2461,7 +2454,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'kubernetes',
         domain: `default/${namespaceName}`,
         observerURL: op.spec?.observerURL,
       },
@@ -2625,7 +2617,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'promotion-pipeline',
         projectRefs: projectName ? [projectName] : [],
         namespaceName: namespaceName,
         promotionPaths,
@@ -2702,7 +2693,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        type: 'workflow',
         domain: `default/${namespaceName}`,
       },
     };
