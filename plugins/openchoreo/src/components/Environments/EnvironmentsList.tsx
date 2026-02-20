@@ -105,9 +105,9 @@ export const EnvironmentsList = () => {
     <>
       <NotificationBanner notification={notification.notification} />
 
-      <Grid container spacing={3}>
+      <Grid container spacing={3} alignItems="stretch">
         {/* Setup Card */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={3} style={{ display: 'flex' }}>
           <SetupCard
             loading={loading}
             environmentsExist={environments.length > 0}
@@ -121,7 +121,7 @@ export const EnvironmentsList = () => {
 
         {/* Environment Cards */}
         {displayEnvironments.map(env => (
-          <Grid key={env.name} item xs={12} md={3}>
+          <Grid key={env.name} item xs={12} md={3} style={{ display: 'flex' }}>
             <EnvironmentCard
               environmentName={env.name}
               resourceName={env.resourceName}

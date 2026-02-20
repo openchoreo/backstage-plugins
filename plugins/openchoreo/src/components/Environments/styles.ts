@@ -44,9 +44,10 @@ export const useSetupCardStyles = makeStyles(theme => ({
     color: theme.palette.text.primary,
     padding: theme.spacing(2),
     borderRadius: theme.shape.borderRadius,
-    minHeight: '300px',
+    height: '100%',
     display: 'flex',
     flexDirection: 'column',
+    boxSizing: 'border-box',
   },
   cardContent: {
     flex: 1,
