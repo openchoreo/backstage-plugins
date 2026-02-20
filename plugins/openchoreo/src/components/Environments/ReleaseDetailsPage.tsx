@@ -1,11 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
+import ListIcon from '@material-ui/icons/List';
+import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { ReleaseInfoTabbedView } from './ReleaseDataRenderer/ReleaseInfoTabbedView';
+import { ResourceTreeView } from './ReleaseDataRenderer/ResourceTreeView';
+import type { ReleaseViewMode } from './ReleaseDataRenderer/ResourceTreeView';
 import type { Environment } from './hooks/useEnvironmentData';
 
 const useStyles = makeStyles(theme => ({
@@ -61,6 +66,8 @@ export const ReleaseDetailsPage = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [releaseData, setReleaseData] = useState<any>(null);
+  const [resourceTreeData, setResourceTreeData] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<ReleaseViewMode>('tree');
 
   const environmentName = environment.resourceName || environment.name;
 
@@ -71,11 +78,15 @@ export const ReleaseDetailsPage = ({
     setError(null);
 
     try {
-      const data = await client.fetchEnvironmentRelease(
-        entity,
-        environmentName,
-      );
-      setReleaseData(data);
+      const [releaseResult, resourceTreeResult] = await Promise.all([
+        client.fetchEnvironmentRelease(entity, environmentName),
+        client.fetchResourceTree(entity, environmentName).catch(() => ({
+          success: false,
+          data: { nodes: [] },
+        })),
+      ]);
+      setReleaseData(releaseResult);
+      setResourceTreeData(resourceTreeResult);
     } catch (err: any) {
       setError(err.message || 'Failed to load release details');
     } finally {
@@ -91,11 +102,30 @@ export const ReleaseDetailsPage = ({
     loadReleaseData();
   };
 
-  const actions = error ? (
-    <Button onClick={handleRetry} color="primary" variant="outlined">
-      Retry
-    </Button>
-  ) : null;
+  const actions = (
+    <>
+      <ToggleButtonGroup
+        value={viewMode}
+        exclusive
+        onChange={(_, newMode) => {
+          if (newMode) setViewMode(newMode);
+        }}
+        size="small"
+      >
+        <ToggleButton value="list" title="List view">
+          <ListIcon fontSize="small" />
+        </ToggleButton>
+        <ToggleButton value="tree" title="Tree view">
+          <AccountTreeIcon fontSize="small" />
+        </ToggleButton>
+      </ToggleButtonGroup>
+      {error && (
+        <Button onClick={handleRetry} color="primary" variant="outlined">
+          Retry
+        </Button>
+      )}
+    </>
+  );
 
   return (
     <DetailPageLayout
@@ -123,11 +153,15 @@ export const ReleaseDetailsPage = ({
       )}
 
       {!loading && !error && releaseData && (
-        <ReleaseInfoTabbedView
-          releaseData={releaseData}
-          initialTab={initialTab}
-          onTabChange={onTabChange}
-        />
+        viewMode === 'tree' ? (
+          <ResourceTreeView releaseData={releaseData} resourceTreeData={resourceTreeData} />
+        ) : (
+          <ReleaseInfoTabbedView
+            releaseData={releaseData}
+            initialTab={initialTab}
+            onTabChange={onTabChange}
+          />
+        )
       )}
 
       {!loading && !error && !releaseData && (

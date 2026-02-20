@@ -2084,6 +2084,74 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
+   * Fetches the resource tree for a specific environment release.
+   * Returns hierarchical resource data with parentRefs for tree visualization.
+   *
+   * @param {Object} request - The request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.namespaceName - Name of the namespace
+   * @param {string} request.environmentName - Name of the environment
+   * @returns {Promise<any>} Resource tree data with nodes and parentRefs
+   */
+  async fetchResourceTree(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      environmentName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching resource tree for component ${request.componentName} in environment ${request.environmentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources' as any,
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              environmentName: request.environmentName,
+            },
+          },
+        } as any,
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch resource tree: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource tree fetched for ${request.componentName} in ${request.environmentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching resource tree for ${request.componentName} in ${request.environmentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Fetches the release information for a specific environment.
    * Returns the complete Release CRD with spec and status information.
    *

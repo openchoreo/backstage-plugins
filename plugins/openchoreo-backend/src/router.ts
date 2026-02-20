@@ -721,6 +721,31 @@ export async function createRouter({
     );
   });
 
+  router.get('/resources', async (req, res) => {
+    const { componentName, projectName, namespaceName, environmentName } =
+      req.query;
+
+    if (!componentName || !projectName || !namespaceName || !environmentName) {
+      throw new InputError(
+        'componentName, projectName, namespaceName and environmentName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchResourceTree(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          environmentName: environmentName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.get('/environment-release', async (req, res) => {
     const { componentName, projectName, namespaceName, environmentName } =
       req.query;

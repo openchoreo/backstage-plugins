@@ -1,2 +1,4 @@
 export { ReleaseInfoTabbedView } from './ReleaseInfoTabbedView';
-export type { ReleaseData } from './types';
+export { ResourceTreeView } from './ResourceTreeView';
+export type { ReleaseData, ResourceTreeData } from './types';
+export type { ReleaseViewMode } from './ResourceTreeView';

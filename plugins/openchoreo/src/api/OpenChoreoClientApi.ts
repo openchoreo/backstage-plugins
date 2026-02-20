@@ -359,6 +359,12 @@ export interface OpenChoreoClientApi {
     environmentName: string,
   ): Promise<any>;
 
+  /** Fetch resource tree for a specific environment */
+  fetchResourceTree(
+    entity: Entity,
+    environmentName: string,
+  ): Promise<any>;
+
   // === Workload Operations ===
 
   /** Fetch workload configuration for an entity */

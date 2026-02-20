@@ -52,3 +52,32 @@ export interface ReleaseData {
     status?: ReleaseStatus;
   };
 }
+
+export interface ResourceTreeParentRef {
+  group?: string;
+  version: string;
+  kind: string;
+  namespace: string;
+  name: string;
+  uid: string;
+}
+
+export interface ResourceTreeNode {
+  group?: string;
+  version: string;
+  kind: string;
+  namespace: string;
+  name: string;
+  uid: string;
+  resourceVersion: string;
+  createdAt: string;
+  object: Record<string, unknown>;
+  health: { status: HealthStatus };
+  parentRefs?: ResourceTreeParentRef[];
+}
+
+export interface ResourceTreeData {
+  success?: boolean;
+  data?: { nodes?: ResourceTreeNode[] };
+  nodes?: ResourceTreeNode[];
+}
