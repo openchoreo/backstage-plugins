@@ -319,7 +319,7 @@ const serviceEntityPage = (
  * Website entity page with delete menu support.
  * Routes are defined as static JSX children so routable extensions are discoverable.
  */
-const websiteEntityPage = (
+const genericComponentEntityPage = (
   <EntityLayoutWithDelete>
     <EntityLayout.Route path="/" title="Overview">
       <OverviewContent />
@@ -438,11 +438,9 @@ function getComponentPageVariant(entity: Entity): PageVariant {
 const isServiceComponent = (entity: Entity) =>
   getComponentPageVariant(entity) === 'service';
 
-const isWebsiteComponent = (entity: Entity) =>
-  getComponentPageVariant(entity) === 'website';
+const isGenericComponent = (entity: Entity) =>
+  getComponentPageVariant(entity) !== 'service';
 
-const isScheduledTaskComponent = (entity: Entity) =>
-  getComponentPageVariant(entity) === 'scheduled-task';
 
 const componentPage = (
   <EntitySwitch>
@@ -450,12 +448,8 @@ const componentPage = (
       {serviceEntityPage}
     </EntitySwitch.Case>
 
-    <EntitySwitch.Case if={isWebsiteComponent}>
-      {websiteEntityPage}
-    </EntitySwitch.Case>
-
-    <EntitySwitch.Case if={isScheduledTaskComponent}>
-      {defaultEntityPage}
+    <EntitySwitch.Case if={isGenericComponent}>
+      {genericComponentEntityPage}
     </EntitySwitch.Case>
 
     {/* Fallback for unknown component types or 'default' variant */}
