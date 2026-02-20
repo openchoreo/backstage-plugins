@@ -11,7 +11,6 @@ import {
   EntityDependsOnComponentsCard,
   EntityDependsOnResourcesCard,
   EntityHasComponentsCard,
-  EntityHasSystemsCard,
   EntityLayout,
   EntityLinksCard,
   EntitySwitch,
@@ -77,6 +76,7 @@ import {
   RuntimeHealthCard,
   DeploymentPipelineCard,
   ProjectComponentsCard,
+  NamespaceProjectsCard,
   Traits,
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
@@ -114,7 +114,6 @@ import {
   CustomGraphNode,
   OpenChoreoEntityLayout,
 } from '@openchoreo/backstage-plugin-react';
-import { EntityTable } from '@backstage/plugin-catalog-react';
 import { FeatureGatedContent } from './FeatureGatedContent';
 import { WorkflowsOrExternalCICard } from './WorkflowsOrExternalCICard';
 
@@ -607,16 +606,7 @@ const domainPage = (
       <Grid container spacing={3} alignItems="stretch">
         {entityWarningContent}
         <Grid item md={6}>
-          <EntityHasSystemsCard
-            variant="gridItem"
-            title="Has Projects"
-            columns={[
-              EntityTable.columns.createEntityRefColumn({
-                defaultKind: 'system',
-              }),
-              EntityTable.columns.createMetadataDescriptionColumn(),
-            ]}
-          />
+          <NamespaceProjectsCard />
         </Grid>
         <Grid item md={6} xs={12}>
           <EntityCatalogGraphCard

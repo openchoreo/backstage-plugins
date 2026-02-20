@@ -13,6 +13,7 @@ export {
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
 export { ProjectComponentsCard } from './components/Projects/ProjectComponentsCard';
+export { NamespaceProjectsCard } from './components/Namespaces';
 export {
   useDeleteEntityMenuItems,
   useEntityExistsCheck,
