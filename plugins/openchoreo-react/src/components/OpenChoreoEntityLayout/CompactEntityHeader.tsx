@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import Box from '@material-ui/core/Box';
 import Chip from '@material-ui/core/Chip';
+import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 import {
@@ -10,6 +11,7 @@ import {
 } from '@backstage/plugin-catalog-react';
 import { Breadcrumbs } from '@backstage/core-components';
 import type { Entity, EntityRelation } from '@backstage/catalog-model';
+import { useNavigate } from 'react-router-dom';
 
 export interface CompactEntityHeaderProps {
   entity: Entity;
@@ -57,6 +59,12 @@ const useStyles = makeStyles(
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
     },
+    kindChip: {
+      cursor: 'pointer',
+      '&:hover': {
+        backgroundColor: `${theme.page.fontColor}1A`,
+      },
+    },
     title: {
       color: theme.page.fontColor,
       fontSize: theme.typography.h5.fontSize,
@@ -98,6 +106,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     contextMenu,
   } = props;
   const classes = useStyles();
+  const navigate = useNavigate();
 
   const kindLabel = kindDisplayNames?.[kind.toLowerCase()] ?? kind;
 
@@ -115,12 +124,18 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
         <Box component="span" className={classes.favorite}>
           <FavoriteEntity entity={entity} />
         </Box>
-        <Chip
-          label={kindLabel}
-          variant="outlined"
-          size="small"
-          className={classes.chip}
-        />
+        <Tooltip title={`View all ${kindLabel} entities`}>
+          <Chip
+            label={kindLabel}
+            variant="outlined"
+            size="small"
+            clickable
+            className={`${classes.chip} ${classes.kindChip}`}
+            onClick={() =>
+              navigate(`/catalog?filters[kind]=${kind.toLowerCase()}`)
+            }
+          />
+        </Tooltip>
         {entityType && (
           <Chip
             label={entityType}
