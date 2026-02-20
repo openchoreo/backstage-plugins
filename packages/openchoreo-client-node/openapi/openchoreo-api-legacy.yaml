@@ -1148,10 +1148,8 @@ components:
         spec:
           type: object
           additionalProperties: true
-        containers:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Container'
+        container:
+          $ref: '#/components/schemas/Container'
         endpoints:
           type: object
           additionalProperties:
@@ -1291,10 +1289,8 @@ components:
     WorkloadOverrides:
       type: object
       properties:
-        containers:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/ContainerOverride'
+        container:
+          $ref: '#/components/schemas/ContainerOverride'
 
     ContainerOverride:
       type: object

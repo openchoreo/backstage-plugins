@@ -17,6 +17,7 @@ import {
 import {
   ModelsWorkload,
   ModelsBuild,
+  CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
 import {
   DetailPageLayout,
@@ -121,8 +122,23 @@ export const WorkloadConfigPage = ({
             'Workload configuration not found. The workload should have been created automatically after a successful build. Please re-run the build workflow.',
           );
         } else {
-          // Pre-built image - allow creating new workload
+          // Pre-built image - initialize a default workload structure so the editor renders
           setIsNewWorkload(true);
+          const defaultWorkload = {
+            name: entity.metadata.name,
+            owner: {
+              projectName:
+                entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] || '',
+              componentName: entity.metadata.name,
+            },
+            container: {
+              image: '',
+            },
+            endpoints: {},
+            connections: {},
+          };
+          setWorkloadSpec(defaultWorkload);
+          setInitialWorkload(JSON.parse(JSON.stringify(defaultWorkload)));
         }
       }
       setIsLoading(false);
@@ -248,8 +264,15 @@ export const WorkloadConfigPage = ({
     };
   }, [hasUnsavedWork, navigation, location.pathname]);
 
+  const isFromSource = isFromSourceComponent(entity);
+  const hasBuilds = builds.length > 0;
+
   const handleNext = async () => {
     if (!workloadSpec) {
+      return;
+    }
+    if (!isFromSource && !workloadSpec.container?.image?.trim()) {
+      setError('A container image is required before proceeding.');
       return;
     }
     setIsProcessing(true);
@@ -276,12 +299,9 @@ export const WorkloadConfigPage = ({
       setError(e.message || 'Failed to create release');
     }
   };
-
-  const isFromSource = isFromSourceComponent(entity);
-  const hasBuilds = builds.length > 0;
   const enableNext = isFromSource
     ? builds.some(build => build.image) && !isLoading
-    : !isLoading;
+    : !isLoading && !!workloadSpec?.container?.image?.trim();
 
   const getAlertMessage = () => {
     if (isFromSource && !hasBuilds) {

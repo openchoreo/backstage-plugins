@@ -306,277 +306,129 @@ export const EnvironmentOverridesPage = ({
     }
   }, [loading, formState.baseWorkloadData, tabs, activeTab, setActiveTab]);
 
-  // Workload container management functions
-  const handleContainerChange = (
-    containerName: string,
-    field: string,
-    value: any,
-  ) => {
+  // Workload container management functions.
+  const handleContainerChange = (field: string, value: any) => {
     setWorkloadFormData((prev: any) => ({
       ...prev,
-      containers: {
-        ...prev.containers,
-        [containerName]: {
-          ...(prev.containers?.[containerName] || {}),
-          [field]: value,
-        },
-      },
+      container: { ...(prev.container || {}), [field]: value },
     }));
   };
 
   const handleEnvVarChange = (
-    containerName: string,
     envIndex: number,
     field: string,
     value: string,
   ) => {
     setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const env = container.env || [];
-      const updatedEnv = [...env];
-      if (!updatedEnv[envIndex]) {
-        updatedEnv[envIndex] = {};
-      }
-      updatedEnv[envIndex] = {
-        ...updatedEnv[envIndex],
-        [field]: value,
-      };
-      return {
-        ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            env: updatedEnv,
-          },
-        },
-      };
+      const container = prev.container || {};
+      const env = [...(container.env || [])];
+      env[envIndex] = { ...env[envIndex], [field]: value };
+      return { ...prev, container: { ...container, env } };
     });
   };
 
-  const handleEnvVarReplace = (
-    containerName: string,
-    envIndex: number,
-    envVar: EnvVar,
-  ) => {
+  const handleEnvVarReplace = (envIndex: number, envVar: EnvVar) => {
     setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const env = container.env || [];
-      const updatedEnv = [...env];
-      updatedEnv[envIndex] = envVar;
-      return {
-        ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            env: updatedEnv,
-          },
-        },
-      };
+      const container = prev.container || {};
+      const env = [...(container.env || [])];
+      env[envIndex] = envVar;
+      return { ...prev, container: { ...container, env } };
     });
   };
 
   const handleFileVarChange = (
-    containerName: string,
     fileIndex: number,
     field: string,
     value: string,
   ) => {
     setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const files = (container as any).files || [];
-      const updatedFiles = [...files];
-      if (!updatedFiles[fileIndex]) {
-        updatedFiles[fileIndex] = {};
-      }
-      updatedFiles[fileIndex] = {
-        ...updatedFiles[fileIndex],
-        [field]: value,
-      };
+      const container = prev.container || {};
+      const files = [...((container.files as any[]) || [])];
+      files[fileIndex] = { ...files[fileIndex], [field]: value };
+      return { ...prev, container: { ...container, files } };
+    });
+  };
+
+  const handleAddEnvVar = () => {
+    setWorkloadFormData((prev: any) => {
+      const container = prev.container || {};
       return {
         ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            files: updatedFiles,
-          },
+        container: {
+          ...container,
+          env: [...(container.env || []), { key: '', value: '' }],
         },
       };
     });
   };
 
-  const handleAddContainer = () => {
-    const containerNames = Object.keys(
-      formState.workloadFormData.containers || {},
-    );
-    const newName =
-      containerNames.length === 0
-        ? 'main'
-        : `container-${containerNames.length}`;
-    setWorkloadFormData((prev: any) => ({
-      ...prev,
-      containers: {
-        ...prev.containers,
-        [newName]: {
-          image: '',
-          env: [],
-          files: [],
-        },
-      },
-    }));
-  };
-
-  const handleRemoveContainer = (containerName: string) => {
+  const handleRemoveEnvVar = (envIndex: number) => {
     setWorkloadFormData((prev: any) => {
-      const containers = { ...prev.containers };
-      delete containers[containerName];
-      return {
-        ...prev,
-        containers,
-      };
-    });
-  };
-
-  const handleAddEnvVar = (containerName: string) => {
-    setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const env = container.env || [];
-      return {
-        ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            env: [...env, { key: '', value: '' }],
-          },
-        },
-      };
-    });
-  };
-
-  const handleRemoveEnvVar = (containerName: string, envIndex: number) => {
-    setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const env = container.env || [];
-      const updatedEnv = env.filter(
+      const container = prev.container || {};
+      const env = (container.env || []).filter(
         (_: any, index: number) => index !== envIndex,
       );
+      return { ...prev, container: { ...container, env } };
+    });
+  };
+
+  const handleAddFileVar = () => {
+    setWorkloadFormData((prev: any) => {
+      const container = prev.container || {};
       return {
         ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            env: updatedEnv,
-          },
+        container: {
+          ...container,
+          files: [
+            ...((container.files as any[]) || []),
+            { key: '', mountPath: '', value: '' },
+          ],
         },
       };
     });
   };
 
-  const handleAddFileVar = (containerName: string) => {
+  const handleRemoveFileVar = (fileIndex: number) => {
     setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const files = (container as any).files || [];
-      return {
-        ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            files: [...files, { key: '', mountPath: '', value: '' }],
-          },
-        },
-      };
-    });
-  };
-
-  const handleRemoveFileVar = (containerName: string, fileIndex: number) => {
-    setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const files = (container as any).files || [];
-      const updatedFiles = files.filter(
+      const container = prev.container || {};
+      const files = ((container.files as any[]) || []).filter(
         (_: any, index: number) => index !== fileIndex,
       );
-      return {
-        ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            files: updatedFiles,
-          },
-        },
-      };
+      return { ...prev, container: { ...container, files } };
     });
   };
 
-  const handleArrayFieldChange = (
-    containerName: string,
-    field: string,
-    value: string,
-  ) => {
+  const handleArrayFieldChange = (field: string, value: string) => {
     const arrayValue = value
       .split(',')
       .map((item: string) => item.trim())
       .filter((item: string) => item);
     setWorkloadFormData((prev: any) => ({
       ...prev,
-      containers: {
-        ...prev.containers,
-        [containerName]: {
-          ...(prev.containers?.[containerName] || {}),
-          [field]: arrayValue,
-        },
-      },
+      container: { ...(prev.container || {}), [field]: arrayValue },
     }));
   };
 
   // Handle starting override of an inherited env var
-  const handleStartOverride = (containerName: string, envVar: EnvVar) => {
+  const handleStartOverride = (envVar: EnvVar) => {
     setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const existingEnv = container.env || [];
-
-      // Check if already overridden
-      if (existingEnv.some((e: EnvVar) => e.key === envVar.key)) {
-        return prev;
-      }
-
+      const container = prev.container || {};
+      const existingEnv: EnvVar[] = container.env || [];
+      if (existingEnv.some((e: EnvVar) => e.key === envVar.key)) return prev;
       return {
         ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            env: [...existingEnv, { ...envVar }],
-          },
-        },
+        container: { ...container, env: [...existingEnv, { ...envVar }] },
       };
     });
   };
 
   // Handle starting override of an inherited file var
   const handleStartFileOverride = (
-    containerName: string,
     fileVar: import('@openchoreo/backstage-plugin-common').FileVar,
   ) => {
     setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const existingFiles = (container as any).files || [];
-
-      // Check if already overridden
+      const container = prev.container || {};
+      const existingFiles: any[] = (container.files as any[]) || [];
       if (
         existingFiles.some(
           (f: import('@openchoreo/backstage-plugin-common').FileVar) =>
@@ -585,42 +437,23 @@ export const EnvironmentOverridesPage = ({
       ) {
         return prev;
       }
-
       return {
         ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            files: [...existingFiles, { ...fileVar }],
-          },
-        },
+        container: { ...container, files: [...existingFiles, { ...fileVar }] },
       };
     });
   };
 
   // Handle replacing an entire file var at once (atomic update)
   const handleFileVarReplace = (
-    containerName: string,
     fileIndex: number,
     fileVar: import('@openchoreo/backstage-plugin-common').FileVar,
   ) => {
     setWorkloadFormData((prev: any) => {
-      const containers = prev.containers || {};
-      const container = containers[containerName] || {};
-      const files = (container as any).files || [];
-      const updatedFiles = [...files];
-      updatedFiles[fileIndex] = fileVar;
-      return {
-        ...prev,
-        containers: {
-          ...containers,
-          [containerName]: {
-            ...container,
-            files: updatedFiles,
-          },
-        },
-      };
+      const container = prev.container || {};
+      const files = [...((container.files as any[]) || [])];
+      files[fileIndex] = fileVar;
+      return { ...prev, container: { ...container, files } };
     });
   };
 
@@ -908,21 +741,18 @@ export const EnvironmentOverridesPage = ({
           hasInitialData={initialOverrides.hasWorkloadOverrides}
           customContent={
             <ContainerContent
-              containers={formState.workloadFormData.containers || {}}
+              container={formState.workloadFormData.container}
               onContainerChange={handleContainerChange}
               onEnvVarChange={handleEnvVarChange}
               onEnvVarReplace={handleEnvVarReplace}
               onFileVarChange={handleFileVarChange}
               onFileVarReplace={handleFileVarReplace}
-              onAddContainer={handleAddContainer}
-              onRemoveContainer={handleRemoveContainer}
               onAddEnvVar={handleAddEnvVar}
               onRemoveEnvVar={handleRemoveEnvVar}
               onAddFileVar={handleAddFileVar}
               onRemoveFileVar={handleRemoveFileVar}
               onArrayFieldChange={handleArrayFieldChange}
               disabled={saving || deleting || loading}
-              singleContainerMode
               hideContainerFields
               secretReferences={secretReferences}
               baseWorkloadData={formState.baseWorkloadData}

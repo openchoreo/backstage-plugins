@@ -24,7 +24,7 @@ interface ReleaseBinding {
   componentTypeEnvOverrides?: Record<string, unknown>;
   traitOverrides?: Record<string, Record<string, unknown>>;
   workloadOverrides?: {
-    containers?: { [key: string]: any };
+    container?: any;
   };
 }
 
@@ -79,10 +79,7 @@ const hasContainerOverrideData = (container: any): boolean => {
 
 // Check if workload has any actual override data
 const hasActualWorkloadData = (workloadOverrides: any): boolean => {
-  if (!workloadOverrides?.containers) return false;
-  return Object.values(workloadOverrides.containers).some((container: any) =>
-    hasContainerOverrideData(container),
-  );
+  return hasContainerOverrideData(workloadOverrides?.container);
 };
 
 /**
@@ -150,18 +147,17 @@ export function useOverridesData(
     workload: false,
   });
 
-  // Helper function to create empty containers structure from workload info
+  // Create an empty ContainerOverride structure when the workload has a container.
   const createContainersFromWorkload = (workloadInfo: any) => {
-    if (workloadInfo?.containers) {
-      const containers: any = {};
-      Object.keys(workloadInfo.containers).forEach(containerName => {
-        containers[containerName] = {
-          env: [],
-          files: [],
-        };
-      });
-      return { containers };
+    if (workloadInfo?.container) {
+      return { container: { env: [], files: [] } };
     }
+    // Base workload fetch failed (null) — fall back to an empty container structure
+    // so the Workload tab remains editable even when base data is unavailable.
+    if (workloadInfo === null) {
+      return { container: { env: [], files: [] } };
+    }
+    // workloadInfo exists but has no container — no container structure needed.
     return null;
   };
 
@@ -276,8 +272,10 @@ export function useOverridesData(
           const hasActualWorkload = hasActualWorkloadData(workloadOverrides);
           setHasActualWorkloadOverrides(hasActualWorkload);
 
-          // Always fetch base workload info for reference display
-          const workloadInfo = await client.fetchWorkloadInfo(entity);
+          // Fetch base workload info for reference display (non-blocking — may not exist yet)
+          const workloadInfo = await client
+            .fetchWorkloadInfo(entity)
+            .catch(() => null);
           setBaseWorkloadData(workloadInfo);
 
           // If no workload overrides exist, populate container structure from base workload
@@ -303,8 +301,10 @@ export function useOverridesData(
           setTraitFormDataMap({});
           setInitialTraitFormDataMap({});
 
-          // Always fetch base workload info for reference display
-          const workloadInfo = await client.fetchWorkloadInfo(entity);
+          // Fetch base workload info for reference display (non-blocking — may not exist yet)
+          const workloadInfo = await client
+            .fetchWorkloadInfo(entity)
+            .catch(() => null);
           setBaseWorkloadData(workloadInfo);
 
           // Populate container structure from base workload
