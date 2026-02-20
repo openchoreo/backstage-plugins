@@ -441,7 +441,6 @@ const isServiceComponent = (entity: Entity) =>
 const isGenericComponent = (entity: Entity) =>
   getComponentPageVariant(entity) !== 'service';
 
-
 const componentPage = (
   <EntitySwitch>
     <EntitySwitch.Case if={isServiceComponent}>
