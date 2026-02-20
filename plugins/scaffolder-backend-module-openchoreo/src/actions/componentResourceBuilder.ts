@@ -68,7 +68,10 @@ export function buildComponentResource(
       owner: {
         projectName: input.projectName,
       },
-      componentType: `${input.componentTypeWorkloadType}/${input.componentType}`,
+      componentType: {
+        kind: 'ComponentType',
+        name: `${input.componentTypeWorkloadType}/${input.componentType}`,
+      },
       parameters: input.ctdParameters || {},
       autoDeploy: input.autoDeploy ?? false,
     },

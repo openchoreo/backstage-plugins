@@ -15,6 +15,7 @@ export const CHOREO_ANNOTATIONS = {
   PROJECT_ID: 'openchoreo.io/project-id',
   PROJECT_UID: 'openchoreo.io/project-uid',
   COMPONENT_TYPE: 'openchoreo.io/component-type',
+  COMPONENT_TYPE_KIND: 'openchoreo.io/component-type-kind',
   ENDPOINT_NAME: 'openchoreo.io/endpoint-name',
   ENDPOINT_TYPE: 'openchoreo.io/endpoint-type',
   ENDPOINT_PORT: 'openchoreo.io/endpoint-port',

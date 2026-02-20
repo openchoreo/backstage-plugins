@@ -820,6 +820,7 @@ export interface paths {
      * @description Returns the status of a component workflow run including overall status,
      *     step-level statuses, and the log URL indicating where logs should be fetched from.
      *     The log URL is determined based on the workflow run age and observability configuration.
+     *
      */
     get: operations['getComponentWorkflowRunStatus'];
     put?: never;
@@ -842,6 +843,7 @@ export interface paths {
      * @description Returns logs from a component workflow run. Logs are fetched from the build plane
      *     through the cluster gateway. For multi-container pods, logs from all containers
      *     (excluding Argo sidecar containers) are merged.
+     *
      */
     get: operations['getComponentWorkflowRunLogs'];
     put?: never;
@@ -864,6 +866,7 @@ export interface paths {
      * @description Returns Kubernetes events associated with a component workflow run. Events are
      *     fetched from the build plane through the cluster gateway and aggregated across
      *     all relevant pods for the workflow and optional step filter.
+     *
      */
     get: operations['getComponentWorkflowRunEvents'];
     put?: never;
@@ -1474,6 +1477,7 @@ export interface components {
       displayName?: string;
       description?: string;
       type: string;
+      componentType?: components['schemas']['ComponentTypeRef'];
       projectName: string;
       namespaceName: string;
       /** Format: date-time */
@@ -1664,13 +1668,21 @@ export interface components {
       /** @description The operation performed - created, updated, deleted, or not_found */
       operation?: string;
     };
+    ComponentTypeRef: {
+      kind?: string;
+      name: string;
+    };
+    AllowedTraitResponse: {
+      kind?: string;
+      name: string;
+    };
     ComponentTypeResponse: {
       name: string;
       displayName?: string;
       description?: string;
       workloadType: string;
       allowedWorkflows?: string[];
-      allowedTraits?: string[];
+      allowedTraits?: components['schemas']['AllowedTraitResponse'][];
       /** Format: date-time */
       createdAt: string;
     };
@@ -1724,12 +1736,11 @@ export interface components {
       status: 'Pending' | 'Running' | 'Completed' | 'Failed' | 'Succeeded';
       /** @description Array of step-level statuses */
       steps: components['schemas']['WorkflowStepStatus'][];
-      /**
-       * @description Whether the workflow run has live observability (logs/events are available via openchoreo-api).
+      /** @description Whether the workflow run has live observability (logs/events are available via openchoreo-api).
        *     - If workflow run is recent (< TTL), returns true
        *     - If workflow run is older than TTL, returns false
        *     - This field is used to determine whether the workflow run logs/events should be fetched from openchoreo-api or observer-api.
-       */
+       *      */
       hasLiveObservability: boolean;
     };
     /** @description Status of an individual workflow step */
@@ -1913,14 +1924,13 @@ export interface components {
       /** @description Additional information or status message */
       message?: string;
     };
-    /**
-     * @description Immutable snapshot of component configuration.
+    /** @description Immutable snapshot of component configuration.
      *     Note: The following fields are immutable after creation and cannot be modified:
      *     - componentType
      *     - traits
      *     - componentProfile
      *     - workload
-     */
+     *      */
     ComponentReleaseResponse: {
       name: string;
       componentName: string;
@@ -4435,10 +4445,9 @@ export interface operations {
       query?: {
         /** @description Filter logs by specific workflow step name */
         step?: string;
-        /**
-         * @description Only return logs from the last N seconds. If not specified, all available logs are returned.
+        /** @description Only return logs from the last N seconds. If not specified, all available logs are returned.
          *     This is useful for getting recent logs from long-running workflows.
-         */
+         *      */
         sinceSeconds?: number;
       };
       header?: never;
@@ -4458,22 +4467,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example [
-           *       {
-           *         "timestamp": "2025-01-06T10:00:00.123Z",
-           *         "log": "Building application..."
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:05.456Z",
-           *         "log": "Build completed successfully"
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:10.789Z",
-           *         "log": "Pushing image to registry..."
-           *       }
-           *     ]
-           */
           'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
         };
       };

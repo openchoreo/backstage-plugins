@@ -37,6 +37,6 @@ export interface ComponentTypeEntityV1alpha1 extends Entity {
     /**
      * List of allowed trait names for this component type
      */
-    allowedTraits?: string[];
+    allowedTraits?: Array<{ kind?: string; name: string }>;
   };
 }
