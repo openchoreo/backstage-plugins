@@ -1,9 +1,5 @@
 import { type ComponentProps, type ElementType, type ReactNode } from 'react';
-import {
-  DEFAULT_NAMESPACE,
-  type Entity,
-  type EntityRelation,
-} from '@backstage/catalog-model';
+import { type Entity, type EntityRelation } from '@backstage/catalog-model';
 import {
   Content,
   Link,
@@ -100,7 +96,7 @@ export const OpenChoreoEntityLayout = (props: OpenChoreoEntityLayoutProps) => {
     contextMenu: customContextMenu,
   } = props;
 
-  const { kind, namespace, name } = useRouteRefParams(entityRouteRef);
+  const { kind, name } = useRouteRefParams(entityRouteRef);
   const { entity, loading, error } = useAsyncEntity();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -178,12 +174,7 @@ export const OpenChoreoEntityLayout = (props: OpenChoreoEntityLayoutProps) => {
           entity={entity}
           headerTitle={headerTitle}
           kind={kind ?? entity.kind}
-          entityName={
-            entity.metadata.name +
-            (namespace && namespace !== DEFAULT_NAMESPACE
-              ? ` in ${namespace}`
-              : '')
-          }
+          entityName={entity.metadata.name}
           kindDisplayNames={kindDisplayNames}
           parentEntity={parentEntity}
           ancestorEntity={ancestorEntity}
