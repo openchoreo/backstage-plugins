@@ -29,10 +29,6 @@ export class TraitTypeEntityProcessor implements CatalogProcessor {
     emit: CatalogProcessorEmit,
   ): Promise<TraitTypeEntityV1alpha1> {
     if (entity.kind === 'TraitType') {
-      if (!entity.spec?.type) {
-        throw new Error('TraitType entity must have spec.type');
-      }
-
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -75,12 +71,6 @@ export class TraitTypeEntityProcessor implements CatalogProcessor {
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
   ): Promise<TraitTypeEntityV1alpha1> {
-    if (entity.kind === 'TraitType' && entity.spec) {
-      if (!entity.spec.type) {
-        entity.spec.type = 'trait-type';
-      }
-    }
-
     return entity;
   }
 

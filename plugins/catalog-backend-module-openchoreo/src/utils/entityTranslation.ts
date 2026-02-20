@@ -299,7 +299,6 @@ export function translateComponentTypeToEntity(
       },
     },
     spec: {
-      type: 'component-type',
       domain: `default/${namespaceName}`,
       workloadType: ct.workloadType,
       allowedWorkflows: ct.allowedWorkflows,
@@ -342,7 +341,6 @@ export function translateTraitToEntity(
       },
     },
     spec: {
-      type: 'trait-type',
       domain: `default/${namespaceName}`,
     },
   };
@@ -382,7 +380,6 @@ export function translateComponentWorkflowToEntity(
       },
     },
     spec: {
-      type: 'component-workflow',
       domain: `default/${namespaceName}`,
     },
   };

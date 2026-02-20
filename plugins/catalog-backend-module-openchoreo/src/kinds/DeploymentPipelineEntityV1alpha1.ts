@@ -65,10 +65,6 @@ export interface DeploymentPipelineEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * The type of deployment pipeline (e.g., 'promotion-pipeline')
-     */
-    type: string;
-    /**
      * References to the parent projects/systems that use this pipeline
      */
     projectRefs?: string[];

@@ -34,11 +34,6 @@ export class DataplaneEntityProcessor implements CatalogProcessor {
   ): Promise<DataplaneEntityV1alpha1> {
     // Validate required fields
     if (entity.kind === 'Dataplane') {
-      if (!entity.spec?.type) {
-        throw new Error('Dataplane entity must have spec.type');
-      }
-
-      // Emit relationships based on spec fields
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -111,14 +106,6 @@ export class DataplaneEntityProcessor implements CatalogProcessor {
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
   ): Promise<DataplaneEntityV1alpha1> {
-    // Set default values if needed
-    if (entity.kind === 'Dataplane' && entity.spec) {
-      // Set default type if not specified
-      if (!entity.spec.type) {
-        entity.spec.type = 'kubernetes';
-      }
-    }
-
     return entity;
   }
 

@@ -46,12 +46,6 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
       return entity;
     }
 
-    // Validate required fields
-    if (!entity.spec?.type) {
-      throw new Error('DeploymentPipeline entity must have spec.type');
-    }
-
-    // Emit relationships based on spec fields
     const sourceRef = {
       kind: entity.kind.toLowerCase(),
       namespace: entity.metadata.namespace || 'default',
@@ -161,14 +155,6 @@ export class DeploymentPipelineEntityProcessor implements CatalogProcessor {
   ): Promise<Entity> {
     if (!isDeploymentPipelineEntity(entity)) {
       return entity;
-    }
-
-    // Set default values if needed
-    if (entity.spec) {
-      // Set default type if not specified
-      if (!entity.spec.type) {
-        entity.spec.type = 'promotion-pipeline';
-      }
     }
 
     return entity;

@@ -31,10 +31,6 @@ export class ObservabilityPlaneEntityProcessor implements CatalogProcessor {
     emit: CatalogProcessorEmit,
   ): Promise<ObservabilityPlaneEntityV1alpha1> {
     if (entity.kind === 'ObservabilityPlane') {
-      if (!entity.spec?.type) {
-        throw new Error('ObservabilityPlane entity must have spec.type');
-      }
-
       const sourceRef = {
         kind: entity.kind.toLowerCase(),
         namespace: entity.metadata.namespace || 'default',
@@ -77,12 +73,6 @@ export class ObservabilityPlaneEntityProcessor implements CatalogProcessor {
     _location: LocationSpec,
     _emit: CatalogProcessorEmit,
   ): Promise<ObservabilityPlaneEntityV1alpha1> {
-    if (entity.kind === 'ObservabilityPlane' && entity.spec) {
-      if (!entity.spec.type) {
-        entity.spec.type = 'kubernetes';
-      }
-    }
-
     return entity;
   }
 
