@@ -149,6 +149,9 @@ const hasGitlabAnnotation = (entity: Entity) =>
       entity.metadata.annotations?.['gitlab.com/project-id'],
   );
 
+const hasTechdocsAnnotation = (entity: Entity) =>
+  Boolean(entity.metadata.annotations?.['backstage.io/techdocs-ref']);
+
 const techdocsContent = (
   <EntityTechdocsContent>
     <TechDocsAddons>
@@ -288,7 +291,7 @@ const serviceEntityPage = (
       </Grid>
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="Docs">
+    <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
       {techdocsContent}
     </EntityLayout.Route>
 
@@ -370,7 +373,7 @@ const genericComponentEntityPage = (
       </Grid>
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="Docs">
+    <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
       {techdocsContent}
     </EntityLayout.Route>
 
@@ -410,7 +413,7 @@ const defaultEntityPage = (
       <OverviewContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/docs" title="Docs">
+    <EntityLayout.Route path="/docs" title="Docs" if={hasTechdocsAnnotation}>
       {techdocsContent}
     </EntityLayout.Route>
   </EntityLayout>
