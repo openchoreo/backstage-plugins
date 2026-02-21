@@ -1895,9 +1895,7 @@ export interface components {
       spec?: {
         [key: string]: unknown;
       };
-      containers?: {
-        [key: string]: components['schemas']['Container'];
-      };
+      container?: components['schemas']['Container'];
       endpoints?: {
         [key: string]: components['schemas']['WorkloadEndpoint'];
       };
@@ -1973,9 +1971,7 @@ export interface components {
       workloadOverrides?: components['schemas']['WorkloadOverrides'];
     };
     WorkloadOverrides: {
-      containers?: {
-        [key: string]: components['schemas']['ContainerOverride'];
-      };
+      container?: components['schemas']['ContainerOverride'];
     };
     ContainerOverride: {
       env?: components['schemas']['EnvVar'][];

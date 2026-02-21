@@ -254,7 +254,7 @@ describe('buildWorkloadResource', () => {
     expect(result.metadata.namespace).toBe('default');
     expect(result.spec.owner.projectName).toBe('my-project');
     expect(result.spec.owner.componentName).toBe('my-service');
-    expect(result.spec.containers.main.image).toBe('nginx:latest');
+    expect(result.spec.container?.image).toBe('nginx:latest');
     expect(result.spec.endpoints).toBeUndefined();
   });
 

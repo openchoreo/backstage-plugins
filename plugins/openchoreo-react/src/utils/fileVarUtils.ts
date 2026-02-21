@@ -89,9 +89,8 @@ export function mergeFileVarsWithStatus(
  */
 export function getBaseFileVarsForContainer(
   baseWorkload: ModelsWorkload | null,
-  containerName: string,
 ): FileVar[] {
-  return (baseWorkload?.containers?.[containerName] as any)?.files || [];
+  return (baseWorkload?.container as any)?.files || [];
 }
 
 /**

@@ -48,7 +48,7 @@ const useStyles = makeStyles(() => ({
  */
 function getTabStatus(
   changes: WorkloadChanges,
-  section: 'containers' | 'endpoints' | 'connections',
+  section: 'container' | 'endpoints' | 'connections',
   hasData: boolean,
 ): TabItemData['status'] {
   const sectionChanges = changes[section];
@@ -77,7 +77,6 @@ export function WorkloadEditor({
       projectName: projectName || '',
       componentName: componentName || '',
     },
-    containers: {},
     endpoints: {},
     connections: {},
   });
@@ -86,173 +85,97 @@ export function WorkloadEditor({
 
   const [activeTab, setActiveTab] = useUrlSyncedTab({
     initialTab,
-    defaultTab: 'containers',
+    defaultTab: 'container',
     onTabChange,
   });
 
   useEffect(() => {
     if (workloadSpec) {
-      setFormData(workloadSpec);
-      if (workloadSpec.type) {
-        setWorkloadType(workloadSpec.type);
-      }
+      const { type, ...rest } = workloadSpec;
+      setFormData(rest);
+      if (type) setWorkloadType(type);
     }
   }, [workloadSpec]);
 
-  // Helper function to update workload spec
   const updateWorkloadSpec = (updatedData: Omit<ModelsWorkload, 'type'>) => {
     setFormData(updatedData);
     setWorkloadSpec({ ...updatedData, type: workloadType });
   };
 
-  const handleContainerChange = (
-    containerName: string,
-    field: keyof Container,
-    value: any,
-  ) => {
-    const updatedContainers = {
-      ...formData.containers,
-      [containerName]: {
-        ...(formData.containers?.[containerName] || {}),
-        [field]: value,
-      } as Container,
-    };
-    const updatedData = { ...formData, containers: updatedContainers };
+  const updateContainer = (updated: Container) => {
+    const updatedData = { ...formData, container: updated };
     setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+    setWorkloadSpec({ ...updatedData, type: workloadType });
+  };
+
+  const handleContainerChange = (field: keyof Container, value: any) => {
+    if (!formData.container) return;
+    updateContainer({ ...formData.container, [field]: value } as Container);
   };
 
   const handleEnvVarChange = (
-    containerName: string,
     envIndex: number,
     field: keyof EnvVar,
     value: string,
   ) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const updatedEnvVars = [...(container.env || [])];
-    updatedEnvVars[envIndex] = { ...updatedEnvVars[envIndex], [field]: value };
-
-    handleContainerChange(containerName, 'env', updatedEnvVars);
+    if (!formData.container) return;
+    const env = [...(formData.container.env || [])];
+    env[envIndex] = { ...env[envIndex], [field]: value };
+    updateContainer({ ...formData.container, env });
   };
 
-  const handleEnvVarReplace = (
-    containerName: string,
-    envIndex: number,
-    envVar: EnvVar,
-  ) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const updatedEnvVars = [...(container.env || [])];
-    updatedEnvVars[envIndex] = envVar;
-
-    handleContainerChange(containerName, 'env', updatedEnvVars);
+  const handleEnvVarReplace = (envIndex: number, envVar: EnvVar) => {
+    if (!formData.container) return;
+    const env = [...(formData.container.env || [])];
+    env[envIndex] = envVar;
+    updateContainer({ ...formData.container, env });
   };
 
-  const addEnvVar = (containerName: string) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const newEnvVar: EnvVar = { key: '', value: '' };
-    const updatedEnvVars = [...(container.env || []), newEnvVar];
-    handleContainerChange(containerName, 'env', updatedEnvVars);
+  const addEnvVar = () => {
+    if (!formData.container) return;
+    const env = [...(formData.container.env || []), { key: '', value: '' }];
+    updateContainer({ ...formData.container, env });
   };
 
-  const removeEnvVar = (containerName: string, envIndex: number) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const updatedEnvVars =
-      container.env?.filter((_, index) => index !== envIndex) || [];
-    handleContainerChange(containerName, 'env', updatedEnvVars);
+  const removeEnvVar = (envIndex: number) => {
+    if (!formData.container) return;
+    const env = (formData.container.env || []).filter((_, i) => i !== envIndex);
+    updateContainer({ ...formData.container, env });
   };
 
   const handleFileVarChange = (
-    containerName: string,
     fileIndex: number,
     field: keyof FileVar,
     value: string,
   ) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const updatedFileVars = [...((container as any).files || [])];
-    updatedFileVars[fileIndex] = {
-      ...updatedFileVars[fileIndex],
-      [field]: value,
-    };
-
-    handleContainerChange(containerName, 'files' as any, updatedFileVars);
+    if (!formData.container) return;
+    const files = [...((formData.container as any).files || [])];
+    files[fileIndex] = { ...files[fileIndex], [field]: value };
+    updateContainer({ ...formData.container, files } as any);
   };
 
-  const addFileVar = (containerName: string) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const newFileVar: FileVar = { key: '', mountPath: '', value: '' };
-    const updatedFileVars = [...((container as any).files || []), newFileVar];
-    handleContainerChange(containerName, 'files' as any, updatedFileVars);
+  const addFileVar = () => {
+    if (!formData.container) return;
+    const files = [
+      ...((formData.container as any).files || []),
+      { key: '', mountPath: '', value: '' },
+    ];
+    updateContainer({ ...formData.container, files } as any);
   };
 
-  const removeFileVar = (containerName: string, fileIndex: number) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const updatedFileVars =
-      (container as any).files?.filter(
-        (_: any, index: number) => index !== fileIndex,
-      ) || [];
-    handleContainerChange(containerName, 'files' as any, updatedFileVars);
+  const removeFileVar = (fileIndex: number) => {
+    if (!formData.container) return;
+    const files = ((formData.container as any).files || []).filter(
+      (_: any, i: number) => i !== fileIndex,
+    );
+    updateContainer({ ...formData.container, files } as any);
   };
 
-  const handleFileVarReplace = (
-    containerName: string,
-    fileIndex: number,
-    fileVar: FileVar,
-  ) => {
-    const container = formData.containers?.[containerName];
-    if (!container) return;
-
-    const updatedFileVars = [...((container as any).files || [])];
-    updatedFileVars[fileIndex] = fileVar;
-
-    handleContainerChange(containerName, 'files' as any, updatedFileVars);
-  };
-
-  const addContainer = () => {
-    const containerName = `container-${
-      Object.keys(formData.containers || {}).length
-    }`;
-    const updatedContainers = {
-      ...formData.containers,
-      [Object.keys(formData.containers || {}).length === 0
-        ? 'main'
-        : containerName]: {
-        name:
-          Object.keys(formData.containers || {}).length === 0
-            ? 'main'
-            : containerName,
-        image: '',
-        resources: {},
-        env: [],
-        files: [],
-        command: [],
-        args: [],
-      } as Container,
-    };
-    const updatedData = { ...formData, containers: updatedContainers };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
-  };
-
-  const removeContainer = (containerName: string) => {
-    const updatedContainers = { ...formData.containers };
-    delete updatedContainers[containerName];
-    const updatedData = { ...formData, containers: updatedContainers };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+  const handleFileVarReplace = (fileIndex: number, fileVar: FileVar) => {
+    if (!formData.container) return;
+    const files = [...((formData.container as any).files || [])];
+    files[fileIndex] = fileVar;
+    updateContainer({ ...formData.container, files } as any);
   };
 
   const handleEndpointReplace = (
@@ -340,19 +263,15 @@ export function WorkloadEditor({
     updateWorkloadSpec(updatedData);
   };
 
-  const handleArrayFieldChange = (
-    containerName: string,
-    field: 'command' | 'args',
-    value: string,
-  ) => {
+  const handleArrayFieldChange = (field: 'command' | 'args', value: string) => {
     const arrayValue = value
       .split(',')
       .map(item => item.trim())
       .filter(item => item.length > 0);
-    handleContainerChange(containerName, field, arrayValue);
+    handleContainerChange(field, arrayValue);
   };
 
-  const containerCount = Object.keys(formData.containers || {}).length;
+  const containerCount = formData.container ? 1 : 0;
   const endpointCount = Object.keys(formData.endpoints || {}).length;
   const connectionCount = Object.keys(formData.connections || {}).length;
 
@@ -360,11 +279,11 @@ export function WorkloadEditor({
   const tabs: TabItemData[] = useMemo(
     () => [
       {
-        id: 'containers',
-        label: 'Containers',
+        id: 'container',
+        label: 'Container',
         icon: <ViewModuleIcon />,
         count: containerCount,
-        status: getTabStatus(changes, 'containers', containerCount > 0),
+        status: getTabStatus(changes, 'container', containerCount > 0),
       },
       {
         id: 'endpoints',
@@ -391,23 +310,20 @@ export function WorkloadEditor({
       onChange={setActiveTab}
       className={classes.tabNav}
     >
-      {activeTab === 'containers' && (
+      {activeTab === 'container' && (
         <ContainerContent
           disabled={isDeploying}
-          containers={formData.containers || {}}
+          container={formData.container}
           onContainerChange={handleContainerChange}
           onEnvVarChange={handleEnvVarChange}
           onEnvVarReplace={handleEnvVarReplace}
           onFileVarChange={handleFileVarChange}
           onFileVarReplace={handleFileVarReplace}
-          onAddContainer={addContainer}
-          onRemoveContainer={removeContainer}
           onAddEnvVar={addEnvVar}
           onRemoveEnvVar={removeEnvVar}
           onAddFileVar={addFileVar}
           onRemoveFileVar={removeFileVar}
           onArrayFieldChange={handleArrayFieldChange}
-          singleContainerMode
           builds={builds}
           secretReferences={secretReferences}
         />

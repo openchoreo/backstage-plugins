@@ -9,8 +9,8 @@ import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
  * Workload changes grouped by section
  */
 export interface WorkloadChanges {
-  /** Changes in containers (env vars, files, images, etc.) */
-  containers: Change[];
+  /** Changes in container (env vars, files, images, etc.) */
+  container: Change[];
   /** Changes in endpoints */
   endpoints: Change[];
   /** Changes in connections */
@@ -34,10 +34,10 @@ export function useWorkloadChanges(
   currentWorkload: ModelsWorkload | null,
 ): WorkloadChanges {
   return useMemo(() => {
-    // Compare containers
+    // Compare container (single container, wrapped for deepCompareObjects)
     const containerChanges = deepCompareObjects(
-      initialWorkload?.containers || {},
-      currentWorkload?.containers || {},
+      initialWorkload?.container || {},
+      currentWorkload?.container || {},
     );
 
     // Compare endpoints
@@ -58,35 +58,11 @@ export function useWorkloadChanges(
       connectionChanges.length;
 
     return {
-      containers: containerChanges,
+      container: containerChanges,
       endpoints: endpointChanges,
       connections: connectionChanges,
       total,
       hasChanges: total > 0,
     };
   }, [initialWorkload, currentWorkload]);
-}
-
-/**
- * Get changes for a specific container
- */
-export function getContainerChanges(
-  changes: WorkloadChanges,
-  containerName: string,
-): Change[] {
-  return changes.containers.filter(
-    c =>
-      c.path.startsWith(containerName) ||
-      c.path.startsWith(`${containerName}.`),
-  );
-}
-
-/**
- * Check if a specific container has changes
- */
-export function hasContainerChanges(
-  changes: WorkloadChanges,
-  containerName: string,
-): boolean {
-  return getContainerChanges(changes, containerName).length > 0;
 }

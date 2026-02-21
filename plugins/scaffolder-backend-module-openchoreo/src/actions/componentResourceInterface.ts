@@ -130,7 +130,7 @@ export interface WorkloadEndpoint {
  */
 export interface WorkloadSpec {
   owner: WorkloadOwner;
-  containers: Record<string, WorkloadContainer>;
+  container?: WorkloadContainer;
   endpoints?: Record<string, WorkloadEndpoint>;
 }
 

@@ -87,9 +87,8 @@ export function mergeEnvVarsWithStatus(
  */
 export function getBaseEnvVarsForContainer(
   baseWorkload: ModelsWorkload | null,
-  containerName: string,
 ): EnvVar[] {
-  return baseWorkload?.containers?.[containerName]?.env || [];
+  return baseWorkload?.container?.env || [];
 }
 
 /**

@@ -28,10 +28,10 @@ export const WorkloadSaveConfirmationDialog: FC<
   const sections: ChangesSection[] = useMemo(() => {
     const result: ChangesSection[] = [];
 
-    if (changes.containers.length > 0) {
+    if (changes.container.length > 0) {
       result.push({
-        title: 'Containers',
-        changes: changes.containers,
+        title: 'Container',
+        changes: changes.container,
       });
     }
 
