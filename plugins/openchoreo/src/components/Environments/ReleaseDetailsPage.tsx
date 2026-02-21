@@ -1,16 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
-import ListIcon from '@material-ui/icons/List';
-import AccountTreeIcon from '@material-ui/icons/AccountTree';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { ReleaseInfoTabbedView } from './ReleaseDataRenderer/ReleaseInfoTabbedView';
 import { ResourceTreeView } from './ReleaseDataRenderer/ResourceTreeView';
-import type { ReleaseViewMode } from './ReleaseDataRenderer/ResourceTreeView';
 import type { Environment } from './hooks/useEnvironmentData';
 
 const useStyles = makeStyles(theme => ({
@@ -47,18 +42,12 @@ interface ReleaseDetailsPageProps {
   environment: Environment;
   entity: Entity;
   onBack: () => void;
-  /** Initial tab to display (from URL) */
-  initialTab?: string;
-  /** Callback when tab changes (to update URL) */
-  onTabChange?: (tabId: string) => void;
 }
 
 export const ReleaseDetailsPage = ({
   environment,
   entity,
   onBack,
-  initialTab,
-  onTabChange,
 }: ReleaseDetailsPageProps) => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
@@ -67,7 +56,6 @@ export const ReleaseDetailsPage = ({
   const [error, setError] = useState<string | null>(null);
   const [releaseData, setReleaseData] = useState<any>(null);
   const [resourceTreeData, setResourceTreeData] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<ReleaseViewMode>('tree');
 
   const environmentName = environment.resourceName || environment.name;
 
@@ -102,30 +90,11 @@ export const ReleaseDetailsPage = ({
     loadReleaseData();
   };
 
-  const actions = (
-    <>
-      <ToggleButtonGroup
-        value={viewMode}
-        exclusive
-        onChange={(_, newMode) => {
-          if (newMode) setViewMode(newMode);
-        }}
-        size="small"
-      >
-        <ToggleButton value="list" title="List view">
-          <ListIcon fontSize="small" />
-        </ToggleButton>
-        <ToggleButton value="tree" title="Tree view">
-          <AccountTreeIcon fontSize="small" />
-        </ToggleButton>
-      </ToggleButtonGroup>
-      {error && (
-        <Button onClick={handleRetry} color="primary" variant="outlined">
-          Retry
-        </Button>
-      )}
-    </>
-  );
+  const actions = error ? (
+    <Button onClick={handleRetry} color="primary" variant="outlined">
+      Retry
+    </Button>
+  ) : undefined;
 
   return (
     <DetailPageLayout
@@ -153,15 +122,7 @@ export const ReleaseDetailsPage = ({
       )}
 
       {!loading && !error && releaseData && (
-        viewMode === 'tree' ? (
-          <ResourceTreeView releaseData={releaseData} resourceTreeData={resourceTreeData} entity={entity} environmentName={environmentName} />
-        ) : (
-          <ReleaseInfoTabbedView
-            releaseData={releaseData}
-            initialTab={initialTab}
-            onTabChange={onTabChange}
-          />
-        )
+        <ResourceTreeView releaseData={releaseData} resourceTreeData={resourceTreeData} entity={entity} environmentName={environmentName} />
       )}
 
       {!loading && !error && !releaseData && (

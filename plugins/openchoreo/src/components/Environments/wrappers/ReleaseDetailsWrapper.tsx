@@ -1,5 +1,5 @@
-import { useMemo, useCallback } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { Box, Typography, Button } from '@material-ui/core';
 import { useEnvironmentsContext } from '../EnvironmentsContext';
@@ -12,30 +12,9 @@ import { ReleaseDetailsPage } from '../ReleaseDetailsPage';
  */
 export const ReleaseDetailsWrapper = () => {
   const { envName } = useParams<{ envName: string }>();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { entity } = useEntity();
   const { displayEnvironments } = useEnvironmentsContext();
   const { navigateToList } = useEnvironmentRouting();
-
-  // Get active tab from URL
-  const activeTab = searchParams.get('tab') || 'overview';
-
-  // Handle tab change - update URL
-  // When replace is true (default tab initialization), don't add to history
-  // When replace is false (user interaction), add to history for back button support
-  const handleTabChange = useCallback(
-    (tabId: string, replace = false) => {
-      const newParams = new URLSearchParams(searchParams);
-      if (tabId && tabId !== 'overview') {
-        newParams.set('tab', tabId);
-      } else {
-        newParams.delete('tab');
-      }
-      navigate(`?${newParams.toString()}`, { replace });
-    },
-    [searchParams, navigate],
-  );
 
   // Find the environment by name
   const environment = useMemo(() => {
@@ -80,8 +59,6 @@ export const ReleaseDetailsWrapper = () => {
       environment={environment}
       entity={entity}
       onBack={handleBack}
-      initialTab={activeTab}
-      onTabChange={handleTabChange}
     />
   );
 };
