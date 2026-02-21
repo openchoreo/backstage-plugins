@@ -746,6 +746,50 @@ export async function createRouter({
     );
   });
 
+  router.get('/resource-events', async (req, res) => {
+    const {
+      componentName,
+      projectName,
+      namespaceName,
+      environmentName,
+      kind,
+      name,
+      namespace,
+      uid,
+    } = req.query;
+
+    if (
+      !componentName ||
+      !projectName ||
+      !namespaceName ||
+      !environmentName ||
+      !kind ||
+      !name
+    ) {
+      throw new InputError(
+        'componentName, projectName, namespaceName, environmentName, kind and name are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchResourceEvents(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          environmentName: environmentName as string,
+          kind: kind as string,
+          name: name as string,
+          namespace: namespace as string | undefined,
+          uid: uid as string | undefined,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.get('/environment-release', async (req, res) => {
     const { componentName, projectName, namespaceName, environmentName } =
       req.query;

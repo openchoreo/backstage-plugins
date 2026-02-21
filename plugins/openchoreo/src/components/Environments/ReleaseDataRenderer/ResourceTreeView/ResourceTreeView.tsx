@@ -1,5 +1,6 @@
 import { useState, useMemo, type FC } from 'react';
 import { Box, Typography } from '@material-ui/core';
+import { Entity } from '@backstage/catalog-model';
 import { ResourceTreeEdge } from './ResourceTreeEdge';
 import { ResourceTreeNode } from './ResourceTreeNode';
 import { ResourceDetailPanel } from './ResourceDetailPanel';
@@ -12,11 +13,15 @@ import type { ReleaseData, ResourceTreeData } from '../types';
 interface ResourceTreeViewProps {
   releaseData: ReleaseData;
   resourceTreeData: ResourceTreeData;
+  entity: Entity;
+  environmentName: string;
 }
 
 export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   releaseData,
   resourceTreeData,
+  entity,
+  environmentName,
 }) => {
   const classes = useTreeStyles();
   const [selectedNode, setSelectedNode] = useState<LayoutNode | null>(null);
@@ -72,6 +77,8 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
       <ResourceDetailPanel
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
+        entity={entity}
+        environmentName={environmentName}
       />
     </Box>
   );

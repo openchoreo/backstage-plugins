@@ -2151,6 +2151,79 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
   }
 
+  async fetchResourceEvents(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      environmentName: string;
+      kind: string;
+      name: string;
+      namespace?: string;
+      uid?: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching resource events for ${request.kind}/${request.name} in environment ${request.environmentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const queryParams: Record<string, string> = {
+        kind: request.kind,
+        name: request.name,
+      };
+      if (request.namespace) {
+        queryParams.namespace = request.namespace;
+      }
+      if (request.uid) {
+        queryParams.uid = request.uid;
+      }
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events' as any,
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              environmentName: request.environmentName,
+            },
+            query: queryParams,
+          },
+        } as any,
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch resource events: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource events fetched for ${request.kind}/${request.name} in ${request.environmentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching resource events for ${request.kind}/${request.name} in ${request.environmentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
   /**
    * Fetches the release information for a specific environment.
    * Returns the complete Release CRD with spec and status information.

@@ -34,6 +34,7 @@ import type {
   NamespaceRoleBindingFilters,
   ForceDeleteResult,
   RoleBindingsLookup,
+  ResourceEventsResponse,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -56,6 +57,7 @@ const API_ENDPOINTS = {
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   ENVIRONMENT_RELEASE: '/environment-release',
   RESOURCE_TREE: '/resources',
+  RESOURCE_EVENTS: '/resource-events',
   WORKFLOW_SCHEMA: '/workflow-schema',
   COMPONENT_WORKFLOW_PARAMETERS: '/workflow-parameters',
   SECRET_REFERENCES: '/secret-references',
@@ -388,6 +390,30 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         environmentName,
       },
     });
+  }
+
+  async fetchResourceEvents(
+    entity: Entity,
+    environmentName: string,
+    resourceParams: {
+      kind: string;
+      name: string;
+      namespace?: string;
+      uid?: string;
+    },
+  ): Promise<ResourceEventsResponse> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch<ResourceEventsResponse>(
+      API_ENDPOINTS.RESOURCE_EVENTS,
+      {
+        params: {
+          ...entityMetadataToParams(metadata),
+          environmentName,
+          ...resourceParams,
+        },
+      },
+    );
   }
 
   // ============================================

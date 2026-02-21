@@ -1,11 +1,16 @@
-import { useState, useEffect, type FC } from 'react';
-import { Box, Tabs, Tab, Typography } from '@material-ui/core';
+import { useState, useEffect, useCallback, type FC } from 'react';
+import { Box, Tabs, Tab, Typography, IconButton, Tooltip } from '@material-ui/core';
+import RefreshIcon from '@material-ui/icons/Refresh';
+import { Entity } from '@backstage/catalog-model';
 import YAML from 'yaml';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
+import { ResourceEventsTable } from './ResourceEventsTable';
 import type { LayoutNode } from './treeTypes';
 
 const LOGGABLE_KINDS = new Set(['Deployment', 'Pod', 'Job', 'CronJob']);
+
+const REFRESHABLE_TABS = new Set(['events', 'logs']);
 
 interface TabConfig {
   id: string;
@@ -23,11 +28,14 @@ function getTabsForKind(kind: string): TabConfig[] {
 
 interface ResourceDetailTabsProps {
   node: LayoutNode;
+  entity: Entity;
+  environmentName: string;
 }
 
-export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({ node }) => {
+export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({ node, entity, environmentName }) => {
   const classes = useTreeStyles();
   const [activeTab, setActiveTab] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const tabs = getTabsForKind(node.kind);
 
@@ -38,27 +46,42 @@ export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({ node }) => {
 
   const currentTab = tabs[activeTab]?.id;
 
+  const handleRefresh = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
   return (
     <>
-      <Tabs
-        value={activeTab}
-        onChange={(_, newValue) => setActiveTab(newValue)}
-        indicatorColor="primary"
-        textColor="primary"
-        className={classes.drawerTabs}
-      >
-        {tabs.map(tab => (
-          <Tab key={tab.id} label={tab.label} />
-        ))}
-      </Tabs>
+      <Box display="flex" alignItems="center">
+        <Tabs
+          value={activeTab}
+          onChange={(_, newValue) => setActiveTab(newValue)}
+          indicatorColor="primary"
+          textColor="primary"
+          className={classes.drawerTabs}
+          style={{ flex: 1 }}
+        >
+          {tabs.map(tab => (
+            <Tab key={tab.id} label={tab.label} />
+          ))}
+        </Tabs>
+        {currentTab && REFRESHABLE_TABS.has(currentTab) && (
+          <Tooltip title="Refresh">
+            <IconButton size="small" onClick={handleRefresh}>
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
 
       <Box className={classes.drawerTabContent}>
         {currentTab === 'events' && (
-          <Box className={classes.drawerEmptyState}>
-            <Typography variant="body2" color="textSecondary">
-              No events available
-            </Typography>
-          </Box>
+          <ResourceEventsTable
+            node={node}
+            entity={entity}
+            environmentName={environmentName}
+            refreshKey={refreshKey}
+          />
         )}
 
         {currentTab === 'logs' && (

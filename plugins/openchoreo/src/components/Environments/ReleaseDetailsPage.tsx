@@ -154,7 +154,7 @@ export const ReleaseDetailsPage = ({
 
       {!loading && !error && releaseData && (
         viewMode === 'tree' ? (
-          <ResourceTreeView releaseData={releaseData} resourceTreeData={resourceTreeData} />
+          <ResourceTreeView releaseData={releaseData} resourceTreeData={resourceTreeData} entity={entity} environmentName={environmentName} />
         ) : (
           <ReleaseInfoTabbedView
             releaseData={releaseData}

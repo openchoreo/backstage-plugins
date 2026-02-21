@@ -8,6 +8,7 @@ import {
   Chip,
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
+import { Entity } from '@backstage/catalog-model';
 import { ResourceKindIcon } from './ResourceKindIcon';
 import { ResourceDetailTabs } from './ResourceDetailTabs';
 import { useTreeStyles } from './treeStyles';
@@ -18,11 +19,15 @@ import { useReleaseInfoStyles } from '../styles';
 interface ResourceDetailPanelProps {
   node: LayoutNode | null;
   onClose: () => void;
+  entity: Entity;
+  environmentName: string;
 }
 
 export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
   node,
   onClose,
+  entity,
+  environmentName,
 }) => {
   const classes = useTreeStyles();
   const releaseClasses = useReleaseInfoStyles();
@@ -114,7 +119,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
               )}
             </Box>
           ) : (
-            <ResourceDetailTabs node={node} />
+            <ResourceDetailTabs node={node} entity={entity} environmentName={environmentName} />
           )}
         </Box>
       )}

@@ -4,6 +4,8 @@ import { HealthStatus } from '../types';
 export interface TreeNode {
   /** Unique identifier for the node */
   id: string;
+  /** Kubernetes resource UID */
+  uid?: string;
   /** Resource kind (e.g., "Deployment", "Service", "ReleaseBinding") */
   kind: string;
   /** Resource name */

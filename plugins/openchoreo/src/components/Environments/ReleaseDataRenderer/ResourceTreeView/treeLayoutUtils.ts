@@ -59,6 +59,7 @@ export function buildTreeNodes(
 
     nodes.push({
       id: node.uid,
+      uid: node.uid,
       kind: node.kind,
       name: node.name,
       namespace: node.namespace,
