@@ -790,6 +790,51 @@ export async function createRouter({
     );
   });
 
+  router.get('/pod-logs', async (req, res) => {
+    const {
+      componentName,
+      projectName,
+      namespaceName,
+      environmentName,
+      name,
+      namespace,
+      container,
+      sinceSeconds,
+    } = req.query;
+
+    if (
+      !componentName ||
+      !projectName ||
+      !namespaceName ||
+      !environmentName ||
+      !name
+    ) {
+      throw new InputError(
+        'componentName, projectName, namespaceName, environmentName and name are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchPodLogs(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          environmentName: environmentName as string,
+          name: name as string,
+          namespace: namespace as string | undefined,
+          container: container as string | undefined,
+          sinceSeconds: sinceSeconds
+            ? parseInt(sinceSeconds as string, 10)
+            : undefined,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.get('/environment-release', async (req, res) => {
     const { componentName, projectName, namespaceName, environmentName } =
       req.query;

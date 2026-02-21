@@ -302,6 +302,17 @@ export interface ResourceEventsResponse {
   events: ResourceEvent[];
 }
 
+/** Pod log entry from the pod-logs API */
+export interface PodLogEntry {
+  timestamp: string;
+  log: string;
+}
+
+/** Response from the pod-logs API */
+export interface PodLogsResponse {
+  logEntries: PodLogEntry[];
+}
+
 // ============================================
 // OpenChoreo Client API Interface
 // ============================================
@@ -392,6 +403,18 @@ export interface OpenChoreoClientApi {
       uid?: string;
     },
   ): Promise<ResourceEventsResponse>;
+
+  /** Fetch pod logs for a specific pod resource */
+  fetchPodLogs(
+    entity: Entity,
+    environmentName: string,
+    params: {
+      name: string;
+      namespace?: string;
+      container?: string;
+      sinceSeconds?: number;
+    },
+  ): Promise<PodLogsResponse>;
 
   // === Workload Operations ===
 

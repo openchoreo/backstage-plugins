@@ -6,9 +6,10 @@ import YAML from 'yaml';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
 import { ResourceEventsTable } from './ResourceEventsTable';
+import { ResourcePodLogsViewer } from './ResourcePodLogsViewer';
 import type { LayoutNode } from './treeTypes';
 
-const LOGGABLE_KINDS = new Set(['Deployment', 'Pod', 'Job', 'CronJob']);
+const LOGGABLE_KINDS = new Set(['Pod']);
 
 const REFRESHABLE_TABS = new Set(['events', 'logs']);
 
@@ -85,11 +86,12 @@ export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({ node, entity, 
         )}
 
         {currentTab === 'logs' && (
-          <Box className={classes.drawerEmptyState}>
-            <Typography variant="body2" color="textSecondary">
-              No logs available
-            </Typography>
-          </Box>
+          <ResourcePodLogsViewer
+            node={node}
+            entity={entity}
+            environmentName={environmentName}
+            refreshKey={refreshKey}
+          />
         )}
 
         {currentTab === 'definition' && (

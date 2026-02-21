@@ -2224,6 +2224,81 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
   }
 
+  async fetchPodLogs(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      environmentName: string;
+      name: string;
+      namespace?: string;
+      container?: string;
+      sinceSeconds?: number;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching pod logs for ${request.name} in environment ${request.environmentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const queryParams: Record<string, string> = {
+        name: request.name,
+      };
+      if (request.namespace) {
+        queryParams.namespace = request.namespace;
+      }
+      if (request.container) {
+        queryParams.container = request.container;
+      }
+      if (request.sinceSeconds !== undefined) {
+        queryParams.sinceSeconds = request.sinceSeconds.toString();
+      }
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs' as any,
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              environmentName: request.environmentName,
+            },
+            query: queryParams,
+          },
+        } as any,
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch pod logs: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Pod logs fetched for ${request.name} in ${request.environmentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching pod logs for ${request.name} in ${request.environmentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
   /**
    * Fetches the release information for a specific environment.
    * Returns the complete Release CRD with spec and status information.
