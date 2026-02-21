@@ -133,14 +133,14 @@ export const InvestigationPathSection = ({
 
   return (
     <Box className={classes.timelineContainer}>
-      <Timeline>
+      <Timeline style={{ padding: '4px 0', margin: 0 }}>
         {investigationPath.map((step, idx) => (
-          <TimelineItem key={idx}>
+          <TimelineItem key={idx} style={{ minHeight: 'auto' }}>
             <TimelineOppositeContent
               style={{
-                maxWidth: '1px',
-                paddingLeft: '0px',
-                paddingRight: '0px',
+                maxWidth: 0,
+                padding: 0,
+                flex: 0,
               }}
             />
             <TimelineSeparator>
@@ -149,7 +149,7 @@ export const InvestigationPathSection = ({
               </TimelineDot>
               {idx < investigationPath.length - 1 && <TimelineConnector />}
             </TimelineSeparator>
-            <TimelineContent>
+            <TimelineContent style={{ paddingRight: 0 }}>
               <InvestigationStepCard step={step} />
             </TimelineContent>
           </TimelineItem>

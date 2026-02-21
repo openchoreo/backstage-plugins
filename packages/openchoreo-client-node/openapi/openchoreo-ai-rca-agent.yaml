@@ -1097,9 +1097,9 @@ components:
       properties:
         recommended_actions:
           type: array
-          description: Prioritized actions to mitigate and prevent recurrence
+          description: Prioritized actions to mitigate and prevent recurrence. When the remediation agent has run, these actions are enriched with status and concrete resource changes.
           items:
-            $ref: '#/components/schemas/Action'
+            $ref: '#/components/schemas/RecommendedAction'
         observability_recommendations:
           type: array
           description: Suggestions for improving telemetry/monitoring for better future RCA
@@ -1119,6 +1119,49 @@ components:
           type: string
           nullable: true
           description: Why this action is recommended. Use backticks to highlight key info
+
+    RecommendedAction:
+      type: object
+      description: A recommended action that may be enriched by the remediation agent with concrete OpenChoreo-specific guidance
+      required:
+        - description
+      allOf:
+        - $ref: '#/components/schemas/Action'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum: [suggested, unchanged, revised]
+              default: suggested
+              description: |
+                Status of the action:
+                - `suggested`: Default status set by the RCA agent
+                - `unchanged`: Reviewed by remediation agent but kept as-is
+                - `revised`: Translated into concrete OpenChoreo-specific guidance by remediation agent
+            changes:
+              type: array
+              description: Specific resource changes to make (populated when status is `revised`)
+              default: []
+              items:
+                $ref: '#/components/schemas/ResourceChange'
+
+    ResourceChange:
+      type: object
+      description: A specific change to make on an OpenChoreo resource
+      required:
+        - resource
+        - field_path
+        - value
+      properties:
+        resource:
+          type: string
+          description: Resource kind and name (e.g. 'ReleaseBinding api-service-development')
+        field_path:
+          type: string
+          description: Field path to update (e.g. 'spec.workloadOverrides.container.env[name=POSTGRES_DSN].value')
+        value:
+          type: string
+          description: Recommended value to set
 
   securitySchemes:
     bearerAuth:

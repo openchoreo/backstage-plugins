@@ -189,7 +189,7 @@ export const RCAReportView = ({
         </Box>
         <Box className={classes.content}>
           <Grid container spacing={1}>
-            <Grid item xs={12} md={8}>
+            <Grid item xs={12} style={{ flex: '0 0 62%', maxWidth: '62%' }}>
               <IncidentOverviewSection
                 summary={rcaReport.summary || ''}
                 alertContext={alertContext}
@@ -272,7 +272,12 @@ export const RCAReportView = ({
                 )}
             </Grid>
 
-            <Grid item xs={12} md={4} className={classes.sidebarColumn}>
+            <Grid
+              item
+              xs={12}
+              style={{ flex: '0 0 38%', maxWidth: '38%' }}
+              className={classes.sidebarColumn}
+            >
               {isChatOpen && (
                 <ChatPanelSection
                   reportId={report.reportId || ''}
