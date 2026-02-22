@@ -40,6 +40,7 @@
     "@backstage/plugin-permission-react": "0.4.36",
     "@backstage/theme": "0.6.8",
     "@dagrejs/dagre": "^2.0.4",
+    "@dagrejs/graphlib": "^3.0.4",
     "@material-ui/core": "4.12.4",
     "@material-ui/icons": "4.11.3",
     "@material-ui/lab": "4.0.0-alpha.61",

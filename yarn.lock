@@ -6832,7 +6832,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dagrejs/graphlib@npm:3.0.4":
+"@dagrejs/graphlib@npm:3.0.4, @dagrejs/graphlib@npm:^3.0.4":
   version: 3.0.4
   resolution: "@dagrejs/graphlib@npm:3.0.4"
   checksum: 10c0/ee43d221ab9388e25efd4c88f2d837efe7e670de94776f8a451ec45050e54a3739c70ffbd8c294ecb135077bd730015d131eae5fd524f1d31ac9f3fd2e3405ef
@@ -11001,6 +11001,7 @@ __metadata:
     "@backstage/test-utils": "npm:1.7.11"
     "@backstage/theme": "npm:0.6.8"
     "@dagrejs/dagre": "npm:^2.0.4"
+    "@dagrejs/graphlib": "npm:^3.0.4"
     "@material-ui/core": "npm:4.12.4"
     "@material-ui/icons": "npm:4.11.3"
     "@material-ui/lab": "npm:4.0.0-alpha.61"

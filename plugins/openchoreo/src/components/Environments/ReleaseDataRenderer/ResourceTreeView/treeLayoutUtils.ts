@@ -1,4 +1,3 @@
-import { Graph } from '@dagrejs/graphlib';
 import dagre from '@dagrejs/dagre';
 import type {
   ReleaseData,
@@ -137,7 +136,7 @@ export function computeTreeLayout(treeNodes: TreeNode[]): TreeLayout {
     return { nodes: [], edges: [], width: 0, height: 0 };
   }
 
-  const graph = new Graph();
+  const graph = new dagre.graphlib.Graph();
   graph.setGraph({
     nodesep: 25,
     rankdir: 'LR',

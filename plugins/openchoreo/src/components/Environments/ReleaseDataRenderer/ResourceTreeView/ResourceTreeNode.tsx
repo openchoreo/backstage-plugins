@@ -63,9 +63,8 @@ export const ResourceTreeNode: FC<ResourceTreeNodeProps> = ({
     >
       <ResourceKindIcon kind={node.kind} isRoot={node.isRoot} />
       <div className={classes.nodeContent}>
-        <div className={classes.nodeNameRow}>
-          <span className={classes.nodeName}>{node.name}</span>
-        </div>
+        <span className={classes.nodeKind}>{node.kind}</span>
+        <span className={classes.nodeName}>{node.name}</span>
       </div>
       {node.healthStatus && (
         <div className={classes.healthDotContainer}>

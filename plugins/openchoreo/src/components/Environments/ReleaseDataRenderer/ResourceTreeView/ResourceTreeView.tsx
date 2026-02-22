@@ -50,7 +50,7 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
 
   return (
     <Box className={classes.treeContainer}>
-      <ReleaseStatusBar releaseData={releaseData} resourceTreeData={resourceTreeData} />
+      <ReleaseStatusBar releaseData={releaseData} resourceTreeData={resourceTreeData} releaseBindingData={releaseBindingData} />
       <div className={classes.treeScrollArea}>
         <div
           className={classes.treeCanvas}

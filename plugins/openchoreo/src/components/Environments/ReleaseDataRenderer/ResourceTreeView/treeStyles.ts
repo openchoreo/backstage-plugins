@@ -108,13 +108,6 @@ export const useTreeStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.primary.main,
     fontSize: '0.7em',
   },
-  kindLabel: {
-    fontSize: '0.6rem',
-    color: theme.palette.text.secondary,
-    marginTop: 2,
-    lineHeight: 1,
-    textAlign: 'center',
-  },
   nodeContent: {
     display: 'flex',
     flexDirection: 'column',
@@ -124,17 +117,22 @@ export const useTreeStyles = makeStyles(theme => ({
     flex: 1,
     minWidth: 0,
   },
-  nodeNameRow: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  nodeName: {
-    fontSize: theme.typography.body1.fontSize,
-    fontWeight: 500,
+  nodeKind: {
+    fontSize: theme.typography.body2.fontSize,
+    fontWeight: 600,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     color: theme.palette.text.primary,
+  },
+  nodeName: {
+    fontSize: '0.75rem',
+    fontWeight: 400,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: theme.palette.text.secondary,
+    marginTop: 1,
   },
   healthDotContainer: {
     position: 'absolute' as const,
