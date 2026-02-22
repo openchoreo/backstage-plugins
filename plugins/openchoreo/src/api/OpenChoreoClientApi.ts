@@ -387,10 +387,7 @@ export interface OpenChoreoClientApi {
   ): Promise<any>;
 
   /** Fetch resource tree for a specific environment */
-  fetchResourceTree(
-    entity: Entity,
-    environmentName: string,
-  ): Promise<any>;
+  fetchResourceTree(entity: Entity, environmentName: string): Promise<any>;
 
   /** Fetch Kubernetes events for a specific resource */
   fetchResourceEvents(

@@ -29,7 +29,11 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   const [selectedNode, setSelectedNode] = useState<LayoutNode | null>(null);
 
   const layout = useMemo(() => {
-    const nodes = buildTreeNodes(releaseData, resourceTreeData, releaseBindingData);
+    const nodes = buildTreeNodes(
+      releaseData,
+      resourceTreeData,
+      releaseBindingData,
+    );
     return computeTreeLayout(nodes);
   }, [releaseData, resourceTreeData, releaseBindingData]);
 
@@ -50,7 +54,11 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
 
   return (
     <Box className={classes.treeContainer}>
-      <ReleaseStatusBar releaseData={releaseData} resourceTreeData={resourceTreeData} releaseBindingData={releaseBindingData} />
+      <ReleaseStatusBar
+        releaseData={releaseData}
+        resourceTreeData={resourceTreeData}
+        releaseBindingData={releaseBindingData}
+      />
       <div className={classes.treeScrollArea}>
         <div
           className={classes.treeCanvas}

@@ -135,7 +135,16 @@ export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [client, entity, environmentName, node.kind, node.name, node.namespace, node.uid, refreshKey]);
+  }, [
+    client,
+    entity,
+    environmentName,
+    node.kind,
+    node.name,
+    node.namespace,
+    node.uid,
+    refreshKey,
+  ]);
 
   if (loading) {
     return (
@@ -194,12 +203,8 @@ export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
               <TableCell className={classes.countCell}>
                 {event.count ?? '-'}
               </TableCell>
-              <TableCell>
-                {formatRelativeTime(event.firstTimestamp)}
-              </TableCell>
-              <TableCell>
-                {formatRelativeTime(event.lastTimestamp)}
-              </TableCell>
+              <TableCell>{formatRelativeTime(event.firstTimestamp)}</TableCell>
+              <TableCell>{formatRelativeTime(event.lastTimestamp)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

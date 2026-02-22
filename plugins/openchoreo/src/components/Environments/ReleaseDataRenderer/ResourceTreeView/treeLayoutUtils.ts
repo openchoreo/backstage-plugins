@@ -1,10 +1,12 @@
 import dagre from '@dagrejs/dagre';
+import type { ReleaseData, ResourceTreeData, ResourceTreeNode } from '../types';
 import type {
-  ReleaseData,
-  ResourceTreeData,
-  ResourceTreeNode,
-} from '../types';
-import type { TreeNode, LayoutNode, TreeEdge, EdgeLine, TreeLayout } from './treeTypes';
+  TreeNode,
+  LayoutNode,
+  TreeEdge,
+  EdgeLine,
+  TreeLayout,
+} from './treeTypes';
 
 export const NODE_WIDTH = 320;
 export const NODE_HEIGHT = 64;
@@ -41,9 +43,15 @@ export function buildTreeNodes(
       else if (flatStatus === 'NotReady') rootHealth = 'Progressing';
     } else {
       // New API: derive from status.conditions[type=Ready]
-      const bindingStatus = releaseBindingData.status as Record<string, unknown> | undefined;
-      const bindingConditions = Array.isArray(bindingStatus?.conditions) ? bindingStatus.conditions : [];
-      const readyCondition = bindingConditions.find((c: any) => c.type === 'Ready');
+      const bindingStatus = releaseBindingData.status as
+        | Record<string, unknown>
+        | undefined;
+      const bindingConditions = Array.isArray(bindingStatus?.conditions)
+        ? bindingStatus.conditions
+        : [];
+      const readyCondition = bindingConditions.find(
+        (c: any) => c.type === 'Ready',
+      );
       if (readyCondition) {
         const condStatus = (readyCondition as any).status;
         if (condStatus === 'True') rootHealth = 'Healthy';
@@ -61,10 +69,13 @@ export function buildTreeNodes(
   }
 
   // Use ReleaseBinding name if available, fallback to component name
-  const bindingName = (releaseBindingData?.name as string)
-    ?? ((releaseBindingData?.metadata as Record<string, unknown>)?.name as string)
-    ?? undefined;
-  const rootName = bindingName ?? data.spec?.owner?.componentName ?? 'ReleaseBinding';
+  const bindingName =
+    (releaseBindingData?.name as string) ??
+    ((releaseBindingData?.metadata as Record<string, unknown>)
+      ?.name as string) ??
+    undefined;
+  const rootName =
+    bindingName ?? data.spec?.owner?.componentName ?? 'ReleaseBinding';
 
   nodes.push({
     id: ROOT_NODE_ID,

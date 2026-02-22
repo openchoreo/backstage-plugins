@@ -73,9 +73,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
             {(node.group || node.version) && (
               <Chip
                 label={
-                  node.group
-                    ? `${node.group}/${node.version}`
-                    : node.version
+                  node.group ? `${node.group}/${node.version}` : node.version
                 }
                 size="small"
                 variant="outlined"
@@ -92,7 +90,11 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
               releaseBindingData={releaseBindingData}
             />
           ) : (
-            <ResourceDetailTabs node={node} entity={entity} environmentName={environmentName} />
+            <ResourceDetailTabs
+              node={node}
+              entity={entity}
+              environmentName={environmentName}
+            />
           )}
         </Box>
       )}

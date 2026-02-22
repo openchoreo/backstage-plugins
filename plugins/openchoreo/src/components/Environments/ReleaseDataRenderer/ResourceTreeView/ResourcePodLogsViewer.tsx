@@ -19,8 +19,7 @@ const useLogStyles = makeStyles(theme => ({
   container: {
     maxHeight: '100%',
     overflow: 'auto',
-    backgroundColor:
-      theme.palette.type === 'dark' ? '#1e1e1e' : '#f5f5f5',
+    backgroundColor: theme.palette.type === 'dark' ? '#1e1e1e' : '#f5f5f5',
     borderRadius: 4,
     padding: theme.spacing(1.5),
   },
@@ -78,15 +77,11 @@ export const ResourcePodLogsViewer: FC<ResourcePodLogsViewerProps> = ({
       setError(null);
 
       try {
-        const response = await client.fetchPodLogs(
-          entity,
-          environmentName,
-          {
-            name: node.name,
-            namespace: node.namespace,
-            sinceSeconds: 3600,
-          },
-        );
+        const response = await client.fetchPodLogs(entity, environmentName, {
+          name: node.name,
+          namespace: node.namespace,
+          sinceSeconds: 3600,
+        });
 
         if (!cancelled) {
           setLogEntries(response?.logEntries ?? []);

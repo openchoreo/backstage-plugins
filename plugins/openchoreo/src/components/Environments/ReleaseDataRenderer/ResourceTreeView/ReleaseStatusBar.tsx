@@ -4,7 +4,12 @@ import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
 import { getResourceTreeNodes } from './treeLayoutUtils';
 import { getHealthStatusForTab, formatTimestamp } from '../utils';
-import type { ReleaseData, ResourceTreeData, HealthStatus, ResourceTreeNode } from '../types';
+import type {
+  ReleaseData,
+  ResourceTreeData,
+  HealthStatus,
+  ResourceTreeNode,
+} from '../types';
 
 function getReadyCondition(releaseData: ReleaseData) {
   const conditions = releaseData.data?.status?.conditions;
@@ -20,18 +25,29 @@ function getOverallHealth(
   if (releaseBindingData) {
     if (typeof releaseBindingData.status === 'string') {
       const flatStatus = releaseBindingData.status;
-      if (flatStatus === 'Ready') return { label: 'Healthy', status: 'Healthy' };
-      if (flatStatus === 'Failed') return { label: 'Degraded', status: 'Degraded' };
-      if (flatStatus === 'NotReady') return { label: 'Progressing', status: 'Progressing' };
+      if (flatStatus === 'Ready')
+        return { label: 'Healthy', status: 'Healthy' };
+      if (flatStatus === 'Failed')
+        return { label: 'Degraded', status: 'Degraded' };
+      if (flatStatus === 'NotReady')
+        return { label: 'Progressing', status: 'Progressing' };
     } else {
-      const bindingStatus = releaseBindingData.status as Record<string, unknown> | undefined;
-      const bindingConditions = Array.isArray(bindingStatus?.conditions) ? bindingStatus.conditions : [];
-      const readyCondition = bindingConditions.find((c: any) => c.type === 'Ready');
+      const bindingStatus = releaseBindingData.status as
+        | Record<string, unknown>
+        | undefined;
+      const bindingConditions = Array.isArray(bindingStatus?.conditions)
+        ? bindingStatus.conditions
+        : [];
+      const readyCondition = bindingConditions.find(
+        (c: any) => c.type === 'Ready',
+      );
       if (readyCondition) {
         const condStatus = (readyCondition as any).status;
         const reason = (readyCondition as any).reason as string | undefined;
-        if (condStatus === 'True') return { label: 'Healthy', status: 'Healthy', reason };
-        if (condStatus === 'False') return { label: 'Degraded', status: 'Degraded', reason };
+        if (condStatus === 'True')
+          return { label: 'Healthy', status: 'Healthy', reason };
+        if (condStatus === 'False')
+          return { label: 'Degraded', status: 'Degraded', reason };
         return { label: 'Progressing', status: 'Progressing', reason };
       }
     }

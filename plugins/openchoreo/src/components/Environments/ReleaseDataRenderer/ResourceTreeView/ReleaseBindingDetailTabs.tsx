@@ -20,7 +20,10 @@ import { formatTimestamp, getHealthChipClass } from '../utils';
 import type { ReleaseData } from '../types';
 
 /** Helper to extract a field from either flat (legacy) or nested (new API) format */
-function getBindingField(binding: Record<string, unknown>, field: string): unknown {
+function getBindingField(
+  binding: Record<string, unknown>,
+  field: string,
+): unknown {
   // Legacy flat format: binding.environment, binding.releaseName, etc.
   if (field in binding) return binding[field];
   // New K8s format: binding.spec.environment, binding.spec.releaseName, etc.
@@ -35,7 +38,9 @@ function getBindingName(binding: Record<string, unknown>): string | undefined {
   return metadata?.name as string | undefined;
 }
 
-function getBindingStatus(binding: Record<string, unknown>): string | undefined {
+function getBindingStatus(
+  binding: Record<string, unknown>,
+): string | undefined {
   // Legacy: binding.status is a string, New: binding.spec.state
   if (typeof binding.status === 'string') return binding.status;
   const spec = binding.spec as Record<string, unknown> | undefined;
@@ -62,7 +67,9 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
   const releaseClasses = useReleaseInfoStyles();
   const [activeTab, setActiveTab] = useState(0);
 
-  const bindingName = releaseBindingData ? getBindingName(releaseBindingData) : undefined;
+  const bindingName = releaseBindingData
+    ? getBindingName(releaseBindingData)
+    : undefined;
 
   // Reset tab when data changes
   useEffect(() => {
@@ -74,7 +81,8 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
     ? getBindingConditions(releaseBindingData)
     : [];
   const fallbackConditions = releaseData?.data?.status?.conditions ?? [];
-  const displayConditions = conditions.length > 0 ? conditions : fallbackConditions;
+  const displayConditions =
+    conditions.length > 0 ? conditions : fallbackConditions;
 
   const releaseName = releaseBindingData
     ? (getBindingField(releaseBindingData, 'releaseName') as string | undefined)
@@ -163,45 +171,57 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {displayConditions.map((condition: any, index: number) => (
-                        <TableRow key={`${condition.type}-${index}`}>
-                          <TableCell>
-                            <Typography variant="body2" style={{ fontWeight: 500 }}>
-                              {condition.type}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              label={condition.status}
-                              size="small"
-                              className={getHealthChipClass(
-                                condition.status === 'True' ? 'Healthy' : 'Degraded',
-                                releaseClasses,
-                              )}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {condition.reason ?? '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                              style={{ maxWidth: 400, wordBreak: 'break-word' }}
-                            >
-                              {condition.message ?? '-'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {condition.lastTransitionTime
-                                ? formatTimestamp(condition.lastTransitionTime)
-                                : '-'}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {displayConditions.map(
+                        (condition: any, index: number) => (
+                          <TableRow key={`${condition.type}-${index}`}>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                                style={{ fontWeight: 500 }}
+                              >
+                                {condition.type}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={condition.status}
+                                size="small"
+                                className={getHealthChipClass(
+                                  condition.status === 'True'
+                                    ? 'Healthy'
+                                    : 'Degraded',
+                                  releaseClasses,
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {condition.reason ?? '-'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                                style={{
+                                  maxWidth: 400,
+                                  wordBreak: 'break-word',
+                                }}
+                              >
+                                {condition.message ?? '-'}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {condition.lastTransitionTime
+                                  ? formatTimestamp(
+                                      condition.lastTransitionTime,
+                                    )
+                                  : '-'}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ),
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>

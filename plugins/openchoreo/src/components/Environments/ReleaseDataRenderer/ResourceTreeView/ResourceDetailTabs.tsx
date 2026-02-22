@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, type FC } from 'react';
-import { Box, Tabs, Tab, Typography, IconButton, Tooltip } from '@material-ui/core';
+import {
+  Box,
+  Tabs,
+  Tab,
+  Typography,
+  IconButton,
+  Tooltip,
+} from '@material-ui/core';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { Entity } from '@backstage/catalog-model';
 import YAML from 'yaml';
@@ -33,7 +40,11 @@ interface ResourceDetailTabsProps {
   environmentName: string;
 }
 
-export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({ node, entity, environmentName }) => {
+export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({
+  node,
+  entity,
+  environmentName,
+}) => {
   const classes = useTreeStyles();
   const [activeTab, setActiveTab] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
