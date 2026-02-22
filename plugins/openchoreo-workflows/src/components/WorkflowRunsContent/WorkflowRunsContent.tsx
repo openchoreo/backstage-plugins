@@ -31,12 +31,12 @@ import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import type { IChangeEvent } from '@rjsf/core';
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
 import { useWorkflowRunDetails } from '../../hooks/useWorkflowRunDetails';
-import { useWorkflowRunLogs } from '../../hooks/useWorkflowRunLogs';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
 import { genericWorkflowsClientApiRef } from '../../api';
 import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
 import { WorkflowRunLogs } from '../WorkflowRunLogs';
+import { WorkflowRunEvents } from '../WorkflowRunEvents';
 import type { WorkflowRun } from '../../types';
 
 const useStyles = makeStyles(theme => ({
@@ -299,20 +299,13 @@ const RunDetailView = ({
   const isActive =
     normalizedStatus === 'pending' || normalizedStatus === 'running';
 
-  const {
-    logs,
-    loading: logsLoading,
-    error: logsError,
-    refetch: refetchLogs,
-  } = useWorkflowRunLogs(runName, isActive);
-
   const handleRefresh = () => {
     refetch();
-    refetchLogs();
   };
 
   const tabs = [
     { id: 'logs', label: 'Logs' },
+    { id: 'events', label: 'Events' },
     { id: 'details', label: 'Details' },
   ];
 
@@ -413,15 +406,11 @@ const RunDetailView = ({
       />
 
       <Box className={classes.tabContent}>
-        {activeTab === 0 && (
-          <WorkflowRunLogs
-            logs={logs}
-            loading={logsLoading}
-            error={logsError}
-          />
-        )}
+        {activeTab === 0 && <WorkflowRunLogs runName={runName} />}
 
-        {activeTab === 1 && (
+        {activeTab === 1 && <WorkflowRunEvents runName={runName} />}
+
+        {activeTab === 2 && (
           <>
             <InfoCard title="Run Details">
               <StructuredMetadataTable metadata={metadata} />

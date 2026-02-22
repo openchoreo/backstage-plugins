@@ -67,3 +67,32 @@ export interface LogsResponse {
   totalCount: number;
   tookMs?: number;
 }
+
+/**
+ * Status of an individual workflow step
+ */
+export interface WorkflowStepStatus {
+  name: string;
+  phase: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
+/**
+ * Status response for a generic workflow run including step-level statuses
+ */
+export interface WorkflowRunStatusResponse {
+  status: string;
+  steps: WorkflowStepStatus[];
+  hasLiveObservability: boolean;
+}
+
+/**
+ * A single Kubernetes event entry from a workflow run
+ */
+export interface WorkflowRunEventEntry {
+  timestamp: string;
+  type: string;
+  reason: string;
+  message: string;
+}

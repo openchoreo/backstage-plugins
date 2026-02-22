@@ -1951,6 +1951,117 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/status:
+    get:
+      operationId: getWorkflowRunStatus
+      summary: Get workflow run status
+      description: Returns the overall status and per-step status of a specific workflow run.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowRunNameParam'
+      responses:
+        '200':
+          description: Workflow run status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRunStatusResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/logs:
+    get:
+      operationId: getWorkflowRunLogs
+      summary: Get workflow run logs
+      description: Returns logs for a specific workflow run from the build plane. Logs are fetched live from the build plane; no archived logs are returned for completed runs.
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowRunNameParam'
+        - name: step
+          in: query
+          required: false
+          description: Filter logs by step name
+          schema:
+            type: string
+        - name: sinceSeconds
+          in: query
+          required: false
+          description: Return logs newer than a relative duration in seconds
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      responses:
+        '200':
+          description: Workflow run logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkflowRunLogEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/events:
+    get:
+      operationId: getWorkflowRunEvents
+      summary: Get workflow run events
+      description: |
+        Returns Kubernetes events associated with a namespace-level workflow run.
+        Events are fetched from the build plane through the cluster gateway and
+        aggregated across all relevant pods for the workflow and optional step filter.
+      tags:
+        - Workflows
+      parameters:
+        - name: namespaceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: runName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: step
+          in: query
+          required: false
+          description: Filter events by specific workflow step name
+          schema:
+            type: string
+            example: build-step
+      responses:
+        '200':
+          description: Workflow run events
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Array of event entries with timestamps
+                items:
+                  $ref: '#/components/schemas/WorkflowRunEventEntry'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Workflow run not found
+        '500':
+          description: Internal server error
+
   # =============================================================================
   # ComponentWorkflow Endpoints
   # =============================================================================
@@ -5676,6 +5787,99 @@ components:
     # -------------------------------------------------------------------------
     # WorkflowRuns
     # -------------------------------------------------------------------------
+    WorkflowRunStatusResponse:
+      type: object
+      description: Status of a workflow run including per-step details
+      required:
+        - status
+        - steps
+        - hasLiveObservability
+      properties:
+        status:
+          type: string
+          enum: [Pending, Running, Succeeded, Failed, Error]
+          description: Overall workflow run status
+          example: Running
+        steps:
+          type: array
+          description: Per-step status details
+          items:
+            $ref: '#/components/schemas/WorkflowStepStatus'
+        hasLiveObservability:
+          type: boolean
+          description: Whether live logs/events are available from the build plane
+          example: true
+
+    WorkflowStepStatus:
+      type: object
+      description: Status of an individual workflow step
+      required:
+        - name
+        - phase
+      properties:
+        name:
+          type: string
+          description: Step name
+          example: clone-step
+        phase:
+          type: string
+          description: Step phase
+          enum: [Pending, Running, Succeeded, Failed, Skipped, Error]
+          example: Succeeded
+        startedAt:
+          type: string
+          format: date-time
+          description: When the step started
+          example: "2025-01-06T10:00:00Z"
+        finishedAt:
+          type: string
+          format: date-time
+          description: When the step finished
+          example: "2025-01-06T10:01:00Z"
+
+    WorkflowRunLogEntry:
+      type: object
+      description: A single log entry from a workflow run
+      required:
+        - log
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Log entry timestamp
+          example: "2025-01-06T10:00:00Z"
+        log:
+          type: string
+          description: Log message
+          example: "Step 1: Cloning repository..."
+
+    WorkflowRunEventEntry:
+      type: object
+      description: A single Kubernetes event entry from a workflow run
+      required:
+        - timestamp
+        - type
+        - reason
+        - message
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the event was generated (RFC3339 format)
+          example: '2025-01-06T10:00:00.123Z'
+        type:
+          type: string
+          description: Event type
+          example: 'Normal'
+        reason:
+          type: string
+          description: Reason for the event
+          example: 'Started'
+        message:
+          type: string
+          description: Event message
+          example: 'Started workflow step'
+
     WorkflowRunList:
       type: object
       description: Paginated list of workflow runs

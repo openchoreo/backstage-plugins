@@ -55,7 +55,7 @@ export interface PaginatedResponse<T> {
  * Single log entry from workflow execution
  */
 export interface LogEntry {
-  timestamp: string;
+  timestamp?: string;
   log: string;
 }
 
@@ -70,4 +70,33 @@ export interface LogsResponse {
   error?: 'OBSERVABILITY_NOT_CONFIGURED' | string;
   /** Human-readable error message */
   message?: string;
+}
+
+/**
+ * Status of an individual workflow step
+ */
+export interface WorkflowStepStatus {
+  name: string;
+  phase: string;
+  startedAt?: string;
+  finishedAt?: string;
+}
+
+/**
+ * Status response for a generic workflow run including step-level statuses
+ */
+export interface WorkflowRunStatusResponse {
+  status: string;
+  steps: WorkflowStepStatus[];
+  hasLiveObservability: boolean;
+}
+
+/**
+ * A single Kubernetes event entry from a workflow run
+ */
+export interface WorkflowRunEventEntry {
+  timestamp: string;
+  type: string;
+  reason: string;
+  message: string;
 }

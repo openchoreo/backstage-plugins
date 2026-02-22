@@ -1,114 +1,263 @@
-import { Progress } from '@backstage/core-components';
-import { Alert, AlertTitle } from '@material-ui/lab';
-import { Box, Typography } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
-import type { LogsResponse } from '../../types';
-
-const useStyles = makeStyles(theme => ({
-  logsContainer: {
-    backgroundColor: theme.palette.type === 'dark' ? '#1e1e1e' : '#f5f5f5',
-    borderRadius: 4,
-    padding: theme.spacing(2),
-    fontFamily: 'monospace',
-    fontSize: '0.875rem',
-    maxHeight: '600px',
-    overflow: 'auto',
-    marginTop: theme.spacing(2),
-  },
-  logEntry: {
-    display: 'flex',
-    gap: theme.spacing(2),
-    padding: theme.spacing(0.5, 0),
-    borderBottom: `1px solid ${theme.palette.divider}`,
-    '&:last-child': {
-      borderBottom: 'none',
-    },
-  },
-  timestamp: {
-    color: theme.palette.text.secondary,
-    whiteSpace: 'nowrap',
-    minWidth: 180,
-    flexShrink: 0,
-  },
-  message: {
-    flex: 1,
-    wordBreak: 'break-word',
-    whiteSpace: 'pre-wrap',
-  },
-  emptyState: {
-    padding: theme.spacing(4),
-    textAlign: 'center',
-    color: theme.palette.text.secondary,
-  },
-  logsInfo: {
-    color: theme.palette.text.secondary,
-    marginBottom: theme.spacing(1),
-    fontSize: '0.875rem',
-  },
-}));
+import { useState, useEffect } from 'react';
+import {
+  Typography,
+  Box,
+  CircularProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+} from '@material-ui/core';
+import { useApi } from '@backstage/core-plugin-api';
+import { Alert } from '@material-ui/lab';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import { genericWorkflowsClientApiRef } from '../../api';
+import { useSelectedNamespace } from '../../context';
+import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
+import { useStyles } from './styles';
+import {
+  useWorkflowRunStatus,
+  isTerminalStatus,
+} from '../../hooks/useWorkflowRunStatus';
+import type { LogEntry, WorkflowStepStatus } from '../../types';
 
 interface WorkflowRunLogsProps {
-  logs: LogsResponse | null;
-  loading: boolean;
-  error: Error | null;
+  runName: string;
 }
 
-export const WorkflowRunLogs = ({
-  logs,
-  loading,
-  error,
-}: WorkflowRunLogsProps) => {
+function deduplicateLogs(logs: LogEntry[]): LogEntry[] {
+  const seen = new Set<string>();
+  return logs.filter(entry => {
+    // Entries without a timestamp cannot be reliably deduplicated; always include them.
+    if (entry.timestamp === undefined || entry.timestamp === null) return true;
+    const key = `${entry.timestamp}-${entry.log}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export const WorkflowRunLogs = ({ runName }: WorkflowRunLogsProps) => {
   const classes = useStyles();
+  const client = useApi(genericWorkflowsClientApiRef);
+  const namespaceName = useSelectedNamespace();
 
-  if (loading) {
-    return <Progress />;
-  }
+  const {
+    statusState,
+    statusLoading,
+    statusError,
+    isObservabilityNotConfigured: isStatusObsNotConfigured,
+    activeStepName,
+    setActiveStepName,
+  } = useWorkflowRunStatus(
+    runName,
+    'Observability is not configured for this workflow run. Logs cannot be retrieved.',
+  );
 
-  if (error) {
-    return (
-      <Alert severity="error">
-        <AlertTitle>Error loading logs</AlertTitle>
-        {error.message}
-      </Alert>
+  const [logsByStep, setLogsByStep] = useState<Record<string, LogEntry[]>>({});
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState<string | null>(null);
+  const [isLogsObsNotConfigured, setIsLogsObsNotConfigured] = useState(false);
+
+  // Reset log state when the viewed run or namespace changes
+  useEffect(() => {
+    setLogsByStep({});
+    setLogsError(null);
+    setIsLogsObsNotConfigured(false);
+    setLogsLoading(false);
+  }, [runName, namespaceName]);
+
+  // Fetch logs for the active step, with short polling for running steps
+  useEffect(() => {
+    if (!statusState?.steps || !activeStepName || !namespaceName) return;
+
+    let cancelled = false;
+    let intervalId: number | undefined;
+
+    const activeStep: WorkflowStepStatus | undefined = statusState.steps.find(
+      step => step.name === activeStepName,
     );
-  }
+    const isRunningStep =
+      activeStep?.phase?.toLowerCase() === 'running' &&
+      !isTerminalStatus(statusState.status);
 
-  // Handle observability not configured
-  if (logs?.error === 'OBSERVABILITY_NOT_CONFIGURED') {
-    return (
-      <Alert severity="info">
-        <AlertTitle>Logs not available</AlertTitle>
-        {logs.message ||
-          'Observability is not configured for this workflow run. Logs cannot be retrieved.'}
-      </Alert>
-    );
-  }
+    const fetchLogs = async (useSinceSeconds: boolean) => {
+      try {
+        if (!cancelled && !useSinceSeconds) {
+          setLogsLoading(true);
+          setLogsError(null);
+        }
 
-  if (!logs || logs.logs.length === 0) {
+        const entries = await client.getWorkflowRunStepLogs(
+          namespaceName,
+          runName,
+          {
+            step: activeStepName,
+            sinceSeconds: useSinceSeconds ? 20 : undefined,
+          },
+        );
+
+        if (cancelled) return;
+
+        setLogsByStep(prev => ({
+          ...prev,
+          [activeStepName]: useSinceSeconds
+            ? deduplicateLogs([...(prev[activeStepName] ?? []), ...entries])
+            : entries,
+        }));
+        setLogsError(null);
+        setIsLogsObsNotConfigured(false);
+      } catch (err) {
+        if (cancelled) return;
+
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to fetch logs';
+
+        if (
+          errorMessage.includes('ObservabilityNotConfigured') ||
+          errorMessage.includes('OBSERVABILITY_NOT_CONFIGURED')
+        ) {
+          setIsLogsObsNotConfigured(true);
+          setLogsError(
+            'Observability is not configured for this workflow run. Logs cannot be retrieved.',
+          );
+        } else {
+          setLogsError(errorMessage);
+        }
+      } finally {
+        if (!cancelled && !useSinceSeconds) {
+          setLogsLoading(false);
+        }
+      }
+    };
+
+    // Initial fetch (full history)
+    fetchLogs(false);
+
+    if (isRunningStep) {
+      intervalId = window.setInterval(() => {
+        fetchLogs(true);
+      }, 10_000);
+    }
+
+    // eslint-disable-next-line consistent-return
+    return () => {
+      cancelled = true;
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    client,
+    namespaceName,
+    runName,
+    activeStepName,
+    statusState?.status,
+    statusState?.steps,
+  ]);
+
+  const handleStepChange = (stepName: string) => {
+    setActiveStepName(prev => (prev === stepName ? null : stepName));
+  };
+
+  if (statusLoading && !statusState) {
     return (
-      <Box className={classes.emptyState}>
-        <Typography variant="body1">No logs available for this run.</Typography>
+      <Box className={classes.loadingContainer}>
+        <CircularProgress size={24} />
         <Typography variant="body2" color="textSecondary">
-          Logs may appear once the workflow starts executing.
+          Loading workflow run status...
         </Typography>
       </Box>
     );
   }
 
+  const isObservabilityNotConfigured =
+    isStatusObsNotConfigured || isLogsObsNotConfigured;
+  const combinedError = statusError || logsError;
+
+  if (combinedError) {
+    if (isObservabilityNotConfigured) {
+      return (
+        <Alert severity="info">
+          <Typography variant="body1">{combinedError}</Typography>
+        </Alert>
+      );
+    }
+    return (
+      <Alert severity="error">
+        <Typography variant="body1">{combinedError}</Typography>
+      </Alert>
+    );
+  }
+
+  if (!statusState || !statusState.steps || statusState.steps.length === 0) {
+    return (
+      <Typography variant="body2" color="textSecondary">
+        No steps available for this workflow run
+      </Typography>
+    );
+  }
+
+  const activeLogs: LogEntry[] =
+    (activeStepName && logsByStep[activeStepName]) || [];
+
   return (
     <Box>
-      <Typography className={classes.logsInfo}>
-        {logs.totalCount} log entries
-        {logs.tookMs !== undefined && ` (fetched in ${logs.tookMs}ms)`}
-      </Typography>
-      <Box className={classes.logsContainer}>
-        {logs.logs.map((entry, index) => (
-          <Box key={index} className={classes.logEntry}>
-            <span className={classes.timestamp}>
-              {new Date(entry.timestamp).toLocaleString()}
-            </span>
-            <span className={classes.message}>{entry.log}</span>
-          </Box>
+      <Box className={classes.stepsContainer}>
+        {statusState.steps.map(step => (
+          <Accordion
+            key={step.name}
+            expanded={activeStepName === step.name}
+            onChange={() => handleStepChange(step.name)}
+            className={classes.stepAccordion}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box className={classes.stepHeader}>
+                <Typography
+                  variant="body2"
+                  className={classes.stepTitle}
+                  color="textPrimary"
+                >
+                  {step.name}
+                </Typography>
+                <Box className={classes.stepStatusChip}>
+                  <WorkflowRunStatusChip status={step.phase} />
+                </Box>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box className={classes.logsContainer}>
+                {logsLoading && activeLogs.length === 0 && (
+                  <Box className={classes.inlineLoadingContainer}>
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="textSecondary">
+                      Loading logs...
+                    </Typography>
+                  </Box>
+                )}
+
+                {!logsLoading && activeLogs.length === 0 && (
+                  <Typography variant="body2" className={classes.noLogsText}>
+                    No logs available for this step
+                  </Typography>
+                )}
+
+                {activeLogs.map((logEntry, index) => (
+                  <Box
+                    key={`${logEntry.timestamp ?? ''}-${logEntry.log.slice(
+                      0,
+                      40,
+                    )}-${index}`}
+                    style={{ marginBottom: '4px' }}
+                  >
+                    <Typography variant="body2" className={classes.logText}>
+                      {logEntry.log}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
         ))}
       </Box>
     </Box>
