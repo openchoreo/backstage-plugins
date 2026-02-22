@@ -11,14 +11,18 @@ import CloseIcon from '@material-ui/icons/Close';
 import { Entity } from '@backstage/catalog-model';
 import { ResourceKindIcon } from './ResourceKindIcon';
 import { ResourceDetailTabs } from './ResourceDetailTabs';
+import { ReleaseBindingDetailTabs } from './ReleaseBindingDetailTabs';
 import { useTreeStyles } from './treeStyles';
 import type { LayoutNode } from './treeTypes';
-import { formatTimestamp, getHealthChipClass } from '../utils';
+import { getHealthChipClass } from '../utils';
 import { useReleaseInfoStyles } from '../styles';
+import type { ReleaseData } from '../types';
 
 interface ResourceDetailPanelProps {
   node: LayoutNode | null;
   onClose: () => void;
+  releaseData: ReleaseData;
+  releaseBindingData: Record<string, unknown> | null;
   entity: Entity;
   environmentName: string;
 }
@@ -26,6 +30,8 @@ interface ResourceDetailPanelProps {
 export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
   node,
   onClose,
+  releaseData,
+  releaseBindingData,
   entity,
   environmentName,
 }) => {
@@ -79,45 +85,12 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
 
           <Divider />
 
-          {/* Content: root summary or tabs */}
+          {/* Content: root summary/definition tabs or resource tabs */}
           {node.isRoot ? (
-            <Box mt={2}>
-              <Box className={classes.drawerProperty}>
-                <Typography className={classes.drawerPropertyKey}>
-                  Kind
-                </Typography>
-                <Typography className={classes.drawerPropertyValue}>
-                  {node.kind}
-                </Typography>
-              </Box>
-
-              {node.healthStatus && (
-                <Box className={classes.drawerProperty}>
-                  <Typography className={classes.drawerPropertyKey}>
-                    Health
-                  </Typography>
-                  <Chip
-                    label={node.healthStatus}
-                    size="small"
-                    className={getHealthChipClass(
-                      node.healthStatus,
-                      releaseClasses,
-                    )}
-                  />
-                </Box>
-              )}
-
-              {node.lastObservedTime && (
-                <Box className={classes.drawerProperty}>
-                  <Typography className={classes.drawerPropertyKey}>
-                    Last Observed
-                  </Typography>
-                  <Typography className={classes.drawerPropertyValue}>
-                    {formatTimestamp(node.lastObservedTime)}
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+            <ReleaseBindingDetailTabs
+              releaseData={releaseData}
+              releaseBindingData={releaseBindingData}
+            />
           ) : (
             <ResourceDetailTabs node={node} entity={entity} environmentName={environmentName} />
           )}

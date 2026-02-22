@@ -13,6 +13,7 @@ import type { ReleaseData, ResourceTreeData } from '../types';
 interface ResourceTreeViewProps {
   releaseData: ReleaseData;
   resourceTreeData: ResourceTreeData;
+  releaseBindingData: Record<string, unknown> | null;
   entity: Entity;
   environmentName: string;
 }
@@ -20,6 +21,7 @@ interface ResourceTreeViewProps {
 export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   releaseData,
   resourceTreeData,
+  releaseBindingData,
   entity,
   environmentName,
 }) => {
@@ -27,9 +29,9 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   const [selectedNode, setSelectedNode] = useState<LayoutNode | null>(null);
 
   const layout = useMemo(() => {
-    const nodes = buildTreeNodes(releaseData, resourceTreeData);
+    const nodes = buildTreeNodes(releaseData, resourceTreeData, releaseBindingData);
     return computeTreeLayout(nodes);
-  }, [releaseData, resourceTreeData]);
+  }, [releaseData, resourceTreeData, releaseBindingData]);
 
   if (layout.nodes.length === 0) {
     return (
@@ -77,6 +79,8 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
       <ResourceDetailPanel
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
+        releaseData={releaseData}
+        releaseBindingData={releaseBindingData}
         entity={entity}
         environmentName={environmentName}
       />

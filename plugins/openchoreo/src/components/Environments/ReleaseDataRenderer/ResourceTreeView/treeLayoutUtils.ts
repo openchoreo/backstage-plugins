@@ -24,22 +24,49 @@ export function getResourceTreeNodes(
 export function buildTreeNodes(
   releaseData: ReleaseData,
   resourceTreeData: ResourceTreeData,
+  releaseBindingData?: Record<string, unknown> | null,
 ): TreeNode[] {
   const data = releaseData?.data;
   if (!data) return [];
 
   const nodes: TreeNode[] = [];
 
-  // Derive root health from conditions
-  const conditions = data.status?.conditions ?? [];
-  const readyCondition = conditions.find(c => c.type === 'Ready');
+  // Derive root health from ReleaseBinding status, matching the Deploy page logic
   let rootHealth: TreeNode['healthStatus'] = 'Unknown';
-  if (readyCondition) {
-    rootHealth = readyCondition.status === 'True' ? 'Healthy' : 'Degraded';
+  if (releaseBindingData) {
+    // Legacy API: status is a flat string ('Ready', 'NotReady', 'Failed')
+    if (typeof releaseBindingData.status === 'string') {
+      const flatStatus = releaseBindingData.status;
+      if (flatStatus === 'Ready') rootHealth = 'Healthy';
+      else if (flatStatus === 'Failed') rootHealth = 'Degraded';
+      else if (flatStatus === 'NotReady') rootHealth = 'Progressing';
+    } else {
+      // New API: derive from status.conditions[type=Ready]
+      const bindingStatus = releaseBindingData.status as Record<string, unknown> | undefined;
+      const bindingConditions = Array.isArray(bindingStatus?.conditions) ? bindingStatus.conditions : [];
+      const readyCondition = bindingConditions.find((c: any) => c.type === 'Ready');
+      if (readyCondition) {
+        const condStatus = (readyCondition as any).status;
+        if (condStatus === 'True') rootHealth = 'Healthy';
+        else if (condStatus === 'False') rootHealth = 'Degraded';
+        else rootHealth = 'Progressing';
+      }
+    }
+  } else {
+    // Fallback to release conditions if no binding data
+    const releaseConditions = data.status?.conditions ?? [];
+    const readyCondition = releaseConditions.find(c => c.type === 'Ready');
+    if (readyCondition) {
+      rootHealth = readyCondition.status === 'True' ? 'Healthy' : 'Degraded';
+    }
   }
 
-  // Create root node (ReleaseBinding)
-  const rootName = data.spec?.owner?.componentName ?? 'ReleaseBinding';
+  // Use ReleaseBinding name if available, fallback to component name
+  const bindingName = (releaseBindingData?.name as string)
+    ?? ((releaseBindingData?.metadata as Record<string, unknown>)?.name as string)
+    ?? undefined;
+  const rootName = bindingName ?? data.spec?.owner?.componentName ?? 'ReleaseBinding';
+
   nodes.push({
     id: ROOT_NODE_ID,
     kind: 'ReleaseBinding',

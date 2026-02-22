@@ -56,6 +56,7 @@ export const ReleaseDetailsPage = ({
   const [error, setError] = useState<string | null>(null);
   const [releaseData, setReleaseData] = useState<any>(null);
   const [resourceTreeData, setResourceTreeData] = useState<any>(null);
+  const [releaseBindingData, setReleaseBindingData] = useState<Record<string, unknown> | null>(null);
 
   const environmentName = environment.resourceName || environment.name;
 
@@ -66,15 +67,28 @@ export const ReleaseDetailsPage = ({
     setError(null);
 
     try {
-      const [releaseResult, resourceTreeResult] = await Promise.all([
+      const [releaseResult, resourceTreeResult, releaseBindingsResult] = await Promise.all([
         client.fetchEnvironmentRelease(entity, environmentName),
         client.fetchResourceTree(entity, environmentName).catch(() => ({
           success: false,
           data: { nodes: [] },
         })),
+        client.fetchReleaseBindings(entity).catch(() => ({
+          success: false,
+          data: { items: [] },
+        })),
       ]);
       setReleaseData(releaseResult);
       setResourceTreeData(resourceTreeResult);
+
+      // Find the release binding matching this environment
+      // Handle both legacy format ({ success, data: { items } }) and new API format ({ items })
+      const bindingsResult = releaseBindingsResult as any;
+      const bindings: any[] = bindingsResult?.data?.items ?? bindingsResult?.items ?? [];
+      const matchingBinding = bindings.find(
+        (b: any) => (b.environment ?? b.spec?.environment) === environmentName,
+      ) ?? null;
+      setReleaseBindingData(matchingBinding);
     } catch (err: any) {
       setError(err.message || 'Failed to load release details');
     } finally {
@@ -122,7 +136,7 @@ export const ReleaseDetailsPage = ({
       )}
 
       {!loading && !error && releaseData && (
-        <ResourceTreeView releaseData={releaseData} resourceTreeData={resourceTreeData} entity={entity} environmentName={environmentName} />
+        <ResourceTreeView releaseData={releaseData} resourceTreeData={resourceTreeData} releaseBindingData={releaseBindingData} entity={entity} environmentName={environmentName} />
       )}
 
       {!loading && !error && !releaseData && (
