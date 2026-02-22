@@ -721,6 +721,123 @@ export async function createRouter({
     );
   });
 
+  router.get('/resources', async (req, res) => {
+    const { componentName, projectName, namespaceName, environmentName } =
+      req.query;
+
+    if (!componentName || !projectName || !namespaceName || !environmentName) {
+      throw new InputError(
+        'componentName, projectName, namespaceName and environmentName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchResourceTree(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          environmentName: environmentName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/resource-events', requireAuth, async (req, res) => {
+    const {
+      componentName,
+      projectName,
+      namespaceName,
+      environmentName,
+      kind,
+      name,
+      namespace,
+      uid,
+    } = req.query;
+
+    if (
+      !componentName ||
+      !projectName ||
+      !namespaceName ||
+      !environmentName ||
+      !kind ||
+      !name
+    ) {
+      throw new InputError(
+        'componentName, projectName, namespaceName, environmentName, kind and name are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.fetchResourceEvents(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          environmentName: environmentName as string,
+          kind: kind as string,
+          name: name as string,
+          namespace: namespace as string | undefined,
+          uid: uid as string | undefined,
+        },
+        userToken,
+      ),
+    );
+  });
+
+  router.get('/pod-logs', requireAuth, async (req, res) => {
+    const {
+      componentName,
+      projectName,
+      namespaceName,
+      environmentName,
+      name,
+      namespace,
+      container,
+      sinceSeconds,
+    } = req.query;
+    if (
+      !componentName ||
+      !projectName ||
+      !namespaceName ||
+      !environmentName ||
+      !name
+    ) {
+      throw new InputError(
+        'componentName, projectName, namespaceName, environmentName and name are required query parameters',
+      );
+    }
+    const userToken = getUserTokenFromRequest(req);
+    let sinceSecondsValue: number | undefined;
+    if (sinceSeconds !== undefined) {
+      const parsed = Number(sinceSeconds);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new InputError('sinceSeconds must be a non-negative number');
+      }
+      sinceSecondsValue = Math.floor(parsed);
+    }
+    res.json(
+      await environmentInfoService.fetchPodLogs(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          environmentName: environmentName as string,
+          name: name as string,
+          namespace: namespace as string | undefined,
+          container: container as string | undefined,
+          sinceSeconds: sinceSecondsValue,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.get('/environment-release', async (req, res) => {
     const { componentName, projectName, namespaceName, environmentName } =
       req.query;

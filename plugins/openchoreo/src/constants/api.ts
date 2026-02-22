@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   RELEASE_BINDINGS: '/release-bindings',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   ENVIRONMENT_RELEASE: '/environment-release',
+  RESOURCE_TREE: '/resources',
   WORKFLOW_SCHEMA: '/workflow-schema',
   COMPONENT_WORKFLOW_PARAMETERS: '/workflow-parameters',
   SECRET_REFERENCES: '/secret-references',

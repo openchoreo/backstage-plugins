@@ -286,6 +286,33 @@ export interface ResourceCRUDResponse {
   kind?: string;
 }
 
+/** Kubernetes event from resource events API */
+export interface ResourceEvent {
+  type: string;
+  reason: string;
+  message: string;
+  count?: number;
+  firstTimestamp: string;
+  lastTimestamp: string;
+  source: string;
+}
+
+/** Response from the resource events API */
+export interface ResourceEventsResponse {
+  events: ResourceEvent[];
+}
+
+/** Pod log entry from the pod-logs API */
+export interface PodLogEntry {
+  timestamp: string;
+  log: string;
+}
+
+/** Response from the pod-logs API */
+export interface PodLogsResponse {
+  logEntries: PodLogEntry[];
+}
+
 // ============================================
 // OpenChoreo Client API Interface
 // ============================================
@@ -358,6 +385,33 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     environmentName: string,
   ): Promise<any>;
+
+  /** Fetch resource tree for a specific environment */
+  fetchResourceTree(entity: Entity, environmentName: string): Promise<any>;
+
+  /** Fetch Kubernetes events for a specific resource */
+  fetchResourceEvents(
+    entity: Entity,
+    environmentName: string,
+    resourceParams: {
+      kind: string;
+      name: string;
+      namespace?: string;
+      uid?: string;
+    },
+  ): Promise<ResourceEventsResponse>;
+
+  /** Fetch pod logs for a specific pod resource */
+  fetchPodLogs(
+    entity: Entity,
+    environmentName: string,
+    params: {
+      name: string;
+      namespace?: string;
+      container?: string;
+      sinceSeconds?: number;
+    },
+  ): Promise<PodLogsResponse>;
 
   // === Workload Operations ===
 

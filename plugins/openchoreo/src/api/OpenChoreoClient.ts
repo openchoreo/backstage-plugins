@@ -34,6 +34,8 @@ import type {
   NamespaceRoleBindingFilters,
   ForceDeleteResult,
   RoleBindingsLookup,
+  ResourceEventsResponse,
+  PodLogsResponse,
 } from './OpenChoreoClientApi';
 import type { Environment } from '../components/RuntimeLogs/types';
 
@@ -55,6 +57,9 @@ const API_ENDPOINTS = {
   RELEASE_BINDINGS: '/release-bindings',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   ENVIRONMENT_RELEASE: '/environment-release',
+  RESOURCE_TREE: '/resources',
+  RESOURCE_EVENTS: '/resource-events',
+  POD_LOGS: '/pod-logs',
   WORKFLOW_SCHEMA: '/workflow-schema',
   COMPONENT_WORKFLOW_PARAMETERS: '/workflow-parameters',
   SECRET_REFERENCES: '/secret-references',
@@ -372,6 +377,84 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         ...entityMetadataToParams(metadata),
         environmentName,
       },
+    });
+  }
+
+  async fetchResourceTree(
+    entity: Entity,
+    environmentName: string,
+  ): Promise<any> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.RESOURCE_TREE, {
+      params: {
+        ...entityMetadataToParams(metadata),
+        environmentName,
+      },
+    });
+  }
+
+  async fetchResourceEvents(
+    entity: Entity,
+    environmentName: string,
+    resourceParams: {
+      kind: string;
+      name: string;
+      namespace?: string;
+      uid?: string;
+    },
+  ): Promise<ResourceEventsResponse> {
+    const metadata = extractEntityMetadata(entity);
+    const filteredResourceParams = Object.entries(resourceParams).reduce<
+      Record<string, string>
+    >((params, [key, value]) => {
+      if (value !== undefined) {
+        params[key] = value;
+      }
+      return params;
+    }, {});
+
+    return this.apiFetch<ResourceEventsResponse>(
+      API_ENDPOINTS.RESOURCE_EVENTS,
+      {
+        params: {
+          ...entityMetadataToParams(metadata),
+          environmentName,
+          ...filteredResourceParams,
+        },
+      },
+    );
+  }
+
+  async fetchPodLogs(
+    entity: Entity,
+    environmentName: string,
+    params: {
+      name: string;
+      namespace?: string;
+      container?: string;
+      sinceSeconds?: number;
+    },
+  ): Promise<PodLogsResponse> {
+    const metadata = extractEntityMetadata(entity);
+
+    const queryParams: Record<string, string> = {
+      ...entityMetadataToParams(metadata),
+      environmentName,
+      name: params.name,
+    };
+    if (params.namespace) {
+      queryParams.namespace = params.namespace;
+    }
+    if (params.container) {
+      queryParams.container = params.container;
+    }
+    if (params.sinceSeconds !== undefined) {
+      queryParams.sinceSeconds = params.sinceSeconds.toString();
+    }
+
+    return this.apiFetch<PodLogsResponse>(API_ENDPOINTS.POD_LOGS, {
+      params: queryParams,
     });
   }
 

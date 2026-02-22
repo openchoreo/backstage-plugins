@@ -5,7 +5,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { ReleaseInfoTabbedView } from './ReleaseDataRenderer/ReleaseInfoTabbedView';
+import { ResourceTreeView } from './ReleaseDataRenderer/ResourceTreeView';
 import type { Environment } from './hooks/useEnvironmentData';
 
 const useStyles = makeStyles(theme => ({
@@ -42,18 +42,12 @@ interface ReleaseDetailsPageProps {
   environment: Environment;
   entity: Entity;
   onBack: () => void;
-  /** Initial tab to display (from URL) */
-  initialTab?: string;
-  /** Callback when tab changes (to update URL) */
-  onTabChange?: (tabId: string) => void;
 }
 
 export const ReleaseDetailsPage = ({
   environment,
   entity,
   onBack,
-  initialTab,
-  onTabChange,
 }: ReleaseDetailsPageProps) => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
@@ -61,6 +55,11 @@ export const ReleaseDetailsPage = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [releaseData, setReleaseData] = useState<any>(null);
+  const [resourceTreeData, setResourceTreeData] = useState<any>(null);
+  const [releaseBindingData, setReleaseBindingData] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
 
   const environmentName = environment.resourceName || environment.name;
 
@@ -71,11 +70,32 @@ export const ReleaseDetailsPage = ({
     setError(null);
 
     try {
-      const data = await client.fetchEnvironmentRelease(
-        entity,
-        environmentName,
-      );
-      setReleaseData(data);
+      const [releaseResult, resourceTreeResult, releaseBindingsResult] =
+        await Promise.all([
+          client.fetchEnvironmentRelease(entity, environmentName),
+          client.fetchResourceTree(entity, environmentName).catch(() => ({
+            success: false,
+            data: { nodes: [] },
+          })),
+          client.fetchReleaseBindings(entity).catch(() => ({
+            success: false,
+            data: { items: [] },
+          })),
+        ]);
+      setReleaseData(releaseResult);
+      setResourceTreeData(resourceTreeResult);
+
+      // Find the release binding matching this environment
+      // Handle both legacy format ({ success, data: { items } }) and new API format ({ items })
+      const bindingsResult = releaseBindingsResult as any;
+      const bindings: any[] =
+        bindingsResult?.data?.items ?? bindingsResult?.items ?? [];
+      const matchingBinding =
+        bindings.find(
+          (b: any) =>
+            (b.environment ?? b.spec?.environment) === environmentName,
+        ) ?? null;
+      setReleaseBindingData(matchingBinding);
     } catch (err: any) {
       setError(err.message || 'Failed to load release details');
     } finally {
@@ -95,7 +115,7 @@ export const ReleaseDetailsPage = ({
     <Button onClick={handleRetry} color="primary" variant="outlined">
       Retry
     </Button>
-  ) : null;
+  ) : undefined;
 
   return (
     <DetailPageLayout
@@ -123,10 +143,12 @@ export const ReleaseDetailsPage = ({
       )}
 
       {!loading && !error && releaseData && (
-        <ReleaseInfoTabbedView
+        <ResourceTreeView
           releaseData={releaseData}
-          initialTab={initialTab}
-          onTabChange={onTabChange}
+          resourceTreeData={resourceTreeData}
+          releaseBindingData={releaseBindingData}
+          entity={entity}
+          environmentName={environmentName}
         />
       )}
 

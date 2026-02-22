@@ -2084,6 +2084,222 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
+   * Fetches the resource tree for a specific environment release.
+   * Returns hierarchical resource data with parentRefs for tree visualization.
+   *
+   * @param {Object} request - The request parameters
+   * @param {string} request.componentName - Name of the component
+   * @param {string} request.projectName - Name of the project containing the component
+   * @param {string} request.namespaceName - Name of the namespace
+   * @param {string} request.environmentName - Name of the environment
+   * @returns {Promise<any>} Resource tree data with nodes and parentRefs
+   */
+  async fetchResourceTree(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      environmentName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching resource tree for component ${request.componentName} in environment ${request.environmentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoLegacyApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources' as any,
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              environmentName: request.environmentName,
+            },
+          },
+        } as any,
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch resource tree: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource tree fetched for ${request.componentName} in ${request.environmentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching resource tree for ${request.componentName} in ${request.environmentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  async fetchResourceEvents(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      environmentName: string;
+      kind: string;
+      name: string;
+      namespace?: string;
+      uid?: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching resource events for ${request.kind}/${request.name} in environment ${request.environmentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoLegacyApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const queryParams: Record<string, string> = {
+        kind: request.kind,
+        name: request.name,
+      };
+      if (request.namespace) {
+        queryParams.namespace = request.namespace;
+      }
+      if (request.uid) {
+        queryParams.uid = request.uid;
+      }
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events' as any,
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              environmentName: request.environmentName,
+            },
+            query: queryParams,
+          },
+        } as any,
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch resource events: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Resource events fetched for ${request.kind}/${request.name} in ${request.environmentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching resource events for ${request.kind}/${request.name} in ${request.environmentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  async fetchPodLogs(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      environmentName: string;
+      name: string;
+      namespace?: string;
+      container?: string;
+      sinceSeconds?: number;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Fetching pod logs for ${request.name} in environment ${request.environmentName}`,
+    );
+
+    try {
+      const client = createOpenChoreoLegacyApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const queryParams: Record<string, string> = {
+        name: request.name,
+      };
+      if (request.namespace) {
+        queryParams.namespace = request.namespace;
+      }
+      if (request.container) {
+        queryParams.container = request.container;
+      }
+      if (request.sinceSeconds !== undefined) {
+        queryParams.sinceSeconds = request.sinceSeconds.toString();
+      }
+
+      const { data, error, response } = await client.GET(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs' as any,
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+              environmentName: request.environmentName,
+            },
+            query: queryParams,
+          },
+        } as any,
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch pod logs: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Pod logs fetched for ${request.name} in ${request.environmentName}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching pod logs for ${request.name} in ${request.environmentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Fetches the release information for a specific environment.
    * Returns the complete Release CRD with spec and status information.
    *
