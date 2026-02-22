@@ -746,7 +746,7 @@ export async function createRouter({
     );
   });
 
-  router.get('/resource-events', async (req, res) => {
+  router.get('/resource-events', requireAuth, async (req, res) => {
     const {
       componentName,
       projectName,
@@ -790,7 +790,7 @@ export async function createRouter({
     );
   });
 
-  router.get('/pod-logs', async (req, res) => {
+  router.get('/pod-logs', requireAuth, async (req, res) => {
     const {
       componentName,
       projectName,
@@ -801,7 +801,6 @@ export async function createRouter({
       container,
       sinceSeconds,
     } = req.query;
-
     if (
       !componentName ||
       !projectName ||
@@ -813,9 +812,15 @@ export async function createRouter({
         'componentName, projectName, namespaceName, environmentName and name are required query parameters',
       );
     }
-
     const userToken = getUserTokenFromRequest(req);
-
+    let sinceSecondsValue: number | undefined;
+    if (sinceSeconds !== undefined) {
+      const parsed = Number(sinceSeconds);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new InputError('sinceSeconds must be a non-negative number');
+      }
+      sinceSecondsValue = Math.floor(parsed);
+    }
     res.json(
       await environmentInfoService.fetchPodLogs(
         {
@@ -826,9 +831,7 @@ export async function createRouter({
           name: name as string,
           namespace: namespace as string | undefined,
           container: container as string | undefined,
-          sinceSeconds: sinceSeconds
-            ? parseInt(sinceSeconds as string, 10)
-            : undefined,
+          sinceSeconds: sinceSecondsValue,
         },
         userToken,
       ),

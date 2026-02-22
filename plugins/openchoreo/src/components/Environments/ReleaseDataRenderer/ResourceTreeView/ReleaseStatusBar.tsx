@@ -92,23 +92,37 @@ function formatResourceBreakdown(
 }
 
 function getLatestCreatedAt(nodes: ResourceTreeNode[]): string | undefined {
-  let latest: string | undefined;
+  let latestEpoch: number | undefined;
+  let latestIso: string | undefined;
+
   for (const n of nodes) {
-    if (n.createdAt) {
-      if (!latest || n.createdAt > latest) {
-        latest = n.createdAt;
-      }
+    const createdAt = n.createdAt;
+    if (!createdAt) continue;
+
+    const date = new Date(createdAt);
+    const epoch = date.getTime();
+    if (Number.isNaN(epoch)) continue;
+
+    if (latestEpoch === undefined || epoch > latestEpoch) {
+      latestEpoch = epoch;
+      latestIso = date.toISOString();
     }
   }
-  return latest;
+
+  return latestIso;
 }
 
 function formatRelativeTime(timestamp: string): string {
+  if (!timestamp) return 'just now';
+
   const now = Date.now();
   const then = new Date(timestamp).getTime();
+
+  if (isNaN(then)) return 'just now';
+
   const diffMs = now - then;
 
-  if (diffMs < 0) return 'just now';
+  if (diffMs <= 0) return 'just now';
 
   const seconds = Math.floor(diffMs / 1000);
   if (seconds < 60) return 'just now';

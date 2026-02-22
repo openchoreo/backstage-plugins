@@ -1,4 +1,4 @@
-import { useState, useMemo, type FC } from 'react';
+import { useState, useMemo, useEffect, type FC } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import { Entity } from '@backstage/catalog-model';
 import { ResourceTreeEdge } from './ResourceTreeEdge';
@@ -36,6 +36,12 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
     );
     return computeTreeLayout(nodes);
   }, [releaseData, resourceTreeData, releaseBindingData]);
+
+  useEffect(() => {
+    if (selectedNode && !layout.nodes.some(n => n.id === selectedNode.id)) {
+      setSelectedNode(null);
+    }
+  }, [layout, selectedNode]);
 
   if (layout.nodes.length === 0) {
     return (

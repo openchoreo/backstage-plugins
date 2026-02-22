@@ -405,6 +405,14 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     },
   ): Promise<ResourceEventsResponse> {
     const metadata = extractEntityMetadata(entity);
+    const filteredResourceParams = Object.entries(resourceParams).reduce<
+      Record<string, string>
+    >((params, [key, value]) => {
+      if (value !== undefined) {
+        params[key] = value;
+      }
+      return params;
+    }, {});
 
     return this.apiFetch<ResourceEventsResponse>(
       API_ENDPOINTS.RESOURCE_EVENTS,
@@ -412,7 +420,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         params: {
           ...entityMetadataToParams(metadata),
           environmentName,
-          ...resourceParams,
+          ...filteredResourceParams,
         },
       },
     );

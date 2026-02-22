@@ -50,7 +50,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
                 {node.name}
               </Typography>
             </Box>
-            <IconButton onClick={onClose} size="small">
+            <IconButton onClick={onClose} size="small" aria-label="Close">
               <CloseIcon />
             </IconButton>
           </Box>
@@ -73,7 +73,9 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
             {(node.group || node.version) && (
               <Chip
                 label={
-                  node.group ? `${node.group}/${node.version}` : node.version
+                  node.group && node.version
+                    ? `${node.group}/${node.version}`
+                    : node.group || node.version
                 }
                 size="small"
                 variant="outlined"

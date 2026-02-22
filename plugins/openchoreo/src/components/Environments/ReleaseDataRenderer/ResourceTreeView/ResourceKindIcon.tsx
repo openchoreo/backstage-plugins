@@ -15,14 +15,14 @@ export const ResourceKindIcon: FC<ResourceKindIconProps> = ({
 
   // Extract uppercase initials (e.g., "Deployment" -> "D", "CronJob" -> "CJ")
   const initials = kind.replace(/[a-z]/g, '');
-  const displayInitials = initials.length > 3 ? initials.slice(0, 2) : initials;
+  const displayInitials = initials.length > 2 ? initials.slice(0, 2) : initials;
   return (
     <div className={classes.kindIconContainer}>
       <div
         className={clsx(
           classes.kindIcon,
           isRoot && classes.kindIconRoot,
-          displayInitials.length > 2 && classes.kindIconSmallText,
+          initials.length > 2 && classes.kindIconSmallText,
         )}
       >
         {displayInitials}

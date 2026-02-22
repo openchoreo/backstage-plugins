@@ -131,7 +131,18 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
                   label={status}
                   size="small"
                   className={getHealthChipClass(
-                    status === 'Active' ? 'Healthy' : 'Unknown',
+                    (() => {
+                      switch (status) {
+                        case 'Active':
+                        case 'Ready':
+                          return 'Healthy';
+                        case 'Failed':
+                        case 'NotReady':
+                          return 'Unhealthy';
+                        default:
+                          return 'Unknown';
+                      }
+                    })(),
                     releaseClasses,
                   )}
                 />

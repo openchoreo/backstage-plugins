@@ -62,6 +62,7 @@ function formatRelativeTime(timestamp: string): string {
   const diffMs = now - then;
 
   if (isNaN(then)) return timestamp;
+  if (diffMs <= 0) return 'just now';
 
   const seconds = Math.floor(diffMs / 1000);
   if (seconds < 60) return `${seconds}s ago`;
