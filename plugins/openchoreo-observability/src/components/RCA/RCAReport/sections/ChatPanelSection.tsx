@@ -165,11 +165,16 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
   const handleSendMessage = useCallback(async () => {
     if (!chatMessage.trim() || isSending) return;
 
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: chatMessage.trim(),
-    };
+    const trimmedMessage = chatMessage.trim();
+    const userMessage: ChatMessage = { role: 'user', content: trimmedMessage };
     const updatedMessages = [...messages, userMessage];
+    const messagesToSend = [
+      ...messages,
+      {
+        role: 'user' as const,
+        content: `[${new Date().toISOString()}] \n${trimmedMessage}`,
+      },
+    ];
 
     setMessages(updatedMessages);
     setChatMessage('');
@@ -184,12 +189,14 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
     try {
       await chatContext.rcaAgentApi.streamRCAChat(
         {
-          namespaceName: chatContext.namespaceName,
-          environmentName: chatContext.environmentName,
           reportId: reportId || '',
           projectUid: chatContext.projectUid,
           environmentUid: chatContext.environmentUid,
-          messages: updatedMessages,
+          messages: messagesToSend,
+        },
+        {
+          namespaceName: chatContext.namespaceName,
+          environmentName: chatContext.environmentName,
         },
         (event: StreamEvent) => {
           switch (event.type) {

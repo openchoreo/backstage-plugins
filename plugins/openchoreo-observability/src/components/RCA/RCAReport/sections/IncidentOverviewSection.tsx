@@ -75,19 +75,6 @@ const useAlertStyles = makeStyles(theme => ({
     fontWeight: 500,
     textTransform: 'uppercase',
   },
-  queryBox: {
-    marginTop: theme.spacing(1.5),
-  },
-  query: {
-    fontFamily: 'monospace',
-    fontSize: theme.typography.caption.fontSize,
-    backgroundColor: theme.palette.action.hover,
-    padding: theme.spacing(1, 1.5),
-    borderRadius: theme.shape.borderRadius,
-    color: theme.palette.text.primary,
-    wordBreak: 'break-word',
-    marginTop: theme.spacing(0.5),
-  },
 }));
 
 const getSeverityClass = (
@@ -217,9 +204,9 @@ const AlertDetails = ({
 
     {/* Log alert: show query pattern */}
     {alertContext.source_type === 'log' && alertContext.source_query && (
-      <Box className={classes.queryBox}>
+      <Box className={classes.propertyRow} style={{ marginTop: 12 }}>
         <Typography className={classes.propertyKey}>Log Pattern</Typography>
-        <Typography className={classes.query}>
+        <Typography className={classes.propertyValue}>
           {alertContext.source_query}
         </Typography>
       </Box>

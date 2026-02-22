@@ -4,10 +4,10 @@ import { makeStyles } from '@material-ui/core/styles';
 import { FormattedText } from '../FormattedText';
 import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 
-type Action = AIRCAAgentComponents['schemas']['Action'];
+type RecommendedAction = AIRCAAgentComponents['schemas']['RecommendedAction'];
 
 interface RecommendationsSectionProps {
-  actions?: Action[];
+  actions?: RecommendedAction[];
 }
 
 const useStyles = makeStyles(theme => ({

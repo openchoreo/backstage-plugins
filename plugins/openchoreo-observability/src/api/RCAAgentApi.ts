@@ -9,9 +9,12 @@ import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 export type ChatMessage = AIRCAAgentComponents['schemas']['ChatMessage'];
 export type StreamEvent = AIRCAAgentComponents['schemas']['StreamEvent'];
 
-export interface ChatRequest {
+export interface ChatRoutingContext {
   namespaceName: string;
   environmentName: string;
+}
+
+export interface ChatRequest {
   reportId: string;
   projectUid: string;
   environmentUid: string;
@@ -23,6 +26,7 @@ export interface ChatRequest {
 export interface RCAAgentApi {
   streamRCAChat(
     request: ChatRequest,
+    routing: ChatRoutingContext,
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
   ): Promise<void>;
@@ -43,6 +47,7 @@ export class RCAAgentClient implements RCAAgentApi {
 
   async streamRCAChat(
     request: ChatRequest,
+    routing: ChatRoutingContext,
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
   ): Promise<void> {
@@ -52,7 +57,7 @@ export class RCAAgentClient implements RCAAgentApi {
 
     const response = await this.fetchApi.fetch(`${baseUrl}/chat`, {
       method: 'POST',
-      body: JSON.stringify(request),
+      body: JSON.stringify({ ...request, ...routing }),
       headers: {
         'Content-Type': 'application/json',
       },
