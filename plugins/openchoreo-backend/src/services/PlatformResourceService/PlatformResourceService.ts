@@ -23,7 +23,7 @@ type ResourceCRUDResponse = {
 
 // Supported resource kinds and their API path segments
 type ResourceKind =
-  | 'component-types'
+  | 'componenttypes'
   | 'traits'
   | 'workflows'
   | 'component-workflows'
@@ -35,7 +35,7 @@ type ResourceKind =
 
 // Mapping from ResourceKind to CRD kind (PascalCase)
 const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
-  'component-types': 'ComponentType',
+  componenttypes: 'ComponentType',
   traits: 'Trait',
   workflows: 'Workflow',
   'component-workflows': 'ComponentWorkflow',
@@ -48,6 +48,8 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
 
 // Resource kinds that have full CRUD in the new API
 const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
+  'componenttypes',
+  'traits',
   'environments',
   'dataplanes',
   'buildplanes',
@@ -62,12 +64,9 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
 export class PlatformResourceService {
   private logger: LoggerService;
   private baseUrl: string;
-  private useNewApi: boolean;
-
-  constructor(logger: LoggerService, baseUrl: string, useNewApi: boolean) {
+  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.useNewApi = useNewApi;
   }
 
   private createNewClient(token?: string) {
@@ -109,7 +108,7 @@ export class PlatformResourceService {
     resourceName: string,
     token?: string,
   ): Promise<ResourceDefinitionResponse> {
-    if (this.useNewApi && this.kindHasNewApi(kind)) {
+    if (this.kindHasNewApi(kind)) {
       return this.getResourceDefinitionNew(
         kind,
         namespaceName,
@@ -135,7 +134,7 @@ export class PlatformResourceService {
     resource: Record<string, unknown>,
     token?: string,
   ): Promise<ResourceCRUDResponse> {
-    if (this.useNewApi && this.kindHasNewApi(kind)) {
+    if (this.kindHasNewApi(kind)) {
       return this.updateResourceDefinitionNew(
         kind,
         namespaceName,
@@ -162,7 +161,7 @@ export class PlatformResourceService {
     resourceName: string,
     token?: string,
   ): Promise<ResourceCRUDResponse> {
-    if (this.useNewApi && this.kindHasNewApi(kind)) {
+    if (this.kindHasNewApi(kind)) {
       return this.deleteResourceDefinitionNew(
         kind,
         namespaceName,
@@ -234,10 +233,10 @@ export class PlatformResourceService {
         }
         case 'buildplanes': {
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/buildplanes/{bpName}',
+            '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}',
             {
               params: {
-                path: { namespaceName, bpName: resourceName },
+                path: { namespaceName, buildPlaneName: resourceName },
               },
             },
           );
@@ -251,10 +250,44 @@ export class PlatformResourceService {
         }
         case 'observabilityplanes': {
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/observabilityplanes/{opName}',
+            '/api/v1/namespaces/{namespaceName}/observabilityplanes/{observabilityPlaneName}',
             {
               params: {
-                path: { namespaceName, opName: resourceName },
+                path: { namespaceName, observabilityPlaneName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'componenttypes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}',
+            {
+              params: {
+                path: { namespaceName, ctName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'traits': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/traits/{traitName}',
+            {
+              params: {
+                path: { namespaceName, traitName: resourceName },
               },
             },
           );
@@ -267,11 +300,13 @@ export class PlatformResourceService {
           break;
         }
         case 'workflows': {
+          // Backend only has list + schema for workflows, no individual GET
+          // Fetch from list and filter by name
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
+            '/api/v1/namespaces/{namespaceName}/workflows',
             {
               params: {
-                path: { namespaceName, workflowName: resourceName },
+                path: { namespaceName },
               },
             },
           );
@@ -280,15 +315,21 @@ export class PlatformResourceService {
               `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
             );
           }
-          resource = data as Record<string, unknown>;
+          const wf = data.items?.find(
+            (w: any) => w.name === resourceName,
+          );
+          if (!wf) {
+            throw new Error(`Workflow '${resourceName}' not found`);
+          }
+          resource = wf as Record<string, unknown>;
           break;
         }
         case 'deploymentpipelines': {
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{pipelineName}',
+            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}',
             {
               params: {
-                path: { namespaceName, pipelineName: resourceName },
+                path: { namespaceName, deploymentPipelineName: resourceName },
               },
             },
           );
@@ -336,23 +377,6 @@ export class PlatformResourceService {
       const body = resource as any;
 
       switch (kind) {
-        case 'environments': {
-          const { error, response } = await client.PUT(
-            '/api/v1/namespaces/{namespaceName}/environments/{envName}',
-            {
-              params: {
-                path: { namespaceName, envName: resourceName },
-              },
-              body,
-            },
-          );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
-          break;
-        }
         case 'dataplanes': {
           const { error, response } = await client.PUT(
             '/api/v1/namespaces/{namespaceName}/dataplanes/{dpName}',
@@ -372,10 +396,10 @@ export class PlatformResourceService {
         }
         case 'buildplanes': {
           const { error, response } = await client.PUT(
-            '/api/v1/namespaces/{namespaceName}/buildplanes/{bpName}',
+            '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}',
             {
               params: {
-                path: { namespaceName, bpName: resourceName },
+                path: { namespaceName, buildPlaneName: resourceName },
               },
               body,
             },
@@ -389,10 +413,10 @@ export class PlatformResourceService {
         }
         case 'observabilityplanes': {
           const { error, response } = await client.PUT(
-            '/api/v1/namespaces/{namespaceName}/observabilityplanes/{opName}',
+            '/api/v1/namespaces/{namespaceName}/observabilityplanes/{observabilityPlaneName}',
             {
               params: {
-                path: { namespaceName, opName: resourceName },
+                path: { namespaceName, observabilityPlaneName: resourceName },
               },
               body,
             },
@@ -404,12 +428,29 @@ export class PlatformResourceService {
           }
           break;
         }
-        case 'workflows': {
+        case 'componenttypes': {
           const { error, response } = await client.PUT(
-            '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
+            '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}',
             {
               params: {
-                path: { namespaceName, workflowName: resourceName },
+                path: { namespaceName, ctName: resourceName },
+              },
+              body,
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'traits': {
+          const { error, response } = await client.PUT(
+            '/api/v1/namespaces/{namespaceName}/traits/{traitName}',
+            {
+              params: {
+                path: { namespaceName, traitName: resourceName },
               },
               body,
             },
@@ -423,10 +464,10 @@ export class PlatformResourceService {
         }
         case 'deploymentpipelines': {
           const { error, response } = await client.PUT(
-            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{pipelineName}',
+            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}',
             {
               params: {
-                path: { namespaceName, pipelineName: resourceName },
+                path: { namespaceName, deploymentPipelineName: resourceName },
               },
               body,
             },
@@ -479,22 +520,6 @@ export class PlatformResourceService {
       const client = this.createNewClient(token);
 
       switch (kind) {
-        case 'environments': {
-          const { error, response } = await client.DELETE(
-            '/api/v1/namespaces/{namespaceName}/environments/{envName}',
-            {
-              params: {
-                path: { namespaceName, envName: resourceName },
-              },
-            },
-          );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
-          break;
-        }
         case 'dataplanes': {
           const { error, response } = await client.DELETE(
             '/api/v1/namespaces/{namespaceName}/dataplanes/{dpName}',
@@ -513,10 +538,10 @@ export class PlatformResourceService {
         }
         case 'buildplanes': {
           const { error, response } = await client.DELETE(
-            '/api/v1/namespaces/{namespaceName}/buildplanes/{bpName}',
+            '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}',
             {
               params: {
-                path: { namespaceName, bpName: resourceName },
+                path: { namespaceName, buildPlaneName: resourceName },
               },
             },
           );
@@ -529,10 +554,10 @@ export class PlatformResourceService {
         }
         case 'observabilityplanes': {
           const { error, response } = await client.DELETE(
-            '/api/v1/namespaces/{namespaceName}/observabilityplanes/{opName}',
+            '/api/v1/namespaces/{namespaceName}/observabilityplanes/{observabilityPlaneName}',
             {
               params: {
-                path: { namespaceName, opName: resourceName },
+                path: { namespaceName, observabilityPlaneName: resourceName },
               },
             },
           );
@@ -543,12 +568,28 @@ export class PlatformResourceService {
           }
           break;
         }
-        case 'workflows': {
+        case 'componenttypes': {
           const { error, response } = await client.DELETE(
-            '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
+            '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}',
             {
               params: {
-                path: { namespaceName, workflowName: resourceName },
+                path: { namespaceName, ctName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'traits': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/namespaces/{namespaceName}/traits/{traitName}',
+            {
+              params: {
+                path: { namespaceName, traitName: resourceName },
               },
             },
           );
@@ -561,10 +602,10 @@ export class PlatformResourceService {
         }
         case 'deploymentpipelines': {
           const { error, response } = await client.DELETE(
-            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{pipelineName}',
+            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}',
             {
               params: {
-                path: { namespaceName, pipelineName: resourceName },
+                path: { namespaceName, deploymentPipelineName: resourceName },
               },
             },
           );

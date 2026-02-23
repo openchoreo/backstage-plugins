@@ -1,6 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoLegacyApiClient,
   createOpenChoreoApiClient,
   type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
@@ -10,7 +9,7 @@ import { transformSecretReference } from '../transformers';
 type SecretReferenceItem =
   OpenChoreoLegacyComponents['schemas']['SecretReferenceResponse'];
 
-// The actual response shape returned by both legacy and new API code paths
+// The actual response shape returned by the API
 export interface ModelsSecretReferences {
   success: boolean;
   data: {
@@ -22,79 +21,18 @@ export interface ModelsSecretReferences {
 export class SecretReferencesService {
   private logger: LoggerService;
   private baseUrl: string;
-  private useNewApi: boolean;
 
-  constructor(logger: LoggerService, baseUrl: string, useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.useNewApi = useNewApi;
   }
 
   async fetchSecretReferences(
     namespaceName: string,
     token?: string,
   ): Promise<ModelsSecretReferences> {
-    if (this.useNewApi) {
-      return this.fetchSecretReferencesNew(namespaceName, token);
-    }
-    return this.fetchSecretReferencesLegacy(namespaceName, token);
-  }
-
-  private async fetchSecretReferencesLegacy(
-    namespaceName: string,
-    token?: string,
-  ): Promise<ModelsSecretReferences> {
     this.logger.debug(
       `Fetching secret references for namespace: ${namespaceName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/secret-references',
-        {
-          params: {
-            path: { namespaceName },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch secret references: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data?.success) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(data)}`,
-        );
-      }
-
-      const secretReferences = data as ModelsSecretReferences;
-      this.logger.debug(
-        `Successfully fetched secret references for namespace: ${namespaceName}`,
-      );
-      return secretReferences;
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch secret references for ${namespaceName}: ${error}`,
-      );
-      throw error;
-    }
-  }
-
-  private async fetchSecretReferencesNew(
-    namespaceName: string,
-    token?: string,
-  ): Promise<ModelsSecretReferences> {
-    this.logger.debug(
-      `Fetching secret references (new API) for namespace: ${namespaceName}`,
     );
 
     try {

@@ -21,12 +21,19 @@ type ComponentWorkflow =
 export function transformComponent(component: Component): ComponentResponse {
   const workflow = component.spec?.workflow;
 
+  // componentType is now an object {kind, name} — extract the name string
+  const componentTypeRef = component.spec?.componentType;
+  const componentType =
+    typeof componentTypeRef === 'string'
+      ? componentTypeRef
+      : componentTypeRef?.name ?? '';
+
   return {
     uid: getUid(component) ?? '',
     name: getName(component) ?? '',
     displayName: getDisplayName(component),
     description: getDescription(component),
-    type: component.spec?.type ?? component.spec?.componentType ?? '',
+    type: componentType,
     projectName: component.spec?.owner?.projectName ?? '',
     namespaceName: getNamespace(component) ?? '',
     createdAt: getCreatedAt(component) ?? '',
@@ -43,14 +50,15 @@ function transformComponentWorkflow(
 ): ComponentWorkflow | undefined {
   if (!workflow) return undefined;
   return {
-    name: workflow.name,
+    name: workflow.name ?? '',
     systemParameters: {
       repository: {
-        url: workflow.systemParameters.repository.url,
-        appPath: workflow.systemParameters.repository.appPath,
+        url: workflow.systemParameters?.repository?.url ?? '',
+        appPath: workflow.systemParameters?.repository?.appPath,
         revision: {
-          branch: workflow.systemParameters.repository.revision.branch,
-          commit: workflow.systemParameters.repository.revision.commit,
+          branch:
+            workflow.systemParameters?.repository?.revision?.branch ?? '',
+          commit: workflow.systemParameters?.repository?.revision?.commit,
         },
       },
     },

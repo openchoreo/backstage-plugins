@@ -91,8 +91,7 @@ describe('transformComponent', () => {
     metadata: { ...baseMeta, name: 'api-service' },
     spec: {
       owner: { projectName: 'my-project' },
-      type: 'Service',
-      componentType: 'deployment/go-service',
+      componentType: { kind: 'ComponentType', name: 'deployment/go-service' },
       autoDeploy: true,
       workflow: {
         name: 'docker-build',
@@ -325,57 +324,44 @@ describe('transformObservabilityPlane', () => {
 
 describe('transformComponentWorkflowRun', () => {
   const run: OpenChoreoComponents['schemas']['ComponentWorkflowRun'] = {
-    metadata: {
-      ...baseMeta,
-      name: 'run-001',
-      uid: 'run-uid-001',
-    },
-    spec: {
-      owner: { projectName: 'my-project', componentName: 'api-service' },
-      workflow: {
-        name: 'docker-build',
-        systemParameters: {
-          repository: {
-            url: 'https://github.com/org/repo.git',
-            revision: { branch: 'main', commit: 'abc1234' },
-            appPath: '.',
-          },
+    name: 'run-001',
+    uuid: 'run-uid-001',
+    componentName: 'api-service',
+    projectName: 'my-project',
+    namespaceName: 'my-ns',
+    status: 'Succeeded',
+    commit: 'abc1234',
+    image: 'registry.example.com/api-service:abc1234',
+    createdAt: '2025-01-06T10:00:00Z',
+    workflow: {
+      name: 'docker-build',
+      systemParameters: {
+        repository: {
+          url: 'https://github.com/org/repo.git',
+          revision: { branch: 'main', commit: 'abc1234' },
+          appPath: '.',
         },
       },
-    },
-    status: {
-      conditions: [readyCondition],
-      imageStatus: {
-        image: 'registry.example.com/api-service:abc1234',
-      },
-      tasks: [
-        {
-          name: 'build',
-          phase: 'Succeeded',
-          startedAt: '2025-01-06T10:00:00Z',
-          completedAt: '2025-01-06T10:05:00Z',
-        },
-      ],
     },
   };
 
-  it('maps ownership from spec.owner', () => {
+  it('maps ownership fields', () => {
     const result = transformComponentWorkflowRun(run);
     expect(result.componentName).toBe('api-service');
     expect(result.projectName).toBe('my-project');
   });
 
-  it('maps uuid from metadata.uid', () => {
+  it('maps uuid', () => {
     expect(transformComponentWorkflowRun(run).uuid).toBe('run-uid-001');
   });
 
-  it('maps image from imageStatus', () => {
+  it('maps image', () => {
     expect(transformComponentWorkflowRun(run).image).toBe(
       'registry.example.com/api-service:abc1234',
     );
   });
 
-  it('maps commit from workflow systemParameters', () => {
+  it('maps commit', () => {
     expect(transformComponentWorkflowRun(run).commit).toBe('abc1234');
   });
 

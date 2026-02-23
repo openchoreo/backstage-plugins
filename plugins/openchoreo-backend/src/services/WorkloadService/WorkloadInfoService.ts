@@ -1,7 +1,6 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { WorkloadService } from '../../types';
 import {
-  createOpenChoreoLegacyApiClient,
   createOpenChoreoApiClient,
   type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
@@ -12,24 +11,22 @@ type ModelsWorkload = OpenChoreoLegacyComponents['schemas']['WorkloadResponse'];
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
-  private readonly useNewApi: boolean;
 
   public constructor(
     logger: LoggerService,
     baseUrl: string,
-    useNewApi = false,
+    _useNewApi = false,
   ) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.useNewApi = useNewApi;
   }
 
   static create(
     logger: LoggerService,
     baseUrl: string,
-    useNewApi = false,
+    _useNewApi = false,
   ): WorkloadInfoService {
-    return new WorkloadInfoService(logger, baseUrl, useNewApi);
+    return new WorkloadInfoService(logger, baseUrl);
   }
 
   async fetchWorkloadInfo(
@@ -40,61 +37,7 @@ export class WorkloadInfoService implements WorkloadService {
     },
     token?: string,
   ): Promise<ModelsWorkload> {
-    if (this.useNewApi) {
-      return this.fetchWorkloadInfoNew(request, token);
-    }
-    return this.fetchWorkloadInfoLegacy(request, token);
-  }
-
-  private async fetchWorkloadInfoLegacy(
-    request: {
-      projectName: string;
-      componentName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<ModelsWorkload> {
-    const { projectName, componentName, namespaceName } = request;
-
-    try {
-      this.logger.info(
-        `Fetching workload info for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
-      );
-
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workloads',
-        {
-          params: {
-            path: {
-              namespaceName,
-              projectName,
-              componentName,
-            },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workload: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data.success || !data.data) {
-        throw new Error('No workload data returned');
-      }
-
-      return data.data;
-    } catch (error) {
-      this.logger.error(`Failed to fetch workload info: ${error}`);
-      throw new Error('Failed to fetch workload info', { cause: error });
-    }
+    return this.fetchWorkloadInfoNew(request, token);
   }
 
   private async fetchWorkloadInfoNew(
@@ -158,63 +101,7 @@ export class WorkloadInfoService implements WorkloadService {
     },
     token?: string,
   ): Promise<any> {
-    if (this.useNewApi) {
-      return this.applyWorkloadNew(request, token);
-    }
-    return this.applyWorkloadLegacy(request, token);
-  }
-
-  private async applyWorkloadLegacy(
-    request: {
-      projectName: string;
-      componentName: string;
-      namespaceName: string;
-      workloadSpec: ModelsWorkload;
-    },
-    token?: string,
-  ): Promise<any> {
-    const { projectName, componentName, namespaceName, workloadSpec } = request;
-
-    try {
-      this.logger.info(
-        `Applying workload for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
-      );
-
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workloads',
-        {
-          params: {
-            path: {
-              namespaceName,
-              projectName,
-              componentName,
-            },
-          },
-          body: workloadSpec,
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to update workload: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data.success || !data.data) {
-        throw new Error('No workload data returned');
-      }
-
-      return data.data;
-    } catch (error) {
-      this.logger.error(`Failed to apply workload: ${error}`);
-      throw error;
-    }
+    return this.applyWorkloadNew(request, token);
   }
 
   private async applyWorkloadNew(

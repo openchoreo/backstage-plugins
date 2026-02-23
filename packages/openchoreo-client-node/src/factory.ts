@@ -161,7 +161,10 @@ export function createOpenChoreoLegacyApiClient(
  * @returns Configured OpenChoreo API client instance
  */
 export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
-  const { baseUrl, token, fetchApi, logger } = config;
+  const { baseUrl: rawBaseUrl, token, fetchApi, logger } = config;
+
+  // Strip /api/v1 suffix since OpenAPI spec paths already include it
+  const baseUrl = rawBaseUrl.replace(/\/api\/v1\/?$/, '');
 
   logger?.debug(`Creating OpenChoreo API client with baseUrl: ${baseUrl}`);
 

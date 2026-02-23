@@ -1,7 +1,6 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { EnvironmentService, Environment, EndpointInfo } from '../../types';
 import {
-  createOpenChoreoLegacyApiClient,
   createOpenChoreoApiClient,
   fetchAllPages,
   getName,
@@ -29,16 +28,14 @@ type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 export class EnvironmentInfoService implements EnvironmentService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
-  private readonly useNewApi: boolean;
 
   public constructor(
     logger: LoggerService,
     baseUrl: string,
-    useNewApi = false,
+    _useNewApi = false,
   ) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.useNewApi = useNewApi;
   }
 
   static create(
@@ -70,182 +67,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    if (this.useNewApi) {
-      return this.fetchDeploymentInfoNew(request, token);
-    }
-    return this.fetchDeploymentInfoLegacy(request, token);
-  }
-
-  private async fetchDeploymentInfoLegacy(
-    request: {
-      projectName: string;
-      componentName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
-    const startTime = Date.now();
-    try {
-      this.logger.debug(
-        `Starting environment fetch for component: ${request.componentName}`,
-      );
-
-      // Fetch environments, bindings and deployment pipeline in parallel with individual timing
-      const createTimedPromise = <T>(promise: Promise<T>, name: string) => {
-        const start = Date.now();
-        return promise
-          .then(result => ({
-            type: name,
-            result,
-            duration: Date.now() - start,
-          }))
-          .catch(error => {
-            const duration = Date.now() - start;
-            if (name === 'bindings') {
-              this.logger.warn(
-                `Failed to fetch bindings for component ${request.componentName}: ${error}`,
-              );
-              return { type: name, result: [] as any, duration };
-            } else if (name === 'pipeline') {
-              this.logger.warn(
-                `No deployment pipeline found for project ${request.projectName}, using default ordering`,
-              );
-              return { type: name, result: null as any, duration };
-            }
-            throw error;
-          });
-      };
-
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const environmentsPromise = createTimedPromise(
-        (async () => {
-          const { data, error, response } = await client.GET(
-            '/namespaces/{namespaceName}/environments',
-            {
-              params: { path: { namespaceName: request.namespaceName } },
-            },
-          );
-          if (error || !response.ok) {
-            throw new Error(`Failed to fetch environments: ${response.status}`);
-          }
-          return { ok: response.ok, json: async () => data };
-        })(),
-        'environments',
-      );
-
-      const bindingsPromise = createTimedPromise(
-        (async () => {
-          const { data, error, response } = await client.GET(
-            '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
-            {
-              params: {
-                path: {
-                  namespaceName: request.namespaceName,
-                  projectName: request.projectName,
-                  componentName: request.componentName,
-                },
-              },
-            },
-          );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch release bindings: ${response.status}`,
-            );
-          }
-          return data.success && data.data?.items ? data.data.items : [];
-        })(),
-        'bindings',
-      );
-
-      const pipelinePromise = createTimedPromise(
-        (async () => {
-          const { data, error, response } = await client.GET(
-            '/namespaces/{namespaceName}/projects/{projectName}/deployment-pipeline',
-            {
-              params: {
-                path: {
-                  namespaceName: request.namespaceName,
-                  projectName: request.projectName,
-                },
-              },
-            },
-          );
-          if (error || !response.ok) {
-            return null;
-          }
-          return data.success && data.data ? data.data : null;
-        })(),
-        'pipeline',
-      );
-
-      const fetchStart = Date.now();
-      const [environmentsResult, bindingsResult, pipelineResult] =
-        await Promise.all([
-          environmentsPromise,
-          bindingsPromise,
-          pipelinePromise,
-        ]);
-      const fetchEnd = Date.now();
-
-      // Log individual timings
-      this.logger.debug(
-        `API call timings - Environments: ${environmentsResult.duration}ms, Bindings: ${bindingsResult.duration}ms, Pipeline: ${pipelineResult.duration}ms`,
-      );
-      this.logger.debug(
-        `Total parallel API calls completed in ${fetchEnd - fetchStart}ms`,
-      );
-
-      const environmentsResponse = environmentsResult.result;
-      const bindings = bindingsResult.result;
-      const deploymentPipeline = pipelineResult.result;
-
-      if (!environmentsResponse.ok) {
-        this.logger.error(
-          `Failed to fetch environments for namespace ${request.namespaceName}`,
-        );
-        return [];
-      }
-
-      const environmentsData = await environmentsResponse.json();
-      if (!environmentsData.success || !environmentsData.data?.items) {
-        this.logger.warn('No environments found in API response');
-        return [];
-      }
-
-      const environments = environmentsData.data.items as ModelsEnvironment[];
-
-      // Transform environment data with bindings and promotion information
-      const transformStart = Date.now();
-      const result = this.transformEnvironmentDataWithBindings(
-        environments,
-        bindings,
-        deploymentPipeline,
-      );
-      const transformEnd = Date.now();
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Environment fetch completed for ${request.componentName}: ` +
-          `Individual API calls (Env: ${environmentsResult.duration}ms, Bind: ${bindingsResult.duration}ms, Pipeline: ${pipelineResult.duration}ms), ` +
-          `Parallel execution: ${fetchEnd - fetchStart}ms, ` +
-          `Transform: ${transformEnd - transformStart}ms, ` +
-          `Total: ${totalTime}ms`,
-      );
-
-      return result;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error fetching deployment info for ${request.projectName} (${totalTime}ms):`,
-        error as Error,
-      );
-      return [];
-    }
+    return this.fetchDeploymentInfoNew(request, token);
   }
 
   private async fetchDeploymentInfoNew(
@@ -319,7 +141,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const bindingsPromise = createTimedPromise(
         (async () => {
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/release-bindings',
+            '/api/v1/namespaces/{namespaceName}/releasebindings',
             {
               params: {
                 path: { namespaceName: request.namespaceName },
@@ -345,7 +167,7 @@ export class EnvironmentInfoService implements EnvironmentService {
             {
               params: {
                 path: { namespaceName: request.namespaceName },
-                query: { project: request.projectName },
+                query: {},
               },
             },
           );
@@ -750,87 +572,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    if (this.useNewApi) {
-      return this.promoteComponentNew(request, token);
-    }
-    return this.promoteComponentLegacy(request, token);
-  }
-
-  private async promoteComponentLegacy(
-    request: {
-      sourceEnvironment: string;
-      targetEnvironment: string;
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
-    const startTime = Date.now();
-    try {
-      this.logger.info(
-        `Starting promotion for component: ${request.componentName} from ${request.sourceEnvironment} to ${request.targetEnvironment}`,
-      );
-
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      // Call the promotion API
-      const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/promote',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-            },
-          },
-          body: {
-            sourceEnv: request.sourceEnvironment,
-            targetEnv: request.targetEnvironment,
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(`Failed to promote component: ${response.status}`);
-      }
-
-      const promotionResult =
-        data.success && data.data?.items ? data.data.items : [];
-
-      this.logger.debug(
-        `Promotion completed successfully. Received ${promotionResult.length} binding responses.`,
-      );
-
-      // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo(
-        {
-          componentName: request.componentName,
-          projectName: request.projectName,
-          namespaceName: request.namespaceName,
-        },
-        token,
-      );
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Component promotion completed for ${request.componentName}: Total: ${totalTime}ms`,
-      );
-
-      return refreshedEnvironments;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error promoting component ${request.componentName} from ${request.sourceEnvironment} to ${request.targetEnvironment} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.promoteComponentNew(request, token);
   }
 
   private async promoteComponentNew(
@@ -924,80 +666,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    if (this.useNewApi) {
-      return this.deleteReleaseBindingNew(request, token);
-    }
-    return this.deleteReleaseBindingLegacy(request, token);
-  }
-
-  private async deleteReleaseBindingLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environment: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
-    const startTime = Date.now();
-    try {
-      this.logger.info(
-        `Deleting release binding for component: ${request.componentName} from environment: ${request.environment}`,
-      );
-
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      // Construct the ReleaseBinding name (format: componentName-environment)
-      const bindingName = `${request.componentName}-${request.environment}`;
-
-      // Call the DELETE endpoint with ReleaseBinding resource definition
-      const { error, response } = await client.DELETE('/delete', {
-        body: {
-          apiVersion: 'openchoreo.dev/v1alpha1',
-          kind: 'ReleaseBinding',
-          metadata: {
-            name: bindingName,
-            namespace: request.namespaceName,
-          },
-        },
-      });
-
-      if (error || !response.ok) {
-        throw new Error(`Failed to delete release binding: ${response.status}`);
-      }
-
-      this.logger.debug(
-        `Release binding deleted successfully for ${request.componentName} from ${request.environment}`,
-      );
-
-      // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo(
-        {
-          componentName: request.componentName,
-          projectName: request.projectName,
-          namespaceName: request.namespaceName,
-        },
-        token,
-      );
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Component unpromote completed for ${request.componentName}: Total: ${totalTime}ms`,
-      );
-
-      return refreshedEnvironments;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error deleting release binding for component ${request.componentName} from ${request.environment} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.deleteReleaseBindingNew(request, token);
   }
 
   private async deleteReleaseBindingNew(
@@ -1024,12 +693,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       const bindingName = `${request.componentName}-${request.environment}`;
 
       const { error, response } = await client.DELETE(
-        '/api/v1/namespaces/{namespaceName}/release-bindings/{bindingName}',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              bindingName,
+              releaseBindingName: bindingName,
             },
           },
         },
@@ -1092,84 +761,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    if (this.useNewApi) {
-      return this.updateComponentBindingNew(request, token);
-    }
-    return this.updateComponentBindingLegacy(request, token);
-  }
-
-  private async updateComponentBindingLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      bindingName: string;
-      releaseState: 'Active' | 'Suspend' | 'Undeploy';
-    },
-    token?: string,
-  ): Promise<Environment[]> {
-    const startTime = Date.now();
-    try {
-      this.logger.info(
-        `Starting binding update for component: ${request.componentName}, binding: ${request.bindingName}, new state: ${request.releaseState}`,
-      );
-
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      // Call the update binding API
-      const { error, response } = await client.PATCH(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings/{bindingName}',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-              bindingName: request.bindingName,
-            },
-          },
-          body: {
-            releaseState: request.releaseState,
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(`Failed to update binding: ${response.status}`);
-      }
-
-      this.logger.debug(
-        `Binding update completed successfully for ${request.bindingName}.`,
-      );
-
-      // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo(
-        {
-          componentName: request.componentName,
-          projectName: request.projectName,
-          namespaceName: request.namespaceName,
-        },
-        token,
-      );
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Component binding update completed for ${request.componentName}: Total: ${totalTime}ms`,
-      );
-
-      return refreshedEnvironments;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error updating binding ${request.bindingName} for component ${request.componentName} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.updateComponentBindingNew(request, token);
   }
 
   private async updateComponentBindingNew(
@@ -1200,12 +792,12 @@ export class EnvironmentInfoService implements EnvironmentService {
         error: getError,
         response: getResponse,
       } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/release-bindings/{bindingName}',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              bindingName: request.bindingName,
+              releaseBindingName: request.bindingName,
             },
           },
         },
@@ -1233,12 +825,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       };
 
       const { error, response } = await client.PUT(
-        '/api/v1/namespaces/{namespaceName}/release-bindings/{bindingName}',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              bindingName: request.bindingName,
+              releaseBindingName: request.bindingName,
             },
           },
           body: updated,
@@ -1299,72 +891,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    if (this.useNewApi) {
-      return this.createComponentReleaseNew(request, token);
-    }
-    return this.createComponentReleaseLegacy(request, token);
-  }
-
-  private async createComponentReleaseLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      releaseName?: string;
-    },
-    token?: string,
-  ) {
-    const startTime = Date.now();
-    this.logger.debug(
-      `Creating component release for ${request.componentName} in ${request.projectName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const requestBody: any = {};
-      if (request.releaseName) {
-        requestBody.releaseName = request.releaseName;
-      }
-
-      const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-            },
-          },
-          body: requestBody,
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to create component release: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Component release created for ${request.componentName}: Total: ${totalTime}ms`,
-      );
-
-      return data;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error creating component release for ${request.componentName} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.createComponentReleaseNew(request, token);
   }
 
   private async createComponentReleaseNew(
@@ -1402,7 +929,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       // a POST endpoint, update the path accordingly.
       // For now, use the list endpoint which typically supports POST for creation.
       const response = await fetch(
-        `${this.baseUrl}/api/v1/namespaces/${request.namespaceName}/component-releases`,
+        `${this.baseUrl}/api/v1/namespaces/${request.namespaceName}/componentreleases`,
         {
           method: 'POST',
           headers: {
@@ -1456,87 +983,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    if (this.useNewApi) {
-      return this.deployReleaseNew(request, token);
-    }
-    return this.deployReleaseLegacy(request, token);
-  }
-
-  private async deployReleaseLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      releaseName: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
-    const startTime = Date.now();
-    this.logger.debug(
-      `Deploying release ${request.releaseName} for component ${request.componentName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      this.logger.debug(
-        `Deploy release request: namespace=${request.namespaceName}, project=${request.projectName}, component=${request.componentName}, release=${request.releaseName}`,
-      );
-
-      const { error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/deploy',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-            },
-          },
-          body: {
-            releaseName: request.releaseName,
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        const errorMessage = error
-          ? JSON.stringify(error)
-          : `${response.status} ${response.statusText}`;
-        this.logger.error(
-          `Deploy release API error for ${request.componentName}: ${errorMessage}`,
-        );
-        throw new Error(`Failed to deploy release: ${errorMessage}`);
-      }
-
-      // Fetch fresh environment data to return updated information
-      const refreshedEnvironments = await this.fetchDeploymentInfo(
-        {
-          componentName: request.componentName,
-          projectName: request.projectName,
-          namespaceName: request.namespaceName,
-        },
-        token,
-      );
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Release deployment completed for ${request.componentName}: Total: ${totalTime}ms`,
-      );
-
-      return refreshedEnvironments;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error deploying release ${request.releaseName} for component ${request.componentName} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.deployReleaseNew(request, token);
   }
 
   private async deployReleaseNew(
@@ -1635,67 +1082,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    if (this.useNewApi) {
-      return this.fetchComponentReleaseSchemaNew(request, token);
-    }
-    return this.fetchComponentReleaseSchemaLegacy(request, token);
-  }
-
-  private async fetchComponentReleaseSchemaLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      releaseName: string;
-    },
-    token?: string,
-  ) {
-    const startTime = Date.now();
-    this.logger.debug(
-      `Fetching component release schema for ${request.releaseName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases/{releaseName}/schema',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-              releaseName: request.releaseName,
-            },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component release schema: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Component release schema fetched for ${request.releaseName}: Total: ${totalTime}ms`,
-      );
-
-      return data;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error fetching component release schema for ${request.releaseName} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.fetchComponentReleaseSchemaNew(request, token);
   }
 
   private async fetchComponentReleaseSchemaNew(
@@ -1713,6 +1100,8 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
+      // Backend doesn't have a dedicated component release schema endpoint
+      // Use the component schema endpoint instead
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
@@ -1720,12 +1109,13 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/component-releases/{releaseName}/schema',
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/schema',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              releaseName: request.releaseName,
+              projectName: request.projectName,
+              componentName: request.componentName,
             },
           },
         },
@@ -1770,65 +1160,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    if (this.useNewApi) {
-      return this.fetchReleaseBindingsNew(request, token);
-    }
-    return this.fetchReleaseBindingsLegacy(request, token);
-  }
-
-  private async fetchReleaseBindingsLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ) {
-    const startTime = Date.now();
-    this.logger.debug(
-      `Fetching release bindings for component ${request.componentName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-            },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch release bindings: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Release bindings fetched for ${request.componentName}: Total: ${totalTime}ms`,
-      );
-
-      return data;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error fetching release bindings for ${request.componentName} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.fetchReleaseBindingsNew(request, token);
   }
 
   private async fetchReleaseBindingsNew(
@@ -1852,7 +1184,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/release-bindings',
+        '/api/v1/namespaces/{namespaceName}/releasebindings',
         {
           params: {
             path: { namespaceName: request.namespaceName },
@@ -1910,81 +1242,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    if (this.useNewApi) {
-      return this.patchReleaseBindingOverridesNew(request, token);
-    }
-    return this.patchReleaseBindingOverridesLegacy(request, token);
-  }
-
-  private async patchReleaseBindingOverridesLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environment: string;
-      componentTypeEnvOverrides: any;
-      traitOverrides?: any;
-      workloadOverrides?: any;
-      releaseName?: string;
-    },
-    token?: string,
-  ) {
-    const startTime = Date.now();
-    this.logger.debug(
-      `Patching release binding overrides for component ${request.componentName} in environment ${request.environment}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      // Construct the binding name: componentName-environment
-      const bindingName = `${request.componentName}-${request.environment}`;
-
-      const { data, error, response } = await client.PATCH(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings/{bindingName}',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-              bindingName: bindingName,
-            },
-          },
-          body: {
-            environment: request.environment,
-            releaseName: request.releaseName,
-            componentTypeEnvOverrides: request.componentTypeEnvOverrides,
-            traitOverrides: request.traitOverrides,
-            workloadOverrides: request.workloadOverrides,
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to patch release binding: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Release binding patched for ${request.componentName} in ${request.environment}: Total: ${totalTime}ms`,
-      );
-
-      return data;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error patching release binding for ${request.componentName} in ${request.environment} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.patchReleaseBindingOverridesNew(request, token);
   }
 
   private async patchReleaseBindingOverridesNew(
@@ -2020,12 +1278,12 @@ export class EnvironmentInfoService implements EnvironmentService {
         error: getError,
         response: getResponse,
       } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/release-bindings/{bindingName}',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              bindingName,
+              releaseBindingName: bindingName,
             },
           },
         },
@@ -2049,12 +1307,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       };
 
       const { data, error, response } = await client.PUT(
-        '/api/v1/namespaces/{namespaceName}/release-bindings/{bindingName}',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              bindingName,
+              releaseBindingName: bindingName,
             },
           },
           body: updated,
@@ -2319,67 +1577,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    if (this.useNewApi) {
-      return this.fetchEnvironmentReleaseNew(request, token);
-    }
-    return this.fetchEnvironmentReleaseLegacy(request, token);
-  }
-
-  private async fetchEnvironmentReleaseLegacy(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environmentName: string;
-    },
-    token?: string,
-  ) {
-    const startTime = Date.now();
-    this.logger.debug(
-      `Fetching environment release for component ${request.componentName} in environment ${request.environmentName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release',
-        {
-          params: {
-            path: {
-              namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-              environmentName: request.environmentName,
-            },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch environment release: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const totalTime = Date.now() - startTime;
-      this.logger.debug(
-        `Environment release fetched for ${request.componentName} in ${request.environmentName}: Total: ${totalTime}ms`,
-      );
-
-      return data;
-    } catch (error: unknown) {
-      const totalTime = Date.now() - startTime;
-      this.logger.error(
-        `Error fetching environment release for ${request.componentName} in ${request.environmentName} (${totalTime}ms):`,
-        error as Error,
-      );
-      throw error;
-    }
+    return this.fetchEnvironmentReleaseNew(request, token);
   }
 
   private async fetchEnvironmentReleaseNew(

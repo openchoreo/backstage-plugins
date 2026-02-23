@@ -1476,7 +1476,7 @@ export async function createRouter({
     }
 
     const validKinds = [
-      'component-types',
+      'componenttypes',
       'traits',
       'workflows',
       'component-workflows',
@@ -1495,7 +1495,7 @@ export async function createRouter({
     res.json(
       await platformResourceService.getResourceDefinition(
         kind as
-          | 'component-types'
+          | 'componenttypes'
           | 'traits'
           | 'workflows'
           | 'component-workflows'
@@ -1523,7 +1523,7 @@ export async function createRouter({
     }
 
     const validKinds = [
-      'component-types',
+      'componenttypes',
       'traits',
       'workflows',
       'component-workflows',
@@ -1546,7 +1546,7 @@ export async function createRouter({
     res.json(
       await platformResourceService.updateResourceDefinition(
         kind as
-          | 'component-types'
+          | 'componenttypes'
           | 'traits'
           | 'workflows'
           | 'component-workflows'
@@ -1577,7 +1577,7 @@ export async function createRouter({
       }
 
       const validKinds = [
-        'component-types',
+        'componenttypes',
         'traits',
         'workflows',
         'component-workflows',
@@ -1596,7 +1596,7 @@ export async function createRouter({
       res.json(
         await platformResourceService.deleteResourceDefinition(
           kind as
-            | 'component-types'
+            | 'componenttypes'
             | 'traits'
             | 'workflows'
             | 'component-workflows'

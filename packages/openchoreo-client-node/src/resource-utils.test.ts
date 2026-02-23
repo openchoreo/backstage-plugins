@@ -53,7 +53,7 @@ const fullResource = {
 };
 
 const emptyResource = {};
-const metadataOnlyResource = { metadata: {} };
+const metadataOnlyResource = { metadata: {} as any };
 
 // ---------------------------------------------------------------------------
 // Metadata accessors

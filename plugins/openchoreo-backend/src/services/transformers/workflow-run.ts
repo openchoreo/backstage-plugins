@@ -2,48 +2,48 @@ import type {
   OpenChoreoComponents,
   OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
-import {
-  getName,
-  getNamespace,
-  getUid,
-  getCreatedAt,
-  deriveStatus,
-} from './common';
 
 type ComponentWorkflowRun =
   OpenChoreoComponents['schemas']['ComponentWorkflowRun'];
 type ComponentWorkflowRunResponse =
   OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
 
+/**
+ * Transforms a new-API ComponentWorkflowRun (flat response) into the legacy
+ * ComponentWorkflowRunResponse shape. Both types are structurally identical,
+ * so this is essentially a pass-through with default values.
+ */
 export function transformComponentWorkflowRun(
   run: ComponentWorkflowRun,
 ): ComponentWorkflowRunResponse {
-  const workflow = run.spec?.workflow;
-
   return {
-    name: getName(run) ?? '',
-    uuid: getUid(run) ?? '',
-    componentName: run.spec?.owner?.componentName ?? '',
-    projectName: run.spec?.owner?.projectName ?? '',
-    namespaceName: getNamespace(run) ?? '',
-    commit: workflow?.systemParameters?.repository?.revision?.commit,
-    status: deriveStatus(run),
-    createdAt: getCreatedAt(run) ?? '',
-    image: run.status?.imageStatus?.image,
-    workflow: workflow
+    name: run.name,
+    uuid: run.uuid ?? '',
+    componentName: run.componentName,
+    projectName: run.projectName,
+    namespaceName: run.namespaceName,
+    commit: run.commit,
+    status: run.status,
+    createdAt: run.createdAt,
+    image: run.image,
+    workflow: run.workflow
       ? {
-          name: workflow.name,
+          name: run.workflow.name ?? '',
           systemParameters: {
             repository: {
-              url: workflow.systemParameters.repository.url,
-              appPath: workflow.systemParameters.repository.appPath,
+              url: run.workflow.systemParameters?.repository?.url ?? '',
+              appPath:
+                run.workflow.systemParameters?.repository?.appPath ?? '',
               revision: {
-                branch: workflow.systemParameters.repository.revision.branch,
-                commit: workflow.systemParameters.repository.revision.commit,
+                branch:
+                  run.workflow.systemParameters?.repository?.revision?.branch ??
+                  '',
+                commit:
+                  run.workflow.systemParameters?.repository?.revision?.commit,
               },
             },
           },
-          parameters: workflow.parameters,
+          parameters: run.workflow.parameters,
         }
       : undefined,
   };
