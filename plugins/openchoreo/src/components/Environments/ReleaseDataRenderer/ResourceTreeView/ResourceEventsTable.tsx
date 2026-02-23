@@ -111,10 +111,11 @@ export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
         );
 
         if (!cancelled) {
-          const fetched = response?.events ?? [];
+          const responseData = (response as any)?.data ?? response;
+          const fetched = responseData?.events ?? [];
           // Sort by lastTimestamp descending (newest first)
           fetched.sort(
-            (a, b) =>
+            (a: ResourceEvent, b: ResourceEvent) =>
               new Date(b.lastTimestamp).getTime() -
               new Date(a.lastTimestamp).getTime(),
           );

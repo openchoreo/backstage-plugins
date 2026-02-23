@@ -84,7 +84,8 @@ export const ResourcePodLogsViewer: FC<ResourcePodLogsViewerProps> = ({
         });
 
         if (!cancelled) {
-          setLogEntries(response?.logEntries ?? []);
+          const responseData = (response as any)?.data ?? response;
+          setLogEntries(responseData?.logEntries ?? []);
         }
       } catch (err: any) {
         if (!cancelled) {
