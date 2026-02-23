@@ -1,13 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
+  createOpenChoreoApiClient,
   createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
 import type {
   ComponentWorkflowRunResponse,
-  APIResponse,
   ComponentWorkflowRunStatusResponse,
-  ListResponse,
   WorkflowResponse,
 } from '@openchoreo/backstage-plugin-common';
 import {
@@ -18,19 +17,7 @@ import {
 
 type ModelsBuild = ComponentWorkflowRunResponse;
 
-type WorkflowSchemaResponse = APIResponse & {
-  data?: {
-    [key: string]: unknown;
-  };
-};
-
 type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
-
-type WorkflowListResponse = APIResponse & {
-  data: ListResponse & {
-    items: WorkflowResponse[];
-  };
-};
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -65,14 +52,14 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
             path: { namespaceName, projectName, componentName },
@@ -86,11 +73,7 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
-
-      const builds = (data.data?.items || []) as any;
+      const builds = (data?.items || []) as any;
 
       this.logger.debug(
         `Successfully fetched ${builds.length} component workflow runs for component: ${componentName}`,
@@ -116,14 +99,14 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
         {
           params: {
             path: { namespaceName, projectName, componentName, runName },
@@ -137,12 +120,12 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run data returned');
       }
 
       this.logger.debug(`Successfully fetched workflow run: ${runName}`);
-      return data.data;
+      return data;
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow run ${runName} for component ${componentName}: ${error}`,
@@ -163,17 +146,17 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/status',
+        '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/status',
         {
           params: {
-            path: { namespaceName, projectName, componentName, runName },
+            path: { namespaceName, runName },
           },
         },
       );
@@ -184,12 +167,12 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run status data returned');
       }
 
       this.logger.debug(`Successfully fetched workflow run status: ${runName}`);
-      return data.data as WorkflowRunStatusResponse;
+      return data as WorkflowRunStatusResponse;
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow run status ${runName} for component ${componentName}: ${error}`,
@@ -212,14 +195,14 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
         {
           params: {
             path: { namespaceName, projectName, componentName },
@@ -234,14 +217,16 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run data returned');
       }
 
       this.logger.debug(
-        `Successfully triggered component workflow for component: ${componentName}, workflow run name: ${data.data.name}`,
+        `Successfully triggered component workflow for component: ${componentName}, workflow run name: ${
+          (data as any).name
+        }`,
       );
-      return data.data as any;
+      return data as any;
     } catch (error) {
       this.logger.error(
         `Failed to trigger component workflow for component ${componentName}: ${error}`,
@@ -264,7 +249,7 @@ export class WorkflowService {
     );
 
     try {
-      // First, get the observer URL from the main API
+      // First, get the observer URL from the main API (deferred — stays on legacy)
       const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
@@ -392,17 +377,17 @@ export class WorkflowService {
     try {
       if (hasLiveObservability) {
         // Use OpenChoreo API directly for recent workflow runs
-        const client = createOpenChoreoLegacyApiClient({
+        const client = createOpenChoreoApiClient({
           baseUrl: this.baseUrl,
           token,
           logger: this.logger,
         });
 
         const { data, error, response } = await client.GET(
-          '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs',
+          '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/logs',
           {
             params: {
-              path: { namespaceName, projectName, componentName, runName },
+              path: { namespaceName, runName },
               query: {
                 ...(options.step ? { step: options.step } : {}),
                 ...(typeof options.sinceSeconds === 'number' &&
@@ -437,7 +422,7 @@ export class WorkflowService {
       }
 
       // Use observer API for older workflow runs
-      // First, get the observer URL from the main API
+      // First, get the observer URL from the main API (deferred — stays on legacy)
       const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
@@ -563,17 +548,17 @@ export class WorkflowService {
     try {
       if (hasLiveObservability) {
         // Use OpenChoreo API directly for recent workflow runs
-        const client = createOpenChoreoLegacyApiClient({
+        const client = createOpenChoreoApiClient({
           baseUrl: this.baseUrl,
           token,
           logger: this.logger,
         });
 
         const { data, error, response } = await client.GET(
-          '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events',
+          '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}/events',
           {
             params: {
-              path: { namespaceName, projectName, componentName, runName },
+              path: { namespaceName, runName },
               query: {
                 ...(step ? { step } : {}),
               },
@@ -610,7 +595,7 @@ export class WorkflowService {
       }
 
       // Use observer API for older workflow runs
-      // First, get the observer URL from the main API
+      // First, get the observer URL from the main API (deferred — stays on legacy)
       const mainClient = createOpenChoreoLegacyApiClient({
         baseUrl: this.baseUrl,
         token,
@@ -722,20 +707,20 @@ export class WorkflowService {
   async fetchWorkflows(
     namespaceName: string,
     token?: string,
-  ): Promise<WorkflowListResponse> {
+  ): Promise<{ items: WorkflowResponse[] }> {
     this.logger.debug(
       `Fetching component workflows for namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/component-workflows',
+        '/api/v1/namespaces/{namespaceName}/component-workflows',
         {
           params: {
             path: { namespaceName },
@@ -749,16 +734,12 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('Failed to fetch component workflows');
-      }
-
-      const workflowList: WorkflowListResponse = data as WorkflowListResponse;
+      const items = (data?.items || []) as WorkflowResponse[];
 
       this.logger.debug(
-        `Successfully fetched ${workflowList.data.items.length} component workflows for namespace: ${namespaceName}`,
+        `Successfully fetched ${items.length} component workflows for namespace: ${namespaceName}`,
       );
-      return workflowList;
+      return { items };
     } catch (error) {
       this.logger.error(
         `Failed to fetch component workflows for namespace ${namespaceName}: ${error}`,
@@ -774,20 +755,20 @@ export class WorkflowService {
     namespaceName: string,
     workflowName: string,
     token?: string,
-  ): Promise<WorkflowSchemaResponse> {
+  ): Promise<unknown> {
     this.logger.debug(
       `Fetching schema for component workflow: ${workflowName} in namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/component-workflows/{cwName}/schema',
+        '/api/v1/namespaces/{namespaceName}/component-workflows/{cwName}/schema',
         {
           params: {
             path: { namespaceName, cwName: workflowName },
@@ -801,17 +782,10 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('Failed to fetch component workflow schema');
-      }
-
-      const workflowSchema: WorkflowSchemaResponse =
-        data as WorkflowSchemaResponse;
-
       this.logger.debug(
         `Successfully fetched schema for component workflow: ${workflowName}`,
       );
-      return workflowSchema;
+      return data;
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for component workflow ${workflowName} in namespace ${namespaceName}: ${error}`,
@@ -821,7 +795,7 @@ export class WorkflowService {
   }
 
   /**
-   * Update component workflow parameters (PATCH)
+   * Update component workflow parameters
    */
   async updateComponentWorkflowParameters(
     namespaceName: string,
@@ -830,20 +804,20 @@ export class WorkflowService {
     systemParameters: { [key: string]: unknown },
     parameters?: { [key: string]: unknown },
     token?: string,
-  ): Promise<APIResponse> {
+  ): Promise<unknown> {
     this.logger.debug(
       `Updating workflow parameters for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.PATCH(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-parameters',
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-parameters',
         {
           params: {
             path: { namespaceName, projectName, componentName },
@@ -859,10 +833,6 @@ export class WorkflowService {
         throw new Error(
           `Failed to update workflow parameters: ${response.status} ${response.statusText}`,
         );
-      }
-
-      if (!data?.success) {
-        throw new Error('Failed to update workflow parameters');
       }
 
       this.logger.debug(

@@ -13,9 +13,6 @@ jest.mock('@openchoreo/openchoreo-client-node', () => ({
   createOpenChoreoApiClient: jest.fn(() => ({
     GET: mockGET,
   })),
-  createOpenChoreoLegacyApiClient: jest.fn(() => ({
-    GET: mockGET,
-  })),
   fetchAllPages: jest.fn((fetchPage: (cursor?: string) => Promise<any>) =>
     fetchPage(undefined).then((page: any) => page.items ?? []),
   ),
@@ -49,11 +46,21 @@ function k8sMeta(name: string, extra?: Record<string, any>) {
 }
 
 const k8sNamespace = {
-  name: 'test-ns',
-  displayName: 'Test Namespace',
-  description: 'A test namespace',
-  createdAt: '2025-01-06T10:00:00Z',
-  status: 'Active',
+  metadata: {
+    name: 'test-ns',
+    namespace: '',
+    uid: 'uid-test-ns',
+    creationTimestamp: '2025-01-06T10:00:00Z',
+    labels: {},
+    annotations: {
+      'openchoreo.dev/display-name': 'Test Namespace',
+      'openchoreo.dev/description': 'A test namespace',
+    },
+  },
+  status: {
+    phase: 'Active',
+    conditions: [readyCondition],
+  },
 };
 
 const k8sEnvironment = {
@@ -126,7 +133,7 @@ const k8sPipeline = {
 const k8sServiceComponent = {
   metadata: k8sMeta('api-service'),
   spec: {
-    type: 'Service',
+    componentType: { kind: 'ComponentType', name: 'Service' },
     owner: { projectName: 'my-project' },
   },
   status: { conditions: [readyCondition] },
@@ -135,7 +142,7 @@ const k8sServiceComponent = {
 const k8sNonServiceComponent = {
   metadata: k8sMeta('web-app'),
   spec: {
-    type: 'WebApp',
+    componentType: { kind: 'ComponentType', name: 'WebApp' },
     owner: { projectName: 'my-project' },
   },
   status: { conditions: [readyCondition] },
@@ -272,7 +279,7 @@ function findEntities(entities: Entity[], kind: string): Entity[] {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
+describe('OpenChoreoEntityProvider', () => {
   let taskRunner: PersistingTaskRunner;
   let mockConnection: { applyMutation: jest.Mock; refresh: jest.Mock };
 
@@ -296,7 +303,6 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
       mkLogger(),
       config,
       undefined, // no token service
-      true, // useNewApi
     );
 
     await provider.connect(mockConnection as any);
@@ -334,9 +340,9 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
         }),
         '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}':
           okData(k8sWorkload),
-        '/api/v1/namespaces/{namespaceName}/component-types/{ctName}/schema':
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
           okData({ type: 'object', properties: {} }),
-        '/api/v1/namespaces/{namespaceName}/component-types': okData({
+        '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
           items: [k8sComponentType],
         }),
         '/api/v1/namespaces/{namespaceName}/traits': okData({
@@ -511,8 +517,14 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
 
   describe('namespace-level error isolation', () => {
     it('processes other namespaces when one fails for environments', async () => {
-      const nsOk = { ...k8sNamespace, name: 'ns-ok' };
-      const nsFail = { ...k8sNamespace, name: 'ns-fail' };
+      const nsOk = {
+        ...k8sNamespace,
+        metadata: { ...k8sNamespace.metadata, name: 'ns-ok' },
+      };
+      const nsFail = {
+        ...k8sNamespace,
+        metadata: { ...k8sNamespace.metadata, name: 'ns-fail' },
+      };
 
       // Track calls per namespace for environments
       let envCallCount = 0;

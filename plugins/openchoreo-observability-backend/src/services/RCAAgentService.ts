@@ -6,7 +6,7 @@ import {
 } from '@backstage/backend-plugin-api';
 import { Expand } from '@backstage/types';
 import {
-  createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
   createOpenChoreoAIRCAAgentApiClient,
   AIRCAAgentComponents,
 } from '@openchoreo/openchoreo-client-node';
@@ -45,7 +45,7 @@ export class RCAAgentService {
       throw new Error('Environment is required to resolve RCA agent URL');
     }
 
-    const mainClient = createOpenChoreoLegacyApiClient({
+    const mainClient = createOpenChoreoApiClient({
       baseUrl: this.baseUrl,
       token: userToken,
       logger: this.logger,
@@ -56,7 +56,7 @@ export class RCAAgentService {
       error: urlError,
       response: urlResponse,
     } = await mainClient.GET(
-      '/namespaces/{namespaceName}/environments/{envName}/rca-agent-url',
+      '/api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url',
       {
         params: {
           path: {
@@ -73,13 +73,7 @@ export class RCAAgentService {
       );
     }
 
-    if (!urlData?.success || !urlData?.data) {
-      throw new Error(
-        `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-      );
-    }
-
-    const rcaAgentUrl = urlData.data.rcaAgentUrl;
+    const rcaAgentUrl = urlData?.rcaAgentUrl;
     if (!rcaAgentUrl) {
       throw new Error(
         `RCA service is not configured for namespace ${namespaceName}, environment ${environmentName}`,

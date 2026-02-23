@@ -1,9 +1,12 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  fetchAllPages,
+  type OpenChoreoComponents,
+} from '@openchoreo/openchoreo-client-node';
 import type {
   EnvironmentResponse,
   DataPlaneResponse,
-  ReleaseBindingResponse,
 } from '@openchoreo/backstage-plugin-common';
 
 type ModelsEnvironment = EnvironmentResponse;
@@ -15,6 +18,8 @@ import {
   DataPlane,
   DataPlaneWithEnvironments,
 } from '../types';
+
+type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
 /**
  * Service for managing platform-wide environment information.
@@ -82,17 +87,17 @@ export class PlatformEnvironmentInfoService
         `Starting environment fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/environments',
+        '/api/v1/namespaces/{namespaceName}/environments',
         {
           params: {
-            path: { namespaceName: namespaceName },
+            path: { namespaceName },
           },
         },
       );
@@ -104,15 +109,18 @@ export class PlatformEnvironmentInfoService
         return [];
       }
 
-      if (!data.success || !data.data?.items) {
+      if (!data?.items) {
         this.logger.warn(
           `No environments found for namespace ${namespaceName}`,
         );
         return [];
       }
 
-      const environments = data.data.items;
-      const result = this.transformEnvironmentData(environments, namespaceName);
+      const environments = data.items;
+      const result = this.transformEnvironmentData(
+        environments as any,
+        namespaceName,
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -174,17 +182,17 @@ export class PlatformEnvironmentInfoService
         `Starting dataplane fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/dataplanes',
+        '/api/v1/namespaces/{namespaceName}/dataplanes',
         {
           params: {
-            path: { namespaceName: namespaceName },
+            path: { namespaceName },
           },
         },
       );
@@ -196,13 +204,16 @@ export class PlatformEnvironmentInfoService
         return [];
       }
 
-      if (!data.success || !data.data?.items) {
+      if (!data?.items) {
         this.logger.warn(`No dataplanes found for namespace ${namespaceName}`);
         return [];
       }
 
-      const dataplanes = data.data.items;
-      const result = this.transformDataPlaneData(dataplanes, namespaceName);
+      const dataplanes = data.items;
+      const result = this.transformDataPlaneData(
+        dataplanes as any,
+        namespaceName,
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -340,7 +351,7 @@ export class PlatformEnvironmentInfoService
         `Starting component counts fetch for ${components.length} components`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -354,32 +365,35 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
-            const { data, error, response } = await client.GET(
-              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
-              {
-                params: {
-                  path: {
-                    namespaceName: component.namespaceName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
+            // Get bindings for this component using namespace-scoped endpoint with component filter
+            const bindings = await fetchAllPages<NewReleaseBinding>(cursor =>
+              client
+                .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
+                  params: {
+                    path: {
+                      namespaceName: component.namespaceName,
+                    },
+                    query: {
+                      component: component.componentName,
+                      cursor,
+                    },
                   },
-                },
-              },
+                })
+                .then(res => {
+                  if (res.error)
+                    throw new Error('Failed to fetch release bindings');
+                  return res.data!;
+                }),
             );
 
-            if (!error && response.ok && data.success && data.data?.items) {
-              // Count environments where this component is deployed
-              const bindings = data.data.items as ReleaseBindingResponse[];
-              bindings.forEach(binding => {
-                const envName = binding.environment;
-                if (envName) {
-                  const currentCount =
-                    componentCountsByEnvironment.get(envName) || 0;
-                  componentCountsByEnvironment.set(envName, currentCount + 1);
-                }
-              });
-            }
+            bindings.forEach(binding => {
+              const envName = binding.spec?.environment;
+              if (envName) {
+                const currentCount =
+                  componentCountsByEnvironment.get(envName) || 0;
+                componentCountsByEnvironment.set(envName, currentCount + 1);
+              }
+            });
           } catch (error) {
             this.logger.warn(
               `Failed to fetch bindings for component ${component.namespaceName}/${component.projectName}/${component.componentName}:`,
@@ -427,7 +441,7 @@ export class PlatformEnvironmentInfoService
         `Starting distinct deployed components count for ${components.length} components`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -441,27 +455,22 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
+              '/api/v1/namespaces/{namespaceName}/releasebindings',
               {
                 params: {
                   path: {
                     namespaceName: component.namespaceName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
+                  },
+                  query: {
+                    component: component.componentName,
+                    limit: 1, // We only need to know if at least one binding exists
                   },
                 },
               },
             );
 
-            if (
-              !error &&
-              response.ok &&
-              data.success &&
-              data.data?.items &&
-              data.data.items.length > 0
-            ) {
+            if (!error && response.ok && data?.items && data.items.length > 0) {
               // If component has at least one binding, count it as deployed
               const componentKey = `${component.namespaceName}/${component.projectName}/${component.componentName}`;
               deployedComponents.add(componentKey);
@@ -514,7 +523,7 @@ export class PlatformEnvironmentInfoService
         `Starting healthy workload count for ${components.length} components`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -528,29 +537,35 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
-            const { data, error, response } = await client.GET(
-              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
-              {
-                params: {
-                  path: {
-                    namespaceName: component.namespaceName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
+            const bindings = await fetchAllPages<NewReleaseBinding>(cursor =>
+              client
+                .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
+                  params: {
+                    path: {
+                      namespaceName: component.namespaceName,
+                    },
+                    query: {
+                      component: component.componentName,
+                      cursor,
+                    },
                   },
-                },
-              },
+                })
+                .then(res => {
+                  if (res.error)
+                    throw new Error('Failed to fetch release bindings');
+                  return res.data!;
+                }),
             );
 
-            if (!error && response.ok && data.success && data.data?.items) {
-              // Count healthy workloads by checking if status.status === 'Active'
-              const bindings = data.data.items as ReleaseBindingResponse[];
-              const healthyCount = bindings.filter(
-                binding => binding.status === 'Ready',
-              ).length;
-              return healthyCount;
-            }
-            return 0;
+            // Count healthy workloads by checking status conditions
+            const healthyCount = bindings.filter(binding => {
+              const conditions = binding.status?.conditions;
+              if (!conditions) return false;
+              return conditions.some(
+                c => c.type === 'Ready' && c.status === 'True',
+              );
+            }).length;
+            return healthyCount;
           } catch (error) {
             this.logger.warn(
               `Failed to fetch bindings for component ${component.namespaceName}/${component.projectName}/${component.componentName}:`,
@@ -588,13 +603,13 @@ export class PlatformEnvironmentInfoService
    * Fetches the list of namespace names from the OpenChoreo API.
    */
   private async fetchNamespaceNames(userToken?: string): Promise<string[]> {
-    const client = createOpenChoreoLegacyApiClient({
+    const client = createOpenChoreoApiClient({
       baseUrl: this.baseUrl,
       token: userToken,
       logger: this.logger,
     });
 
-    const { data, error, response } = await client.GET('/namespaces');
+    const { data, error, response } = await client.GET('/api/v1/namespaces');
 
     if (error || !response.ok) {
       this.logger.error(
@@ -603,13 +618,15 @@ export class PlatformEnvironmentInfoService
       return [];
     }
 
-    if (!data.success || !data.data?.items) {
+    if (!data?.items) {
       this.logger.warn('No namespaces found');
       return [];
     }
 
-    const namespaces = data.data.items as Array<{ name: string }>;
-    return namespaces.map(ns => ns.name);
+    const namespaces = data.items as Array<{ metadata?: { name?: string } }>;
+    return namespaces
+      .map(ns => ns.metadata?.name)
+      .filter((name): name is string => !!name);
   }
 
   private transformEnvironmentData(

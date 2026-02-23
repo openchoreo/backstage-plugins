@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
@@ -103,7 +103,7 @@ export const createComponentTypeDefinitionAction = (
         );
       }
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl,
         token,
         logger: ctx.logger,
@@ -111,12 +111,12 @@ export const createComponentTypeDefinitionAction = (
 
       try {
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/component-types/definition',
+          '/api/v1/namespaces/{namespaceName}/componenttypes',
           {
             params: {
               path: { namespaceName },
             },
-            body: resourceObj,
+            body: resourceObj as any,
           },
         );
 
@@ -126,12 +126,11 @@ export const createComponentTypeDefinitionAction = (
           );
         }
 
-        if (!data?.success || !data?.data) {
-          throw new Error('API request was not successful');
-        }
-
-        const resultData = data.data as Record<string, unknown>;
-        const resultName = (resultData.name as string) || '';
+        const resultData = data as Record<string, unknown>;
+        const metadata = resultData.metadata as
+          | Record<string, unknown>
+          | undefined;
+        const resultName = (metadata?.name as string) || '';
 
         ctx.logger.debug(
           `ComponentType created successfully: ${JSON.stringify(resultData)}`,
@@ -144,10 +143,10 @@ export const createComponentTypeDefinitionAction = (
           );
 
           // Extract metadata from the parsed YAML
-          const metadata = resourceObj.metadata as
+          const yamlMetadata = resourceObj.metadata as
             | Record<string, unknown>
             | undefined;
-          const annotations = (metadata?.annotations || {}) as Record<
+          const annotations = (yamlMetadata?.annotations || {}) as Record<
             string,
             string
           >;
@@ -155,7 +154,7 @@ export const createComponentTypeDefinitionAction = (
 
           const entity = translateComponentTypeToEntity(
             {
-              name: resultName || (metadata?.name as string),
+              name: resultName || (yamlMetadata?.name as string),
               displayName: annotations['openchoreo.dev/display-name'],
               description: annotations['openchoreo.dev/description'],
               workloadType: spec.workloadType as string,

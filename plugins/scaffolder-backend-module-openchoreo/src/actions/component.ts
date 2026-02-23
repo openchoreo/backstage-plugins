@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
@@ -344,22 +344,25 @@ export const createComponentAction = (
           );
         }
 
-        const client = createOpenChoreoLegacyApiClient({
+        const client = createOpenChoreoApiClient({
           baseUrl,
           token,
           logger: ctx.logger,
         });
 
         ctx.logger.debug(
-          `Invoking /apply resource for component: ${componentResource.metadata.name}`,
+          `Creating component: ${componentResource.metadata.name}`,
         );
 
-        // Call the apply API to create the component
+        // Call the new API to create the component
         const {
           data: applyData,
           error: applyError,
           response: applyResponse,
-        } = await client.POST('/apply', {
+        } = await client.POST('/api/v1/namespaces/{namespaceName}/components', {
+          params: {
+            path: { namespaceName },
+          },
           body: componentResource as any,
         });
 
@@ -369,14 +372,8 @@ export const createComponentAction = (
           );
         }
 
-        if (!applyData?.success) {
-          throw new Error('API request was not successful');
-        }
-
         ctx.logger.info(
-          `Component created successfully via /apply: ${JSON.stringify(
-            applyData,
-          )}`,
+          `Component created successfully: ${JSON.stringify(applyData)}`,
         );
 
         // Create Workload CR when there's workload data or when deploying from image.
@@ -434,21 +431,20 @@ export const createComponentAction = (
             data: workloadData,
             error: workloadError,
             response: workloadResponse,
-          } = await client.POST('/apply', {
-            body: workloadResource as any,
-          });
+          } = await client.POST(
+            '/api/v1/namespaces/{namespaceName}/workloads',
+            {
+              params: {
+                path: { namespaceName },
+              },
+              body: workloadResource as any,
+            },
+          );
 
           if (workloadError || !workloadResponse.ok) {
             ctx.logger.error(
               `Failed to create Workload: ${workloadResponse.status} ${workloadResponse.statusText}. ` +
                 `Error: ${JSON.stringify(workloadError)}. ` +
-                `Component was created but workload setup may need manual configuration.`,
-            );
-          } else if (!workloadData?.success) {
-            ctx.logger.error(
-              `Workload API request was not successful: ${JSON.stringify(
-                workloadData,
-              )}. ` +
                 `Component was created but workload setup may need manual configuration.`,
             );
           } else {

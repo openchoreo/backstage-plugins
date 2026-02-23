@@ -301,13 +301,7 @@ export interface WorkflowStepStatus {
    * @example Succeeded
    * @enum {string}
    */
-  phase:
-    | 'Pending'
-    | 'Running'
-    | 'Succeeded'
-    | 'Failed'
-    | 'Skipped'
-    | 'Error';
+  phase: 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Skipped' | 'Error';
   /**
    * Format: date-time
    * @description Timestamp when the step started (null if not started)
@@ -551,12 +545,7 @@ export interface BindingStatus {
   reason: string;
   message: string;
   /** @enum {string} */
-  status:
-    | 'InProgress'
-    | 'Active'
-    | 'Failed'
-    | 'Suspended'
-    | 'NotYetDeployed';
+  status: 'InProgress' | 'Active' | 'Failed' | 'Suspended' | 'NotYetDeployed';
   /** Format: date-time */
   lastTransitioned: string;
 }

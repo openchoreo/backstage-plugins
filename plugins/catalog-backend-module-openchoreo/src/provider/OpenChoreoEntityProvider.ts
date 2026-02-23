@@ -103,7 +103,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     logger: LoggerService,
     config: Config,
     tokenService?: OpenChoreoTokenService,
-    _useNewApi?: boolean,
   ) {
     this.taskRunner = taskRunner;
     this.logger = logger;

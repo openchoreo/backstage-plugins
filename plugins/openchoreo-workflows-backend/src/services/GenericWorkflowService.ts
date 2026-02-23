@@ -1,6 +1,6 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
 import {
@@ -51,14 +51,14 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/workflows',
+        '/api/v1/namespaces/{namespaceName}/workflows',
         {
           params: {
             path: { namespaceName },
@@ -72,11 +72,7 @@ export class GenericWorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
-
-      const items = (data.data?.items || []) as Workflow[];
+      const items = (data?.items || []) as Workflow[];
 
       this.logger.debug(
         `Successfully fetched ${items.length} generic workflows for namespace: ${namespaceName}`,
@@ -84,9 +80,7 @@ export class GenericWorkflowService {
 
       return {
         items,
-        pagination: data.data?.pagination as
-          | { nextCursor?: string }
-          | undefined,
+        pagination: data?.pagination as { nextCursor?: string } | undefined,
       };
     } catch (error) {
       this.logger.error(
@@ -109,14 +103,14 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/workflows/{workflowName}/schema',
+        '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}/schema',
         {
           params: {
             path: { namespaceName, workflowName },
@@ -130,15 +124,11 @@ export class GenericWorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
-
       this.logger.debug(
         `Successfully fetched schema for workflow: ${workflowName}`,
       );
 
-      return data.data;
+      return data;
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for workflow ${workflowName} in namespace ${namespaceName}: ${error}`,
@@ -149,8 +139,6 @@ export class GenericWorkflowService {
 
   /**
    * List workflow runs for a namespace, optionally filtered by workflow name
-   * NOTE: This endpoint may not yet exist in the upstream API.
-   * The workflow-runs endpoint at namespace level is pending upstream implementation.
    */
   async listWorkflowRuns(
     namespaceName: string,
@@ -164,16 +152,14 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      // NOTE: This endpoint path assumes the upstream API will add namespace-level workflow-runs
-      // If the API returns 404, the upstream may not have this endpoint yet
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/workflow-runs' as any,
+        '/api/v1/namespaces/{namespaceName}/workflow-runs',
         {
           params: {
             path: { namespaceName },
@@ -187,11 +173,7 @@ export class GenericWorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
-
-      let items = (data.data?.items || []) as WorkflowRun[];
+      let items = (data?.items || []) as unknown as WorkflowRun[];
 
       // Filter by workflowName if provided (client-side filtering)
       // TODO: If upstream API supports filtering, pass workflowName as query param instead
@@ -209,9 +191,7 @@ export class GenericWorkflowService {
 
       return {
         items,
-        pagination: data.data?.pagination as
-          | { nextCursor?: string }
-          | undefined,
+        pagination: data?.pagination as { nextCursor?: string } | undefined,
       };
     } catch (error) {
       this.logger.error(
@@ -223,7 +203,6 @@ export class GenericWorkflowService {
 
   /**
    * Get details of a specific workflow run
-   * NOTE: This endpoint may not yet exist in the upstream API.
    */
   async getWorkflowRun(
     namespaceName: string,
@@ -235,15 +214,14 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      // NOTE: This endpoint path assumes the upstream API will add namespace-level workflow-runs
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/workflow-runs/{runName}' as any,
+        '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}',
         {
           params: {
             path: { namespaceName, runName },
@@ -257,13 +235,13 @@ export class GenericWorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run data returned');
       }
 
       this.logger.debug(`Successfully fetched workflow run: ${runName}`);
 
-      return data.data as WorkflowRun;
+      return data as unknown as WorkflowRun;
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow run ${runName} in namespace ${namespaceName}: ${error}`,
@@ -274,7 +252,6 @@ export class GenericWorkflowService {
 
   /**
    * Create (trigger) a new workflow run
-   * NOTE: This endpoint may not yet exist in the upstream API.
    */
   async createWorkflowRun(
     namespaceName: string,
@@ -286,15 +263,14 @@ export class GenericWorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      // NOTE: This endpoint path assumes the upstream API will add namespace-level workflow-runs
       const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/workflow-runs' as any,
+        '/api/v1/namespaces/{namespaceName}/workflow-runs',
         {
           params: {
             path: { namespaceName },
@@ -302,7 +278,7 @@ export class GenericWorkflowService {
           body: {
             workflowName: request.workflowName,
             parameters: request.parameters,
-          },
+          } as any,
         },
       );
 
@@ -312,13 +288,15 @@ export class GenericWorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run data returned');
       }
 
-      this.logger.debug(`Successfully created workflow run: ${data.data.name}`);
+      this.logger.debug(
+        `Successfully created workflow run: ${(data as any).name}`,
+      );
 
-      return data.data as WorkflowRun;
+      return data as unknown as WorkflowRun;
     } catch (error) {
       this.logger.error(
         `Failed to create workflow run for workflow ${request.workflowName} in namespace ${namespaceName}: ${error}`,
@@ -357,7 +335,7 @@ export class GenericWorkflowService {
       const runId = workflowRun.name || runName;
 
       // Get the observer URL from the environment
-      const mainClient = createOpenChoreoLegacyApiClient({
+      const mainClient = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -368,7 +346,7 @@ export class GenericWorkflowService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/namespaces/{namespaceName}/environments/{envName}/observer-url',
+        '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url',
         {
           params: {
             path: {
@@ -388,13 +366,7 @@ export class GenericWorkflowService {
         );
       }
 
-      if (!urlData || !urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data?.observerUrl;
+      const observerUrl = urlData?.observerUrl;
       if (!observerUrl) {
         throw new ObservabilityNotConfiguredError(runName);
       }
