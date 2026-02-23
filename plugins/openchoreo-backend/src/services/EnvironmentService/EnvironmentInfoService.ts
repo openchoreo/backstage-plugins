@@ -29,11 +29,7 @@ export class EnvironmentInfoService implements EnvironmentService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
 
-  public constructor(
-    logger: LoggerService,
-    baseUrl: string,
-    _useNewApi = false,
-  ) {
+  public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -41,9 +37,8 @@ export class EnvironmentInfoService implements EnvironmentService {
   static create(
     logger: LoggerService,
     baseUrl: string,
-    useNewApi = false,
   ): EnvironmentInfoService {
-    return new EnvironmentInfoService(logger, baseUrl, useNewApi);
+    return new EnvironmentInfoService(logger, baseUrl);
   }
 
   /**
@@ -1109,12 +1104,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/schema',
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}/schema',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              projectName: request.projectName,
               componentName: request.componentName,
             },
           },
@@ -1367,14 +1361,14 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources' as any,
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources',
         {
           params: {
             path: {
@@ -1384,7 +1378,7 @@ export class EnvironmentInfoService implements EnvironmentService {
               environmentName: request.environmentName,
             },
           },
-        } as any,
+        },
       );
 
       if (error || !response.ok) {
@@ -1428,25 +1422,14 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      const queryParams: Record<string, string> = {
-        kind: request.kind,
-        name: request.name,
-      };
-      if (request.namespace) {
-        queryParams.namespace = request.namespace;
-      }
-      if (request.uid) {
-        queryParams.uid = request.uid;
-      }
-
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events' as any,
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events',
         {
           params: {
             path: {
@@ -1455,9 +1438,14 @@ export class EnvironmentInfoService implements EnvironmentService {
               componentName: request.componentName,
               environmentName: request.environmentName,
             },
-            query: queryParams,
+            query: {
+              kind: request.kind,
+              name: request.name,
+              namespace: request.namespace,
+              uid: request.uid,
+            },
           },
-        } as any,
+        },
       );
 
       if (error || !response.ok) {
@@ -1501,27 +1489,14 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      const queryParams: Record<string, string> = {
-        name: request.name,
-      };
-      if (request.namespace) {
-        queryParams.namespace = request.namespace;
-      }
-      if (request.container) {
-        queryParams.container = request.container;
-      }
-      if (request.sinceSeconds !== undefined) {
-        queryParams.sinceSeconds = request.sinceSeconds.toString();
-      }
-
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs' as any,
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs',
         {
           params: {
             path: {
@@ -1530,9 +1505,14 @@ export class EnvironmentInfoService implements EnvironmentService {
               componentName: request.componentName,
               environmentName: request.environmentName,
             },
-            query: queryParams,
+            query: {
+              name: request.name,
+              namespace: request.namespace ?? '',
+              container: request.container,
+              sinceSeconds: request.sinceSeconds,
+            },
           },
-        } as any,
+        },
       );
 
       if (error || !response.ok) {

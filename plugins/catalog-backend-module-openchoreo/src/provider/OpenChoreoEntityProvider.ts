@@ -179,7 +179,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           .then(res => {
             if (res.error) {
               const msg =
-                typeof res.error === 'object' && res.error !== null && 'message' in res.error
+                typeof res.error === 'object' &&
+                res.error !== null &&
+                'message' in res.error
                   ? (res.error as { message: string }).message
                   : JSON.stringify(res.error);
               throw new Error(
@@ -216,9 +218,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               })
               .then(res => {
                 if (res.error)
-                  throw new Error(
-                    `Failed to fetch environments for ${nsName}`,
-                  );
+                  throw new Error(`Failed to fetch environments for ${nsName}`);
                 return res.data;
               }),
           );
@@ -1192,9 +1192,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               name: component.spec.workflow.name ?? '',
               systemParameters: {
                 repository: {
-                  url: component.spec.workflow.systemParameters?.repository?.url ?? '',
+                  url:
+                    component.spec.workflow.systemParameters?.repository?.url ??
+                    '',
                   appPath:
-                    component.spec.workflow.systemParameters?.repository?.appPath,
+                    component.spec.workflow.systemParameters?.repository
+                      ?.appPath,
                   revision: {
                     branch:
                       component.spec.workflow.systemParameters?.repository

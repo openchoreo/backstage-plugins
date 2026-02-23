@@ -109,12 +109,8 @@ const k8sPipeline = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return EnvironmentInfoService.create(
-    mockLogger,
-    'http://test:8080',
-    useNewApi,
-  );
+function createService() {
+  return EnvironmentInfoService.create(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -149,7 +145,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       // 3. deployment pipelines
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDeploymentInfo(
         {
           projectName: 'my-project',
@@ -176,7 +172,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       // pipeline
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDeploymentInfo(
         {
           projectName: 'my-project',
@@ -196,7 +192,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDeploymentInfo(
         {
           projectName: 'my-project',
@@ -221,7 +217,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.promoteComponent(
         {
           sourceEnvironment: 'dev',
@@ -240,7 +236,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
     it('throws when promote API fails', async () => {
       mockPOST.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.promoteComponent(
           {
@@ -269,7 +265,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.deleteReleaseBinding(
         {
           componentName: 'api-service',
@@ -294,7 +290,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.deployRelease(
         {
           componentName: 'api-service',
@@ -312,7 +308,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
     it('throws when deploy fails', async () => {
       mockPOST.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.deployRelease(
           {
@@ -331,7 +327,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
     it('returns release bindings from new API', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchReleaseBindings(
         {
           componentName: 'api-service',
@@ -350,7 +346,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       const schema = { type: 'object', properties: {} };
       mockGET.mockResolvedValueOnce(okResponse(schema));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchComponentReleaseSchema(
         {
           componentName: 'api-service',
@@ -373,7 +369,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       };
       mockGET.mockResolvedValueOnce(okResponse({ items: [release] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchEnvironmentRelease(
         {
           componentName: 'api-service',
@@ -390,7 +386,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
     it('returns null when no matching release', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchEnvironmentRelease(
         {
           componentName: 'api-service',

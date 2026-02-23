@@ -166,9 +166,17 @@ export interface paths {
      * @description Returns details of a specific namespace.
      */
     get: operations['getNamespace'];
-    put?: never;
+    /**
+     * Update namespace
+     * @description Replaces an existing control plane namespace (full update).
+     */
+    put: operations['updateNamespace'];
     post?: never;
-    delete?: never;
+    /**
+     * Delete namespace
+     * @description Deletes a control plane namespace by name.
+     */
+    delete: operations['deleteNamespace'];
     options?: never;
     head?: never;
     patch?: never;
@@ -688,7 +696,11 @@ export interface paths {
      */
     put: operations['updateClusterComponentType'];
     post?: never;
-    delete?: never;
+    /**
+     * Delete cluster component type
+     * @description Deletes a cluster-scoped component type by name.
+     */
+    delete: operations['deleteClusterComponentType'];
     options?: never;
     head?: never;
     patch?: never;
@@ -756,7 +768,11 @@ export interface paths {
      */
     put: operations['updateClusterTrait'];
     post?: never;
-    delete?: never;
+    /**
+     * Delete cluster trait
+     * @description Deletes a cluster-scoped trait by name.
+     */
+    delete: operations['deleteClusterTrait'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1138,7 +1154,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/schema': {
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -1190,6 +1206,26 @@ export interface paths {
      * @description Returns Kubernetes events for a specific resource in the release resource tree.
      */
     get: operations['getReleaseResourceEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get pod logs
+     * @description Returns logs for a specific pod in the release resource tree.
+     */
+    get: operations['getReleaseResourcePodLogs'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2318,7 +2354,7 @@ export interface components {
     /** @description Paginated list of namespaces */
     NamespaceList: {
       items: components['schemas']['Namespace'][];
-      pagination: components['schemas']['Pagination'];
+      pagination?: components['schemas']['Pagination'];
     };
     /**
      * @description Namespace resource (Kubernetes object without kind/apiVersion).
@@ -4224,6 +4260,25 @@ export interface components {
       /** @description Kubernetes events for the resource */
       events: components['schemas']['ResourceEvent'][];
     };
+    /** @description A single log entry from a pod */
+    PodLogEntry: {
+      /**
+       * Format: date-time
+       * @description Timestamp of the log entry in RFC3339 format
+       * @example 2024-01-10T12:34:56.789Z
+       */
+      timestamp: string;
+      /**
+       * @description Log message content
+       * @example Starting application server on port 8080
+       */
+      log: string;
+    };
+    /** @description Response containing logs for a specific pod */
+    ResourcePodLogsResponse: {
+      /** @description Log entries from the pod */
+      logEntries: components['schemas']['PodLogEntry'][];
+    };
     /** @description Request to deploy a release */
     DeployReleaseRequest: {
       /**
@@ -5605,6 +5660,63 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Namespace'];
         };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Namespace'];
+      };
+    };
+    responses: {
+      /** @description Namespace updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Namespace'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteNamespace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Namespace deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
@@ -7019,6 +7131,31 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  deleteClusterComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterComponentType name */
+        cctName: components['parameters']['ClusterComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterComponentType deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
   getClusterComponentTypeSchema: {
     parameters: {
       query?: never;
@@ -7163,6 +7300,31 @@ export interface operations {
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterTrait name */
+        clusterTraitName: components['parameters']['ClusterTraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterTrait deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7978,8 +8140,6 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Project name */
-        projectName: components['parameters']['ProjectNameParam'];
         /** @description Component name */
         componentName: components['parameters']['ComponentNameParam'];
       };
@@ -8069,6 +8229,49 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ResourceEventsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseResourcePodLogs: {
+    parameters: {
+      query: {
+        /** @description Name of the pod */
+        name: string;
+        /** @description Namespace of the pod */
+        namespace: string;
+        /** @description Specific container name to get logs from */
+        container?: string;
+        /** @description Only return logs newer than this many seconds */
+        sinceSeconds?: number;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Environment name for component-scoped operations */
+        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Logs for the specified pod */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourcePodLogsResponse'];
         };
       };
       400: components['responses']['BadRequest'];

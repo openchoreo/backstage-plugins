@@ -315,9 +315,7 @@ export class PlatformResourceService {
               `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
             );
           }
-          const wf = data.items?.find(
-            (w: any) => w.name === resourceName,
-          );
+          const wf = data.items?.find((w: any) => w.name === resourceName);
           if (!wf) {
             throw new Error(`Workflow '${resourceName}' not found`);
           }

@@ -133,12 +133,9 @@ export const createNamespaceAction = (
           const entity = translateNamespaceToDomainEntity(
             {
               name: resultName,
-              displayName:
-                ctx.input.displayName || getDisplayName(data),
-              description:
-                ctx.input.description || getDescription(data),
-              createdAt:
-                getCreatedAt(data) || new Date().toISOString(),
+              displayName: ctx.input.displayName || getDisplayName(data),
+              description: ctx.input.description || getDescription(data),
+              createdAt: getCreatedAt(data) || new Date().toISOString(),
               status: data.status?.phase,
             },
             {

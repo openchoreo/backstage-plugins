@@ -268,6 +268,56 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+    put:
+      operationId: updateNamespace
+      summary: Update namespace
+      description: Replaces an existing control plane namespace (full update).
+      tags: [Namespaces]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Namespace'
+      responses:
+        '200':
+          description: Namespace updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Namespace'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteNamespace
+      summary: Delete namespace
+      description: Deletes a control plane namespace by name.
+      tags: [Namespaces]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      responses:
+        '204':
+          description: Namespace deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   # =============================================================================
   # Project Endpoints
   # =============================================================================
@@ -1544,6 +1594,25 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+    delete:
+      operationId: deleteClusterComponentType
+      summary: Delete cluster component type
+      description: Deletes a cluster-scoped component type by name.
+      tags: [ClusterComponentTypes]
+      parameters:
+        - $ref: '#/components/parameters/ClusterComponentTypeNameParam'
+      responses:
+        '204':
+          description: ClusterComponentType deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/v1/clustercomponenttypes/{cctName}/schema:
     get:
       operationId: getClusterComponentTypeSchema
@@ -1678,6 +1747,25 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteClusterTrait
+      summary: Delete cluster trait
+      description: Deletes a cluster-scoped trait by name.
+      tags: [ClusterTraits]
+      parameters:
+        - $ref: '#/components/parameters/ClusterTraitNameParam'
+      responses:
+        '204':
+          description: ClusterTrait deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -2397,7 +2485,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/schema:
+  /api/v1/namespaces/{namespaceName}/components/{componentName}/schema:
     get:
       operationId: getComponentSchema
       summary: Get component schema
@@ -2405,7 +2493,6 @@ paths:
       tags: [Components]
       parameters:
         - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ProjectNameParam'
         - $ref: '#/components/parameters/ComponentNameParam'
       responses:
         '200':
@@ -2492,6 +2579,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResourceEventsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs:
+    get:
+      operationId: getReleaseResourcePodLogs
+      summary: Get pod logs
+      description: Returns logs for a specific pod in the release resource tree.
+      tags: [Components]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ProjectNameParam'
+        - $ref: '#/components/parameters/ComponentNameParam'
+        - $ref: '#/components/parameters/ComponentEnvironmentNameParam'
+        - name: name
+          in: query
+          required: true
+          description: Name of the pod
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: true
+          description: Namespace of the pod
+          schema:
+            type: string
+        - name: container
+          in: query
+          required: false
+          description: Specific container name to get logs from
+          schema:
+            type: string
+        - name: sinceSeconds
+          in: query
+          required: false
+          description: Only return logs newer than this many seconds
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      responses:
+        '200':
+          description: Logs for the specified pod
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourcePodLogsResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -4670,7 +4812,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "Invalid request: name is required"
+            error: 'Invalid request: name is required'
             code: BAD_REQUEST
             details:
               - field: name
@@ -4683,7 +4825,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "Authentication required"
+            error: 'Authentication required'
             code: UNAUTHORIZED
 
     Forbidden:
@@ -4693,7 +4835,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "You do not have permission to access this resource"
+            error: 'You do not have permission to access this resource'
             code: FORBIDDEN
 
     NotFound:
@@ -4723,7 +4865,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "Internal server error"
+            error: 'Internal server error'
             code: INTERNAL_ERROR
 
   # ===========================================================================
@@ -4807,7 +4949,7 @@ components:
           type: string
           format: date-time
           description: Creation timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
 
     Condition:
       type: object
@@ -4825,8 +4967,8 @@ components:
         status:
           type: string
           description: Status of the condition
-          enum: ["True", "False", "Unknown"]
-          example: "True"
+          enum: ['True', 'False', 'Unknown']
+          example: 'True'
         observedGeneration:
           type: integer
           format: int64
@@ -4835,7 +4977,7 @@ components:
           type: string
           format: date-time
           description: Last time the condition transitioned
-          example: "2025-01-06T10:00:05Z"
+          example: '2025-01-06T10:00:05Z'
         reason:
           type: string
           description: Machine-readable reason for the condition
@@ -4843,7 +4985,7 @@ components:
         message:
           type: string
           description: Human-readable message
-          example: "Project is ready"
+          example: 'Project is ready'
 
     # -------------------------------------------------------------------------
     # Version
@@ -4875,7 +5017,7 @@ components:
         buildTime:
           type: string
           description: Build timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         goOS:
           type: string
           description: Target operating system
@@ -4954,7 +5096,7 @@ components:
           description: OAuth2 scopes for this client
           items:
             type: string
-          example: ["openid", "profile", "email"]
+          example: ['openid', 'profile', 'email']
 
     ClientConfigList:
       type: object
@@ -5062,7 +5204,7 @@ components:
             Opaque cursor for fetching the next page. Pass this value as the
             `cursor` query parameter in the next request. Absent when there
             are no more items.
-          example: "eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30="
+          example: 'eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30='
         remainingCount:
           type: integer
           format: int64
@@ -5081,7 +5223,6 @@ components:
       description: Paginated list of namespaces
       required:
         - items
-        - pagination
       properties:
         items:
           type: array
@@ -5193,7 +5334,6 @@ components:
         pagination:
           $ref: '#/components/schemas/Pagination'
 
-
     # -------------------------------------------------------------------------
     # Components
     # -------------------------------------------------------------------------
@@ -5240,7 +5380,7 @@ components:
               default: ComponentType
             name:
               type: string
-              description: "Component type reference in format: {workloadType}/{componentTypeName}"
+              description: 'Component type reference in format: {workloadType}/{componentTypeName}'
               example: deployment/go-service
               pattern: '^(deployment|statefulset|cronjob|job|proxy)/[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         autoDeploy:
@@ -5371,12 +5511,12 @@ components:
           maxLength: 1024
         type:
           type: string
-          description: "DEPRECATED: Use componentType instead. Legacy component type field."
+          description: 'DEPRECATED: Use componentType instead. Legacy component type field.'
           example: service/go-service
           deprecated: true
         componentType:
           type: string
-          description: "Component type reference (format: {workloadType}/{componentTypeName})"
+          description: 'Component type reference (format: {workloadType}/{componentTypeName})'
           example: service/go-service
         autoDeploy:
           type: boolean
@@ -5634,7 +5774,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ["docker-registry-secret"]
+          example: ['docker-registry-secret']
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -5981,7 +6121,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ["docker-registry-secret"]
+          example: ['docker-registry-secret']
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -6212,7 +6352,7 @@ components:
           description: List of allowed ComponentWorkflow names for this component type
           items:
             type: string
-          example: ["docker-build", "buildpack-build"]
+          example: ['docker-build', 'buildpack-build']
         schema:
           type: object
           description: Developer-configurable schema definition
@@ -6291,7 +6431,7 @@ components:
             properties:
               rule:
                 type: string
-                description: "CEL expression wrapped in ${...} that must evaluate to true"
+                description: 'CEL expression wrapped in ${...} that must evaluate to true'
                 pattern: '^\$\{[\s\S]+\}\s*$'
               message:
                 type: string
@@ -6316,11 +6456,11 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
                 pattern: '^\$\{[\s\S]+\}\s*$'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
                 pattern: '^\$\{[\s\S]+\}\s*$'
               var:
                 type: string
@@ -6402,10 +6542,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6424,7 +6564,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: "CEL expression for repeating this patch"
+                description: 'CEL expression for repeating this patch'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6447,7 +6587,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: "CEL expression to filter which resources to patch"
+                    description: 'CEL expression to filter which resources to patch'
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -6510,7 +6650,7 @@ components:
           description: List of allowed ComponentWorkflow names for this component type
           items:
             type: string
-          example: ["docker-build", "buildpack-build"]
+          example: ['docker-build', 'buildpack-build']
         schema:
           type: object
           description: Developer-configurable schema definition
@@ -6587,7 +6727,7 @@ components:
             properties:
               rule:
                 type: string
-                description: "CEL expression wrapped in ${...} that must evaluate to true"
+                description: 'CEL expression wrapped in ${...} that must evaluate to true'
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6611,10 +6751,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6691,7 +6831,7 @@ components:
             properties:
               rule:
                 type: string
-                description: "CEL expression wrapped in ${...} that must evaluate to true"
+                description: 'CEL expression wrapped in ${...} that must evaluate to true'
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6710,10 +6850,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6732,7 +6872,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: "CEL expression for repeating this patch"
+                description: 'CEL expression for repeating this patch'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6755,7 +6895,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: "CEL expression to filter which resources to patch"
+                    description: 'CEL expression to filter which resources to patch'
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -6859,7 +6999,7 @@ components:
           type: string
           format: date-time
           description: Creation timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
 
     # -------------------------------------------------------------------------
     # WorkflowRuns
@@ -6914,22 +7054,22 @@ components:
           description: User-defined workflow parameters
           additionalProperties: true
           example:
-            database_url: "postgresql://localhost:5432/mydb"
-            migration_version: "v2.1.0"
+            database_url: 'postgresql://localhost:5432/mydb'
+            migration_version: 'v2.1.0'
         createdAt:
           type: string
           format: date-time
           description: Creation timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         finishedAt:
           type: string
           format: date-time
           description: Completion timestamp
-          example: "2025-01-06T10:05:00Z"
+          example: '2025-01-06T10:05:00Z'
         phase:
           type: string
           description: Detailed execution phase
-          example: "Clone completed, build in progress"
+          example: 'Clone completed, build in progress'
 
     WorkflowRunStatusResponse:
       type: object
@@ -6974,12 +7114,12 @@ components:
           type: string
           format: date-time
           description: When the step started
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         finishedAt:
           type: string
           format: date-time
           description: When the step finished
-          example: "2025-01-06T10:01:00Z"
+          example: '2025-01-06T10:01:00Z'
 
     WorkflowRunLogEntry:
       type: object
@@ -6991,11 +7131,11 @@ components:
           type: string
           format: date-time
           description: Log entry timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         log:
           type: string
           description: Log message
-          example: "Step 1: Cloning repository..."
+          example: 'Step 1: Cloning repository...'
 
     WorkflowRunEventEntry:
       type: object
@@ -7010,7 +7150,7 @@ components:
           type: string
           format: date-time
           description: Event timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         type:
           type: string
           description: Event type
@@ -7022,7 +7162,7 @@ components:
         message:
           type: string
           description: Human-readable description of the event
-          example: "Container main started"
+          example: 'Container main started'
 
     CreateWorkflowRunRequest:
       type: object
@@ -7040,8 +7180,8 @@ components:
           description: User-defined workflow parameters
           additionalProperties: true
           example:
-            database_url: "postgresql://localhost:5432/mydb"
-            migration_version: "v2.1.0"
+            database_url: 'postgresql://localhost:5432/mydb'
+            migration_version: 'v2.1.0'
 
     # -------------------------------------------------------------------------
     # ComponentWorkflows
@@ -7083,7 +7223,7 @@ components:
           type: string
           format: date-time
           description: Creation timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
 
     UpdateComponentWorkflowRequest:
       type: object
@@ -7186,7 +7326,7 @@ components:
           type: string
           format: date-time
           description: Creation timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
 
     # -------------------------------------------------------------------------
     # Component Extended Schemas
@@ -7781,6 +7921,35 @@ components:
           items:
             $ref: '#/components/schemas/ResourceEvent'
 
+    PodLogEntry:
+      type: object
+      description: A single log entry from a pod
+      required:
+        - timestamp
+        - log
+      properties:
+        timestamp:
+          type: string
+          description: Timestamp of the log entry in RFC3339 format
+          format: date-time
+          example: '2024-01-10T12:34:56.789Z'
+        log:
+          type: string
+          description: Log message content
+          example: 'Starting application server on port 8080'
+
+    ResourcePodLogsResponse:
+      type: object
+      description: Response containing logs for a specific pod
+      required:
+        - logEntries
+      properties:
+        logEntries:
+          type: array
+          description: Log entries from the pod
+          items:
+            $ref: '#/components/schemas/PodLogEntry'
+
     # -------------------------------------------------------------------------
     # Deploy/Promote Requests
     # -------------------------------------------------------------------------
@@ -7858,7 +8027,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["project:create", "project:view", "project:delete"]
+          example: ['project:create', 'project:view', 'project:delete']
         description:
           type: string
           description: Human-readable description of the role
@@ -7899,7 +8068,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["component:create", "component:view"]
+          example: ['component:create', 'component:view']
         description:
           type: string
           description: Human-readable description of the role
@@ -8108,7 +8277,7 @@ components:
           description: Entitlement values
           items:
             type: string
-          example: ["admin-group", "dev-group"]
+          example: ['admin-group', 'dev-group']
 
     Resource:
       type: object
@@ -8233,8 +8402,7 @@ components:
           type: string
           format: date-time
           description: Time when capabilities were evaluated
-          example: "2025-01-06T10:00:00Z"
-
+          example: '2025-01-06T10:00:00Z'
 
     # -------------------------------------------------------------------------
     # Legacy Authz Schemas (kept for legacy handler compatibility)
@@ -8256,7 +8424,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write", "delete"]
+          example: ['read', 'write', 'delete']
         namespace:
           type: string
           description: Namespace for namespace-scoped roles, empty for cluster roles
@@ -8277,7 +8445,7 @@ components:
           description: New list of actions for the role
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
 
     TargetPath:
       type: object
@@ -8387,7 +8555,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write", "delete"]
+          example: ['read', 'write', 'delete']
         description:
           type: string
           description: Human-readable description of the role
@@ -8404,7 +8572,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
         description:
           type: string
           description: Human-readable description of the role
@@ -8472,7 +8640,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
         description:
           type: string
           description: Human-readable description of the role
@@ -8489,7 +8657,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
         description:
           type: string
           description: Human-readable description of the role
@@ -8566,7 +8734,7 @@ components:
           description: List of components affected by this webhook
           items:
             type: string
-          example: ["api-service", "web-app"]
+          example: ['api-service', 'web-app']
         triggeredBuilds:
           type: integer
           description: Number of builds triggered
@@ -8638,7 +8806,7 @@ components:
           type: string
           format: date-time
           description: When the secret reference was last processed
-          example: "2025-01-06T11:00:00Z"
+          example: '2025-01-06T11:00:00Z'
         secretStores:
           type: array
           description: Secret stores using this reference
@@ -9164,11 +9332,11 @@ components:
         subject:
           type: string
           description: Email subject line template using CEL expressions
-          example: "[${alert.severity}] - ${alert.name} Triggered"
+          example: '[${alert.severity}] - ${alert.name} Triggered'
         body:
           type: string
           description: Email body template using CEL expressions
-          example: "Alert: ${alert.name} triggered at ${alert.startsAt}."
+          example: 'Alert: ${alert.name} triggered at ${alert.startsAt}.'
 
     NotificationWebhookConfig:
       type: object

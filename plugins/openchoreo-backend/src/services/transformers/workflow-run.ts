@@ -32,8 +32,7 @@ export function transformComponentWorkflowRun(
           systemParameters: {
             repository: {
               url: run.workflow.systemParameters?.repository?.url ?? '',
-              appPath:
-                run.workflow.systemParameters?.repository?.appPath ?? '',
+              appPath: run.workflow.systemParameters?.repository?.appPath ?? '',
               revision: {
                 branch:
                   run.workflow.systemParameters?.repository?.revision?.branch ??

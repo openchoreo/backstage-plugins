@@ -80,7 +80,6 @@ export const choreoPlugin = createBackendPlugin({
         const environmentInfoService = new EnvironmentInfoService(
           logger,
           baseUrl,
-          useNewApi,
         );
 
         const cellDiagramInfoService = new CellDiagramInfoService(

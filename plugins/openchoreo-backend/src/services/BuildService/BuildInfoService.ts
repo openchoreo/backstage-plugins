@@ -34,7 +34,12 @@ export class BuildInfoService {
     componentName: string,
     token?: string,
   ): Promise<ModelsBuild[]> {
-    return this.fetchBuildsNew(namespaceName, componentName, token, projectName);
+    return this.fetchBuildsNew(
+      namespaceName,
+      componentName,
+      token,
+      projectName,
+    );
   }
 
   private async fetchBuildsNew(
@@ -65,7 +70,11 @@ export class BuildInfoService {
             '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
             {
               params: {
-                path: { namespaceName, projectName: projectName!, componentName },
+                path: {
+                  namespaceName,
+                  projectName: projectName!,
+                  componentName,
+                },
                 query: { limit: 100, cursor },
               },
             },
@@ -101,7 +110,13 @@ export class BuildInfoService {
     runName: string,
     token?: string,
   ): Promise<any> {
-    return this.getWorkflowRunNew(namespaceName, projectName, componentName, runName, token);
+    return this.getWorkflowRunNew(
+      namespaceName,
+      projectName,
+      componentName,
+      runName,
+      token,
+    );
   }
 
   private async getWorkflowRunNew(

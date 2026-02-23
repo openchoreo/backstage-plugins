@@ -1,16 +1,7 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoLegacyApiClient,
-  createOpenChoreoApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { AuthzProfileCache } from './AuthzProfileCache';
 import type { UserCapabilitiesResponse, OpenChoreoScope } from './types';
-
-// Response type from API
-type ProfileResponse = OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
-  data?: UserCapabilitiesResponse;
-};
 
 /** Default TTL in milliseconds when token expiration cannot be determined */
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -50,8 +41,6 @@ export interface AuthzProfileServiceOptions {
   logger: LoggerService;
   /** Optional cache for capabilities */
   cache?: AuthzProfileCache;
-  /** Whether to use the new OpenChoreo 1.0 API */
-  useNewApi?: boolean;
 }
 
 /**
@@ -64,30 +53,17 @@ export class AuthzProfileService {
   private readonly baseUrl: string;
   private readonly logger: LoggerService;
   private readonly cache?: AuthzProfileCache;
-  private readonly useNewApi: boolean;
 
   constructor(options: AuthzProfileServiceOptions) {
     this.baseUrl = options.baseUrl;
     this.logger = options.logger;
     this.cache = options.cache;
-    this.useNewApi = options.useNewApi ?? false;
   }
 
   /**
-   * Creates a legacy OpenChoreo API client with the given user token.
+   * Creates an OpenChoreo API client with the given user token.
    */
-  private createLegacyClient(token: string) {
-    return createOpenChoreoLegacyApiClient({
-      baseUrl: this.baseUrl,
-      token,
-      logger: this.logger,
-    });
-  }
-
-  /**
-   * Creates a new OpenChoreo API client with the given user token.
-   */
-  private createNewClient(token: string) {
+  private createClient(token: string) {
     return createOpenChoreoApiClient({
       baseUrl: this.baseUrl,
       token,
@@ -135,9 +111,7 @@ export class AuthzProfileService {
       } project=${project} component=${component}`,
     );
 
-    const capabilities = this.useNewApi
-      ? await this.getCapabilitiesNew(userToken, scope)
-      : await this.getCapabilitiesLegacy(userToken, scope);
+    const capabilities = await this.getCapabilitiesFromApi(userToken, scope);
 
     // Cache the result with TTL derived from token expiration
     if (this.cache) {
@@ -155,7 +129,7 @@ export class AuthzProfileService {
     return capabilities;
   }
 
-  private async getCapabilitiesLegacy(
+  private async getCapabilitiesFromApi(
     userToken: string,
     scope?: OpenChoreoScope,
   ): Promise<UserCapabilitiesResponse> {
@@ -164,73 +138,8 @@ export class AuthzProfileService {
     const component = scope?.component;
 
     try {
-      const client = this.createLegacyClient(userToken);
+      const client = this.createClient(userToken);
 
-      // Build query parameters - only include if provided
-      // TODO: Remove hardcoded namespace once API supports optional namespace
-      const query: {
-        org?: string;
-        project?: string;
-        component?: string;
-        ou?: string[];
-      } = {
-        org: namespace ?? 'default',
-      };
-
-      if (project) query.project = project;
-      if (component) query.component = component;
-      if (scope?.namespaceUnits?.length) query.ou = scope.namespaceUnits;
-
-      const { data, error, response } = await client.GET('/authz/profile', {
-        params: { query },
-      });
-
-      if (error || !response.ok) {
-        const errorMsg =
-          error && typeof error === 'object' && 'message' in error
-            ? (error as { message: string }).message
-            : `Failed to fetch capabilities: ${response.status} ${response.statusText}`;
-        throw new Error(errorMsg);
-      }
-
-      const profileResponse = data as ProfileResponse;
-      const capabilities = profileResponse.data;
-
-      // Debug: Log full profile response
-      this.logger.debug(
-        `[AUTHZ] Raw profile response: ${JSON.stringify(data, null, 2)}`,
-      );
-      this.logger.debug(
-        `[AUTHZ] Parsed capabilities: ${JSON.stringify(capabilities, null, 2)}`,
-      );
-
-      if (!capabilities) {
-        throw new Error('No capabilities data in response');
-      }
-
-      return capabilities;
-    } catch (err) {
-      this.logger.error(
-        `Failed to fetch capabilities for org=${
-          namespace ?? 'global'
-        } project=${project} component=${component}: ${err}`,
-      );
-      throw err;
-    }
-  }
-
-  private async getCapabilitiesNew(
-    userToken: string,
-    scope?: OpenChoreoScope,
-  ): Promise<UserCapabilitiesResponse> {
-    const namespace = scope?.namespace;
-    const project = scope?.project;
-    const component = scope?.component;
-
-    try {
-      const client = this.createNewClient(userToken);
-
-      // New API uses 'namespace' query param instead of 'org', and no 'ou' param
       const query: {
         namespace?: string;
         project?: string;
@@ -257,15 +166,10 @@ export class AuthzProfileService {
         throw new Error(errorMsg);
       }
 
-      // New API returns UserCapabilitiesResponse directly (no .data unwrap)
       const capabilities = data as UserCapabilitiesResponse;
 
       this.logger.debug(
-        `[AUTHZ] Raw profile response (new API): ${JSON.stringify(
-          data,
-          null,
-          2,
-        )}`,
+        `[AUTHZ] Raw profile response: ${JSON.stringify(data, null, 2)}`,
       );
       this.logger.debug(
         `[AUTHZ] Parsed capabilities: ${JSON.stringify(capabilities, null, 2)}`,

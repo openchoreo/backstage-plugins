@@ -19,7 +19,11 @@ export class DataPlaneInfoService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
 
-  public constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  public constructor(
+    logger: LoggerService,
+    baseUrl: string,
+    _useNewApi = false,
+  ) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -38,9 +42,7 @@ export class DataPlaneInfoService {
   ): Promise<DataPlaneResponse[]> {
     const startTime = Date.now();
     try {
-      this.logger.debug(
-        `Listing data planes for namespace: ${namespaceName}`,
-      );
+      this.logger.debug(`Listing data planes for namespace: ${namespaceName}`);
 
       const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,

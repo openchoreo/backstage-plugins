@@ -320,8 +320,8 @@ export class AuthzService {
       // Transform K8s-style {metadata, spec} to flat {name, actions, description}
       const roles = (data?.items || []).map((r: any) => ({
         name: r.metadata?.name ?? '',
-        actions: r.spec?.rules?.flatMap((rule: any) => rule.verbs ?? []) ?? [],
-        description: r.metadata?.annotations?.['description'] ?? '',
+        actions: r.spec?.actions ?? [],
+        description: r.metadata?.annotations?.description ?? '',
       }));
       return { data: roles };
     } catch (err) {
@@ -368,8 +368,8 @@ export class AuthzService {
       // Transform K8s-style to flat shape
       const role = {
         name: (data as any).metadata?.name ?? name,
-        actions: (data as any).spec?.rules?.flatMap((rule: any) => rule.verbs ?? []) ?? [],
-        description: (data as any).metadata?.annotations?.['description'] ?? '',
+        actions: (data as any).spec?.actions ?? [],
+        description: (data as any).metadata?.annotations?.description ?? '',
       };
       return { data: role };
     } catch (err) {
@@ -398,7 +398,7 @@ export class AuthzService {
         {
           body: {
             metadata: { name: role.name },
-            spec: { rules: role.actions.map(a => ({ verbs: [a] })) },
+            spec: { actions: role.actions },
           } as any,
         },
       );
@@ -443,7 +443,7 @@ export class AuthzService {
           params: { path: { name } },
           body: {
             metadata: { name },
-            spec: { rules: role.actions?.map(a => ({ verbs: [a] })) },
+            spec: { actions: role.actions },
           } as any,
         },
       );
@@ -539,7 +539,13 @@ export class AuthzService {
         `Successfully fetched ${data?.items?.length || 0} namespace roles`,
       );
 
-      return { data: data?.items || [] };
+      const roles = (data?.items || []).map((r: any) => ({
+        name: r.metadata?.name ?? '',
+        actions: r.spec?.actions ?? [],
+        namespace,
+        description: r.metadata?.annotations?.description ?? '',
+      }));
+      return { data: roles };
     } catch (err) {
       this.logger.error(`Failed to fetch namespace roles: ${err}`);
       throw err;
@@ -581,7 +587,13 @@ export class AuthzService {
         throw new Error(errorMsg);
       }
 
-      return { data };
+      const role = {
+        name: (data as any).metadata?.name ?? name,
+        actions: (data as any).spec?.actions ?? [],
+        namespace,
+        description: (data as any).metadata?.annotations?.description ?? '',
+      };
+      return { data: role };
     } catch (err) {
       this.logger.error(
         `Failed to fetch namespace role ${namespace}/${name}: ${err}`,
@@ -623,7 +635,7 @@ export class AuthzService {
           params: { path: { namespaceName: role.namespace } },
           body: {
             metadata: { name: role.name },
-            spec: { rules: role.actions.map(a => ({ verbs: [a] })) },
+            spec: { actions: role.actions },
           } as any,
         },
       );
@@ -676,7 +688,7 @@ export class AuthzService {
           params: { path: { namespaceName: namespace, name } },
           body: {
             metadata: { name },
-            spec: { rules: role.actions?.map(a => ({ verbs: [a] })) },
+            spec: { actions: role.actions },
           } as any,
         },
       );
@@ -792,10 +804,21 @@ export class AuthzService {
       }
 
       this.logger.debug(
-        `Successfully fetched ${data?.items?.length || 0} cluster role bindings`,
+        `Successfully fetched ${
+          data?.items?.length || 0
+        } cluster role bindings`,
       );
 
-      return { data: data?.items || [] };
+      const bindings = (data?.items || []).map((b: any) => ({
+        name: b.metadata?.name ?? '',
+        role: { name: b.spec?.roleRef?.name ?? '' },
+        entitlement: {
+          claim: b.spec?.entitlement?.claim ?? '',
+          value: b.spec?.entitlement?.value ?? '',
+        },
+        effect: b.spec?.effect ?? 'allow',
+      }));
+      return { data: bindings };
     } catch (err) {
       this.logger.error(`Failed to fetch cluster role bindings: ${err}`);
       throw err;
@@ -833,7 +856,17 @@ export class AuthzService {
         throw new Error(errorMsg);
       }
 
-      return { data };
+      return {
+        data: {
+          name: (data as any).metadata?.name ?? '',
+          role: { name: (data as any).spec?.roleRef?.name ?? '' },
+          entitlement: {
+            claim: (data as any).spec?.entitlement?.claim ?? '',
+            value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          effect: (data as any).spec?.effect ?? 'allow',
+        },
+      };
     } catch (err) {
       this.logger.error(`Failed to fetch cluster role binding ${name}: ${err}`);
       throw err;
@@ -860,7 +893,14 @@ export class AuthzService {
       const { data, error, response } = await client.POST(
         '/api/v1/clusterrolebindings',
         {
-          body: binding,
+          body: {
+            metadata: { name: binding.name },
+            spec: {
+              roleRef: { kind: 'AuthzClusterRole', name: binding.role },
+              entitlement: binding.entitlement,
+              effect: binding.effect ?? 'allow',
+            },
+          } as any,
         },
       );
 
@@ -876,7 +916,17 @@ export class AuthzService {
       this.logger.debug(
         `Successfully created cluster role binding: ${binding.name}`,
       );
-      return { data };
+      return {
+        data: {
+          name: (data as any).metadata?.name ?? '',
+          role: { name: (data as any).spec?.roleRef?.name ?? '' },
+          entitlement: {
+            claim: (data as any).spec?.entitlement?.claim ?? '',
+            value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          effect: (data as any).spec?.effect ?? 'allow',
+        },
+      };
     } catch (err) {
       this.logger.error(`Failed to create cluster role binding: ${err}`);
       throw err;
@@ -904,7 +954,14 @@ export class AuthzService {
         '/api/v1/clusterrolebindings/{name}',
         {
           params: { path: { name } },
-          body: binding,
+          body: {
+            metadata: { name: binding.name ?? name },
+            spec: {
+              roleRef: { kind: 'AuthzClusterRole', name: binding.role },
+              entitlement: binding.entitlement,
+              effect: binding.effect ?? 'allow',
+            },
+          } as any,
         },
       );
 
@@ -918,7 +975,17 @@ export class AuthzService {
       }
 
       this.logger.debug(`Successfully updated cluster role binding: ${name}`);
-      return { data };
+      return {
+        data: {
+          name: (data as any).metadata?.name ?? '',
+          role: { name: (data as any).spec?.roleRef?.name ?? '' },
+          entitlement: {
+            claim: (data as any).spec?.entitlement?.claim ?? '',
+            value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          effect: (data as any).spec?.effect ?? 'allow',
+        },
+      };
     } catch (err) {
       this.logger.error(
         `Failed to update cluster role binding ${name}: ${err}`,
@@ -1023,10 +1090,25 @@ export class AuthzService {
       }
 
       this.logger.debug(
-        `Successfully fetched ${data?.items?.length || 0} namespace role bindings`,
+        `Successfully fetched ${
+          data?.items?.length || 0
+        } namespace role bindings`,
       );
 
-      return { data: data?.items || [] };
+      const bindings = (data?.items || []).map((b: any) => ({
+        name: b.metadata?.name ?? '',
+        role: {
+          name: b.spec?.roleRef?.name ?? '',
+          namespace:
+            b.spec?.roleRef?.kind === 'AuthzRole' ? namespace : undefined,
+        },
+        entitlement: {
+          claim: b.spec?.entitlement?.claim ?? '',
+          value: b.spec?.entitlement?.value ?? '',
+        },
+        effect: b.spec?.effect ?? 'allow',
+      }));
+      return { data: bindings };
     } catch (err) {
       this.logger.error(`Failed to fetch namespace role bindings: ${err}`);
       throw err;
@@ -1068,7 +1150,23 @@ export class AuthzService {
         throw new Error(errorMsg);
       }
 
-      return { data };
+      return {
+        data: {
+          name: (data as any).metadata?.name ?? '',
+          role: {
+            name: (data as any).spec?.roleRef?.name ?? '',
+            namespace:
+              (data as any).spec?.roleRef?.kind === 'AuthzRole'
+                ? namespace
+                : undefined,
+          },
+          entitlement: {
+            claim: (data as any).spec?.entitlement?.claim ?? '',
+            value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          effect: (data as any).spec?.effect ?? 'allow',
+        },
+      };
     } catch (err) {
       this.logger.error(
         `Failed to fetch namespace role binding ${namespace}/${name}: ${err}`,
@@ -1098,7 +1196,17 @@ export class AuthzService {
         '/api/v1/namespaces/{namespaceName}/rolebindings',
         {
           params: { path: { namespaceName: binding.namespace } },
-          body: binding,
+          body: {
+            metadata: { name: binding.name },
+            spec: {
+              roleRef: {
+                kind: binding.roleNamespace ? 'AuthzRole' : 'AuthzClusterRole',
+                name: binding.role,
+              },
+              entitlement: binding.entitlement,
+              effect: binding.effect ?? 'allow',
+            },
+          } as any,
         },
       );
 
@@ -1114,7 +1222,23 @@ export class AuthzService {
       this.logger.debug(
         `Successfully created namespace role binding: ${binding.namespace}/${binding.name}`,
       );
-      return { data };
+      return {
+        data: {
+          name: (data as any).metadata?.name ?? '',
+          role: {
+            name: (data as any).spec?.roleRef?.name ?? '',
+            namespace:
+              (data as any).spec?.roleRef?.kind === 'AuthzRole'
+                ? binding.namespace
+                : undefined,
+          },
+          entitlement: {
+            claim: (data as any).spec?.entitlement?.claim ?? '',
+            value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          effect: (data as any).spec?.effect ?? 'allow',
+        },
+      };
     } catch (err) {
       this.logger.error(`Failed to create namespace role binding: ${err}`);
       throw err;
@@ -1151,7 +1275,17 @@ export class AuthzService {
         '/api/v1/namespaces/{namespaceName}/rolebindings/{name}',
         {
           params: { path: { namespaceName: namespace, name } },
-          body: binding,
+          body: {
+            metadata: { name: binding.name ?? name },
+            spec: {
+              roleRef: {
+                kind: binding.roleNamespace ? 'AuthzRole' : 'AuthzClusterRole',
+                name: binding.role,
+              },
+              entitlement: binding.entitlement,
+              effect: binding.effect ?? 'allow',
+            },
+          } as any,
         },
       );
 
@@ -1167,7 +1301,23 @@ export class AuthzService {
       this.logger.debug(
         `Successfully updated namespace role binding: ${namespace}/${name}`,
       );
-      return { data };
+      return {
+        data: {
+          name: (data as any).metadata?.name ?? '',
+          role: {
+            name: (data as any).spec?.roleRef?.name ?? '',
+            namespace:
+              (data as any).spec?.roleRef?.kind === 'AuthzRole'
+                ? namespace
+                : undefined,
+          },
+          entitlement: {
+            claim: (data as any).spec?.entitlement?.claim ?? '',
+            value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          effect: (data as any).spec?.effect ?? 'allow',
+        },
+      };
     } catch (err) {
       this.logger.error(
         `Failed to update namespace role binding ${namespace}/${name}: ${err}`,
