@@ -1,16 +1,13 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoLegacyApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import type {
+  EnvironmentResponse,
+  DataPlaneResponse,
+  ReleaseBindingResponse,
+} from '@openchoreo/backstage-plugin-common';
 
-// Use generated types from OpenAPI spec
-type ModelsEnvironment =
-  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
-type ModelsDataPlane =
-  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
-type ReleaseBindingResponse =
-  OpenChoreoLegacyComponents['schemas']['ReleaseBindingResponse'];
+type ModelsEnvironment = EnvironmentResponse;
+type ModelsDataPlane = DataPlaneResponse;
 
 import {
   PlatformEnvironmentService,

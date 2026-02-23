@@ -1,7 +1,5 @@
-import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type { EnvironmentResponse } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -13,8 +11,6 @@ import {
 } from './common';
 
 type Environment = OpenChoreoComponents['schemas']['Environment'];
-type EnvironmentResponse =
-  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
 
 export function transformEnvironment(
   environment: Environment,

@@ -1,28 +1,29 @@
-import type { OpenChoreoLegacyComponents } from '@openchoreo/openchoreo-client-node';
+import type {
+  UserCapabilitiesResponse,
+  SubjectContext,
+  ActionCapability,
+  CapabilityResource,
+} from '@openchoreo/backstage-plugin-common';
 
 /**
  * Response from the /authz/profile API.
  */
-export type UserCapabilitiesResponse =
-  OpenChoreoLegacyComponents['schemas']['UserCapabilitiesResponse'];
+export type { UserCapabilitiesResponse };
 
 /**
  * Subject context from the capabilities response.
  */
-export type SubjectContext =
-  OpenChoreoLegacyComponents['schemas']['SubjectContext'];
+export type { SubjectContext };
 
 /**
  * Action capability from the capabilities response.
  */
-export type ActionCapability =
-  OpenChoreoLegacyComponents['schemas']['ActionCapability'];
+export type { ActionCapability };
 
 /**
  * Capability resource representing a path where an action is allowed/denied.
  */
-export type CapabilityResource =
-  OpenChoreoLegacyComponents['schemas']['CapabilityResource'];
+export type { CapabilityResource };
 
 /**
  * Scope for permission evaluation.

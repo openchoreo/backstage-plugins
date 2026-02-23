@@ -1,13 +1,9 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
 import { transformComponent } from '../transformers';
 
-// Use the generated type from OpenAPI spec
-export type ModelsCompleteComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+export type ModelsCompleteComponent = ComponentResponse;
 
 export class ComponentInfoService {
   private logger: LoggerService;

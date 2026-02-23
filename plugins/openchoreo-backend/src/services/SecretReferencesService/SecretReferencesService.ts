@@ -1,13 +1,9 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import type { SecretReferenceResponse } from '@openchoreo/backstage-plugin-common';
 import { transformSecretReference } from '../transformers';
 
-// Single secret reference item type from legacy OpenAPI spec
-type SecretReferenceItem =
-  OpenChoreoLegacyComponents['schemas']['SecretReferenceResponse'];
+type SecretReferenceItem = SecretReferenceResponse;
 
 // The actual response shape returned by the API
 export interface ModelsSecretReferences {

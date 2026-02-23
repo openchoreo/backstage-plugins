@@ -1,7 +1,5 @@
-import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type { ProjectResponse } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -13,7 +11,6 @@ import {
 } from './common';
 
 type Project = OpenChoreoComponents['schemas']['Project'];
-type ProjectResponse = OpenChoreoLegacyComponents['schemas']['ProjectResponse'];
 
 export function transformProject(project: Project): ProjectResponse {
   return {

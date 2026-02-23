@@ -2,35 +2,35 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
-  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
+import type {
+  ComponentWorkflowRunResponse,
+  APIResponse,
+  ComponentWorkflowRunStatusResponse,
+  ListResponse,
+  WorkflowResponse,
+} from '@openchoreo/backstage-plugin-common';
 import {
   LogEntry,
   RuntimeLogsResponse,
   ComponentWorkflowRunEventEntry,
 } from '../types';
 
-// Use generated type from OpenAPI spec
-type ModelsBuild =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
+type ModelsBuild = ComponentWorkflowRunResponse;
 
-// Type definitions matching the API response structures
-type WorkflowSchemaResponse =
-  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
-    data?: {
-      [key: string]: unknown;
-    };
+type WorkflowSchemaResponse = APIResponse & {
+  data?: {
+    [key: string]: unknown;
   };
+};
 
-type WorkflowRunStatusResponse =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunStatusResponse'];
+type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
 
-type WorkflowListResponse =
-  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
-    data: OpenChoreoLegacyComponents['schemas']['ListResponse'] & {
-      items: OpenChoreoLegacyComponents['schemas']['WorkflowResponse'][];
-    };
+type WorkflowListResponse = APIResponse & {
+  data: ListResponse & {
+    items: WorkflowResponse[];
   };
+};
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -830,7 +830,7 @@ export class WorkflowService {
     systemParameters: { [key: string]: unknown },
     parameters?: { [key: string]: unknown },
     token?: string,
-  ): Promise<OpenChoreoLegacyComponents['schemas']['APIResponse']> {
+  ): Promise<APIResponse> {
     this.logger.debug(
       `Updating workflow parameters for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
     );

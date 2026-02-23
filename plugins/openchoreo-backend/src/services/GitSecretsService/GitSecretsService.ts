@@ -1,12 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoLegacyApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import type { GitSecretResponse } from '@openchoreo/backstage-plugin-common';
 
-// Use the generated types from OpenAPI spec
-export type GitSecretResponse =
-  OpenChoreoLegacyComponents['schemas']['GitSecretResponse'];
+export type { GitSecretResponse };
 
 export interface GitSecretListResponse {
   items: GitSecretResponse[];

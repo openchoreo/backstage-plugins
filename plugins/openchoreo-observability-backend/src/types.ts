@@ -1,13 +1,11 @@
-import {
-  ObservabilityComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+import type {
+  EnvironmentResponse,
+  ComponentResponse,
+} from '@openchoreo/backstage-plugin-common';
 
-// Use generated types from OpenAPI spec
-export type Environment =
-  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
-export type Component =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+export type Environment = EnvironmentResponse;
+export type Component = ComponentResponse;
 export type ResourceMetricsTimeSeries =
   ObservabilityComponents['schemas']['ResourceMetricsTimeSeries'];
 

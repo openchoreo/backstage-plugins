@@ -2,13 +2,9 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   fetchAllPages,
-  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
+import type { DataPlaneResponse } from '@openchoreo/backstage-plugin-common';
 import { transformDataPlane } from '../transformers';
-
-// Use generated types from OpenAPI spec
-type DataPlaneResponse =
-  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
 
 /**
  * Service for managing and retrieving data plane information.

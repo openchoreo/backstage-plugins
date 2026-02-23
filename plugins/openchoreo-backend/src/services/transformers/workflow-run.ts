@@ -1,12 +1,8 @@
-import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type { ComponentWorkflowRunResponse } from '@openchoreo/backstage-plugin-common';
 
 type ComponentWorkflowRun =
   OpenChoreoComponents['schemas']['ComponentWorkflowRun'];
-type ComponentWorkflowRunResponse =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
 
 /**
  * Transforms a new-API ComponentWorkflowRun (flat response) into the legacy

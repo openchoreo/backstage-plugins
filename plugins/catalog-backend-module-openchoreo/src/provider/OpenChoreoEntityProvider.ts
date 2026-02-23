@@ -16,17 +16,18 @@ import {
   getDisplayName,
   getDescription,
   isReady,
-  type OpenChoreoLegacyComponents,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import type {
+  NamespaceResponse,
+  ComponentResponse,
+  WorkflowResponse,
+} from '@openchoreo/backstage-plugin-common';
 import { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
-// Use generated types from OpenAPI spec
-type ModelsNamespace =
-  OpenChoreoLegacyComponents['schemas']['NamespaceResponse'];
-type ModelsComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
-type ModelsWorkflow = OpenChoreoLegacyComponents['schemas']['WorkflowResponse'];
+type ModelsNamespace = NamespaceResponse;
+type ModelsComponent = ComponentResponse;
+type ModelsWorkflow = WorkflowResponse;
 
 // New API types
 type NewNamespace = OpenChoreoComponents['schemas']['Namespace'];

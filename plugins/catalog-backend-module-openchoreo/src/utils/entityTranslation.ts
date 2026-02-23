@@ -1,10 +1,10 @@
 import { Entity } from '@backstage/catalog-model';
-import { type OpenChoreoLegacyComponents } from '@openchoreo/openchoreo-client-node';
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
   getRepositoryInfo,
   ComponentTypeUtils,
+  type ComponentResponse,
 } from '@openchoreo/backstage-plugin-common';
 import type {
   EnvironmentEntityV1alpha1,
@@ -13,8 +13,7 @@ import type {
   ComponentWorkflowEntityV1alpha1,
 } from '../kinds';
 
-type ModelsComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+type ModelsComponent = ComponentResponse;
 
 /**
  * Configuration for component entity translation

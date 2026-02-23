@@ -1,7 +1,8 @@
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+  DataPlaneResponse,
+  AgentConnectionStatusResponse,
+} from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -14,10 +15,6 @@ import {
 type DataPlane = OpenChoreoComponents['schemas']['DataPlane'];
 type AgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
-type DataPlaneResponse =
-  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
-type AgentConnectionStatusResponse =
-  OpenChoreoLegacyComponents['schemas']['AgentConnectionStatusResponse'];
 
 export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
   return {

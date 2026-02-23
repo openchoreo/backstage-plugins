@@ -1,7 +1,8 @@
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+  ComponentResponse,
+  ComponentWorkflow,
+} from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -13,10 +14,6 @@ import {
 } from './common';
 
 type Component = OpenChoreoComponents['schemas']['Component'];
-type ComponentResponse =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
-type ComponentWorkflow =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflow'];
 
 export function transformComponent(component: Component): ComponentResponse {
   const workflow = component.spec?.workflow;

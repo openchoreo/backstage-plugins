@@ -10,16 +10,16 @@ import { CellDiagramService } from '../../types';
 import {
   createOpenChoreoApiClient,
   fetchAllPages,
-  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
+import {
+  ComponentTypeUtils,
+  type ComponentResponse,
+  type Connection,
+  type WorkloadEndpoint,
+} from '@openchoreo/backstage-plugin-common';
 
-// Use generated type from OpenAPI spec
-type ModelsCompleteComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
-type WorkloadConnection = OpenChoreoLegacyComponents['schemas']['Connection'];
-type WorkloadEndpoint =
-  OpenChoreoLegacyComponents['schemas']['WorkloadEndpoint'];
+type ModelsCompleteComponent = ComponentResponse;
+type WorkloadConnection = Connection;
 
 enum ComponentType {
   SERVICE = 'service',

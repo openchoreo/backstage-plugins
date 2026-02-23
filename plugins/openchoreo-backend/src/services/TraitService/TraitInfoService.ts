@@ -2,8 +2,14 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   fetchAllPages,
-  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
+import type {
+  APIResponse,
+  ListResponse,
+  TraitResponse,
+  ComponentTraitResponse,
+  UpdateComponentTraitsRequest as UpdateTraitsRequest,
+} from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getDisplayName,
@@ -12,24 +18,20 @@ import {
 } from '../transformers/common';
 
 // Type definitions matching the API response structure
-type TraitListResponse =
-  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
-    data?: OpenChoreoLegacyComponents['schemas']['ListResponse'] & {
-      items?: OpenChoreoLegacyComponents['schemas']['TraitResponse'][];
-    };
+type TraitListResponse = APIResponse & {
+  data?: ListResponse & {
+    items?: TraitResponse[];
   };
+};
 
-type TraitSchemaResponse =
-  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
-    data?: {
-      [key: string]: unknown;
-    };
+type TraitSchemaResponse = APIResponse & {
+  data?: {
+    [key: string]: unknown;
   };
+};
 
-export type ComponentTrait =
-  OpenChoreoLegacyComponents['schemas']['ComponentTraitResponse'];
-export type UpdateComponentTraitsRequest =
-  OpenChoreoLegacyComponents['schemas']['UpdateComponentTraitsRequest'];
+export type ComponentTrait = ComponentTraitResponse;
+export type UpdateComponentTraitsRequest = UpdateTraitsRequest;
 
 export class TraitInfoService {
   private logger: LoggerService;

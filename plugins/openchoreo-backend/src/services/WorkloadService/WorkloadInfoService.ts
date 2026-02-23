@@ -1,12 +1,9 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { WorkloadService } from '../../types';
-import {
-  createOpenChoreoApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import type { WorkloadResponse } from '@openchoreo/backstage-plugin-common';
 
-// Use generated type from OpenAPI spec
-type ModelsWorkload = OpenChoreoLegacyComponents['schemas']['WorkloadResponse'];
+type ModelsWorkload = WorkloadResponse;
 
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;

@@ -4,19 +4,18 @@ import {
   createOpenChoreoApiClient,
   fetchAllPages,
   getName,
-  type OpenChoreoLegacyComponents,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
+import type {
+  EnvironmentResponse,
+  ReleaseBindingResponse,
+} from '@openchoreo/backstage-plugin-common';
 import {
   transformEnvironment,
   transformDeploymentPipeline,
 } from '../transformers';
 
-// Use generated types from OpenAPI spec
-type ModelsEnvironment =
-  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
-type ReleaseBindingResponse =
-  OpenChoreoLegacyComponents['schemas']['ReleaseBindingResponse'];
+type ModelsEnvironment = EnvironmentResponse;
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 

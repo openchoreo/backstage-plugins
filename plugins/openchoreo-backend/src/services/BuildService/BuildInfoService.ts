@@ -4,14 +4,12 @@ import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
   fetchAllPages,
-  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
+import type { ComponentWorkflowRunResponse } from '@openchoreo/backstage-plugin-common';
 import { transformComponentWorkflowRun } from '../transformers';
 import { RuntimeLogsResponse } from '../../types';
 
-// Use generated type from OpenAPI spec
-type ModelsBuild =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
+type ModelsBuild = ComponentWorkflowRunResponse;
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {

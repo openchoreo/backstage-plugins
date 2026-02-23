@@ -1,15 +1,13 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import type {
+  ProjectResponse,
+  DeploymentPipelineResponse,
+} from '@openchoreo/backstage-plugin-common';
 import { transformProject, transformDeploymentPipeline } from '../transformers';
 
-// Use the generated types from OpenAPI spec
-export type ModelsProject =
-  OpenChoreoLegacyComponents['schemas']['ProjectResponse'];
-export type ModelsDeploymentPipeline =
-  OpenChoreoLegacyComponents['schemas']['DeploymentPipelineResponse'];
+export type ModelsProject = ProjectResponse;
+export type ModelsDeploymentPipeline = DeploymentPipelineResponse;
 
 export class ProjectInfoService {
   private logger: LoggerService;

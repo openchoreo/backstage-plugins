@@ -69,55 +69,118 @@ export {
 // Feature flags types
 export type { OpenChoreoFeatures, FeatureName } from './types/features';
 
-// Re-export types from the generated OpenAPI client for use in frontend plugins
+// BFF response & request types (hand-written, decoupled from generated client)
 export type {
-  OpenChoreoLegacyComponents,
+  APIResponse,
+  ListResponse,
+  NamespaceResponse,
+  ProjectResponse,
+  DeploymentPipelineResponse,
+  PromotionPath,
+  TargetEnvironmentRef,
+  ComponentResponse,
+  ComponentTypeRef,
+  ComponentTypeResponse,
+  AllowedTraitResponse,
+  PatchComponentRequest,
+  ComponentWorkflow,
+  ComponentWorkflowSystemParams,
+  ComponentWorkflowRepository,
+  ComponentWorkflowRepositoryRevision,
+  ComponentTraitResponse,
+  ComponentTraitRequest,
+  UpdateComponentTraitsRequest,
+  TraitResponse,
+  WorkflowResponse,
+  ComponentWorkflowRunResponse,
+  ComponentWorkflowConfigResponse,
+  SystemParametersResponse,
+  RepositoryResponse,
+  RepositoryRevisionResponse,
+  ComponentWorkflowRunStatusResponse,
+  WorkflowStepStatus,
+  ComponentWorkflowRunLogEntry,
+  ComponentWorkflowRunEventEntry,
+  BuildResponse,
+  BuildTemplateResponse,
+  BuildTemplateParameter,
+  DataPlaneRef,
+  EnvironmentResponse,
+  AgentConnectionStatusResponse,
+  DataPlaneResponse,
+  BuildPlaneResponse,
+  ObservabilityPlaneResponse,
+  ReleaseBindingResponse,
+  WorkloadOverrides,
+  ContainerOverride,
+  ComponentReleaseResponse,
+  ComponentSchemaResponse,
+  BindingResponse,
+  BindingStatus,
+  ServiceBinding,
+  WebApplicationBinding,
+  ScheduledTaskBinding,
+  EndpointStatus,
+  ExposedEndpoint,
+  WorkloadType,
+  WorkloadResponse,
+  Container,
+  EnvVar,
+  FileVar,
+  EnvVarValueFrom,
+  SecretKeyRef,
+  WorkloadEndpoint,
+  Connection,
+  ConnectionParams,
+  ConnectionInject,
+  ConnectionInjectEnv,
+  WorkloadOwner,
+  Schema,
+  SecretReferenceResponse,
+  SecretStoreReference,
+  SecretDataSourceInfo,
+  RemoteReferenceInfo,
+  GitSecretResponse,
+  SubjectType,
+  UserCapabilitiesResponse,
+  SubjectContext,
+  ActionCapability,
+  CapabilityResource,
+  ReleaseResponse,
+  ReleaseSpec,
+  ReleaseStatus,
+  ReleaseOwner,
+  Resource,
+  ResourceStatus,
+  Condition,
+  PromoteComponentRequest,
+  DeployReleaseRequest,
+  PatchReleaseBindingRequest,
+  CreateComponentReleaseRequest,
+} from './types/bff-types';
+
+// Convenience aliases for backwards compatibility
+import type {
+  BuildResponse,
+  WorkloadResponse,
+  ComponentResponse,
+  ComponentWorkflowRunStatusResponse,
+} from './types/bff-types';
+
+export type ModelsBuild = BuildResponse;
+export type ModelsWorkload = WorkloadResponse;
+export type ModelsCompleteComponent = ComponentResponse;
+export type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
+
+// Re-export types from separate OpenAPI specs (not part of this migration)
+export type {
   ObservabilityComponents,
   AIRCAAgentComponents,
 } from '@openchoreo/openchoreo-client-node';
 
-// Export commonly used type aliases for convenience
-import type {
-  OpenChoreoLegacyComponents,
-  ObservabilityComponents,
-} from '@openchoreo/openchoreo-client-node';
-
-export type ModelsBuild =
-  OpenChoreoLegacyComponents['schemas']['BuildResponse'];
-export type ModelsWorkload =
-  OpenChoreoLegacyComponents['schemas']['WorkloadResponse'];
-export type ModelsCompleteComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
-
-// Workload-related types
-export type Container = OpenChoreoLegacyComponents['schemas']['Container'];
-export type EnvVar = OpenChoreoLegacyComponents['schemas']['EnvVar'];
-export type FileVar = OpenChoreoLegacyComponents['schemas']['FileVar'];
-export type WorkloadEndpoint =
-  OpenChoreoLegacyComponents['schemas']['WorkloadEndpoint'];
-export type Connection = OpenChoreoLegacyComponents['schemas']['Connection'];
-export type WorkloadOwner =
-  OpenChoreoLegacyComponents['schemas']['WorkloadOwner'];
-export type ConnectionParams =
-  OpenChoreoLegacyComponents['schemas']['ConnectionParams'];
-export type ConnectionInject =
-  OpenChoreoLegacyComponents['schemas']['ConnectionInject'];
-export type Schema = OpenChoreoLegacyComponents['schemas']['Schema'];
-
-// Workflow run / build logs status types
-export type WorkflowRunStatusResponse =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunStatusResponse'];
-export type WorkflowStepStatus =
-  OpenChoreoLegacyComponents['schemas']['WorkflowStepStatus'];
-
-// Define WorkloadType as a string union since it's defined as enum in OpenAPI
-export type WorkloadType =
-  | 'Service'
-  | 'ManualTask'
-  | 'ScheduledTask'
-  | 'WebApplication';
-
 // Observability types
+import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+
 export type RuntimeLogsResponse =
   ObservabilityComponents['schemas']['LogResponse'];
 export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
