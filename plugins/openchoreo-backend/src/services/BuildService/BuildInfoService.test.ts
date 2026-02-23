@@ -83,8 +83,8 @@ const k8sWorkflowRun = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new BuildInfoService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new BuildInfoService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -103,7 +103,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('BuildInfoService (useNewApi=true)', () => {
+describe('BuildInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -115,7 +115,7 @@ describe('BuildInfoService (useNewApi=true)', () => {
         okResponse({ items: [k8sWorkflowRun], pagination: {} }),
       );
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchBuilds(
         'test-ns',
         'my-project',
@@ -135,7 +135,7 @@ describe('BuildInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchBuilds('test-ns', 'my-project', 'api-service', 'token'),
       ).rejects.toThrow('Failed to fetch component workflow runs');
@@ -146,7 +146,7 @@ describe('BuildInfoService (useNewApi=true)', () => {
     it('fetches single run via new API and transforms', async () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sWorkflowRun));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.getWorkflowRun(
         'test-ns',
         'my-project',
@@ -163,7 +163,7 @@ describe('BuildInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.getWorkflowRun(
           'test-ns',
@@ -180,7 +180,7 @@ describe('BuildInfoService (useNewApi=true)', () => {
     it('triggers build via new API and transforms response', async () => {
       mockPOST.mockResolvedValueOnce(okResponse(k8sWorkflowRun));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.triggerBuild(
         'test-ns',
         'my-project',
@@ -197,7 +197,7 @@ describe('BuildInfoService (useNewApi=true)', () => {
     it('triggers build without commit', async () => {
       mockPOST.mockResolvedValueOnce(okResponse(k8sWorkflowRun));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.triggerBuild(
         'test-ns',
         'my-project',
@@ -212,7 +212,7 @@ describe('BuildInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockPOST.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.triggerBuild(
           'test-ns',

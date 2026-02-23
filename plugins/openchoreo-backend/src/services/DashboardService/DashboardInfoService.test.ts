@@ -23,8 +23,8 @@ jest.mock('@openchoreo/openchoreo-client-node', () => ({
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new DashboardInfoService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new DashboardInfoService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -43,7 +43,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('DashboardInfoService (useNewApi=true)', () => {
+describe('DashboardInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -56,7 +56,7 @@ describe('DashboardInfoService (useNewApi=true)', () => {
       ];
       mockGET.mockResolvedValueOnce(okResponse({ items: bindings }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDashboardMetrics(
         'test-ns',
         'my-project',
@@ -70,7 +70,7 @@ describe('DashboardInfoService (useNewApi=true)', () => {
     it('returns 0 when no bindings exist', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDashboardMetrics(
         'test-ns',
         'my-project',
@@ -84,7 +84,7 @@ describe('DashboardInfoService (useNewApi=true)', () => {
     it('returns 0 on API error (does not throw)', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDashboardMetrics(
         'test-ns',
         'my-project',
@@ -105,7 +105,7 @@ describe('DashboardInfoService (useNewApi=true)', () => {
       // Second component: 1 binding
       mockGET.mockResolvedValueOnce(okResponse({ items: [{ metadata: {} }] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchComponentsBindingsCount(
         [
           {

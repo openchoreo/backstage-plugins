@@ -81,8 +81,8 @@ const k8sPipeline = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new ProjectInfoService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new ProjectInfoService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -101,7 +101,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('ProjectInfoService (useNewApi=true)', () => {
+describe('ProjectInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -110,7 +110,7 @@ describe('ProjectInfoService (useNewApi=true)', () => {
     it('calls new API endpoint and transforms response', async () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sProject));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchProjectDetails(
         'test-ns',
         'my-project',
@@ -130,7 +130,7 @@ describe('ProjectInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchProjectDetails('test-ns', 'my-project', 'token-123'),
       ).rejects.toThrow('Failed to fetch project');
@@ -144,7 +144,7 @@ describe('ProjectInfoService (useNewApi=true)', () => {
       // Second call: fetch the pipeline by name
       mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchProjectDeploymentPipeline(
         'test-ns',
         'my-project',
@@ -165,7 +165,7 @@ describe('ProjectInfoService (useNewApi=true)', () => {
       };
       mockGET.mockResolvedValueOnce(okResponse(noPipeline));
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchProjectDeploymentPipeline(
           'test-ns',
@@ -179,7 +179,7 @@ describe('ProjectInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sProject));
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchProjectDeploymentPipeline(
           'test-ns',
@@ -197,7 +197,7 @@ describe('ProjectInfoService (useNewApi=true)', () => {
         response: { ok: true, status: 200 },
       });
 
-      const service = createService(true);
+      const service = createService();
       await service.deleteProject('test-ns', 'my-project', 'token-123');
 
       expect(mockDELETE).toHaveBeenCalledTimes(1);
@@ -209,7 +209,7 @@ describe('ProjectInfoService (useNewApi=true)', () => {
         response: { ok: false, status: 404, statusText: 'Not Found' },
       });
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.deleteProject('test-ns', 'my-project', 'token-123'),
       ).rejects.toThrow('Failed to delete project');

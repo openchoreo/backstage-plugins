@@ -4,13 +4,12 @@ import {
   fetchAllPages,
   getName,
   getDisplayName,
-  type OpenChoreoLegacyComponents,
+  type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 
 // Type definitions from the OpenAPI spec
-export type Entitlement = OpenChoreoLegacyComponents['schemas']['Entitlement'];
-export type UserTypeConfig =
-  OpenChoreoLegacyComponents['schemas']['UserTypeConfig'];
+export type Entitlement = OpenChoreoComponents['schemas']['Entitlement'];
+export type UserTypeConfig = OpenChoreoComponents['schemas']['UserTypeConfig'];
 
 // Helper to extract error message from API response
 function extractErrorMessage(
@@ -39,7 +38,7 @@ export class AuthzService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
 
-  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -57,13 +56,7 @@ export class AuthzService {
   // =====================
 
   async listActions(userToken?: string): Promise<{ data: string[] }> {
-    return this.listActionsNew(userToken);
-  }
-
-  private async listActionsNew(
-    userToken?: string,
-  ): Promise<{ data: string[] }> {
-    this.logger.debug('Fetching all available actions (new API)');
+    this.logger.debug('Fetching all available actions');
 
     try {
       const client = this.createNewClient(userToken);
@@ -94,13 +87,7 @@ export class AuthzService {
   // =====================
 
   async listUserTypes(userToken?: string): Promise<{ data: UserTypeConfig[] }> {
-    return this.listUserTypesNew(userToken);
-  }
-
-  private async listUserTypesNew(
-    userToken?: string,
-  ): Promise<{ data: UserTypeConfig[] }> {
-    this.logger.debug('Fetching all user types (new API)');
+    this.logger.debug('Fetching all user types');
 
     try {
       const client = this.createNewClient(userToken);
@@ -133,13 +120,7 @@ export class AuthzService {
   async listNamespaces(
     userToken?: string,
   ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
-    return this.listNamespacesNew(userToken);
-  }
-
-  private async listNamespacesNew(
-    userToken?: string,
-  ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
-    this.logger.debug('Fetching all namespaces (new API)');
+    this.logger.debug('Fetching all namespaces');
 
     try {
       const client = this.createNewClient(userToken);
@@ -177,16 +158,7 @@ export class AuthzService {
     namespaceName: string,
     userToken?: string,
   ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
-    return this.listProjectsNew(namespaceName, userToken);
-  }
-
-  private async listProjectsNew(
-    namespaceName: string,
-    userToken?: string,
-  ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
-    this.logger.debug(
-      `Fetching projects for namespace: ${namespaceName} (new API)`,
-    );
+    this.logger.debug(`Fetching projects for namespace: ${namespaceName}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -232,16 +204,8 @@ export class AuthzService {
     projectName: string,
     userToken?: string,
   ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
-    return this.listComponentsNew(namespaceName, projectName, userToken);
-  }
-
-  private async listComponentsNew(
-    namespaceName: string,
-    projectName: string,
-    userToken?: string,
-  ): Promise<{ data: Array<{ name: string; displayName?: string }> }> {
     this.logger.debug(
-      `Fetching components for namespace: ${namespaceName}, project: ${projectName} (new API)`,
+      `Fetching components for namespace: ${namespaceName}, project: ${projectName}`,
     );
 
     try {
@@ -290,13 +254,7 @@ export class AuthzService {
   async listClusterRoles(userToken?: string): Promise<{
     data: Array<{ name: string; actions: string[]; description?: string }>;
   }> {
-    return this.listClusterRolesNew(userToken);
-  }
-
-  private async listClusterRolesNew(userToken?: string): Promise<{
-    data: Array<{ name: string; actions: string[]; description?: string }>;
-  }> {
-    this.logger.debug('Fetching cluster roles (new API)');
+    this.logger.debug('Fetching cluster roles');
 
     try {
       const client = this.createNewClient(userToken);
@@ -336,16 +294,7 @@ export class AuthzService {
   ): Promise<{
     data: { name: string; actions: string[]; description?: string };
   }> {
-    return this.getClusterRoleNew(name, userToken);
-  }
-
-  private async getClusterRoleNew(
-    name: string,
-    userToken?: string,
-  ): Promise<{
-    data: { name: string; actions: string[]; description?: string };
-  }> {
-    this.logger.debug(`Fetching cluster role: ${name} (new API)`);
+    this.logger.debug(`Fetching cluster role: ${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -382,14 +331,7 @@ export class AuthzService {
     role: { name: string; actions: string[]; description?: string },
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.createClusterRoleNew(role, userToken);
-  }
-
-  private async createClusterRoleNew(
-    role: { name: string; actions: string[]; description?: string },
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(`Creating cluster role: ${role.name} (new API)`);
+    this.logger.debug(`Creating cluster role: ${role.name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -425,15 +367,7 @@ export class AuthzService {
     role: { actions?: string[]; description?: string },
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.updateClusterRoleNew(name, role, userToken);
-  }
-
-  private async updateClusterRoleNew(
-    name: string,
-    role: { actions?: string[]; description?: string },
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(`Updating cluster role: ${name} (new API)`);
+    this.logger.debug(`Updating cluster role: ${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -466,14 +400,7 @@ export class AuthzService {
   }
 
   async deleteClusterRole(name: string, userToken?: string): Promise<void> {
-    return this.deleteClusterRoleNew(name, userToken);
-  }
-
-  private async deleteClusterRoleNew(
-    name: string,
-    userToken?: string,
-  ): Promise<void> {
-    this.logger.debug(`Deleting cluster role: ${name} (new API)`);
+    this.logger.debug(`Deleting cluster role: ${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -508,14 +435,7 @@ export class AuthzService {
     namespace: string,
     userToken?: string,
   ): Promise<{ data: Array<any> }> {
-    return this.listNamespaceRolesNew(namespace, userToken);
-  }
-
-  private async listNamespaceRolesNew(
-    namespace: string,
-    userToken?: string,
-  ): Promise<{ data: Array<any> }> {
-    this.logger.debug(`Fetching namespace roles for: ${namespace} (new API)`);
+    this.logger.debug(`Fetching namespace roles for: ${namespace}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -557,17 +477,7 @@ export class AuthzService {
     name: string,
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.getNamespaceRoleNew(namespace, name, userToken);
-  }
-
-  private async getNamespaceRoleNew(
-    namespace: string,
-    name: string,
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(
-      `Fetching namespace role: ${namespace}/${name} (new API)`,
-    );
+    this.logger.debug(`Fetching namespace role: ${namespace}/${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -611,20 +521,8 @@ export class AuthzService {
     },
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.createNamespaceRoleNew(role, userToken);
-  }
-
-  private async createNamespaceRoleNew(
-    role: {
-      name: string;
-      namespace: string;
-      actions: string[];
-      description?: string;
-    },
-    userToken?: string,
-  ): Promise<{ data: any }> {
     this.logger.debug(
-      `Creating namespace role: ${role.namespace}/${role.name} (new API)`,
+      `Creating namespace role: ${role.namespace}/${role.name}`,
     );
 
     try {
@@ -667,18 +565,7 @@ export class AuthzService {
     role: { actions?: string[]; description?: string },
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.updateNamespaceRoleNew(namespace, name, role, userToken);
-  }
-
-  private async updateNamespaceRoleNew(
-    namespace: string,
-    name: string,
-    role: { actions?: string[]; description?: string },
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(
-      `Updating namespace role: ${namespace}/${name} (new API)`,
-    );
+    this.logger.debug(`Updating namespace role: ${namespace}/${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -719,17 +606,7 @@ export class AuthzService {
     name: string,
     userToken?: string,
   ): Promise<void> {
-    return this.deleteNamespaceRoleNew(namespace, name, userToken);
-  }
-
-  private async deleteNamespaceRoleNew(
-    namespace: string,
-    name: string,
-    userToken?: string,
-  ): Promise<void> {
-    this.logger.debug(
-      `Deleting namespace role: ${namespace}/${name} (new API)`,
-    );
+    this.logger.debug(`Deleting namespace role: ${namespace}/${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -773,19 +650,7 @@ export class AuthzService {
     },
     userToken?: string,
   ): Promise<{ data: Array<any> }> {
-    return this.listClusterRoleBindingsNew(filters, userToken);
-  }
-
-  private async listClusterRoleBindingsNew(
-    filters?: {
-      roleName?: string;
-      claim?: string;
-      value?: string;
-      effect?: string;
-    },
-    userToken?: string,
-  ): Promise<{ data: Array<any> }> {
-    this.logger.debug('Fetching cluster role bindings (new API)', { filters });
+    this.logger.debug('Fetching cluster role bindings', { filters });
 
     try {
       const client = this.createNewClient(userToken);
@@ -829,14 +694,7 @@ export class AuthzService {
     name: string,
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.getClusterRoleBindingNew(name, userToken);
-  }
-
-  private async getClusterRoleBindingNew(
-    name: string,
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(`Fetching cluster role binding: ${name} (new API)`);
+    this.logger.debug(`Fetching cluster role binding: ${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -877,16 +735,7 @@ export class AuthzService {
     binding: any,
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.createClusterRoleBindingNew(binding, userToken);
-  }
-
-  private async createClusterRoleBindingNew(
-    binding: any,
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(
-      `Creating cluster role binding: ${binding.name} (new API)`,
-    );
+    this.logger.debug(`Creating cluster role binding: ${binding.name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -938,15 +787,7 @@ export class AuthzService {
     binding: any,
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.updateClusterRoleBindingNew(name, binding, userToken);
-  }
-
-  private async updateClusterRoleBindingNew(
-    name: string,
-    binding: any,
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(`Updating cluster role binding: ${name} (new API)`);
+    this.logger.debug(`Updating cluster role binding: ${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -998,14 +839,7 @@ export class AuthzService {
     name: string,
     userToken?: string,
   ): Promise<void> {
-    return this.deleteClusterRoleBindingNew(name, userToken);
-  }
-
-  private async deleteClusterRoleBindingNew(
-    name: string,
-    userToken?: string,
-  ): Promise<void> {
-    this.logger.debug(`Deleting cluster role binding: ${name} (new API)`);
+    this.logger.debug(`Deleting cluster role binding: ${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -1049,24 +883,9 @@ export class AuthzService {
     },
     userToken?: string,
   ): Promise<{ data: Array<any> }> {
-    return this.listNamespaceRoleBindingsNew(namespace, filters, userToken);
-  }
-
-  private async listNamespaceRoleBindingsNew(
-    namespace: string,
-    filters?: {
-      roleName?: string;
-      roleNamespace?: string;
-      claim?: string;
-      value?: string;
-      effect?: string;
-    },
-    userToken?: string,
-  ): Promise<{ data: Array<any> }> {
-    this.logger.debug(
-      `Fetching namespace role bindings for: ${namespace} (new API)`,
-      { filters },
-    );
+    this.logger.debug(`Fetching namespace role bindings for: ${namespace}`, {
+      filters,
+    });
 
     try {
       const client = this.createNewClient(userToken);
@@ -1120,17 +939,7 @@ export class AuthzService {
     name: string,
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.getNamespaceRoleBindingNew(namespace, name, userToken);
-  }
-
-  private async getNamespaceRoleBindingNew(
-    namespace: string,
-    name: string,
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(
-      `Fetching namespace role binding: ${namespace}/${name} (new API)`,
-    );
+    this.logger.debug(`Fetching namespace role binding: ${namespace}/${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -1179,15 +988,8 @@ export class AuthzService {
     binding: any,
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.createNamespaceRoleBindingNew(binding, userToken);
-  }
-
-  private async createNamespaceRoleBindingNew(
-    binding: any,
-    userToken?: string,
-  ): Promise<{ data: any }> {
     this.logger.debug(
-      `Creating namespace role binding: ${binding.namespace}/${binding.name} (new API)`,
+      `Creating namespace role binding: ${binding.namespace}/${binding.name}`,
     );
 
     try {
@@ -1251,23 +1053,7 @@ export class AuthzService {
     binding: any,
     userToken?: string,
   ): Promise<{ data: any }> {
-    return this.updateNamespaceRoleBindingNew(
-      namespace,
-      name,
-      binding,
-      userToken,
-    );
-  }
-
-  private async updateNamespaceRoleBindingNew(
-    namespace: string,
-    name: string,
-    binding: any,
-    userToken?: string,
-  ): Promise<{ data: any }> {
-    this.logger.debug(
-      `Updating namespace role binding: ${namespace}/${name} (new API)`,
-    );
+    this.logger.debug(`Updating namespace role binding: ${namespace}/${name}`);
 
     try {
       const client = this.createNewClient(userToken);
@@ -1331,17 +1117,7 @@ export class AuthzService {
     name: string,
     userToken?: string,
   ): Promise<void> {
-    return this.deleteNamespaceRoleBindingNew(namespace, name, userToken);
-  }
-
-  private async deleteNamespaceRoleBindingNew(
-    namespace: string,
-    name: string,
-    userToken?: string,
-  ): Promise<void> {
-    this.logger.debug(
-      `Deleting namespace role binding: ${namespace}/${name} (new API)`,
-    );
+    this.logger.debug(`Deleting namespace role binding: ${namespace}/${name}`);
 
     try {
       const client = this.createNewClient(userToken);

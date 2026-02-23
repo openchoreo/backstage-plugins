@@ -8,7 +8,7 @@ export interface DashboardMetrics {
 export class DashboardInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -19,16 +19,8 @@ export class DashboardInfoService {
     componentName: string,
     token?: string,
   ): Promise<number> {
-    return this.fetchDashboardMetricsNew(namespaceName, componentName, token);
-  }
-
-  private async fetchDashboardMetricsNew(
-    namespaceName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<number> {
     this.logger.info(
-      `Fetching release bindings count (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+      `Fetching release bindings count for component: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {

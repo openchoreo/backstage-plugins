@@ -62,21 +62,10 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    return this.fetchDeploymentInfoNew(request, token);
-  }
-
-  private async fetchDeploymentInfoNew(
-    request: {
-      projectName: string;
-      componentName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Starting environment fetch (new API) for component: ${request.componentName}`,
+        `Starting environment fetch for component: ${request.componentName}`,
       );
 
       const createTimedPromise = <T>(promise: Promise<T>, name: string) => {
@@ -567,23 +556,10 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    return this.promoteComponentNew(request, token);
-  }
-
-  private async promoteComponentNew(
-    request: {
-      sourceEnvironment: string;
-      targetEnvironment: string;
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.info(
-        `Starting promotion (new API) for component: ${request.componentName} from ${request.sourceEnvironment} to ${request.targetEnvironment}`,
+        `Starting promotion for component: ${request.componentName} from ${request.sourceEnvironment} to ${request.targetEnvironment}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -661,22 +637,10 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    return this.deleteReleaseBindingNew(request, token);
-  }
-
-  private async deleteReleaseBindingNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environment: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.info(
-        `Deleting release binding (new API) for component: ${request.componentName} from environment: ${request.environment}`,
+        `Deleting release binding for component: ${request.componentName} from environment: ${request.environment}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -756,23 +720,10 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    return this.updateComponentBindingNew(request, token);
-  }
-
-  private async updateComponentBindingNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      bindingName: string;
-      releaseState: 'Active' | 'Suspend' | 'Undeploy';
-    },
-    token?: string,
-  ): Promise<Environment[]> {
     const startTime = Date.now();
     try {
       this.logger.info(
-        `Starting binding update (new API) for component: ${request.componentName}, binding: ${request.bindingName}, new state: ${request.releaseState}`,
+        `Starting binding update for component: ${request.componentName}, binding: ${request.bindingName}, new state: ${request.releaseState}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -886,21 +837,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    return this.createComponentReleaseNew(request, token);
-  }
-
-  private async createComponentReleaseNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      releaseName?: string;
-    },
-    token?: string,
-  ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Creating component release (new API) for ${request.componentName} in namespace: ${request.namespaceName}`,
+      `Creating component release for ${request.componentName} in namespace: ${request.namespaceName}`,
     );
 
     try {
@@ -978,21 +917,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ): Promise<Environment[]> {
-    return this.deployReleaseNew(request, token);
-  }
-
-  private async deployReleaseNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      releaseName: string;
-    },
-    token?: string,
-  ): Promise<Environment[]> {
     const startTime = Date.now();
     this.logger.debug(
-      `Deploying release (new API) ${request.releaseName} for component ${request.componentName}`,
+      `Deploying release ${request.releaseName} for component ${request.componentName}`,
     );
 
     try {
@@ -1077,21 +1004,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    return this.fetchComponentReleaseSchemaNew(request, token);
-  }
-
-  private async fetchComponentReleaseSchemaNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      releaseName: string;
-    },
-    token?: string,
-  ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Fetching component release schema (new API) for ${request.releaseName}`,
+      `Fetching component release schema for ${request.releaseName}`,
     );
 
     try {
@@ -1154,20 +1069,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    return this.fetchReleaseBindingsNew(request, token);
-  }
-
-  private async fetchReleaseBindingsNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Fetching release bindings (new API) for component ${request.componentName}`,
+      `Fetching release bindings for component ${request.componentName}`,
     );
 
     try {
@@ -1236,25 +1140,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    return this.patchReleaseBindingOverridesNew(request, token);
-  }
-
-  private async patchReleaseBindingOverridesNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environment: string;
-      componentTypeEnvOverrides: any;
-      traitOverrides?: any;
-      workloadOverrides?: any;
-      releaseName?: string;
-    },
-    token?: string,
-  ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Patching release binding overrides (new API) for component ${request.componentName} in environment ${request.environment}`,
+      `Patching release binding overrides for component ${request.componentName} in environment ${request.environment}`,
     );
 
     try {
@@ -1557,21 +1445,9 @@ export class EnvironmentInfoService implements EnvironmentService {
     },
     token?: string,
   ) {
-    return this.fetchEnvironmentReleaseNew(request, token);
-  }
-
-  private async fetchEnvironmentReleaseNew(
-    request: {
-      componentName: string;
-      projectName: string;
-      namespaceName: string;
-      environmentName: string;
-    },
-    token?: string,
-  ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Fetching environment release (new API) for component ${request.componentName} in environment ${request.environmentName}`,
+      `Fetching environment release for component ${request.componentName} in environment ${request.environmentName}`,
     );
 
     try {

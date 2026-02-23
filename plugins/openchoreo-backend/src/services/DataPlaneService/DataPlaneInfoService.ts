@@ -19,20 +19,12 @@ export class DataPlaneInfoService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
 
-  public constructor(
-    logger: LoggerService,
-    baseUrl: string,
-    _useNewApi = false,
-  ) {
+  public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
 
-  static create(
-    logger: LoggerService,
-    baseUrl: string,
-    _useNewApi = false,
-  ): DataPlaneInfoService {
+  static create(logger: LoggerService, baseUrl: string): DataPlaneInfoService {
     return new DataPlaneInfoService(logger, baseUrl);
   }
 

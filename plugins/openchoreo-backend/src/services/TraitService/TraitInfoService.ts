@@ -35,7 +35,7 @@ export class TraitInfoService {
   private logger: LoggerService;
   private baseUrl: string;
 
-  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -46,16 +46,7 @@ export class TraitInfoService {
     _pageSize: number = 100,
     token?: string,
   ): Promise<TraitListResponse> {
-    return this.fetchTraitsNew(namespaceName, token);
-  }
-
-  private async fetchTraitsNew(
-    namespaceName: string,
-    token?: string,
-  ): Promise<TraitListResponse> {
-    this.logger.debug(
-      `Fetching traits (new API) for namespace: ${namespaceName}`,
-    );
+    this.logger.debug(`Fetching traits for namespace: ${namespaceName}`);
 
     try {
       const client = createOpenChoreoApiClient({
@@ -113,16 +104,8 @@ export class TraitInfoService {
     traitName: string,
     token?: string,
   ): Promise<TraitSchemaResponse> {
-    return this.fetchTraitSchemaNew(namespaceName, traitName, token);
-  }
-
-  private async fetchTraitSchemaNew(
-    namespaceName: string,
-    traitName: string,
-    token?: string,
-  ): Promise<TraitSchemaResponse> {
     this.logger.debug(
-      `Fetching schema (new API) for trait: ${traitName} in namespace: ${namespaceName}`,
+      `Fetching schema for trait: ${traitName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -168,20 +151,8 @@ export class TraitInfoService {
     componentName: string,
     userToken?: string,
   ): Promise<ComponentTrait[]> {
-    return this.fetchComponentTraitsNew(
-      namespaceName,
-      componentName,
-      userToken,
-    );
-  }
-
-  private async fetchComponentTraitsNew(
-    namespaceName: string,
-    componentName: string,
-    userToken?: string,
-  ): Promise<ComponentTrait[]> {
     this.logger.debug(
-      `Fetching component traits (new API) for: ${componentName} in namespace: ${namespaceName}`,
+      `Fetching component traits for: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -229,22 +200,8 @@ export class TraitInfoService {
     traits: UpdateComponentTraitsRequest,
     userToken?: string,
   ): Promise<ComponentTrait[]> {
-    return this.updateComponentTraitsNew(
-      namespaceName,
-      componentName,
-      traits,
-      userToken,
-    );
-  }
-
-  private async updateComponentTraitsNew(
-    namespaceName: string,
-    componentName: string,
-    traits: UpdateComponentTraitsRequest,
-    userToken?: string,
-  ): Promise<ComponentTrait[]> {
     this.logger.debug(
-      `Updating component traits (new API) for: ${componentName} in namespace: ${namespaceName}`,
+      `Updating component traits for: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {

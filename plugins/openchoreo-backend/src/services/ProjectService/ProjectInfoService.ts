@@ -15,7 +15,7 @@ export class ProjectInfoService {
   private logger: LoggerService;
   private baseUrl: string;
 
-  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -25,16 +25,8 @@ export class ProjectInfoService {
     projectName: string,
     token?: string,
   ): Promise<ModelsProject> {
-    return this.fetchProjectDetailsNew(namespaceName, projectName, token);
-  }
-
-  private async fetchProjectDetailsNew(
-    namespaceName: string,
-    projectName: string,
-    token?: string,
-  ): Promise<ModelsProject> {
     this.logger.debug(
-      `Fetching project details (new API) for: ${projectName} in namespace: ${namespaceName}`,
+      `Fetching project details for: ${projectName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -76,20 +68,8 @@ export class ProjectInfoService {
     projectName: string,
     token?: string,
   ): Promise<ModelsDeploymentPipeline> {
-    return this.fetchProjectDeploymentPipelineNew(
-      namespaceName,
-      projectName,
-      token,
-    );
-  }
-
-  private async fetchProjectDeploymentPipelineNew(
-    namespaceName: string,
-    projectName: string,
-    token?: string,
-  ): Promise<ModelsDeploymentPipeline> {
     this.logger.debug(
-      `Fetching deployment pipeline (new API) for project: ${projectName} in namespace: ${namespaceName}`,
+      `Fetching deployment pipeline for project: ${projectName} in namespace: ${namespaceName}`,
     );
     try {
       const client = createOpenChoreoApiClient({

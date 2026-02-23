@@ -129,7 +129,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('EnvironmentInfoService (useNewApi=true)', () => {
+describe('EnvironmentInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

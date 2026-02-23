@@ -12,20 +12,12 @@ export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
 
-  public constructor(
-    logger: LoggerService,
-    baseUrl: string,
-    _useNewApi = false,
-  ) {
+  public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
 
-  static create(
-    logger: LoggerService,
-    baseUrl: string,
-    _useNewApi = false,
-  ): WorkloadInfoService {
+  static create(logger: LoggerService, baseUrl: string): WorkloadInfoService {
     return new WorkloadInfoService(logger, baseUrl);
   }
 
@@ -37,22 +29,11 @@ export class WorkloadInfoService implements WorkloadService {
     },
     token?: string,
   ): Promise<ModelsWorkload> {
-    return this.fetchWorkloadInfoNew(request, token);
-  }
-
-  private async fetchWorkloadInfoNew(
-    request: {
-      projectName: string;
-      componentName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<ModelsWorkload> {
     const { projectName, componentName, namespaceName } = request;
 
     try {
       this.logger.info(
-        `Fetching workload info (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+        `Fetching workload info for component: ${componentName} in namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -101,23 +82,11 @@ export class WorkloadInfoService implements WorkloadService {
     },
     token?: string,
   ): Promise<any> {
-    return this.applyWorkloadNew(request, token);
-  }
-
-  private async applyWorkloadNew(
-    request: {
-      projectName: string;
-      componentName: string;
-      namespaceName: string;
-      workloadSpec: ModelsWorkload;
-    },
-    token?: string,
-  ): Promise<any> {
     const { projectName, componentName, namespaceName, workloadSpec } = request;
 
     try {
       this.logger.info(
-        `Applying workload (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+        `Applying workload for component: ${componentName} in namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({

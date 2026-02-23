@@ -50,31 +50,13 @@ export class CellDiagramInfoService implements CellDiagramService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
   private readonly componentTypeUtils: ComponentTypeUtils;
-  public constructor(
-    logger: LoggerService,
-    baseUrl: string,
-    config: Config,
-    _useNewApi = false,
-  ) {
+  public constructor(logger: LoggerService, baseUrl: string, config: Config) {
     this.baseUrl = baseUrl;
     this.logger = logger;
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
   }
 
   async fetchProjectInfo(
-    {
-      projectName,
-      namespaceName,
-    }: {
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<Project | undefined> {
-    return this.fetchProjectInfoNew({ projectName, namespaceName }, token);
-  }
-
-  private async fetchProjectInfoNew(
     {
       projectName,
       namespaceName,

@@ -1,9 +1,8 @@
 /**
  * Transformers for mapping K8s-style OpenChoreo resources to legacy flat response shapes.
  *
- * These pure functions are used by BFF services when `openchoreo.useNewApi` is enabled,
- * ensuring the frontend receives the same response shape regardless of which API version
- * the backend communicates with.
+ * These pure functions are used by BFF services to map K8s-style API responses,
+ * ensuring the frontend receives a consistent flat response shape.
  *
  * @packageDocumentation
  */

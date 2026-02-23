@@ -75,8 +75,8 @@ const k8sComponent = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new ComponentInfoService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new ComponentInfoService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -95,7 +95,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('ComponentInfoService (useNewApi=true)', () => {
+describe('ComponentInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -104,7 +104,7 @@ describe('ComponentInfoService (useNewApi=true)', () => {
     it('calls new API endpoint and transforms response', async () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchComponentDetails(
         'test-ns',
         'my-project',
@@ -123,7 +123,7 @@ describe('ComponentInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchComponentDetails(
           'test-ns',
@@ -146,7 +146,7 @@ describe('ComponentInfoService (useNewApi=true)', () => {
       };
       mockPUT.mockResolvedValueOnce(okResponse(updatedComponent));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.patchComponent(
         'test-ns',
         'my-project',
@@ -163,7 +163,7 @@ describe('ComponentInfoService (useNewApi=true)', () => {
     it('throws when GET fails', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.patchComponent(
           'test-ns',
@@ -179,7 +179,7 @@ describe('ComponentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
       mockPUT.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.patchComponent(
           'test-ns',
@@ -199,7 +199,7 @@ describe('ComponentInfoService (useNewApi=true)', () => {
         response: { ok: true, status: 200 },
       });
 
-      const service = createService(true);
+      const service = createService();
       await service.deleteComponent(
         'test-ns',
         'my-project',
@@ -216,7 +216,7 @@ describe('ComponentInfoService (useNewApi=true)', () => {
         response: { ok: false, status: 404, statusText: 'Not Found' },
       });
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.deleteComponent(
           'test-ns',

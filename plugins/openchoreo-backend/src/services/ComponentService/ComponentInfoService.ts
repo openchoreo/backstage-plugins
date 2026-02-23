@@ -13,7 +13,7 @@ export class ComponentInfoService {
   private logger: LoggerService;
   private baseUrl: string;
 
-  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -32,16 +32,8 @@ export class ComponentInfoService {
     componentName: string,
     token?: string,
   ): Promise<ModelsCompleteComponent> {
-    return this.fetchComponentDetailsNew(namespaceName, componentName, token);
-  }
-
-  private async fetchComponentDetailsNew(
-    namespaceName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
-      `Fetching component details (new API) for: ${componentName} in namespace: ${namespaceName}`,
+      `Fetching component details for: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -95,22 +87,8 @@ export class ComponentInfoService {
     autoDeploy: boolean,
     token?: string,
   ): Promise<ModelsCompleteComponent> {
-    return this.patchComponentNew(
-      namespaceName,
-      componentName,
-      autoDeploy,
-      token,
-    );
-  }
-
-  private async patchComponentNew(
-    namespaceName: string,
-    componentName: string,
-    autoDeploy: boolean,
-    token?: string,
-  ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
-      `Patching component (new API): ${componentName} in namespace: ${namespaceName} with autoDeploy: ${autoDeploy}`,
+      `Patching component: ${componentName} in namespace: ${namespaceName} with autoDeploy: ${autoDeploy}`,
     );
 
     try {

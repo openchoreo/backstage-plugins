@@ -64,7 +64,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
 export class PlatformResourceService {
   private logger: LoggerService;
   private baseUrl: string;
-  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }

@@ -86,8 +86,8 @@ const k8sComponent = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new TraitInfoService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new TraitInfoService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -106,7 +106,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('TraitInfoService (useNewApi=true)', () => {
+describe('TraitInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -117,7 +117,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
         okResponse({ items: [k8sTrait], pagination: {} }),
       );
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchTraits('test-ns', 1, 100, 'token-123');
 
       expect(result.success).toBe(true);
@@ -131,7 +131,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchTraits('test-ns', 1, 100, 'token'),
       ).rejects.toThrow('Failed to fetch traits');
@@ -146,7 +146,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
       };
       mockGET.mockResolvedValueOnce(okResponse(schemaData));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchTraitSchema(
         'test-ns',
         'my-trait',
@@ -160,7 +160,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchTraitSchema('test-ns', 'my-trait', 'token'),
       ).rejects.toThrow('Failed to fetch trait schema');
@@ -171,7 +171,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
     it('extracts traits from component spec', async () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchComponentTraits(
         'test-ns',
         'my-project',
@@ -191,7 +191,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
       };
       mockGET.mockResolvedValueOnce(okResponse(noTraits));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchComponentTraits(
         'test-ns',
         'my-project',
@@ -205,7 +205,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchComponentTraits(
           'test-ns',
@@ -228,7 +228,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
       };
       mockPUT.mockResolvedValueOnce(okResponse(updatedComponent));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.updateComponentTraits(
         'test-ns',
         'my-project',
@@ -250,7 +250,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
       };
       mockGET.mockResolvedValueOnce(okResponse(noOwner));
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.updateComponentTraits(
           'test-ns',
@@ -266,7 +266,7 @@ describe('TraitInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sComponent));
       mockPUT.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.updateComponentTraits(
           'test-ns',

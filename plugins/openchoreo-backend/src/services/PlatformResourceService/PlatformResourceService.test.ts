@@ -51,8 +51,8 @@ const k8sWorkflow = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new PlatformResourceService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new PlatformResourceService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -71,7 +71,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('PlatformResourceService (useNewApi=true)', () => {
+describe('PlatformResourceService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -80,7 +80,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
     it('fetches environment via new API', async () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sEnvironment));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.getResourceDefinition(
         'environments' as any,
         'test-ns',
@@ -95,7 +95,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
     it('fetches workflow via new API', async () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sWorkflow));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.getResourceDefinition(
         'workflows' as any,
         'test-ns',
@@ -111,7 +111,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
       const dp = { metadata: { name: 'dp-1' }, spec: {} };
       mockGET.mockResolvedValueOnce(okResponse(dp));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.getResourceDefinition(
         'dataplanes' as any,
         'test-ns',
@@ -127,7 +127,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
       const pipeline = { metadata: { name: 'default' }, spec: {} };
       mockGET.mockResolvedValueOnce(okResponse(pipeline));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.getResourceDefinition(
         'deploymentpipelines' as any,
         'test-ns',
@@ -141,7 +141,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.getResourceDefinition(
           'environments' as any,
@@ -157,7 +157,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
     it('updates environment via new API PUT', async () => {
       mockPUT.mockResolvedValueOnce(okResponse(k8sEnvironment));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.updateResourceDefinition(
         'environments' as any,
         'test-ns',
@@ -176,7 +176,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
     it('updates workflow via new API PUT', async () => {
       mockPUT.mockResolvedValueOnce(okResponse(k8sWorkflow));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.updateResourceDefinition(
         'workflows' as any,
         'test-ns',
@@ -192,7 +192,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockPUT.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.updateResourceDefinition(
           'environments' as any,
@@ -212,7 +212,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
         response: { ok: true, status: 200 },
       });
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.deleteResourceDefinition(
         'environments' as any,
         'test-ns',
@@ -232,7 +232,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
         response: { ok: true, status: 200 },
       });
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.deleteResourceDefinition(
         'buildplanes' as any,
         'test-ns',
@@ -250,7 +250,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
         response: { ok: false, status: 404, statusText: 'Not Found' },
       });
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.deleteResourceDefinition(
           'environments' as any,
@@ -276,7 +276,7 @@ describe('PlatformResourceService (useNewApi=true)', () => {
           }),
       });
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.getResourceDefinition(
         'component-types' as any,
         'test-ns',

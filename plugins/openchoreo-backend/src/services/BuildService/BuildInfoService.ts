@@ -23,7 +23,7 @@ export class ObservabilityNotConfiguredError extends Error {
 export class BuildInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  constructor(logger: LoggerService, baseUrl: string, _useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
   }
@@ -34,27 +34,9 @@ export class BuildInfoService {
     componentName: string,
     token?: string,
   ): Promise<ModelsBuild[]> {
-    return this.fetchBuildsNew(
-      namespaceName,
-      componentName,
-      token,
-      projectName,
-    );
-  }
-
-  private async fetchBuildsNew(
-    namespaceName: string,
-    componentName: string,
-    token?: string,
-    projectName?: string,
-  ): Promise<ModelsBuild[]> {
     this.logger.debug(
-      `Fetching component workflow runs (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+      `Fetching component workflow runs for component: ${componentName} in namespace: ${namespaceName}`,
     );
-
-    if (!projectName) {
-      throw new Error('projectName is required for new API workflow runs');
-    }
 
     try {
       const client = createOpenChoreoApiClient({
@@ -72,7 +54,7 @@ export class BuildInfoService {
               params: {
                 path: {
                   namespaceName,
-                  projectName: projectName!,
+                  projectName,
                   componentName,
                 },
                 query: { limit: 100, cursor },
@@ -110,24 +92,8 @@ export class BuildInfoService {
     runName: string,
     token?: string,
   ): Promise<any> {
-    return this.getWorkflowRunNew(
-      namespaceName,
-      projectName,
-      componentName,
-      runName,
-      token,
-    );
-  }
-
-  private async getWorkflowRunNew(
-    namespaceName: string,
-    projectName: string,
-    componentName: string,
-    runName: string,
-    token?: string,
-  ): Promise<any> {
     this.logger.debug(
-      `Fetching workflow run (new API): ${runName} in namespace: ${namespaceName}`,
+      `Fetching workflow run: ${runName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -167,24 +133,8 @@ export class BuildInfoService {
     commit?: string,
     token?: string,
   ): Promise<ModelsBuild> {
-    return this.triggerBuildNew(
-      namespaceName,
-      projectName,
-      componentName,
-      commit,
-      token,
-    );
-  }
-
-  private async triggerBuildNew(
-    namespaceName: string,
-    projectName: string,
-    componentName: string,
-    commit?: string,
-    token?: string,
-  ): Promise<ModelsBuild> {
     this.logger.info(
-      `Triggering component workflow (new API) for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}${
+      `Triggering component workflow for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}${
         commit ? ` with commit: ${commit}` : ''
       }`,
     );
