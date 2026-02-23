@@ -2,15 +2,14 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   fetchAllPages,
+  getName,
+  getNamespace,
+  getDisplayName,
+  getDescription,
+  getCreatedAt,
+  isReady,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  EnvironmentResponse,
-  DataPlaneResponse,
-} from '@openchoreo/backstage-plugin-common';
-
-type ModelsEnvironment = EnvironmentResponse;
-type ModelsDataPlane = DataPlaneResponse;
 
 import {
   PlatformEnvironmentService,
@@ -19,6 +18,8 @@ import {
   DataPlaneWithEnvironments,
 } from '../types';
 
+type NewEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type NewDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
 /**
@@ -116,11 +117,7 @@ export class PlatformEnvironmentInfoService
         return [];
       }
 
-      const environments = data.items;
-      const result = this.transformEnvironmentData(
-        environments as any,
-        namespaceName,
-      );
+      const result = this.transformEnvironmentData(data.items, namespaceName);
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -209,11 +206,7 @@ export class PlatformEnvironmentInfoService
         return [];
       }
 
-      const dataplanes = data.items;
-      const result = this.transformDataPlaneData(
-        dataplanes as any,
-        namespaceName,
-      );
+      const result = this.transformDataPlaneData(data.items, namespaceName);
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -630,52 +623,52 @@ export class PlatformEnvironmentInfoService
   }
 
   private transformEnvironmentData(
-    environmentData: ModelsEnvironment[],
+    environmentData: NewEnvironment[],
     namespaceName: string,
   ): Environment[] {
     return environmentData.map(env => {
-      const transformedEnv: Environment = {
-        name: env.name,
-        namespace: env.namespace || '',
-        displayName: env.displayName || env.name,
-        description: env.description || '',
-        namespaceName: namespaceName,
-        dataPlaneRef: env.dataPlaneRef?.name || '',
-        isProduction: env.isProduction ?? false,
-        dnsPrefix: env.dnsPrefix || '',
-        createdAt: env.createdAt || '',
-        status: env.status || '',
+      const name = getName(env) || '';
+      return {
+        name,
+        namespace: getNamespace(env) || '',
+        displayName: getDisplayName(env) || name,
+        description: getDescription(env) || '',
+        namespaceName,
+        dataPlaneRef: env.spec?.dataPlaneRef?.name || '',
+        isProduction: env.spec?.isProduction ?? false,
+        dnsPrefix: env.spec?.gateway?.publicVirtualHost || '',
+        createdAt: getCreatedAt(env) || '',
+        status: isReady(env) ? 'Ready' : 'NotReady',
       };
-
-      return transformedEnv;
     });
   }
 
   private transformDataPlaneData(
-    dataplaneData: ModelsDataPlane[],
+    dataplaneData: NewDataPlane[],
     namespaceName: string,
   ): DataPlane[] {
     return dataplaneData.map(dp => {
-      const transformedDataPlane: DataPlane = {
-        name: dp.name,
-        namespace: dp.namespace,
-        displayName: dp.displayName,
-        description: dp.description,
-        namespaceName: namespaceName,
-        imagePullSecretRefs: dp.imagePullSecretRefs,
-        secretStoreRef: dp.secretStoreRef,
-        publicVirtualHost: dp.publicVirtualHost,
-        namespaceVirtualHost: dp.namespaceVirtualHost,
-        publicHTTPPort: dp.publicHTTPPort,
-        publicHTTPSPort: dp.publicHTTPSPort,
-        namespaceHTTPPort: dp.namespaceHTTPPort,
-        namespaceHTTPSPort: dp.namespaceHTTPSPort,
-        observabilityPlaneRef: dp.observabilityPlaneRef,
-        createdAt: dp.createdAt,
-        status: dp.status,
+      const gateway = dp.spec?.gateway;
+      const secretStore = dp.spec?.secretStoreRef;
+      const obsRef = dp.spec?.observabilityPlaneRef;
+      return {
+        name: getName(dp) || '',
+        namespace: getNamespace(dp),
+        displayName: getDisplayName(dp),
+        description: getDescription(dp),
+        namespaceName,
+        imagePullSecretRefs: dp.spec?.imagePullSecretRefs,
+        secretStoreRef: secretStore?.name,
+        publicVirtualHost: gateway?.publicVirtualHost,
+        namespaceVirtualHost: gateway?.organizationVirtualHost,
+        publicHTTPPort: gateway?.publicHTTPPort,
+        publicHTTPSPort: gateway?.publicHTTPSPort,
+        namespaceHTTPPort: gateway?.organizationHTTPPort,
+        namespaceHTTPSPort: gateway?.organizationHTTPSPort,
+        observabilityPlaneRef: obsRef?.name,
+        createdAt: getCreatedAt(dp),
+        status: isReady(dp) ? 'Ready' : 'NotReady',
       };
-
-      return transformedDataPlane;
     });
   }
 }
