@@ -1481,9 +1481,11 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Environment release fetched for ${request.componentName} in ${request.environmentName}: Total: ${totalTime}ms`,
       );
 
-      // Return the first release matching this component+environment
+      // Return the first release matching this component+environment,
+      // wrapped in the legacy format expected by the frontend ReleaseData type
       const release = data.items?.[0];
-      return release ?? null;
+      if (!release) return null;
+      return { data: { spec: release.spec, status: release.status } };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
