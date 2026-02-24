@@ -8,13 +8,15 @@ import {
 } from '@material-ui/core';
 import { TablePagination } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
-import { useApp } from '@backstage/core-plugin-api';
+import { useApp, useRouteRef } from '@backstage/core-plugin-api';
 import {
   EntitySearchBar,
   EntityRefLink,
+  entityRouteRef,
   FavoriteEntity,
   useEntityList,
 } from '@backstage/plugin-catalog-react';
+import { useNavigate } from 'react-router-dom';
 import {
   DeletionBadge,
   isMarkedForDeletion,
@@ -123,6 +125,8 @@ interface CatalogCardListProps {
 
 export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
   const classes = useCardListStyles();
+  const navigate = useNavigate();
+  const entityRoute = useRouteRef(entityRouteRef);
   const {
     entities,
     totalItems,
@@ -133,6 +137,15 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     setLimit,
     setOffset,
   } = useEntityList();
+
+  const handleRowClick = (entity: Entity) => {
+    const url = entityRoute({
+      kind: entity.kind,
+      namespace: entity.metadata.namespace || 'default',
+      name: entity.metadata.name,
+    });
+    navigate(url);
+  };
 
   const kindLabel = filters.kind?.label || filters.kind?.value || 'Entity';
   const pluralLabel = kindPluralNames[kindLabel] || `${kindLabel}s`;
@@ -213,6 +226,10 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                   entity.metadata.namespace || 'default'
                 }/${entity.metadata.name}`}
                 className={`${classes.entityRow} ${gridTemplateClass}`}
+                onClick={
+                  !markedForDeletion ? () => handleRowClick(entity) : undefined
+                }
+                style={!markedForDeletion ? { cursor: 'pointer' } : undefined}
               >
                 {/* Icon cell */}
                 <Box className={classes.iconCell}>
@@ -230,12 +247,15 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                     </Box>
                   ) : (
                     <Typography className={classes.entityName}>
-                      <EntityRefLink
-                        entityRef={entity}
-                        defaultKind={entity.kind}
-                      >
-                        {name}
-                      </EntityRefLink>
+                      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+                      <span onClick={e => e.stopPropagation()}>
+                        <EntityRefLink
+                          entityRef={entity}
+                          defaultKind={entity.kind}
+                        >
+                          {name}
+                        </EntityRefLink>
+                      </span>
                     </Typography>
                   )}
                 </Box>
@@ -257,16 +277,19 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                     {namespace ? (
                       <>
                         <KindIcon kind="domain" />
-                        <EntityRefLink
-                          entityRef={{
-                            kind: 'domain',
-                            namespace: 'default',
-                            name: namespace,
-                          }}
-                          defaultKind="domain"
-                        >
-                          {namespace}
-                        </EntityRefLink>
+                        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+                        <span onClick={e => e.stopPropagation()}>
+                          <EntityRefLink
+                            entityRef={{
+                              kind: 'domain',
+                              namespace: 'default',
+                              name: namespace,
+                            }}
+                            defaultKind="domain"
+                          >
+                            {namespace}
+                          </EntityRefLink>
+                        </span>
                       </>
                     ) : (
                       '\u2014'
@@ -282,16 +305,19 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                     {projectName ? (
                       <>
                         <KindIcon kind="system" />
-                        <EntityRefLink
-                          entityRef={{
-                            kind: 'system',
-                            namespace: namespace || 'default',
-                            name: projectName,
-                          }}
-                          defaultKind="system"
-                        >
-                          {projectName}
-                        </EntityRefLink>
+                        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+                        <span onClick={e => e.stopPropagation()}>
+                          <EntityRefLink
+                            entityRef={{
+                              kind: 'system',
+                              namespace: namespace || 'default',
+                              name: projectName,
+                            }}
+                            defaultKind="system"
+                          >
+                            {projectName}
+                          </EntityRefLink>
+                        </span>
                       </>
                     ) : (
                       <span className={classes.emptyValue}>{'\u2014'}</span>
@@ -307,16 +333,19 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                     {componentName ? (
                       <>
                         <KindIcon kind="component" />
-                        <EntityRefLink
-                          entityRef={{
-                            kind: 'component',
-                            namespace: namespace || 'default',
-                            name: componentName,
-                          }}
-                          defaultKind="component"
-                        >
-                          {componentName}
-                        </EntityRefLink>
+                        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+                        <span onClick={e => e.stopPropagation()}>
+                          <EntityRefLink
+                            entityRef={{
+                              kind: 'component',
+                              namespace: namespace || 'default',
+                              name: componentName,
+                            }}
+                            defaultKind="component"
+                          >
+                            {componentName}
+                          </EntityRefLink>
+                        </span>
                       </>
                     ) : (
                       <span className={classes.emptyValue}>{'\u2014'}</span>
@@ -367,7 +396,10 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                 )}
 
                 {/* Actions cell */}
-                <Box className={classes.actionsCell}>
+                <Box
+                  className={classes.actionsCell}
+                  onClick={e => e.stopPropagation()}
+                >
                   <FavoriteEntity entity={entity} />
                   {!markedForDeletion && (
                     <EntityRefLink entityRef={entity} defaultKind={entity.kind}>

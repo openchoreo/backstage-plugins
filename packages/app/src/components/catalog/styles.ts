@@ -244,9 +244,11 @@ export const useCardListStyles = makeStyles(theme => {
       border: `1px solid ${theme.palette.grey[100]}`,
       borderRadius: 6,
       backgroundColor: theme.palette.background.paper,
-      transition: 'box-shadow 0.2s ease-in-out',
+      cursor: 'pointer',
+      userSelect: 'none',
+      transition: 'background-color 0.15s ease-in-out',
       '&:hover': {
-        boxShadow: theme.shadows[1],
+        backgroundColor: theme.palette.grey[100],
       },
     },
 
