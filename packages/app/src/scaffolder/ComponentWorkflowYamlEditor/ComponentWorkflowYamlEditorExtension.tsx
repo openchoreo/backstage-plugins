@@ -17,20 +17,57 @@ const DEFAULT_COMPONENT_WORKFLOW_TEMPLATE = {
     },
   },
   spec: {
+    ttlAfterCompletion: '1d',
     schema: {
       systemParameters: {
         repository: {
-          url: '',
+          url: 'string | description="Git repository URL"',
           revision: {
-            branch: '',
-            commit: '',
+            branch: 'string | default=main description="Git branch"',
+            commit: 'string | description="Git commit SHA"',
           },
-          appPath: '',
+          appPath: 'string | default=. description="Path to app directory"',
         },
       },
       parameters: {},
     },
-    runTemplate: {},
+    runTemplate: {
+      apiVersion: 'argoproj.io/v1alpha1',
+      kind: 'Workflow',
+      metadata: {
+        name: '${metadata.workflowRunName}',
+        namespace: 'openchoreo-ci-${metadata.namespaceName}',
+      },
+      spec: {
+        arguments: {
+          parameters: [
+            { name: 'component-name', value: '${metadata.componentName}' },
+            { name: 'project-name', value: '${metadata.projectName}' },
+            {
+              name: 'git-repo',
+              value: '${systemParameters.repository.url}',
+            },
+            {
+              name: 'branch',
+              value: '${systemParameters.repository.revision.branch}',
+            },
+            {
+              name: 'commit',
+              value: '${systemParameters.repository.revision.commit}',
+            },
+            {
+              name: 'app-path',
+              value: '${systemParameters.repository.appPath}',
+            },
+          ],
+        },
+        serviceAccountName: 'workflow-sa',
+        workflowTemplateRef: {
+          clusterScope: true,
+          name: '<your-workflow-template>',
+        },
+      },
+    },
   },
 };
 
