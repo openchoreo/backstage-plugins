@@ -174,7 +174,14 @@ export class ObservabilityService {
         return [];
       }
 
-      const environments = data.items as unknown as Environment[];
+      const environments: Environment[] = data.items.map((item: any) => ({
+        uid: item.metadata?.uid ?? '',
+        name: item.metadata?.name ?? '',
+        namespace: item.metadata?.namespace ?? '',
+        isProduction: item.spec?.isProduction ?? false,
+        dataPlaneRef: item.spec?.dataPlaneRef,
+        createdAt: item.metadata?.creationTimestamp ?? '',
+      }));
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
