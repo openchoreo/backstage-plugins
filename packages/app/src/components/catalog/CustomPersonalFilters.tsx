@@ -10,6 +10,7 @@ import {
 import StarIcon from '@material-ui/icons/StarOutline';
 import StarFilledIcon from '@material-ui/icons/Star';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
+import { useTheme } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   catalogApiRef,
@@ -21,6 +22,8 @@ import {
 } from '@backstage/plugin-catalog-react';
 import { Entity } from '@backstage/catalog-model';
 import { usePersonalFilterStyles } from './styles';
+
+const whiteIconStyle = { color: 'inherit' } as const;
 
 export const StarredFilter = () => {
   const classes = usePersonalFilterStyles();
@@ -113,6 +116,7 @@ export const StarredChip = () => {
 };
 
 export const TypeChip = () => {
+  const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -154,7 +158,7 @@ export const TypeChip = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
 
-  if (availableTypes.length <= 1) return null;
+  const isDisabled = availableTypes.length <= 1;
 
   const handleToggleType = (type: string) => {
     const newTypes = selectedTypes.includes(type)
@@ -163,6 +167,10 @@ export const TypeChip = () => {
     updateFilters({
       type: newTypes.length ? new EntityTypeFilter(newTypes) : undefined,
     });
+  };
+
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
+    if (!isDisabled) setAnchorEl(e.currentTarget);
   };
 
   let label = 'Type';
@@ -177,11 +185,24 @@ export const TypeChip = () => {
       <Chip
         size="small"
         label={label}
-        deleteIcon={<ArrowDropDownIcon />}
-        onDelete={() => {}} // required to show deleteIcon
-        onClick={e => setAnchorEl(e.currentTarget)}
+        deleteIcon={
+          <ArrowDropDownIcon
+            style={selectedTypes.length > 0 ? whiteIconStyle : undefined}
+          />
+        }
+        onDelete={handleOpen}
+        onClick={handleOpen}
         variant={selectedTypes.length > 0 ? 'default' : 'outlined'}
         color={selectedTypes.length > 0 ? 'primary' : 'default'}
+        disabled={isDisabled}
+        style={
+          selectedTypes.length > 0
+            ? {
+                color: theme.palette.primary.contrastText,
+                backgroundColor: theme.palette.primary.main,
+              }
+            : undefined
+        }
       />
       <Menu
         anchorEl={anchorEl}
@@ -227,6 +248,7 @@ class EntityProjectFilter {
 }
 
 export const ProjectChip = () => {
+  const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -234,6 +256,7 @@ export const ProjectChip = () => {
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
   const kind = filters.kind?.value;
+  const kindLower = kind?.toLowerCase();
   const prevKindRef = useRef(kind);
 
   useEffect(() => {
@@ -242,7 +265,6 @@ export const ProjectChip = () => {
       setSelectedProjects([]);
       updateFilters({ project: undefined } as any);
     }
-    const kindLower = kind?.toLowerCase();
     if (kindLower !== 'component' && kindLower !== 'api') {
       setAvailableProjects([]);
       return undefined;
@@ -266,12 +288,11 @@ export const ProjectChip = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
 
-  if (
-    (kind?.toLowerCase() !== 'component' && kind?.toLowerCase() !== 'api') ||
-    availableProjects.length <= 1
-  ) {
+  if (kindLower !== 'component' && kindLower !== 'api') {
     return null;
   }
+
+  const isDisabled = availableProjects.length <= 1;
 
   const handleToggleProject = (project: string) => {
     const newProjects = selectedProjects.includes(project)
@@ -283,6 +304,10 @@ export const ProjectChip = () => {
         ? new EntityProjectFilter(newProjects)
         : undefined,
     } as any);
+  };
+
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
+    if (!isDisabled) setAnchorEl(e.currentTarget);
   };
 
   let label = 'Project';
@@ -297,11 +322,24 @@ export const ProjectChip = () => {
       <Chip
         size="small"
         label={label}
-        deleteIcon={<ArrowDropDownIcon />}
-        onDelete={() => {}}
-        onClick={e => setAnchorEl(e.currentTarget)}
+        deleteIcon={
+          <ArrowDropDownIcon
+            style={selectedProjects.length > 0 ? whiteIconStyle : undefined}
+          />
+        }
+        onDelete={handleOpen}
+        onClick={handleOpen}
         variant={selectedProjects.length > 0 ? 'default' : 'outlined'}
         color={selectedProjects.length > 0 ? 'primary' : 'default'}
+        disabled={isDisabled}
+        style={
+          selectedProjects.length > 0
+            ? {
+                color: theme.palette.primary.contrastText,
+                backgroundColor: theme.palette.primary.main,
+              }
+            : undefined
+        }
       />
       <Menu
         anchorEl={anchorEl}
@@ -351,6 +389,7 @@ class EntityComponentFilter {
 }
 
 export const ComponentChip = () => {
+  const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -389,9 +428,11 @@ export const ComponentChip = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
 
-  if (kind?.toLowerCase() !== 'api' || availableComponents.length <= 1) {
+  if (kind?.toLowerCase() !== 'api') {
     return null;
   }
+
+  const isDisabled = availableComponents.length <= 1;
 
   const handleToggleComponent = (component: string) => {
     const newComponents = selectedComponents.includes(component)
@@ -403,6 +444,10 @@ export const ComponentChip = () => {
         ? new EntityComponentFilter(newComponents)
         : undefined,
     } as any);
+  };
+
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
+    if (!isDisabled) setAnchorEl(e.currentTarget);
   };
 
   let label = 'Component';
@@ -417,11 +462,24 @@ export const ComponentChip = () => {
       <Chip
         size="small"
         label={label}
-        deleteIcon={<ArrowDropDownIcon />}
-        onDelete={() => {}}
-        onClick={e => setAnchorEl(e.currentTarget)}
+        deleteIcon={
+          <ArrowDropDownIcon
+            style={selectedComponents.length > 0 ? whiteIconStyle : undefined}
+          />
+        }
+        onDelete={handleOpen}
+        onClick={handleOpen}
         variant={selectedComponents.length > 0 ? 'default' : 'outlined'}
         color={selectedComponents.length > 0 ? 'primary' : 'default'}
+        disabled={isDisabled}
+        style={
+          selectedComponents.length > 0
+            ? {
+                color: theme.palette.primary.contrastText,
+                backgroundColor: theme.palette.primary.main,
+              }
+            : undefined
+        }
       />
       <Menu
         anchorEl={anchorEl}
@@ -452,6 +510,7 @@ export const ComponentChip = () => {
 };
 
 export const NamespaceChip = () => {
+  const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
   const { filters, updateFilters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -490,7 +549,7 @@ export const NamespaceChip = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
 
-  if (availableNamespaces.length <= 1) return null;
+  const isDisabled = availableNamespaces.length <= 1;
 
   const handleToggleNamespace = (namespace: string) => {
     const newNamespaces = selectedNamespaces.includes(namespace)
@@ -502,6 +561,10 @@ export const NamespaceChip = () => {
         ? new EntityNamespaceFilter(newNamespaces)
         : undefined,
     });
+  };
+
+  const handleOpen = (e: React.MouseEvent<HTMLElement>) => {
+    if (!isDisabled) setAnchorEl(e.currentTarget);
   };
 
   let label = 'Namespace';
@@ -516,11 +579,24 @@ export const NamespaceChip = () => {
       <Chip
         size="small"
         label={label}
-        deleteIcon={<ArrowDropDownIcon />}
-        onDelete={() => {}}
-        onClick={e => setAnchorEl(e.currentTarget)}
+        deleteIcon={
+          <ArrowDropDownIcon
+            style={selectedNamespaces.length > 0 ? whiteIconStyle : undefined}
+          />
+        }
+        onDelete={handleOpen}
+        onClick={handleOpen}
         variant={selectedNamespaces.length > 0 ? 'default' : 'outlined'}
         color={selectedNamespaces.length > 0 ? 'primary' : 'default'}
+        disabled={isDisabled}
+        style={
+          selectedNamespaces.length > 0
+            ? {
+                color: theme.palette.primary.contrastText,
+                backgroundColor: theme.palette.primary.main,
+              }
+            : undefined
+        }
       />
       <Menu
         anchorEl={anchorEl}

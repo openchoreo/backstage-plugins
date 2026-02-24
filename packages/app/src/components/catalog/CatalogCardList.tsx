@@ -52,9 +52,66 @@ const kindPluralNames: Record<string, string> = {
 
 const PLANE_KINDS = new Set(['dataplane', 'buildplane', 'observabilityplane']);
 
+type GridTemplateKey =
+  | 'gridTemplateComponent'
+  | 'gridTemplateApi'
+  | 'gridTemplateEnvironment'
+  | 'gridTemplatePlane'
+  | 'gridTemplateSimple'
+  | 'gridTemplateMinimal';
+
+function getGridTemplate(selectedKind: string | undefined): GridTemplateKey {
+  const kind = selectedKind?.toLowerCase();
+  if (kind === 'component') return 'gridTemplateComponent';
+  if (kind === 'api') return 'gridTemplateApi';
+  if (kind === 'environment') return 'gridTemplateEnvironment';
+  if (kind && PLANE_KINDS.has(kind)) return 'gridTemplatePlane';
+  if (kind === 'namespace' || kind === 'domain') return 'gridTemplateMinimal';
+  return 'gridTemplateSimple';
+}
+
+function getHeaderColumns(selectedKind: string | undefined): string[] {
+  const kind = selectedKind?.toLowerCase();
+  if (kind === 'component')
+    return [
+      '',
+      'Name',
+      'Description',
+      'Namespace',
+      'Project',
+      'Type',
+      'Actions',
+    ];
+  if (kind === 'api')
+    return [
+      '',
+      'Name',
+      'Description',
+      'Namespace',
+      'Project',
+      'Component',
+      'Type',
+      'Actions',
+    ];
+  if (kind === 'environment')
+    return ['', 'Name', 'Description', 'Namespace', 'Type', 'Actions'];
+  if (kind && PLANE_KINDS.has(kind))
+    return ['', 'Name', 'Description', 'Namespace', 'Agent', 'Actions'];
+  if (kind === 'namespace' || kind === 'domain')
+    return ['', 'Name', 'Description', 'Actions'];
+  return ['', 'Name', 'Description', 'Namespace', 'Actions'];
+}
+
 function EntityKindIcon({ entity }: { entity: Entity }) {
   const app = useApp();
   const kind = entity.kind?.toLowerCase();
+  const Icon = app.getSystemIcon(`kind:${kind}`);
+  if (!Icon) return null;
+  return <Icon />;
+}
+
+function KindIcon({ kind }: { kind: string }) {
+  const app = useApp();
   const Icon = app.getSystemIcon(`kind:${kind}`);
   if (!Icon) return null;
   return <Icon />;
@@ -83,6 +140,10 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
     totalItems !== undefined ? ` (${totalItems})` : ''
   }`;
 
+  const selectedKind = filters.kind?.value?.toLowerCase();
+  const gridTemplateClass = classes[getGridTemplate(selectedKind)];
+  const headerColumns = getHeaderColumns(selectedKind);
+
   return (
     <Box>
       <Box className={classes.searchAndTitle}>
@@ -110,13 +171,21 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
       )}
       {!loading && entities.length > 0 && (
         <Box className={classes.listContainer}>
+          {/* Header row */}
+          <Box className={`${classes.headerRow} ${gridTemplateClass}`}>
+            {headerColumns.map((col, i) => (
+              <Typography key={i} className={classes.headerCell}>
+                {col}
+              </Typography>
+            ))}
+          </Box>
+
           {entities.map(entity => {
             const name =
               entity.metadata.title || entity.metadata.name || 'Unnamed';
             const description = entity.metadata.description || '';
             const markedForDeletion = isMarkedForDeletion(entity);
             const namespace = entity.metadata.namespace;
-            const selectedKind = filters.kind?.value?.toLowerCase();
             const componentType = (entity.spec as any)?.type;
 
             const projectName =
@@ -127,123 +196,165 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
               entity.metadata.annotations?.['openchoreo.io/agent-connected'] ===
               'true';
 
+            const showNamespace =
+              selectedKind !== 'namespace' && selectedKind !== 'domain';
+            const showProject =
+              selectedKind === 'component' || selectedKind === 'api';
+            const showComponent = selectedKind === 'api';
+            const showType =
+              selectedKind === 'component' ||
+              selectedKind === 'api' ||
+              selectedKind === 'environment';
+            const isPlane = selectedKind && PLANE_KINDS.has(selectedKind);
+
             return (
               <Box
                 key={`${entity.kind}:${
                   entity.metadata.namespace || 'default'
                 }/${entity.metadata.name}`}
-                className={classes.entityCard}
+                className={`${classes.entityRow} ${gridTemplateClass}`}
               >
-                <Box className={classes.iconContainer}>
+                {/* Icon cell */}
+                <Box className={classes.iconCell}>
                   <EntityKindIcon entity={entity} />
                 </Box>
-                <Box className={classes.contentContainer}>
+
+                {/* Name cell */}
+                <Box className={classes.nameCell}>
                   {markedForDeletion ? (
-                    <Box display="flex" alignItems="center" style={{ gap: 8 }}>
+                    <Box className={classes.deletionRow}>
                       <Typography className={classes.entityNameDisabled}>
                         {name}
                       </Typography>
-                      {namespace && namespace !== 'default' && (
-                        <Chip
-                          label={`ns: ${namespace}`}
-                          size="small"
-                          variant="outlined"
-                          className={classes.metadataChip}
-                        />
-                      )}
-                      {(selectedKind === 'component' ||
-                        selectedKind === 'api') &&
-                        projectName && (
-                          <Chip
-                            label={`project: ${projectName}`}
-                            size="small"
-                            variant="outlined"
-                            color="primary"
-                            className={classes.metadataChip}
-                          />
-                        )}
-                      {selectedKind === 'api' && componentName && (
-                        <Chip
-                          label={`component: ${componentName}`}
-                          size="small"
-                          variant="outlined"
-                          className={classes.metadataChip}
-                        />
-                      )}
                       <DeletionBadge />
                     </Box>
                   ) : (
-                    <Box display="flex" alignItems="center" style={{ gap: 8 }}>
-                      <Typography className={classes.entityName}>
-                        <EntityRefLink
-                          entityRef={entity}
-                          defaultKind={entity.kind}
-                        >
-                          {name}
-                        </EntityRefLink>
-                      </Typography>
-                      {namespace && namespace !== 'default' && (
-                        <Chip
-                          label={`ns: ${namespace}`}
-                          size="small"
-                          variant="outlined"
-                          className={classes.metadataChip}
-                        />
-                      )}
-                      {(selectedKind === 'component' ||
-                        selectedKind === 'api') &&
-                        projectName && (
-                          <Chip
-                            label={`project: ${projectName}`}
-                            size="small"
-                            variant="outlined"
-                            color="primary"
-                            className={classes.metadataChip}
-                          />
-                        )}
-                      {selectedKind === 'api' && componentName && (
-                        <Chip
-                          label={`component: ${componentName}`}
-                          size="small"
-                          variant="outlined"
-                          className={classes.metadataChip}
-                        />
-                      )}
-                    </Box>
-                  )}
-                  {description && (
-                    <Typography className={classes.description}>
-                      {description}
+                    <Typography className={classes.entityName}>
+                      <EntityRefLink
+                        entityRef={entity}
+                        defaultKind={entity.kind}
+                      >
+                        {name}
+                      </EntityRefLink>
                     </Typography>
                   )}
                 </Box>
-                {(selectedKind === 'component' || selectedKind === 'api') &&
-                  componentType && (
-                    <Box className={classes.typeContainer}>
+
+                {/* Description column */}
+                <Typography
+                  className={`${classes.description} ${
+                    classes.hiddenOnMobile
+                  } ${!description ? classes.emptyValue : ''}`}
+                >
+                  {description || '\u2014'}
+                </Typography>
+
+                {/* Namespace column */}
+                {showNamespace && (
+                  <Box
+                    className={`${classes.linkCell} ${classes.cellWithIcon} ${classes.hiddenOnMobile}`}
+                  >
+                    {namespace ? (
+                      <>
+                        <KindIcon kind="domain" />
+                        <EntityRefLink
+                          entityRef={{
+                            kind: 'domain',
+                            namespace: 'default',
+                            name: namespace,
+                          }}
+                          defaultKind="domain"
+                        >
+                          {namespace}
+                        </EntityRefLink>
+                      </>
+                    ) : (
+                      '\u2014'
+                    )}
+                  </Box>
+                )}
+
+                {/* Project column (component & api) */}
+                {showProject && (
+                  <Box
+                    className={`${classes.linkCell} ${classes.cellWithIcon} ${classes.hiddenOnMobile}`}
+                  >
+                    {projectName ? (
+                      <>
+                        <KindIcon kind="system" />
+                        <EntityRefLink
+                          entityRef={{
+                            kind: 'system',
+                            namespace: namespace || 'default',
+                            name: projectName,
+                          }}
+                          defaultKind="system"
+                        >
+                          {projectName}
+                        </EntityRefLink>
+                      </>
+                    ) : (
+                      <span className={classes.emptyValue}>{'\u2014'}</span>
+                    )}
+                  </Box>
+                )}
+
+                {/* Component column (api only) */}
+                {showComponent && (
+                  <Box
+                    className={`${classes.linkCell} ${classes.cellWithIcon} ${classes.hiddenOnMobile}`}
+                  >
+                    {componentName ? (
+                      <>
+                        <KindIcon kind="component" />
+                        <EntityRefLink
+                          entityRef={{
+                            kind: 'component',
+                            namespace: namespace || 'default',
+                            name: componentName,
+                          }}
+                          defaultKind="component"
+                        >
+                          {componentName}
+                        </EntityRefLink>
+                      </>
+                    ) : (
+                      <span className={classes.emptyValue}>{'\u2014'}</span>
+                    )}
+                  </Box>
+                )}
+
+                {/* Type column */}
+                {showType && (
+                  <Box className={classes.hiddenOnMobile}>
+                    {componentType ? (
                       <Chip
                         label={componentType}
                         size="small"
                         variant="outlined"
-                        color="default"
+                        color={
+                          selectedKind === 'environment' &&
+                          componentType === 'production'
+                            ? 'secondary'
+                            : 'default'
+                        }
                         className={classes.metadataChip}
                       />
-                    </Box>
-                  )}
-                {selectedKind === 'environment' && componentType && (
-                  <Box className={classes.typeContainer}>
-                    <Chip
-                      label={componentType}
-                      size="small"
-                      variant="outlined"
-                      color={
-                        componentType === 'production' ? 'secondary' : 'default'
-                      }
-                      className={classes.metadataChip}
-                    />
+                    ) : (
+                      <Typography
+                        className={`${classes.columnCell} ${classes.emptyValue}`}
+                      >
+                        {'\u2014'}
+                      </Typography>
+                    )}
                   </Box>
                 )}
-                {selectedKind && PLANE_KINDS.has(selectedKind) && (
-                  <Box className={classes.agentStatus}>
+
+                {/* Agent status column (planes) */}
+                {isPlane && (
+                  <Box
+                    className={`${classes.agentStatus} ${classes.hiddenOnMobile}`}
+                  >
                     <Box
                       className={`${classes.agentDot} ${
                         agentConnected
@@ -254,7 +365,9 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
                     {agentConnected ? 'Connected' : 'Disconnected'}
                   </Box>
                 )}
-                <Box className={classes.actionsContainer}>
+
+                {/* Actions cell */}
+                <Box className={classes.actionsCell}>
                   <FavoriteEntity entity={entity} />
                   {!markedForDeletion && (
                     <EntityRefLink entityRef={entity} defaultKind={entity.kind}>

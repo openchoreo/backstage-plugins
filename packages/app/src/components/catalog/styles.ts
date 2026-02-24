@@ -163,130 +163,230 @@ export const usePersonalFilterStyles = makeStyles(theme => ({
   },
 }));
 
-export const useCardListStyles = makeStyles(theme => ({
-  searchAndTitle: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing(2),
-  },
-  titleText: {
-    fontSize: '1rem',
-    fontWeight: 600,
-    color: theme.palette.text.primary,
-  },
-  listContainer: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: theme.spacing(1.5),
-  },
-  entityCard: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: theme.spacing(1.5, 2),
-    border: `1px solid ${theme.palette.grey[100]}`,
-    borderRadius: 10,
-    backgroundColor: theme.palette.background.paper,
-    transition: 'box-shadow 0.2s ease-in-out',
-    '&:hover': {
-      boxShadow: theme.shadows[2],
+export const useCardListStyles = makeStyles(theme => {
+  const mobileGrid = {
+    gridTemplateColumns: '32px 1fr 60px',
+  };
+
+  return {
+    searchAndTitle: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing(2),
     },
-  },
-  iconContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: theme.spacing(1.5),
-    color: theme.palette.text.secondary,
-    '& svg': {
-      fontSize: '1.5rem',
+    titleText: {
+      fontSize: '1rem',
+      fontWeight: 600,
+      color: theme.palette.text.primary,
     },
-  },
-  contentContainer: {
-    flex: 1,
-    minWidth: 0,
-  },
-  entityName: {
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: theme.palette.text.primary,
-    '& a': {
-      color: 'inherit',
-      textDecoration: 'none',
-      '&:hover': {
-        textDecoration: 'underline',
+    listContainer: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: theme.spacing(0.75),
+    },
+
+    // Grid templates per kind — icon + actions fixed, rest spread evenly
+    // Component: Icon | Name | Description | Namespace | Project | Type | Actions
+    gridTemplateComponent: {
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 80px',
+      [theme.breakpoints.down('xs')]: mobileGrid,
+    },
+    // API: Icon | Name | Description | Namespace | Project | Component | Type | Actions
+    gridTemplateApi: {
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 1fr 80px',
+      [theme.breakpoints.down('xs')]: mobileGrid,
+    },
+    // Environment: Icon | Name | Description | Namespace | Type | Actions
+    gridTemplateEnvironment: {
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 80px',
+      [theme.breakpoints.down('xs')]: mobileGrid,
+    },
+    // Planes: Icon | Name | Description | Namespace | Agent | Actions
+    gridTemplatePlane: {
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 80px',
+      [theme.breakpoints.down('xs')]: mobileGrid,
+    },
+    // Project/simple: Icon | Name | Description | Namespace | Actions
+    gridTemplateSimple: {
+      gridTemplateColumns: '40px 1fr 1.5fr 1fr 80px',
+      [theme.breakpoints.down('xs')]: mobileGrid,
+    },
+    // Namespace/domain: Icon | Name | Description | Actions
+    gridTemplateMinimal: {
+      gridTemplateColumns: '40px 1fr 1.5fr 80px',
+      [theme.breakpoints.down('xs')]: mobileGrid,
+    },
+
+    // Header row
+    headerRow: {
+      display: 'grid',
+      alignItems: 'center',
+      padding: theme.spacing(0, 2),
+      [theme.breakpoints.down('xs')]: {
+        display: 'none',
       },
     },
-  },
-  entityNameDisabled: {
-    fontSize: '0.95rem',
-    fontWeight: 600,
-    color: theme.palette.text.disabled,
-  },
-  description: {
-    fontSize: '0.85rem',
-    color: theme.palette.text.secondary,
-    marginTop: theme.spacing(0.25),
-    display: '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical' as const,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-  },
-  actionsContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(0.5),
-    marginLeft: theme.spacing(1),
-    flexShrink: 0,
-  },
-  paginationContainer: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginTop: theme.spacing(2),
-  },
-  emptyState: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing(6),
-    color: theme.palette.text.secondary,
-    fontSize: '0.95rem',
-  },
-  loadingContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    padding: theme.spacing(6),
-  },
-  metadataChip: {
-    fontSize: '0.7rem',
-    height: 20,
-    borderRadius: 4,
-    fontWeight: 500,
-  },
-  typeContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    marginRight: theme.spacing(1),
-    flexShrink: 0,
-  },
-  agentStatus: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    fontSize: '0.75rem',
-    whiteSpace: 'nowrap' as const,
-    marginRight: theme.spacing(1),
-  },
-  agentDot: {
-    width: 8,
-    height: 8,
-    borderRadius: '50%',
-  },
-  agentConnected: {
-    backgroundColor: theme.palette.success.main,
-  },
-  agentDisconnected: {
-    backgroundColor: theme.palette.error.main,
-  },
-}));
+    headerCell: {
+      fontSize: '0.7rem',
+      fontWeight: 600,
+      textTransform: 'uppercase' as const,
+      color: theme.palette.text.secondary,
+      letterSpacing: '0.05em',
+    },
+
+    // Entity row
+    entityRow: {
+      display: 'grid',
+      alignItems: 'center',
+      padding: theme.spacing(1, 2),
+      minHeight: 44,
+      border: `1px solid ${theme.palette.grey[100]}`,
+      borderRadius: 6,
+      backgroundColor: theme.palette.background.paper,
+      transition: 'box-shadow 0.2s ease-in-out',
+      '&:hover': {
+        boxShadow: theme.shadows[1],
+      },
+    },
+
+    // Cell styles
+    iconCell: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: theme.palette.text.secondary,
+      '& svg': {
+        fontSize: '1.25rem',
+      },
+    },
+    nameCell: {
+      minWidth: 0,
+    },
+    actionsCell: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing(0.5),
+      '& > :first-child': {
+        marginLeft: -8,
+      },
+    },
+    columnCell: {
+      fontSize: '0.8rem',
+      color: theme.palette.text.primary,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+    },
+    linkCell: {
+      fontSize: '0.8rem',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+      '& a': {
+        color: theme.palette.primary.main,
+        textDecoration: 'none',
+        '&:hover': {
+          textDecoration: 'underline',
+        },
+      },
+    },
+    cellWithIcon: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+      overflow: 'hidden',
+      '& svg': {
+        fontSize: '1rem',
+        color: theme.palette.text.secondary,
+        flexShrink: 0,
+      },
+    },
+    emptyValue: {
+      color: theme.palette.text.disabled,
+    },
+    hiddenOnMobile: {
+      [theme.breakpoints.down('xs')]: {
+        display: 'none',
+      },
+    },
+
+    entityName: {
+      fontSize: '0.9rem',
+      fontWeight: 600,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+      '& a': {
+        color: theme.palette.primary.main,
+        textDecoration: 'none',
+        '&:hover': {
+          textDecoration: 'underline',
+        },
+      },
+    },
+    entityNameDisabled: {
+      fontSize: '0.9rem',
+      fontWeight: 600,
+      color: theme.palette.text.disabled,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+    },
+    deletionRow: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: theme.spacing(1),
+      minWidth: 0,
+    },
+    description: {
+      fontSize: '0.8rem',
+      color: theme.palette.text.secondary,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap' as const,
+    },
+    paginationContainer: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      marginTop: theme.spacing(2),
+    },
+    emptyState: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: theme.spacing(6),
+      color: theme.palette.text.secondary,
+      fontSize: '0.95rem',
+    },
+    loadingContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      padding: theme.spacing(6),
+    },
+    metadataChip: {
+      fontSize: '0.7rem',
+      height: 20,
+      borderRadius: 4,
+      fontWeight: 500,
+    },
+    agentStatus: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+      fontSize: '0.75rem',
+      whiteSpace: 'nowrap' as const,
+    },
+    agentDot: {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+    },
+    agentConnected: {
+      backgroundColor: theme.palette.success.main,
+    },
+    agentDisconnected: {
+      backgroundColor: theme.palette.error.main,
+    },
+  };
+});
