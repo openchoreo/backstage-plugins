@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import { EnvironmentService, Environment, EndpointInfo } from '../../types';
 import {
   createOpenChoreoApiClient,
+  createOpenChoreoLegacyApiClient,
   fetchAllPages,
   getName,
   type OpenChoreoComponents,
@@ -842,44 +843,33 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      // New API expects a full ComponentRelease K8s resource
-      const body: any = {
-        metadata: {
-          ...(request.releaseName ? { name: request.releaseName } : {}),
-          namespace: request.namespaceName,
-        },
-        spec: {
-          owner: {
-            projectName: request.projectName,
-            componentName: request.componentName,
-          },
-        },
-      };
+      const client = createOpenChoreoLegacyApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
 
-      // POST to namespace-scoped component-releases endpoint
-      // Note: the new API doesn't have a dedicated POST for component-releases,
-      // but we can use the generic list endpoint pattern. If the new spec adds
-      // a POST endpoint, update the path accordingly.
-      // For now, use the list endpoint which typically supports POST for creation.
-      const response = await fetch(
-        `${this.baseUrl}/api/v1/namespaces/${request.namespaceName}/componentreleases`,
+      const { data, error, response } = await client.POST(
+        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases',
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              projectName: request.projectName,
+              componentName: request.componentName,
+            },
           },
-          body: JSON.stringify(body),
+          body: {
+            releaseName: request.releaseName,
+          },
         },
       );
 
-      if (!response.ok) {
+      if (error || !response.ok) {
         throw new Error(
           `Failed to create component release: ${response.status} ${response.statusText}`,
         );
       }
-
-      const data = await response.json();
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(

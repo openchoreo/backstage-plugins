@@ -232,7 +232,7 @@ export function useOverridesData(
       if (bindingsResponse.success && bindingsResponse.data?.items) {
         const bindings = bindingsResponse.data.items as ReleaseBinding[];
         const currentBinding = bindings.find(
-          b => b.environment.toLowerCase() === environmentName?.toLowerCase(),
+          b => b.environment?.toLowerCase() === environmentName?.toLowerCase(),
         );
 
         if (currentBinding) {
