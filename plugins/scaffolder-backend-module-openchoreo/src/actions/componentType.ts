@@ -110,20 +110,34 @@ export const createComponentTypeDefinitionAction = (
       });
 
       try {
+        // Strip Kubernetes-level fields not expected by the API schema
+        const {
+          apiVersion: _apiVersion,
+          kind: _kind,
+          ...apiBody
+        } = resourceObj;
+
+        ctx.logger.info(
+          `Sending ComponentType creation request to namespace '${namespaceName}': ${JSON.stringify(
+            apiBody,
+          )}`,
+        );
+
         const { data, error, response } = await client.POST(
           '/api/v1/namespaces/{namespaceName}/componenttypes',
           {
             params: {
               path: { namespaceName },
             },
-            body: resourceObj as any,
+            body: apiBody as any,
           },
         );
 
         if (error || !response.ok) {
-          throw new Error(
-            `Failed to create ComponentType: ${response.status} ${response.statusText}`,
-          );
+          const errorDetail = error
+            ? JSON.stringify(error)
+            : `${response.status} ${response.statusText}`;
+          throw new Error(`Failed to create ComponentType: ${errorDetail}`);
         }
 
         const resultData = data as Record<string, unknown>;
