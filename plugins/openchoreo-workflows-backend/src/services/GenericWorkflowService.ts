@@ -437,16 +437,22 @@ export class GenericWorkflowService {
           );
         }
       } catch (obsError: unknown) {
-        // If it's already our error type, rethrow
         if (obsError instanceof ObservabilityNotConfiguredError) {
           throw obsError;
         }
-        // For any other error (connection refused, endpoint not found, etc.)
-        // treat as observability not configured
-        this.logger.info(
-          `Could not fetch workflow run logs: ${obsError}. The observability service may not support workflow run logs yet.`,
-        );
-        throw new ObservabilityNotConfiguredError(runName);
+        // Only treat connection-refused/fetch-failed errors as "not configured"
+        const message =
+          obsError instanceof Error ? obsError.message : String(obsError);
+        if (
+          message.includes('ECONNREFUSED') ||
+          message.includes('fetch failed')
+        ) {
+          this.logger.info(
+            `Could not reach observability service: ${message}. Treating as not configured.`,
+          );
+          throw new ObservabilityNotConfiguredError(runName);
+        }
+        throw obsError;
       }
 
       this.logger.debug(

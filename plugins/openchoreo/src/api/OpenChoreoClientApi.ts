@@ -583,7 +583,7 @@ export interface OpenChoreoClientApi {
 
   /**
    * Get the full CRD definition for a platform resource
-   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param kind - Resource kind (componenttypes, traits, workflows, component-workflows)
    * @param namespaceName - Kubernetes namespace
    * @param resourceName - Name of the resource
    * @returns The full CRD as an unstructured JSON object
@@ -596,7 +596,7 @@ export interface OpenChoreoClientApi {
 
   /**
    * Update (or create) a platform resource definition
-   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param kind - Resource kind (componenttypes, traits, workflows, component-workflows)
    * @param namespaceName - Kubernetes namespace
    * @param resourceName - Name of the resource
    * @param resource - Full CRD as JSON
@@ -611,7 +611,7 @@ export interface OpenChoreoClientApi {
 
   /**
    * Delete a platform resource definition
-   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param kind - Resource kind (componenttypes, traits, workflows, component-workflows)
    * @param namespaceName - Kubernetes namespace
    * @param resourceName - Name of the resource
    * @returns Operation result

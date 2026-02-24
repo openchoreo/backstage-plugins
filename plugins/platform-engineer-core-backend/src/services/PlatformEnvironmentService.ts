@@ -497,8 +497,8 @@ export class PlatformEnvironmentInfoService
   }
 
   /**
-   * Fetches count of healthy workloads across all components
-   * A workload is considered healthy if its status.status === 'Active'
+   * Fetches count of healthy workloads across all components.
+   * A workload is considered healthy if its Ready condition status is 'True'.
    */
   async fetchHealthyWorkloadCount(
     components: Array<{
@@ -551,13 +551,9 @@ export class PlatformEnvironmentInfoService
             );
 
             // Count healthy workloads by checking status conditions
-            const healthyCount = bindings.filter(binding => {
-              const conditions = binding.status?.conditions;
-              if (!conditions) return false;
-              return conditions.some(
-                c => c.type === 'Ready' && c.status === 'True',
-              );
-            }).length;
+            const healthyCount = bindings.filter(binding =>
+              isReady(binding),
+            ).length;
             return healthyCount;
           } catch (error) {
             this.logger.warn(
@@ -616,9 +612,8 @@ export class PlatformEnvironmentInfoService
       return [];
     }
 
-    const namespaces = data.items as Array<{ metadata?: { name?: string } }>;
-    return namespaces
-      .map(ns => ns.metadata?.name)
+    return data.items
+      .map(ns => getName(ns))
       .filter((name): name is string => !!name);
   }
 

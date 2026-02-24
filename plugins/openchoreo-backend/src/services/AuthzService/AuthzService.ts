@@ -186,8 +186,8 @@ export class AuthzService {
 
       return {
         data: items.map(p => ({
-          name: p.metadata?.name ?? '',
-          displayName: p.metadata?.annotations?.['openchoreo.dev/display-name'],
+          name: getName(p) ?? '',
+          displayName: getDisplayName(p),
         })),
       };
     } catch (err) {
@@ -234,8 +234,8 @@ export class AuthzService {
 
       return {
         data: items.map(c => ({
-          name: c.metadata?.name ?? '',
-          displayName: c.metadata?.annotations?.['openchoreo.dev/display-name'],
+          name: getName(c) ?? '',
+          displayName: getDisplayName(c),
         })),
       };
     } catch (err) {
@@ -694,7 +694,7 @@ export class AuthzService {
         } cluster role bindings`,
       );
 
-      const bindings = (data?.items || []).map((b: any) => ({
+      const allBindings = (data?.items || []).map((b: any) => ({
         name: b.metadata?.name ?? '',
         role: { name: b.spec?.roleRef?.name ?? '' },
         entitlement: {
@@ -703,6 +703,18 @@ export class AuthzService {
         },
         effect: b.spec?.effect ?? 'allow',
       }));
+      const bindings = filters
+        ? allBindings.filter(b => {
+            if (filters.roleName && b.role?.name !== filters.roleName)
+              return false;
+            if (filters.claim && b.entitlement?.claim !== filters.claim)
+              return false;
+            if (filters.value && b.entitlement?.value !== filters.value)
+              return false;
+            if (filters.effect && b.effect !== filters.effect) return false;
+            return true;
+          })
+        : allBindings;
       return { data: bindings };
     } catch (err) {
       this.logger.error(`Failed to fetch cluster role bindings: ${err}`);
@@ -934,7 +946,7 @@ export class AuthzService {
         } namespace role bindings`,
       );
 
-      const bindings = (data?.items || []).map((b: any) => ({
+      const allBindings = (data?.items || []).map((b: any) => ({
         name: b.metadata?.name ?? '',
         role: {
           name: b.spec?.roleRef?.name ?? '',
@@ -947,6 +959,23 @@ export class AuthzService {
         },
         effect: b.spec?.effect ?? 'allow',
       }));
+      const bindings = filters
+        ? allBindings.filter(b => {
+            if (filters.roleName && b.role?.name !== filters.roleName)
+              return false;
+            if (
+              filters.roleNamespace &&
+              b.role?.namespace !== filters.roleNamespace
+            )
+              return false;
+            if (filters.claim && b.entitlement?.claim !== filters.claim)
+              return false;
+            if (filters.value && b.entitlement?.value !== filters.value)
+              return false;
+            if (filters.effect && b.effect !== filters.effect) return false;
+            return true;
+          })
+        : allBindings;
       return { data: bindings };
     } catch (err) {
       this.logger.error(`Failed to fetch namespace role bindings: ${err}`);

@@ -7,7 +7,6 @@ import {
 import { Expand } from '@backstage/types';
 import {
   createOpenChoreoApiClient,
-  createOpenChoreoLegacyApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentMetricsTimeSeries, Environment } from '../types';
@@ -390,48 +389,14 @@ export class ObservabilityService {
         `Fetching metrics for component ${componentName} in environment ${environmentName}`,
       );
 
-      // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token: userToken,
-        logger: this.logger,
-      });
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
-        {
-          params: {
-            path: {
-              namespaceName,
-              projectName,
-              componentName,
-              environmentName,
-            },
-          },
-        },
+      // Resolve the observer URL using the helper function
+      const observerUrl = await this.resolveObserverUrl(
+        namespaceName,
+        environmentName,
+        userToken,
       );
 
-      if (urlError || !urlResponse.ok) {
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      if (!urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data.observerUrl;
-      if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(componentName);
-      }
-
-      // Now use the observability client with the resolved URL
+      // Use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         userToken,

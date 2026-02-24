@@ -199,7 +199,9 @@ export const createComponentTypeDefinitionAction = (
         ctx.output('entityRef', `componenttype:${namespaceName}/${resultName}`);
       } catch (err) {
         ctx.logger.error(`Error creating ComponentType: ${err}`);
-        throw new Error(`Failed to create ComponentType: ${err}`);
+        throw err instanceof Error
+          ? err
+          : new Error(`Failed to create ComponentType: ${err}`);
       }
     },
   });

@@ -199,7 +199,9 @@ export const createComponentWorkflowDefinitionAction = (
         );
       } catch (err) {
         ctx.logger.error(`Error creating ComponentWorkflow: ${err}`);
-        throw new Error(`Failed to create ComponentWorkflow: ${err}`);
+        throw err instanceof Error
+          ? err
+          : new Error(`Failed to create ComponentWorkflow: ${err}`);
       }
     },
   });
