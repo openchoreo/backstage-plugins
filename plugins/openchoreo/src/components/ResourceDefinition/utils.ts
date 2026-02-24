@@ -7,7 +7,7 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
   const kindLower = backstageKind.toLowerCase();
   switch (kindLower) {
     case 'componenttype':
-      return 'component-types';
+      return 'componenttypes';
     case 'traittype':
       return 'traits';
     case 'workflow':
