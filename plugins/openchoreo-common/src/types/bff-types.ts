@@ -173,7 +173,7 @@ export type ComponentWorkflowSystemParams = {
 export type ComponentWorkflowRepository = {
   url: string;
   revision: ComponentWorkflowRepositoryRevision;
-  appPath?: string;
+  appPath: string;
 };
 
 export type ComponentWorkflowRepositoryRevision = {

@@ -114,7 +114,7 @@ export const createComponentWorkflowDefinitionAction = (
       });
 
       try {
-        ctx.logger.info(
+        ctx.logger.debug(
           `Sending ComponentWorkflow creation request to namespace '${namespaceName}': ${JSON.stringify(
             resourceObj,
           )}`,

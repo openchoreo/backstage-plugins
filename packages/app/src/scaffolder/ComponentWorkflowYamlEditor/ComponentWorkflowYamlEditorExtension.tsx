@@ -64,7 +64,7 @@ const DEFAULT_COMPONENT_WORKFLOW_TEMPLATE = {
         serviceAccountName: 'workflow-sa',
         workflowTemplateRef: {
           clusterScope: true,
-          name: '<your-workflow-template>',
+          name: 'your-workflow-template',
         },
       },
     },

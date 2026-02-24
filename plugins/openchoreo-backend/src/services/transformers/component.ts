@@ -51,7 +51,7 @@ function transformComponentWorkflow(
     systemParameters: {
       repository: {
         url: workflow.systemParameters?.repository?.url ?? '',
-        appPath: workflow.systemParameters?.repository?.appPath,
+        appPath: workflow.systemParameters?.repository?.appPath ?? '',
         revision: {
           branch: workflow.systemParameters?.repository?.revision?.branch ?? '',
           commit: workflow.systemParameters?.repository?.revision?.commit,

@@ -382,9 +382,9 @@ export class PlatformEnvironmentInfoService
             bindings.forEach(binding => {
               const envName = binding.spec?.environment;
               if (envName) {
-                const currentCount =
-                  componentCountsByEnvironment.get(envName) || 0;
-                componentCountsByEnvironment.set(envName, currentCount + 1);
+                const key = `${component.namespaceName}/${envName}`;
+                const currentCount = componentCountsByEnvironment.get(key) || 0;
+                componentCountsByEnvironment.set(key, currentCount + 1);
               }
             });
           } catch (error) {

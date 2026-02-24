@@ -339,7 +339,12 @@ export class AuthzService {
         '/api/v1/clusterroles',
         {
           body: {
-            metadata: { name: role.name },
+            metadata: {
+              name: role.name,
+              ...(role.description !== undefined && {
+                annotations: { description: role.description },
+              }),
+            },
             spec: { actions: role.actions },
           } as any,
         },
@@ -376,7 +381,12 @@ export class AuthzService {
         {
           params: { path: { name } },
           body: {
-            metadata: { name },
+            metadata: {
+              name,
+              ...(role.description !== undefined && {
+                annotations: { description: role.description },
+              }),
+            },
             spec: { actions: role.actions },
           } as any,
         },
@@ -532,7 +542,12 @@ export class AuthzService {
         {
           params: { path: { namespaceName: role.namespace } },
           body: {
-            metadata: { name: role.name },
+            metadata: {
+              name: role.name,
+              ...(role.description !== undefined && {
+                annotations: { description: role.description },
+              }),
+            },
             spec: { actions: role.actions },
           } as any,
         },
@@ -574,7 +589,12 @@ export class AuthzService {
         {
           params: { path: { namespaceName: namespace, name } },
           body: {
-            metadata: { name },
+            metadata: {
+              name,
+              ...(role.description !== undefined && {
+                annotations: { description: role.description },
+              }),
+            },
             spec: { actions: role.actions },
           } as any,
         },
