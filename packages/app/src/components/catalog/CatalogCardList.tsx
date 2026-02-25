@@ -140,7 +140,7 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
 
   const handleRowClick = (entity: Entity) => {
     const url = entityRoute({
-      kind: entity.kind,
+      kind: entity.kind.toLocaleLowerCase('en-US'),
       namespace: entity.metadata.namespace || 'default',
       name: entity.metadata.name,
     });
