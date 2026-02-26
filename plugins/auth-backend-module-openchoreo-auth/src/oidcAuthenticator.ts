@@ -15,6 +15,7 @@ import {
   getTimeUntilExpiry,
   verifyAndDecodeJwt,
   clearJwksCache,
+  deriveJwksUrl,
 } from './jwtUtils';
 import syncFetch from 'sync-fetch';
 
@@ -28,10 +29,14 @@ interface OIDCDiscoveryConfig {
   token_endpoint: string;
   userinfo_endpoint?: string;
   issuer?: string;
+  jwks_uri?: string;
 }
 
 // Cache for OIDC discovery results
 let discoveryCache: OIDCDiscoveryConfig | null = null;
+
+// Trusted JWKS URL resolved during initialize() from config/discovery
+let trustedJwksUrl: string | null = null;
 
 /**
  * Fetches OIDC discovery configuration from a metadata URL (synchronous with caching).
@@ -181,6 +186,9 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       );
     }
 
+    // Store trusted JWKS URL from discovery or derived from tokenURL
+    trustedJwksUrl = discoveryCache?.jwks_uri ?? deriveJwksUrl(tokenURL);
+
     const strategy = new OAuth2Strategy(
       {
         clientID,
@@ -258,9 +266,12 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
 
       // Verify token signature against current JWKS
       // This catches stale tokens from a recreated IDP instance
+      // Uses trusted JWKS URL from config/discovery, not the unverified token payload
       try {
-        const jwksUrl = `${payload.iss}/.well-known/jwks.json`;
-        await verifyAndDecodeJwt(accessToken, jwksUrl);
+        if (!trustedJwksUrl) {
+          throw new Error('JWKS URL not configured');
+        }
+        await verifyAndDecodeJwt(accessToken, trustedJwksUrl);
       } catch {
         clearJwksCache();
         throw new Error(
