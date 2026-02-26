@@ -1,7 +1,7 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { RuntimeLogsService, RuntimeLogsResponse } from '../../types';
 import {
-  createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
 } from '@openchoreo/openchoreo-client-node';
 
@@ -75,7 +75,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       );
 
       // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoLegacyApiClient({
+      const mainClient = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
@@ -86,14 +86,12 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         error: urlError,
         response: urlResponse,
       } = await mainClient.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
+        '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url',
         {
           params: {
             path: {
               namespaceName,
-              projectName,
-              componentName,
-              environmentName,
+              envName: environmentName,
             },
           },
         },
@@ -105,13 +103,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         );
       }
 
-      if (!urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data.observerUrl;
+      const observerUrl = urlData?.observerUrl;
       if (!observerUrl) {
         throw new ObservabilityNotConfiguredError(componentName);
       }

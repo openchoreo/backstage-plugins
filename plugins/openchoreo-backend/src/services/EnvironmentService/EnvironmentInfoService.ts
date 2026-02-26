@@ -2,7 +2,6 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import { EnvironmentService, Environment, EndpointInfo } from '../../types';
 import {
   createOpenChoreoApiClient,
-  createOpenChoreoLegacyApiClient,
   fetchAllPages,
   getName,
   type OpenChoreoComponents,
@@ -843,19 +842,18 @@ export class EnvironmentInfoService implements EnvironmentService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/component-releases',
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}/generate-release',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              projectName: request.projectName,
               componentName: request.componentName,
             },
           },
