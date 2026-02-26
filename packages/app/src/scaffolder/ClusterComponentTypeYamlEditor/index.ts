@@ -1,0 +1,1 @@
+export { ClusterComponentTypeYamlEditorFieldExtension } from './extensions';

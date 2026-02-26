@@ -31,7 +31,9 @@ type ResourceKind =
   | 'dataplanes'
   | 'buildplanes'
   | 'observabilityplanes'
-  | 'deploymentpipelines';
+  | 'deploymentpipelines'
+  | 'clustercomponenttypes'
+  | 'clustertraits';
 
 // Mapping from ResourceKind to CRD kind (PascalCase)
 const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
@@ -44,6 +46,8 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   buildplanes: 'BuildPlane',
   observabilityplanes: 'ObservabilityPlane',
   deploymentpipelines: 'DeploymentPipeline',
+  clustercomponenttypes: 'ClusterComponentType',
+  clustertraits: 'ClusterTrait',
 };
 
 // Resource kinds that have full CRUD in the new API
@@ -56,6 +60,8 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'observabilityplanes',
   'workflows',
   'deploymentpipelines',
+  'clustercomponenttypes',
+  'clustertraits',
 ]);
 
 // TODO: Migrate to new API when individual CRUD endpoints are available
@@ -339,6 +345,40 @@ export class PlatformResourceService {
           resource = data as Record<string, unknown>;
           break;
         }
+        case 'clustercomponenttypes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/clustercomponenttypes/{cctName}',
+            {
+              params: {
+                path: { cctName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'clustertraits': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/clustertraits/{clusterTraitName}',
+            {
+              params: {
+                path: { clusterTraitName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
         default:
           throw new Error(
             `Resource kind '${kind}' is not supported in the new API`,
@@ -351,7 +391,7 @@ export class PlatformResourceService {
       return { success: true, data: resource };
     } catch (error) {
       this.logger.error(
-        `Failed to fetch ${crdKind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
+        `Failed to fetch ${crdKind} definition for ${resourceName}: ${error}`,
       );
       throw error;
     }
@@ -477,6 +517,40 @@ export class PlatformResourceService {
           }
           break;
         }
+        case 'clustercomponenttypes': {
+          const { error, response } = await client.PUT(
+            '/api/v1/clustercomponenttypes/{cctName}',
+            {
+              params: {
+                path: { cctName: resourceName },
+              },
+              body,
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clustertraits': {
+          const { error, response } = await client.PUT(
+            '/api/v1/clustertraits/{clusterTraitName}',
+            {
+              params: {
+                path: { clusterTraitName: resourceName },
+              },
+              body,
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
         default:
           throw new Error(
             `Resource kind '${kind}' is not supported in the new API`,
@@ -497,7 +571,7 @@ export class PlatformResourceService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to update ${crdKind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
+        `Failed to update ${crdKind} definition for ${resourceName}: ${error}`,
       );
       throw error;
     }
@@ -614,6 +688,38 @@ export class PlatformResourceService {
           }
           break;
         }
+        case 'clustercomponenttypes': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/clustercomponenttypes/{cctName}',
+            {
+              params: {
+                path: { cctName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clustertraits': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/clustertraits/{clusterTraitName}',
+            {
+              params: {
+                path: { clusterTraitName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
         default:
           throw new Error(
             `Resource kind '${kind}' is not supported in the new API`,
@@ -634,7 +740,7 @@ export class PlatformResourceService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to delete ${crdKind} definition for ${resourceName} in namespace ${namespaceName}: ${error}`,
+        `Failed to delete ${crdKind} definition for ${resourceName}: ${error}`,
       );
       throw error;
     }

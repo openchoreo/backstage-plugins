@@ -44,6 +44,8 @@ import {
   useEnvironmentPermission,
   useTraitCreatePermission,
   useComponentTypePermission,
+  useClusterTraitCreatePermission,
+  useClusterComponentTypePermission,
   useComponentWorkflowPermission,
   useNamespacePermission,
 } from '@openchoreo/backstage-plugin-react';
@@ -58,7 +60,9 @@ const APPLICATION_TYPES = ['System (Project)'];
 const PLATFORM_TYPES = [
   'Namespace',
   'Environment',
+  'ClusterTrait',
   'Trait',
+  'ClusterComponentType',
   'ComponentType',
   'ComponentWorkflow',
 ];
@@ -122,6 +126,8 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const environmentPerm = useEnvironmentPermission();
   const traitPerm = useTraitCreatePermission();
   const componentTypePerm = useComponentTypePermission();
+  const clusterTraitPerm = useClusterTraitCreatePermission();
+  const clusterComponentTypePerm = useClusterComponentTypePermission();
   const componentWorkflowPerm = useComponentWorkflowPermission();
   const namespacePerm = useNamespacePermission();
 
@@ -137,8 +143,15 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           return !environmentPerm.loading && !environmentPerm.canCreate;
         case 'Trait':
           return !traitPerm.loading && !traitPerm.canCreate;
+        case 'ClusterTrait':
+          return !clusterTraitPerm.loading && !clusterTraitPerm.canCreate;
         case 'ComponentType':
           return !componentTypePerm.loading && !componentTypePerm.canCreate;
+        case 'ClusterComponentType':
+          return (
+            !clusterComponentTypePerm.loading &&
+            !clusterComponentTypePerm.canCreate
+          );
         case 'ComponentWorkflow':
           return (
             !componentWorkflowPerm.loading && !componentWorkflowPerm.canCreate
@@ -154,7 +167,9 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       componentPerm,
       environmentPerm,
       traitPerm,
+      clusterTraitPerm,
       componentTypePerm,
+      clusterComponentTypePerm,
       componentWorkflowPerm,
       namespacePerm,
     ],

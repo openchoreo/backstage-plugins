@@ -31,7 +31,9 @@ const kindDisplayNames: Record<string, string> = {
   environment: 'Environment',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  clustercomponenttype: 'Cluster Component Type',
   traittype: 'Trait Type',
+  clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
   componentworkflow: 'Component Workflow',
 };
@@ -61,7 +63,14 @@ const kindCategories: KindCategory[] = [
   {
     label: 'Platform Configuration',
     platformOnly: true,
-    kinds: ['componenttype', 'traittype', 'workflow', 'componentworkflow'],
+    kinds: [
+      'clustercomponenttype',
+      'componenttype',
+      'clustertraittype',
+      'traittype',
+      'workflow',
+      'componentworkflow',
+    ],
   },
   {
     label: 'Backstage',

@@ -12,6 +12,8 @@ import { ProjectInfoService } from './services/ProjectService/ProjectInfoService
 import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
+import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
+import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { GitSecretsService } from './services/GitSecretsService/GitSecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
@@ -96,6 +98,14 @@ export const choreoPlugin = createBackendPlugin({
 
         const traitInfoService = new TraitInfoService(logger, baseUrl);
 
+        const clusterTraitInfoService = new ClusterTraitInfoService(
+          logger,
+          baseUrl,
+        );
+
+        const clusterComponentTypeInfoService =
+          new ClusterComponentTypeInfoService(logger, baseUrl);
+
         const secretReferencesInfoService = new SecretReferencesService(
           logger,
           baseUrl,
@@ -156,6 +166,8 @@ export const choreoPlugin = createBackendPlugin({
             workloadInfoService,
             dashboardInfoService,
             traitInfoService,
+            clusterTraitInfoService,
+            clusterComponentTypeInfoService,
             secretReferencesInfoService,
             gitSecretsService,
             authzService,

@@ -32,6 +32,7 @@ export const usePendingChanges = (initialTraits: ComponentTrait[]) => {
               ...updated,
               state: 'modified' as const,
               originalData: trait.originalData || {
+                kind: trait.kind,
                 name: trait.name,
                 instanceName: trait.instanceName,
                 parameters: trait.parameters,
@@ -97,6 +98,7 @@ export const usePendingChanges = (initialTraits: ComponentTrait[]) => {
       .map(t => ({
         original: t.originalData!,
         updated: {
+          kind: t.kind,
           name: t.name,
           instanceName: t.instanceName,
           parameters: t.parameters,

@@ -1,0 +1,1 @@
+export { ClusterTraitYamlEditorFieldExtension } from './extensions';

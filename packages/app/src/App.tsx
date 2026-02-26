@@ -25,6 +25,8 @@ import { DeploymentSourcePickerFieldExtension } from './scaffolder/DeploymentSou
 import { ContainerImageFieldExtension } from './scaffolder/ContainerImageField';
 import { ComponentTypeYamlEditorFieldExtension } from './scaffolder/ComponentTypeYamlEditor';
 import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
+import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
+import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
 import { GitSecretFieldExtension } from './scaffolder/GitSecretField';
 import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
@@ -148,7 +150,9 @@ const app = createApp({
     'kind:observabilityplane': VisibilityIcon,
     'kind:buildplane': BuildIcon,
     'kind:componenttype': CategoryIcon,
+    'kind:clustercomponenttype': CategoryIcon,
     'kind:traittype': ExtensionIcon,
+    'kind:clustertraittype': ExtensionIcon,
     'kind:workflow': PlayCircleOutlineIcon,
     'kind:componentworkflow': SettingsApplicationsIcon,
   },
@@ -243,6 +247,8 @@ const routes = (
         <ContainerImageFieldExtension />
         <ComponentTypeYamlEditorFieldExtension />
         <TraitYamlEditorFieldExtension />
+        <ClusterComponentTypeYamlEditorFieldExtension />
+        <ClusterTraitYamlEditorFieldExtension />
         <ComponentWorkflowYamlEditorFieldExtension />
         <EnvironmentFormWithYamlFieldExtension />
         <GitSecretFieldExtension />

@@ -262,6 +262,7 @@ export interface BuildLogsParams {
 
 /** Component trait response */
 export interface ComponentTrait {
+  kind?: 'Trait' | 'ClusterTrait';
   name: string;
   instanceName: string;
   parameters?: Record<string, unknown>;
@@ -277,7 +278,13 @@ export type PlatformResourceKind =
   | 'dataplanes'
   | 'buildplanes'
   | 'observabilityplanes'
-  | 'deploymentpipelines';
+  | 'deploymentpipelines'
+  | 'clustercomponenttypes'
+  | 'clustertraits';
+
+/** Cluster-scoped resource kinds that don't require a namespace */
+export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
+  new Set(['clustercomponenttypes', 'clustertraits']);
 
 /** Response for resource CRUD operations */
 export interface ResourceCRUDResponse {

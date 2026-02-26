@@ -16,6 +16,8 @@ import { ComponentInfoService } from './services/ComponentService/ComponentInfoS
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
+import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
+import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
@@ -38,6 +40,8 @@ export async function createRouter({
   workloadInfoService,
   dashboardInfoService,
   traitInfoService,
+  clusterTraitInfoService,
+  clusterComponentTypeInfoService,
   secretReferencesInfoService,
   gitSecretsService,
   authzService,
@@ -58,6 +62,8 @@ export async function createRouter({
   workloadInfoService: WorkloadService;
   dashboardInfoService: DashboardInfoService;
   traitInfoService: TraitInfoService;
+  clusterTraitInfoService: ClusterTraitInfoService;
+  clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
   secretReferencesInfoService: SecretReferencesService;
   gitSecretsService: GitSecretsService;
   authzService: AuthzService;
@@ -265,6 +271,58 @@ export async function createRouter({
       await traitInfoService.fetchTraitSchema(
         namespaceName as string,
         traitName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for listing cluster traits
+  router.get('/cluster-traits', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await clusterTraitInfoService.fetchClusterTraits(userToken));
+  });
+
+  // Endpoint for fetching cluster trait schema
+  router.get('/cluster-trait-schema', async (req, res) => {
+    const { clusterTraitName } = req.query;
+
+    if (!clusterTraitName) {
+      throw new InputError('clusterTraitName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterTraitInfoService.fetchClusterTraitSchema(
+        clusterTraitName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for listing cluster component types
+  router.get('/cluster-component-types', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await clusterComponentTypeInfoService.fetchClusterComponentTypes(
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching cluster component type schema
+  router.get('/cluster-component-type-schema', async (req, res) => {
+    const { cctName } = req.query;
+
+    if (!cctName) {
+      throw new InputError('cctName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterComponentTypeInfoService.fetchClusterComponentTypeSchema(
+        cctName as string,
         userToken,
       ),
     );
@@ -1471,9 +1529,18 @@ export async function createRouter({
   router.get('/platform-resource/definition', async (req, res) => {
     const { kind, namespaceName, resourceName } = req.query;
 
-    if (!kind || !namespaceName || !resourceName) {
+    const clusterScopedKinds = ['clustercomponenttypes', 'clustertraits'];
+    const isClusterScoped = clusterScopedKinds.includes(kind as string);
+
+    if (!kind || !resourceName) {
       throw new InputError(
-        'kind, namespaceName and resourceName are required query parameters',
+        'kind and resourceName are required query parameters',
+      );
+    }
+
+    if (!isClusterScoped && !namespaceName) {
+      throw new InputError(
+        'namespaceName is required for namespace-scoped resources',
       );
     }
 
@@ -1487,6 +1554,8 @@ export async function createRouter({
       'buildplanes',
       'observabilityplanes',
       'deploymentpipelines',
+      'clustercomponenttypes',
+      'clustertraits',
     ];
     if (!validKinds.includes(kind as string)) {
       throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
@@ -1505,8 +1574,10 @@ export async function createRouter({
           | 'dataplanes'
           | 'buildplanes'
           | 'observabilityplanes'
-          | 'deploymentpipelines',
-        namespaceName as string,
+          | 'deploymentpipelines'
+          | 'clustercomponenttypes'
+          | 'clustertraits',
+        (namespaceName as string) || '',
         resourceName as string,
         userToken,
       ),
@@ -1518,9 +1589,18 @@ export async function createRouter({
     const { kind, namespaceName, resourceName } = req.query;
     const { resource } = req.body;
 
-    if (!kind || !namespaceName || !resourceName) {
+    const clusterScopedKinds = ['clustercomponenttypes', 'clustertraits'];
+    const isClusterScoped = clusterScopedKinds.includes(kind as string);
+
+    if (!kind || !resourceName) {
       throw new InputError(
-        'kind, namespaceName and resourceName are required query parameters',
+        'kind and resourceName are required query parameters',
+      );
+    }
+
+    if (!isClusterScoped && !namespaceName) {
+      throw new InputError(
+        'namespaceName is required for namespace-scoped resources',
       );
     }
 
@@ -1534,6 +1614,8 @@ export async function createRouter({
       'buildplanes',
       'observabilityplanes',
       'deploymentpipelines',
+      'clustercomponenttypes',
+      'clustertraits',
     ];
     if (!validKinds.includes(kind as string)) {
       throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
@@ -1556,8 +1638,10 @@ export async function createRouter({
           | 'dataplanes'
           | 'buildplanes'
           | 'observabilityplanes'
-          | 'deploymentpipelines',
-        namespaceName as string,
+          | 'deploymentpipelines'
+          | 'clustercomponenttypes'
+          | 'clustertraits',
+        (namespaceName as string) || '',
         resourceName as string,
         resource as Record<string, unknown>,
         userToken,
@@ -1572,9 +1656,18 @@ export async function createRouter({
     async (req, res) => {
       const { kind, namespaceName, resourceName } = req.query;
 
-      if (!kind || !namespaceName || !resourceName) {
+      const clusterScopedKinds = ['clustercomponenttypes', 'clustertraits'];
+      const isClusterScoped = clusterScopedKinds.includes(kind as string);
+
+      if (!kind || !resourceName) {
         throw new InputError(
-          'kind, namespaceName and resourceName are required query parameters',
+          'kind and resourceName are required query parameters',
+        );
+      }
+
+      if (!isClusterScoped && !namespaceName) {
+        throw new InputError(
+          'namespaceName is required for namespace-scoped resources',
         );
       }
 
@@ -1588,6 +1681,8 @@ export async function createRouter({
         'buildplanes',
         'observabilityplanes',
         'deploymentpipelines',
+        'clustercomponenttypes',
+        'clustertraits',
       ];
       if (!validKinds.includes(kind as string)) {
         throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
@@ -1606,8 +1701,10 @@ export async function createRouter({
             | 'dataplanes'
             | 'buildplanes'
             | 'observabilityplanes'
-            | 'deploymentpipelines',
-          namespaceName as string,
+            | 'deploymentpipelines'
+            | 'clustercomponenttypes'
+            | 'clustertraits',
+          (namespaceName as string) || '',
           resourceName as string,
           userToken,
         ),

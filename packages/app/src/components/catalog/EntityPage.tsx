@@ -131,7 +131,9 @@ const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   environment: 'Environment',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  clustercomponenttype: 'Cluster Component Type',
   traittype: 'Trait Type',
+  clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
   componentworkflow: 'Component Workflow',
 };
@@ -937,6 +939,64 @@ const traitTypePage = (
   </OpenChoreoEntityLayout>
 );
 
+const clusterComponentTypePage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ComponentTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
+const clusterTraitTypePage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <TraitTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
 const workflowPage = (
   <OpenChoreoEntityLayout
     contextMenuOptions={{ disableUnregister: 'hidden' }}
@@ -1032,7 +1092,15 @@ export const entityPage = (
       if={isKind('componenttype')}
       children={componentTypePage}
     />
+    <EntitySwitch.Case
+      if={isKind('clustercomponenttype')}
+      children={clusterComponentTypePage}
+    />
     <EntitySwitch.Case if={isKind('traittype')} children={traitTypePage} />
+    <EntitySwitch.Case
+      if={isKind('clustertraittype')}
+      children={clusterTraitTypePage}
+    />
     <EntitySwitch.Case if={isKind('workflow')} children={workflowPage} />
     <EntitySwitch.Case
       if={isKind('componentworkflow')}

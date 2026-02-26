@@ -11,6 +11,8 @@ import type {
   ComponentTypeEntityV1alpha1,
   TraitTypeEntityV1alpha1,
   ComponentWorkflowEntityV1alpha1,
+  ClusterComponentTypeEntityV1alpha1,
+  ClusterTraitTypeEntityV1alpha1,
 } from '../kinds';
 
 type ModelsComponent = ComponentResponse;
@@ -432,5 +434,87 @@ export function translateNamespaceToDomainEntity(
     spec: {
       owner: config.defaultOwner,
     },
+  };
+}
+
+/**
+ * Translates an OpenChoreo ClusterComponentType to a Backstage ClusterComponentType entity.
+ * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
+ */
+export function translateClusterComponentTypeToEntity(
+  ct: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    workloadType?: string;
+    allowedWorkflows?: string[];
+    allowedTraits?: Array<{ kind?: string; name: string }>;
+    createdAt?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterComponentTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterComponentType',
+    metadata: {
+      name: ct.name,
+      namespace: 'openchoreo-cluster',
+      title: ct.displayName || ct.name,
+      description: ct.description || `${ct.name} cluster component type`,
+      tags: [
+        'openchoreo',
+        'cluster-component-type',
+        ...(ct.workloadType ? [ct.workloadType] : []),
+        'platform-engineering',
+      ],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: ct.createdAt || '',
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      workloadType: ct.workloadType || 'deployment',
+      allowedWorkflows: ct.allowedWorkflows,
+      allowedTraits: ct.allowedTraits,
+    },
+  } as ClusterComponentTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo ClusterTrait to a Backstage ClusterTraitType entity.
+ * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
+ */
+export function translateClusterTraitToEntity(
+  trait: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterTraitTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterTraitType',
+    metadata: {
+      name: trait.name,
+      namespace: 'openchoreo-cluster',
+      title: trait.displayName || trait.name,
+      description: trait.description || `${trait.name} cluster trait`,
+      tags: ['openchoreo', 'cluster-trait-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: trait.createdAt || '',
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {},
   };
 }

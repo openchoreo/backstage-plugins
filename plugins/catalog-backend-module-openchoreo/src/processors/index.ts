@@ -9,3 +9,5 @@ export { TraitTypeEntityProcessor } from './TraitTypeEntityProcessor';
 export { WorkflowEntityProcessor } from './WorkflowEntityProcessor';
 export { ComponentWorkflowEntityProcessor } from './ComponentWorkflowEntityProcessor';
 export { CustomAnnotationProcessor } from './CustomAnnotationProcessor';
+export { ClusterComponentTypeEntityProcessor } from './ClusterComponentTypeEntityProcessor';
+export { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcessor';

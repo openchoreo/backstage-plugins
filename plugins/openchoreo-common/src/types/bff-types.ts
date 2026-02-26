@@ -186,6 +186,8 @@ export type ComponentWorkflowRepositoryRevision = {
 // ---------------------------------------------------------------------------
 
 export interface ComponentTraitResponse {
+  /** @description Kind of trait resource (Trait or ClusterTrait) */
+  kind?: 'Trait' | 'ClusterTrait';
   /** @description Name of the Trait resource */
   name: string;
   /** @description Unique instance name for this trait within the component */
@@ -197,6 +199,8 @@ export interface ComponentTraitResponse {
 }
 
 export interface ComponentTraitRequest {
+  /** @description Kind of trait resource (Trait or ClusterTrait) */
+  kind?: 'Trait' | 'ClusterTrait';
   /** @description Name of the Trait resource to use */
   name: string;
   /** @description Unique instance name for this trait within the component */
@@ -213,6 +217,33 @@ export interface UpdateComponentTraitsRequest {
 }
 
 export interface TraitResponse {
+  name: string;
+  displayName?: string;
+  description?: string;
+  /** Format: date-time */
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Cluster-scoped component types
+// ---------------------------------------------------------------------------
+
+export interface ClusterComponentTypeResponse {
+  name: string;
+  displayName?: string;
+  description?: string;
+  workloadType: string;
+  allowedWorkflows?: string[];
+  allowedTraits?: AllowedTraitResponse[];
+  /** Format: date-time */
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Cluster-scoped traits
+// ---------------------------------------------------------------------------
+
+export interface ClusterTraitResponse {
   name: string;
   displayName?: string;
   description?: string;

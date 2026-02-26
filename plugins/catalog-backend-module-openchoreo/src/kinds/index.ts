@@ -11,3 +11,5 @@ export type { ComponentTypeEntityV1alpha1 } from './ComponentTypeEntityV1alpha1'
 export type { TraitTypeEntityV1alpha1 } from './TraitTypeEntityV1alpha1';
 export type { WorkflowEntityV1alpha1 } from './WorkflowEntityV1alpha1';
 export type { ComponentWorkflowEntityV1alpha1 } from './ComponentWorkflowEntityV1alpha1';
+export type { ClusterComponentTypeEntityV1alpha1 } from './ClusterComponentTypeEntityV1alpha1';
+export type { ClusterTraitTypeEntityV1alpha1 } from './ClusterTraitTypeEntityV1alpha1';

@@ -113,7 +113,11 @@ export function CustomGraphNode({
   const accentWidth = 8;
   const iconSize = height;
   const paddedIconWidth = hasKindIcon ? iconSize + padding : 0;
-  const paddedWidth = accentWidth + paddedIconWidth + width + padding * 2;
+  // Badge sits at accentWidth+4 with badgePadX=5 on each side
+  const minWidthForBadge =
+    badgeWidth > 0 ? accentWidth + 4 + badgeWidth + 10 + 4 : 0;
+  const contentWidth = accentWidth + paddedIconWidth + width + padding * 2;
+  const paddedWidth = Math.max(contentWidth, minWidthForBadge);
   const paddedHeight = height + padding * 2;
 
   // Get the base display title and kind label

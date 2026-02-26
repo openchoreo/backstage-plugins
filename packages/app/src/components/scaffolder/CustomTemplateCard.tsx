@@ -18,7 +18,9 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   Component: <WidgetsOutlinedIcon fontSize="inherit" />,
   Environment: <CloudOutlinedIcon fontSize="inherit" />,
   Trait: <ExtensionOutlinedIcon fontSize="inherit" />,
+  ClusterTrait: <ExtensionOutlinedIcon fontSize="inherit" />,
   ComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
+  ClusterComponentType: <CategoryOutlinedIcon fontSize="inherit" />,
   ComponentWorkflow: <SettingsApplicationsOutlinedIcon fontSize="inherit" />,
   Namespace: <ApartmentOutlined fontSize="inherit" />,
 };

@@ -255,7 +255,8 @@ export function ResourceDefinitionTab() {
           Definition editing is not supported for {entity.kind} entities.
         </Typography>
         <Typography variant="body2" color="textSecondary">
-          Supported kinds: ComponentType, TraitType, Workflow, ComponentWorkflow
+          Supported kinds: ComponentType, TraitType, Workflow,
+          ComponentWorkflow, ClusterComponentType, ClusterTraitType
         </Typography>
       </Box>
     );

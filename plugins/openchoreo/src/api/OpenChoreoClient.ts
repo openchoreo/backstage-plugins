@@ -6,6 +6,7 @@ import {
   ModelsBuild,
   RuntimeLogsResponse,
 } from '@openchoreo/backstage-plugin-common';
+import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
   OpenChoreoClientApi,
   CreateReleaseResponse,
@@ -1292,15 +1293,20 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     namespaceName: string,
     resourceName: string,
   ): Promise<Record<string, unknown>> {
+    const params: Record<string, string> = {
+      kind,
+      resourceName,
+    };
+
+    if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(kind)) {
+      params.namespaceName = namespaceName;
+    }
+
     const response = await this.apiFetch<{
       success: boolean;
       data?: Record<string, unknown>;
     }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
-      params: {
-        kind,
-        namespaceName,
-        resourceName,
-      },
+      params,
     });
 
     if (!response.data) {
@@ -1316,16 +1322,21 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     resourceName: string,
     resource: Record<string, unknown>,
   ): Promise<ResourceCRUDResponse> {
+    const params: Record<string, string> = {
+      kind,
+      resourceName,
+    };
+
+    if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(kind)) {
+      params.namespaceName = namespaceName;
+    }
+
     const response = await this.apiFetch<{
       success: boolean;
       data?: ResourceCRUDResponse;
     }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
       method: 'PUT',
-      params: {
-        kind,
-        namespaceName,
-        resourceName,
-      },
+      params,
       body: { resource },
     });
 
@@ -1341,16 +1352,21 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     namespaceName: string,
     resourceName: string,
   ): Promise<ResourceCRUDResponse> {
+    const params: Record<string, string> = {
+      kind,
+      resourceName,
+    };
+
+    if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(kind)) {
+      params.namespaceName = namespaceName;
+    }
+
     const response = await this.apiFetch<{
       success: boolean;
       data?: ResourceCRUDResponse;
     }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
       method: 'DELETE',
-      params: {
-        kind,
-        namespaceName,
-        resourceName,
-      },
+      params,
     });
 
     if (!response.data) {

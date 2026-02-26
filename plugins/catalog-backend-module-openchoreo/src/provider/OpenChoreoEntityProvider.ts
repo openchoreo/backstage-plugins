@@ -40,6 +40,9 @@ type NewDeploymentPipeline =
   OpenChoreoComponents['schemas']['DeploymentPipeline'];
 type NewComponentType = OpenChoreoComponents['schemas']['ComponentType'];
 type NewTrait = OpenChoreoComponents['schemas']['Trait'];
+type NewClusterComponentType =
+  OpenChoreoComponents['schemas']['ClusterComponentType'];
+type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 type NewAgentConnectionStatus =
@@ -69,6 +72,8 @@ import {
   ComponentTypeEntityV1alpha1,
   TraitTypeEntityV1alpha1,
   WorkflowEntityV1alpha1,
+  ClusterComponentTypeEntityV1alpha1,
+  ClusterTraitTypeEntityV1alpha1,
 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import {
@@ -77,6 +82,8 @@ import {
   translateEnvironmentToEntity as translateEnvironment,
   translateComponentTypeToEntity as translateCT,
   translateTraitToEntity as translateTrait,
+  translateClusterComponentTypeToEntity as translateClusterCT,
+  translateClusterTraitToEntity as translateClusterTrait,
 } from '../utils/entityTranslation';
 
 /**
@@ -769,6 +776,78 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         }
       }
 
+      // Fetch cluster component types (once, not per namespace)
+      try {
+        const clusterComponentTypes =
+          await fetchAllPages<NewClusterComponentType>(cursor =>
+            client
+              .GET('/api/v1/clustercomponenttypes', {
+                params: { query: { limit: 100, cursor } },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error('Failed to fetch cluster component types');
+                return res.data;
+              }),
+          );
+
+        this.logger.debug(
+          `Found ${clusterComponentTypes.length} cluster component types`,
+        );
+
+        const cctEntities = clusterComponentTypes
+          .map(cct => {
+            try {
+              return this.translateNewClusterComponentTypeToEntity(
+                cct,
+              ) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterComponentType ${getName(
+                  cct,
+                )}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...cctEntities);
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster component types: ${error}`);
+      }
+
+      // Fetch cluster traits (once, not per namespace)
+      try {
+        const clusterTraits = await fetchAllPages<NewClusterTrait>(cursor =>
+          client
+            .GET('/api/v1/clustertraits', {
+              params: { query: { limit: 100, cursor } },
+            })
+            .then(res => {
+              if (res.error) throw new Error('Failed to fetch cluster traits');
+              return res.data;
+            }),
+        );
+
+        this.logger.debug(`Found ${clusterTraits.length} cluster traits`);
+
+        const ctEntities: Entity[] = clusterTraits
+          .map(ct => {
+            try {
+              return this.translateNewClusterTraitToEntity(ct) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterTrait ${getName(ct)}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...ctEntities);
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster traits: ${error}`);
+      }
+
       await this.connection!.applyMutation({
         type: 'full',
         entities: allEntities.map(entity => ({
@@ -810,12 +889,18 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const traitTypeCount = allEntities.filter(
       e => e.kind === 'TraitType',
     ).length;
+    const clusterComponentTypeCount = allEntities.filter(
+      e => e.kind === 'ClusterComponentType',
+    ).length;
+    const clusterTraitTypeCount = allEntities.filter(
+      e => e.kind === 'ClusterTraitType',
+    ).length;
     const workflowCount = allEntities.filter(e => e.kind === 'Workflow').length;
     const componentWorkflowCount = allEntities.filter(
       e => e.kind === 'ComponentWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${workflowCount} workflows, ${componentWorkflowCount} component workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterTraitTypeCount} cluster trait types, ${workflowCount} workflows, ${componentWorkflowCount} component workflows)`,
     );
   }
 
@@ -1259,6 +1344,43 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         createdAt: getCreatedAt(trait),
       },
       namespaceName,
+      { locationKey: this.getProviderName() },
+    );
+  }
+
+  /**
+   * Translates a new API ClusterComponentType to a Backstage ClusterComponentType entity.
+   */
+  private translateNewClusterComponentTypeToEntity(
+    cct: NewClusterComponentType,
+  ): ClusterComponentTypeEntityV1alpha1 {
+    return translateClusterCT(
+      {
+        name: getName(cct)!,
+        displayName: getDisplayName(cct),
+        description: getDescription(cct),
+        workloadType: cct.spec?.workloadType,
+        allowedWorkflows: cct.spec?.allowedWorkflows,
+        allowedTraits: cct.spec?.allowedTraits,
+        createdAt: getCreatedAt(cct),
+      },
+      { locationKey: this.getProviderName() },
+    );
+  }
+
+  /**
+   * Translates a new API ClusterTrait to a Backstage ClusterTraitType entity.
+   */
+  private translateNewClusterTraitToEntity(
+    ct: NewClusterTrait,
+  ): ClusterTraitTypeEntityV1alpha1 {
+    return translateClusterTrait(
+      {
+        name: getName(ct)!,
+        displayName: getDisplayName(ct),
+        description: getDescription(ct),
+        createdAt: getCreatedAt(ct),
+      },
       { locationKey: this.getProviderName() },
     );
   }

@@ -187,11 +187,16 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
       try {
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        const response = await fetchApi.fetch(
-          `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
-            metadata.namespace,
-          )}&traitName=${encodeURIComponent(trait.name)}`,
-        );
+        const schemaUrl =
+          (trait.kind ?? 'Trait') === 'ClusterTrait'
+            ? `${baseUrl}/cluster-trait-schema?clusterTraitName=${encodeURIComponent(
+                trait.name,
+              )}`
+            : `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
+                metadata.namespace,
+              )}&traitName=${encodeURIComponent(trait.name)}`;
+
+        const response = await fetchApi.fetch(schemaUrl);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -279,6 +284,7 @@ export const EditTraitDialog: React.FC<EditTraitDialogProps> = ({
     }
 
     const updatedTrait: ComponentTrait = {
+      kind: trait.kind,
       name: trait.name,
       instanceName: instanceName.trim(),
       parameters,
