@@ -13,6 +13,8 @@ import {
   decodeJwtUnsafe,
   isTokenExpired,
   getTimeUntilExpiry,
+  verifyAndDecodeJwt,
+  clearJwksCache,
 } from './jwtUtils';
 import syncFetch from 'sync-fetch';
 
@@ -252,6 +254,18 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       // If token is expired or about to expire (less than 60 seconds), fail the refresh
       if (isTokenExpired(payload, 60)) {
         throw new Error('Access token expired, re-authentication required');
+      }
+
+      // Verify token signature against current JWKS
+      // This catches stale tokens from a recreated IDP instance
+      try {
+        const jwksUrl = `${payload.iss}/.well-known/jwks.json`;
+        await verifyAndDecodeJwt(accessToken, jwksUrl);
+      } catch {
+        clearJwksCache();
+        throw new Error(
+          'Access token signature verification failed, re-authentication required',
+        );
       }
 
       const timeUntilExpiry = getTimeUntilExpiry(payload);

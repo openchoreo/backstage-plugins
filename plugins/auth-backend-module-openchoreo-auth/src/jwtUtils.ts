@@ -38,6 +38,14 @@ let jwksCache: {
 const JWKS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Clears the JWKS cache, forcing a fresh fetch on next verification.
+ * Used when token signature verification fails (e.g., after IDP recreation).
+ */
+export function clearJwksCache(): void {
+  jwksCache = null;
+}
+
+/**
  * Derives the JWKS URL from the token URL
  * e.g., http://thunder.localhost:8080/oauth2/token -> http://thunder.localhost:8080/.well-known/jwks.json
  */
