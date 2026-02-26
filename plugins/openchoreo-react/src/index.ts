@@ -329,6 +329,7 @@ export {
   useEntityGraphData,
   type UseEntityGraphDataResult,
 } from './hooks/useEntityGraphData';
+export { useProjects } from './hooks/useProjects';
 
 // Re-export graph types for consumers
 export { type EntityNode } from '@backstage/plugin-catalog-graph';

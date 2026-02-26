@@ -20,14 +20,71 @@ export interface UseEntityGraphDataResult {
   error: Error | undefined;
 }
 
+/**
+ * BFS from selectedProjectRefs, but never traverse through a project (System)
+ * node that isn't selected. This prevents shared entities (e.g. environments)
+ * from bridging deselected projects back into the result.
+ */
+function filterGraphByReachability(
+  nodes: EntityNode[],
+  edges: EntityEdge[],
+  selectedProjectRefs: string[],
+  allProjectRefs: string[],
+): { nodes: EntityNode[]; edges: EntityEdge[] } {
+  const excludedProjects = new Set(allProjectRefs);
+  for (const ref of selectedProjectRefs) {
+    excludedProjects.delete(ref);
+  }
+
+  // Build undirected adjacency from edges
+  const adj = new Map<string, Set<string>>();
+  for (const edge of edges) {
+    if (!adj.has(edge.from)) adj.set(edge.from, new Set());
+    if (!adj.has(edge.to)) adj.set(edge.to, new Set());
+    adj.get(edge.from)!.add(edge.to);
+    adj.get(edge.to)!.add(edge.from);
+  }
+
+  // BFS from selected projects; skip excluded project nodes
+  const visited = new Set<string>();
+  const queue: string[] = [];
+  for (const rootId of selectedProjectRefs) {
+    if (!visited.has(rootId)) {
+      visited.add(rootId);
+      queue.push(rootId);
+    }
+  }
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const neighbors = adj.get(current);
+    if (neighbors) {
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor) && !excludedProjects.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+  }
+
+  return {
+    nodes: nodes.filter(n => visited.has(n.id)),
+    edges: edges.filter(e => visited.has(e.from) && visited.has(e.to)),
+  };
+}
+
 export function useEntityGraphData(
   entityRefs: CompoundEntityRef[],
   view: GraphViewDefinition,
   onNodeClick?: (node: EntityNode, event: MouseEvent<unknown>) => void,
+  projectRefs?: string[],
+  allProjectRefs?: string[],
 ): UseEntityGraphDataResult {
   const catalogApi = useApi(catalogApiRef);
-  const [nodes, setNodes] = useState<EntityNode[]>([]);
-  const [edges, setEdges] = useState<EntityEdge[]>([]);
+  const [fullGraph, setFullGraph] = useState<{
+    nodes: EntityNode[];
+    edges: EntityEdge[];
+  }>({ nodes: [], edges: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error>();
 
@@ -39,6 +96,11 @@ export function useEntityGraphData(
         .sort()
         .join(','),
     [entityRefs],
+  );
+
+  const projectRefsKey = useMemo(
+    () => projectRefs?.slice().sort().join(',') ?? '',
+    [projectRefs],
   );
 
   const relationsSet = useMemo(() => new Set(view.relations), [view.relations]);
@@ -123,10 +185,10 @@ export function useEntityGraphData(
     [relationsSet, view.relationPairs, onNodeClick],
   );
 
+  // Fetch entities and build the full (unfiltered) graph
   useEffect(() => {
     if (entityRefs.length === 0) {
-      setNodes([]);
-      setEdges([]);
+      setFullGraph({ nodes: [], edges: [] });
       setError(undefined);
       setLoading(false);
       return undefined;
@@ -154,10 +216,7 @@ export function useEntityGraphData(
           }
         });
 
-        const { nodes: builtNodes, edges: builtEdges } = buildGraph(entityMap);
-
-        setNodes(builtNodes);
-        setEdges(builtEdges);
+        setFullGraph(buildGraph(entityMap));
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e : new Error(String(e)));
@@ -177,5 +236,27 @@ export function useEntityGraphData(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [catalogApi, refsKey, buildGraph]);
 
-  return { nodes, edges, loading, error };
+  // Apply project reachability filter client-side (no re-fetch)
+  const filtered = useMemo(() => {
+    if (
+      !projectRefs ||
+      projectRefs.length === 0 ||
+      !allProjectRefs ||
+      fullGraph.nodes.length === 0
+    ) {
+      return fullGraph;
+    }
+    const nodeIdSet = new Set(fullGraph.nodes.map(n => n.id));
+    const validRoots = projectRefs.filter(ref => nodeIdSet.has(ref));
+    if (validRoots.length === 0) return fullGraph;
+    return filterGraphByReachability(
+      fullGraph.nodes,
+      fullGraph.edges,
+      validRoots,
+      allProjectRefs,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fullGraph, projectRefsKey, allProjectRefs]);
+
+  return { nodes: filtered.nodes, edges: filtered.edges, loading, error };
 }

@@ -68,12 +68,14 @@ export type GraphKindFilterProps = {
   selectedKinds: string[];
   onKindsChange: (kinds: string[]) => void;
   leading?: ReactNode;
+  trailing?: ReactNode;
 };
 
 export function GraphKindFilter({
   selectedKinds,
   onKindsChange,
   leading,
+  trailing,
 }: GraphKindFilterProps) {
   const classes = useStyles();
   const selectedSet = useMemo(() => new Set(selectedKinds), [selectedKinds]);
@@ -203,6 +205,8 @@ export function GraphKindFilter({
           })}
         </MenuList>
       </Popover>
+      {trailing && <div className={classes.divider} />}
+      {trailing}
     </Box>
   );
 }
