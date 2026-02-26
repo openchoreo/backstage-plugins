@@ -1,4 +1,11 @@
-import { MouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  MouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Page, Header, Content } from '@backstage/core-components';
 import { useApi, useRouteRef } from '@backstage/core-plugin-api';
@@ -121,8 +128,15 @@ export function PlatformOverviewPage() {
   // Clear excluded projects when namespace changes or system kind is deselected
   const currentNs = params.ns;
   const systemKindSelected = selectedKinds.includes('system');
+  const prevNsRef = useRef(currentNs);
+  const prevSystemKindRef = useRef(systemKindSelected);
   useEffect(() => {
-    if (params.excludedProjects) {
+    const nsChanged = currentNs !== prevNsRef.current;
+    const systemDeselected = prevSystemKindRef.current && !systemKindSelected;
+    prevNsRef.current = currentNs;
+    prevSystemKindRef.current = systemKindSelected;
+
+    if ((nsChanged || systemDeselected) && params.excludedProjects) {
       setParams({ excludedProjects: undefined }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
