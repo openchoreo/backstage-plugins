@@ -332,7 +332,7 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/projects': okData({
           items: [k8sProject],
         }),
-        '/api/v1/namespaces/{namespaceName}/deployment-pipelines': okData({
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
           items: [k8sPipeline],
         }),
         '/api/v1/namespaces/{namespaceName}/components': okData({
@@ -472,7 +472,7 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/projects': okData({
           items: [project1, project2],
         }),
-        '/api/v1/namespaces/{namespaceName}/deployment-pipelines': okData({
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
           items: [sharedPipeline],
         }),
         '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
@@ -494,7 +494,7 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/projects': okData({
           items: [k8sProject],
         }),
-        '/api/v1/namespaces/{namespaceName}/deployment-pipelines': okData({
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
           items: [k8sPipeline],
         }),
         '/api/v1/namespaces/{namespaceName}/components': okData({

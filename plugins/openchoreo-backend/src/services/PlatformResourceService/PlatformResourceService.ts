@@ -324,7 +324,7 @@ export class PlatformResourceService {
         }
         case 'deploymentpipelines': {
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}',
+            '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
             {
               params: {
                 path: { namespaceName, deploymentPipelineName: resourceName },
@@ -462,7 +462,7 @@ export class PlatformResourceService {
         }
         case 'deploymentpipelines': {
           const { error, response } = await client.PUT(
-            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}',
+            '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
             {
               params: {
                 path: { namespaceName, deploymentPipelineName: resourceName },
@@ -600,7 +600,7 @@ export class PlatformResourceService {
         }
         case 'deploymentpipelines': {
           const { error, response } = await client.DELETE(
-            '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}',
+            '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
             {
               params: {
                 path: { namespaceName, deploymentPipelineName: resourceName },

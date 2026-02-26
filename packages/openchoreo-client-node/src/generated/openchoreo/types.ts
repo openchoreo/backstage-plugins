@@ -94,30 +94,14 @@ export interface paths {
     /**
      * Get OAuth protected resource metadata
      * @description Returns OAuth 2.0 protected resource metadata as defined in RFC 9728.
-     *     Used by MCP clients to discover authorization server information.
+     *     Used by MCP clients and the CLI to discover authorization server information
+     *     and client configurations.
+     *
+     *     OpenChoreo-specific extension fields (RFC 9728 §2):
+     *     - `openchoreo_clients`: OAuth client configurations for integrations (e.g., CLI).
+     *     - `openchoreo_security_enabled`: Whether authentication is enforced on this server.
      */
     get: operations['getOAuthProtectedResourceMetadata'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/.well-known/openid-configuration': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get OpenID configuration
-     * @description Returns OpenID Connect configuration for CLI authentication.
-     *     Includes OAuth2 endpoints, external client configurations, and security status.
-     */
-    get: operations['getOpenIDConfiguration'];
     put?: never;
     post?: never;
     delete?: never;
@@ -294,9 +278,17 @@ export interface paths {
      * @description Returns details of a specific environment.
      */
     get: operations['getEnvironment'];
-    put?: never;
+    /**
+     * Update environment
+     * @description Replaces an existing environment (full update).
+     */
+    put: operations['updateEnvironment'];
     post?: never;
-    delete?: never;
+    /**
+     * Delete environment
+     * @description Deletes an environment by name.
+     */
+    delete: operations['deleteEnvironment'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1378,7 +1370,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/authz/evaluate': {
+  '/api/v1/authz/evaluates': {
     parameters: {
       query?: never;
       header?: never;
@@ -1389,29 +1381,9 @@ export interface paths {
     put?: never;
     /**
      * Evaluate authorization
-     * @description Evaluates a single authorization request.
+     * @description Evaluates one or more authorization requests in a single call.
      */
-    post: operations['evaluate'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/authz/batch-evaluate': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Batch evaluate authorization
-     * @description Evaluates multiple authorization requests in a single call.
-     */
-    post: operations['batchEvaluate'];
+    post: operations['evaluates'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1726,7 +1698,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/secret-references': {
+  '/api/v1/namespaces/{namespaceName}/secretreferences': {
     parameters: {
       query?: never;
       header?: never;
@@ -1750,7 +1722,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/secret-references/{secretReferenceName}': {
+  '/api/v1/namespaces/{namespaceName}/secretreferences/{secretReferenceName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -1962,7 +1934,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/deployment-pipelines': {
+  '/api/v1/namespaces/{namespaceName}/deploymentpipelines': {
     parameters: {
       query?: never;
       header?: never;
@@ -1986,7 +1958,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}': {
+  '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -2014,7 +1986,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/observability-alerts-notification-channels': {
+  '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels': {
     parameters: {
       query?: never;
       header?: never;
@@ -2038,7 +2010,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/observability-alerts-notification-channels/{observabilityAlertsNotificationChannelName}': {
+  '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -2061,6 +2033,50 @@ export interface paths {
      * @description Deletes an observability alerts notification channel by name.
      */
     delete: operations['deleteObservabilityAlertsNotificationChannel'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/namespaces/{namespaceName}/gitsecrets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List git secrets
+     * @description Returns all git secrets in a namespace.
+     */
+    get: operations['listGitSecrets'];
+    put?: never;
+    /**
+     * Create a git secret
+     * @description Creates a new git secret for source code authentication.
+     */
+    post: operations['createGitSecret'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/namespaces/{namespaceName}/gitsecrets/{gitSecretName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete a git secret
+     * @description Deletes a git secret by name.
+     */
+    delete: operations['deleteGitSecret'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2239,21 +2255,34 @@ export interface components {
       bearer_methods_supported: string[];
       /** @description Supported OAuth scopes */
       scopes_supported: string[];
-    };
-    /** @description External client configuration */
-    ExternalClient: {
       /**
-       * @description Name of the external client
+       * @description OpenChoreo extension (RFC 9728 §2). OAuth client configurations for
+       *     external integrations (e.g., CLI). Used by clients to discover their
+       *     client_id and required scopes.
+       */
+      openchoreo_clients?: components['schemas']['OpenChoreoClient'][];
+      /**
+       * @description OpenChoreo extension (RFC 9728 §2). Indicates whether authentication
+       *     is enforced on this server. When false, requests without tokens are
+       *     accepted.
+       * @example true
+       */
+      openchoreo_security_enabled?: boolean;
+    };
+    /** @description OAuth client configuration for an OpenChoreo external integration (e.g., CLI) */
+    OpenChoreoClient: {
+      /**
+       * @description Name of the client integration
        * @example cli
        */
       name: string;
       /**
-       * @description OAuth2 client ID for this client type
+       * @description OAuth2 client ID
        * @example openchoreo-cli
        */
       client_id: string;
       /**
-       * @description OAuth2 scopes for this client
+       * @description OAuth2 scopes required by this client
        * @example [
        *       "openid",
        *       "profile",
@@ -2261,31 +2290,6 @@ export interface components {
        *     ]
        */
       scopes: string[];
-    };
-    /** @description OpenID Connect configuration response */
-    ClientConfigList: {
-      /**
-       * @description OIDC issuer URL
-       * @example https://auth.openchoreo.dev
-       */
-      issuer?: string;
-      /**
-       * @description OAuth2 token endpoint URL
-       * @example https://auth.openchoreo.dev/oauth2/token
-       */
-      token_endpoint: string;
-      /**
-       * @description OAuth2 authorization endpoint URL
-       * @example https://auth.openchoreo.dev/authorize
-       */
-      authorization_endpoint: string;
-      /**
-       * @description Whether authentication is enabled on the server
-       * @example true
-       */
-      security_enabled: boolean;
-      /** @description Array of external client configurations */
-      external_clients: components['schemas']['ExternalClient'][];
     };
     /** @description Configuration for a user type used in authentication and authorization */
     UserTypeConfig: {
@@ -4016,10 +4020,7 @@ export interface components {
     };
     /** @description Environment-specific workload overrides */
     WorkloadOverrides: {
-      /** @description Container overrides keyed by container name */
-      containers?: {
-        [key: string]: components['schemas']['ContainerOverride'];
-      };
+      container?: components['schemas']['ContainerOverride'];
     };
     /** @description Container-level overrides */
     ContainerOverride: {
@@ -4344,6 +4345,7 @@ export interface components {
     /** @description List of cluster-scoped authorization roles */
     AuthzClusterRoleList: {
       items: components['schemas']['AuthzClusterRole'][];
+      pagination?: components['schemas']['Pagination'];
     };
     /**
      * @description Namespace-scoped authorization role (Kubernetes CRD).
@@ -4372,6 +4374,7 @@ export interface components {
     /** @description List of namespace-scoped authorization roles */
     AuthzRoleList: {
       items: components['schemas']['AuthzRole'][];
+      pagination?: components['schemas']['Pagination'];
     };
     /**
      * @description Cluster-scoped role binding (Kubernetes CRD).
@@ -4396,6 +4399,7 @@ export interface components {
     /** @description List of cluster-scoped role bindings */
     AuthzClusterRoleBindingList: {
       items: components['schemas']['AuthzClusterRoleBinding'][];
+      pagination?: components['schemas']['Pagination'];
     };
     /**
      * @description Namespace-scoped role binding (Kubernetes CRD).
@@ -4421,6 +4425,7 @@ export interface components {
     /** @description List of namespace-scoped role bindings */
     AuthzRoleBindingList: {
       items: components['schemas']['AuthzRoleBinding'][];
+      pagination?: components['schemas']['Pagination'];
     };
     /** @description Entitlement claim-value pair for subject identification */
     AuthzEntitlementClaim: {
@@ -4559,16 +4564,6 @@ export interface components {
          */
         reason?: string;
       };
-    };
-    /** @description Batch authorization evaluation request */
-    BatchEvaluateRequest: {
-      /** @description List of evaluation requests */
-      requests: components['schemas']['EvaluateRequest'][];
-    };
-    /** @description Batch authorization evaluation response */
-    BatchEvaluateResponse: {
-      /** @description List of decisions (in same order as requests) */
-      decisions: components['schemas']['Decision'][];
     };
     /** @description Capabilities for a specific action */
     ActionCapability: {
@@ -4995,7 +4990,7 @@ export interface components {
     };
     /**
      * @description Workload resource (Kubernetes object without kind/apiVersion).
-     *     Defines the source code, containers, endpoints and connections for a component.
+     *     Defines the source code, container, endpoints and connections for a component.
      */
     Workload: {
       metadata: components['schemas']['ObjectMeta'];
@@ -5018,10 +5013,6 @@ export interface components {
         componentName: string;
       };
       container?: components['schemas']['WorkloadContainer'];
-      /** @description Named container specifications (mutually exclusive with container) */
-      containers?: {
-        [key: string]: components['schemas']['WorkloadContainer'];
-      };
       /** @description Named endpoint specifications */
       endpoints?: {
         [key: string]: components['schemas']['WorkloadEndpoint'];
@@ -5288,6 +5279,52 @@ export interface components {
        */
       key?: string;
     };
+    /** @description Request body for creating a git secret */
+    CreateGitSecretRequest: {
+      /**
+       * @description Name of the git secret
+       * @example my-git-secret
+       */
+      secretName: string;
+      /**
+       * @description Authentication type
+       * @example basic-auth
+       * @enum {string}
+       */
+      secretType: 'basic-auth' | 'ssh-auth';
+      /** @description Username for basic authentication (optional) */
+      username?: string;
+      /** @description Authentication token (required for basic-auth) */
+      token?: string;
+      /** @description SSH private key (required for ssh-auth) */
+      sshKey?: string;
+      /** @description SSH key ID for AWS CodeCommit (optional for ssh-auth) */
+      sshKeyId?: string;
+    };
+    /** @description Git secret resource */
+    GitSecretResponse: {
+      /**
+       * @description Name of the git secret
+       * @example my-git-secret
+       */
+      name?: string;
+      /**
+       * @description Namespace of the git secret
+       * @example my-namespace
+       */
+      namespace?: string;
+    };
+    /** @description List of git secrets */
+    GitSecretListResponse: {
+      /** @description List of git secrets */
+      items: components['schemas']['GitSecretResponse'][];
+      /** @description Total number of items */
+      totalCount?: number;
+      /** @description Current page number */
+      page?: number;
+      /** @description Number of items per page */
+      pageSize?: number;
+    };
   };
   responses: {
     /** @description Invalid request parameters */
@@ -5446,6 +5483,8 @@ export interface components {
     RoleNameParam: string;
     /** @description Role mapping ID */
     MappingIdParam: number;
+    /** @description Git secret name */
+    GitSecretNameParam: string;
     /** @description Maximum number of items to return per page */
     LimitParam: number;
     /**
@@ -5556,26 +5595,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['OAuthProtectedResourceMetadata'];
-        };
-      };
-    };
-  };
-  getOpenIDConfiguration: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OpenID configuration */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ClientConfigList'];
         };
       };
     };
@@ -6039,6 +6058,68 @@ export interface operations {
         content: {
           'application/json': components['schemas']['Environment'];
         };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Environment'];
+      };
+    };
+    responses: {
+      /** @description Environment updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Environment'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteEnvironment: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Environment deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
@@ -8549,7 +8630,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  evaluate: {
+  evaluates: {
     parameters: {
       query?: never;
       header?: never;
@@ -8558,44 +8639,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['EvaluateRequest'];
+        'application/json': components['schemas']['EvaluateRequest'][];
       };
     };
     responses: {
-      /** @description Authorization decision */
+      /** @description Authorization decisions in the same order as the input requests (decision[i] corresponds to request[i]) */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Decision'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  batchEvaluate: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['BatchEvaluateRequest'];
-      };
-    };
-    responses: {
-      /** @description Authorization decisions */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['BatchEvaluateResponse'];
+          'application/json': components['schemas']['Decision'][];
         };
       };
       400: components['responses']['BadRequest'];
@@ -8636,7 +8690,15 @@ export interface operations {
   };
   listClusterRoles: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -8773,7 +8835,15 @@ export interface operations {
   };
   listClusterRoleBindings: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -8910,7 +8980,15 @@ export interface operations {
   };
   listNamespaceRoles: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path: {
         /** @description Namespace name */
@@ -9062,7 +9140,15 @@ export interface operations {
   };
   listNamespaceRoleBindings: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /**
+         * @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path: {
         /** @description Namespace name */
@@ -10229,6 +10315,91 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description Observability alerts notification channel deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listGitSecrets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of git secrets */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitSecretListResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createGitSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateGitSecretRequest'];
+      };
+    };
+    responses: {
+      /** @description Git secret created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitSecretResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteGitSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Git secret name */
+        gitSecretName: components['parameters']['GitSecretNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Git secret deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;

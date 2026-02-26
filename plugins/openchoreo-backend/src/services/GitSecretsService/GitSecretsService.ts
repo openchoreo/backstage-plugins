@@ -1,5 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import type { GitSecretResponse } from '@openchoreo/backstage-plugin-common';
 
 export type { GitSecretResponse };
@@ -27,14 +27,14 @@ export class GitSecretsService {
     this.logger.debug(`Listing git secrets for namespace: ${namespaceName}`);
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/git-secrets',
+        '/api/v1alpha1/namespaces/{namespaceName}/gitsecrets',
         {
           params: {
             path: { namespaceName },
@@ -48,20 +48,12 @@ export class GitSecretsService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(data)}`,
-        );
-      }
-
-      // Extract the list response data
-      const listData = data.data as GitSecretListResponse;
       this.logger.debug(
         `Successfully listed ${
-          listData.items?.length || 0
+          data.items?.length || 0
         } git secrets for namespace: ${namespaceName}`,
       );
-      return listData;
+      return data as GitSecretListResponse;
     } catch (err) {
       this.logger.error(
         `Failed to list git secrets for ${namespaceName}: ${err}`,
@@ -85,14 +77,14 @@ export class GitSecretsService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/git-secrets',
+        '/api/v1alpha1/namespaces/{namespaceName}/gitsecrets',
         {
           params: {
             path: { namespaceName },
@@ -116,17 +108,10 @@ export class GitSecretsService {
         throw new Error(errorMessage);
       }
 
-      if (!data?.success) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(data)}`,
-        );
-      }
-
-      const secretResponse = data.data as GitSecretResponse;
       this.logger.debug(
         `Successfully created git secret ${secretName} in namespace: ${namespaceName}`,
       );
-      return secretResponse;
+      return data as GitSecretResponse;
     } catch (err) {
       this.logger.error(
         `Failed to create git secret ${secretName} in ${namespaceName}: ${err}`,
@@ -145,17 +130,17 @@ export class GitSecretsService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
       });
 
       const { error, response } = await client.DELETE(
-        '/namespaces/{namespaceName}/git-secrets/{secretName}',
+        '/api/v1alpha1/namespaces/{namespaceName}/gitsecrets/{gitSecretName}',
         {
           params: {
-            path: { namespaceName, secretName },
+            path: { namespaceName, gitSecretName: secretName },
           },
         },
       );

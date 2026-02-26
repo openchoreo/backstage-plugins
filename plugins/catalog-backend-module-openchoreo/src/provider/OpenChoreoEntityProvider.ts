@@ -379,14 +379,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           try {
             const pipelines = await fetchAllPages<NewDeploymentPipeline>(() =>
               client
-                .GET(
-                  '/api/v1/namespaces/{namespaceName}/deployment-pipelines',
-                  {
-                    params: {
-                      path: { namespaceName: nsName },
-                    },
+                .GET('/api/v1/namespaces/{namespaceName}/deploymentpipelines', {
+                  params: {
+                    path: { namespaceName: nsName },
                   },
-                )
+                })
                 .then(res => {
                   if (res.error)
                     throw new Error(

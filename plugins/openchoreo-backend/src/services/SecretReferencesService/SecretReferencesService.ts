@@ -39,7 +39,7 @@ export class SecretReferencesService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/secret-references',
+        '/api/v1/namespaces/{namespaceName}/secretreferences',
         {
           params: {
             path: { namespaceName },

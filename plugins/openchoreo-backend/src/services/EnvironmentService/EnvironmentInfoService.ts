@@ -147,7 +147,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const pipelinePromise = createTimedPromise(
         (async () => {
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/deployment-pipelines',
+            '/api/v1/namespaces/{namespaceName}/deploymentpipelines',
             {
               params: {
                 path: { namespaceName: request.namespaceName },

@@ -103,7 +103,7 @@ export class ProjectInfoService {
 
       // Then fetch the deployment pipeline by name
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}',
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
         {
           params: {
             path: { namespaceName, deploymentPipelineName: pipelineName },

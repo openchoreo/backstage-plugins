@@ -79,6 +79,8 @@ tags:
     description: Deployment pipeline management
   - name: ObservabilityAlertsNotificationChannels
     description: Observability alerts notification channel management
+  - name: GitSecrets
+    description: Git secret management for source code authentication
 
 paths:
   # =============================================================================
@@ -154,7 +156,12 @@ paths:
       summary: Get OAuth protected resource metadata
       description: |
         Returns OAuth 2.0 protected resource metadata as defined in RFC 9728.
-        Used by MCP clients to discover authorization server information.
+        Used by MCP clients and the CLI to discover authorization server information
+        and client configurations.
+
+        OpenChoreo-specific extension fields (RFC 9728 §2):
+        - `openchoreo_clients`: OAuth client configurations for integrations (e.g., CLI).
+        - `openchoreo_security_enabled`: Whether authentication is enforced on this server.
       tags: [Operations]
       security: []
       responses:
@@ -164,23 +171,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OAuthProtectedResourceMetadata'
-
-  /.well-known/openid-configuration:
-    get:
-      operationId: getOpenIDConfiguration
-      summary: Get OpenID configuration
-      description: |
-        Returns OpenID Connect configuration for CLI authentication.
-        Includes OAuth2 endpoints, external client configurations, and security status.
-      tags: [Operations]
-      security: []
-      responses:
-        '200':
-          description: OpenID configuration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ClientConfigList'
 
   # =============================================================================
   # Namespace Endpoints
@@ -595,6 +585,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Environment'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateEnvironment
+      summary: Update environment
+      description: Replaces an existing environment (full update).
+      tags: [Environments]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/EnvironmentNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Environment'
+      responses:
+        '200':
+          description: Environment updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Environment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteEnvironment
+      summary: Delete environment
+      description: Deletes an environment by name.
+      tags: [Environments]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/EnvironmentNameParam'
+      responses:
+        '204':
+          description: Environment deleted successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2892,51 +2936,29 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/authz/evaluate:
+  /api/v1/authz/evaluates:
     post:
-      operationId: evaluate
+      operationId: evaluates
       summary: Evaluate authorization
-      description: Evaluates a single authorization request.
+      description: Evaluates one or more authorization requests in a single call.
       tags: [Authorization]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/EvaluateRequest'
+              type: array
+              items:
+                $ref: '#/components/schemas/EvaluateRequest'
       responses:
         '200':
-          description: Authorization decision
+          description: Authorization decisions in the same order as the input requests (decision[i] corresponds to request[i])
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Decision'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/authz/batch-evaluate:
-    post:
-      operationId: batchEvaluate
-      summary: Batch evaluate authorization
-      description: Evaluates multiple authorization requests in a single call.
-      tags: [Authorization]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BatchEvaluateRequest'
-      responses:
-        '200':
-          description: Authorization decisions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BatchEvaluateResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Decision'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2991,6 +3013,9 @@ paths:
       summary: List cluster roles
       description: Returns all cluster-scoped authorization roles.
       tags: [Authorization]
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
       responses:
         '200':
           description: List of cluster roles
@@ -3134,6 +3159,9 @@ paths:
       summary: List cluster role bindings
       description: Returns all cluster-scoped role bindings.
       tags: [Authorization]
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
       responses:
         '200':
           description: List of cluster role bindings
@@ -3279,6 +3307,8 @@ paths:
       tags: [Authorization]
       parameters:
         - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
       responses:
         '200':
           description: List of namespace roles
@@ -3435,6 +3465,8 @@ paths:
       tags: [Authorization]
       parameters:
         - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
       responses:
         '200':
           description: List of namespace role bindings
@@ -3702,7 +3734,7 @@ paths:
   # Secret Reference Endpoints
   # =============================================================================
 
-  /api/v1/namespaces/{namespaceName}/secret-references:
+  /api/v1/namespaces/{namespaceName}/secretreferences:
     get:
       operationId: listSecretReferences
       summary: List secret references
@@ -3757,7 +3789,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/secret-references/{secretReferenceName}:
+  /api/v1/namespaces/{namespaceName}/secretreferences/{secretReferenceName}:
     get:
       operationId: getSecretReference
       summary: Get secret reference
@@ -4229,7 +4261,7 @@ paths:
   # Deployment Pipeline Endpoints
   # =============================================================================
 
-  /api/v1/namespaces/{namespaceName}/deployment-pipelines:
+  /api/v1/namespaces/{namespaceName}/deploymentpipelines:
     get:
       operationId: listDeploymentPipelines
       summary: List deployment pipelines
@@ -4284,7 +4316,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/deployment-pipelines/{deploymentPipelineName}:
+  /api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}:
     get:
       operationId: getDeploymentPipeline
       summary: Get deployment pipeline
@@ -4365,7 +4397,7 @@ paths:
   # Observability Alerts Notification Channel Endpoints
   # =============================================================================
 
-  /api/v1/namespaces/{namespaceName}/observability-alerts-notification-channels:
+  /api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels:
     get:
       operationId: listObservabilityAlertsNotificationChannels
       summary: List observability alerts notification channels
@@ -4420,7 +4452,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/v1/namespaces/{namespaceName}/observability-alerts-notification-channels/{observabilityAlertsNotificationChannelName}:
+  /api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}:
     get:
       operationId: getObservabilityAlertsNotificationChannel
       summary: Get observability alerts notification channel
@@ -4488,6 +4520,83 @@ paths:
       responses:
         '204':
           description: Observability alerts notification channel deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
+  # Git Secrets (v1alpha1)
+  # =============================================================================
+  /api/v1alpha1/namespaces/{namespaceName}/gitsecrets:
+    get:
+      operationId: listGitSecrets
+      summary: List git secrets
+      description: Returns all git secrets in a namespace.
+      tags: [GitSecrets]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      responses:
+        '200':
+          description: List of git secrets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitSecretListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createGitSecret
+      summary: Create a git secret
+      description: Creates a new git secret for source code authentication.
+      tags: [GitSecrets]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGitSecretRequest'
+      responses:
+        '201':
+          description: Git secret created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GitSecretResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1alpha1/namespaces/{namespaceName}/gitsecrets/{gitSecretName}:
+    delete:
+      operationId: deleteGitSecret
+      summary: Delete a git secret
+      description: Deletes a git secret by name.
+      tags: [GitSecrets]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/GitSecretNameParam'
+      responses:
+        '204':
+          description: Git secret deleted successfully
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -4780,6 +4889,15 @@ components:
         format: int64
         example: 123
 
+    GitSecretNameParam:
+      name: gitSecretName
+      in: path
+      required: true
+      description: Git secret name
+      schema:
+        type: string
+        example: my-git-secret
+
     LimitParam:
       name: limit
       in: query
@@ -5071,13 +5189,28 @@ components:
           description: Supported OAuth scopes
           items:
             type: string
+        openchoreo_clients:
+          type: array
+          description: |
+            OpenChoreo extension (RFC 9728 §2). OAuth client configurations for
+            external integrations (e.g., CLI). Used by clients to discover their
+            client_id and required scopes.
+          items:
+            $ref: '#/components/schemas/OpenChoreoClient'
+        openchoreo_security_enabled:
+          type: boolean
+          description: |
+            OpenChoreo extension (RFC 9728 §2). Indicates whether authentication
+            is enforced on this server. When false, requests without tokens are
+            accepted.
+          example: true
 
     # -------------------------------------------------------------------------
     # Client Configuration
     # -------------------------------------------------------------------------
-    ExternalClient:
+    OpenChoreoClient:
       type: object
-      description: External client configuration
+      description: OAuth client configuration for an OpenChoreo external integration (e.g., CLI)
       required:
         - name
         - client_id
@@ -5085,49 +5218,19 @@ components:
       properties:
         name:
           type: string
-          description: Name of the external client
+          description: Name of the client integration
           example: cli
         client_id:
           type: string
-          description: OAuth2 client ID for this client type
+          description: OAuth2 client ID
           example: openchoreo-cli
         scopes:
           type: array
-          description: OAuth2 scopes for this client
+          description: OAuth2 scopes required by this client
+          minItems: 1
           items:
             type: string
           example: ['openid', 'profile', 'email']
-
-    ClientConfigList:
-      type: object
-      description: OpenID Connect configuration response
-      required:
-        - token_endpoint
-        - authorization_endpoint
-        - external_clients
-        - security_enabled
-      properties:
-        issuer:
-          type: string
-          description: OIDC issuer URL
-          example: https://auth.openchoreo.dev
-        token_endpoint:
-          type: string
-          description: OAuth2 token endpoint URL
-          example: https://auth.openchoreo.dev/oauth2/token
-        authorization_endpoint:
-          type: string
-          description: OAuth2 authorization endpoint URL
-          example: https://auth.openchoreo.dev/authorize
-        security_enabled:
-          type: boolean
-          description: Whether authentication is enabled on the server
-          example: true
-        external_clients:
-          type: array
-          description: Array of external client configurations
-          items:
-            $ref: '#/components/schemas/ExternalClient'
 
     # -------------------------------------------------------------------------
     # User Type Configuration
@@ -7565,11 +7668,8 @@ components:
       type: object
       description: Environment-specific workload overrides
       properties:
-        containers:
-          type: object
-          description: Container overrides keyed by container name
-          additionalProperties:
-            $ref: '#/components/schemas/ContainerOverride'
+        container:
+          $ref: '#/components/schemas/ContainerOverride'
 
     ContainerOverride:
       type: object
@@ -8043,6 +8143,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuthzClusterRole'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
 
     AuthzRole:
       type: object
@@ -8084,6 +8186,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuthzRole'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
 
     AuthzClusterRoleBinding:
       type: object
@@ -8126,6 +8230,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuthzClusterRoleBinding'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
 
     AuthzRoleBinding:
       type: object
@@ -8170,6 +8276,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AuthzRoleBinding'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
 
     AuthzEntitlementClaim:
       type: object
@@ -8334,30 +8442,6 @@ components:
               type: string
               description: Reason for the decision
               example: User has admin role
-
-    BatchEvaluateRequest:
-      type: object
-      description: Batch authorization evaluation request
-      required:
-        - requests
-      properties:
-        requests:
-          type: array
-          description: List of evaluation requests
-          items:
-            $ref: '#/components/schemas/EvaluateRequest'
-
-    BatchEvaluateResponse:
-      type: object
-      description: Batch authorization evaluation response
-      required:
-        - decisions
-      properties:
-        decisions:
-          type: array
-          description: List of decisions (in same order as requests)
-          items:
-            $ref: '#/components/schemas/Decision'
 
     ActionCapability:
       type: object
@@ -8918,7 +9002,7 @@ components:
       type: object
       description: |
         Workload resource (Kubernetes object without kind/apiVersion).
-        Defines the source code, containers, endpoints and connections for a component.
+        Defines the source code, container, endpoints and connections for a component.
       required:
         - metadata
       properties:
@@ -8952,11 +9036,6 @@ components:
               example: api-service
         container:
           $ref: '#/components/schemas/WorkloadContainer'
-        containers:
-          type: object
-          description: Named container specifications (mutually exclusive with container)
-          additionalProperties:
-            $ref: '#/components/schemas/WorkloadContainer'
         endpoints:
           type: object
           description: Named endpoint specifications
@@ -9387,3 +9466,71 @@ components:
           type: string
           description: Key within the secret
           example: password
+
+    # -------------------------------------------------------------------------
+    # Git Secrets
+    # -------------------------------------------------------------------------
+    CreateGitSecretRequest:
+      type: object
+      description: Request body for creating a git secret
+      required:
+        - secretName
+        - secretType
+      properties:
+        secretName:
+          type: string
+          description: Name of the git secret
+          example: my-git-secret
+        secretType:
+          type: string
+          description: Authentication type
+          enum:
+            - basic-auth
+            - ssh-auth
+          example: basic-auth
+        username:
+          type: string
+          description: Username for basic authentication (optional)
+        token:
+          type: string
+          description: Authentication token (required for basic-auth)
+        sshKey:
+          type: string
+          description: SSH private key (required for ssh-auth)
+        sshKeyId:
+          type: string
+          description: SSH key ID for AWS CodeCommit (optional for ssh-auth)
+
+    GitSecretResponse:
+      type: object
+      description: Git secret resource
+      properties:
+        name:
+          type: string
+          description: Name of the git secret
+          example: my-git-secret
+        namespace:
+          type: string
+          description: Namespace of the git secret
+          example: my-namespace
+
+    GitSecretListResponse:
+      type: object
+      description: List of git secrets
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: List of git secrets
+          items:
+            $ref: '#/components/schemas/GitSecretResponse'
+        totalCount:
+          type: integer
+          description: Total number of items
+        page:
+          type: integer
+          description: Current page number
+        pageSize:
+          type: integer
+          description: Number of items per page
