@@ -194,7 +194,7 @@ export const useCardListStyles = makeStyles(theme => {
     },
     // API: Icon | Name | Description | Namespace | Project | Component | Type | Actions
     gridTemplateApi: {
-      gridTemplateColumns: '40px 1fr 1.5fr 1fr 1fr 1fr 1fr 80px',
+      gridTemplateColumns: '40px 1.2fr 2fr 0.8fr 0.8fr 0.8fr 0.7fr 80px',
       [theme.breakpoints.down('xs')]: mobileGrid,
     },
     // Environment: Icon | Name | Description | Namespace | Type | Actions
@@ -223,6 +223,7 @@ export const useCardListStyles = makeStyles(theme => {
       display: 'grid',
       alignItems: 'center',
       padding: theme.spacing(0, 2),
+      columnGap: theme.spacing(2),
       [theme.breakpoints.down('xs')]: {
         display: 'none',
       },
@@ -240,6 +241,7 @@ export const useCardListStyles = makeStyles(theme => {
       display: 'grid',
       alignItems: 'center',
       padding: theme.spacing(1, 2),
+      columnGap: theme.spacing(2),
       minHeight: 44,
       border: `1px solid ${theme.palette.grey[100]}`,
       borderRadius: 6,
