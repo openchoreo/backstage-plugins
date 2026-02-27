@@ -524,6 +524,13 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     );
                     allEntities.push(...apiEntities);
                   } else {
+                    if (workloadError) {
+                      this.logger.warn(
+                        `Workload fetch returned error for component ${componentName} in project ${projectName}, namespace ${nsName}: ${JSON.stringify(
+                          workloadError,
+                        )}`,
+                      );
+                    }
                     const componentEntity = this.translateNewComponentToEntity(
                       component,
                       nsName,
