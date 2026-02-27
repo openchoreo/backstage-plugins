@@ -19,7 +19,6 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 
 type ModelsCompleteComponent = ComponentResponse;
-type WorkloadConnection = Connection;
 
 enum ComponentType {
   SERVICE = 'service',
@@ -117,11 +116,14 @@ export class CellDiagramInfoService implements CellDiagramService {
       }
 
       // Build a map from component name to workload spec
+      // Key by owner.componentName (not workload metadata name, which differs)
       const workloadMap = new Map<string, Record<string, unknown>>();
       for (const workload of workloadItems) {
-        const wlName = workload.metadata?.name;
-        if (wlName && workload.spec) {
-          workloadMap.set(wlName, workload.spec);
+        const componentName = (
+          workload.spec?.owner as { componentName?: string } | undefined
+        )?.componentName;
+        if (componentName && workload.spec) {
+          workloadMap.set(componentName, workload.spec);
         }
       }
 
@@ -168,9 +170,7 @@ export class CellDiagramInfoService implements CellDiagramService {
       .map(component => {
         // Get connections from workload data included in component response
         const connections = this.generateConnections(
-          component.workload?.connections as
-            | { [key: string]: WorkloadConnection }
-            | undefined,
+          component.workload?.connections as Connection[] | undefined,
           namespaceName,
           projectName,
           completeComponents,
@@ -291,42 +291,37 @@ export class CellDiagramInfoService implements CellDiagramService {
   }
 
   private generateConnections(
-    connections: { [key: string]: WorkloadConnection } | undefined,
+    connections: Connection[] | undefined,
     namespaceName: string,
     projectName: string,
     completeComponents: ModelsCompleteComponent[],
   ): CellDiagramConnection[] {
-    if (!connections) {
+    if (!connections || connections.length === 0) {
       return [];
     }
 
-    const conns: CellDiagramConnection[] = [];
-    Object.entries(connections).forEach(
-      ([connectionName, connection]: [string, WorkloadConnection]) => {
-        const dependentComponentName = connection.params.componentName;
-        const dependentProjectName = connection.params.projectName;
+    return connections.map(connection => {
+      const dependentComponentName = connection.component;
+      const dependentProjectName = connection.project || projectName;
 
-        // Check if dependent component is within the same project
-        const isInternal = dependentProjectName === projectName;
-        const dependentComponent = completeComponents.find(
-          comp => comp.name === dependentComponentName,
-        );
+      // Check if dependent component is within the same project
+      const isInternal = dependentProjectName === projectName;
+      const dependentComponent = completeComponents.find(
+        comp => comp.name === dependentComponentName,
+      );
 
-        const connectionId =
-          isInternal && dependentComponent
-            ? `${namespaceName}:${projectName}:${dependentComponent.name}:${connection.params.endpoint}`
-            : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${connection.params.endpoint}`;
+      const connectionId =
+        isInternal && dependentComponent
+          ? `${namespaceName}:${projectName}:${dependentComponent.name}:${connection.endpoint}`
+          : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${connection.endpoint}`;
 
-        conns.push({
-          id: connectionId,
-          label: connectionName,
-          type: ConnectionType.HTTP, // TODO Infer based on api response
-          onPlatform: isInternal,
-          tooltip: `Connection to ${dependentComponentName} in ${dependentProjectName}`,
-        });
-      },
-    );
-
-    return conns;
+      return {
+        id: connectionId,
+        label: `${dependentComponentName}/${connection.endpoint}`,
+        type: ConnectionType.HTTP, // TODO Infer based on api response
+        onPlatform: isInternal,
+        tooltip: `Connection to ${dependentComponentName} in ${dependentProjectName}`,
+      };
+    });
   }
 }

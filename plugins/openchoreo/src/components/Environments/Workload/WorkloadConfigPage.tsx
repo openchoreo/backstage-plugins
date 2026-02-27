@@ -130,7 +130,7 @@ export const WorkloadConfigPage = ({
               image: '',
             },
             endpoints: {},
-            connections: {},
+            connections: [],
           };
           setWorkloadSpec(defaultWorkload);
           setInitialWorkload(JSON.parse(JSON.stringify(defaultWorkload)));

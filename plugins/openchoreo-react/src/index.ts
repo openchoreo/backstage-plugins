@@ -71,7 +71,6 @@ export {
 export {
   ConnectionEditor,
   type ConnectionEditorProps,
-  type ConnectionTypeOption,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,

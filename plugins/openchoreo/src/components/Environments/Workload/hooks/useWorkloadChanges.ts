@@ -46,10 +46,10 @@ export function useWorkloadChanges(
       currentWorkload?.endpoints || {},
     );
 
-    // Compare connections
+    // Compare connections (arrays)
     const connectionChanges = deepCompareObjects(
-      initialWorkload?.connections || {},
-      currentWorkload?.connections || {},
+      initialWorkload?.connections || [],
+      currentWorkload?.connections || [],
     );
 
     const total =
