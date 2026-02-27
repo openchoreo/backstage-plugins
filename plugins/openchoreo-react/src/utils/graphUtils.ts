@@ -27,6 +27,9 @@ export const ENTITY_KIND_COLORS: Record<string, string> = {
   traittype: '#10b981', // Green for trait types
   clustercomponenttype: '#f59e0b', // Orange for cluster component types (same as componenttype)
   clustertraittype: '#10b981', // Green for cluster trait types (same as traittype)
+  clusterdataplane: '#6b7280', // secondary.main - Gray for cluster dataplanes (same as dataplane)
+  clusterobservabilityplane: '#8b5cf6', // Purple for cluster observability planes (same as observabilityplane)
+  clusterbuildplane: '#3b82f6', // Blue for cluster build planes (same as buildplane)
   workflow: '#8b5cf6', // Purple for workflows
   componentworkflow: '#3b82f6', // Blue for component workflows
 };
@@ -87,6 +90,9 @@ export const KIND_LABEL_PREFIXES: Record<string, string> = {
   traittype: 'Trait',
   clustercomponenttype: 'CCT',
   clustertraittype: 'CTrait',
+  clusterdataplane: 'CDP',
+  clusterobservabilityplane: 'CObs',
+  clusterbuildplane: 'CBP',
   workflow: 'WF',
   componentworkflow: 'CWF',
 };
@@ -118,6 +124,9 @@ export const KIND_FULL_LABELS: Record<string, string> = {
   traittype: 'Trait Type',
   clustercomponenttype: 'Cluster Component Type',
   clustertraittype: 'Cluster Trait Type',
+  clusterdataplane: 'Cluster Data Plane',
+  clusterobservabilityplane: 'Cluster Obs Plane',
+  clusterbuildplane: 'Cluster Build Plane',
   workflow: 'Workflow',
   componentworkflow: 'Component Workflow',
 };

@@ -24,6 +24,7 @@ export const CHOREO_ANNOTATIONS = {
   CTD_NAME: 'openchoreo.io/ctd-name',
   CTD_DISPLAY_NAME: 'openchoreo.io/ctd-display-name',
   CTD_GENERATED: 'openchoreo.io/ctd-generated',
+  CTD_KIND: 'openchoreo.io/ctd-kind',
   // Deletion tracking
   DELETION_TIMESTAMP: 'openchoreo.io/deletion-timestamp',
   // Agent connection status
@@ -34,7 +35,13 @@ export const CHOREO_ANNOTATIONS = {
   AGENT_LAST_DISCONNECTED: 'openchoreo.io/agent-last-disconnected',
   AGENT_MESSAGE: 'openchoreo.io/agent-message',
   // Observability
+  OBSERVABILITY_PLANE_REF: 'openchoreo.io/observability-plane-ref',
   OBSERVER_URL: 'openchoreo.io/observer-url',
+  // Data plane reference kind (DataPlane vs ClusterDataPlane)
+  DATA_PLANE_REF_KIND: 'openchoreo.io/data-plane-ref-kind',
+  // Build plane reference
+  BUILD_PLANE_REF: 'openchoreo.io/build-plane-ref',
+  BUILD_PLANE_REF_KIND: 'openchoreo.io/build-plane-ref-kind',
 } as const;
 
 export const CHOREO_LABELS = {
@@ -93,6 +100,18 @@ export const RELATION_OBSERVED_BY = 'observedBy';
  * This is the inverse of RELATION_OBSERVED_BY.
  */
 export const RELATION_OBSERVES = 'observes';
+
+/**
+ * A relation indicating that a System (Project) builds on a BuildPlane or ClusterBuildPlane.
+ * The source is the project, the target is the build plane.
+ */
+export const RELATION_BUILDS_ON = 'buildsOn';
+
+/**
+ * A relation indicating that a BuildPlane or ClusterBuildPlane builds for a System (Project).
+ * This is the inverse of RELATION_BUILDS_ON.
+ */
+export const RELATION_BUILDS = 'builds';
 
 /**
  * A relation indicating that a Component is an instance of a ComponentType.

@@ -59,6 +59,8 @@ import {
   RELATION_HAS_INSTANCE,
   RELATION_USES_WORKFLOW,
   RELATION_WORKFLOW_USED_BY,
+  RELATION_BUILDS_ON,
+  RELATION_BUILDS,
 } from '@openchoreo/backstage-plugin-common';
 import CloudIcon from '@material-ui/icons/Cloud';
 import DnsIcon from '@material-ui/icons/Dns';
@@ -201,6 +203,8 @@ export const apis: AnyApiFactory[] = [
           RELATION_HAS_INSTANCE,
           RELATION_USES_WORKFLOW,
           RELATION_WORKFLOW_USED_BY,
+          RELATION_BUILDS_ON,
+          RELATION_BUILDS,
         ],
         knownRelationPairs: [
           ...ALL_RELATION_PAIRS,
@@ -210,6 +214,7 @@ export const apis: AnyApiFactory[] = [
           [RELATION_OBSERVED_BY, RELATION_OBSERVES],
           [RELATION_INSTANCE_OF, RELATION_HAS_INSTANCE],
           [RELATION_USES_WORKFLOW, RELATION_WORKFLOW_USED_BY],
+          [RELATION_BUILDS_ON, RELATION_BUILDS],
         ],
         defaultRelationTypes: { exclude: [] },
       }),
@@ -237,9 +242,12 @@ export const apis: AnyApiFactory[] = [
         kindIcons: {
           environment: CloudIcon,
           dataplane: DnsIcon,
+          clusterdataplane: DnsIcon,
           deploymentpipeline: AccountTreeIcon,
           observabilityplane: VisibilityIcon,
+          clusterobservabilityplane: VisibilityIcon,
           buildplane: BuildIcon,
+          clusterbuildplane: BuildIcon,
           componenttype: CategoryIcon,
           clustercomponenttype: CategoryIcon,
           traittype: ExtensionIcon,

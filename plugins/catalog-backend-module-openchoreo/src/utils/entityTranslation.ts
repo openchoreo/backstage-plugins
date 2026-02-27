@@ -143,6 +143,7 @@ export function translateProjectToEntity(
     namespaceName?: string;
     uid?: string;
     deletionTimestamp?: string;
+    buildPlaneRef?: { kind?: string; name?: string };
   },
   namespaceName: string,
   config: ProjectEntityTranslationConfig,
@@ -166,6 +167,12 @@ export function translateProjectToEntity(
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         ...(project.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
+        }),
+        ...(project.buildPlaneRef?.name && {
+          [CHOREO_ANNOTATIONS.BUILD_PLANE_REF]: project.buildPlaneRef.name,
+        }),
+        ...(project.buildPlaneRef?.kind && {
+          [CHOREO_ANNOTATIONS.BUILD_PLANE_REF_KIND]: project.buildPlaneRef.kind,
         }),
       },
       labels: {
@@ -192,7 +199,7 @@ export function translateEnvironmentToEntity(
     description?: string;
     uid?: string;
     isProduction?: boolean;
-    dataPlaneRef?: { name?: string };
+    dataPlaneRef?: { kind?: string; name?: string };
     dnsPrefix?: string;
     createdAt?: string;
     status?: string;
@@ -229,6 +236,10 @@ export function translateEnvironmentToEntity(
         }),
         ...(environment.dataPlaneRef?.name && {
           'openchoreo.io/data-plane-ref': environment.dataPlaneRef.name,
+        }),
+        ...(environment.dataPlaneRef?.kind && {
+          [CHOREO_ANNOTATIONS.DATA_PLANE_REF_KIND]:
+            environment.dataPlaneRef.kind,
         }),
         ...(environment.dnsPrefix && {
           'openchoreo.io/dns-prefix': environment.dnsPrefix,

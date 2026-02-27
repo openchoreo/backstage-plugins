@@ -13,6 +13,8 @@ export {
   RELATION_HAS_INSTANCE,
   RELATION_USES_WORKFLOW,
   RELATION_WORKFLOW_USED_BY,
+  RELATION_BUILDS_ON,
+  RELATION_BUILDS,
 } from './constants';
 
 // Permissions
@@ -112,6 +114,7 @@ export type {
   EnvironmentResponse,
   AgentConnectionStatusResponse,
   DataPlaneResponse,
+  ClusterDataPlaneResponse,
   BuildPlaneResponse,
   ObservabilityPlaneResponse,
   ReleaseBindingResponse,

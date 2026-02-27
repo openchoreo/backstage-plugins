@@ -21,6 +21,7 @@ import { ClusterComponentTypeInfoService } from './services/ClusterComponentType
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
+import { ClusterDataPlaneInfoService } from './services/ClusterDataPlaneService/ClusterDataPlaneInfoService';
 import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,
@@ -30,6 +31,30 @@ import {
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
+
+const CLUSTER_SCOPED_KINDS = [
+  'clustercomponenttypes',
+  'clustertraits',
+  'clusterdataplanes',
+  'clusterobservabilityplanes',
+  'clusterbuildplanes',
+] as const;
+
+const VALID_PLATFORM_RESOURCE_KINDS = [
+  'componenttypes',
+  'traits',
+  'workflows',
+  'component-workflows',
+  'environments',
+  'dataplanes',
+  'buildplanes',
+  'observabilityplanes',
+  'deploymentpipelines',
+  ...CLUSTER_SCOPED_KINDS,
+] as const;
+
+export type PlatformResourceKind =
+  (typeof VALID_PLATFORM_RESOURCE_KINDS)[number];
 
 export async function createRouter({
   environmentInfoService,
@@ -46,6 +71,7 @@ export async function createRouter({
   gitSecretsService,
   authzService,
   dataPlaneInfoService,
+  clusterDataPlaneInfoService,
   platformResourceService,
   annotationStore,
   catalogService,
@@ -68,6 +94,7 @@ export async function createRouter({
   gitSecretsService: GitSecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
+  clusterDataPlaneInfoService: ClusterDataPlaneInfoService;
   platformResourceService: PlatformResourceService;
   annotationStore: AnnotationStore;
   catalogService: CatalogService;
@@ -1521,6 +1548,27 @@ export async function createRouter({
     );
   });
 
+  // ClusterDataPlane endpoints
+  router.get('/cluster-dataplanes', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterDataPlaneInfoService.listClusterDataPlanes(userToken),
+    );
+  });
+
+  router.get('/cluster-dataplanes/:cdpName', async (req, res) => {
+    const { cdpName } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterDataPlaneInfoService.fetchClusterDataPlaneDetails(
+        { name: cdpName },
+        userToken,
+      ),
+    );
+  });
+
   // =====================
   // Platform Resource Definition Endpoints
   // =====================
@@ -1529,8 +1577,7 @@ export async function createRouter({
   router.get('/platform-resource/definition', async (req, res) => {
     const { kind, namespaceName, resourceName } = req.query;
 
-    const clusterScopedKinds = ['clustercomponenttypes', 'clustertraits'];
-    const isClusterScoped = clusterScopedKinds.includes(kind as string);
+    const isClusterScoped = CLUSTER_SCOPED_KINDS.includes(kind as any);
 
     if (!kind || !resourceName) {
       throw new InputError(
@@ -1544,39 +1591,17 @@ export async function createRouter({
       );
     }
 
-    const validKinds = [
-      'componenttypes',
-      'traits',
-      'workflows',
-      'component-workflows',
-      'environments',
-      'dataplanes',
-      'buildplanes',
-      'observabilityplanes',
-      'deploymentpipelines',
-      'clustercomponenttypes',
-      'clustertraits',
-    ];
-    if (!validKinds.includes(kind as string)) {
-      throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+    if (!VALID_PLATFORM_RESOURCE_KINDS.includes(kind as any)) {
+      throw new InputError(
+        `kind must be one of: ${VALID_PLATFORM_RESOURCE_KINDS.join(', ')}`,
+      );
     }
 
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
       await platformResourceService.getResourceDefinition(
-        kind as
-          | 'componenttypes'
-          | 'traits'
-          | 'workflows'
-          | 'component-workflows'
-          | 'environments'
-          | 'dataplanes'
-          | 'buildplanes'
-          | 'observabilityplanes'
-          | 'deploymentpipelines'
-          | 'clustercomponenttypes'
-          | 'clustertraits',
+        kind as PlatformResourceKind,
         (namespaceName as string) || '',
         resourceName as string,
         userToken,
@@ -1589,8 +1614,7 @@ export async function createRouter({
     const { kind, namespaceName, resourceName } = req.query;
     const { resource } = req.body;
 
-    const clusterScopedKinds = ['clustercomponenttypes', 'clustertraits'];
-    const isClusterScoped = clusterScopedKinds.includes(kind as string);
+    const isClusterScoped = CLUSTER_SCOPED_KINDS.includes(kind as any);
 
     if (!kind || !resourceName) {
       throw new InputError(
@@ -1604,21 +1628,10 @@ export async function createRouter({
       );
     }
 
-    const validKinds = [
-      'componenttypes',
-      'traits',
-      'workflows',
-      'component-workflows',
-      'environments',
-      'dataplanes',
-      'buildplanes',
-      'observabilityplanes',
-      'deploymentpipelines',
-      'clustercomponenttypes',
-      'clustertraits',
-    ];
-    if (!validKinds.includes(kind as string)) {
-      throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+    if (!VALID_PLATFORM_RESOURCE_KINDS.includes(kind as any)) {
+      throw new InputError(
+        `kind must be one of: ${VALID_PLATFORM_RESOURCE_KINDS.join(', ')}`,
+      );
     }
 
     if (!resource || typeof resource !== 'object') {
@@ -1629,18 +1642,7 @@ export async function createRouter({
 
     res.json(
       await platformResourceService.updateResourceDefinition(
-        kind as
-          | 'componenttypes'
-          | 'traits'
-          | 'workflows'
-          | 'component-workflows'
-          | 'environments'
-          | 'dataplanes'
-          | 'buildplanes'
-          | 'observabilityplanes'
-          | 'deploymentpipelines'
-          | 'clustercomponenttypes'
-          | 'clustertraits',
+        kind as PlatformResourceKind,
         (namespaceName as string) || '',
         resourceName as string,
         resource as Record<string, unknown>,
@@ -1656,8 +1658,7 @@ export async function createRouter({
     async (req, res) => {
       const { kind, namespaceName, resourceName } = req.query;
 
-      const clusterScopedKinds = ['clustercomponenttypes', 'clustertraits'];
-      const isClusterScoped = clusterScopedKinds.includes(kind as string);
+      const isClusterScoped = CLUSTER_SCOPED_KINDS.includes(kind as any);
 
       if (!kind || !resourceName) {
         throw new InputError(
@@ -1671,39 +1672,17 @@ export async function createRouter({
         );
       }
 
-      const validKinds = [
-        'componenttypes',
-        'traits',
-        'workflows',
-        'component-workflows',
-        'environments',
-        'dataplanes',
-        'buildplanes',
-        'observabilityplanes',
-        'deploymentpipelines',
-        'clustercomponenttypes',
-        'clustertraits',
-      ];
-      if (!validKinds.includes(kind as string)) {
-        throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+      if (!VALID_PLATFORM_RESOURCE_KINDS.includes(kind as any)) {
+        throw new InputError(
+          `kind must be one of: ${VALID_PLATFORM_RESOURCE_KINDS.join(', ')}`,
+        );
       }
 
       const userToken = getUserTokenFromRequest(req);
 
       res.json(
         await platformResourceService.deleteResourceDefinition(
-          kind as
-            | 'componenttypes'
-            | 'traits'
-            | 'workflows'
-            | 'component-workflows'
-            | 'environments'
-            | 'dataplanes'
-            | 'buildplanes'
-            | 'observabilityplanes'
-            | 'deploymentpipelines'
-            | 'clustercomponenttypes'
-            | 'clustertraits',
+          kind as PlatformResourceKind,
           (namespaceName as string) || '',
           resourceName as string,
           userToken,

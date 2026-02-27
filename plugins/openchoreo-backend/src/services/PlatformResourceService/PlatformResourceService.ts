@@ -33,7 +33,10 @@ type ResourceKind =
   | 'observabilityplanes'
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
-  | 'clustertraits';
+  | 'clustertraits'
+  | 'clusterdataplanes'
+  | 'clusterobservabilityplanes'
+  | 'clusterbuildplanes';
 
 // Mapping from ResourceKind to CRD kind (PascalCase)
 const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
@@ -48,6 +51,9 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   deploymentpipelines: 'DeploymentPipeline',
   clustercomponenttypes: 'ClusterComponentType',
   clustertraits: 'ClusterTrait',
+  clusterdataplanes: 'ClusterDataPlane',
+  clusterobservabilityplanes: 'ClusterObservabilityPlane',
+  clusterbuildplanes: 'ClusterBuildPlane',
 };
 
 // Resource kinds that have full CRUD in the new API
@@ -62,6 +68,9 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'deploymentpipelines',
   'clustercomponenttypes',
   'clustertraits',
+  'clusterdataplanes',
+  'clusterobservabilityplanes',
+  'clusterbuildplanes',
 ]);
 
 // TODO: Migrate to new API when individual CRUD endpoints are available
@@ -379,6 +388,57 @@ export class PlatformResourceService {
           resource = data as Record<string, unknown>;
           break;
         }
+        case 'clusterdataplanes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/clusterdataplanes/{cdpName}',
+            {
+              params: {
+                path: { cdpName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'clusterobservabilityplanes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/clusterobservabilityplanes/{clusterObservabilityPlaneName}',
+            {
+              params: {
+                path: { clusterObservabilityPlaneName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
+        case 'clusterbuildplanes': {
+          const { data, error, response } = await client.GET(
+            '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}',
+            {
+              params: {
+                path: { clusterBuildPlaneName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
         default:
           throw new Error(
             `Resource kind '${kind}' is not supported in the new API`,
@@ -568,6 +628,57 @@ export class PlatformResourceService {
           }
           break;
         }
+        case 'clusterdataplanes': {
+          const { error, response } = await client.PUT(
+            '/api/v1/clusterdataplanes/{cdpName}',
+            {
+              params: {
+                path: { cdpName: resourceName },
+              },
+              body,
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clusterobservabilityplanes': {
+          const { error, response } = await client.PUT(
+            '/api/v1/clusterobservabilityplanes/{clusterObservabilityPlaneName}',
+            {
+              params: {
+                path: { clusterObservabilityPlaneName: resourceName },
+              },
+              body,
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clusterbuildplanes': {
+          const { error, response } = await client.PUT(
+            '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}',
+            {
+              params: {
+                path: { clusterBuildPlaneName: resourceName },
+              },
+              body,
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
         default:
           throw new Error(
             `Resource kind '${kind}' is not supported in the new API`,
@@ -727,6 +838,54 @@ export class PlatformResourceService {
             {
               params: {
                 path: { clusterTraitName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clusterdataplanes': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/clusterdataplanes/{cdpName}',
+            {
+              params: {
+                path: { cdpName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clusterobservabilityplanes': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/clusterobservabilityplanes/{clusterObservabilityPlaneName}',
+            {
+              params: {
+                path: { clusterObservabilityPlaneName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clusterbuildplanes': {
+          const { error, response } = await client.DELETE(
+            '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}',
+            {
+              params: {
+                path: { clusterBuildPlaneName: resourceName },
               },
             },
           );

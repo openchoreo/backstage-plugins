@@ -43,6 +43,11 @@ type NewTrait = OpenChoreoComponents['schemas']['Trait'];
 type NewClusterComponentType =
   OpenChoreoComponents['schemas']['ClusterComponentType'];
 type NewClusterTrait = OpenChoreoComponents['schemas']['ClusterTrait'];
+type NewClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
+type NewClusterObservabilityPlane =
+  OpenChoreoComponents['schemas']['ClusterObservabilityPlane'];
+type NewClusterBuildPlane =
+  OpenChoreoComponents['schemas']['ClusterBuildPlane'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 type NewAgentConnectionStatus =
@@ -74,6 +79,9 @@ import {
   WorkflowEntityV1alpha1,
   ClusterComponentTypeEntityV1alpha1,
   ClusterTraitTypeEntityV1alpha1,
+  ClusterDataplaneEntityV1alpha1,
+  ClusterObservabilityPlaneEntityV1alpha1,
+  ClusterBuildPlaneEntityV1alpha1,
 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import {
@@ -848,6 +856,131 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         this.logger.warn(`Failed to fetch cluster traits: ${error}`);
       }
 
+      // Fetch cluster dataplanes (once, not per namespace)
+      try {
+        const clusterDataplanes = await fetchAllPages<NewClusterDataPlane>(
+          cursor =>
+            client
+              .GET('/api/v1/clusterdataplanes', {
+                params: { query: { limit: 100, cursor } },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error('Failed to fetch cluster dataplanes');
+                return res.data;
+              }),
+        );
+
+        this.logger.debug(
+          `Found ${clusterDataplanes.length} cluster dataplanes`,
+        );
+
+        const cdpEntities: Entity[] = clusterDataplanes
+          .map(cdp => {
+            try {
+              return this.translateNewClusterDataplaneToEntity(cdp) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterDataPlane ${getName(cdp)}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...cdpEntities);
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster dataplanes: ${error}`);
+      }
+
+      // Fetch cluster observability planes (once, not per namespace)
+      try {
+        const clusterObservabilityPlanes =
+          await fetchAllPages<NewClusterObservabilityPlane>(cursor =>
+            client
+              .GET('/api/v1/clusterobservabilityplanes', {
+                params: { query: { limit: 100, cursor } },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error(
+                    'Failed to fetch cluster observability planes',
+                  );
+                return res.data;
+              }),
+          );
+
+        this.logger.debug(
+          `Found ${clusterObservabilityPlanes.length} cluster observability planes`,
+        );
+
+        const copEntities: Entity[] = clusterObservabilityPlanes
+          .map(cop => {
+            try {
+              return this.translateNewClusterObservabilityPlaneToEntity(
+                cop,
+              ) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterObservabilityPlane ${getName(
+                  cop,
+                )}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...copEntities);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to fetch cluster observability planes: ${error}`,
+        );
+      }
+
+      // Fetch cluster build planes (once, not per namespace)
+      let clusterBuildPlaneNames: string[] = [];
+      try {
+        const clusterBuildPlanes = await fetchAllPages<NewClusterBuildPlane>(
+          cursor =>
+            client
+              .GET('/api/v1/clusterbuildplanes', {
+                params: { query: { limit: 100, cursor } },
+              })
+              .then(res => {
+                if (res.error)
+                  throw new Error('Failed to fetch cluster build planes');
+                return res.data;
+              }),
+        );
+
+        this.logger.debug(
+          `Found ${clusterBuildPlanes.length} cluster build planes`,
+        );
+
+        const cbpEntities: Entity[] = clusterBuildPlanes
+          .map(cbp => {
+            try {
+              return this.translateNewClusterBuildPlaneToEntity(cbp) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterBuildPlane ${getName(cbp)}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+
+        clusterBuildPlaneNames = cbpEntities
+          .map(e => e.metadata.name)
+          .filter((n): n is string => !!n);
+
+        allEntities.push(...cbpEntities);
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster build planes: ${error}`);
+      }
+
+      // Apply buildPlaneRef fallback for projects without explicit buildPlaneRef
+      this.applyBuildPlaneFallback(allEntities, clusterBuildPlaneNames);
+
       await this.connection!.applyMutation({
         type: 'full',
         entities: allEntities.map(entity => ({
@@ -895,12 +1028,21 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const clusterTraitTypeCount = allEntities.filter(
       e => e.kind === 'ClusterTraitType',
     ).length;
+    const clusterDataplaneCount = allEntities.filter(
+      e => e.kind === 'ClusterDataplane',
+    ).length;
+    const clusterObservabilityPlaneCount = allEntities.filter(
+      e => e.kind === 'ClusterObservabilityPlane',
+    ).length;
+    const clusterBuildPlaneCount = allEntities.filter(
+      e => e.kind === 'ClusterBuildPlane',
+    ).length;
     const workflowCount = allEntities.filter(e => e.kind === 'Workflow').length;
     const componentWorkflowCount = allEntities.filter(
       e => e.kind === 'ComponentWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterTraitTypeCount} cluster trait types, ${workflowCount} workflows, ${componentWorkflowCount} component workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterBuildPlaneCount} cluster build planes, ${workflowCount} workflows, ${componentWorkflowCount} component workflows)`,
     );
   }
 
@@ -979,7 +1121,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         uid: getUid(env),
         isProduction: env.spec?.isProduction,
         dataPlaneRef: env.spec?.dataPlaneRef
-          ? { name: env.spec.dataPlaneRef.name }
+          ? {
+              kind: env.spec.dataPlaneRef.kind,
+              name: env.spec.dataPlaneRef.name,
+            }
           : undefined,
         dnsPrefix: env.spec?.gateway?.ingress?.external?.http?.host,
         createdAt: getCreatedAt(env),
@@ -1032,7 +1177,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             gateway?.ingress?.internal?.http?.port?.toString() || '',
           'openchoreo.io/namespace-https-port':
             gateway?.ingress?.internal?.https?.port?.toString() || '',
-          'openchoreo.io/observability-plane-ref': normalizedObsRef,
+          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
         },
         labels: {
@@ -1082,7 +1227,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(bp) || '',
           [CHOREO_ANNOTATIONS.STATUS]: isReady(bp) ? 'Ready' : 'Not Ready',
-          'openchoreo.io/observability-plane-ref': normalizedObsRef,
+          [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(bp.status?.agentConnection),
         },
         labels: {
@@ -1170,6 +1315,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     project: NewProject,
     namespaceName: string,
   ): Entity {
+    const buildPlaneRef = project.spec?.buildPlaneRef as
+      | { kind?: string; name?: string }
+      | undefined;
+
     return translateProject(
       {
         name: getName(project)!,
@@ -1177,6 +1326,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         description: getDescription(project),
         namespaceName: getNamespace(project) ?? namespaceName,
         uid: getUid(project),
+        buildPlaneRef,
       },
       namespaceName,
       {
@@ -1384,6 +1534,196 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       { locationKey: this.getProviderName() },
     );
+  }
+
+  /**
+   * Translates a new API ClusterDataPlane to a Backstage ClusterDataplane entity.
+   */
+  private translateNewClusterDataplaneToEntity(
+    cdp: NewClusterDataPlane,
+  ): ClusterDataplaneEntityV1alpha1 {
+    const cdpName = getName(cdp)!;
+    const gateway = cdp.spec?.gateway;
+    const obsPlaneRef = cdp.spec?.observabilityPlaneRef;
+    const obsRefName = obsPlaneRef?.name;
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ClusterDataplane',
+      metadata: {
+        name: cdpName,
+        namespace: 'openchoreo-cluster',
+        title: getDisplayName(cdp) || cdpName,
+        description: getDescription(cdp) || `${cdpName} cluster data plane`,
+        tags: ['openchoreo', 'cluster-dataplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cdp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(cdp) ? 'Ready' : 'Not Ready',
+          'openchoreo.io/public-virtual-host':
+            gateway?.ingress?.external?.http?.host || '',
+          'openchoreo.io/namespace-virtual-host':
+            gateway?.ingress?.internal?.http?.host || '',
+          'openchoreo.io/public-http-port':
+            gateway?.ingress?.external?.http?.port?.toString() || '',
+          'openchoreo.io/public-https-port':
+            gateway?.ingress?.external?.https?.port?.toString() || '',
+          'openchoreo.io/namespace-http-port':
+            gateway?.ingress?.internal?.http?.port?.toString() || '',
+          'openchoreo.io/namespace-https-port':
+            gateway?.ingress?.internal?.https?.port?.toString() || '',
+          ...(obsRefName && {
+            [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
+          }),
+          ...this.mapNewAgentConnectionAnnotations(cdp.status?.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/cluster-dataplane': 'true',
+        },
+      },
+      spec: {
+        publicVirtualHost: gateway?.ingress?.external?.http?.host,
+        namespaceVirtualHost: gateway?.ingress?.internal?.http?.host,
+        publicHTTPPort: gateway?.ingress?.external?.http?.port,
+        publicHTTPSPort: gateway?.ingress?.external?.https?.port,
+        namespaceHTTPPort: gateway?.ingress?.internal?.http?.port,
+        namespaceHTTPSPort: gateway?.ingress?.internal?.https?.port,
+        observabilityPlaneRef: obsRefName,
+      },
+    };
+  }
+
+  /**
+   * Translates a new API ClusterObservabilityPlane to a Backstage ClusterObservabilityPlane entity.
+   */
+  private translateNewClusterObservabilityPlaneToEntity(
+    cop: NewClusterObservabilityPlane,
+  ): ClusterObservabilityPlaneEntityV1alpha1 {
+    const copName = getName(cop)!;
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ClusterObservabilityPlane',
+      metadata: {
+        name: copName,
+        namespace: 'openchoreo-cluster',
+        title: getDisplayName(cop) || copName,
+        description:
+          getDescription(cop) || `${copName} cluster observability plane`,
+        tags: ['openchoreo', 'cluster-observabilityplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cop) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(cop) ? 'Ready' : 'Not Ready',
+          ...(cop.spec?.observerURL && {
+            [CHOREO_ANNOTATIONS.OBSERVER_URL]: cop.spec.observerURL,
+          }),
+          ...this.mapNewAgentConnectionAnnotations(cop.status?.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/cluster-observabilityplane': 'true',
+        },
+      },
+      spec: {
+        observerURL: cop.spec?.observerURL,
+      },
+    };
+  }
+
+  /**
+   * Translates a new API ClusterBuildPlane to a Backstage ClusterBuildPlane entity.
+   */
+  private translateNewClusterBuildPlaneToEntity(
+    cbp: NewClusterBuildPlane,
+  ): ClusterBuildPlaneEntityV1alpha1 {
+    const cbpName = getName(cbp)!;
+    const obsPlaneRef = cbp.spec?.observabilityPlaneRef;
+    const obsRefName = obsPlaneRef?.name;
+
+    return {
+      apiVersion: 'backstage.io/v1alpha1',
+      kind: 'ClusterBuildPlane',
+      metadata: {
+        name: cbpName,
+        namespace: 'openchoreo-cluster',
+        title: getDisplayName(cbp) || cbpName,
+        description: getDescription(cbp) || `${cbpName} cluster build plane`,
+        tags: ['openchoreo', 'cluster-buildplane', 'infrastructure'],
+        annotations: {
+          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
+          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
+          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cbp) || '',
+          [CHOREO_ANNOTATIONS.STATUS]: isReady(cbp) ? 'Ready' : 'Not Ready',
+          ...(obsRefName && {
+            [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
+          }),
+          ...this.mapNewAgentConnectionAnnotations(cbp.status?.agentConnection),
+        },
+        labels: {
+          [CHOREO_LABELS.MANAGED]: 'true',
+          'openchoreo.io/cluster-buildplane': 'true',
+        },
+      },
+      spec: {
+        observabilityPlaneRef: obsRefName,
+      },
+    };
+  }
+
+  /**
+   * Applies buildPlaneRef fallback for projects without explicit buildPlaneRef.
+   * For each System entity without BUILD_PLANE_REF annotation:
+   *   1. If a BuildPlane exists in the same namespace → use it
+   *   2. If no namespace BuildPlane but a ClusterBuildPlane named "default" exists → use that
+   */
+  private applyBuildPlaneFallback(
+    allEntities: Entity[],
+    clusterBuildPlaneNames: string[],
+  ): void {
+    const hasDefaultClusterBuildPlane =
+      clusterBuildPlaneNames.includes('default');
+
+    // Build a map of namespace -> deterministically chosen BuildPlane name
+    const namespaceBuildPlanes = new Map<string, string[]>();
+    for (const entity of allEntities) {
+      if (entity.kind === 'BuildPlane' && entity.metadata.namespace) {
+        const ns = entity.metadata.namespace;
+        if (!namespaceBuildPlanes.has(ns)) {
+          namespaceBuildPlanes.set(ns, []);
+        }
+        namespaceBuildPlanes.get(ns)!.push(entity.metadata.name);
+      }
+    }
+    const namespacesWithBuildPlane = new Map<string, string>();
+    namespaceBuildPlanes.forEach((names, ns) => {
+      names.sort();
+      namespacesWithBuildPlane.set(ns, names[0]);
+    });
+
+    for (const entity of allEntities) {
+      if (entity.kind !== 'System') continue;
+
+      const annotations = entity.metadata.annotations || {};
+      if (annotations[CHOREO_ANNOTATIONS.BUILD_PLANE_REF]) continue;
+
+      const ns = entity.metadata.namespace || 'default';
+      const nsBuildPlane = namespacesWithBuildPlane.get(ns);
+
+      if (nsBuildPlane) {
+        annotations[CHOREO_ANNOTATIONS.BUILD_PLANE_REF] = nsBuildPlane;
+        annotations[CHOREO_ANNOTATIONS.BUILD_PLANE_REF_KIND] = 'BuildPlane';
+        entity.metadata.annotations = annotations;
+      } else if (hasDefaultClusterBuildPlane) {
+        annotations[CHOREO_ANNOTATIONS.BUILD_PLANE_REF] = 'default';
+        annotations[CHOREO_ANNOTATIONS.BUILD_PLANE_REF_KIND] =
+          'ClusterBuildPlane';
+        entity.metadata.annotations = annotations;
+      }
+    }
   }
 
   /**

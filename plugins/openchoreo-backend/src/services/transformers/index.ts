@@ -16,3 +16,4 @@ export { transformObservabilityPlane } from './observabilityplane';
 export { transformComponentWorkflowRun } from './workflow-run';
 export { transformDeploymentPipeline } from './deployment-pipeline';
 export { transformSecretReference } from './secret-reference';
+export { transformClusterDataPlane } from './clusterDataplane';

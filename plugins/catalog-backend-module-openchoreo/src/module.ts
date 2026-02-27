@@ -23,6 +23,10 @@ import {
   CustomAnnotationProcessor,
   ClusterComponentTypeEntityProcessor,
   ClusterTraitTypeEntityProcessor,
+  ClusterDataplaneEntityProcessor,
+  ClusterObservabilityPlaneEntityProcessor,
+  ClusterBuildPlaneEntityProcessor,
+  SystemBuildPlaneProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -125,6 +129,18 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ClusterTraitType entity processor
         catalog.addProcessor(new ClusterTraitTypeEntityProcessor());
+
+        // Register the ClusterDataplane entity processor
+        catalog.addProcessor(new ClusterDataplaneEntityProcessor());
+
+        // Register the ClusterObservabilityPlane entity processor
+        catalog.addProcessor(new ClusterObservabilityPlaneEntityProcessor());
+
+        // Register the ClusterBuildPlane entity processor
+        catalog.addProcessor(new ClusterBuildPlaneEntityProcessor());
+
+        // Register the SystemBuildPlane processor (emits buildsOn/builds relations)
+        catalog.addProcessor(new SystemBuildPlaneProcessor());
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(

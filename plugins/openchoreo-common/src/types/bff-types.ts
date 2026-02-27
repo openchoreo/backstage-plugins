@@ -475,6 +475,29 @@ export interface DataPlaneResponse {
   status?: string;
 }
 
+export interface ClusterDataPlaneResponse {
+  name: string;
+  displayName?: string;
+  description?: string;
+  imagePullSecretRefs?: string[];
+  secretStoreRef?: string;
+  publicVirtualHost: string;
+  namespaceVirtualHost: string;
+  /** Format: int32 */
+  publicHTTPPort: number;
+  /** Format: int32 */
+  publicHTTPSPort: number;
+  /** Format: int32 */
+  namespaceHTTPPort: number;
+  /** Format: int32 */
+  namespaceHTTPSPort: number;
+  observabilityPlaneRef?: string;
+  agentConnection?: AgentConnectionStatusResponse;
+  /** Format: date-time */
+  createdAt: string;
+  status?: string;
+}
+
 export interface BuildPlaneResponse {
   name: string;
   namespace: string;

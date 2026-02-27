@@ -18,6 +18,7 @@ import { SecretReferencesService } from './services/SecretReferencesService/Secr
 import { GitSecretsService } from './services/GitSecretsService/GitSecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
+import { ClusterDataPlaneInfoService } from './services/ClusterDataPlaneService/ClusterDataPlaneInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
@@ -117,6 +118,11 @@ export const choreoPlugin = createBackendPlugin({
 
         const dataPlaneInfoService = new DataPlaneInfoService(logger, baseUrl);
 
+        const clusterDataPlaneInfoService = new ClusterDataPlaneInfoService(
+          logger,
+          baseUrl,
+        );
+
         const platformResourceService = new PlatformResourceService(
           logger,
           baseUrl,
@@ -172,6 +178,7 @@ export const choreoPlugin = createBackendPlugin({
             gitSecretsService,
             authzService,
             dataPlaneInfoService,
+            clusterDataPlaneInfoService,
             platformResourceService,
             annotationStore,
             catalogService: catalog,

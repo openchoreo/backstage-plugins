@@ -13,3 +13,6 @@ export type { WorkflowEntityV1alpha1 } from './WorkflowEntityV1alpha1';
 export type { ComponentWorkflowEntityV1alpha1 } from './ComponentWorkflowEntityV1alpha1';
 export type { ClusterComponentTypeEntityV1alpha1 } from './ClusterComponentTypeEntityV1alpha1';
 export type { ClusterTraitTypeEntityV1alpha1 } from './ClusterTraitTypeEntityV1alpha1';
+export type { ClusterDataplaneEntityV1alpha1 } from './ClusterDataplaneEntityV1alpha1';
+export type { ClusterObservabilityPlaneEntityV1alpha1 } from './ClusterObservabilityPlaneEntityV1alpha1';
+export type { ClusterBuildPlaneEntityV1alpha1 } from './ClusterBuildPlaneEntityV1alpha1';

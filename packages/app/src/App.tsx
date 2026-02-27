@@ -146,9 +146,12 @@ const app = createApp({
   icons: {
     'kind:environment': CloudIcon,
     'kind:dataplane': DnsIcon,
+    'kind:clusterdataplane': DnsIcon,
     'kind:deploymentpipeline': AccountTreeIcon,
     'kind:observabilityplane': VisibilityIcon,
+    'kind:clusterobservabilityplane': VisibilityIcon,
     'kind:buildplane': BuildIcon,
+    'kind:clusterbuildplane': BuildIcon,
     'kind:componenttype': CategoryIcon,
     'kind:clustercomponenttype': CategoryIcon,
     'kind:traittype': ExtensionIcon,

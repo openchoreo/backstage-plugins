@@ -22,7 +22,7 @@ interface LinkedPlane {
   displayName?: string;
 }
 
-export const ObservabilityPlaneLinkedPlanesCard = () => {
+export const ClusterObservabilityPlaneLinkedPlanesCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
   const catalogApi = useApi(catalogApiRef);
@@ -38,13 +38,13 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
       setLoading(true);
       setError(false);
 
-      // Query catalog for DataPlane and BuildPlane entities with matching observability-plane-ref annotation
+      // Query catalog for ClusterDataplane and ClusterBuildPlane entities with matching observability-plane-ref annotation
       const [dataplaneResult, buildplaneResult] = await Promise.all([
         catalogApi.getEntities({
-          filter: { kind: 'Dataplane' },
+          filter: { kind: 'ClusterDataplane' },
         }),
         catalogApi.getEntities({
-          filter: { kind: 'BuildPlane' },
+          filter: { kind: 'ClusterBuildPlane' },
         }),
       ]);
 
@@ -59,8 +59,8 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
       dataplaneResult.items.filter(matchesRef).forEach(dp => {
         planes.push({
           name: dp.metadata.name,
-          kind: 'Dataplane',
-          namespace: dp.metadata.namespace || 'default',
+          kind: 'ClusterDataplane',
+          namespace: dp.metadata.namespace || 'openchoreo-cluster',
           displayName: dp.metadata.title || dp.metadata.name,
         });
       });
@@ -68,8 +68,8 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
       buildplaneResult.items.filter(matchesRef).forEach(bp => {
         planes.push({
           name: bp.metadata.name,
-          kind: 'BuildPlane',
-          namespace: bp.metadata.namespace || 'default',
+          kind: 'ClusterBuildPlane',
+          namespace: bp.metadata.namespace || 'openchoreo-cluster',
           displayName: bp.metadata.title || bp.metadata.name,
         });
       });
@@ -128,7 +128,8 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
         <Box className={classes.emptyState}>
           <CloudOffIcon className={classes.emptyIcon} />
           <Typography variant="body2">
-            No data planes or build planes linked to this observability plane
+            No cluster data planes or cluster build planes linked to this
+            observability plane
           </Typography>
         </Box>
       </Card>
@@ -149,11 +150,11 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
       <ul className={classes.environmentList}>
         {linkedPlanes.map(plane => (
           <li
-            key={`${plane.kind}-${plane.name}`}
+            key={`${plane.kind}-${plane.namespace}-${plane.name}`}
             className={classes.environmentItem}
           >
             <Box className={classes.environmentInfo}>
-              {plane.kind === 'Dataplane' ? (
+              {plane.kind === 'ClusterDataplane' ? (
                 <StorageIcon style={{ fontSize: '1.2rem', color: 'inherit' }} />
               ) : (
                 <BuildIcon style={{ fontSize: '1.2rem', color: 'inherit' }} />
@@ -184,7 +185,9 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
                   fontSize: '0.75rem',
                 }}
               >
-                {plane.kind === 'Dataplane' ? 'Data Plane' : 'Build Plane'}
+                {plane.kind === 'ClusterDataplane'
+                  ? 'Cluster Data Plane'
+                  : 'Cluster Build Plane'}
               </Typography>
             </Box>
 
