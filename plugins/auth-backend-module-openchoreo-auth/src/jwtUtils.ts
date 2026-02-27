@@ -61,11 +61,13 @@ export function deriveJwksUrl(tokenUrl: string): string {
 async function fetchJwks(
   jwksUrl: string,
   logger?: LoggerService,
+  bypassCache?: boolean,
 ): Promise<jose.JSONWebKeySet> {
   const now = Date.now();
 
   // Return cached JWKS if still valid
   if (
+    !bypassCache &&
     jwksCache &&
     jwksCache.url === jwksUrl &&
     jwksCache.jwks &&
@@ -104,17 +106,19 @@ async function fetchJwks(
  *
  * @param token - The JWT token to verify
  * @param jwksUrl - The URL to fetch JWKS from
- * @param logger - Optional logger for debugging
+ * @param options - Optional settings: logger for debugging, bypassCache to force fresh JWKS fetch
  * @returns The verified token payload
  * @throws Error if verification fails
  */
 export async function verifyAndDecodeJwt(
   token: string,
   jwksUrl: string,
-  logger?: LoggerService,
+  options?: { logger?: LoggerService; bypassCache?: boolean },
 ): Promise<OpenChoreoTokenPayload> {
+  const { logger, bypassCache } = options ?? {};
+
   try {
-    const jwks = await fetchJwks(jwksUrl, logger);
+    const jwks = await fetchJwks(jwksUrl, logger, bypassCache);
     const JWKS = jose.createLocalJWKSet(jwks);
 
     const { payload } = await jose.jwtVerify(token, JWKS);

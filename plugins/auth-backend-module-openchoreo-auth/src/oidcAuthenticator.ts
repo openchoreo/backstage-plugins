@@ -271,7 +271,9 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
         if (!trustedJwksUrl) {
           throw new Error('JWKS URL not configured');
         }
-        await verifyAndDecodeJwt(accessToken, trustedJwksUrl);
+        await verifyAndDecodeJwt(accessToken, trustedJwksUrl, {
+          bypassCache: true,
+        });
       } catch {
         clearJwksCache();
         throw new Error(
