@@ -14,7 +14,6 @@ import {
   isTokenExpired,
   getTimeUntilExpiry,
   verifyAndDecodeJwt,
-  clearJwksCache,
   deriveJwksUrl,
 } from './jwtUtils';
 import syncFetch from 'sync-fetch';
@@ -271,11 +270,8 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
         if (!trustedJwksUrl) {
           throw new Error('JWKS URL not configured');
         }
-        await verifyAndDecodeJwt(accessToken, trustedJwksUrl, {
-          bypassCache: true,
-        });
+        await verifyAndDecodeJwt(accessToken, trustedJwksUrl);
       } catch {
-        clearJwksCache();
         throw new Error(
           'Access token signature verification failed, re-authentication required',
         );

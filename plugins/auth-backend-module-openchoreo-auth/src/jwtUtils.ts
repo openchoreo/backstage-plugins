@@ -38,14 +38,6 @@ let jwksCache: {
 const JWKS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Clears the JWKS cache, forcing a fresh fetch on next verification.
- * Used when token signature verification fails (e.g., after IDP recreation).
- */
-export function clearJwksCache(): void {
-  jwksCache = null;
-}
-
-/**
  * Derives the JWKS URL from the token URL
  * e.g., http://thunder.localhost:8080/oauth2/token -> http://thunder.localhost:8080/.well-known/jwks.json
  */
@@ -61,13 +53,11 @@ export function deriveJwksUrl(tokenUrl: string): string {
 async function fetchJwks(
   jwksUrl: string,
   logger?: LoggerService,
-  bypassCache?: boolean,
 ): Promise<jose.JSONWebKeySet> {
   const now = Date.now();
 
   // Return cached JWKS if still valid
   if (
-    !bypassCache &&
     jwksCache &&
     jwksCache.url === jwksUrl &&
     jwksCache.jwks &&
@@ -106,19 +96,17 @@ async function fetchJwks(
  *
  * @param token - The JWT token to verify
  * @param jwksUrl - The URL to fetch JWKS from
- * @param options - Optional settings: logger for debugging, bypassCache to force fresh JWKS fetch
+ * @param logger - Optional logger for debugging
  * @returns The verified token payload
  * @throws Error if verification fails
  */
 export async function verifyAndDecodeJwt(
   token: string,
   jwksUrl: string,
-  options?: { logger?: LoggerService; bypassCache?: boolean },
+  logger?: LoggerService,
 ): Promise<OpenChoreoTokenPayload> {
-  const { logger, bypassCache } = options ?? {};
-
   try {
-    const jwks = await fetchJwks(jwksUrl, logger, bypassCache);
+    const jwks = await fetchJwks(jwksUrl, logger);
     const JWKS = jose.createLocalJWKSet(jwks);
 
     const { payload } = await jose.jwtVerify(token, JWKS);
