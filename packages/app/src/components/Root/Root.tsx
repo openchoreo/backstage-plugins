@@ -34,8 +34,6 @@ import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
-import { AccessControlSidebarItem } from './AccessControlSidebarItem';
-import { GitSecretsSidebarItem } from './GitSecretsSidebarItem';
 
 const useSidebarLogoStyles = makeStyles({
   root: {
@@ -136,10 +134,6 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
             text="Create..."
           />
           {/* End global nav */}
-          <SidebarDivider />
-          {/* Admin section */}
-          <AccessControlSidebarItem />
-          <GitSecretsSidebarItem />
           <SidebarScrollWrapper>
             {/* Items in this group will be scrollable if they run out of space */}
           </SidebarScrollWrapper>

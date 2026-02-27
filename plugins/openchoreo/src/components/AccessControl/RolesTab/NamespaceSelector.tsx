@@ -13,7 +13,6 @@ import { useNamespaces } from '../hooks';
 const useStyles = makeStyles(theme => ({
   formControl: {
     minWidth: 200,
-    marginBottom: theme.spacing(2),
   },
   loadingWrapper: {
     display: 'flex',

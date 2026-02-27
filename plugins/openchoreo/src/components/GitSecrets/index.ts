@@ -1,1 +1,1 @@
-export { GitSecretsPage } from './GitSecretsPage';
+export { GitSecretsPage, GitSecretsContent } from './GitSecretsPage';

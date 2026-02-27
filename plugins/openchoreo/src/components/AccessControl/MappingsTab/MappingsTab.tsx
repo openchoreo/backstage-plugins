@@ -1,60 +1,55 @@
+import { useState, useRef } from 'react';
 import { Box } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
-import PublicIcon from '@material-ui/icons/Public';
-import FolderIcon from '@material-ui/icons/Folder';
-import {
-  VerticalTabNav,
-  TabItemData,
-} from '@openchoreo/backstage-design-system';
-import { useUrlSyncedTab } from '@openchoreo/backstage-plugin-react';
-import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
+import { SCOPE_CLUSTER, SCOPE_NAMESPACE, BindingScope } from '../constants';
+import { ScopeDropdown } from '../ScopeDropdown';
 import { ClusterRoleBindingsContent } from './ClusterRoleBindingsContent';
 import { NamespaceRoleBindingsContent } from './NamespaceRoleBindingsContent';
+import { NamespaceSelector } from '../RolesTab/NamespaceSelector';
+import { useQueryParams } from '../../../hooks/useQueryParams';
 
-const useStyles = makeStyles(theme => ({
-  verticalTabWrapper: {
-    height: '100%',
-    minHeight: 500,
-  },
-  contentRoot: {
-    marginTop: -theme.spacing(2),
-  },
-}));
-
-const SUB_TABS: TabItemData[] = [
-  { id: SCOPE_CLUSTER, label: 'Cluster', icon: <PublicIcon /> },
-  {
-    id: SCOPE_NAMESPACE,
-    label: 'Namespace',
-    icon: <FolderIcon />,
-  },
-];
-
-interface MappingsTabProps {
-  initialTab?: string;
-  onTabChange?: (tabId: string, replace?: boolean) => void;
-}
-
-export const MappingsTab = ({ initialTab, onTabChange }: MappingsTabProps) => {
-  const classes = useStyles();
-  const [activeTab, setActiveTab] = useUrlSyncedTab({
-    initialTab,
-    defaultTab: SCOPE_CLUSTER,
-    onTabChange,
+export const MappingsTab = () => {
+  const [params, setParams] = useQueryParams({
+    scope: { defaultValue: SCOPE_CLUSTER },
   });
+  const scope = (params.scope as BindingScope) ?? SCOPE_CLUSTER;
+  const setScope = (value: BindingScope) => setParams({ scope: value });
+  const [selectedNamespace, setSelectedNamespace] = useState('');
+  const actionsRef = useRef<HTMLDivElement>(null);
 
   return (
-    <Box className={classes.verticalTabWrapper}>
-      <VerticalTabNav
-        tabs={SUB_TABS}
-        activeTabId={activeTab}
-        onChange={setActiveTab}
+    <Box>
+      <Box
+        display="flex"
+        alignItems="center"
+        style={{ gap: 16, marginBottom: 16 }}
       >
-        <Box className={classes.contentRoot}>
-          {activeTab === SCOPE_CLUSTER && <ClusterRoleBindingsContent />}
-          {activeTab === SCOPE_NAMESPACE && <NamespaceRoleBindingsContent />}
-        </Box>
-      </VerticalTabNav>
+        <ScopeDropdown
+          value={scope}
+          onChange={setScope}
+          clusterLabel="Cluster Role Bindings"
+          namespaceLabel="Namespace Role Bindings"
+        />
+        {scope === SCOPE_NAMESPACE && (
+          <NamespaceSelector
+            value={selectedNamespace}
+            onChange={setSelectedNamespace}
+          />
+        )}
+        <Box flexGrow={1} />
+        <div
+          ref={actionsRef}
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+        />
+      </Box>
+      {scope === SCOPE_CLUSTER && (
+        <ClusterRoleBindingsContent actionsContainerRef={actionsRef} />
+      )}
+      {scope === SCOPE_NAMESPACE && (
+        <NamespaceRoleBindingsContent
+          selectedNamespace={selectedNamespace}
+          actionsContainerRef={actionsRef}
+        />
+      )}
     </Box>
   );
 };

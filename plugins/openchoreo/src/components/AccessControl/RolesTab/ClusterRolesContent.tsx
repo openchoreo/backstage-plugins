@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import {
-  Typography,
   Button,
   Box,
   IconButton,
   Tooltip,
+  Typography,
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
@@ -21,23 +22,19 @@ import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 const useStyles = makeStyles(theme => ({
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing(3),
-  },
-  headerActions: {
-    display: 'flex',
-    gap: theme.spacing(1),
-  },
   emptyState: {
     textAlign: 'center',
     padding: theme.spacing(4),
   },
 }));
 
-export const ClusterRolesContent = () => {
+interface ClusterRolesContentProps {
+  actionsContainerRef: RefObject<HTMLDivElement>;
+}
+
+export const ClusterRolesContent = ({
+  actionsContainerRef,
+}: ClusterRolesContentProps) => {
   const classes = useStyles();
   const notification = useNotification();
   const {
@@ -167,30 +164,33 @@ export const ClusterRolesContent = () => {
     );
   }
 
+  const actionButtons = (
+    <>
+      <IconButton onClick={fetchRoles} size="small" title="Refresh">
+        <RefreshIcon />
+      </IconButton>
+      <Tooltip title={createDeniedTooltip}>
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={handleCreateRole}
+            disabled={!canCreate}
+          >
+            New Cluster Role
+          </Button>
+        </span>
+      </Tooltip>
+    </>
+  );
+
   return (
     <Box>
       <NotificationBanner notification={notification.notification} />
-      <Box className={classes.header}>
-        <Typography variant="h5">Cluster Roles</Typography>
-        <Box className={classes.headerActions}>
-          <IconButton onClick={fetchRoles} size="small" title="Refresh">
-            <RefreshIcon />
-          </IconButton>
-          <Tooltip title={createDeniedTooltip}>
-            <span>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleCreateRole}
-                disabled={!canCreate}
-              >
-                New Cluster Role
-              </Button>
-            </span>
-          </Tooltip>
-        </Box>
-      </Box>
+      {actionsContainerRef.current &&
+        createPortal(actionButtons, actionsContainerRef.current)}
 
       <RolesTable
         roles={roles}

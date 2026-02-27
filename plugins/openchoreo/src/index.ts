@@ -10,6 +10,8 @@ export {
   DeploymentPipelineCard,
   AccessControlPage,
 } from './plugin';
+export { AccessControlContent } from './components/AccessControl';
+export { GitSecretsContent } from './components/GitSecrets';
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
 export { ProjectComponentsCard } from './components/Projects/ProjectComponentsCard';
