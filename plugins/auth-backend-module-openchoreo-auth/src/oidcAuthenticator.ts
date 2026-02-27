@@ -14,7 +14,6 @@ import {
   isTokenExpired,
   getTimeUntilExpiry,
   verifyAndDecodeJwt,
-  deriveJwksUrl,
 } from './jwtUtils';
 import syncFetch from 'sync-fetch';
 
@@ -162,9 +161,15 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
     let authorizationURL = config.getOptionalString('authorizationUrl');
     let tokenURL = config.getOptionalString('tokenUrl');
 
-    // If metadataUrl is provided, try OIDC discovery
-    if (metadataUrl) {
-      const discovered = fetchOIDCDiscoverySync(metadataUrl);
+    // Try OIDC discovery: use explicit metadataUrl, or derive from tokenUrl
+    const discoveryUrl =
+      metadataUrl ??
+      (tokenURL
+        ? `${new URL(tokenURL).origin}/.well-known/openid-configuration`
+        : undefined);
+
+    if (discoveryUrl) {
+      const discovered = fetchOIDCDiscoverySync(discoveryUrl);
 
       if (discovered) {
         // Use discovered endpoints, but explicit URLs take precedence if provided
@@ -185,8 +190,8 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       );
     }
 
-    // Store trusted JWKS URL from discovery or derived from tokenURL
-    trustedJwksUrl = discoveryCache?.jwks_uri ?? deriveJwksUrl(tokenURL);
+    // Use jwks_uri from discovery; JWKS verification is skipped if unavailable
+    trustedJwksUrl = discoveryCache?.jwks_uri ?? null;
 
     const strategy = new OAuth2Strategy(
       {
