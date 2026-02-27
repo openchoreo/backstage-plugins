@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, type FC } from 'react';
 import { Box, Typography } from '@material-ui/core';
-import { Entity } from '@backstage/catalog-model';
 import { ResourceTreeEdge } from './ResourceTreeEdge';
 import { ResourceTreeNode } from './ResourceTreeNode';
 import { ResourceDetailPanel } from './ResourceDetailPanel';
@@ -14,16 +13,16 @@ interface ResourceTreeViewProps {
   releaseData: ReleaseData;
   resourceTreeData: ResourceTreeData;
   releaseBindingData: Record<string, unknown> | null;
-  entity: Entity;
-  environmentName: string;
+  namespaceName: string;
+  releaseBindingName: string;
 }
 
 export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   releaseData,
   resourceTreeData,
   releaseBindingData,
-  entity,
-  environmentName,
+  namespaceName,
+  releaseBindingName,
 }) => {
   const classes = useTreeStyles();
   const [selectedNode, setSelectedNode] = useState<LayoutNode | null>(null);
@@ -95,8 +94,8 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
         onClose={() => setSelectedNode(null)}
         releaseData={releaseData}
         releaseBindingData={releaseBindingData}
-        entity={entity}
-        environmentName={environmentName}
+        namespaceName={namespaceName}
+        releaseBindingName={releaseBindingName}
       />
     </Box>
   );

@@ -1211,28 +1211,24 @@ export class EnvironmentInfoService implements EnvironmentService {
   }
 
   /**
-   * Fetches the resource tree for a specific environment release.
-   * Returns hierarchical resource data with parentRefs for tree visualization.
+   * Fetches the resource tree for a specific release binding.
+   * Returns hierarchical resource data grouped by releases for tree visualization.
    *
    * @param {Object} request - The request parameters
-   * @param {string} request.componentName - Name of the component
-   * @param {string} request.projectName - Name of the project containing the component
    * @param {string} request.namespaceName - Name of the namespace
-   * @param {string} request.environmentName - Name of the environment
-   * @returns {Promise<any>} Resource tree data with nodes and parentRefs
+   * @param {string} request.releaseBindingName - Name of the release binding
+   * @returns {Promise<any>} Resource tree data with releases and nodes
    */
   async fetchResourceTree(
     request: {
-      componentName: string;
-      projectName: string;
       namespaceName: string;
-      environmentName: string;
+      releaseBindingName: string;
     },
     token?: string,
   ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Fetching resource tree for component ${request.componentName} in environment ${request.environmentName}`,
+      `Fetching resource tree for release binding ${request.releaseBindingName} in namespace ${request.namespaceName}`,
     );
 
     try {
@@ -1243,14 +1239,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/tree',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-              environmentName: request.environmentName,
+              releaseBindingName: request.releaseBindingName,
             },
           },
         },
@@ -1264,14 +1258,14 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Resource tree fetched for ${request.componentName} in ${request.environmentName}: Total: ${totalTime}ms`,
+        `Resource tree fetched for release binding ${request.releaseBindingName}: Total: ${totalTime}ms`,
       );
 
       return data;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching resource tree for ${request.componentName} in ${request.environmentName} (${totalTime}ms):`,
+        `Error fetching resource tree for release binding ${request.releaseBindingName} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
@@ -1280,20 +1274,18 @@ export class EnvironmentInfoService implements EnvironmentService {
 
   async fetchResourceEvents(
     request: {
-      componentName: string;
-      projectName: string;
       namespaceName: string;
-      environmentName: string;
+      releaseBindingName: string;
+      group: string;
+      version: string;
       kind: string;
       name: string;
-      namespace?: string;
-      uid?: string;
     },
     token?: string,
   ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Fetching resource events for ${request.kind}/${request.name} in environment ${request.environmentName}`,
+      `Fetching resource events for ${request.kind}/${request.name} in release binding ${request.releaseBindingName}`,
     );
 
     try {
@@ -1304,20 +1296,18 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/events',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-              environmentName: request.environmentName,
+              releaseBindingName: request.releaseBindingName,
             },
             query: {
+              ...(request.group ? { group: request.group } : {}),
+              version: request.version,
               kind: request.kind,
               name: request.name,
-              namespace: request.namespace,
-              uid: request.uid,
             },
           },
         },
@@ -1331,14 +1321,14 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Resource events fetched for ${request.kind}/${request.name} in ${request.environmentName}: Total: ${totalTime}ms`,
+        `Resource events fetched for ${request.kind}/${request.name} in release binding ${request.releaseBindingName}: Total: ${totalTime}ms`,
       );
 
       return data;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching resource events for ${request.kind}/${request.name} in ${request.environmentName} (${totalTime}ms):`,
+        `Error fetching resource events for ${request.kind}/${request.name} in release binding ${request.releaseBindingName} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
@@ -1347,20 +1337,16 @@ export class EnvironmentInfoService implements EnvironmentService {
 
   async fetchPodLogs(
     request: {
-      componentName: string;
-      projectName: string;
       namespaceName: string;
-      environmentName: string;
-      name: string;
-      namespace?: string;
-      container?: string;
+      releaseBindingName: string;
+      podName: string;
       sinceSeconds?: number;
     },
     token?: string,
   ) {
     const startTime = Date.now();
     this.logger.debug(
-      `Fetching pod logs for ${request.name} in environment ${request.environmentName}`,
+      `Fetching pod logs for ${request.podName} in release binding ${request.releaseBindingName}`,
     );
 
     try {
@@ -1371,19 +1357,15 @@ export class EnvironmentInfoService implements EnvironmentService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs',
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/logs',
         {
           params: {
             path: {
               namespaceName: request.namespaceName,
-              projectName: request.projectName,
-              componentName: request.componentName,
-              environmentName: request.environmentName,
+              releaseBindingName: request.releaseBindingName,
             },
             query: {
-              name: request.name,
-              namespace: request.namespace ?? '',
-              container: request.container,
+              podName: request.podName,
               sinceSeconds: request.sinceSeconds,
             },
           },
@@ -1398,14 +1380,14 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Pod logs fetched for ${request.name} in ${request.environmentName}: Total: ${totalTime}ms`,
+        `Pod logs fetched for ${request.podName} in release binding ${request.releaseBindingName}: Total: ${totalTime}ms`,
       );
 
       return data;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching pod logs for ${request.name} in ${request.environmentName} (${totalTime}ms):`,
+        `Error fetching pod logs for ${request.podName} in release binding ${request.releaseBindingName} (${totalTime}ms):`,
         error as Error,
       );
       throw error;

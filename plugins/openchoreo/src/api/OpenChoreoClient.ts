@@ -58,7 +58,7 @@ const API_ENDPOINTS = {
   RELEASE_BINDINGS: '/release-bindings',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   ENVIRONMENT_RELEASE: '/environment-release',
-  RESOURCE_TREE: '/resources',
+  RESOURCE_TREE: '/resourcetree',
   RESOURCE_EVENTS: '/resource-events',
   POD_LOGS: '/pod-logs',
   WORKFLOW_SCHEMA: '/workflow-schema',
@@ -382,74 +382,55 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   }
 
   async fetchResourceTree(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
   ): Promise<any> {
-    const metadata = extractEntityMetadata(entity);
-
     return this.apiFetch(API_ENDPOINTS.RESOURCE_TREE, {
       params: {
-        ...entityMetadataToParams(metadata),
-        environmentName,
+        namespaceName,
+        releaseBindingName,
       },
     });
   }
 
   async fetchResourceEvents(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     resourceParams: {
+      group: string;
+      version: string;
       kind: string;
       name: string;
-      namespace?: string;
-      uid?: string;
     },
   ): Promise<ResourceEventsResponse> {
-    const metadata = extractEntityMetadata(entity);
-    const filteredResourceParams = Object.entries(resourceParams).reduce<
-      Record<string, string>
-    >((params, [key, value]) => {
-      if (value !== undefined) {
-        params[key] = value;
-      }
-      return params;
-    }, {});
-
     return this.apiFetch<ResourceEventsResponse>(
       API_ENDPOINTS.RESOURCE_EVENTS,
       {
         params: {
-          ...entityMetadataToParams(metadata),
-          environmentName,
-          ...filteredResourceParams,
+          namespaceName,
+          releaseBindingName,
+          group: resourceParams.group,
+          version: resourceParams.version,
+          kind: resourceParams.kind,
+          name: resourceParams.name,
         },
       },
     );
   }
 
   async fetchPodLogs(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     params: {
-      name: string;
-      namespace?: string;
-      container?: string;
+      podName: string;
       sinceSeconds?: number;
     },
   ): Promise<PodLogsResponse> {
-    const metadata = extractEntityMetadata(entity);
-
     const queryParams: Record<string, string> = {
-      ...entityMetadataToParams(metadata),
-      environmentName,
-      name: params.name,
+      namespaceName,
+      releaseBindingName,
+      podName: params.podName,
     };
-    if (params.namespace) {
-      queryParams.namespace = params.namespace;
-    }
-    if (params.container) {
-      queryParams.container = params.container;
-    }
     if (params.sinceSeconds !== undefined) {
       queryParams.sinceSeconds = params.sinceSeconds.toString();
     }

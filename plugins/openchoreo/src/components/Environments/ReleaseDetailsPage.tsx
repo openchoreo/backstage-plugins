@@ -3,6 +3,7 @@ import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { ResourceTreeView } from './ReleaseDataRenderer/ResourceTreeView';
@@ -63,6 +64,9 @@ export const ReleaseDetailsPage = ({
 
   const environmentName = environment.resourceName || environment.name;
 
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+
   const loadReleaseData = useCallback(async () => {
     if (!environmentName) return;
 
@@ -70,20 +74,15 @@ export const ReleaseDetailsPage = ({
     setError(null);
 
     try {
-      const [releaseResult, resourceTreeResult, releaseBindingsResult] =
-        await Promise.all([
-          client.fetchEnvironmentRelease(entity, environmentName),
-          client.fetchResourceTree(entity, environmentName).catch(() => ({
-            success: false,
-            data: { nodes: [] },
-          })),
-          client.fetchReleaseBindings(entity).catch(() => ({
-            success: false,
-            data: { items: [] },
-          })),
-        ]);
+      // Fetch release data and release bindings in parallel
+      const [releaseResult, releaseBindingsResult] = await Promise.all([
+        client.fetchEnvironmentRelease(entity, environmentName),
+        client.fetchReleaseBindings(entity).catch(() => ({
+          success: false,
+          data: { items: [] },
+        })),
+      ]);
       setReleaseData(releaseResult);
-      setResourceTreeData(resourceTreeResult);
 
       // Find the release binding matching this environment
       // Handle both legacy format ({ success, data: { items } }) and new API format ({ items })
@@ -96,12 +95,25 @@ export const ReleaseDetailsPage = ({
             (b.environment ?? b.spec?.environment) === environmentName,
         ) ?? null;
       setReleaseBindingData(matchingBinding);
+
+      // Fetch resource tree using the matched binding name
+      const bindingName =
+        matchingBinding?.name ??
+        (matchingBinding?.metadata as Record<string, unknown>)?.name;
+      if (bindingName && namespaceName) {
+        const resourceTreeResult = await client
+          .fetchResourceTree(namespaceName, bindingName as string)
+          .catch(() => ({ releases: [] }));
+        setResourceTreeData(resourceTreeResult);
+      } else {
+        setResourceTreeData({ releases: [] });
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load release details');
     } finally {
       setLoading(false);
     }
-  }, [environmentName, entity, client]);
+  }, [environmentName, namespaceName, entity, client]);
 
   useEffect(() => {
     loadReleaseData();
@@ -147,8 +159,13 @@ export const ReleaseDetailsPage = ({
           releaseData={releaseData}
           resourceTreeData={resourceTreeData}
           releaseBindingData={releaseBindingData}
-          entity={entity}
-          environmentName={environmentName}
+          namespaceName={namespaceName}
+          releaseBindingName={
+            (releaseBindingData as any)?.name ??
+            ((releaseBindingData as any)?.metadata as Record<string, unknown>)
+              ?.name ??
+            ''
+          }
         />
       )}
 

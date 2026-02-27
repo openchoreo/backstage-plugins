@@ -134,6 +134,15 @@ export const useTreeStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
     marginTop: 1,
   },
+  nodeSubtitle: {
+    fontSize: '0.65rem',
+    fontWeight: 400,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: theme.palette.text.disabled,
+    fontStyle: 'normal',
+  },
   healthDotContainer: {
     position: 'absolute' as const,
     right: 10,

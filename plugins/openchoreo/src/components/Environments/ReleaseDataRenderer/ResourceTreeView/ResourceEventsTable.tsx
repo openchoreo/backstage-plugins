@@ -12,7 +12,6 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
-import { Entity } from '@backstage/catalog-model';
 import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import type { ResourceEvent } from '../../../../api/OpenChoreoClientApi';
 import type { LayoutNode } from './treeTypes';
@@ -20,8 +19,8 @@ import { useTreeStyles } from './treeStyles';
 
 interface ResourceEventsTableProps {
   node: LayoutNode;
-  entity: Entity;
-  environmentName: string;
+  namespaceName: string;
+  releaseBindingName: string;
   refreshKey?: number;
 }
 
@@ -79,8 +78,8 @@ function formatRelativeTime(timestamp: string): string {
 
 export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
   node,
-  entity,
-  environmentName,
+  namespaceName,
+  releaseBindingName,
   refreshKey,
 }) => {
   const treeClasses = useTreeStyles();
@@ -100,13 +99,13 @@ export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
 
       try {
         const response = await client.fetchResourceEvents(
-          entity,
-          environmentName,
+          namespaceName,
+          releaseBindingName,
           {
+            group: node.group ?? '',
+            version: node.version ?? '',
             kind: node.kind,
             name: node.name,
-            namespace: node.namespace,
-            uid: node.uid,
           },
         );
 
@@ -139,12 +138,12 @@ export const ResourceEventsTable: FC<ResourceEventsTableProps> = ({
     };
   }, [
     client,
-    entity,
-    environmentName,
+    namespaceName,
+    releaseBindingName,
     node.kind,
     node.name,
-    node.namespace,
-    node.uid,
+    node.group,
+    node.version,
     refreshKey,
   ]);
 

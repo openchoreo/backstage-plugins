@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, type FC } from 'react';
 import { Box, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
-import { Entity } from '@backstage/catalog-model';
 import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import type { PodLogEntry } from '../../../../api/OpenChoreoClientApi';
 import type { LayoutNode } from './treeTypes';
@@ -10,8 +9,8 @@ import { useTreeStyles } from './treeStyles';
 
 interface ResourcePodLogsViewerProps {
   node: LayoutNode;
-  entity: Entity;
-  environmentName: string;
+  namespaceName: string;
+  releaseBindingName: string;
   refreshKey?: number;
 }
 
@@ -56,8 +55,8 @@ function formatLogTimestamp(timestamp: string): string {
 
 export const ResourcePodLogsViewer: FC<ResourcePodLogsViewerProps> = ({
   node,
-  entity,
-  environmentName,
+  namespaceName,
+  releaseBindingName,
   refreshKey,
 }) => {
   const treeClasses = useTreeStyles();
@@ -77,11 +76,14 @@ export const ResourcePodLogsViewer: FC<ResourcePodLogsViewerProps> = ({
       setError(null);
 
       try {
-        const response = await client.fetchPodLogs(entity, environmentName, {
-          name: node.name,
-          namespace: node.namespace,
-          sinceSeconds: 3600,
-        });
+        const response = await client.fetchPodLogs(
+          namespaceName,
+          releaseBindingName,
+          {
+            podName: node.name,
+            sinceSeconds: 3600,
+          },
+        );
 
         if (!cancelled) {
           const responseData = (response as any)?.data ?? response;
@@ -103,7 +105,7 @@ export const ResourcePodLogsViewer: FC<ResourcePodLogsViewerProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [client, entity, environmentName, node.name, node.namespace, refreshKey]);
+  }, [client, namespaceName, releaseBindingName, node.name, refreshKey]);
 
   // Auto-scroll to bottom on initial load
   useEffect(() => {

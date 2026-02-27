@@ -1118,66 +1118,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get release resource tree
-     * @description Returns all live Kubernetes resources deployed by the active release for a component in an environment, including child resources like Pods.
-     */
-    get: operations['getReleaseResourceTree'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get resource events
-     * @description Returns Kubernetes events for a specific resource in the release resource tree.
-     */
-    get: operations['getReleaseResourceEvents'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get pod logs
-     * @description Returns logs for a specific pod in the release resource tree.
-     */
-    get: operations['getReleaseResourcePodLogs'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/namespaces/{namespaceName}/components/{componentName}/deploy': {
     parameters: {
       query?: never;
@@ -1817,6 +1757,66 @@ export interface paths {
      * @description Deletes a release binding by name.
      */
     delete: operations['deleteReleaseBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/tree': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get K8s resource tree for a release binding
+     * @description Returns a hierarchical view of all live Kubernetes resources deployed by the releases owned by this release binding, including child resources (ReplicaSets, Pods, Jobs).
+     */
+    get: operations['getReleaseBindingK8sResourceTree'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get K8s resource events for a release binding
+     * @description Returns Kubernetes events for a specific resource in the release binding's resource tree.
+     */
+    get: operations['getReleaseBindingK8sResourceEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get pod logs for a release binding
+     * @description Returns logs for a specific pod in the release binding's resource tree.
+     */
+    get: operations['getReleaseBindingK8sResourceLogs'];
+    put?: never;
+    post?: never;
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
@@ -3935,8 +3935,20 @@ export interface components {
       };
       health?: components['schemas']['HealthInfo'];
     };
-    /** @description Response containing the resource tree for a release */
-    ResourceTreeResponse: {
+    /** @description Response containing resource trees for all releases owned by a release binding */
+    K8sResourceTreeResponse: {
+      /** @description Resource trees per release (dataplane and/or observabilityplane) */
+      releases: components['schemas']['ReleaseResourceTree'][];
+    };
+    /** @description Resource tree for a single release */
+    ReleaseResourceTree: {
+      /** @description Name of the release */
+      name: string;
+      /**
+       * @description Target plane of the release
+       * @enum {string}
+       */
+      targetPlane: 'dataplane' | 'observabilityplane';
       /** @description All resource nodes in the tree */
       nodes: components['schemas']['ResourceNode'][];
     };
@@ -7965,125 +7977,6 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  getReleaseResourceTree: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Project name */
-        projectName: components['parameters']['ProjectNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-        /** @description Environment name for component-scoped operations */
-        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Resource tree for the active release */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourceTreeResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getReleaseResourceEvents: {
-    parameters: {
-      query: {
-        /** @description Kind of the resource */
-        kind: string;
-        /** @description Name of the resource */
-        name: string;
-        /** @description Namespace of the resource */
-        namespace?: string;
-        /** @description UID of the resource for precise event matching */
-        uid?: string;
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Project name */
-        projectName: components['parameters']['ProjectNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-        /** @description Environment name for component-scoped operations */
-        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Events for the specified resource */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourceEventsResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getReleaseResourcePodLogs: {
-    parameters: {
-      query: {
-        /** @description Name of the pod */
-        name: string;
-        /** @description Namespace of the pod */
-        namespace: string;
-        /** @description Specific container name to get logs from */
-        container?: string;
-        /** @description Only return logs newer than this many seconds */
-        sinceSeconds?: number;
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Project name */
-        projectName: components['parameters']['ProjectNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-        /** @description Environment name for component-scoped operations */
-        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Logs for the specified pod */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourcePodLogsResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
   deployRelease: {
     parameters: {
       query?: never;
@@ -9588,6 +9481,110 @@ export interface operations {
         };
         content?: never;
       };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBindingK8sResourceTree: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description K8s resource tree */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['K8sResourceTreeResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBindingK8sResourceEvents: {
+    parameters: {
+      query: {
+        /** @description API group of the resource (empty string or omitted for core resources) */
+        group?: string;
+        /** @description API version of the resource (e.g. v1) */
+        version: string;
+        /** @description Kind of the resource */
+        kind: string;
+        /** @description Name of the resource */
+        name: string;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceEventsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBindingK8sResourceLogs: {
+    parameters: {
+      query: {
+        /** @description Name of the pod */
+        podName: string;
+        /** @description Number of seconds since which to show logs */
+        sinceSeconds?: number;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Pod logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourcePodLogsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];

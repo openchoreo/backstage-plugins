@@ -8,7 +8,6 @@ import {
   Chip,
 } from '@material-ui/core';
 import CloseIcon from '@material-ui/icons/Close';
-import { Entity } from '@backstage/catalog-model';
 import { ResourceKindIcon } from './ResourceKindIcon';
 import { ResourceDetailTabs } from './ResourceDetailTabs';
 import { ReleaseBindingDetailTabs } from './ReleaseBindingDetailTabs';
@@ -23,8 +22,8 @@ interface ResourceDetailPanelProps {
   onClose: () => void;
   releaseData: ReleaseData;
   releaseBindingData: Record<string, unknown> | null;
-  entity: Entity;
-  environmentName: string;
+  namespaceName: string;
+  releaseBindingName: string;
 }
 
 export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
@@ -32,8 +31,8 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
   onClose,
   releaseData,
   releaseBindingData,
-  entity,
-  environmentName,
+  namespaceName,
+  releaseBindingName,
 }) => {
   const classes = useTreeStyles();
   const releaseClasses = useReleaseInfoStyles();
@@ -85,17 +84,36 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
 
           <Divider />
 
-          {/* Content: root summary/definition tabs or resource tabs */}
-          {node.isRoot ? (
+          {/* Content: root summary/definition tabs, release summary, or resource tabs */}
+          {node.isRoot && (
             <ReleaseBindingDetailTabs
               releaseData={releaseData}
               releaseBindingData={releaseBindingData}
             />
-          ) : (
+          )}
+          {!node.isRoot && node.kind === 'Release' && (
+            <Box padding={2}>
+              <Typography variant="subtitle2" gutterBottom>
+                Release Name
+              </Typography>
+              <Typography variant="body2" gutterBottom>
+                {node.name}
+              </Typography>
+              <Typography
+                variant="subtitle2"
+                gutterBottom
+                style={{ marginTop: 16 }}
+              >
+                Target Plane
+              </Typography>
+              <Typography variant="body2">{node.version}</Typography>
+            </Box>
+          )}
+          {!node.isRoot && node.kind !== 'Release' && (
             <ResourceDetailTabs
               node={node}
-              entity={entity}
-              environmentName={environmentName}
+              namespaceName={namespaceName}
+              releaseBindingName={releaseBindingName}
             />
           )}
         </Box>

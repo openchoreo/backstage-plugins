@@ -402,29 +402,30 @@ export interface OpenChoreoClientApi {
     environmentName: string,
   ): Promise<any>;
 
-  /** Fetch resource tree for a specific environment */
-  fetchResourceTree(entity: Entity, environmentName: string): Promise<any>;
+  /** Fetch resource tree for a specific release binding */
+  fetchResourceTree(
+    namespaceName: string,
+    releaseBindingName: string,
+  ): Promise<any>;
 
   /** Fetch Kubernetes events for a specific resource */
   fetchResourceEvents(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     resourceParams: {
+      group: string;
+      version: string;
       kind: string;
       name: string;
-      namespace?: string;
-      uid?: string;
     },
   ): Promise<ResourceEventsResponse>;
 
   /** Fetch pod logs for a specific pod resource */
   fetchPodLogs(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     params: {
-      name: string;
-      namespace?: string;
-      container?: string;
+      podName: string;
       sinceSeconds?: number;
     },
   ): Promise<PodLogsResponse>;

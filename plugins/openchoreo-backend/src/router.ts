@@ -808,13 +808,12 @@ export async function createRouter({
     );
   });
 
-  router.get('/resources', async (req, res) => {
-    const { componentName, projectName, namespaceName, environmentName } =
-      req.query;
+  router.get('/resourcetree', async (req, res) => {
+    const { namespaceName, releaseBindingName } = req.query;
 
-    if (!componentName || !projectName || !namespaceName || !environmentName) {
+    if (!namespaceName || !releaseBindingName) {
       throw new InputError(
-        'componentName, projectName, namespaceName and environmentName are required query parameters',
+        'namespaceName and releaseBindingName are required query parameters',
       );
     }
 
@@ -823,10 +822,8 @@ export async function createRouter({
     res.json(
       await environmentInfoService.fetchResourceTree(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
           namespaceName: namespaceName as string,
-          environmentName: environmentName as string,
+          releaseBindingName: releaseBindingName as string,
         },
         userToken,
       ),
@@ -834,27 +831,20 @@ export async function createRouter({
   });
 
   router.get('/resource-events', requireAuth, async (req, res) => {
-    const {
-      componentName,
-      projectName,
-      namespaceName,
-      environmentName,
-      kind,
-      name,
-      namespace,
-      uid,
-    } = req.query;
+    const { namespaceName, releaseBindingName, group, version, kind, name } =
+      req.query;
 
     if (
-      !componentName ||
-      !projectName ||
       !namespaceName ||
-      !environmentName ||
+      !releaseBindingName ||
+      group === undefined ||
+      group === null ||
+      !version ||
       !kind ||
       !name
     ) {
       throw new InputError(
-        'componentName, projectName, namespaceName, environmentName, kind and name are required query parameters',
+        'namespaceName, releaseBindingName, group, version, kind and name are required query parameters',
       );
     }
 
@@ -863,14 +853,12 @@ export async function createRouter({
     res.json(
       await environmentInfoService.fetchResourceEvents(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
           namespaceName: namespaceName as string,
-          environmentName: environmentName as string,
+          releaseBindingName: releaseBindingName as string,
+          group: group as string,
+          version: version as string,
           kind: kind as string,
           name: name as string,
-          namespace: namespace as string | undefined,
-          uid: uid as string | undefined,
         },
         userToken,
       ),
@@ -878,25 +866,11 @@ export async function createRouter({
   });
 
   router.get('/pod-logs', requireAuth, async (req, res) => {
-    const {
-      componentName,
-      projectName,
-      namespaceName,
-      environmentName,
-      name,
-      namespace,
-      container,
-      sinceSeconds,
-    } = req.query;
-    if (
-      !componentName ||
-      !projectName ||
-      !namespaceName ||
-      !environmentName ||
-      !name
-    ) {
+    const { namespaceName, releaseBindingName, podName, sinceSeconds } =
+      req.query;
+    if (!namespaceName || !releaseBindingName || !podName) {
       throw new InputError(
-        'componentName, projectName, namespaceName, environmentName and name are required query parameters',
+        'namespaceName, releaseBindingName and podName are required query parameters',
       );
     }
     const userToken = getUserTokenFromRequest(req);
@@ -911,13 +885,9 @@ export async function createRouter({
     res.json(
       await environmentInfoService.fetchPodLogs(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
           namespaceName: namespaceName as string,
-          environmentName: environmentName as string,
-          name: name as string,
-          namespace: namespace as string | undefined,
-          container: container as string | undefined,
+          releaseBindingName: releaseBindingName as string,
+          podName: podName as string,
           sinceSeconds: sinceSecondsValue,
         },
         userToken,

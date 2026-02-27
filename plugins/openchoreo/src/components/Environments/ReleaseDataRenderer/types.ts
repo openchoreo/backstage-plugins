@@ -76,8 +76,12 @@ export interface ResourceTreeNode {
   parentRefs?: ResourceTreeParentRef[];
 }
 
+export interface ReleaseTreeRelease {
+  name: string;
+  targetPlane: string;
+  nodes: ResourceTreeNode[];
+}
+
 export interface ResourceTreeData {
-  success?: boolean;
-  data?: { nodes?: ResourceTreeNode[] };
-  nodes?: ResourceTreeNode[];
+  releases?: ReleaseTreeRelease[];
 }

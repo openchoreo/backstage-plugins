@@ -1,5 +1,10 @@
 import dagre from '@dagrejs/dagre';
-import type { ReleaseData, ResourceTreeData, ResourceTreeNode } from '../types';
+import type {
+  ReleaseData,
+  ResourceTreeData,
+  ResourceTreeNode,
+  HealthStatus,
+} from '../types';
 import type {
   TreeNode,
   LayoutNode,
@@ -15,12 +20,29 @@ const ROOT_NODE_ID = '__release_binding__';
 export function getResourceTreeNodes(
   resourceTreeData?: ResourceTreeData | null,
 ): ResourceTreeNode[] {
-  return resourceTreeData?.data?.nodes ?? resourceTreeData?.nodes ?? [];
+  return resourceTreeData?.releases?.flatMap(r => r.nodes) ?? [];
+}
+
+/**
+ * Aggregate health from child nodes:
+ * - Degraded if any child is Degraded
+ * - Progressing if any child is Progressing
+ * - Healthy otherwise
+ */
+function aggregateHealth(nodes: ResourceTreeNode[]): HealthStatus {
+  let hasProgressing = false;
+  for (const node of nodes) {
+    const status = node.health?.status;
+    if (status === 'Degraded') return 'Degraded';
+    if (status === 'Progressing') hasProgressing = true;
+  }
+  return hasProgressing ? 'Progressing' : 'Healthy';
 }
 
 /**
  * Transform API release data and resource tree data into tree nodes.
  * Root node comes from releaseData; child hierarchy from resourceTreeData.
+ * When resourceTreeData contains `releases`, intermediate Release nodes are created.
  */
 export function buildTreeNodes(
   releaseData: ReleaseData,
@@ -86,27 +108,40 @@ export function buildTreeNodes(
     parentIds: [],
   });
 
-  // Build child nodes from resource tree data
-  const resourceNodes = getResourceTreeNodes(resourceTreeData);
-  for (const node of resourceNodes) {
-    const parentIds =
-      node.parentRefs && node.parentRefs.length > 0
-        ? node.parentRefs.map(ref => ref.uid)
-        : [ROOT_NODE_ID];
+  // Create intermediate Release nodes, then resource nodes per release
+  const releases = resourceTreeData?.releases ?? [];
+  for (const release of releases) {
+    const releaseNodeId = `__release__${release.name}`;
 
     nodes.push({
-      id: node.uid,
-      uid: node.uid,
-      kind: node.kind,
-      name: node.name,
-      namespace: node.namespace,
-      group: node.group,
-      version: node.version,
-      healthStatus: node.health?.status,
-      lastObservedTime: node.createdAt,
-      specObject: node.object,
-      parentIds,
+      id: releaseNodeId,
+      kind: 'Release',
+      name: release.name,
+      version: release.targetPlane,
+      healthStatus: aggregateHealth(release.nodes),
+      parentIds: [ROOT_NODE_ID],
     });
+
+    for (const node of release.nodes) {
+      const parentIds =
+        node.parentRefs && node.parentRefs.length > 0
+          ? node.parentRefs.map(ref => ref.uid)
+          : [releaseNodeId];
+
+      nodes.push({
+        id: node.uid,
+        uid: node.uid,
+        kind: node.kind,
+        name: node.name,
+        namespace: node.namespace,
+        group: node.group,
+        version: node.version,
+        healthStatus: node.health?.status,
+        lastObservedTime: node.createdAt,
+        specObject: node.object,
+        parentIds,
+      });
+    }
   }
 
   return nodes;
