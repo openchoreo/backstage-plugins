@@ -270,8 +270,10 @@ export class AuthzProfileService {
   ): Promise<void> {
     this.logger.debug(`Pre-caching capabilities for ${userEntityRef}`);
 
-    // Fetch capabilities from API
-    const capabilities = await this.getCapabilities(userToken);
+    // Always fetch fresh from the API, bypassing the token-hash cache.
+    // This ensures every session refresh picks up capability changes
+    // from the OC backend regardless of whether the access token changed.
+    const capabilities = await this.getCapabilitiesFromApi(userToken);
 
     this.logger.debug(
       `[PRE-CACHE] Capabilities for ${userEntityRef}: ${JSON.stringify(
@@ -281,10 +283,16 @@ export class AuthzProfileService {
       )}`,
     );
 
-    // Store by userEntityRef for permission policy lookups
     if (this.cache) {
       const ttlMs = getTtlFromToken(userToken);
+
+      // Update token-hash cache so subsequent getCapabilities() calls
+      // within this token's lifetime return the fresh data
+      await this.cache.set(userToken, 'global', capabilities, ttlMs);
+
+      // Update userEntityRef cache for permission policy lookups
       await this.cache.setByUser(userEntityRef, capabilities, ttlMs, 'global');
+
       this.logger.debug(
         `Successfully cached capabilities for ${userEntityRef} (TTL: ${ttlMs}ms)`,
       );
