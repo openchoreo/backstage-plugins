@@ -338,8 +338,16 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/components': okData({
           items: [k8sServiceComponent, k8sNonServiceComponent],
         }),
-        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}':
-          okData(k8sWorkload),
+        '/api/v1/namespaces/{namespaceName}/workloads': (
+          _path: string,
+          opts?: any,
+        ) => {
+          const comp = opts?.params?.query?.component;
+          if (comp === 'api-service') {
+            return okData({ items: [k8sWorkload] });
+          }
+          return okData({ items: [] });
+        },
         '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
           okData({ type: 'object', properties: {} }),
         '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
@@ -450,6 +458,136 @@ describe('OpenChoreoEntityProvider', () => {
     });
   });
 
+  describe('endpoint type filtering', () => {
+    it('filters out non-API endpoint types like HTTP', async () => {
+      const httpOnlyWorkload = {
+        metadata: k8sMeta('api-service'),
+        spec: {
+          endpoints: {
+            dashboard: { type: 'HTTP', port: 3000, visibility: ['external'] },
+          },
+        },
+      };
+
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/environments': okData({
+          items: [k8sEnvironment],
+        }),
+        '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
+          items: [k8sDataPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/buildplanes': okData({
+          items: [k8sBuildPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/observabilityplanes': okData({
+          items: [k8sObservabilityPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/projects': okData({
+          items: [k8sProject],
+        }),
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
+          items: [k8sPipeline],
+        }),
+        '/api/v1/namespaces/{namespaceName}/components': okData({
+          items: [k8sServiceComponent],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workloads': okData({
+          items: [httpOnlyWorkload],
+        }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
+          okData({ type: 'object', properties: {} }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
+          items: [k8sComponentType],
+        }),
+        '/api/v1/namespaces/{namespaceName}/traits': okData({
+          items: [k8sTrait],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workflows': okData({
+          items: [k8sWorkflow],
+        }),
+        '/api/v1/namespaces/{namespaceName}/component-workflows': okData({
+          items: [k8sComponentWorkflow],
+        }),
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+
+      const entities = await runProvider();
+
+      // HTTP endpoints should be filtered out — no API entities created
+      expect(findEntities(entities, 'API')).toHaveLength(0);
+
+      // The component should not have providesApis
+      const serviceComp = findEntities(entities, 'Component').find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect((serviceComp?.spec as any)?.providesApis ?? []).toHaveLength(0);
+    });
+
+    it('keeps REST, GraphQL, and gRPC endpoints while filtering others', async () => {
+      const mixedWorkload = {
+        metadata: k8sMeta('api-service'),
+        spec: {
+          endpoints: {
+            rest: { type: 'REST', port: 8080, visibility: ['external'] },
+            grpc: { type: 'gRPC', port: 9090, visibility: ['internal'] },
+            dashboard: { type: 'HTTP', port: 3000, visibility: ['external'] },
+            tcp: { type: 'TCP', port: 5000, visibility: ['internal'] },
+          },
+        },
+      };
+
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/environments': okData({
+          items: [k8sEnvironment],
+        }),
+        '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
+          items: [k8sDataPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/buildplanes': okData({
+          items: [k8sBuildPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/observabilityplanes': okData({
+          items: [k8sObservabilityPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/projects': okData({
+          items: [k8sProject],
+        }),
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
+          items: [k8sPipeline],
+        }),
+        '/api/v1/namespaces/{namespaceName}/components': okData({
+          items: [k8sServiceComponent],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workloads': okData({
+          items: [mixedWorkload],
+        }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
+          okData({ type: 'object', properties: {} }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
+          items: [k8sComponentType],
+        }),
+        '/api/v1/namespaces/{namespaceName}/traits': okData({
+          items: [k8sTrait],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workflows': okData({
+          items: [k8sWorkflow],
+        }),
+        '/api/v1/namespaces/{namespaceName}/component-workflows': okData({
+          items: [k8sComponentWorkflow],
+        }),
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+
+      const entities = await runProvider();
+
+      // Only REST and gRPC should produce API entities (not HTTP or TCP)
+      const apis = findEntities(entities, 'API');
+      expect(apis).toHaveLength(2);
+      const apiNames = apis.map(a => a.metadata.name).sort();
+      expect(apiNames).toEqual(['api-service-grpc', 'api-service-rest']);
+    });
+  });
+
   describe('pipeline deduplication', () => {
     it('creates single pipeline entity when multiple projects reference it', async () => {
       const project1 = {
@@ -500,8 +638,7 @@ describe('OpenChoreoEntityProvider', () => {
         '/api/v1/namespaces/{namespaceName}/components': okData({
           items: [k8sServiceComponent],
         }),
-        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}':
-          errorData(),
+        '/api/v1/namespaces/{namespaceName}/workloads': errorData(),
         '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
       });
 

@@ -63,6 +63,9 @@ interface WorkloadEndpoint {
     content?: string;
   };
 }
+
+/** Endpoint types that represent actual APIs and should be cataloged as Endpoint entities */
+const API_ENDPOINT_TYPES = new Set(['REST', 'GraphQL', 'gRPC']);
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
@@ -479,69 +482,48 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               // New API does not return deleted resources, no filtering needed
               for (const component of components) {
                 const componentName = getName(component)!;
-                const componentTypeRef = component.spec?.componentType;
-                const componentType =
-                  typeof componentTypeRef === 'string'
-                    ? componentTypeRef
-                    : componentTypeRef?.name ?? '';
 
-                // If the component is a Service (has endpoints), fetch workload
-                const pageVariant =
-                  this.componentTypeUtils.getPageVariant(componentType);
-                if (pageVariant === 'service') {
-                  try {
-                    const { data: workloadData, error: workloadError } =
-                      await client.GET(
-                        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
-                        {
-                          params: {
-                            path: {
-                              namespaceName: nsName,
-                              workloadName: componentName,
-                            },
-                          },
+                // Fetch workload to check for endpoints
+                try {
+                  const { data: workloadListData, error: workloadError } =
+                    await client.GET(
+                      '/api/v1/namespaces/{namespaceName}/workloads',
+                      {
+                        params: {
+                          path: { namespaceName: nsName },
+                          query: { component: componentName },
                         },
-                      );
-
-                    if (!workloadError && workloadData) {
-                      // Create component entity with providesApis
-                      const endpoints =
-                        this.extractWorkloadEndpoints(workloadData);
-                      const providesApis = Object.keys(endpoints).map(
-                        epName => `${componentName}-${epName}`,
-                      );
-
-                      const componentEntity =
-                        this.translateNewComponentToEntity(
-                          component,
-                          nsName,
-                          projectName,
-                          providesApis,
-                        );
-                      allEntities.push(componentEntity);
-
-                      // Create API entities from workload endpoints
-                      const apiEntities = this.createApiEntitiesFromNewWorkload(
-                        componentName,
-                        endpoints,
-                        nsName,
-                        projectName,
-                      );
-                      allEntities.push(...apiEntities);
-                    } else {
-                      // Workload not found — fallback to basic component entity
-                      const componentEntity =
-                        this.translateNewComponentToEntity(
-                          component,
-                          nsName,
-                          projectName,
-                        );
-                      allEntities.push(componentEntity);
-                    }
-                  } catch (error) {
-                    this.logger.warn(
-                      `Failed to fetch workload for component ${componentName}: ${error}`,
+                      },
                     );
+
+                  const workloadData = workloadListData?.items?.[0];
+                  const endpoints = workloadData
+                    ? this.extractWorkloadEndpoints(workloadData)
+                    : {};
+                  const hasEndpoints = Object.keys(endpoints).length > 0;
+
+                  if (!workloadError && hasEndpoints) {
+                    const providesApis = Object.keys(endpoints).map(
+                      epName => `${componentName}-${epName}`,
+                    );
+
+                    const componentEntity = this.translateNewComponentToEntity(
+                      component,
+                      nsName,
+                      projectName,
+                      providesApis,
+                    );
+                    allEntities.push(componentEntity);
+
+                    // Create API entities from workload endpoints
+                    const apiEntities = this.createApiEntitiesFromNewWorkload(
+                      componentName,
+                      endpoints,
+                      nsName,
+                      projectName,
+                    );
+                    allEntities.push(...apiEntities);
+                  } else {
                     const componentEntity = this.translateNewComponentToEntity(
                       component,
                       nsName,
@@ -549,8 +531,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     );
                     allEntities.push(componentEntity);
                   }
-                } else {
-                  // Create basic component entity for non-Service components
+                } catch (error) {
+                  this.logger.warn(
+                    `Failed to fetch workload for component ${componentName}: ${error}`,
+                  );
                   const componentEntity = this.translateNewComponentToEntity(
                     component,
                     nsName,
@@ -1769,7 +1753,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const spec = workload.spec as
       | { endpoints?: Record<string, WorkloadEndpoint> }
       | undefined;
-    return spec?.endpoints || {};
+    const allEndpoints = spec?.endpoints || {};
+    return Object.fromEntries(
+      Object.entries(allEndpoints).filter(([, ep]) =>
+        API_ENDPOINT_TYPES.has(ep.type),
+      ),
+    );
   }
 
   /**
