@@ -271,15 +271,14 @@ export const openChoreoAuthenticator = createOAuthAuthenticator({
       // Verify token signature against current JWKS
       // This catches stale tokens from a recreated IDP instance
       // Uses trusted JWKS URL from config/discovery, not the unverified token payload
-      try {
-        if (!trustedJwksUrl) {
-          throw new Error('JWKS URL not configured');
+      if (trustedJwksUrl) {
+        try {
+          await verifyAndDecodeJwt(accessToken, trustedJwksUrl);
+        } catch {
+          throw new Error(
+            'Access token signature verification failed, re-authentication required',
+          );
         }
-        await verifyAndDecodeJwt(accessToken, trustedJwksUrl);
-      } catch {
-        throw new Error(
-          'Access token signature verification failed, re-authentication required',
-        );
       }
 
       const timeUntilExpiry = getTimeUntilExpiry(payload);
