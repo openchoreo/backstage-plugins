@@ -910,9 +910,11 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       const releaseName = (data as any).metadata?.name;
       if (!releaseName) {
-        throw new Error(
-          'Component release created but no release name returned in response',
-        );
+        return {
+          success: false,
+          error:
+            'Component release was created but no release name was returned in the response',
+        };
       }
 
       return {
