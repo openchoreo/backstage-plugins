@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
@@ -196,26 +196,29 @@ export const GitSourceField = ({
     fetchSecrets();
   }, [fetchSecrets]);
 
-  // Prune hidden fields when visibility changes to avoid stale values in form data
+  // Prune hidden fields when visibility changes to avoid stale values in form data.
+  // Refs ensure we read current values without re-triggering the effect on every render.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   useEffect(() => {
     if (!visibleFields) return; // No annotation — all fields visible, nothing to prune
 
-    const pruned: Partial<GitSourceData> = {};
-    if (showRepoUrl) pruned.repo_url = data.repo_url;
-    if (showBranch) pruned.branch = data.branch;
-    if (showAppPath) pruned.component_path = data.component_path;
-    if (showSecretRef) pruned.git_secret_ref = data.git_secret_ref;
+    const visibleKeyCount = [showRepoUrl, showBranch, showAppPath, showSecretRef].filter(Boolean).length;
+    // All fields visible — nothing to prune
+    if (visibleKeyCount >= 4) return;
 
-    // Only call onChange if keys were actually removed
-    const currentKeys = Object.keys(data).filter(
-      k => data[k as keyof GitSourceData] !== undefined,
-    );
-    const prunedKeys = Object.keys(pruned);
-    if (currentKeys.length !== prunedKeys.length) {
-      onChange(pruned as GitSourceData);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showRepoUrl, showBranch, showAppPath, showSecretRef]);
+    const current = formDataRef.current;
+    const pruned: Partial<GitSourceData> = {};
+    if (showRepoUrl) pruned.repo_url = current?.repo_url ?? '';
+    if (showBranch) pruned.branch = current?.branch ?? 'main';
+    if (showAppPath) pruned.component_path = current?.component_path ?? '.';
+    if (showSecretRef) pruned.git_secret_ref = current?.git_secret_ref ?? '';
+
+    onChangeRef.current(pruned as GitSourceData);
+  }, [showRepoUrl, showBranch, showAppPath, showSecretRef, visibleFields]);
 
   const updateField = (field: keyof GitSourceData, value: string) => {
     onChange({ ...data, [field]: value });
