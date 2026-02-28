@@ -222,7 +222,7 @@ export const WorkloadConfigPage = ({
   }, [hasUnsavedWork, navigation, location.pathname]);
 
   const isFromSource = isFromSourceComponent(entity);
-  const hasImage = !!workloadSpec?.container?.image;
+  const hasImage = !!workloadSpec?.container?.image?.trim();
 
   const handleNext = async () => {
     if (!workloadSpec) {

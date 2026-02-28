@@ -310,6 +310,8 @@ function stripParametersPrefix(path: string): string {
  * Example: setNestedValue(obj, "repository.revision.branch", "main")
  * → obj.repository.revision.branch = "main"
  */
+const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
 function setNestedValue(
   obj: Record<string, any>,
   path: string,
@@ -320,13 +322,16 @@ function setNestedValue(
 
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
+    if (DANGEROUS_KEYS.has(part)) return;
     if (!current[part] || typeof current[part] !== 'object') {
-      current[part] = {};
+      current[part] = Object.create(null);
     }
     current = current[part];
   }
 
-  current[parts[parts.length - 1]] = value;
+  const lastKey = parts[parts.length - 1];
+  if (DANGEROUS_KEYS.has(lastKey)) return;
+  current[lastKey] = value;
 }
 
 /**

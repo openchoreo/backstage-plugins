@@ -73,26 +73,30 @@ export function useWorkflowsSummary() {
       const componentData = await componentResponse.json();
       let latestBuild: ModelsBuild | null = null;
 
-      if (runsResponse.ok) {
-        const result = await runsResponse.json();
-        const runs: ModelsBuild[] = (result.items || []).map((run: any) => ({
-          name: run.name,
-          uuid: run.uuid || '',
-          componentName:
-            run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
-          projectName:
-            run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
-          namespaceName: run.namespaceName,
-          status: run.status,
-          createdAt: run.createdAt,
-        }));
-        const sortedBuilds = [...runs].sort(
-          (a, b) =>
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime(),
+      if (!runsResponse.ok) {
+        throw new Error(
+          `Failed to fetch workflow runs: HTTP ${runsResponse.status}: ${runsResponse.statusText}`,
         );
-        latestBuild = sortedBuilds.length > 0 ? sortedBuilds[0] : null;
       }
+
+      const result = await runsResponse.json();
+      const runs: ModelsBuild[] = (result.items || []).map((run: any) => ({
+        name: run.name,
+        uuid: run.uuid || '',
+        componentName:
+          run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
+        projectName:
+          run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
+        namespaceName: run.namespaceName,
+        status: run.status,
+        createdAt: run.createdAt,
+      }));
+      const sortedBuilds = [...runs].sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime(),
+      );
+      latestBuild = sortedBuilds.length > 0 ? sortedBuilds[0] : null;
 
       setState(prev => ({
         ...prev,

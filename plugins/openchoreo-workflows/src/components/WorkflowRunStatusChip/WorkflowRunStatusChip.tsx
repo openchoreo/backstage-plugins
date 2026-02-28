@@ -55,6 +55,7 @@ export const WorkflowRunStatusChip = ({
 
   switch (normalizedStatus) {
     case 'succeeded':
+    case 'completed':
       return (
         <Chip
           icon={<CheckCircleIcon style={{ color: '#2e7d32' }} />}

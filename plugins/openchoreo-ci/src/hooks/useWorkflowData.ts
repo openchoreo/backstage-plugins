@@ -96,6 +96,7 @@ export function useWorkflowData() {
           namespaceName: run.namespaceName,
           status: run.status,
           createdAt: run.createdAt,
+          parameters: run.parameters,
         }),
       );
       setState(prev => ({ ...prev, builds: buildsData }));

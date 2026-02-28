@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import type { FieldValidation } from '@rjsf/utils';
 import {
@@ -19,30 +19,11 @@ import {
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  parseWorkflowParametersAnnotation,
+} from '@openchoreo/backstage-plugin-common';
 import { GitSecretDialog } from '../GitSecretField/GitSecretDialog';
-
-/**
- * Parse the WORKFLOW_PARAMETERS annotation into a key-value mapping.
- * Keys are fixed identifiers (repoUrl, branch, appPath, secretRef, projectName, componentName).
- * Values are dot-delimited paths into the workflow schema.
- */
-function parseWorkflowParametersAnnotation(
-  annotation: string,
-): Record<string, string> {
-  const mapping: Record<string, string> = {};
-  annotation.split('\n').forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    const colonIdx = trimmed.indexOf(':');
-    if (colonIdx > 0) {
-      mapping[trimmed.slice(0, colonIdx).trim()] = trimmed
-        .slice(colonIdx + 1)
-        .trim();
-    }
-  });
-  return mapping;
-}
 
 export interface GitSourceData {
   repo_url: string;
@@ -99,6 +80,21 @@ export const GitSourceField = ({
   // Read the selected workflow name from formContext
   const selectedWorkflowName = formContext?.formData?.workflow_name;
 
+  // Get namespace from ui:options (set by the converter)
+  const namespaceName =
+    typeof uiSchema?.['ui:options']?.namespaceName === 'string'
+      ? uiSchema['ui:options'].namespaceName
+      : '';
+
+  // Extract the actual namespace name from entity reference format if needed
+  const extractNsName = (fullNsName: string): string => {
+    if (!fullNsName) return '';
+    const parts = fullNsName.split('/');
+    return parts[parts.length - 1];
+  };
+
+  const nsName = extractNsName(namespaceName);
+
   // Fetch WORKFLOW_PARAMETERS annotation from the selected Workflow entity
   const [visibleFields, setVisibleFields] = useState<Record<
     string,
@@ -122,6 +118,7 @@ export const GitSourceField = ({
           filter: {
             kind: 'Workflow',
             'metadata.name': selectedWorkflowName,
+            ...(nsName && { 'metadata.namespace': nsName }),
           },
         });
 
@@ -156,40 +153,13 @@ export const GitSourceField = ({
     return () => {
       ignore = true;
     };
-  }, [selectedWorkflowName, catalogApi]);
+  }, [selectedWorkflowName, catalogApi, nsName]);
 
   // Determine which fields to show
-  const showRepoUrl = useMemo(
-    () => !visibleFields || 'repoUrl' in visibleFields,
-    [visibleFields],
-  );
-  const showBranch = useMemo(
-    () => !visibleFields || 'branch' in visibleFields,
-    [visibleFields],
-  );
-  const showAppPath = useMemo(
-    () => !visibleFields || 'appPath' in visibleFields,
-    [visibleFields],
-  );
-  const showSecretRef = useMemo(
-    () => !visibleFields || 'secretRef' in visibleFields,
-    [visibleFields],
-  );
-
-  // Get namespace from ui:options (set by the converter)
-  const namespaceName =
-    typeof uiSchema?.['ui:options']?.namespaceName === 'string'
-      ? uiSchema['ui:options'].namespaceName
-      : '';
-
-  // Extract the actual namespace name from entity reference format if needed
-  const extractNsName = (fullNsName: string): string => {
-    if (!fullNsName) return '';
-    const parts = fullNsName.split('/');
-    return parts[parts.length - 1];
-  };
-
-  const nsName = extractNsName(namespaceName);
+  const showRepoUrl = !visibleFields || 'repoUrl' in visibleFields;
+  const showBranch = !visibleFields || 'branch' in visibleFields;
+  const showAppPath = !visibleFields || 'appPath' in visibleFields;
+  const showSecretRef = !visibleFields || 'secretRef' in visibleFields;
 
   // Fetch available git secrets
   const fetchSecrets = useCallback(async () => {

@@ -12,6 +12,7 @@ import { CatalogClient } from '@backstage/catalog-client';
 import {
   CHOREO_ANNOTATIONS,
   ComponentTypeUtils,
+  parseWorkflowParametersAnnotation,
 } from '@openchoreo/backstage-plugin-common';
 import {
   type ImmediateCatalogService,
@@ -37,28 +38,6 @@ function getCIAnnotationKey(platform: string): string | undefined {
 }
 
 type ModelsComponent = ComponentResponse;
-
-/**
- * Parse the WORKFLOW_PARAMETERS annotation into a WorkflowParameterMapping.
- * Each line is "key: value" where key is a fixed identifier and value is a
- * dot-delimited path into the workflow schema.
- */
-function parseWorkflowParametersAnnotation(
-  annotation: string,
-): WorkflowParameterMapping {
-  const mapping: Record<string, string> = {};
-  annotation.split('\n').forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    const colonIdx = trimmed.indexOf(':');
-    if (colonIdx > 0) {
-      mapping[trimmed.slice(0, colonIdx).trim()] = trimmed
-        .slice(colonIdx + 1)
-        .trim();
-    }
-  });
-  return mapping as WorkflowParameterMapping;
-}
 
 // Kubernetes DNS subdomain name validation
 const K8S_NAME_PATTERN =
@@ -336,6 +315,9 @@ export const createComponentAction = (
               filter: {
                 kind: 'Workflow',
                 'metadata.name': workflowName,
+                ...(namespaceName && {
+                  'metadata.namespace': namespaceName,
+                }),
               },
             });
             const workflowEntity = workflowEntities.items[0];
@@ -344,8 +326,9 @@ export const createComponentAction = (
                 CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS
               ];
             if (annotation) {
-              workflowParameterMapping =
-                parseWorkflowParametersAnnotation(annotation);
+              workflowParameterMapping = parseWorkflowParametersAnnotation(
+                annotation,
+              ) as WorkflowParameterMapping;
               ctx.logger.debug(
                 `Parsed WORKFLOW_PARAMETERS annotation: ${JSON.stringify(
                   workflowParameterMapping,

@@ -214,6 +214,41 @@ export function sanitizeLabel(key: string): string {
 }
 
 /**
+ * Parse the WORKFLOW_PARAMETERS annotation into a key-value mapping.
+ *
+ * The annotation format is a newline-separated list of "key: value" pairs where
+ * keys are fixed identifiers (e.g., repoUrl, branch, commit) and values are
+ * dot-delimited paths into the workflow schema (e.g., parameters.repository.url).
+ *
+ * @param annotation - The raw annotation string
+ * @returns A mapping of key names to their dot-delimited schema paths
+ *
+ * @example
+ * ```typescript
+ * const mapping = parseWorkflowParametersAnnotation(
+ *   'repoUrl: parameters.repository.url\nbranch: parameters.repository.revision.branch'
+ * );
+ * // Returns: { repoUrl: 'parameters.repository.url', branch: 'parameters.repository.revision.branch' }
+ * ```
+ */
+export function parseWorkflowParametersAnnotation(
+  annotation: string,
+): Record<string, string> {
+  const mapping: Record<string, string> = {};
+  annotation.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const colonIdx = trimmed.indexOf(':');
+    if (colonIdx > 0) {
+      mapping[trimmed.slice(0, colonIdx).trim()] = trimmed
+        .slice(colonIdx + 1)
+        .trim();
+    }
+  });
+  return mapping;
+}
+
+/**
  * Filters out empty object properties from a JSON Schema.
  *
  * Empty object properties are defined as properties with:

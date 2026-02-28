@@ -62,6 +62,7 @@ export {
   getRepositoryUrl,
   sanitizeLabel,
   filterEmptyObjectProperties,
+  parseWorkflowParametersAnnotation,
 } from './utils';
 export type { RepositoryInfo } from './utils';
 export {

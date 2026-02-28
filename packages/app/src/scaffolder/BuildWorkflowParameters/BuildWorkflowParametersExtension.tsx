@@ -7,38 +7,35 @@ import {
   fetchApiRef,
 } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import {
+  CHOREO_ANNOTATIONS,
+  filterEmptyObjectProperties,
+  parseWorkflowParametersAnnotation,
+} from '@openchoreo/backstage-plugin-common';
 import { JSONSchema7 } from 'json-schema';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
-import { filterEmptyObjectProperties } from '@openchoreo/backstage-plugin-common';
 import createSchemaUtils from '@rjsf/utils/lib/createSchemaUtils';
 
 /**
- * Parse the WORKFLOW_PARAMETERS annotation and extract top-level property names
- * to remove from the RJSF schema. Values are dot-delimited paths like
+ * Extract top-level property names to remove from the RJSF schema based on
+ * the WORKFLOW_PARAMETERS annotation. Values are dot-delimited paths like
  * "parameters.repository.url" — we strip the "parameters." prefix and take the
  * first segment (e.g., "repository", "scope") as the top-level property to filter.
  */
 function getAnnotationFilteredProperties(annotation: string): Set<string> {
+  const mapping = parseWorkflowParametersAnnotation(annotation);
   const properties = new Set<string>();
-  annotation.split('\n').forEach(line => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-    const colonIdx = trimmed.indexOf(':');
-    if (colonIdx > 0) {
-      const path = trimmed.slice(colonIdx + 1).trim();
-      // Strip "parameters." prefix if present, then take first segment
-      const withoutPrefix = path.startsWith('parameters.')
-        ? path.slice('parameters.'.length)
-        : path;
-      const firstSegment = withoutPrefix.split('.')[0];
-      if (firstSegment) {
-        properties.add(firstSegment);
-      }
+  for (const path of Object.values(mapping)) {
+    const withoutPrefix = path.startsWith('parameters.')
+      ? path.slice('parameters.'.length)
+      : path;
+    const firstSegment = withoutPrefix.split('.')[0];
+    if (firstSegment) {
+      properties.add(firstSegment);
     }
-  });
+  }
   return properties;
 }
 
@@ -195,8 +192,12 @@ export const BuildWorkflowParameters = ({
               filter: {
                 kind: 'Workflow',
                 'metadata.name': selectedWorkflowName,
+                ...(nsName && { 'metadata.namespace': nsName }),
               },
             });
+
+            if (ignore) return;
+
             const workflowEntity = workflowEntities.items[0];
             const annotation =
               workflowEntity?.metadata?.annotations?.[

@@ -379,7 +379,7 @@ export class GenericWorkflowService {
           body: {
             metadata: {
               name:
-                request.workflowRunName ??
+                request.workflowRunName?.trim() ||
                 `${request.workflowName}-${Date.now()}`,
               ...(request.labels && { labels: request.labels }),
               ...(request.annotations && { annotations: request.annotations }),

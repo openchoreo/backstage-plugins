@@ -398,6 +398,7 @@ export interface BuildResponse {
   /** Format: date-time */
   createdAt: string;
   image?: string;
+  parameters?: Record<string, any>;
 }
 
 export interface BuildTemplateResponse {
