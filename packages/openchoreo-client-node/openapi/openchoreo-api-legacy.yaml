@@ -1174,27 +1174,6 @@ components:
           additionalProperties: true
           description: Developer-defined workflow parameters as arbitrary JSON
 
-    # Observer URL
-    ObserverUrlData:
-      type: object
-      properties:
-        observerUrl:
-          type: string
-        message:
-          type: string
-          description: Message returned when observability is not configured
-
-    # RCA Agent URL
-    RCAAgentUrlData:
-      type: object
-      properties:
-        rcaAgentUrl:
-          type: string
-          description: URL to the RCA agent service for AI-powered root cause analysis
-        message:
-          type: string
-          description: Additional information or status message
-
     # ComponentRelease
     ComponentReleaseResponse:
       type: object
@@ -2663,71 +2642,6 @@ paths:
                     properties:
                       data:
                         $ref: '#/components/schemas/EnvironmentResponse'
-
-  /namespaces/{namespaceName}/environments/{envName}/observer-url:
-    get:
-      summary: Get environment observer URL
-      operationId: getEnvironmentObserverURL
-      tags:
-        - Observability
-      parameters:
-        - name: namespaceName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: envName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/ObserverUrlData'
-        '404':
-          description: Environment or DataPlane not found
-
-  /namespaces/{namespaceName}/environments/{envName}/rca-agent-url:
-    get:
-      summary: Get RCA agent URL
-      description: Returns the RCA agent URL for AI-powered root cause analysis for this environment.
-      operationId: getRCAAgentURL
-      tags:
-        - Environments
-      parameters:
-        - name: namespaceName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: envName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: RCA agent URL information
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/RCAAgentUrlData'
-        '404':
-          description: Environment or RCA agent not found
 
   # BuildPlanes
   /namespaces/{namespaceName}/buildplanes:
@@ -4804,82 +4718,6 @@ paths:
                                 type: array
                                 items:
                                   $ref: '#/components/schemas/BindingResponse'
-
-  # Observer URLs
-  /namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url:
-    get:
-      summary: Get runtime logs observer URL
-      operationId: getComponentObserverURL
-      tags:
-        - Observability
-      parameters:
-        - name: namespaceName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: componentName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: environmentName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/ObserverUrlData'
-
-  /namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url:
-    get:
-      summary: Get build logs observer URL
-      operationId: getBuildObserverURL
-      tags:
-        - Observability
-      parameters:
-        - name: namespaceName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: projectName
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: componentName
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        $ref: '#/components/schemas/ObserverUrlData'
 
   /namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release:
     get:

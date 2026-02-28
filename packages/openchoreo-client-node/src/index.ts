@@ -27,6 +27,13 @@ export {
   TRACE_ENV_VAR,
 } from './tracing';
 
+// Export observability URL resolver
+export {
+  ObservabilityUrlResolver,
+  type ObservabilityUrlsResult,
+  type ObservabilityUrlResolverOptions,
+} from './observability-url-resolver';
+
 // Export resource utilities (new API)
 export {
   getName,

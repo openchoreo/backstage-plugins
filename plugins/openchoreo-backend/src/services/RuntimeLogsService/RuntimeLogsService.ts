@@ -1,8 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { RuntimeLogsService, RuntimeLogsResponse } from '../../types';
 import {
-  createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
+  ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 
 /**
@@ -21,11 +21,11 @@ export class ObservabilityNotConfiguredError extends Error {
  */
 export class RuntimeLogsInfoService implements RuntimeLogsService {
   private readonly logger: LoggerService;
-  private readonly baseUrl: string;
+  private readonly resolver: ObservabilityUrlResolver;
 
   public constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
-    this.baseUrl = baseUrl;
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   /**
@@ -74,41 +74,15 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         `Fetching runtime logs for component ${componentName} in environment ${environmentName}`,
       );
 
-      // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
+      const { observerUrl } = await this.resolver.resolveForEnvironment(
+        namespaceName,
+        environmentName,
         token,
-        logger: this.logger,
-      });
-
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url',
-        {
-          params: {
-            path: {
-              namespaceName,
-              envName: environmentName,
-            },
-          },
-        },
       );
 
-      if (urlError || !urlResponse.ok) {
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      const observerUrl = urlData?.observerUrl;
       if (!observerUrl) {
         throw new ObservabilityNotConfiguredError(componentName);
       }
-
-      // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         token,

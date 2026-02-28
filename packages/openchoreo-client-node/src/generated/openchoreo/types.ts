@@ -294,46 +294,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get environment observer URL
-     * @description Returns the observer URL for accessing logs and metrics for this environment.
-     */
-    get: operations['getEnvironmentObserverURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get RCA agent URL
-     * @description Returns the RCA agent URL for AI-powered root cause analysis for this environment.
-     */
-    get: operations['getRCAAgentURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/namespaces/{namespaceName}/dataplanes': {
     parameters: {
       query?: never;
@@ -2628,32 +2588,6 @@ export interface components {
     EnvironmentList: {
       items: components['schemas']['Environment'][];
       pagination?: components['schemas']['Pagination'];
-    };
-    /** @description Observer URL response for accessing logs and metrics */
-    ObserverURLResponse: {
-      /**
-       * @description URL to the observer service for logs and metrics
-       * @example https://observer.example.com/api/v1
-       */
-      observerUrl?: string;
-      /**
-       * @description Additional information or status message
-       * @example Observer URL is available
-       */
-      message?: string;
-    };
-    /** @description RCA agent URL response for AI-powered root cause analysis */
-    RCAAgentURLResponse: {
-      /**
-       * @description URL to the RCA agent service for AI-powered root cause analysis
-       * @example https://rca-agent.example.com
-       */
-      rcaAgentUrl?: string;
-      /**
-       * @description Additional information or status message
-       * @example RCA agent URL is available
-       */
-      message?: string;
     };
     /** @description Paginated list of data planes */
     DataPlaneList: {
@@ -5906,64 +5840,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getEnvironmentObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Environment name */
-        envName: components['parameters']['EnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Observer URL information */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ObserverURLResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getRCAAgentURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Environment name */
-        envName: components['parameters']['EnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description RCA agent URL information */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['RCAAgentURLResponse'];
-        };
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];

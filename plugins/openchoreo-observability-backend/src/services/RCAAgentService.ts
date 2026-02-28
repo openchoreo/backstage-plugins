@@ -6,9 +6,9 @@ import {
 } from '@backstage/backend-plugin-api';
 import { Expand } from '@backstage/types';
 import {
-  createOpenChoreoApiClient,
   createOpenChoreoAIRCAAgentApiClient,
   AIRCAAgentComponents,
+  ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 
 type ChatRequest = AIRCAAgentComponents['schemas']['ChatRequest'];
@@ -17,7 +17,7 @@ type RCAReportDetailed = AIRCAAgentComponents['schemas']['RCAReportDetailed'];
 
 export class RCAAgentService {
   private readonly logger: LoggerService;
-  private readonly baseUrl: string;
+  private readonly resolver: ObservabilityUrlResolver;
 
   static create(logger: LoggerService, baseUrl: string): RCAAgentService {
     return new RCAAgentService(logger, baseUrl);
@@ -25,16 +25,11 @@ export class RCAAgentService {
 
   private constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
-    this.baseUrl = baseUrl;
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   /**
    * Resolves the RCA agent URL for a given namespace and environment.
-   *
-   * @param namespaceName - The namespace name
-   * @param environmentName - The environment name
-   * @param userToken - Optional user token for authentication
-   * @returns The resolved observer RCA URL
    */
   async resolveRCAAgentUrl(
     namespaceName: string,
@@ -45,35 +40,12 @@ export class RCAAgentService {
       throw new Error('Environment is required to resolve RCA agent URL');
     }
 
-    const mainClient = createOpenChoreoApiClient({
-      baseUrl: this.baseUrl,
-      token: userToken,
-      logger: this.logger,
-    });
-
-    const {
-      data: urlData,
-      error: urlError,
-      response: urlResponse,
-    } = await mainClient.GET(
-      '/api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url',
-      {
-        params: {
-          path: {
-            namespaceName,
-            envName: environmentName,
-          },
-        },
-      },
+    const { rcaAgentUrl } = await this.resolver.resolveForEnvironment(
+      namespaceName,
+      environmentName,
+      userToken,
     );
 
-    if (urlError || !urlResponse.ok) {
-      throw new Error(
-        `Failed to get RCA agent URL: ${urlResponse.status} ${urlResponse.statusText}`,
-      );
-    }
-
-    const rcaAgentUrl = urlData?.rcaAgentUrl;
     if (!rcaAgentUrl) {
       throw new Error(
         `RCA service is not configured for namespace ${namespaceName}, environment ${environmentName}`,

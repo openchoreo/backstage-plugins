@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
+  ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 import {
   Workflow,
@@ -96,10 +97,12 @@ export class ObservabilityNotConfiguredError extends Error {
 export class GenericWorkflowService {
   private logger: LoggerService;
   private baseUrl: string;
+  private readonly resolver: ObservabilityUrlResolver;
 
   constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   /**
@@ -420,39 +423,13 @@ export class GenericWorkflowService {
       // Use run name for observability API (not UUID)
       const runId = (workflowRun as any).metadata?.name || runName;
 
-      // Get the observer URL from the environment
-      const mainClient = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
+      // Resolve the observer URL via the reference chain
+      const { observerUrl } = await this.resolver.resolveForEnvironment(
+        namespaceName,
+        environmentName,
         token,
-        logger: this.logger,
-      });
-
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url',
-        {
-          params: {
-            path: {
-              namespaceName,
-              envName: environmentName,
-            },
-          },
-        },
       );
 
-      if (urlError || !urlResponse.ok) {
-        if (urlResponse.status === 404) {
-          throw new ObservabilityNotConfiguredError(runName);
-        }
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      const observerUrl = urlData?.observerUrl;
       if (!observerUrl) {
         throw new ObservabilityNotConfiguredError(runName);
       }

@@ -297,43 +297,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/namespaces/{namespaceName}/environments/{envName}/observer-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get environment observer URL */
-    get: operations['getEnvironmentObserverURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/environments/{envName}/rca-agent-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get RCA agent URL
-     * @description Returns the RCA agent URL for AI-powered root cause analysis for this environment.
-     */
-    get: operations['getRCAAgentURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/namespaces/{namespaceName}/buildplanes': {
     parameters: {
       query?: never;
@@ -1022,40 +985,6 @@ export interface paths {
     put?: never;
     /** Promote component to environment */
     post: operations['promoteComponent'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get runtime logs observer URL */
-    get: operations['getComponentObserverURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Get build logs observer URL */
-    get: operations['getBuildObserverURL'];
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1908,17 +1837,6 @@ export interface components {
       parameters?: {
         [key: string]: unknown;
       };
-    };
-    ObserverUrlData: {
-      observerUrl?: string;
-      /** @description Message returned when observability is not configured */
-      message?: string;
-    };
-    RCAAgentUrlData: {
-      /** @description URL to the RCA agent service for AI-powered root cause analysis */
-      rcaAgentUrl?: string;
-      /** @description Additional information or status message */
-      message?: string;
     };
     /**
      * @description Immutable snapshot of component configuration.
@@ -2911,70 +2829,6 @@ export interface operations {
             data?: components['schemas']['EnvironmentResponse'];
           };
         };
-      };
-    };
-  };
-  getEnvironmentObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        envName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ObserverUrlData'];
-          };
-        };
-      };
-      /** @description Environment or DataPlane not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  getRCAAgentURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        envName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description RCA agent URL information */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['RCAAgentUrlData'];
-          };
-        };
-      };
-      /** @description Environment or RCA agent not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };
@@ -4853,59 +4707,6 @@ export interface operations {
             data?: components['schemas']['ListResponse'] & {
               items?: components['schemas']['BindingResponse'][];
             };
-          };
-        };
-      };
-    };
-  };
-  getComponentObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-        environmentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ObserverUrlData'];
-          };
-        };
-      };
-    };
-  };
-  getBuildObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        namespaceName: string;
-        projectName: string;
-        componentName: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['APIResponse'] & {
-            data?: components['schemas']['ObserverUrlData'];
           };
         };
       };

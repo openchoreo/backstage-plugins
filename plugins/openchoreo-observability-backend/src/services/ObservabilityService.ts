@@ -8,6 +8,7 @@ import { Expand } from '@backstage/types';
 import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
+  ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentMetricsTimeSeries, Environment } from '../types';
 
@@ -61,6 +62,7 @@ function extractErrorMessage(error: unknown, response: Response): string {
 export class ObservabilityService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
+  private readonly resolver: ObservabilityUrlResolver;
 
   static create(logger: LoggerService, baseUrl: string): ObservabilityService {
     return new ObservabilityService(logger, baseUrl);
@@ -69,15 +71,11 @@ export class ObservabilityService {
   private constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   /**
    * Resolves the observability URL for a given namespace and environment.
-   *
-   * @param namespaceName - The namespace name
-   * @param environmentName - The environment name
-   * @param userToken - Optional user token for authentication
-   * @returns The resolved observer URL
    */
   private async resolveObserverUrl(
     namespaceName: string,
@@ -88,35 +86,12 @@ export class ObservabilityService {
       throw new Error('Environment is required to resolve observer URL');
     }
 
-    const mainClient = createOpenChoreoApiClient({
-      baseUrl: this.baseUrl,
-      token: userToken,
-      logger: this.logger,
-    });
-
-    const {
-      data: urlData,
-      error: urlError,
-      response: urlResponse,
-    } = await mainClient.GET(
-      '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url',
-      {
-        params: {
-          path: {
-            namespaceName,
-            envName: environmentName,
-          },
-        },
-      },
+    const { observerUrl } = await this.resolver.resolveForEnvironment(
+      namespaceName,
+      environmentName,
+      userToken,
     );
 
-    if (urlError || !urlResponse.ok) {
-      throw new Error(
-        `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-      );
-    }
-
-    const observerUrl = urlData?.observerUrl;
     if (!observerUrl) {
       throw new ObservabilityNotConfiguredError(namespaceName);
     }
