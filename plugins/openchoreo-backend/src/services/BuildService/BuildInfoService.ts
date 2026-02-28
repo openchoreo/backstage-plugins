@@ -6,6 +6,7 @@ import {
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 import type { ComponentWorkflowRunResponse } from '@openchoreo/backstage-plugin-common';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { transformComponentWorkflowRun } from '../transformers';
 import { RuntimeLogsResponse } from '../../types';
 
@@ -67,7 +68,7 @@ export class BuildInfoService {
       const builds = items
         .filter(
           (run: any) =>
-            run.metadata?.labels?.['openchoreo.dev/component'] ===
+            run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] ===
             componentName,
         )
         .map(transformComponentWorkflowRun);
@@ -119,8 +120,8 @@ export class BuildInfoService {
 
       const runLabels = (data as any)?.metadata?.labels ?? {};
       if (
-        runLabels['openchoreo.dev/component'] !== componentName ||
-        runLabels['openchoreo.dev/project'] !== projectName
+        runLabels[CHOREO_LABELS.WORKFLOW_COMPONENT] !== componentName ||
+        runLabels[CHOREO_LABELS.WORKFLOW_PROJECT] !== projectName
       ) {
         throw new Error(
           `Workflow run ${runName} does not belong to component ${componentName} in project ${projectName}`,
@@ -183,8 +184,8 @@ export class BuildInfoService {
             metadata: {
               name: `${componentName}-${Date.now()}`,
               labels: {
-                'openchoreo.dev/component': componentName,
-                'openchoreo.dev/project': projectName,
+                [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+                [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
               },
             },
             spec: { workflow: { name: workflowName, parameters } },

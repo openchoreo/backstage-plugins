@@ -275,6 +275,7 @@ export class CtdToTemplateConverter {
                 deploymentSource: {
                   const: 'build-from-source',
                 },
+                workflow_name: workflowNameField,
                 git_source: {
                   title: 'Source Repository',
                   type: 'object',
@@ -289,7 +290,6 @@ export class CtdToTemplateConverter {
                     git_secret_ref: { type: 'string' },
                   },
                 },
-                workflow_name: workflowNameField,
                 workflow_parameters: {
                   title: 'Workflow Parameters',
                   type: 'object',

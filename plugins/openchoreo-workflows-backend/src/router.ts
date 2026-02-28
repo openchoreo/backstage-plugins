@@ -65,9 +65,10 @@ export async function createRouter({
     );
   });
 
-  // GET /workflow-runs - List workflow runs (with optional workflow filter)
+  // GET /workflow-runs - List workflow runs (with optional workflow/project/component filter)
   router.get('/workflow-runs', async (req, res) => {
-    const { namespaceName, workflowName } = req.query;
+    const { namespaceName, workflowName, projectName, componentName } =
+      req.query;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -80,6 +81,8 @@ export async function createRouter({
         namespaceName as string,
         workflowName as string | undefined,
         userToken,
+        projectName as string | undefined,
+        componentName as string | undefined,
       ),
     );
   });
@@ -142,7 +145,8 @@ export async function createRouter({
   // POST /workflow-runs - Create (trigger) a new workflow run
   router.post('/workflow-runs', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
-    const { workflowName, parameters } = req.body;
+    const { workflowName, parameters, labels, annotations, workflowRunName } =
+      req.body;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -157,7 +161,7 @@ export async function createRouter({
     res.json(
       await workflowService.createWorkflowRun(
         namespaceName as string,
-        { workflowName, parameters },
+        { workflowName, parameters, labels, annotations, workflowRunName },
         userToken,
       ),
     );

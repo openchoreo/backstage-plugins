@@ -245,7 +245,7 @@ const serviceEntityPage = (
       <OverviewContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/workflows" title="Workflows">
+    <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
         <Workflows />
       </FeatureGatedContent>
@@ -338,7 +338,7 @@ const genericComponentEntityPage = (
       <OverviewContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/workflows" title="Workflows">
+    <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
         <Workflows />
       </FeatureGatedContent>

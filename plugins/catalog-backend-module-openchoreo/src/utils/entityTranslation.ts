@@ -10,6 +10,7 @@ import type {
   EnvironmentEntityV1alpha1,
   ComponentTypeEntityV1alpha1,
   TraitTypeEntityV1alpha1,
+  WorkflowEntityV1alpha1,
   ComponentWorkflowEntityV1alpha1,
   ClusterComponentTypeEntityV1alpha1,
   ClusterTraitTypeEntityV1alpha1,
@@ -317,6 +318,49 @@ export function translateComponentTypeToEntity(
       allowedTraits: ct.allowedTraits,
     },
   } as ComponentTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo Workflow to a Backstage Workflow entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateWorkflowToEntity(
+  wf: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    parameters?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): WorkflowEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Workflow',
+    metadata: {
+      name: wf.name,
+      namespace: namespaceName,
+      title: wf.displayName || wf.name,
+      description: wf.description || `${wf.name} workflow`,
+      tags: ['openchoreo', 'workflow', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: wf.createdAt || '',
+        ...(wf.parameters && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS]: wf.parameters,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+    },
+  };
 }
 
 /**

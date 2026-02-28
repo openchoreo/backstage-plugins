@@ -1,5 +1,6 @@
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type { ComponentWorkflowRunResponse } from '@openchoreo/backstage-plugin-common';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 
 // New K8s-style WorkflowRun (metadata + spec + status)
 type WorkflowRun = OpenChoreoComponents['schemas']['WorkflowRun'];
@@ -54,8 +55,8 @@ export function transformComponentWorkflowRun(
   return {
     name: run.metadata?.name ?? '',
     uuid: run.metadata?.uid ?? '',
-    componentName: labels['openchoreo.dev/component'] ?? '',
-    projectName: labels['openchoreo.dev/project'] ?? '',
+    componentName: labels[CHOREO_LABELS.WORKFLOW_COMPONENT] ?? '',
+    projectName: labels[CHOREO_LABELS.WORKFLOW_PROJECT] ?? '',
     namespaceName: run.metadata?.namespace ?? '',
     status,
     commit: annotations['openchoreo.dev/commit'],

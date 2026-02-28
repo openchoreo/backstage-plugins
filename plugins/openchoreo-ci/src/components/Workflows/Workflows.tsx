@@ -33,6 +33,7 @@ import { OverviewTab } from '../OverviewTab';
 import { BuildWithCommitDialog } from '../BuildWithCommitDialog';
 import { useWorkflowData, useWorkflowRouting } from '../../hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import {
   useComponentEntityDetails,
   useBuildPermission,
@@ -83,23 +84,38 @@ export const Workflows = () => {
   // Async operation for triggering workflow
   const triggerWorkflowOp = useAsyncOperation(
     useCallback(
-      async (commit?: string) => {
+      async (_commit?: string) => {
         const { componentName, projectName, namespaceName } =
           await getEntityDetails();
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
+        const baseUrl = await discoveryApi.getBaseUrl(
+          'openchoreo-workflows-backend',
+        );
 
-        const response = await fetchApi.fetch(`${baseUrl}/builds`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            componentName,
-            projectName,
+        const workflow = workflowData.componentDetails?.componentWorkflow;
+        if (!workflow?.name) {
+          throw new Error('No workflow configured for this component');
+        }
+
+        const response = await fetchApi.fetch(
+          `${baseUrl}/workflow-runs?namespaceName=${encodeURIComponent(
             namespaceName,
-            commit,
-          }),
-        });
+          )}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              workflowName: workflow.name,
+              workflowRunName: `${componentName}-${Date.now()}`,
+              parameters: workflow.parameters,
+              labels: {
+                [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
+                [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+              },
+            }),
+          },
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -4,6 +4,7 @@ import {
   createObservabilityClientWithUrl,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import {
   Workflow,
   WorkflowRun,
@@ -13,49 +14,47 @@ import {
 } from '../types';
 
 /**
- * Derive a string status from a raw K8s-style WorkflowRun object.
+ * Derive a display status from a raw K8s-style WorkflowRun object.
  *
- * completedAt is treated as the strongest signal: if set, the run is
- * definitively done and we never return an in-progress status, even if
- * the K8s conditions are stale (e.g. controller hasn't reconciled yet).
+ * Checks conditions in priority order, matching the Go-side
+ * getComponentWorkflowStatus logic:
+ *   1. WorkloadUpdated + True → Completed
+ *   2. WorkflowFailed  + True → Failed
+ *   3. WorkflowSucceeded + True → Succeeded
+ *   4. WorkflowRunning + True → Running
+ *   5. Default → Pending
  */
 function deriveWorkflowRunStatus(run: any): string {
   const conditions = (run.status?.conditions ?? []) as any[];
-  const readyCondition = conditions.find(c => c.type === 'Ready');
-  const tasks = (run.status?.tasks ?? []) as any[];
 
-  // completedAt is the strongest completion signal — takes priority
-  if (run.status?.completedAt) {
-    if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
-      return 'Failed';
-    }
-    // Use condition reason only if it is a terminal (non-in-progress) state
-    const reason = readyCondition?.reason;
-    if (reason && reason !== 'Running' && reason !== 'Pending') {
-      return reason;
-    }
-    return 'Succeeded';
+  if (conditions.length === 0) {
+    return 'Pending';
   }
 
-  // Trust the Ready condition when the run has not yet completed
-  if (readyCondition) {
-    return (
-      readyCondition.reason ||
-      (readyCondition.status === 'True' ? 'Succeeded' : 'Running')
-    );
+  if (
+    conditions.some(c => c.type === 'WorkloadUpdated' && c.status === 'True')
+  ) {
+    return 'Completed';
   }
 
-  // No conditions — fall back to tasks then timing
-  if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
+  if (
+    conditions.some(c => c.type === 'WorkflowFailed' && c.status === 'True')
+  ) {
     return 'Failed';
   }
-  if (tasks.every((t: any) => t.phase === 'Succeeded') && tasks.length > 0) {
+
+  if (
+    conditions.some(c => c.type === 'WorkflowSucceeded' && c.status === 'True')
+  ) {
     return 'Succeeded';
   }
-  if (tasks.some((t: any) => t.phase === 'Running')) {
+
+  if (
+    conditions.some(c => c.type === 'WorkflowRunning' && c.status === 'True')
+  ) {
     return 'Running';
   }
-  if (run.status?.startedAt) return 'Running';
+
   return 'Pending';
 }
 
@@ -220,6 +219,8 @@ export class GenericWorkflowService {
     namespaceName: string,
     workflowName?: string,
     token?: string,
+    projectName?: string,
+    componentName?: string,
   ): Promise<PaginatedResponse<WorkflowRun>> {
     this.logger.debug(
       `Fetching workflow runs for namespace: ${namespaceName}${
@@ -253,13 +254,29 @@ export class GenericWorkflowService {
 
       // Filter by workflowName before transforming (check both flat and K8s fields)
       // TODO: If upstream API supports filtering, pass workflowName as query param instead
-      const filtered = workflowName
+      let filtered = workflowName
         ? rawItems.filter(
             run =>
               run.spec?.workflow?.name === workflowName ||
               run.workflowName === workflowName,
           )
         : rawItems;
+
+      // Filter by project and component labels if provided
+      if (projectName) {
+        filtered = filtered.filter(
+          run =>
+            run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] ===
+            projectName,
+        );
+      }
+      if (componentName) {
+        filtered = filtered.filter(
+          run =>
+            run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] ===
+            componentName,
+        );
+      }
 
       const items: WorkflowRun[] = filtered.map(transformWorkflowRun);
 
@@ -360,7 +377,13 @@ export class GenericWorkflowService {
             path: { namespaceName },
           },
           body: {
-            metadata: { name: `${request.workflowName}-${Date.now()}` },
+            metadata: {
+              name:
+                request.workflowRunName ??
+                `${request.workflowName}-${Date.now()}`,
+              ...(request.labels && { labels: request.labels }),
+              ...(request.annotations && { annotations: request.annotations }),
+            },
             spec: {
               workflow: {
                 name: request.workflowName,

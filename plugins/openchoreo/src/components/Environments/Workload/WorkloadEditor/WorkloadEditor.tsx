@@ -63,7 +63,7 @@ export function WorkloadEditor({
   onTabChange,
 }: WorkloadEditorProps) {
   const classes = useStyles();
-  const { workloadSpec, setWorkloadSpec, isDeploying, builds, changes } =
+  const { workloadSpec, setWorkloadSpec, isDeploying, changes } =
     useWorkloadContext();
   const { secretReferences } = useSecretReferences();
 
@@ -324,7 +324,6 @@ export function WorkloadEditor({
           onAddFileVar={addFileVar}
           onRemoveFileVar={removeFileVar}
           onArrayFieldChange={handleArrayFieldChange}
-          builds={builds}
           secretReferences={secretReferences}
         />
       )}

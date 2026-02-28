@@ -234,22 +234,56 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
   }
 
-  /** Derives a binding status string from K8s conditions. */
+  /**
+   * Derives a binding status string from K8s conditions.
+   * Matches the Go-side determineReleaseBindingStatus logic:
+   *   1. No conditions → NotReady
+   *   2. < 3 conditions for current generation → NotReady
+   *   3. Any condition False with reason ResourcesDegraded → Failed
+   *   4. Any condition False with reason ResourcesProgressing → NotReady
+   *   5. All conditions present and none degraded → Ready
+   */
   private deriveBindingStatus(
     binding: NewReleaseBinding,
   ): 'Ready' | 'NotReady' | 'Failed' | undefined {
-    const readyCondition = binding.status?.conditions?.find(
-      c => c.type === 'Ready',
-    );
-    if (!readyCondition) return undefined;
-    switch (readyCondition.status) {
-      case 'True':
-        return 'Ready';
-      case 'False':
-        return 'Failed';
-      default:
-        return 'NotReady';
+    const conditions = (binding.status?.conditions ?? []) as Array<{
+      type: string;
+      status: string;
+      reason?: string;
+      observedGeneration?: number;
+    }>;
+
+    if (conditions.length === 0) return 'NotReady';
+
+    const generation = (binding as any).metadata?.generation;
+
+    // Collect conditions for the current generation
+    const conditionsForGeneration = generation
+      ? conditions.filter(c => c.observedGeneration === generation)
+      : conditions;
+
+    // Expected conditions: ReleaseSynced, ResourcesReady, Ready
+    if (conditionsForGeneration.length < 3) return 'NotReady';
+
+    // Check for ResourcesDegraded → Failed
+    if (
+      conditionsForGeneration.some(
+        c => c.status === 'False' && c.reason === 'ResourcesDegraded',
+      )
+    ) {
+      return 'Failed';
     }
+
+    // Check for ResourcesProgressing → NotReady
+    if (
+      conditionsForGeneration.some(
+        c => c.status === 'False' && c.reason === 'ResourcesProgressing',
+      )
+    ) {
+      return 'NotReady';
+    }
+
+    return 'Ready';
   }
 
   private transformEnvironmentDataWithBindings(
@@ -874,7 +908,12 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Component release created for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
-      return data;
+      return {
+        success: true,
+        data: {
+          name: (data as any).metadata?.name,
+        },
+      };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(

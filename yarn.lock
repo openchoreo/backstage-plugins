@@ -10674,6 +10674,7 @@ __metadata:
     "@backstage/cli": "npm:0.34.3"
     "@backstage/errors": "npm:1.2.7"
     "@backstage/plugin-catalog-node": "npm:1.16.0"
+    "@openchoreo/backstage-plugin-common": "workspace:^"
     "@openchoreo/openchoreo-auth": "workspace:^"
     "@openchoreo/openchoreo-client-node": "workspace:^"
     "@types/express": "npm:4.17.21"

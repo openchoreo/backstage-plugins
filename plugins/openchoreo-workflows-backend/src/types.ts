@@ -38,6 +38,9 @@ export interface WorkflowRun {
  */
 export interface CreateWorkflowRunRequest {
   workflowName: string;
+  workflowRunName?: string;
+  labels?: Record<string, string>;
+  annotations?: Record<string, string>;
   parameters?: Record<string, unknown>;
 }
 

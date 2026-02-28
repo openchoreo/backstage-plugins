@@ -42,10 +42,14 @@ export const CHOREO_ANNOTATIONS = {
   // Build plane reference
   BUILD_PLANE_REF: 'openchoreo.io/build-plane-ref',
   BUILD_PLANE_REF_KIND: 'openchoreo.io/build-plane-ref-kind',
+  // Workflow parameters schema
+  WORKFLOW_PARAMETERS: 'openchoreo.dev/component-workflow-parameters',
 } as const;
 
 export const CHOREO_LABELS = {
   MANAGED: 'openchoreo.io/managed',
+  WORKFLOW_PROJECT: 'openchoreo.dev/project',
+  WORKFLOW_COMPONENT: 'openchoreo.dev/component',
 } as const;
 
 /**

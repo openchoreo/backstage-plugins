@@ -17,6 +17,7 @@ import {
   getDescription,
   isReady,
   type OpenChoreoComponents,
+  getAnnotation,
 } from '@openchoreo/openchoreo-client-node';
 import type {
   NamespaceResponse,
@@ -95,6 +96,7 @@ import {
   translateTraitToEntity as translateTrait,
   translateClusterComponentTypeToEntity as translateClusterCT,
   translateClusterTraitToEntity as translateClusterTrait,
+  translateWorkflowToEntity as translateWF,
 } from '../utils/entityTranslation';
 
 /**
@@ -1805,30 +1807,17 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     wf: NewWorkflow,
     namespaceName: string,
   ): WorkflowEntityV1alpha1 {
-    const wfName = getName(wf)!;
-    return {
-      apiVersion: 'backstage.io/v1alpha1',
-      kind: 'Workflow',
-      metadata: {
-        name: wfName,
-        namespace: namespaceName,
-        title: getDisplayName(wf) || wfName,
-        description: getDescription(wf) || `${wfName} workflow`,
-        tags: ['openchoreo', 'workflow', 'platform-engineering'],
-        annotations: {
-          'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
-          'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
-          [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
-          [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(wf) || '',
-        },
-        labels: {
-          [CHOREO_LABELS.MANAGED]: 'true',
-        },
+    return translateWF(
+      {
+        name: getName(wf)!,
+        displayName: getDisplayName(wf),
+        description: getDescription(wf),
+        createdAt: getCreatedAt(wf),
+        parameters: getAnnotation(wf, CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS),
       },
-      spec: {
-        domain: `default/${namespaceName}`,
-      },
-    };
+      namespaceName,
+      { locationKey: this.getProviderName() },
+    );
   }
 
   /**

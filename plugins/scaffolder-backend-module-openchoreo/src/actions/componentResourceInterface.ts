@@ -16,18 +16,16 @@ export interface ComponentOwner {
 /**
  * Workflow configuration for a component
  * Only present if Choreo CI is selected as the workflow provider
- * Contains parameters and systemParameters directly (no schema wrapper)
+ * The parameters field matches the workflow schema exactly — git source fields,
+ * scope fields (projectName, componentName), and developer parameters are all
+ * placed at the paths defined by the workflow schema / WORKFLOW_PARAMETERS annotation.
  * @public
  */
 export interface ComponentWorkflow {
   /** Reference to Workflow name */
   name: string;
-  /** Developer-defined workflow parameters */
+  /** Workflow parameters matching the workflow schema structure exactly */
   parameters?: Record<string, any>;
-  /** System-defined workflow parameters (e.g., repository configuration) */
-  systemParameters?: Record<string, any>;
-  /** Allow any additional workflow-specific fields */
-  [key: string]: any;
 }
 
 /**

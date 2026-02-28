@@ -65,6 +65,7 @@ const k8sReleaseBinding = {
   metadata: {
     name: 'api-service-dev',
     namespace: 'test-ns',
+    generation: 1,
     creationTimestamp: '2025-01-06T11:00:00Z',
     annotations: {},
     labels: {},
@@ -76,7 +77,32 @@ const k8sReleaseBinding = {
     componentTypeEnvOverrides: {},
   },
   status: {
-    conditions: [readyCondition],
+    conditions: [
+      {
+        type: 'ReleaseSynced',
+        status: 'True',
+        observedGeneration: 1,
+        lastTransitionTime: '2025-01-06T10:00:03Z',
+        reason: 'Reconciled',
+        message: 'Release synced',
+      },
+      {
+        type: 'ResourcesReady',
+        status: 'True',
+        observedGeneration: 1,
+        lastTransitionTime: '2025-01-06T10:00:04Z',
+        reason: 'Reconciled',
+        message: 'Resources ready',
+      },
+      {
+        type: 'Ready',
+        status: 'True',
+        observedGeneration: 1,
+        lastTransitionTime: '2025-01-06T10:00:05Z',
+        reason: 'Reconciled',
+        message: 'Resource is ready',
+      },
+    ],
   },
 };
 
@@ -366,6 +392,7 @@ describe('EnvironmentInfoService', () => {
       const release = {
         metadata: { name: 'release-1' },
         spec: { version: '1.0.0' },
+        status: { phase: 'Active' },
       };
       mockGET.mockResolvedValueOnce(okResponse({ items: [release] }));
 
@@ -380,7 +407,9 @@ describe('EnvironmentInfoService', () => {
         'token-123',
       );
 
-      expect(result).toEqual(release);
+      expect(result).toEqual({
+        data: { spec: release.spec, status: release.status },
+      });
     });
 
     it('returns null when no matching release', async () => {

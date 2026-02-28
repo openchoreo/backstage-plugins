@@ -12,11 +12,9 @@ import {
   Container,
   EnvVar,
   FileVar,
-  ModelsBuild,
   ModelsWorkload,
 } from '@openchoreo/backstage-plugin-common';
 import {
-  ImageSelector,
   useModeState,
   useEnvVarEditBuffer,
   useFileVarEditBuffer,
@@ -64,8 +62,6 @@ export interface ContainerContentProps {
   disabled: boolean;
   /** Whether to hide container fields (image, command, args) */
   hideContainerFields?: boolean;
-  /** Available builds for image selection (optional) */
-  builds?: ModelsBuild[];
   /** Available secret references (optional) */
   secretReferences?: SecretReference[];
   /** Base workload data for reference display (optional) */
@@ -114,7 +110,6 @@ export function ContainerContent({
   onRemoveFileVar,
   disabled,
   hideContainerFields = false,
-  builds = [],
   secretReferences = [],
   baseWorkloadData,
   showEnvVarStatus = false,
@@ -244,11 +239,13 @@ export function ContainerContent({
               <>
                 <Grid item xs={12}>
                   <Box mb={2}>
-                    <ImageSelector
-                      image={container.image}
-                      builds={builds}
+                    <TextField
+                      label="Image"
+                      value={container.image || ''}
+                      onChange={e => onContainerChange('image', e.target.value)}
+                      fullWidth
+                      variant="outlined"
                       disabled={disabled}
-                      onChange={value => onContainerChange('image', value)}
                     />
                   </Box>
                 </Grid>

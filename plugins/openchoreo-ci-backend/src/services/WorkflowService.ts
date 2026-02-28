@@ -5,10 +5,11 @@ import {
   fetchAllPages,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  ComponentWorkflowRunResponse,
-  ComponentWorkflowRunStatusResponse,
-  WorkflowResponse,
+import {
+  CHOREO_LABELS,
+  type ComponentWorkflowRunResponse,
+  type ComponentWorkflowRunStatusResponse,
+  type WorkflowResponse,
 } from '@openchoreo/backstage-plugin-common';
 import {
   LogEntry,
@@ -75,8 +76,8 @@ function transformWorkflowRun(run: any): ModelsBuild {
   return {
     name: run.metadata?.name ?? '',
     uuid: run.metadata?.uid ?? '',
-    componentName: labels['openchoreo.dev/component'] ?? '',
-    projectName: labels['openchoreo.dev/project'] ?? '',
+    componentName: labels[CHOREO_LABELS.WORKFLOW_COMPONENT] ?? '',
+    projectName: labels[CHOREO_LABELS.WORKFLOW_PROJECT] ?? '',
     namespaceName: run.metadata?.namespace ?? '',
     status,
     commit: annotations['openchoreo.dev/commit'],
@@ -153,7 +154,7 @@ export class WorkflowService {
       const builds = allRuns
         .filter(
           (run: any) =>
-            run.metadata?.labels?.['openchoreo.dev/component'] ===
+            run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] ===
             componentName,
         )
         .map(transformWorkflowRun);
@@ -209,8 +210,8 @@ export class WorkflowService {
 
       const runLabels = (data as any).metadata?.labels ?? {};
       if (
-        runLabels['openchoreo.dev/component'] !== componentName ||
-        runLabels['openchoreo.dev/project'] !== projectName
+        runLabels[CHOREO_LABELS.WORKFLOW_COMPONENT] !== componentName ||
+        runLabels[CHOREO_LABELS.WORKFLOW_PROJECT] !== projectName
       ) {
         throw new Error(
           `Workflow run ${runName} does not belong to component ${componentName} in project ${projectName}`,
@@ -328,8 +329,8 @@ export class WorkflowService {
             metadata: {
               name: `${componentName}-${Date.now()}`,
               labels: {
-                'openchoreo.dev/component': componentName,
-                'openchoreo.dev/project': projectName,
+                [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+                [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
               },
             },
             spec: {

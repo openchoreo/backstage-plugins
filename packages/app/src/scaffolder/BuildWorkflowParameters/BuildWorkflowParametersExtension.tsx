@@ -6,12 +6,41 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { JSONSchema7 } from 'json-schema';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { filterEmptyObjectProperties } from '@openchoreo/backstage-plugin-common';
 import createSchemaUtils from '@rjsf/utils/lib/createSchemaUtils';
+
+/**
+ * Parse the WORKFLOW_PARAMETERS annotation and extract top-level property names
+ * to remove from the RJSF schema. Values are dot-delimited paths like
+ * "parameters.repository.url" — we strip the "parameters." prefix and take the
+ * first segment (e.g., "repository", "scope") as the top-level property to filter.
+ */
+function getAnnotationFilteredProperties(annotation: string): Set<string> {
+  const properties = new Set<string>();
+  annotation.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const colonIdx = trimmed.indexOf(':');
+    if (colonIdx > 0) {
+      const path = trimmed.slice(colonIdx + 1).trim();
+      // Strip "parameters." prefix if present, then take first segment
+      const withoutPrefix = path.startsWith('parameters.')
+        ? path.slice('parameters.'.length)
+        : path;
+      const firstSegment = withoutPrefix.split('.')[0];
+      if (firstSegment) {
+        properties.add(firstSegment);
+      }
+    }
+  });
+  return properties;
+}
 
 /*
  Schema for the Build Workflow Parameters Field
@@ -54,6 +83,7 @@ export const BuildWorkflowParameters = ({
 
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
+  const catalogApi = useApi(catalogApiRef);
 
   // Get the selected workflow from sibling field in the same section
   const selectedWorkflowName = formContext?.formData?.workflow_name;
@@ -100,12 +130,14 @@ export const BuildWorkflowParameters = ({
       setError(null);
 
       try {
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
+        const baseUrl = await discoveryApi.getBaseUrl(
+          'openchoreo-workflows-backend',
+        );
         // Use fetchApi which automatically injects Backstage + IDP tokens
         const response = await fetchApi.fetch(
-          `${baseUrl}/workflow-schema?namespaceName=${encodeURIComponent(
-            nsName,
-          )}&workflowName=${encodeURIComponent(selectedWorkflowName)}`,
+          `${baseUrl}/workflows/${encodeURIComponent(
+            selectedWorkflowName,
+          )}/schema?namespaceName=${encodeURIComponent(nsName)}`,
         );
 
         if (!response.ok) {
@@ -113,11 +145,8 @@ export const BuildWorkflowParameters = ({
         }
 
         const schemaResponse = await response.json();
-        if (!schemaResponse.success || !schemaResponse.data) {
-          throw new Error('Invalid schema response');
-        }
 
-        let schema: JSONSchema7 = schemaResponse.data;
+        let schema: JSONSchema7 = schemaResponse;
 
         if (!ignore) {
           // Filter out empty object properties (objects with no properties defined)
@@ -157,6 +186,43 @@ export const BuildWorkflowParameters = ({
             };
           }
 
+          // Filter out properties that are mapped in the WORKFLOW_PARAMETERS
+          // annotation — these are rendered by GitSourceField or handled
+          // implicitly (projectName, componentName), so they shouldn't appear
+          // as duplicate fields in the RJSF form.
+          try {
+            const workflowEntities = await catalogApi.getEntities({
+              filter: {
+                kind: 'Workflow',
+                'metadata.name': selectedWorkflowName,
+              },
+            });
+            const workflowEntity = workflowEntities.items[0];
+            const annotation =
+              workflowEntity?.metadata?.annotations?.[
+                CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS
+              ];
+            if (annotation && schema.properties) {
+              const propsToRemove = getAnnotationFilteredProperties(annotation);
+              const filteredProperties = { ...schema.properties };
+              for (const prop of propsToRemove) {
+                delete filteredProperties[prop];
+              }
+              schema = {
+                ...schema,
+                properties: filteredProperties,
+              };
+              // Also remove from required array if present
+              if (schema.required) {
+                schema.required = schema.required.filter(
+                  r => !propsToRemove.has(r),
+                );
+              }
+            }
+          } catch {
+            // If catalog lookup fails, proceed without filtering
+          }
+
           setWorkflowSchema(schema);
           // Generate UI schema with sanitized titles for fields without explicit titles
           const generatedUiSchema = generateUiSchemaWithTitles(schema);
@@ -179,7 +245,7 @@ export const BuildWorkflowParameters = ({
     return () => {
       ignore = true;
     };
-  }, [selectedWorkflowName, namespaceName, discoveryApi, fetchApi]);
+  }, [selectedWorkflowName, namespaceName, discoveryApi, fetchApi, catalogApi]);
 
   // Sync schema to formData when workflow changes (not just when schema loads).
   // Compute default values from the schema so they are always included — RJSF
@@ -255,13 +321,7 @@ export const BuildWorkflowParameters = ({
       !workflowSchema.properties ||
       Object.keys(workflowSchema.properties).length === 0)
   ) {
-    return (
-      <Box mt={2}>
-        <Typography variant="body2" color="textSecondary">
-          No additional parameters required for this workflow
-        </Typography>
-      </Box>
-    );
+    return null;
   }
 
   return (
