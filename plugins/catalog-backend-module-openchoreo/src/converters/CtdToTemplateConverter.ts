@@ -387,9 +387,73 @@ export class CtdToTemplateConverter {
   }
 
   /**
+   * Convert a ClusterComponentType to a Backstage Template entity.
+   * Unlike namespace-scoped templates, cluster templates:
+   * - Use 'openchoreo-cluster' namespace
+   * - Add CTD_KIND annotation to identify the source as ClusterComponentType
+   * - Pass component_type_kind: 'ClusterComponentType' to the scaffolder action
+   * - Pass empty namespaceName (ProjectNamespaceField renders a namespace dropdown)
+   * - AllowedTraits are exclusively ClusterTraits
+   */
+  convertClusterCtdToTemplateEntity(componentType: ComponentType): Entity {
+    const templateName = this.generateTemplateName(componentType.metadata.name);
+    const title =
+      componentType.metadata.displayName ||
+      this.formatTitle(componentType.metadata.name);
+    const description =
+      componentType.metadata.description || `Create a ${title} component`;
+
+    const templateEntity: Entity = {
+      apiVersion: 'scaffolder.backstage.io/v1beta3',
+      kind: 'Template',
+      metadata: {
+        name: templateName,
+        namespace: 'openchoreo-cluster',
+        title,
+        description,
+        annotations: {
+          [CHOREO_ANNOTATIONS.CTD_NAME]: componentType.metadata.name,
+          [CHOREO_ANNOTATIONS.CTD_GENERATED]: 'true',
+          [CHOREO_ANNOTATIONS.CTD_KIND]: 'ClusterComponentType',
+        },
+      },
+      spec: {
+        owner: this.defaultOwner,
+        type: 'Component',
+        EXPERIMENTAL_formDecorators: [{ id: 'openchoreo:inject-user-token' }],
+        parameters: this.generateParameters(componentType, ''),
+        steps: this.generateSteps(componentType, 'ClusterComponentType'),
+        output: {
+          links: [
+            {
+              title: 'View Component',
+              icon: 'kind:component',
+              entityRef:
+                "component:${{ steps['create-component'].output.namespaceName }}/${{ steps['create-component'].output.componentName }}",
+            },
+          ],
+        },
+      },
+    };
+
+    if (componentType.metadata.displayName) {
+      templateEntity.metadata.annotations![
+        CHOREO_ANNOTATIONS.CTD_DISPLAY_NAME
+      ] = componentType.metadata.displayName;
+    }
+
+    return templateEntity;
+  }
+
+  /**
    * Generate scaffolder steps for the template
    */
-  private generateSteps(componentType: ComponentType): any[] {
+  private generateSteps(
+    componentType: ComponentType,
+    componentTypeKind:
+      | 'ComponentType'
+      | 'ClusterComponentType' = 'ComponentType',
+  ): any[] {
     return [
       {
         id: 'create-component',
@@ -406,6 +470,7 @@ export class CtdToTemplateConverter {
           // Component Type
           componentType: componentType.metadata.name,
           component_type_workload_type: componentType.metadata.workloadType,
+          component_type_kind: componentTypeKind,
 
           // Workload Details (from section 2 — nested under workloadDetails)
           workloadDetails: '${{ parameters.workloadDetails }}',

@@ -10,6 +10,7 @@ import {
 } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useScaffolderPreselection } from '../ScaffolderPreselectionContext';
 
 export interface ProjectNamespaceData {
@@ -34,6 +35,13 @@ export const ProjectNamespaceFieldSchema = {
  * ProjectNamespaceField component
  * Two-column layout for Namespace and Project selection.
  * Namespace is displayed first (left), Project second (right).
+ *
+ * Two modes:
+ * - Fixed namespace: When defaultNamespace is provided (namespace-scoped CTDs),
+ *   namespace is shown as a disabled field.
+ * - Selectable namespace: When defaultNamespace is empty (cluster-scoped CTDs),
+ *   namespace is a dropdown allowing the user to pick from available namespaces.
+ *
  * Auto-selects the first available project on load.
  */
 export const ProjectNamespaceField = ({
@@ -46,14 +54,21 @@ export const ProjectNamespaceField = ({
   const { preselectedProject, clearPreselectedProject } =
     useScaffolderPreselection();
 
+  const [namespaces, setNamespaces] = useState<
+    Array<{ name: string; displayName?: string }>
+  >([]);
   const [projects, setProjects] = useState<
     Array<{ name: string; entityRef: string }>
   >([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadingNamespaces, setLoadingNamespaces] = useState(false);
+  const [namespaceError, setNamespaceError] = useState<string | null>(null);
+  const [projectError, setProjectError] = useState<string | null>(null);
 
   // Track if we've already applied the preselection to avoid re-applying
   const preselectionAppliedRef = useRef(false);
+  // Guard against out-of-order async project fetch responses
+  const fetchProjectsRequestIdRef = useRef(0);
 
   // Get default namespace from ui:options
   const defaultNamespace =
@@ -61,14 +76,82 @@ export const ProjectNamespaceField = ({
       ? uiSchema['ui:options'].defaultNamespace
       : '';
 
-  // Current values
-  const projectName = formData?.project_name || '';
-  const namespaceName = formData?.namespace_name || defaultNamespace;
+  // Whether namespace is selectable (cluster-scoped templates have no defaultNamespace)
+  const isNamespaceSelectable = !defaultNamespace;
 
-  // Fetch available projects (Systems) on mount
+  // Current values — fixed namespace always takes precedence over stale form state
+  const projectName = formData?.project_name || '';
+  const namespaceName = defaultNamespace || formData?.namespace_name || '';
+
+  // Fetch available namespaces (Domain entities) for cluster-scoped templates
+  useEffect(() => {
+    if (!isNamespaceSelectable) return undefined;
+
+    let ignore = false;
+
+    const fetchNamespaces = async () => {
+      setLoadingNamespaces(true);
+
+      try {
+        const { items } = await catalogApi.getEntities({
+          filter: { kind: 'Domain' },
+        });
+
+        // Filter out entities marked for deletion
+        const activeItems = items.filter(
+          entity =>
+            !entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.DELETION_TIMESTAMP
+            ],
+        );
+
+        const nsList = activeItems.map(entity => ({
+          name: entity.metadata.name,
+          displayName: entity.metadata.title || entity.metadata.name,
+        }));
+
+        if (!ignore) {
+          setNamespaces(nsList);
+
+          // Auto-select first namespace if none selected
+          if (nsList.length > 0 && !namespaceName) {
+            onChange({
+              project_name: '',
+              namespace_name: nsList[0].name,
+            });
+          }
+        }
+      } catch (err) {
+        if (!ignore) {
+          setNamespaceError(`Failed to fetch namespaces: ${err}`);
+        }
+      } finally {
+        if (!ignore) {
+          setLoadingNamespaces(false);
+        }
+      }
+    };
+
+    fetchNamespaces();
+
+    return () => {
+      ignore = true;
+    };
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNamespaceSelectable, catalogApi]);
+
+  // Fetch available projects (Systems) when namespace changes
   const fetchProjects = useCallback(async () => {
+    const requestId = ++fetchProjectsRequestIdRef.current;
+
+    if (!namespaceName) {
+      setProjects([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    setError(null);
+    setProjectError(null);
 
     try {
       const { items } = await catalogApi.getEntities({
@@ -78,10 +161,13 @@ export const ProjectNamespaceField = ({
         },
       });
 
+      // Bail if a newer request has been issued (namespace changed while fetching)
+      if (requestId !== fetchProjectsRequestIdRef.current) return;
+
       // Filter out entities marked for deletion
       const activeItems = items.filter(
         entity =>
-          !entity.metadata.annotations?.['openchoreo.io/deletion-timestamp'],
+          !entity.metadata.annotations?.[CHOREO_ANNOTATIONS.DELETION_TIMESTAMP],
       );
 
       const projectList = activeItems.map(entity => ({
@@ -123,9 +209,13 @@ export const ProjectNamespaceField = ({
         });
       }
     } catch (err) {
-      setError(`Failed to fetch projects: ${err}`);
+      if (requestId === fetchProjectsRequestIdRef.current) {
+        setProjectError(`Failed to fetch projects: ${err}`);
+      }
     } finally {
-      setLoading(false);
+      if (requestId === fetchProjectsRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [
     catalogApi,
@@ -141,6 +231,18 @@ export const ProjectNamespaceField = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaceName]);
 
+  // Handle namespace selection change (cluster-scoped templates)
+  const handleNamespaceChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const newNamespaceName = event.target.value;
+    // Reset project when namespace changes
+    onChange({
+      project_name: '',
+      namespace_name: newNamespaceName,
+    });
+  };
+
   // Handle project selection change
   const handleProjectChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newProjectName = event.target.value;
@@ -153,20 +255,52 @@ export const ProjectNamespaceField = ({
   // Check if there are errors for specific fields
   const hasProjectError =
     rawErrors?.some(e => e.toLowerCase().includes('project')) || false;
+  const hasNamespaceError =
+    rawErrors?.some(e => e.toLowerCase().includes('namespace')) || false;
 
   return (
     <>
       <Grid container spacing={2}>
-        {/* Namespace Display (disabled) - FIRST (left) */}
+        {/* Namespace - FIRST (left) */}
         <Grid item xs={12} sm={6}>
-          <TextField
-            label="Namespace"
-            value={namespaceName}
-            disabled
-            fullWidth
-            variant="outlined"
-            helperText="Auto selected based on Component Type"
-          />
+          {isNamespaceSelectable ? (
+            <TextField
+              select
+              label="Namespace"
+              value={namespaceName}
+              onChange={handleNamespaceChange}
+              disabled={loadingNamespaces}
+              fullWidth
+              variant="outlined"
+              required
+              error={hasNamespaceError || !!namespaceError}
+              helperText={
+                namespaceError || 'Select the namespace for this component'
+              }
+              InputProps={{
+                endAdornment: loadingNamespaces ? (
+                  <InputAdornment position="end">
+                    <CircularProgress size={20} />
+                  </InputAdornment>
+                ) : undefined,
+              }}
+            >
+              {namespaces.map(ns => (
+                <MenuItem key={ns.name} value={ns.name}>
+                  {ns.displayName || ns.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          ) : (
+            <TextField
+              label="Namespace"
+              value={namespaceName}
+              disabled
+              fullWidth
+              variant="outlined"
+              helperText="Auto selected based on Component Type"
+            />
+          )}
         </Grid>
 
         {/* Project Picker - SECOND (right), with outlined style */}
@@ -176,12 +310,12 @@ export const ProjectNamespaceField = ({
             label="Project"
             value={projectName}
             onChange={handleProjectChange}
-            disabled={loading}
+            disabled={loading || (isNamespaceSelectable && !namespaceName)}
             fullWidth
             variant="outlined"
             required
-            error={hasProjectError}
-            helperText={error || 'Select the project for this component'}
+            error={hasProjectError || !!projectError}
+            helperText={projectError || 'Select the project for this component'}
             InputProps={{
               endAdornment: loading ? (
                 <InputAdornment position="end">

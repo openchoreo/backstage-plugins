@@ -27,6 +27,7 @@ export interface ComponentResourceInput {
   // Section 2: Component Type Configuration
   componentType: string; // The component type name (e.g., "nodejs-service")
   componentTypeWorkloadType: string; // The workload type (e.g., "deployment")
+  componentTypeKind?: 'ComponentType' | 'ClusterComponentType'; // Defaults to 'ComponentType'
   ctdParameters?: Record<string, any>; // Parameters from component type schema
 
   // Section 3: Deployment Source & CI/CD Setup
@@ -42,6 +43,7 @@ export interface ComponentResourceInput {
 
   // Section 4: Traits (optional)
   traits?: Array<{
+    kind?: string;
     name: string;
     instanceName: string;
     config: Record<string, any>;
@@ -69,7 +71,7 @@ export function buildComponentResource(
         projectName: input.projectName,
       },
       componentType: {
-        kind: 'ComponentType',
+        kind: input.componentTypeKind || 'ComponentType',
         name: `${input.componentTypeWorkloadType}/${input.componentType}`,
       },
       parameters: input.ctdParameters || {},
@@ -128,6 +130,7 @@ export function buildComponentResource(
   if (input.traits && input.traits.length > 0) {
     resource.spec.traits = input.traits.map(
       (trait): ComponentTrait => ({
+        ...(trait.kind !== undefined && { kind: trait.kind }),
         name: trait.name,
         instanceName: trait.instanceName,
         // Convert flat dot-notation config to nested structure (same as workflow parameters)

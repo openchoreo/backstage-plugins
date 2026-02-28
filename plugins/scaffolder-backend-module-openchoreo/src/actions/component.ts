@@ -86,6 +86,12 @@ export const createComponentAction = (
               .optional()
               .describe('The description of the component'),
             componentType: zImpl.string().describe('The type of the component'),
+            component_type_kind: zImpl
+              .enum(['ComponentType', 'ClusterComponentType'])
+              .optional()
+              .describe(
+                'The kind of component type (ComponentType or ClusterComponentType)',
+              ),
 
             // Deployment source and optional fields
             deploymentSource: zImpl
@@ -224,6 +230,7 @@ export const createComponentAction = (
         // Traits may come from workloadDetails or top-level (backward compat)
         const rawTraits = workloadDetails?.traits ?? (ctx.input as any).traits;
         const cleanedTraits = rawTraits?.map((trait: any) => ({
+          ...(trait.kind !== undefined && { kind: trait.kind }),
           name: trait.name,
           instanceName: trait.instanceName,
           config: trait.config,
@@ -277,6 +284,7 @@ export const createComponentAction = (
             'branch',
             'component_path',
             'component_type_workload_type',
+            'component_type_kind',
             'ciPlatform',
             'ciIdentifier',
             'external_ci_info',
@@ -296,6 +304,9 @@ export const createComponentAction = (
         );
 
         // Build the ComponentResource from form input
+        const componentTypeKind =
+          (ctx.input as any).component_type_kind || 'ComponentType';
+
         const componentResource = buildComponentResource({
           componentName: ctx.input.componentName,
           displayName: ctx.input.displayName,
@@ -305,6 +316,7 @@ export const createComponentAction = (
           componentType: ctx.input.componentType,
           componentTypeWorkloadType:
             (ctx.input as any).component_type_workload_type || 'deployment',
+          componentTypeKind: componentTypeKind,
           ctdParameters: ctdParameters,
           deploymentSource: deploymentSource,
           autoDeploy: autoDeploy,
@@ -350,31 +362,22 @@ export const createComponentAction = (
           logger: ctx.logger,
         });
 
-        ctx.logger.debug(
-          `Creating component: ${componentResource.metadata.name}`,
-        );
-
         // Call the new API to create the component
-        const {
-          data: applyData,
-          error: applyError,
-          response: applyResponse,
-        } = await client.POST('/api/v1/namespaces/{namespaceName}/components', {
-          params: {
-            path: { namespaceName },
-          },
-          body: componentResource as any,
-        });
+        const { error: applyError, response: applyResponse } =
+          await client.POST('/api/v1/namespaces/{namespaceName}/components', {
+            params: {
+              path: { namespaceName },
+            },
+            body: componentResource as any,
+          });
 
         if (applyError || !applyResponse.ok) {
           throw new Error(
-            `Failed to create component: ${applyResponse.status} ${applyResponse.statusText}`,
+            `Failed to create component: ${applyResponse.status} ${
+              applyResponse.statusText
+            }. Error: ${JSON.stringify(applyError)}`,
           );
         }
-
-        ctx.logger.info(
-          `Component created successfully: ${JSON.stringify(applyData)}`,
-        );
 
         // Create Workload CR when there's workload data or when deploying from image.
         //
@@ -389,19 +392,7 @@ export const createComponentAction = (
           workloadFileMounts && workloadFileMounts.length > 0;
         const hasWorkloadData = hasEndpoints || hasEnvVars || hasFileMounts;
 
-        ctx.logger.info(
-          `Workload check: isFromImage=${isFromImage}, hasEndpoints=${hasEndpoints}, ` +
-            `hasEnvVars=${hasEnvVars}, hasFileMounts=${hasFileMounts}, ` +
-            `endpoints=${JSON.stringify(workloadEndpoints)}, ` +
-            `envVars=${JSON.stringify(workloadEnvVars)}, ` +
-            `fileMounts=${JSON.stringify(workloadFileMounts)}`,
-        );
-
         if ((isFromImage && containerImage) || hasWorkloadData) {
-          ctx.logger.info(
-            `Creating Workload resource (deploymentSource: ${deploymentSource}, hasWorkloadData: ${hasWorkloadData}, hasImage: ${!!containerImage})`,
-          );
-
           // Extract port from CTD parameters if available (legacy fallback)
           const port = ctdParameters.port as number | undefined;
 
@@ -514,7 +505,7 @@ export const createComponentAction = (
             description: ctx.input.description,
             type: fullComponentType, // Use full type format: deployment/service
             componentType: {
-              kind: 'ComponentType',
+              kind: componentTypeKind,
               name: fullComponentType,
             },
             projectName: projectName,

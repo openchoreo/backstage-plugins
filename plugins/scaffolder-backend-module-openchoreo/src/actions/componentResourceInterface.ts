@@ -35,6 +35,8 @@ export interface ComponentWorkflow {
  * @public
  */
 export interface ComponentTrait {
+  /** Kind of the trait: 'Trait' (namespace-scoped) or 'ClusterTrait' (cluster-scoped) */
+  kind?: string;
   /** Addon type name */
   name: string;
   /** User-defined instance name for this addon */

@@ -71,6 +71,8 @@ const API_ENDPOINTS = {
   COMPONENT_TRAITS: '/component-traits',
   TRAITS: '/traits',
   TRAIT_SCHEMA: '/trait-schema',
+  CLUSTER_TRAITS: '/cluster-traits',
+  CLUSTER_TRAIT_SCHEMA: '/cluster-trait-schema',
   // Authorization endpoints
   AUTHZ_ACTIONS: '/authz/actions',
   // Configuration endpoints
@@ -756,6 +758,16 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   ): Promise<any> {
     return this.apiFetch(API_ENDPOINTS.TRAIT_SCHEMA, {
       params: { namespaceName, traitName },
+    });
+  }
+
+  async fetchClusterTraits(): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.CLUSTER_TRAITS);
+  }
+
+  async fetchClusterTraitSchema(clusterTraitName: string): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.CLUSTER_TRAIT_SCHEMA, {
+      params: { clusterTraitName },
     });
   }
 

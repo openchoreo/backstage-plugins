@@ -811,6 +811,87 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           })
           .filter((e): e is Entity => e !== null);
         allEntities.push(...cctEntities);
+
+        // Generate Template entities from ClusterComponentTypes (parallel to namespace CTD template generation)
+        const cctWithSchemas = await Promise.all(
+          clusterComponentTypes.map(async cct => {
+            const cctName = getName(cct);
+            if (!cctName) return null;
+            try {
+              const { data: schemaData, error: schemaError } = await client.GET(
+                '/api/v1/clustercomponenttypes/{cctName}/schema',
+                {
+                  params: {
+                    path: { cctName },
+                  },
+                },
+              );
+
+              if (schemaError || !schemaData) {
+                this.logger.warn(
+                  `Failed to fetch schema for ClusterComponentType ${cctName}`,
+                );
+                return null;
+              }
+
+              return {
+                metadata: {
+                  name: cctName,
+                  displayName: getDisplayName(cct),
+                  description: getDescription(cct),
+                  workloadType: cct.spec?.workloadType ?? 'deployment',
+                  allowedWorkflows: cct.spec?.allowedWorkflows,
+                  allowedTraits: cct.spec?.allowedTraits?.map(t => ({
+                    kind: 'ClusterTrait' as const,
+                    name: t.name,
+                  })),
+                  createdAt: getCreatedAt(cct) || '',
+                },
+                spec: {
+                  inputParametersSchema: schemaData as any,
+                },
+              };
+            } catch (error) {
+              this.logger.warn(
+                `Failed to fetch schema for ClusterComponentType ${cctName}: ${error}`,
+              );
+              return null;
+            }
+          }),
+        );
+
+        const validCCTs = cctWithSchemas.filter(
+          (cct): cct is NonNullable<typeof cct> => cct !== null,
+        );
+
+        const cctTemplateEntities: Entity[] = validCCTs
+          .map(cct => {
+            try {
+              const templateEntity =
+                this.ctdConverter.convertClusterCtdToTemplateEntity(cct);
+              if (!templateEntity.metadata.annotations) {
+                templateEntity.metadata.annotations = {};
+              }
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-location'
+              ] = `provider:${this.getProviderName()}`;
+              templateEntity.metadata.annotations[
+                'backstage.io/managed-by-origin-location'
+              ] = `provider:${this.getProviderName()}`;
+              return templateEntity;
+            } catch (error) {
+              this.logger.warn(
+                `Failed to convert ClusterComponentType ${cct.metadata.name} to template: ${error}`,
+              );
+              return null;
+            }
+          })
+          .filter((entity): entity is Entity => entity !== null);
+
+        allEntities.push(...cctTemplateEntities);
+        this.logger.info(
+          `Successfully generated ${cctTemplateEntities.length} template entities from ClusterComponentTypes`,
+        );
       } catch (error) {
         this.logger.warn(`Failed to fetch cluster component types: ${error}`);
       }

@@ -529,6 +529,12 @@ export interface OpenChoreoClientApi {
     traitName: string,
   ): Promise<any>;
 
+  /** Fetch available cluster-scoped traits */
+  fetchClusterTraits(): Promise<any>;
+
+  /** Fetch schema for a cluster-scoped trait */
+  fetchClusterTraitSchema(clusterTraitName: string): Promise<any>;
+
   // === Authorization Operations ===
 
   /** List all available actions */
