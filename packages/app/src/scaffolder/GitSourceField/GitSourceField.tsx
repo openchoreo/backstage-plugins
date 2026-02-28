@@ -196,6 +196,27 @@ export const GitSourceField = ({
     fetchSecrets();
   }, [fetchSecrets]);
 
+  // Prune hidden fields when visibility changes to avoid stale values in form data
+  useEffect(() => {
+    if (!visibleFields) return; // No annotation — all fields visible, nothing to prune
+
+    const pruned: Partial<GitSourceData> = {};
+    if (showRepoUrl) pruned.repo_url = data.repo_url;
+    if (showBranch) pruned.branch = data.branch;
+    if (showAppPath) pruned.component_path = data.component_path;
+    if (showSecretRef) pruned.git_secret_ref = data.git_secret_ref;
+
+    // Only call onChange if keys were actually removed
+    const currentKeys = Object.keys(data).filter(
+      k => data[k as keyof GitSourceData] !== undefined,
+    );
+    const prunedKeys = Object.keys(pruned);
+    if (currentKeys.length !== prunedKeys.length) {
+      onChange(pruned as GitSourceData);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRepoUrl, showBranch, showAppPath, showSecretRef]);
+
   const updateField = (field: keyof GitSourceData, value: string) => {
     onChange({ ...data, [field]: value });
   };

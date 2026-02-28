@@ -25,6 +25,9 @@ import { isFromSourceComponent } from '../../../utils/componentUtils';
 import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
 
+/** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
+const EMPTY_BUILDS: never[] = [];
+
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
     display: 'flex',
@@ -354,7 +357,7 @@ export const WorkloadConfigPage = ({
 
       {!isLoading && !error && (
         <WorkloadProvider
-          builds={[]}
+          builds={EMPTY_BUILDS}
           workloadSpec={workloadSpec}
           setWorkloadSpec={setWorkloadSpec}
           isDeploying={isProcessing || isLoading}

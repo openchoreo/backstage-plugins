@@ -342,7 +342,7 @@ function setNestedValue(
  * Output: { docker: { context: "/app", filePath: "/Dockerfile" }, repository: { url: "https://..." } }
  */
 function convertFlatToNested(flat: Record<string, any>): Record<string, any> {
-  const nested: Record<string, any> = {};
+  const nested: Record<string, any> = Object.create(null);
 
   for (const [key, value] of Object.entries(flat)) {
     const parts = key.split('.');
@@ -350,13 +350,17 @@ function convertFlatToNested(flat: Record<string, any>): Record<string, any> {
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
+      if (DANGEROUS_KEYS.has(part)) break;
       if (!current[part]) {
-        current[part] = {};
+        current[part] = Object.create(null);
       }
       current = current[part];
     }
 
-    current[parts[parts.length - 1]] = value;
+    const lastKey = parts[parts.length - 1];
+    if (!DANGEROUS_KEYS.has(lastKey)) {
+      current[lastKey] = value;
+    }
   }
 
   return nested;

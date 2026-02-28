@@ -908,10 +908,17 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Component release created for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
+      const releaseName = (data as any).metadata?.name;
+      if (!releaseName) {
+        throw new Error(
+          'Component release created but no release name returned in response',
+        );
+      }
+
       return {
         success: true,
         data: {
-          name: (data as any).metadata?.name,
+          name: releaseName,
         },
       };
     } catch (error: unknown) {

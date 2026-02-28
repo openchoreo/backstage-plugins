@@ -69,12 +69,12 @@ export const RunsTab = ({
       field: 'commit',
       render: (row: any) => {
         const build = row as ModelsBuild;
-        // Extract commit from parameters using the annotation path
-        const commitValue =
+        // Extract commit: annotation path → legacy build.commit → 'latest'
+        const paramCommit =
           commitLookupPath && build.parameters
             ? getNestedValue(build.parameters, commitLookupPath)
             : null;
-        const display = commitValue || 'latest';
+        const display = paramCommit || build.commit || 'latest';
         return display !== 'latest' ? (
           <Typography variant="body2" style={{ fontFamily: 'monospace' }}>
             {String(display).substring(0, 8)}
