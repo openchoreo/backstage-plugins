@@ -206,7 +206,12 @@ export const GitSourceField = ({
   useEffect(() => {
     if (!visibleFields) return; // No annotation — all fields visible, nothing to prune
 
-    const visibleKeyCount = [showRepoUrl, showBranch, showAppPath, showSecretRef].filter(Boolean).length;
+    const visibleKeyCount = [
+      showRepoUrl,
+      showBranch,
+      showAppPath,
+      showSecretRef,
+    ].filter(Boolean).length;
     // All fields visible — nothing to prune
     if (visibleKeyCount >= 4) return;
 
