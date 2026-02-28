@@ -24,15 +24,18 @@ export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
     description: getDescription(dataPlane),
     imagePullSecretRefs: dataPlane.spec?.imagePullSecretRefs,
     secretStoreRef: dataPlane.spec?.secretStoreRef?.name,
-    publicVirtualHost: dataPlane.spec?.gateway?.publicVirtualHost ?? '',
+    publicVirtualHost:
+      dataPlane.spec?.gateway?.ingress?.external?.http?.host ?? '',
     namespaceVirtualHost:
-      dataPlane.spec?.gateway?.organizationVirtualHost ?? '',
-    publicHTTPPort: dataPlane.spec?.gateway?.publicHTTPPort ?? 80,
-    publicHTTPSPort: dataPlane.spec?.gateway?.publicHTTPSPort ?? 443,
-    // Legacy API had separate namespace ports; new API only has public + organization.
-    // Map public ports to legacy namespace ports for backward compatibility.
-    namespaceHTTPPort: dataPlane.spec?.gateway?.publicHTTPPort ?? 80,
-    namespaceHTTPSPort: dataPlane.spec?.gateway?.publicHTTPSPort ?? 443,
+      dataPlane.spec?.gateway?.ingress?.internal?.http?.host ?? '',
+    publicHTTPPort:
+      dataPlane.spec?.gateway?.ingress?.external?.http?.port ?? 80,
+    publicHTTPSPort:
+      dataPlane.spec?.gateway?.ingress?.external?.https?.port ?? 443,
+    namespaceHTTPPort:
+      dataPlane.spec?.gateway?.ingress?.internal?.http?.port ?? 80,
+    namespaceHTTPSPort:
+      dataPlane.spec?.gateway?.ingress?.internal?.https?.port ?? 443,
     observabilityPlaneRef: dataPlane.spec?.observabilityPlaneRef?.name,
     agentConnection: dataPlane.status?.agentConnection
       ? transformAgentConnection(dataPlane.status.agentConnection)

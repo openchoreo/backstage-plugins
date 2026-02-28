@@ -981,7 +981,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         dataPlaneRef: env.spec?.dataPlaneRef
           ? { name: env.spec.dataPlaneRef.name }
           : undefined,
-        dnsPrefix: env.spec?.gateway?.publicVirtualHost,
+        dnsPrefix: env.spec?.gateway?.ingress?.external?.http?.host,
         createdAt: getCreatedAt(env),
         status: isReady(env) ? 'Ready' : 'Not Ready',
       },
@@ -1020,17 +1020,18 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
           [CHOREO_ANNOTATIONS.STATUS]: isReady(dp) ? 'Ready' : 'Not Ready',
-          'openchoreo.io/public-virtual-host': gateway?.publicVirtualHost || '',
+          'openchoreo.io/public-virtual-host':
+            gateway?.ingress?.external?.http?.host || '',
           'openchoreo.io/namespace-virtual-host':
-            gateway?.organizationVirtualHost || '',
+            gateway?.ingress?.internal?.http?.host || '',
           'openchoreo.io/public-http-port':
-            gateway?.publicHTTPPort?.toString() || '',
+            gateway?.ingress?.external?.http?.port?.toString() || '',
           'openchoreo.io/public-https-port':
-            gateway?.publicHTTPSPort?.toString() || '',
+            gateway?.ingress?.external?.https?.port?.toString() || '',
           'openchoreo.io/namespace-http-port':
-            gateway?.publicHTTPPort?.toString() || '',
+            gateway?.ingress?.internal?.http?.port?.toString() || '',
           'openchoreo.io/namespace-https-port':
-            gateway?.publicHTTPSPort?.toString() || '',
+            gateway?.ingress?.internal?.https?.port?.toString() || '',
           'openchoreo.io/observability-plane-ref': normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
         },
@@ -1041,12 +1042,12 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         domain: `default/${namespaceName}`,
-        publicVirtualHost: gateway?.publicVirtualHost,
-        namespaceVirtualHost: gateway?.organizationVirtualHost,
-        publicHTTPPort: gateway?.publicHTTPPort,
-        publicHTTPSPort: gateway?.publicHTTPSPort,
-        namespaceHTTPPort: gateway?.publicHTTPPort,
-        namespaceHTTPSPort: gateway?.publicHTTPSPort,
+        publicVirtualHost: gateway?.ingress?.external?.http?.host,
+        namespaceVirtualHost: gateway?.ingress?.internal?.http?.host,
+        publicHTTPPort: gateway?.ingress?.external?.http?.port,
+        publicHTTPSPort: gateway?.ingress?.external?.https?.port,
+        namespaceHTTPPort: gateway?.ingress?.internal?.http?.port,
+        namespaceHTTPSPort: gateway?.ingress?.internal?.https?.port,
         observabilityPlaneRef: normalizedObsRef,
       },
     };

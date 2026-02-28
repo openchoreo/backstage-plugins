@@ -28,7 +28,7 @@ export function transformEnvironment(
         }
       : undefined,
     isProduction: environment.spec?.isProduction ?? false,
-    dnsPrefix: environment.spec?.gateway?.publicVirtualHost,
+    dnsPrefix: environment.spec?.gateway?.ingress?.external?.http?.host,
     createdAt: getCreatedAt(environment) ?? '',
     status: deriveStatus(environment),
   };

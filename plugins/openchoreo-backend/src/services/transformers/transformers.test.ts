@@ -168,7 +168,9 @@ describe('transformEnvironment', () => {
     spec: {
       dataPlaneRef: { kind: 'DataPlane', name: 'default' },
       isProduction: false,
-      gateway: { publicVirtualHost: 'dev.example.com' },
+      gateway: {
+        ingress: { external: { http: { host: 'dev.example.com' } } },
+      },
     },
     status: { conditions: [readyCondition] },
   };
@@ -203,10 +205,15 @@ describe('transformDataPlane', () => {
     spec: {
       clusterAgent: {},
       gateway: {
-        publicVirtualHost: 'apps.example.com',
-        organizationVirtualHost: 'internal.example.com',
-        publicHTTPPort: 80,
-        publicHTTPSPort: 443,
+        ingress: {
+          external: {
+            http: { host: 'apps.example.com', port: 80 },
+            https: { port: 443 },
+          },
+          internal: {
+            http: { host: 'internal.example.com' },
+          },
+        },
       },
       imagePullSecretRefs: ['docker-secret'],
       secretStoreRef: { name: 'vault-store' },
