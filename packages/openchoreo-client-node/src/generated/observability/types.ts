@@ -56,6 +56,7 @@ export interface paths {
      * @description Returns logs from a workflow run stored in the observability plane.
      *     This endpoint is used when logs are older than the TTL and have been archived to OpenSearch.
      *     Logs are returned as a JSON array of log entries with timestamps, optionally filtered by step.
+     *
      */
     get: operations['getComponentWorkflowRunLogs'];
     put?: never;
@@ -488,6 +489,7 @@ export interface components {
        *     - Prefix match: `63d7c3065ab2537*`
        *     - Suffix match: `*135a77db`
        *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
+       *
        * @example 63d7c3065ab25375*
        */
       traceId?: string;
@@ -630,8 +632,7 @@ export interface components {
        */
       tookMs?: number;
     };
-    /**
-     * @example {
+    /** @example {
      *       "traces": [
      *         {
      *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
@@ -650,8 +651,7 @@ export interface components {
      *         }
      *       ],
      *       "tookMs": 15
-     *     }
-     */
+     *     } */
     TraceResponse: {
       /** @description Array of traces with their spans */
       traces?: components['schemas']['Trace'][];
@@ -731,8 +731,7 @@ export interface components {
        */
       value?: number;
     };
-    /**
-     * @example {
+    /** @example {
      *       "cpuUsage": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -793,8 +792,7 @@ export interface components {
      *           "value": 2147483648
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     ResourceMetricsTimeSeries: {
       /** @description CPU usage time series (in cores) */
       cpuUsage?: components['schemas']['TimeValuePoint'][];
@@ -809,8 +807,7 @@ export interface components {
       /** @description Memory limits time series (in bytes) */
       memoryLimits?: components['schemas']['TimeValuePoint'][];
     };
-    /**
-     * @example {
+    /** @example {
      *       "requestCount": [
      *         {
      *           "time": "2025-01-10T12:00:00Z",
@@ -881,8 +878,7 @@ export interface components {
      *           "value": 0.52
      *         }
      *       ]
-     *     }
-     */
+     *     } */
     HTTPMetricsTimeSeries: {
       /** @description Total HTTP request count time series (requests per second) */
       requestCount?: components['schemas']['TimeValuePoint'][];
@@ -1073,26 +1069,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example [
-           *       {
-           *         "timestamp": "2025-01-06T10:00:00.123Z",
-           *         "log": "Building application..."
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:05.456Z",
-           *         "log": "Build completed successfully"
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:10.789Z",
-           *         "log": "Pushing image to registry..."
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:15.012Z",
-           *         "log": "Image pushed successfully"
-           *       }
-           *     ]
-           */
           'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
         };
       };
@@ -1170,15 +1146,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example [
-           *       {
-           *         "timestamp": "2025-01-06T10:00:00.123Z",
-           *         "type": "build-started",
-           *         "reason": "Build started"
-           *       }
-           *     ]
-           */
           'application/json': components['schemas']['ComponentWorkflowRunEventEntry'][];
         };
       };
