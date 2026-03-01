@@ -208,7 +208,7 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
         const entries = await client.getWorkflowRunEvents(
           namespaceName,
           runName,
-          activeStepName,
+          activeStepName ?? undefined,
         );
 
         if (cancelled) return;

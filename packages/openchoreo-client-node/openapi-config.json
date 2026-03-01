@@ -24,7 +24,7 @@
   ],
   "versionField": "openChoreoVersion",
   "versionFile": "src/version.ts",
-  "lastSyncCommit": "36e28720",
-  "lastSyncDate": "2026-02-26T00:00:00+05:30",
-  "lastSyncDescription": "feat: add workflow and workflow run apis (#2242) - Workflow schema changed to K8s-style (metadata: ObjectMeta), component-workflows endpoint removed, workflow-runs renamed to workflowruns"
+  "lastSyncCommit": "1880fc9e",
+  "lastSyncDate": "2026-03-02T00:00:00+05:30",
+  "lastSyncDescription": "feat: add workflow run event and log apis (#2325) - Query param renamed from 'step' to 'task' for filtering logs and events in /workflowruns/{runName}/logs and /workflowruns/{runName}/events"
 }

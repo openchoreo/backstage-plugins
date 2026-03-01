@@ -488,7 +488,7 @@ export class WorkflowService {
             params: {
               path: { namespaceName, runName },
               query: {
-                ...(options.step ? { step: options.step } : {}),
+                ...(options.step ? { task: options.step } : {}),
                 ...(typeof options.sinceSeconds === 'number' &&
                 options.sinceSeconds > 0
                   ? { sinceSeconds: options.sinceSeconds }
@@ -547,7 +547,7 @@ export class WorkflowService {
           params: {
             path: { namespaceName, projectName, componentName, runName },
             query: {
-              ...(options.step ? { step: options.step } : {}),
+              ...(options.step ? { task: options.step } : {}),
             },
           },
         },
@@ -631,7 +631,7 @@ export class WorkflowService {
             params: {
               path: { namespaceName, runName },
               query: {
-                ...(step ? { step } : {}),
+                ...(step ? { task: step } : {}),
               },
             },
           },
@@ -692,7 +692,7 @@ export class WorkflowService {
           params: {
             path: { namespaceName, projectName, componentName, runName },
             query: {
-              ...(step ? { step } : {}),
+              ...(step ? { task: step } : {}),
             },
           },
         },

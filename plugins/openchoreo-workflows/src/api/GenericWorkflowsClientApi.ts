@@ -57,11 +57,11 @@ export interface GenericWorkflowsClientApi {
     runName: string,
   ): Promise<WorkflowRunStatusResponse>;
 
-  /** Get Kubernetes events for a specific workflow run, optionally filtered by step */
+  /** Get Kubernetes events for a specific workflow run, optionally filtered by task */
   getWorkflowRunEvents(
     namespaceName: string,
     runName: string,
-    step?: string,
+    task?: string,
   ): Promise<WorkflowRunEventEntry[]>;
 }
 

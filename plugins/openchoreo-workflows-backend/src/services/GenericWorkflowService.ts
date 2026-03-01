@@ -1,9 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoApiClient,
-  createObservabilityClientWithUrl,
-  ObservabilityUrlResolver,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import {
   Workflow,
@@ -77,18 +73,6 @@ function transformWorkflowRun(run: any): import('../types').WorkflowRun {
 }
 
 /**
- * Error thrown when observability is not configured for workflow runs
- */
-export class ObservabilityNotConfiguredError extends Error {
-  constructor(runName: string) {
-    super(
-      `Workflow run logs are not available for run ${runName}. Observability may not be configured.`,
-    );
-    this.name = 'ObservabilityNotConfiguredError';
-  }
-}
-
-/**
  * Service for managing namespace-level generic workflows
  * Handles workflow templates, runs, and schemas
  *
@@ -98,12 +82,10 @@ export class ObservabilityNotConfiguredError extends Error {
 export class GenericWorkflowService {
   private logger: LoggerService;
   private baseUrl: string;
-  private readonly resolver: ObservabilityUrlResolver;
 
   constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   /**
@@ -426,18 +408,16 @@ export class GenericWorkflowService {
   }
 
   /**
-   * Get logs for a specific workflow run using the observability service.
-   * Uses the pattern: get observer URL from environment, then fetch logs.
+   * Get logs for a specific workflow run using the OpenChoreo API.
+   * Logs are fetched live from the build plane; no archived logs are returned for completed runs.
    *
    * @param namespaceName - The namespace name
    * @param runName - The workflow run name
-   * @param environmentName - The environment name to get observer URL from (defaults to 'development')
    * @param token - Optional auth token
    */
   async getWorkflowRunLogs(
     namespaceName: string,
     runName: string,
-    environmentName: string = 'development',
     token?: string,
   ): Promise<LogsResponse> {
     this.logger.debug(
@@ -445,10 +425,8 @@ export class GenericWorkflowService {
     );
 
     try {
-      // First, get the workflow run to obtain its UUID
-      const workflowRun = await this.getWorkflowRun(
-        namespaceName,
-        runName,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
         token,
       );
       // Use run name for observability API (not UUID)
@@ -540,9 +518,7 @@ export class GenericWorkflowService {
       }
 
       this.logger.debug(
-        `Successfully fetched ${
-          data?.logs?.length || 0
-        } log entries for workflow run: ${runName}`,
+        `Successfully fetched ${logs.length} log entries for workflow run: ${runName}`,
       );
 
       return {
@@ -551,13 +527,6 @@ export class GenericWorkflowService {
         tookMs: data?.tookMs || 0,
       };
     } catch (error: unknown) {
-      if (error instanceof ObservabilityNotConfiguredError) {
-        this.logger.info(
-          `Observability not configured for workflow run ${runName}`,
-        );
-        throw error;
-      }
-
       this.logger.error(
         `Error fetching logs for workflow run ${runName} in namespace ${namespaceName}:`,
         error as Error,
@@ -618,17 +587,17 @@ export class GenericWorkflowService {
   }
 
   /**
-   * Get Kubernetes events for a specific workflow run (optionally filtered by step)
+   * Get Kubernetes events for a specific workflow run (optionally filtered by task)
    */
   async getWorkflowRunEvents(
     namespaceName: string,
     runName: string,
-    step?: string,
+    task?: string,
     token?: string,
   ): Promise<WorkflowRunEventEntry[]> {
     this.logger.debug(
       `Fetching events for workflow run: ${runName} in namespace: ${namespaceName}${
-        step ? `, step: ${step}` : ''
+        task ? `, task: ${task}` : ''
       }`,
     );
 
@@ -645,7 +614,7 @@ export class GenericWorkflowService {
           params: {
             path: { namespaceName, runName },
             query: {
-              ...(step ? { step } : {}),
+              ...(task ? { task } : {}),
             },
           },
         },

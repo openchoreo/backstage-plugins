@@ -139,11 +139,11 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
   async getWorkflowRunEvents(
     namespaceName: string,
     runName: string,
-    step?: string,
+    task?: string,
   ): Promise<WorkflowRunEventEntry[]> {
     const params: Record<string, string> = { namespaceName };
-    if (step) {
-      params.step = step;
+    if (task) {
+      params.task = task;
     }
     return this.apiFetch<WorkflowRunEventEntry[]>(
       `/workflow-runs/${encodeURIComponent(runName)}/events`,
