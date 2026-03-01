@@ -515,7 +515,7 @@ export const WorkflowRunsContent = () => {
       title: 'Created',
       field: 'createdAt',
       defaultSort: 'desc',
-      render: (row: WorkflowRun) => formatRelativeTime(row.createdAt),
+      render: (row: WorkflowRun) => formatRelativeTime(row.createdAt || ''),
     },
     {
       title: 'Duration',
