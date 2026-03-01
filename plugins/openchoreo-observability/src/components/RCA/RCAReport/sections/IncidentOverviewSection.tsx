@@ -11,7 +11,7 @@ type ReportAlertContext = AIRCAAgentComponents['schemas']['ReportAlertContext'];
 interface IncidentOverviewSectionProps {
   summary: string;
   alertContext?: ReportAlertContext;
-  alertId: string;
+  reportId: string;
   reportTimestamp?: string;
   formatTimestamp: (timestamp?: string) => string;
 }
@@ -229,7 +229,7 @@ const AlertDetails = ({
 export const IncidentOverviewSection = ({
   summary,
   alertContext,
-  alertId,
+  reportId,
   reportTimestamp,
   formatTimestamp,
 }: IncidentOverviewSectionProps) => {
@@ -257,11 +257,11 @@ export const IncidentOverviewSection = ({
           <Box className={alertClasses.propertyGrid}>
             <Box className={alertClasses.propertyRow}>
               <Typography className={alertClasses.propertyKey}>
-                Alert ID
+                Report ID
               </Typography>
-              <Tooltip title={alertId} placement="top">
+              <Tooltip title={reportId} placement="top">
                 <Typography className={alertClasses.propertyValue}>
-                  {alertId}
+                  {reportId}
                 </Typography>
               </Tooltip>
             </Box>

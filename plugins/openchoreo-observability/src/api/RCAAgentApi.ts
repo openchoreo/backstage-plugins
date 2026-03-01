@@ -6,8 +6,7 @@ import {
 import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 import { ObserverUrlCache } from './ObserverUrlCache';
 
-// Re-export types from generated client
-export type ChatMessage = AIRCAAgentComponents['schemas']['ChatMessage'];
+export type ChatMessage = { role: string; content: string };
 export type StreamEvent = AIRCAAgentComponents['schemas']['StreamEvent'];
 
 export interface ChatRoutingContext {
@@ -17,11 +16,10 @@ export interface ChatRoutingContext {
 
 export interface ChatRequest {
   reportId: string;
-  projectUid: string;
-  environmentUid: string;
-  componentUid?: string;
+  namespace: string;
+  project: string;
+  environment: string;
   messages: ChatMessage[];
-  version?: number;
 }
 
 export interface RCAAgentApi {
@@ -62,7 +60,7 @@ export class RCAAgentClient implements RCAAgentApi {
     }
 
     const response = await this.fetchApi.fetch(
-      `${rcaAgentUrl}/api/v1/agent/chat`,
+      `${rcaAgentUrl}/api/v1alpha1/rca-agent/chat`,
       {
         method: 'POST',
         body: JSON.stringify(request),

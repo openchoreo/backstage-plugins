@@ -139,7 +139,7 @@ export const RCAPage = () => {
   return (
     <Routes>
       <Route path="/" element={<RCAListView />} />
-      <Route path="/:alertId" element={<RCAReport />} />
+      <Route path="/:reportId" element={<RCAReport />} />
     </Routes>
   );
 };

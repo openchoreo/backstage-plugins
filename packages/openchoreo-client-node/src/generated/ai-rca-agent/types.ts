@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-  '/api/v1/agent/rca': {
+  '/api/v1alpha1/rca-agent/analyze': {
     parameters: {
       query?: never;
       header?: never;
@@ -19,14 +19,14 @@ export interface paths {
      *     The analysis runs asynchronously and the report status can be checked via the reports endpoints.
      *
      */
-    post: operations['rca'];
+    post: operations['analyze'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/v1/agent/chat': {
+  '/api/v1alpha1/rca-agent/chat': {
     parameters: {
       query?: never;
       header?: never;
@@ -38,13 +38,12 @@ export interface paths {
     /**
      * Chat about an RCA report
      * @description Conversational Q&A about an RCA report with streaming NDJSON response.
-     *
      *     The agent can query observability data (logs, traces, metrics) to answer
      *     follow-up questions about the report.
      *
      *     **Streaming Response Format (NDJSON):**
      *     Each line is a JSON object with a `type` field indicating the event type.
-     *     Events are streamed in order: `message_chunk`* → `tool_call`* → `actions`? → `done`
+     *     Events are streamed in order: `message_chunk`* -> `tool_call`* -> `actions`? -> `done`
      *
      */
     post: operations['chat'];
@@ -54,20 +53,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/rca-reports/projects/{projectId}': {
+  '/api/v1/rca-agent/reports': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /**
-     * List RCA reports by project
-     * @description Retrieves a list of RCA reports filtered by project, environment, and time range.
-     *     Optionally filter by component UIDs and status.
-     *
-     */
-    get: operations['getRCAReportsByProject'];
+    /** List RCA reports */
+    get: operations['listRCAReports'];
     put?: never;
     post?: never;
     delete?: never;
@@ -76,23 +70,15 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/rca-reports/alerts/{alertId}': {
+  '/api/v1/rca-agent/reports/{report_id}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    /**
-     * Get RCA report by alert ID
-     * @description Retrieves a single RCA report by alert ID. Optionally specify a version
-     *     to retrieve a specific report version. If no version is specified,
-     *     returns the latest version.
-     *
-     *     The response includes a list of all available versions for the alert.
-     *
-     */
-    get: operations['getRCAReportByAlert'];
+    /** Get RCA report by report ID */
+    get: operations['getRCAReport'];
     put?: never;
     post?: never;
     delete?: never;
@@ -105,177 +91,58 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    RCARequest: {
-      /**
-       * Format: uuid
-       * @description The component UUID to analyze
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
-       */
-      componentUid: string;
-      /**
-       * Format: uuid
-       * @description The project UUID
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      projectUid: string;
-      /**
-       * Format: uuid
-       * @description The environment UUID
-       * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
-       */
-      environmentUid: string;
+    AnalyzeRequest: {
+      namespace: string;
+      project: string;
+      component: string;
+      environment: string;
       alert: components['schemas']['AlertContext'];
-      /** @description Optional metadata */
       meta?: {
         [key: string]: unknown;
       } | null;
     };
     AlertContext: {
-      /**
-       * @description The alert ID
-       * @example alert-789
-       */
       id: string;
-      /**
-       * @description The alert value
-       * @example 95
-       */
       value: number | string;
-      /**
-       * @description When the alert was triggered
-       * @example 2025-01-01T08:00:00Z
-       */
       timestamp: string;
       rule: components['schemas']['AlertRuleInfo'];
     };
     AlertRuleInfo: {
-      /**
-       * @description Name of the alert rule
-       * @example High CPU Usage
-       */
       name: string;
-      /**
-       * @description Description of the alert rule
-       * @example Triggers when CPU usage exceeds 90%
-       */
       description?: string | null;
-      /**
-       * @description Severity level
-       * @example critical
-       */
       severity?: string | null;
       source?: components['schemas']['AlertRuleSource'];
       condition?: components['schemas']['AlertRuleCondition'];
     };
     AlertRuleSource: {
-      /**
-       * @description Source type (e.g., logs, metrics)
-       * @example metrics
-       */
+      /** @description Source type (e.g., logs, metrics) */
       type: string;
-      /** @description Query string for the source */
       query?: string | null;
-      /**
-       * @description Metric name
-       * @example cpu_usage_percent
-       */
       metric?: string | null;
     };
     AlertRuleCondition: {
-      /**
-       * @description Time window for evaluation
-       * @example 5m
-       */
       window: string;
-      /**
-       * @description Evaluation interval
-       * @example 1m
-       */
       interval: string;
-      /**
-       * @description Comparison operator
-       * @example gt
-       */
       operator: string;
-      /**
-       * @description Threshold value
-       * @example 90
-       */
       threshold: number;
     };
     RCAResponse: {
-      /**
-       * @description The ID of the created RCA report
-       * @example alert-789_1704067200
-       */
       report_id: string;
-      /**
-       * @description Initial status of the report
-       * @example pending
-       * @enum {string}
-       */
+      /** @enum {string} */
       status: 'pending';
     };
     ChatRequest: {
-      /**
-       * @description The ID of the RCA report to chat about
-       * @example alert-789_1704067200
-       */
       reportId: string;
-      /**
-       * @description Specific report version to fetch. If not provided, fetches the latest version.
-       * @example 1
-       */
-      version?: number;
-      /**
-       * Format: uuid
-       * @description The project UUID
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      projectUid: string;
-      /**
-       * Format: uuid
-       * @description The environment UUID
-       * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
-       */
-      environmentUid: string;
-      /**
-       * Format: uuid
-       * @description The component UUID
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
-       */
-      componentUid?: string;
-      /**
-       * @description Chat message history
-       * @example [
-       *       {
-       *         "role": "user",
-       *         "content": "What caused the memory spike at 08:15?"
-       *       },
-       *       {
-       *         "role": "assistant",
-       *         "content": "The memory spike was caused by a memory leak in the connection pool."
-       *       },
-       *       {
-       *         "role": "user",
-       *         "content": "Can you show me the relevant logs?"
-       *       }
-       *     ]
-       */
-      messages: components['schemas']['ChatMessage'][];
+      namespace: string;
+      project: string;
+      environment: string;
+      messages: {
+        role: string;
+        content: string;
+      }[];
     };
-    ChatMessage: {
-      /**
-       * @description The role of the message sender
-       * @example user
-       * @enum {string}
-       */
-      role: 'user' | 'assistant';
-      /**
-       * @description The message content
-       * @example What caused the database connection errors?
-       */
-      content: string;
+    ErrorResponse: {
+      detail: string;
     };
     /** @description A streaming event. Events are sent as newline-delimited JSON (NDJSON).
      *     Use the `type` field to determine the event type.
@@ -286,442 +153,227 @@ export interface components {
       | components['schemas']['ActionsEvent']
       | components['schemas']['DoneEvent']
       | components['schemas']['ErrorEvent'];
-    /** @description A chunk of the streamed message content */
     MessageChunkEvent: {
       /**
-       * @description Event type discriminator (enum property replaced by openapi-typescript)
+       * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'message_chunk';
-      /**
-       * @description A chunk of the streamed message content
-       * @example Based on the logs,
-       */
       content: string;
     };
-    /** @description Indicates a tool is being called by the agent */
     ToolCallEvent: {
       /**
-       * @description Event type discriminator (enum property replaced by openapi-typescript)
+       * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'tool_call';
-      /**
-       * @description Name of the tool being called
-       * @example get_component_logs
-       */
+      /** @description Name of the tool being called */
       tool: string;
-      /**
-       * @description Human-readable present continuous description of the tool action for UI display
-       * @example Fetching component logs...
-       */
+      /** @description Human-readable description of the tool action for UI display */
       activeForm?: string;
-      /**
-       * @description JSON-encoded arguments for the tool call
-       * @example {"componentUid": "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b", "startTime": "2025-01-10T08:00:00Z"}
-       */
+      /** @description JSON-encoded arguments */
       args?: string;
     };
-    /** @description Structured actions suggested by the agent for the UI to render (e.g., suggest amend, citations) */
     ActionsEvent: {
       /**
-       * @description Event type discriminator (enum property replaced by openapi-typescript)
+       * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'actions';
-      /**
-       * @description Structured actions for the UI to render
-       * @example [
-       *       {
-       *         "type": "suggest_amend",
-       *         "reason": "Discovered additional root cause related to memory leak"
-       *       }
-       *     ]
-       */
+      /** @description Structured actions for the UI to render */
       actions: {
         [key: string]: unknown;
       }[];
     };
-    /** @description Indicates the stream has completed successfully */
     DoneEvent: {
       /**
-       * @description Event type discriminator (enum property replaced by openapi-typescript)
+       * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'done';
-      /**
-       * @description The complete response message
-       * @example The database connection errors were caused by connection pool exhaustion.
-       */
+      /** @description The complete response message */
       message: string;
     };
-    /** @description Indicates an error occurred during streaming */
     ErrorEvent: {
       /**
-       * @description Event type discriminator (enum property replaced by openapi-typescript)
+       * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'error';
-      /**
-       * @description Error message describing what went wrong
-       * @example Failed to fetch component logs: connection timeout
-       */
       message: string;
     };
-    ErrorResponse: {
-      /**
-       * @description Human-readable error message
-       * @example Invalid request parameters
-       */
-      detail: string;
-    };
-    /** @description Summary of an RCA report for list views */
-    RCAReportSummary: {
-      /**
-       * @description The alert ID that triggered this report
-       * @example alert-789
-       */
-      alertId: string;
-      /**
-       * @description The project UUID
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      projectUid: string;
-      /**
-       * @description The unique report ID
-       * @example alert-789_1704067200
-       */
-      reportId: string;
-      /**
-       * Format: date-time
-       * @description When the report was created
-       * @example 2025-01-01T08:00:00Z
-       */
-      timestamp: string;
-      /**
-       * @description Brief summary of the RCA findings
-       * @example Database connection pool exhaustion caused by memory leak in connection handler
-       */
-      summary?: string | null;
-      /**
-       * @description The report status
-       * @example completed
-       * @enum {string}
-       */
-      status: 'pending' | 'completed' | 'failed';
-    };
-    /** @description Response containing a list of RCA reports */
     RCAReportsResponse: {
-      /** @description List of RCA report summaries */
       reports: components['schemas']['RCAReportSummary'][];
-      /**
-       * @description Total number of matching reports
-       * @example 42
-       */
       totalCount: number;
-      /**
-       * @description Query execution time in milliseconds
-       * @example 15
-       */
-      tookMs: number;
     };
-    /** @description Detailed RCA report with full content */
-    RCAReportDetailed: {
-      /**
-       * @description The alert ID that triggered this report
-       * @example alert-789
-       */
+    RCAReportSummary: {
       alertId: string;
-      /**
-       * @description The project UUID
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      projectUid: string;
-      /**
-       * @description The version number of this report
-       * @example 1
-       */
-      reportVersion: number;
-      /**
-       * @description The unique report ID
-       * @example alert-789_1704067200
-       */
       reportId: string;
-      /**
-       * Format: date-time
-       * @description When the report was created
-       * @example 2025-01-01T08:00:00Z
-       */
+      /** Format: date-time */
       timestamp: string;
-      /**
-       * @description The report status
-       * @example completed
-       * @enum {string}
-       */
+      summary?: string | null;
+      /** @enum {string} */
       status: 'pending' | 'completed' | 'failed';
-      /**
-       * @description List of all available versions for this alert (descending order)
-       * @example [
-       *       3,
-       *       2,
-       *       1
-       *     ]
-       */
-      availableVersions: number[];
+    };
+    RCAReportDetailed: {
+      alertId: string;
+      reportId: string;
+      /** Format: date-time */
+      timestamp: string;
+      /** @enum {string} */
+      status: 'pending' | 'completed' | 'failed';
       /** @description The full RCA report content (null if status is pending or failed) */
       report?: components['schemas']['RCAReport'];
     };
-    /** @description Complete Root Cause Analysis Report for OpenChoreo incidents */
     RCAReport: {
-      /** @description The alert that triggered this RCA */
       alert_context: components['schemas']['ReportAlertContext'];
-      /**
-       * @description Concise summary of the investigation outcome (1 sentence)
-       * @example Database connection pool exhaustion caused by memory leak in connection handler
-       */
       summary: string;
-      /** @description The RCA result - either root causes identified, or explanation of why not */
       result:
         | components['schemas']['RootCauseIdentified']
         | components['schemas']['NoRootCauseIdentified'];
-      /** @description Sequential steps the agent took during investigation */
       investigation_path: components['schemas']['InvestigationStep'][];
     };
-    /** @description Alert context echoed in the RCA report for reference */
     ReportAlertContext: {
-      /** @description Unique identifier of the alert */
       alert_id: string;
-      /** @description Name of the alert rule that triggered */
       alert_name: string;
-      /** @description Description of the alert rule */
       alert_description?: string | null;
-      /** @description Alert severity level */
       severity?: string | null;
-      /** @description ISO 8601 timestamp when alert fired */
       triggered_at: string;
-      /** @description The value that triggered the alert */
       trigger_value: number;
-      /** @description Alert source type (e.g., 'log', 'metric') */
       source_type?: string | null;
-      /** @description The query used to detect this alert if source type is log */
       source_query?: string | null;
-      /** @description The metric name if source type is metric */
       source_metric?: string | null;
       condition: components['schemas']['ReportAlertCondition'];
-      /** @description Component UID the alert was configured on */
       component_uid: string;
-      /** @description Project UID of the relevant component */
       project_uid: string;
-      /** @description Environment UID of the relevant project */
       environment_uid: string;
     };
-    /** @description Structured alert condition that triggered the alert */
     ReportAlertCondition: {
-      /** @description Time window for the condition */
       window: string;
-      /** @description Evaluation interval */
       interval: string;
-      /** @description Comparison operator */
       operator: string;
-      /** @description Threshold value that was exceeded */
       threshold: number;
     };
-    /** @description RCA was performed and root causes were identified */
     RootCauseIdentified: {
       /**
        * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'root_cause_identified';
-      /** @description Identified root causes in order of significance */
       root_causes: components['schemas']['RootCause'][];
-      /** @description Chronological sequence of significant system events. Include only system(project) level events */
       timeline: components['schemas']['TimelineEvent'][];
-      /** @description Potential causes that were investigated and ruled out */
       excluded_causes?: components['schemas']['ExcludedCause'][];
-      /** @description Actionable practical recommendations to prevent recurrence */
       recommendations: components['schemas']['Recommendations'];
     };
-    /** @description RCA was performed but no root cause could be identified */
     NoRootCauseIdentified: {
       /**
        * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'no_root_cause_identified';
-      /**
-       * @description Categorized reason why no root cause was identified
-       * @enum {string}
-       */
+      /** @enum {string} */
       outcome:
         | 'no_anomaly_detected'
         | 'insufficient_data'
         | 'transient'
         | 'external_dependency';
-      /** @description Detailed explanation of why no root cause was identified */
       explanation: string;
-      /** @description Recommendations for improving observability if applicable */
       recommendations?: components['schemas']['Recommendations'];
     };
-    /** @description An identified root cause with its supporting findings */
     RootCause: {
-      /** @description One sentence summary of the root cause */
       summary: string;
-      /**
-       * @description Confidence level in this root cause determination
-       * @enum {string}
-       */
+      /** @enum {string} */
       confidence: 'high' | 'medium' | 'low';
-      /** @description Narrative explanation of how findings correlate to support this root cause. Use backticks and **bold** to highlight key info */
       analysis: string;
-      /** @description Include only evidence-backed observations directly supporting this root cause. If a finding has multiple insights within a rootcause, do not split it into multiple findings */
       supporting_findings: components['schemas']['Finding'][];
     };
-    /** @description A single observation that supports a root cause */
     Finding: {
-      /** @description Human-readable summary of the finding */
       observation: string;
-      /** @description Component this finding relates to */
       component_uid: string;
-      /** @description Time range for deep-dive linking */
       time_range: components['schemas']['TimeRange'];
-      /** @description The supporting evidence */
       evidence:
         | components['schemas']['LogEvidence']
         | components['schemas']['MetricEvidence']
         | components['schemas']['TraceEvidence'];
     };
-    /** @description Time range for observations */
     TimeRange: {
-      /** @description ISO 8601 timestamp for range start */
       start: string;
-      /** @description ISO 8601 timestamp for range end */
       end: string;
     };
-    /** @description Evidence from application logs */
     LogEvidence: {
       /**
        * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'log';
-      /** @description Relevant log lines (can be 1 or multiple related lines) */
       log_lines: components['schemas']['LogLine'][];
-      /** @description One sentence explaining repetition pattern if applicable (e.g., 'This error repeated 47 times over 5 minutes') */
       repetition?: string | null;
     };
-    /** @description A single log line with valuable information for RCA */
     LogLine: {
-      /** @description ISO 8601 timestamp when the log was emitted */
       timestamp: string;
-      /**
-       * @description Log severity level
-       * @enum {string}
-       */
+      /** @enum {string} */
       level: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
-      /** @description The log message content */
       message: string;
     };
-    /** @description Evidence from metrics */
     MetricEvidence: {
       /**
        * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'metric';
-      /** @description Summary of the metric behavior. Use backticks to highlight key info (e.g., 'Avg `85%`, peaked at `99%`') */
       summary: string;
     };
-    /** @description Evidence from distributed traces */
     TraceEvidence: {
       /**
        * @description discriminator enum property added by openapi-typescript
        * @enum {string}
        */
       type: 'trace';
-      /** @description Trace ID for linking to trace viewer */
       trace_id: string;
-      /** @description Span ID for linking to specific span */
       span_id: string;
-      /** @description Summary of the trace issue. Use backticks to highlight key info (e.g., 'db.query took `4,800ms`') */
       summary: string;
-      /**
-       * @description Whether this span had an error
-       * @default false
-       */
+      /** @default false */
       is_error: boolean;
-      /** @description Error message if is_error is True */
       error_message?: string | null;
-      /** @description One sentence explaining repetition pattern if applicable (e.g., 'Similar slow spans seen in 23 traces') */
       repetition?: string | null;
     };
-    /** @description A significant system event - when, where, what */
     TimelineEvent: {
-      /** @description ISO 8601 timestamp when the event occurred */
       timestamp: string;
-      /** @description Which component (None for alert/system-level events) */
       component_uid?: string | null;
-      /** @description What happened - include only significant system-level events in the causal chain. Use backticks to highlight key info */
       event: string;
     };
-    /** @description A significant step the agent took during investigation */
     InvestigationStep: {
-      /** @description What the agent investigated (e.g., 'Analyzed error logs from analytics-service') */
       action: string;
-      /** @description What the agent found or concluded. Use backticks to highlight key info */
       outcome: string;
-      /** @description Why the agent took this step */
       rationale?: string | null;
     };
-    /** @description A potential cause that was investigated and ruled out */
     ExcludedCause: {
-      /** @description The potential cause that was investigated and excluded */
       description: string;
-      /** @description Why this was ruled out as a root cause based on evidence. Use backticks to highlight key info */
       rationale: string;
     };
-    /** @description Actionable recommendations to prevent recurrence */
     Recommendations: {
-      /** @description Prioritized actions to mitigate and prevent recurrence. When the remediation agent has run, these actions are enriched with status and concrete resource changes. */
       recommended_actions?: components['schemas']['RecommendedAction'][];
-      /** @description Suggestions for improving telemetry/monitoring for better future RCA */
       observability_recommendations?: components['schemas']['Action'][];
     };
-    /** @description An actionable recommendation */
     Action: {
-      /** @description Description of the action to take */
       description: string;
-      /** @description Why this action is recommended. Use backticks to highlight key info */
       rationale?: string | null;
     };
-    /** @description A recommended action that may be enriched by the remediation agent with concrete OpenChoreo-specific guidance */
     RecommendedAction: WithRequired<
       components['schemas']['Action'],
       'description'
     > & {
       /**
-       * @description Status of the action:
-       *     - `suggested`: Default status set by the RCA agent
-       *     - `unchanged`: Reviewed by remediation agent but kept as-is
-       *     - `revised`: Translated into concrete OpenChoreo-specific guidance by remediation agent
-       *
        * @default suggested
        * @enum {string}
        */
       status: 'suggested' | 'unchanged' | 'revised';
-      /**
-       * @description Specific resource changes to make (populated when status is `revised`)
-       * @default []
-       */
+      /** @default [] */
       changes: components['schemas']['ResourceChange'][];
     };
-    /** @description A specific change to make on an OpenChoreo resource */
     ResourceChange: {
-      /** @description Resource kind and name (e.g. 'ReleaseBinding api-service-development') */
       resource: string;
-      /** @description Field path to update (e.g. 'spec.workloadOverrides.container.env[name=POSTGRES_DSN].value') */
       field_path: string;
-      /** @description Recommended value to set */
       value: string;
     };
   };
@@ -733,7 +385,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  rca: {
+  analyze: {
     parameters: {
       query?: never;
       header?: never;
@@ -742,7 +394,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['RCARequest'];
+        'application/json': components['schemas']['AnalyzeRequest'];
       };
     };
     responses: {
@@ -815,6 +467,15 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
+      /** @description Report not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
       /** @description Internal server error */
       500: {
         headers: {
@@ -826,50 +487,23 @@ export interface operations {
       };
     };
   };
-  getRCAReportsByProject: {
+  listRCAReports: {
     parameters: {
       query: {
-        /**
-         * @description The environment UUID
-         * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
-         */
-        environmentUid: string;
-        /**
-         * @description Start time in RFC3339 format
-         * @example 2025-01-01T00:00:00Z
-         */
+        project: string;
+        environment: string;
+        namespace: string;
+        /** @description RFC3339 format */
         startTime: string;
-        /**
-         * @description End time in RFC3339 format
-         * @example 2025-01-31T23:59:59Z
-         */
+        /** @description RFC3339 format */
         endTime: string;
-        /**
-         * @description Filter by component UIDs
-         * @example [
-         *       "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b"
-         *     ]
-         */
-        componentUids?: string[];
-        /**
-         * @description Filter by report status
-         * @example completed
-         */
-        status?: 'pending' | 'completed' | 'failed';
-        /**
-         * @description Maximum number of reports to return
-         * @example 50
-         */
         limit?: number;
+        /** @description Sort order by timestamp */
+        sort?: 'asc' | 'desc';
+        status?: 'pending' | 'completed' | 'failed';
       };
       header?: never;
-      path: {
-        /**
-         * @description The project UUID
-         * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-         */
-        projectId: string;
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody?: never;
@@ -921,22 +555,12 @@ export interface operations {
       };
     };
   };
-  getRCAReportByAlert: {
+  getRCAReport: {
     parameters: {
-      query?: {
-        /**
-         * @description Specific report version to retrieve. If not provided, returns the latest version.
-         * @example 1
-         */
-        version?: number;
-      };
+      query?: never;
       header?: never;
       path: {
-        /**
-         * @description The alert ID
-         * @example alert-789
-         */
-        alertId: string;
+        report_id: string;
       };
       cookie?: never;
     };

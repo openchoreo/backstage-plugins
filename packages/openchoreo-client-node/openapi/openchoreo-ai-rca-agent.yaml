@@ -19,7 +19,7 @@ tags:
     description: Endpoints for retrieving RCA reports
 
 paths:
-  /api/v1/agent/rca:
+  /api/v1alpha1/rca-agent/analyze:
     post:
       tags:
         - Agent
@@ -27,13 +27,13 @@ paths:
       description: |
         Creates a pending RCA report and triggers background analysis for the given alert.
         The analysis runs asynchronously and the report status can be checked via the reports endpoints.
-      operationId: rca
+      operationId: analyze
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RCARequest'
+              $ref: '#/components/schemas/AnalyzeRequest'
       responses:
         '200':
           description: Analysis triggered successfully
@@ -54,20 +54,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/agent/chat:
+  /api/v1alpha1/rca-agent/chat:
     post:
       tags:
         - Agent
       summary: Chat about an RCA report
       description: |
         Conversational Q&A about an RCA report with streaming NDJSON response.
-
         The agent can query observability data (logs, traces, metrics) to answer
         follow-up questions about the report.
 
         **Streaming Response Format (NDJSON):**
         Each line is a JSON object with a `type` field indicating the event type.
-        Events are streamed in order: `message_chunk`* → `tool_call`* → `actions`? → `done`
+        Events are streamed in order: `message_chunk`* -> `tool_call`* -> `actions`? -> `done`
       operationId: chat
       requestBody:
         required: true
@@ -110,6 +109,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal server error
           content:
@@ -117,76 +122,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/rca-reports/projects/{projectId}:
+  /api/v1/rca-agent/reports:
     get:
       tags:
         - RCA Reports
-      summary: List RCA reports by project
-      description: |
-        Retrieves a list of RCA reports filtered by project, environment, and time range.
-        Optionally filter by component UIDs and status.
-      operationId: getRCAReportsByProject
+      summary: List RCA reports
+      operationId: listRCAReports
       parameters:
-        - name: projectId
-          in: path
-          required: true
-          description: The project UUID
-          schema:
-            type: string
-            format: uuid
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        - name: environmentUid
+        - name: project
           in: query
           required: true
-          description: The environment UUID
           schema:
             type: string
-            format: uuid
-          example: '2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c'
+        - name: environment
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
         - name: startTime
           in: query
           required: true
-          description: Start time in RFC3339 format
+          description: RFC3339 format
           schema:
             type: string
             format: date-time
-          example: '2025-01-01T00:00:00Z'
         - name: endTime
           in: query
           required: true
-          description: End time in RFC3339 format
+          description: RFC3339 format
           schema:
             type: string
             format: date-time
-          example: '2025-01-31T23:59:59Z'
-        - name: componentUids
-          in: query
-          required: false
-          description: Filter by component UIDs
-          schema:
-            type: array
-            items:
-              type: string
-              format: uuid
-          example: ['8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b']
-        - name: status
-          in: query
-          required: false
-          description: Filter by report status
-          schema:
-            type: string
-            enum: [pending, completed, failed]
-          example: 'completed'
         - name: limit
           in: query
-          required: false
-          description: Maximum number of reports to return
           schema:
             type: integer
             minimum: 1
             maximum: 10000
             default: 100
-          example: 50
+        - name: sort
+          in: query
+          description: Sort order by timestamp
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed]
       responses:
         '200':
           description: List of RCA reports
@@ -219,34 +209,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/v1/rca-reports/alerts/{alertId}:
+  /api/v1/rca-agent/reports/{report_id}:
     get:
       tags:
         - RCA Reports
-      summary: Get RCA report by alert ID
-      description: |
-        Retrieves a single RCA report by alert ID. Optionally specify a version
-        to retrieve a specific report version. If no version is specified,
-        returns the latest version.
-
-        The response includes a list of all available versions for the alert.
-      operationId: getRCAReportByAlert
+      summary: Get RCA report by report ID
+      operationId: getRCAReport
       parameters:
-        - name: alertId
+        - name: report_id
           in: path
           required: true
-          description: The alert ID
           schema:
             type: string
-          example: 'alert-789'
-        - name: version
-          in: query
-          required: false
-          description: Specific report version to retrieve. If not provided, returns the latest version.
-          schema:
-            type: integer
-            minimum: 1
-          example: 1
       responses:
         '200':
           description: RCA report details
@@ -275,81 +249,54 @@ paths:
 
 components:
   schemas:
-    RCARequest:
+    # --- Request / Response schemas ---
+
+    AnalyzeRequest:
       type: object
-      required:
-        - componentUid
-        - projectUid
-        - environmentUid
-        - alert
+      required: [namespace, project, component, environment, alert]
       properties:
-        componentUid:
+        namespace:
           type: string
-          format: uuid
-          description: The component UUID to analyze
-          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
-        projectUid:
+        project:
           type: string
-          format: uuid
-          description: The project UUID
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        environmentUid:
+        component:
           type: string
-          format: uuid
-          description: The environment UUID
-          example: '2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c'
+        environment:
+          type: string
         alert:
           $ref: '#/components/schemas/AlertContext'
         meta:
           type: object
           nullable: true
-          description: Optional metadata
           additionalProperties: true
 
     AlertContext:
       type: object
-      required:
-        - id
-        - value
-        - timestamp
-        - rule
+      required: [id, value, timestamp, rule]
       properties:
         id:
           type: string
-          description: The alert ID
-          example: 'alert-789'
         value:
           oneOf:
             - type: integer
             - type: string
-          description: The alert value
-          example: 95
         timestamp:
           type: string
-          description: When the alert was triggered
-          example: '2025-01-01T08:00:00Z'
         rule:
           $ref: '#/components/schemas/AlertRuleInfo'
 
     AlertRuleInfo:
       type: object
-      required:
-        - name
+      required: [name]
       properties:
         name:
           type: string
-          description: Name of the alert rule
-          example: 'High CPU Usage'
         description:
           type: string
           nullable: true
-          description: Description of the alert rule
-          example: 'Triggers when CPU usage exceeds 90%'
         severity:
           type: string
           nullable: true
-          description: Severity level
-          example: 'critical'
         source:
           $ref: '#/components/schemas/AlertRuleSource'
         condition:
@@ -357,125 +304,76 @@ components:
 
     AlertRuleSource:
       type: object
-      required:
-        - type
+      required: [type]
       properties:
         type:
           type: string
           description: Source type (e.g., logs, metrics)
-          example: 'metrics'
         query:
           type: string
           nullable: true
-          description: Query string for the source
         metric:
           type: string
           nullable: true
-          description: Metric name
-          example: 'cpu_usage_percent'
 
     AlertRuleCondition:
       type: object
-      required:
-        - window
-        - interval
-        - operator
-        - threshold
+      required: [window, interval, operator, threshold]
       properties:
         window:
           type: string
-          description: Time window for evaluation
-          example: '5m'
         interval:
           type: string
-          description: Evaluation interval
-          example: '1m'
         operator:
           type: string
-          description: Comparison operator
-          example: 'gt'
         threshold:
           type: integer
-          description: Threshold value
-          example: 90
 
     RCAResponse:
       type: object
-      required:
-        - report_id
-        - status
+      required: [report_id, status]
       properties:
         report_id:
           type: string
-          description: The ID of the created RCA report
-          example: 'alert-789_1704067200'
         status:
           type: string
           enum: [pending]
-          description: Initial status of the report
-          example: 'pending'
 
     ChatRequest:
       type: object
-      required:
-        - reportId
-        - projectUid
-        - environmentUid
-        - messages
+      required: [reportId, namespace, project, environment, messages]
       properties:
         reportId:
           type: string
-          description: The ID of the RCA report to chat about
-          example: 'alert-789_1704067200'
-        version:
-          type: integer
-          description: Specific report version to fetch. If not provided, fetches the latest version.
-          minimum: 1
-          example: 1
-        projectUid:
+        namespace:
           type: string
-          format: uuid
-          description: The project UUID
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        environmentUid:
+        project:
           type: string
-          format: uuid
-          description: The environment UUID
-          example: '2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c'
-        componentUid:
+        environment:
           type: string
-          format: uuid
-          description: The component UUID
-          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
         messages:
           type: array
-          description: Chat message history
           minItems: 1
+          maxItems: 50
           items:
-            $ref: '#/components/schemas/ChatMessage'
-          example:
-            - role: 'user'
-              content: 'What caused the memory spike at 08:15?'
-            - role: 'assistant'
-              content: 'The memory spike was caused by a memory leak in the connection pool.'
-            - role: 'user'
-              content: 'Can you show me the relevant logs?'
+            type: object
+            required: [role, content]
+            properties:
+              role:
+                type: string
+              content:
+                type: string
+                maxLength: 10000
+            additionalProperties: false
 
-    ChatMessage:
+    ErrorResponse:
       type: object
-      required:
-        - role
-        - content
+      required: [detail]
       properties:
-        role:
+        detail:
           type: string
-          enum: [user, assistant]
-          description: The role of the message sender
-          example: 'user'
-        content:
-          type: string
-          description: The message content
-          example: 'What caused the database connection errors?'
+
+    # --- Streaming event schemas ---
 
     StreamEvent:
       description: |
@@ -498,234 +396,127 @@ components:
 
     MessageChunkEvent:
       type: object
-      description: A chunk of the streamed message content
-      required:
-        - type
-        - content
+      required: [type, content]
       properties:
         type:
           type: string
           enum: [message_chunk]
-          description: Event type discriminator
         content:
           type: string
-          description: A chunk of the streamed message content
-          example: 'Based on the logs, '
 
     ToolCallEvent:
       type: object
-      description: Indicates a tool is being called by the agent
-      required:
-        - type
-        - tool
+      required: [type, tool]
       properties:
         type:
           type: string
           enum: [tool_call]
-          description: Event type discriminator
         tool:
           type: string
           description: Name of the tool being called
-          example: 'get_component_logs'
         activeForm:
           type: string
-          description: Human-readable present continuous description of the tool action for UI display
-          example: 'Fetching component logs...'
+          description: Human-readable description of the tool action for UI display
         args:
           type: string
-          description: JSON-encoded arguments for the tool call
-          example: '{"componentUid": "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b", "startTime": "2025-01-10T08:00:00Z"}'
+          description: JSON-encoded arguments
 
     ActionsEvent:
       type: object
-      description: Structured actions suggested by the agent for the UI to render (e.g., suggest amend, citations)
-      required:
-        - type
-        - actions
+      required: [type, actions]
       properties:
         type:
           type: string
           enum: [actions]
-          description: Event type discriminator
         actions:
           type: array
           description: Structured actions for the UI to render
           items:
             type: object
             additionalProperties: true
-          example:
-            - type: 'suggest_amend'
-              reason: 'Discovered additional root cause related to memory leak'
 
     DoneEvent:
       type: object
-      description: Indicates the stream has completed successfully
-      required:
-        - type
-        - message
+      required: [type, message]
       properties:
         type:
           type: string
           enum: [done]
-          description: Event type discriminator
         message:
           type: string
           description: The complete response message
-          example: 'The database connection errors were caused by connection pool exhaustion.'
 
     ErrorEvent:
       type: object
-      description: Indicates an error occurred during streaming
-      required:
-        - type
-        - message
+      required: [type, message]
       properties:
         type:
           type: string
           enum: [error]
-          description: Event type discriminator
         message:
           type: string
-          description: Error message describing what went wrong
-          example: 'Failed to fetch component logs: connection timeout'
 
-    ErrorResponse:
-      type: object
-      required:
-        - detail
-      properties:
-        detail:
-          type: string
-          description: Human-readable error message
-          example: 'Invalid request parameters'
-
-    RCAReportSummary:
-      type: object
-      description: Summary of an RCA report for list views
-      required:
-        - alertId
-        - projectUid
-        - reportId
-        - timestamp
-        - status
-      properties:
-        alertId:
-          type: string
-          description: The alert ID that triggered this report
-          example: 'alert-789'
-        projectUid:
-          type: string
-          description: The project UUID
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        reportId:
-          type: string
-          description: The unique report ID
-          example: 'alert-789_1704067200'
-        timestamp:
-          type: string
-          format: date-time
-          description: When the report was created
-          example: '2025-01-01T08:00:00Z'
-        summary:
-          type: string
-          nullable: true
-          description: Brief summary of the RCA findings
-          example: 'Database connection pool exhaustion caused by memory leak in connection handler'
-        status:
-          type: string
-          enum: [pending, completed, failed]
-          description: The report status
-          example: 'completed'
+    # --- Report list/detail schemas ---
 
     RCAReportsResponse:
       type: object
-      description: Response containing a list of RCA reports
-      required:
-        - reports
-        - totalCount
-        - tookMs
+      required: [reports, totalCount]
       properties:
         reports:
           type: array
-          description: List of RCA report summaries
           items:
             $ref: '#/components/schemas/RCAReportSummary'
         totalCount:
           type: integer
-          description: Total number of matching reports
-          example: 42
-        tookMs:
-          type: integer
-          description: Query execution time in milliseconds
-          example: 15
 
-    RCAReportDetailed:
+    RCAReportSummary:
       type: object
-      description: Detailed RCA report with full content
-      required:
-        - alertId
-        - projectUid
-        - reportVersion
-        - reportId
-        - timestamp
-        - status
-        - availableVersions
+      required: [alertId, reportId, timestamp, status]
       properties:
         alertId:
           type: string
-          description: The alert ID that triggered this report
-          example: 'alert-789'
-        projectUid:
-          type: string
-          description: The project UUID
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        reportVersion:
-          type: integer
-          description: The version number of this report
-          example: 1
         reportId:
           type: string
-          description: The unique report ID
-          example: 'alert-789_1704067200'
         timestamp:
           type: string
           format: date-time
-          description: When the report was created
-          example: '2025-01-01T08:00:00Z'
+        summary:
+          type: string
+          nullable: true
         status:
           type: string
           enum: [pending, completed, failed]
-          description: The report status
-          example: 'completed'
-        availableVersions:
-          type: array
-          description: List of all available versions for this alert (descending order)
-          items:
-            type: integer
-          example: [3, 2, 1]
+
+    RCAReportDetailed:
+      type: object
+      required: [alertId, reportId, timestamp, status]
+      properties:
+        alertId:
+          type: string
+        reportId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, completed, failed]
         report:
           nullable: true
           description: The full RCA report content (null if status is pending or failed)
           $ref: '#/components/schemas/RCAReport'
 
+    # --- RCA Report schemas ---
+
     RCAReport:
       type: object
-      description: Complete Root Cause Analysis Report for OpenChoreo incidents
-      required:
-        - alert_context
-        - summary
-        - result
-        - investigation_path
+      required: [alert_context, summary, result, investigation_path]
       properties:
         alert_context:
-          description: The alert that triggered this RCA
           $ref: '#/components/schemas/ReportAlertContext'
         summary:
           type: string
-          description: Concise summary of the investigation outcome (1 sentence)
-          example: 'Database connection pool exhaustion caused by memory leak in connection handler'
         result:
-          description: The RCA result - either root causes identified, or explanation of why not
           oneOf:
             - $ref: '#/components/schemas/RootCauseIdentified'
             - $ref: '#/components/schemas/NoRootCauseIdentified'
@@ -736,130 +527,96 @@ components:
               no_root_cause_identified: '#/components/schemas/NoRootCauseIdentified'
         investigation_path:
           type: array
-          description: Sequential steps the agent took during investigation
           minItems: 1
           items:
             $ref: '#/components/schemas/InvestigationStep'
 
     ReportAlertContext:
       type: object
-      description: Alert context echoed in the RCA report for reference
       required:
-        - alert_id
-        - alert_name
-        - triggered_at
-        - trigger_value
-        - condition
-        - component_uid
-        - project_uid
-        - environment_uid
+        [
+          alert_id,
+          alert_name,
+          triggered_at,
+          trigger_value,
+          condition,
+          component_uid,
+          project_uid,
+          environment_uid,
+        ]
       properties:
         alert_id:
           type: string
-          description: Unique identifier of the alert
         alert_name:
           type: string
-          description: Name of the alert rule that triggered
         alert_description:
           type: string
           nullable: true
-          description: Description of the alert rule
         severity:
           type: string
           nullable: true
-          description: Alert severity level
         triggered_at:
           type: string
-          description: ISO 8601 timestamp when alert fired
         trigger_value:
           type: number
-          description: The value that triggered the alert
         source_type:
           type: string
           nullable: true
-          description: Alert source type (e.g., 'log', 'metric')
         source_query:
           type: string
           nullable: true
-          description: The query used to detect this alert if source type is log
         source_metric:
           type: string
           nullable: true
-          description: The metric name if source type is metric
         condition:
           $ref: '#/components/schemas/ReportAlertCondition'
         component_uid:
           type: string
-          description: Component UID the alert was configured on
         project_uid:
           type: string
-          description: Project UID of the relevant component
         environment_uid:
           type: string
-          description: Environment UID of the relevant project
 
     ReportAlertCondition:
       type: object
-      description: Structured alert condition that triggered the alert
-      required:
-        - window
-        - interval
-        - operator
-        - threshold
+      required: [window, interval, operator, threshold]
       properties:
         window:
           type: string
-          description: Time window for the condition
         interval:
           type: string
-          description: Evaluation interval
         operator:
           type: string
-          description: Comparison operator
         threshold:
           type: integer
-          description: Threshold value that was exceeded
 
     RootCauseIdentified:
       type: object
-      description: RCA was performed and root causes were identified
-      required:
-        - type
-        - root_causes
-        - timeline
-        - recommendations
+      required: [type, root_causes, timeline, recommendations]
       properties:
         type:
           type: string
           enum: [root_cause_identified]
         root_causes:
           type: array
-          description: Identified root causes in order of significance
           minItems: 1
           items:
             $ref: '#/components/schemas/RootCause'
         timeline:
           type: array
-          description: Chronological sequence of significant system events. Include only system(project) level events
           minItems: 1
           items:
             $ref: '#/components/schemas/TimelineEvent'
         excluded_causes:
           type: array
-          description: Potential causes that were investigated and ruled out
           items:
             $ref: '#/components/schemas/ExcludedCause'
         recommendations:
-          description: Actionable practical recommendations to prevent recurrence
           $ref: '#/components/schemas/Recommendations'
 
     NoRootCauseIdentified:
       type: object
-      description: RCA was performed but no root cause could be identified
-      required:
-        - type
-        - outcome
-        - explanation
+      required: [type, outcome, explanation]
       properties:
         type:
           type: string
@@ -873,61 +630,40 @@ components:
               transient,
               external_dependency,
             ]
-          description: Categorized reason why no root cause was identified
         explanation:
           type: string
-          description: Detailed explanation of why no root cause was identified
         recommendations:
-          description: Recommendations for improving observability if applicable
           nullable: true
           $ref: '#/components/schemas/Recommendations'
 
     RootCause:
       type: object
-      description: An identified root cause with its supporting findings
-      required:
-        - summary
-        - confidence
-        - analysis
-        - supporting_findings
+      required: [summary, confidence, analysis, supporting_findings]
       properties:
         summary:
           type: string
-          description: One sentence summary of the root cause
         confidence:
           type: string
           enum: [high, medium, low]
-          description: Confidence level in this root cause determination
         analysis:
           type: string
-          description: Narrative explanation of how findings correlate to support this root cause. Use backticks and **bold** to highlight key info
         supporting_findings:
           type: array
-          description: Include only evidence-backed observations directly supporting this root cause. If a finding has multiple insights within a rootcause, do not split it into multiple findings
           minItems: 1
           items:
             $ref: '#/components/schemas/Finding'
 
     Finding:
       type: object
-      description: A single observation that supports a root cause
-      required:
-        - observation
-        - component_uid
-        - time_range
-        - evidence
+      required: [observation, component_uid, time_range, evidence]
       properties:
         observation:
           type: string
-          description: Human-readable summary of the finding
         component_uid:
           type: string
-          description: Component this finding relates to
         time_range:
-          description: Time range for deep-dive linking
           $ref: '#/components/schemas/TimeRange'
         evidence:
-          description: The supporting evidence
           oneOf:
             - $ref: '#/components/schemas/LogEvidence'
             - $ref: '#/components/schemas/MetricEvidence'
@@ -941,190 +677,132 @@ components:
 
     TimeRange:
       type: object
-      description: Time range for observations
-      required:
-        - start
-        - end
+      required: [start, end]
       properties:
         start:
           type: string
-          description: ISO 8601 timestamp for range start
         end:
           type: string
-          description: ISO 8601 timestamp for range end
 
     LogEvidence:
       type: object
-      description: Evidence from application logs
-      required:
-        - type
-        - log_lines
+      required: [type, log_lines]
       properties:
         type:
           type: string
           enum: [log]
         log_lines:
           type: array
-          description: Relevant log lines (can be 1 or multiple related lines)
           minItems: 1
           items:
             $ref: '#/components/schemas/LogLine'
         repetition:
           type: string
           nullable: true
-          description: One sentence explaining repetition pattern if applicable (e.g., 'This error repeated 47 times over 5 minutes')
 
     LogLine:
       type: object
-      description: A single log line with valuable information for RCA
-      required:
-        - timestamp
-        - level
-        - message
+      required: [timestamp, level, message]
       properties:
         timestamp:
           type: string
-          description: ISO 8601 timestamp when the log was emitted
         level:
           type: string
           enum: [ERROR, WARN, INFO, DEBUG]
-          description: Log severity level
         message:
           type: string
-          description: The log message content
 
     MetricEvidence:
       type: object
-      description: Evidence from metrics
-      required:
-        - type
-        - summary
+      required: [type, summary]
       properties:
         type:
           type: string
           enum: [metric]
         summary:
           type: string
-          description: Summary of the metric behavior. Use backticks to highlight key info (e.g., 'Avg `85%`, peaked at `99%`')
 
     TraceEvidence:
       type: object
-      description: Evidence from distributed traces
-      required:
-        - type
-        - trace_id
-        - span_id
-        - summary
+      required: [type, trace_id, span_id, summary]
       properties:
         type:
           type: string
           enum: [trace]
         trace_id:
           type: string
-          description: Trace ID for linking to trace viewer
         span_id:
           type: string
-          description: Span ID for linking to specific span
         summary:
           type: string
-          description: Summary of the trace issue. Use backticks to highlight key info (e.g., 'db.query took `4,800ms`')
         is_error:
           type: boolean
           default: false
-          description: Whether this span had an error
         error_message:
           type: string
           nullable: true
-          description: Error message if is_error is True
         repetition:
           type: string
           nullable: true
-          description: One sentence explaining repetition pattern if applicable (e.g., 'Similar slow spans seen in 23 traces')
 
     TimelineEvent:
       type: object
-      description: A significant system event - when, where, what
-      required:
-        - timestamp
-        - event
+      required: [timestamp, event]
       properties:
         timestamp:
           type: string
-          description: ISO 8601 timestamp when the event occurred
         component_uid:
           type: string
           nullable: true
-          description: Which component (None for alert/system-level events)
         event:
           type: string
-          description: What happened - include only significant system-level events in the causal chain. Use backticks to highlight key info
 
     InvestigationStep:
       type: object
-      description: A significant step the agent took during investigation
-      required:
-        - action
-        - outcome
+      required: [action, outcome]
       properties:
         action:
           type: string
-          description: What the agent investigated (e.g., 'Analyzed error logs from analytics-service')
         outcome:
           type: string
-          description: What the agent found or concluded. Use backticks to highlight key info
         rationale:
           type: string
           nullable: true
-          description: Why the agent took this step
 
     ExcludedCause:
       type: object
-      description: A potential cause that was investigated and ruled out
-      required:
-        - description
-        - rationale
+      required: [description, rationale]
       properties:
         description:
           type: string
-          description: The potential cause that was investigated and excluded
         rationale:
           type: string
-          description: Why this was ruled out as a root cause based on evidence. Use backticks to highlight key info
 
     Recommendations:
       type: object
-      description: Actionable recommendations to prevent recurrence
       properties:
         recommended_actions:
           type: array
-          description: Prioritized actions to mitigate and prevent recurrence. When the remediation agent has run, these actions are enriched with status and concrete resource changes.
           items:
             $ref: '#/components/schemas/RecommendedAction'
         observability_recommendations:
           type: array
-          description: Suggestions for improving telemetry/monitoring for better future RCA
           items:
             $ref: '#/components/schemas/Action'
 
     Action:
       type: object
-      description: An actionable recommendation
-      required:
-        - description
+      required: [description]
       properties:
         description:
           type: string
-          description: Description of the action to take
         rationale:
           type: string
           nullable: true
-          description: Why this action is recommended. Use backticks to highlight key info
 
     RecommendedAction:
       type: object
-      description: A recommended action that may be enriched by the remediation agent with concrete OpenChoreo-specific guidance
-      required:
-        - description
+      required: [description]
       allOf:
         - $ref: '#/components/schemas/Action'
         - type: object
@@ -1133,42 +811,28 @@ components:
               type: string
               enum: [suggested, unchanged, revised]
               default: suggested
-              description: |
-                Status of the action:
-                - `suggested`: Default status set by the RCA agent
-                - `unchanged`: Reviewed by remediation agent but kept as-is
-                - `revised`: Translated into concrete OpenChoreo-specific guidance by remediation agent
             changes:
               type: array
-              description: Specific resource changes to make (populated when status is `revised`)
               default: []
               items:
                 $ref: '#/components/schemas/ResourceChange'
 
     ResourceChange:
       type: object
-      description: A specific change to make on an OpenChoreo resource
-      required:
-        - resource
-        - field_path
-        - value
+      required: [resource, field_path, value]
       properties:
         resource:
           type: string
-          description: Resource kind and name (e.g. 'ReleaseBinding api-service-development')
         field_path:
           type: string
-          description: Field path to update (e.g. 'spec.workloadOverrides.container.env[name=POSTGRES_DSN].value')
         value:
           type: string
-          description: Recommended value to set
 
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token for authentication
 
 security:
   - bearerAuth: []

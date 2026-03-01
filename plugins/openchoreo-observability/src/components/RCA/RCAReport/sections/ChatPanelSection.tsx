@@ -89,8 +89,7 @@ const markdownComponents = {
 interface ChatContext {
   namespaceName: string;
   environmentName: string;
-  environmentUid: string;
-  projectUid: string;
+  projectName: string;
   rcaAgentApi: RCAAgentApi;
 }
 
@@ -190,8 +189,9 @@ export const ChatPanelSection = ({ reportId, chatContext }: ChatPanelProps) => {
       await chatContext.rcaAgentApi.streamRCAChat(
         {
           reportId: reportId || '',
-          projectUid: chatContext.projectUid,
-          environmentUid: chatContext.environmentUid,
+          namespace: chatContext.namespaceName,
+          project: chatContext.projectName,
+          environment: chatContext.environmentName,
           messages: messagesToSend,
         },
         {

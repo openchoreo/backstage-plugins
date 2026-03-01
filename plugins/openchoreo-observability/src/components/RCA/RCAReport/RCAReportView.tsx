@@ -32,21 +32,20 @@ type RCAReportDetailed = AIRCAAgentComponents['schemas']['RCAReportDetailed'];
 interface ChatContext {
   namespaceName: string;
   environmentName: string;
-  environmentUid: string;
-  projectUid: string;
+  projectName: string;
   rcaAgentApi: RCAAgentApi;
 }
 
 interface RCAReportViewProps {
   report: RCAReportDetailed;
-  alertId: string;
+  reportId: string;
   onBack: () => void;
   chatContext: ChatContext;
 }
 
 export const RCAReportView = ({
   report,
-  alertId,
+  reportId,
   onBack,
   chatContext,
 }: RCAReportViewProps) => {
@@ -193,7 +192,7 @@ export const RCAReportView = ({
               <IncidentOverviewSection
                 summary={rcaReport.summary || ''}
                 alertContext={alertContext}
-                alertId={alertId}
+                reportId={reportId}
                 reportTimestamp={report.timestamp}
                 formatTimestamp={formatTimestamp}
               />

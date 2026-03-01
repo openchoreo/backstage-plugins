@@ -5,7 +5,7 @@ export { useUrlFilters } from './useUrlFilters';
 export { useMetrics } from './useMetrics';
 export { useTraces } from './useTraces';
 export { useGetComponentsByProject } from './useGetComponentsByProject';
-export { useRCAReportByAlert } from './useRCAReportByAlert';
+export { useRCAReport, useRCAReportByAlert } from './useRCAReportByAlert';
 export { useRCAReports } from './useRCAReports';
 export { useRuntimeLogs } from './useRuntimeLogs';
 export { useUrlFiltersForRuntimeLogs } from './useUrlFiltersForRuntimeLogs';

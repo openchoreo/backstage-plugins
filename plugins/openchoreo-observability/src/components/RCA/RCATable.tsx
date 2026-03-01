@@ -135,7 +135,7 @@ export const RCATable = ({ reports, loading = false }: RCATableProps) => {
                 <IconButton
                   size="small"
                   component={RouterLink}
-                  to={`./${report.alertId}`}
+                  to={`./${report.reportId}`}
                   aria-label="view report"
                 >
                   <DescriptionOutlinedIcon fontSize="small" />

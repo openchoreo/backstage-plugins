@@ -62,12 +62,9 @@ export interface ObservabilityApi {
   }>;
 
   getRCAReports(
-    projectId: string,
-    environmentId: string,
-    environmentName: string,
     namespaceName: string,
     projectName: string,
-    componentUids: string[],
+    environmentName: string,
     options?: {
       startTime?: string;
       endTime?: string;
@@ -77,19 +74,12 @@ export interface ObservabilityApi {
   ): Promise<{
     reports: RCAReportSummary[];
     totalCount?: number;
-    tookMs?: number;
   }>;
 
-  getRCAReportByAlert(
-    alertId: string,
-    projectId: string,
-    environmentId: string,
+  getRCAReport(
+    reportId: string,
     environmentName: string,
     namespaceName: string,
-    projectName: string,
-    options?: {
-      version?: number;
-    },
   ): Promise<RCAReportDetailed>;
 }
 
@@ -265,12 +255,9 @@ export class ObservabilityClient implements ObservabilityApi {
   }
 
   async getRCAReports(
-    projectId: string,
-    environmentId: string,
-    environmentName: string,
     namespaceName: string,
-    _projectName: string,
-    componentUids: string[],
+    projectName: string,
+    environmentName: string,
     options?: {
       startTime?: string;
       endTime?: string;
@@ -280,7 +267,6 @@ export class ObservabilityClient implements ObservabilityApi {
   ): Promise<{
     reports: RCAReportSummary[];
     totalCount?: number;
-    tookMs?: number;
   }> {
     const { rcaAgentUrl } = await this.urlCache.resolveUrls(
       namespaceName,
@@ -291,23 +277,16 @@ export class ObservabilityClient implements ObservabilityApi {
       throw new Error('RCA service is not configured');
     }
 
-    const url = new URL(
-      `${rcaAgentUrl}/api/v1/rca-reports/projects/${encodeURIComponent(
-        projectId,
-      )}`,
-    );
-    url.searchParams.set('environmentUid', environmentId);
+    const url = new URL(`${rcaAgentUrl}/api/v1/rca-agent/reports`);
+    url.searchParams.set('namespace', namespaceName);
+    url.searchParams.set('project', projectName);
+    url.searchParams.set('environment', environmentName);
     if (options?.startTime)
       url.searchParams.set('startTime', options.startTime);
     if (options?.endTime) url.searchParams.set('endTime', options.endTime);
     if (options?.status) url.searchParams.set('status', options.status);
     if (options?.limit !== undefined)
       url.searchParams.set('limit', String(options.limit));
-    if (componentUids.length > 0) {
-      componentUids.forEach(uid =>
-        url.searchParams.append('componentUids', uid),
-      );
-    }
 
     const response = await this.fetchApi.fetch(url.toString(), {
       headers: { ...DIRECT_HEADER },
@@ -330,20 +309,13 @@ export class ObservabilityClient implements ObservabilityApi {
     return {
       reports: data.reports || [],
       totalCount: data.totalCount,
-      tookMs: data.tookMs,
     };
   }
 
-  async getRCAReportByAlert(
-    alertId: string,
-    _projectId: string,
-    _environmentId: string,
+  async getRCAReport(
+    reportId: string,
     environmentName: string,
     namespaceName: string,
-    _projectName: string,
-    options?: {
-      version?: number;
-    },
   ): Promise<RCAReportDetailed> {
     const { rcaAgentUrl } = await this.urlCache.resolveUrls(
       namespaceName,
@@ -355,11 +327,8 @@ export class ObservabilityClient implements ObservabilityApi {
     }
 
     const url = new URL(
-      `${rcaAgentUrl}/api/v1/rca-reports/alerts/${encodeURIComponent(alertId)}`,
+      `${rcaAgentUrl}/api/v1/rca-agent/reports/${encodeURIComponent(reportId)}`,
     );
-    if (options?.version !== undefined) {
-      url.searchParams.set('version', String(options.version));
-    }
 
     const response = await this.fetchApi.fetch(url.toString(), {
       headers: { ...DIRECT_HEADER },
