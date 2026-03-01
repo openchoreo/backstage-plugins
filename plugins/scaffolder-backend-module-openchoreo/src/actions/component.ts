@@ -407,15 +407,13 @@ export const createComponentAction = (
         );
 
         // Call the API to create the component
-        const {
-          error: applyError,
-          response: applyResponse,
-        } = await client.POST('/api/v1/namespaces/{namespaceName}/components', {
-          params: {
-            path: { namespaceName },
-          },
-          body: componentResource as any,
-        });
+        const { error: applyError, response: applyResponse } =
+          await client.POST('/api/v1/namespaces/{namespaceName}/components', {
+            params: {
+              path: { namespaceName },
+            },
+            body: componentResource as any,
+          });
 
         if (applyError || !applyResponse.ok) {
           throw new Error(
