@@ -547,7 +547,7 @@ export class WorkflowService {
           params: {
             path: { namespaceName, projectName, componentName, runName },
             query: {
-              ...(options.step ? { task: options.step } : {}),
+              ...(options.step ? { step: options.step } : {}),
             },
           },
         },
@@ -692,7 +692,7 @@ export class WorkflowService {
           params: {
             path: { namespaceName, projectName, componentName, runName },
             query: {
-              ...(step ? { task: step } : {}),
+              ...(step ? { step } : {}),
             },
           },
         },
