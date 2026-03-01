@@ -236,7 +236,14 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
       if (intervalId !== undefined) window.clearInterval(intervalId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, namespaceName, runName, activeStepName, statusState?.status, statusState?.steps]);
+  }, [
+    client,
+    namespaceName,
+    runName,
+    activeStepName,
+    statusState?.status,
+    statusState?.steps,
+  ]);
 
   const handleStepChange = (stepName: string) => {
     setActiveStepName(prev => (prev === stepName ? null : stepName));
