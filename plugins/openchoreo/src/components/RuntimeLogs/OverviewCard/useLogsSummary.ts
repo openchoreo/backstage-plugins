@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useApi,
+  createApiRef,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
@@ -9,6 +10,36 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 import { calculateTimeRange } from '../../../api/runtimeLogs';
 import type { LogEntry, Environment, LogsResponse } from '../types';
+
+/**
+ * Local reference to the observability API registered by the
+ * openchoreo-observability plugin. Using the same `id` ensures
+ * Backstage resolves it to the same singleton instance at runtime,
+ * without requiring a package dependency.
+ */
+interface ObservabilityLogsApi {
+  getRuntimeLogs(
+    componentId: string,
+    projectId: string,
+    environmentId: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      limit?: number;
+      startTime?: string;
+      endTime?: string;
+      logLevels?: string[];
+      searchQuery?: string;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<LogsResponse>;
+}
+
+const observabilityApiRef = createApiRef<ObservabilityLogsApi>({
+  id: 'plugin.openchoreo-observability.service',
+});
 
 interface LogsSummaryState {
   errorCount: number;
@@ -29,6 +60,7 @@ export function useLogsSummary() {
   const client = useApi(openChoreoClientApiRef);
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
+  const observabilityApi = useApi(observabilityApiRef);
 
   const [state, setState] = useState<LogsSummaryState>({
     errorCount: 0,
@@ -51,7 +83,8 @@ export function useLogsSummary() {
       }
 
       // Get project ID
-      const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+      const project =
+        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
       const namespace =
         entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
@@ -59,7 +92,7 @@ export function useLogsSummary() {
         throw new Error('Project or namespace not found in annotations');
       }
 
-      // Fetch project details to get projectId
+      // Fetch project UID
       const projectUrl = new URL(
         `${await discoveryApi.getBaseUrl('openchoreo')}/project`,
       );
@@ -73,11 +106,7 @@ export function useLogsSummary() {
         throw new Error('Failed to fetch project details');
       }
       const projectData = await projectResponse.json();
-      const projectId = projectData.uid;
-
-      if (!projectId) {
-        throw new Error('Project ID not found');
-      }
+      const projectId = projectData.uid ?? '';
 
       // Get environments
       const environments: Environment[] = await client.getEnvironments(entity);
@@ -108,52 +137,22 @@ export function useLogsSummary() {
 
       const { startTime, endTime } = calculateTimeRange('1h');
 
-      // Call observability backend directly
-      const baseUrl = await discoveryApi.getBaseUrl(
-        'openchoreo-observability-backend',
-      );
-      const url = new URL(
-        `${baseUrl}/logs/component/${componentName}?namespaceName=${encodeURIComponent(
-          namespaceName,
-        )}&projectName=${encodeURIComponent(projectName)}`,
-      );
-
-      const response = await fetchApi.fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Call observer API directly via the observability plugin API
+      const data: LogsResponse = await observabilityApi.getRuntimeLogs(
+        componentId,
+        projectId,
+        selectedEnv.id,
+        namespaceName,
+        projectName,
+        selectedEnv.resourceName,
+        componentName,
+        {
+          limit: 100,
+          startTime,
+          endTime,
+          logLevels: [],
         },
-        body: JSON.stringify({
-          componentId,
-          projectId,
-          environmentId: selectedEnv.id,
-          environmentName: selectedEnv.resourceName,
-          componentName,
-          namespaceName,
-          projectName,
-          options: {
-            limit: 100, // Limit for performance, we just need counts
-            startTime,
-            endTime,
-            logLevels: [], // Get all levels
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (
-          errorData.message?.includes('Observability is not enabled') ||
-          response.status === 404
-        ) {
-          throw new Error('Observability is not enabled for this component');
-        }
-        throw new Error(
-          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const data: LogsResponse = await response.json();
+      );
 
       // Count errors and warnings
       const logs: LogEntry[] = data.logs || [];
@@ -192,7 +191,7 @@ export function useLogsSummary() {
         }));
       }
     }
-  }, [entity, client, discoveryApi, fetchApi]);
+  }, [entity, client, observabilityApi, discoveryApi, fetchApi]);
 
   const refresh = useCallback(async () => {
     setState(prev => ({ ...prev, refreshing: true }));
