@@ -80,9 +80,7 @@ describe('plugin', () => {
           factory: () => ({
             resolveUrls: jest
               .fn()
-              .mockRejectedValue(
-                new ObservabilityNotConfiguredError('org-1'),
-              ),
+              .mockRejectedValue(new ObservabilityNotConfiguredError('org-1')),
             fetchEnvironmentsByNamespace: jest.fn().mockResolvedValue([]),
             fetchMetricsByComponent: jest.fn(),
             fetchTracesByProject: jest.fn(),

@@ -72,8 +72,7 @@ export class OpenChoreoFetchApi implements FetchApi {
       }
     } else {
       // Normal mode: Backstage token + IDP token in custom header
-      const { token: backstageToken } =
-        await this.identityApi.getCredentials();
+      const { token: backstageToken } = await this.identityApi.getCredentials();
       if (backstageToken) {
         headers.set('Authorization', `Bearer ${backstageToken}`);
       }

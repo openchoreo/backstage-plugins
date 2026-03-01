@@ -83,8 +83,7 @@ export function useLogsSummary() {
       }
 
       // Get project ID
-      const project =
-        entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+      const project = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
       const namespace =
         entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 

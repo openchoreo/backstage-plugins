@@ -112,7 +112,13 @@ describe('createRouter', () => {
 
   it('should fetch environments by namespace', async () => {
     const mockEnvironments = [
-      { uid: 'env-1', name: 'dev', namespace: 'org-1', isProduction: false, createdAt: '2025-01-01T00:00:00Z' },
+      {
+        uid: 'env-1',
+        name: 'dev',
+        namespace: 'org-1',
+        isProduction: false,
+        createdAt: '2025-01-01T00:00:00Z',
+      },
     ];
     observabilityService.fetchEnvironmentsByNamespace.mockResolvedValue(
       mockEnvironments,

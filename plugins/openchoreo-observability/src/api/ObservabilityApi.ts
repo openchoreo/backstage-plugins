@@ -164,12 +164,16 @@ export class ObservabilityClient implements ObservabilityApi {
       if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(error || `Failed to fetch metrics: ${usageResponse.statusText}`);
+      throw new Error(
+        error || `Failed to fetch metrics: ${usageResponse.statusText}`,
+      );
     }
 
     if (!httpResponse.ok) {
       const error = await this.parseError(httpResponse);
-      throw new Error(error || `Failed to fetch HTTP metrics: ${httpResponse.statusText}`);
+      throw new Error(
+        error || `Failed to fetch HTTP metrics: ${httpResponse.statusText}`,
+      );
     }
 
     const [usageData, httpData] = await Promise.all([
@@ -248,7 +252,9 @@ export class ObservabilityClient implements ObservabilityApi {
       if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(error || `Failed to fetch traces: ${response.statusText}`);
+      throw new Error(
+        error || `Failed to fetch traces: ${response.statusText}`,
+      );
     }
 
     const data = await response.json();
@@ -286,10 +292,13 @@ export class ObservabilityClient implements ObservabilityApi {
     }
 
     const url = new URL(
-      `${rcaAgentUrl}/api/v1/rca-reports/projects/${encodeURIComponent(projectId)}`,
+      `${rcaAgentUrl}/api/v1/rca-reports/projects/${encodeURIComponent(
+        projectId,
+      )}`,
     );
     url.searchParams.set('environmentUid', environmentId);
-    if (options?.startTime) url.searchParams.set('startTime', options.startTime);
+    if (options?.startTime)
+      url.searchParams.set('startTime', options.startTime);
     if (options?.endTime) url.searchParams.set('endTime', options.endTime);
     if (options?.status) url.searchParams.set('status', options.status);
     if (options?.limit !== undefined)
