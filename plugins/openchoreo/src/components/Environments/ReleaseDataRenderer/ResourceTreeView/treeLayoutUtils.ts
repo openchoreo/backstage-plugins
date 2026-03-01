@@ -24,19 +24,24 @@ export function getResourceTreeNodes(
 }
 
 /**
- * Aggregate health from child nodes:
- * - Degraded if any child is Degraded
- * - Progressing if any child is Progressing
- * - Healthy otherwise
+ * Aggregate health from child nodes (highest-severity wins):
+ * Degraded > Unknown > Suspended > Progressing > Healthy
  */
 function aggregateHealth(nodes: ResourceTreeNode[]): HealthStatus {
+  let hasUnknown = false;
+  let hasSuspended = false;
   let hasProgressing = false;
   for (const node of nodes) {
     const status = node.health?.status;
     if (status === 'Degraded') return 'Degraded';
-    if (status === 'Progressing') hasProgressing = true;
+    if (status === 'Unknown') hasUnknown = true;
+    else if (status === 'Suspended') hasSuspended = true;
+    else if (status === 'Progressing') hasProgressing = true;
   }
-  return hasProgressing ? 'Progressing' : 'Healthy';
+  if (hasUnknown) return 'Unknown';
+  if (hasSuspended) return 'Suspended';
+  if (hasProgressing) return 'Progressing';
+  return 'Healthy';
 }
 
 /**
