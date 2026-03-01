@@ -75,6 +75,22 @@ export class ObservabilityService {
   }
 
   /**
+   * Resolves both the observer and RCA agent URLs for a given namespace and environment.
+   * Used by the frontend to make direct calls to observer/RCA APIs.
+   */
+  async resolveUrls(
+    namespaceName: string,
+    environmentName: string,
+    userToken?: string,
+  ): Promise<{ observerUrl?: string; rcaAgentUrl?: string }> {
+    return this.resolver.resolveForEnvironment(
+      namespaceName,
+      environmentName,
+      userToken,
+    );
+  }
+
+  /**
    * Resolves the observability URL for a given namespace and environment.
    */
   private async resolveObserverUrl(

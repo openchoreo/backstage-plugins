@@ -5,6 +5,7 @@ import {
 } from '@backstage/core-plugin-api';
 import { Metrics, Trace, RCAReportSummary, RCAReportDetailed } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
+import { ObserverUrlCache } from './ObserverUrlCache';
 
 export interface ObservabilityApi {
   getRuntimeLogs(
@@ -96,13 +97,15 @@ export const observabilityApiRef = createApiRef<ObservabilityApi>({
   id: 'plugin.openchoreo-observability.service',
 });
 
+const DIRECT_HEADER = { 'x-openchoreo-direct': 'true' };
+
 export class ObservabilityClient implements ObservabilityApi {
-  private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
+  private readonly urlCache: ObserverUrlCache;
 
   constructor(options: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
-    this.discoveryApi = options.discoveryApi;
     this.fetchApi = options.fetchApi;
+    this.urlCache = new ObserverUrlCache(options);
   }
 
   async getMetrics(
@@ -120,67 +123,81 @@ export class ObservabilityClient implements ObservabilityApi {
       endTime?: string;
     },
   ): Promise<Metrics> {
-    const baseUrl = await this.discoveryApi.getBaseUrl(
-      'openchoreo-observability-backend',
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
     );
-    const response = await this.fetchApi.fetch(`${baseUrl}/metrics`, {
-      method: 'POST',
-      body: JSON.stringify({
-        componentId,
-        projectId,
-        environmentId,
-        environmentName,
-        componentName,
-        namespaceName,
-        projectName,
-        options,
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+
+    const body = JSON.stringify({
+      componentId,
+      environmentId,
+      projectId,
+      componentName,
+      projectName,
+      namespaceName,
+      environmentName,
+      limit: options?.limit || 100,
+      offset: options?.offset || 0,
+      startTime: options?.startTime,
+      endTime: options?.endTime,
     });
 
-    if (!response.ok) {
-      let error;
-      try {
-        error = await response.json();
-      } catch (e) {
-        throw new Error(
-          `Failed to fetch metrics: ${response.status} ${response.statusText}`,
-        );
-      }
-      if (
-        error.error?.includes('Observability is not configured for component')
-      ) {
+    const fetchOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+      body,
+    };
+
+    const [usageResponse, httpResponse] = await Promise.all([
+      this.fetchApi.fetch(
+        `${observerUrl}/api/metrics/component/usage`,
+        fetchOptions,
+      ),
+      this.fetchApi.fetch(
+        `${observerUrl}/api/metrics/component/http`,
+        fetchOptions,
+      ),
+    ]);
+
+    if (!usageResponse.ok) {
+      const error = await this.parseError(usageResponse);
+      if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(
-        error.error || `Failed to fetch metrics: ${response.statusText}`,
-      );
+      throw new Error(error || `Failed to fetch metrics: ${usageResponse.statusText}`);
     }
 
-    const data = await response.json();
+    if (!httpResponse.ok) {
+      const error = await this.parseError(httpResponse);
+      throw new Error(error || `Failed to fetch HTTP metrics: ${httpResponse.statusText}`);
+    }
+
+    const [usageData, httpData] = await Promise.all([
+      usageResponse.json(),
+      httpResponse.json(),
+    ]);
+
     return {
       cpuUsage: {
-        cpuUsage: data.cpuUsage,
-        cpuRequests: data.cpuRequests,
-        cpuLimits: data.cpuLimits,
+        cpuUsage: usageData.cpuUsage ?? [],
+        cpuRequests: usageData.cpuRequests ?? [],
+        cpuLimits: usageData.cpuLimits ?? [],
       },
       memoryUsage: {
-        memoryUsage: data.memory,
-        memoryRequests: data.memoryRequests,
-        memoryLimits: data.memoryLimits,
+        memoryUsage: usageData.memory ?? [],
+        memoryRequests: usageData.memoryRequests ?? [],
+        memoryLimits: usageData.memoryLimits ?? [],
       },
       networkThroughput: {
-        requestCount: data.requestCount,
-        successfulRequestCount: data.successfulRequestCount,
-        unsuccessfulRequestCount: data.unsuccessfulRequestCount,
+        requestCount: httpData.requestCount ?? [],
+        successfulRequestCount: httpData.successfulRequestCount ?? [],
+        unsuccessfulRequestCount: httpData.unsuccessfulRequestCount ?? [],
       },
       networkLatency: {
-        meanLatency: data.meanLatency,
-        latencyPercentile50th: data.latencyPercentile50th,
-        latencyPercentile90th: data.latencyPercentile90th,
-        latencyPercentile99th: data.latencyPercentile99th,
+        meanLatency: httpData.meanLatency ?? [],
+        latencyPercentile50th: httpData.latencyPercentile50th ?? [],
+        latencyPercentile90th: httpData.latencyPercentile90th ?? [],
+        latencyPercentile99th: httpData.latencyPercentile99th ?? [],
       },
     };
   }
@@ -203,42 +220,35 @@ export class ObservabilityClient implements ObservabilityApi {
     traces: Trace[];
     tookMs: number;
   }> {
-    const baseUrl = await this.discoveryApi.getBaseUrl(
-      'openchoreo-observability-backend',
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
     );
-    const response = await this.fetchApi.fetch(`${baseUrl}/traces`, {
+
+    const response = await this.fetchApi.fetch(`${observerUrl}/api/traces`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
       body: JSON.stringify({
-        projectId,
-        environmentId,
-        environmentName,
-        namespaceName,
+        projectUid: projectId,
+        componentUids: componentUids.length > 0 ? componentUids : undefined,
+        environmentUid: environmentId,
+        traceId: options?.traceId,
+        startTime: options?.startTime,
+        endTime: options?.endTime,
+        limit: options?.limit || 100,
+        sortOrder: options?.sortOrder || 'desc',
         projectName,
-        componentUids,
-        options,
+        namespaceName,
+        environmentName,
       }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
 
     if (!response.ok) {
-      let error;
-      try {
-        error = await response.json();
-      } catch (e) {
-        throw new Error(
-          `Failed to fetch traces: ${response.status} ${response.statusText}`,
-        );
-      }
-      if (
-        error.error?.includes('Observability is not configured for component')
-      ) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
-      throw new Error(
-        error.error || `Failed to fetch traces: ${response.statusText}`,
-      );
+      throw new Error(error || `Failed to fetch traces: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -253,7 +263,7 @@ export class ObservabilityClient implements ObservabilityApi {
     environmentId: string,
     environmentName: string,
     namespaceName: string,
-    projectName: string,
+    _projectName: string,
     componentUids: string[],
     options?: {
       startTime?: string;
@@ -266,44 +276,44 @@ export class ObservabilityClient implements ObservabilityApi {
     totalCount?: number;
     tookMs?: number;
   }> {
-    const baseUrl = await this.discoveryApi.getBaseUrl(
-      'openchoreo-observability-backend',
+    const { rcaAgentUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
     );
-    const response = await this.fetchApi.fetch(`${baseUrl}/rca-reports`, {
-      method: 'POST',
-      body: JSON.stringify({
-        projectId,
-        environmentId,
-        environmentName,
-        namespaceName,
-        projectName,
-        componentUids,
-        options,
-      }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+
+    if (!rcaAgentUrl) {
+      throw new Error('RCA service is not configured');
+    }
+
+    const url = new URL(
+      `${rcaAgentUrl}/api/v1/rca-reports/projects/${encodeURIComponent(projectId)}`,
+    );
+    url.searchParams.set('environmentUid', environmentId);
+    if (options?.startTime) url.searchParams.set('startTime', options.startTime);
+    if (options?.endTime) url.searchParams.set('endTime', options.endTime);
+    if (options?.status) url.searchParams.set('status', options.status);
+    if (options?.limit !== undefined)
+      url.searchParams.set('limit', String(options.limit));
+    if (componentUids.length > 0) {
+      componentUids.forEach(uid =>
+        url.searchParams.append('componentUids', uid),
+      );
+    }
+
+    const response = await this.fetchApi.fetch(url.toString(), {
+      headers: { ...DIRECT_HEADER },
     });
 
     if (!response.ok) {
-      let error;
-      try {
-        error = await response.json();
-      } catch (e) {
-        throw new Error(
-          `Failed to fetch RCA reports: ${response.status} ${response.statusText}`,
-        );
-      }
-      if (error.error?.includes('RCA service is not configured')) {
+      const error = await this.parseError(response);
+      if (error.includes('RCA service is not configured')) {
         throw new Error('RCA service is not configured');
       }
-      if (
-        error.error?.includes('Observability is not configured for component')
-      ) {
+      if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
       throw new Error(
-        error.error || `Failed to fetch RCA reports: ${response.statusText}`,
+        error || `Failed to fetch RCA reports: ${response.statusText}`,
       );
     }
 
@@ -317,53 +327,45 @@ export class ObservabilityClient implements ObservabilityApi {
 
   async getRCAReportByAlert(
     alertId: string,
-    projectId: string,
-    environmentId: string,
+    _projectId: string,
+    _environmentId: string,
     environmentName: string,
     namespaceName: string,
-    projectName: string,
+    _projectName: string,
     options?: {
       version?: number;
     },
   ): Promise<RCAReportDetailed> {
-    const baseUrl = await this.discoveryApi.getBaseUrl(
-      'openchoreo-observability-backend',
-    );
-    const response = await this.fetchApi.fetch(
-      `${baseUrl}/rca-reports/alert/${alertId}`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          projectId,
-          environmentId,
-          environmentName,
-          namespaceName,
-          projectName,
-          options,
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+    const { rcaAgentUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
     );
 
+    if (!rcaAgentUrl) {
+      throw new Error('RCA service is not configured');
+    }
+
+    const url = new URL(
+      `${rcaAgentUrl}/api/v1/rca-reports/alerts/${encodeURIComponent(alertId)}`,
+    );
+    if (options?.version !== undefined) {
+      url.searchParams.set('version', String(options.version));
+    }
+
+    const response = await this.fetchApi.fetch(url.toString(), {
+      headers: { ...DIRECT_HEADER },
+    });
+
     if (!response.ok) {
-      let error;
-      try {
-        error = await response.json();
-      } catch (e) {
-        throw new Error(
-          `Failed to fetch RCA report: ${response.status} ${response.statusText}`,
-        );
-      }
-      if (error.error?.includes('RCA service is not configured')) {
+      const error = await this.parseError(response);
+      if (error.includes('RCA service is not configured')) {
         throw new Error('RCA service is not configured');
       }
-      if (error.error?.includes('RCA report not found')) {
+      if (error.includes('RCA report not found')) {
         throw new Error('RCA report not found');
       }
       throw new Error(
-        error.error || `Failed to fetch RCA report: ${response.statusText}`,
+        error || `Failed to fetch RCA report: ${response.statusText}`,
       );
     }
 
@@ -373,7 +375,7 @@ export class ObservabilityClient implements ObservabilityApi {
 
   async getRuntimeLogs(
     componentId: string,
-    projectId: string,
+    _projectId: string,
     environmentId: string,
     namespaceName: string,
     projectName: string,
@@ -388,58 +390,62 @@ export class ObservabilityClient implements ObservabilityApi {
       sortOrder?: 'asc' | 'desc';
     },
   ): Promise<LogsResponse> {
-    const baseUrl = await this.discoveryApi.getBaseUrl(
-      'openchoreo-observability-backend',
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
     );
-    const url = new URL(`${baseUrl}/logs/component/${componentName}`);
-    url.searchParams.set('namespaceName', namespaceName);
-    url.searchParams.set('projectName', projectName);
 
-    const response = await this.fetchApi.fetch(url.toString(), {
-      method: 'POST',
-      body: JSON.stringify({
-        componentId,
-        projectId,
-        environmentId,
-        namespaceName,
-        projectName,
-        environmentName,
-        componentName,
-        options: {
-          limit: options?.limit,
-          startTime: options?.startTime,
-          endTime: options?.endTime,
-          logLevels: options?.logLevels,
-          searchQuery: options?.searchQuery,
-          sortOrder: options?.sortOrder,
-        },
-      }),
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/logs/component/${encodeURIComponent(componentId)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ||
+            new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+          endTime: options?.endTime || new Date().toISOString(),
+          environmentId,
+          componentName,
+          projectName,
+          namespaceName,
+          environmentName,
+          limit: options?.limit || 100,
+          sortOrder: options?.sortOrder || 'desc',
+          ...(options?.logLevels &&
+            options.logLevels.length > 0 && { logLevels: options.logLevels }),
+          ...(options?.searchQuery && {
+            searchPhrase: options.searchQuery,
+          }),
+        }),
       },
-    });
+    );
 
     if (!response.ok) {
-      let error;
-      try {
-        error = await response.json();
-      } catch (e) {
-        throw new Error(
-          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
-        );
-      }
-      if (
-        error.error?.includes('Observability is not configured for component')
-      ) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
         throw new Error('Observability is not enabled for this component');
       }
       throw new Error(
-        error.error ||
+        error ||
           `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
       );
     }
 
     const data = await response.json();
     return data;
+  }
+
+  private async parseError(response: Response): Promise<string> {
+    try {
+      const error = await response.json();
+      return (
+        error.error ||
+        error.message ||
+        `${response.status} ${response.statusText}`
+      );
+    } catch {
+      return `${response.status} ${response.statusText}`;
+    }
   }
 }

@@ -4,6 +4,7 @@ import {
   FetchApi,
 } from '@backstage/core-plugin-api';
 import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
+import { ObserverUrlCache } from './ObserverUrlCache';
 
 // Re-export types from generated client
 export type ChatMessage = AIRCAAgentComponents['schemas']['ChatMessage'];
@@ -37,12 +38,12 @@ export const rcaAgentApiRef = createApiRef<RCAAgentApi>({
 });
 
 export class RCAAgentClient implements RCAAgentApi {
-  private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
+  private readonly urlCache: ObserverUrlCache;
 
   constructor(options: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
-    this.discoveryApi = options.discoveryApi;
     this.fetchApi = options.fetchApi;
+    this.urlCache = new ObserverUrlCache(options);
   }
 
   async streamRCAChat(
@@ -51,18 +52,27 @@ export class RCAAgentClient implements RCAAgentApi {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
   ): Promise<void> {
-    const baseUrl = await this.discoveryApi.getBaseUrl(
-      'openchoreo-observability-backend',
+    const { rcaAgentUrl } = await this.urlCache.resolveUrls(
+      routing.namespaceName,
+      routing.environmentName,
     );
 
-    const response = await this.fetchApi.fetch(`${baseUrl}/chat`, {
-      method: 'POST',
-      body: JSON.stringify({ ...request, ...routing }),
-      headers: {
-        'Content-Type': 'application/json',
+    if (!rcaAgentUrl) {
+      throw new Error('RCA service is not configured');
+    }
+
+    const response = await this.fetchApi.fetch(
+      `${rcaAgentUrl}/api/v1/agent/chat`,
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-openchoreo-direct': 'true',
+        },
+        signal,
       },
-      signal,
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
