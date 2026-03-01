@@ -202,9 +202,7 @@ const WorkflowsListContent = () => {
       {selectedNamespace && !workflowsLoading && (
         <>
           <Box className={classes.headerRow}>
-            <Typography variant="h6">
-              Workflow Templates
-            </Typography>
+            <Typography variant="h6">Workflow Templates</Typography>
             <IconButton
               className={classes.refreshButton}
               onClick={() => refetch()}

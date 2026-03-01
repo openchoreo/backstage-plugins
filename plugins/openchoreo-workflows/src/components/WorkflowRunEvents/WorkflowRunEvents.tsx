@@ -312,18 +312,18 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
                     </Box>
                   )}
 
-                  {eventsError && (
-                    <Alert severity="error">{eventsError}</Alert>
-                  )}
+                  {eventsError && <Alert severity="error">{eventsError}</Alert>}
 
-                  {!eventsLoading && !eventsError && activeEvents.length === 0 && (
-                    <Typography
-                      variant="body2"
-                      className={classes.noEventsText}
-                    >
-                      No events available for this step
-                    </Typography>
-                  )}
+                  {!eventsLoading &&
+                    !eventsError &&
+                    activeEvents.length === 0 && (
+                      <Typography
+                        variant="body2"
+                        className={classes.noEventsText}
+                      >
+                        No events available for this step
+                      </Typography>
+                    )}
 
                   {activeEvents.length > 0 && (
                     <Table size="small">

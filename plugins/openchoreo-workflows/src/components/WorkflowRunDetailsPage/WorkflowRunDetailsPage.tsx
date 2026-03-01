@@ -1,6 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Content, Progress, InfoCard, StructuredMetadataTable } from '@backstage/core-components';
+import {
+  Content,
+  Progress,
+  InfoCard,
+  StructuredMetadataTable,
+} from '@backstage/core-components';
 import { Alert, AlertTitle } from '@material-ui/lab';
 import { Box, IconButton, Paper, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
@@ -155,7 +160,11 @@ export const WorkflowRunDetailsPage = () => {
   );
 
   const actions = (
-    <IconButton onClick={handleRefresh} size="small" aria-label="Refresh workflow run">
+    <IconButton
+      onClick={handleRefresh}
+      size="small"
+      aria-label="Refresh workflow run"
+    >
       <RefreshIcon />
     </IconButton>
   );

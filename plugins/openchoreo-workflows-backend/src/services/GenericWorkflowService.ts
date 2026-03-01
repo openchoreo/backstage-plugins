@@ -627,7 +627,9 @@ export class GenericWorkflowService {
     token?: string,
   ): Promise<WorkflowRunEventEntry[]> {
     this.logger.debug(
-      `Fetching events for workflow run: ${runName} in namespace: ${namespaceName}${step ? `, step: ${step}` : ''}`,
+      `Fetching events for workflow run: ${runName} in namespace: ${namespaceName}${
+        step ? `, step: ${step}` : ''
+      }`,
     );
 
     try {
