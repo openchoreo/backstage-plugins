@@ -3,7 +3,6 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import {
   Content,
   Header,
-  Link,
   Page,
   Progress,
   Table,
@@ -62,9 +61,9 @@ const WorkflowsTable = ({ workflows }: { workflows: Workflow[] }) => {
       field: 'name',
       highlight: true,
       render: (workflow: Workflow) => (
-        <Link to={encodeURIComponent(workflow.name)}>
+        <Typography variant="body2">
           {workflow.displayName || workflow.name}
-        </Link>
+        </Typography>
       ),
     },
     {

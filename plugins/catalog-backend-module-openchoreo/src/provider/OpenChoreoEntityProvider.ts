@@ -1621,9 +1621,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     const obsPlaneRef = cdp.spec?.observabilityPlaneRef;
     const obsRefName = obsPlaneRef?.name;
 
-    const isCI =
-      wf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
-      'component';
     return {
       apiVersion: 'backstage.io/v1alpha1',
       kind: 'ClusterDataplane',
@@ -1668,7 +1665,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         namespaceHTTPPort: gateway?.ingress?.internal?.http?.port,
         namespaceHTTPSPort: gateway?.ingress?.internal?.https?.port,
         observabilityPlaneRef: obsRefName,
-        type: isCI ? 'CI' : 'Generic',
       },
     };
   }

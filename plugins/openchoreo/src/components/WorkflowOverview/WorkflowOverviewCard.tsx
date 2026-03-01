@@ -13,7 +13,7 @@ export const WorkflowOverviewCard = () => {
   const annotations = entity.metadata.annotations || {};
   const createdAt = annotations[CHOREO_ANNOTATIONS.CREATED_AT];
   const description = entity.metadata.description;
-  const workflowType = (entity.spec as any)?.type;
+  const workflowType = (entity.spec as { type?: string })?.type;
 
   const formatDate = (isoString: string) => {
     try {

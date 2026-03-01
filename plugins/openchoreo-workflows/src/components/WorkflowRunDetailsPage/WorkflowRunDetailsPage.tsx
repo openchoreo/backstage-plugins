@@ -155,7 +155,7 @@ export const WorkflowRunDetailsPage = () => {
   );
 
   const actions = (
-    <IconButton onClick={handleRefresh} size="small" title="Refresh">
+    <IconButton onClick={handleRefresh} size="small" aria-label="Refresh workflow run">
       <RefreshIcon />
     </IconButton>
   );
