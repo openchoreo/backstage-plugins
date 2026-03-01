@@ -146,18 +146,18 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
         setStatusState(data);
 
         // Auto-select initial step if none selected yet
-        if (!activeStepName && data.steps && data.steps.length > 0) {
-          const runningStep = data.steps.find(
-            step => step.phase?.toLowerCase() === 'running',
-          );
-          const defaultStep =
-            isTerminalStatus(data.status) || !runningStep
-              ? data.steps[data.steps.length - 1]
-              : runningStep;
-
-          if (defaultStep?.name) {
-            setActiveStepName(defaultStep.name);
-          }
+        if (data.steps && data.steps.length > 0) {
+          setActiveStepName(prev => {
+            if (prev) return prev;
+            const runningStep = data.steps!.find(
+              s => s.phase?.toLowerCase() === 'running',
+            );
+            const defaultStep =
+              isTerminalStatus(data.status) || !runningStep
+                ? data.steps![data.steps!.length - 1]
+                : runningStep;
+            return defaultStep?.name ?? null;
+          });
         }
 
         if (isTerminalStatus(data.status) && intervalId !== undefined) {
@@ -236,7 +236,7 @@ export const WorkflowRunEvents = ({ runName }: WorkflowRunEventsProps) => {
       if (intervalId !== undefined) window.clearInterval(intervalId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client, namespaceName, runName, activeStepName, statusState?.status]);
+  }, [client, namespaceName, runName, activeStepName, statusState?.status, statusState?.steps]);
 
   const handleStepChange = (stepName: string) => {
     setActiveStepName(prev => (prev === stepName ? null : stepName));

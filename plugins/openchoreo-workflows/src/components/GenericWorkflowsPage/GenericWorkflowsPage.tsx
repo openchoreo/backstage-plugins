@@ -60,6 +60,7 @@ const WorkflowsTable = ({ workflows }: { workflows: Workflow[] }) => {
       title: 'Name',
       field: 'name',
       highlight: true,
+      sorting: false,
       render: (workflow: Workflow) => (
         <Typography variant="body2">
           {workflow.displayName || workflow.name}

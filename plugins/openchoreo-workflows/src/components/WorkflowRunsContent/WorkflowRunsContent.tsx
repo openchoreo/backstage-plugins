@@ -367,7 +367,7 @@ const RunDetailView = ({
     <>
       <WorkflowRunStatusChip status={displayStatus} />
       <Typography variant="body2" color="textSecondary">
-        {formatRelativeTime(run.createdAt || '')}
+        {run.createdAt ? formatRelativeTime(run.createdAt) : 'Unknown'}
       </Typography>
     </>
   );

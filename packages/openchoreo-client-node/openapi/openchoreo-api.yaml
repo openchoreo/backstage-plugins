@@ -2396,6 +2396,13 @@ paths:
           description: Filter logs by task name
           schema:
             type: string
+        - name: step
+          in: query
+          required: false
+          deprecated: true
+          description: Deprecated alias for task. Use task instead.
+          schema:
+            type: string
         - name: sinceSeconds
           in: query
           required: false
@@ -2435,6 +2442,13 @@ paths:
           in: query
           required: false
           description: Filter events by task name
+          schema:
+            type: string
+        - name: step
+          in: query
+          required: false
+          deprecated: true
+          description: Deprecated alias for task. Use task instead.
           schema:
             type: string
       responses:
