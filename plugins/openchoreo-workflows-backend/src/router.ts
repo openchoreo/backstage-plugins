@@ -107,7 +107,7 @@ export async function createRouter({
   // GET /workflow-runs/:runName/logs - Get workflow run logs
   router.get('/workflow-runs/:runName/logs', async (req, res) => {
     const { runName } = req.params;
-    const { namespaceName } = req.query;
+    const { namespaceName, task } = req.query;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -118,6 +118,7 @@ export async function createRouter({
     const logs = await workflowService.getWorkflowRunLogs(
       namespaceName as string,
       runName,
+      task as string | undefined,
       userToken,
     );
     res.json(logs);

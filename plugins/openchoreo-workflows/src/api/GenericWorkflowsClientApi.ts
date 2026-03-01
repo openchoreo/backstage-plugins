@@ -45,10 +45,11 @@ export interface GenericWorkflowsClientApi {
     parameters?: Record<string, unknown>,
   ): Promise<WorkflowRun>;
 
-  /** Get logs for a specific workflow run */
+  /** Get logs for a specific workflow run, optionally filtered by task */
   getWorkflowRunLogs(
     namespaceName: string,
     runName: string,
+    task?: string,
   ): Promise<LogsResponse>;
 
   /** Get status (including steps) for a specific workflow run */

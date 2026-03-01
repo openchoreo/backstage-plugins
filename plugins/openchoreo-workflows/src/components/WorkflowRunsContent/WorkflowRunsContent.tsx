@@ -40,12 +40,11 @@ import {
 } from '@openchoreo/backstage-plugin-react';
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
 import { useWorkflowRunDetails } from '../../hooks/useWorkflowRunDetails';
-import { useWorkflowRunLogs } from '../../hooks/useWorkflowRunLogs';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
 import { genericWorkflowsClientApiRef } from '../../api';
 import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
-import { WorkflowRunLogs } from '../WorkflowRunLogs';
+import { WorkflowRunStepLogs } from '../WorkflowRunStepLogs';
 import { WorkflowRunEvents } from '../WorkflowRunEvents';
 import type { WorkflowRun } from '../../types';
 
@@ -291,21 +290,8 @@ const RunDetailView = ({
 
   const { run, loading, error, refetch } = useWorkflowRunDetails(runName);
 
-  const runStatus = run?.phase || run?.status;
-  const normalizedStatus = runStatus?.toLowerCase();
-  const isActive =
-    normalizedStatus === 'pending' || normalizedStatus === 'running';
-
-  const {
-    logs,
-    loading: logsLoading,
-    error: logsError,
-    refetch: refetchLogs,
-  } = useWorkflowRunLogs(runName, isActive);
-
   const handleRefresh = () => {
     refetch();
-    refetchLogs();
   };
 
   const tabs = useMemo<TabItemData[]>(
@@ -386,13 +372,7 @@ const RunDetailView = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'logs':
-        return (
-          <WorkflowRunLogs
-            logs={logs}
-            loading={logsLoading}
-            error={logsError}
-          />
-        );
+        return <WorkflowRunStepLogs runName={runName} />;
       case 'events':
         return <WorkflowRunEvents runName={runName} />;
       case 'details':

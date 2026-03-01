@@ -541,26 +541,28 @@ export class WorkflowService {
         `Sending workflow run logs request for component ${componentName} with run: ${runName}`,
       );
 
-      const { data, error, response } = await obsClient.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs',
+      const startTime = new Date(
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const endTime = new Date().toISOString();
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { namespaceName, projectName, componentName, runName },
-            query: {
-              ...(options.step ? { step: options.step } : {}),
+          body: {
+            startTime,
+            endTime,
+            limit: 1000,
+            sortOrder: 'asc',
+            searchScope: {
+              namespace: namespaceName,
+              workflowRunName: runName,
             },
           },
         },
       );
 
       if (error || !response.ok) {
-        if (response.status === 404) {
-          this.logger.info(
-            `Workflow run logs endpoint not available (404). The observability service may not support workflow run logs yet.`,
-          );
-          throw new ObservabilityNotConfiguredError(componentName);
-        }
-
         this.logger.error(
           `Failed to fetch workflow run logs for component ${componentName}: ${response.status} ${response.statusText}`,
         );
@@ -569,10 +571,12 @@ export class WorkflowService {
         );
       }
 
-      const entries: LogEntry[] = (data || []).map((entry: any) => ({
-        timestamp: entry.timestamp,
-        log: entry.log,
-      }));
+      const entries: LogEntry[] = ((data?.logs || []) as any[]).map(
+        (entry: any) => ({
+          timestamp: entry.timestamp ?? '',
+          log: entry.log,
+        }),
+      );
 
       this.logger.debug(
         `Successfully fetched ${entries.length} workflow run logs from observer-api`,

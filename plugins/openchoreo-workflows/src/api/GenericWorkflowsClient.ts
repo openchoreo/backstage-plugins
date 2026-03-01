@@ -115,12 +115,15 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
   async getWorkflowRunLogs(
     namespaceName: string,
     runName: string,
+    task?: string,
   ): Promise<LogsResponse> {
+    const params: Record<string, string> = { namespaceName };
+    if (task) {
+      params.task = task;
+    }
     return this.apiFetch<LogsResponse>(
       `/workflow-runs/${encodeURIComponent(runName)}/logs`,
-      {
-        params: { namespaceName },
-      },
+      { params },
     );
   }
 
