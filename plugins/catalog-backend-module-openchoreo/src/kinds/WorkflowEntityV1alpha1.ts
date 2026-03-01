@@ -22,5 +22,9 @@ export interface WorkflowEntityV1alpha1 extends Entity {
      * The domain this workflow belongs to
      */
     domain?: string;
+    /**
+     * The type of workflow (e.g. 'CI' or 'Generic')
+     */
+    type?: string;
   };
 }

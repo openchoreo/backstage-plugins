@@ -5,6 +5,8 @@ import type {
   WorkflowRun,
   PaginatedResponse,
   LogsResponse,
+  WorkflowRunStatusResponse,
+  WorkflowRunEventEntry,
 } from '../types';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -119,6 +121,33 @@ export class GenericWorkflowsClient implements GenericWorkflowsClientApi {
       {
         params: { namespaceName },
       },
+    );
+  }
+
+  async getWorkflowRunStatus(
+    namespaceName: string,
+    runName: string,
+  ): Promise<WorkflowRunStatusResponse> {
+    return this.apiFetch<WorkflowRunStatusResponse>(
+      `/workflow-runs/${encodeURIComponent(runName)}/status`,
+      {
+        params: { namespaceName },
+      },
+    );
+  }
+
+  async getWorkflowRunEvents(
+    namespaceName: string,
+    runName: string,
+    step?: string,
+  ): Promise<WorkflowRunEventEntry[]> {
+    const params: Record<string, string> = { namespaceName };
+    if (step) {
+      params.step = step;
+    }
+    return this.apiFetch<WorkflowRunEventEntry[]>(
+      `/workflow-runs/${encodeURIComponent(runName)}/events`,
+      { params },
     );
   }
 }

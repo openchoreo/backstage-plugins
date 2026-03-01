@@ -142,6 +142,47 @@ export async function createRouter({
     }
   });
 
+  // GET /workflow-runs/:runName/status - Get workflow run status (with steps)
+  router.get('/workflow-runs/:runName/status', async (req, res) => {
+    const { runName } = req.params;
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await workflowService.getWorkflowRunStatus(
+        namespaceName as string,
+        runName,
+        userToken,
+      ),
+    );
+  });
+
+  // GET /workflow-runs/:runName/events - Get workflow run Kubernetes events
+  router.get('/workflow-runs/:runName/events', async (req, res) => {
+    const { runName } = req.params;
+    const { namespaceName, step } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await workflowService.getWorkflowRunEvents(
+        namespaceName as string,
+        runName,
+        step as string | undefined,
+        userToken,
+      ),
+    );
+  });
+
   // POST /workflow-runs - Create (trigger) a new workflow run
   router.post('/workflow-runs', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;

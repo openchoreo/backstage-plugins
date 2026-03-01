@@ -11,6 +11,8 @@ import {
   CreateWorkflowRunRequest,
   PaginatedResponse,
   LogsResponse,
+  WorkflowRunStatusResponse,
+  WorkflowRunEventEntry,
 } from '../types';
 
 /**
@@ -138,14 +140,20 @@ export class GenericWorkflowService {
       }
 
       // Map K8s-style Workflow to the local flat Workflow interface
-      const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => ({
-        name: wf.metadata?.name ?? '',
-        displayName:
-          wf.metadata?.annotations?.['openchoreo.dev/display-name'] ??
-          wf.metadata?.name,
-        description: wf.metadata?.annotations?.['openchoreo.dev/description'],
-        createdAt: wf.metadata?.creationTimestamp,
-      }));
+      const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => {
+        const name: string = wf.metadata?.name ?? '';
+        const isCI =
+          wf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
+          'component';
+        return {
+          name,
+          displayName:
+            wf.metadata?.annotations?.['openchoreo.dev/display-name'] ?? name,
+          description: wf.metadata?.annotations?.['openchoreo.dev/description'],
+          createdAt: wf.metadata?.creationTimestamp,
+          type: isCI ? 'CI' : 'Generic',
+        };
+      });
 
       this.logger.debug(
         `Successfully fetched ${items.length} generic workflows for namespace: ${namespaceName}`,
@@ -553,6 +561,119 @@ export class GenericWorkflowService {
       this.logger.error(
         `Error fetching logs for workflow run ${runName} in namespace ${namespaceName}:`,
         error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get status (including steps) for a specific workflow run
+   */
+  async getWorkflowRunStatus(
+    namespaceName: string,
+    runName: string,
+    token?: string,
+  ): Promise<WorkflowRunStatusResponse> {
+    this.logger.debug(
+      `Fetching status for workflow run: ${runName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/status',
+        {
+          params: {
+            path: { namespaceName, runName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workflow run status: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data) {
+        throw new Error('No workflow run status data returned');
+      }
+
+      this.logger.debug(
+        `Successfully fetched status for workflow run: ${runName}`,
+      );
+
+      return data as WorkflowRunStatusResponse;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch status for workflow run ${runName} in namespace ${namespaceName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get Kubernetes events for a specific workflow run (optionally filtered by step)
+   */
+  async getWorkflowRunEvents(
+    namespaceName: string,
+    runName: string,
+    step?: string,
+    token?: string,
+  ): Promise<WorkflowRunEventEntry[]> {
+    this.logger.debug(
+      `Fetching events for workflow run: ${runName} in namespace: ${namespaceName}${step ? `, step: ${step}` : ''}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/events',
+        {
+          params: {
+            path: { namespaceName, runName },
+            query: {
+              ...(step ? { step } : {}),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workflow run events: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!Array.isArray(data)) {
+        return [];
+      }
+
+      const entries: WorkflowRunEventEntry[] = data.map((entry: any) => ({
+        timestamp: entry.timestamp,
+        type: entry.type,
+        reason: entry.reason,
+        message: entry.message,
+      }));
+
+      this.logger.debug(
+        `Successfully fetched ${entries.length} events for workflow run: ${runName}`,
+      );
+
+      return entries;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch events for workflow run ${runName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }
