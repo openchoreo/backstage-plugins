@@ -164,15 +164,15 @@ describe('getDisplayName', () => {
     expect(getDisplayName(fullResource)).toBe('My Resource');
   });
 
-  it('falls back to resource name when annotation is missing', () => {
+  it('returns empty string when annotation is missing', () => {
     const noAnnotations = {
       metadata: { name: 'fallback-name' },
     };
-    expect(getDisplayName(noAnnotations)).toBe('fallback-name');
+    expect(getDisplayName(noAnnotations)).toBe('');
   });
 
-  it('returns undefined for empty resource', () => {
-    expect(getDisplayName(emptyResource)).toBeUndefined();
+  it('returns empty string for empty resource', () => {
+    expect(getDisplayName(emptyResource)).toBe('');
   });
 });
 

@@ -69,6 +69,8 @@ export class CtdToTemplateConverter {
         annotations: {
           [CHOREO_ANNOTATIONS.CTD_NAME]: componentType.metadata.name,
           [CHOREO_ANNOTATIONS.CTD_GENERATED]: 'true',
+          [CHOREO_ANNOTATIONS.WORKLOAD_TYPE]:
+            componentType.metadata.workloadType,
         },
       },
       spec: {

@@ -81,9 +81,7 @@ export function getAnnotation(
  * resource name.
  */
 export function getDisplayName(resource: HasMetadata): string | undefined {
-  return (
-    getAnnotation(resource, 'openchoreo.dev/display-name') ?? getName(resource)
-  );
+  return getAnnotation(resource, 'openchoreo.dev/display-name') ?? '';
 }
 
 /**

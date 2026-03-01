@@ -1,4 +1,5 @@
 import { Box, Typography, Chip, IconButton, Tooltip } from '@material-ui/core';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import StarIcon from '@material-ui/icons/Star';
 import StarBorderIcon from '@material-ui/icons/StarBorder';
 import FolderOutlinedIcon from '@material-ui/icons/FolderOutlined';
@@ -45,6 +46,8 @@ export const CustomTemplateCard = ({
   const tags = template.metadata.tags ?? [];
   const type = template.spec.type;
   const icon = TYPE_ICONS[type] ?? DEFAULT_ICON;
+  const workloadType =
+    template.metadata.annotations?.[CHOREO_ANNOTATIONS.WORKLOAD_TYPE];
 
   const handleClick = () => {
     if (!disabled) onSelected?.(template);
@@ -72,6 +75,11 @@ export const CustomTemplateCard = ({
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
     >
+      {workloadType && (
+        <Typography className={classes.workloadTypeBadge}>
+          {workloadType}
+        </Typography>
+      )}
       <IconButton
         size="small"
         className={`${classes.starButton} ${
