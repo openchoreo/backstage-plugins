@@ -11,4 +11,4 @@ export type ResourceMetricsTimeSeries =
 
 export type ComponentMetricsTimeSeries =
   ObservabilityComponents['schemas']['ResourceMetricsTimeSeries'] &
-    ObservabilityComponents['schemas']['HTTPMetricsTimeSeries'];
+    ObservabilityComponents['schemas']['HttpMetricsTimeSeries'];

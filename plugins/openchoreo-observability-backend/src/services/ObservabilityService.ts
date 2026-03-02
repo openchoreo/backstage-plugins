@@ -9,6 +9,7 @@ import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
   ObservabilityUrlResolver,
+  ObservabilityComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentMetricsTimeSeries, Environment } from '../types';
 
@@ -332,36 +333,29 @@ export class ObservabilityService {
   /**
    * Fetches metrics for a specific component.
    * This method dynamically resolves the observability URL from the main API,
-   * then fetches metrics from the observability service.
+   * then fetches metrics from the observability service using the unified
+   * POST /api/v1/metrics/query endpoint.
    *
-   * @param componentId - The ID of the component
-   * @param projectId - The ID of the project
-   * @param environmentId - The ID of the environment
    * @param namespaceName - The namespace name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
    * @param componentName - The name of the component
    * @param options - Optional parameters for filtering metrics
-   * @param options.limit - The maximum number of metrics to return
-   * @param options.offset - The offset from the first metric to return
-   * @param options.startTime - The start time of the metrics
-   * @param options.endTime - The end time of the metrics
+   * @param options.startTime - The start time of the metrics (ISO 8601)
+   * @param options.endTime - The end time of the metrics (ISO 8601)
+   * @param options.step - Resolution step (e.g. '1m', '5m', '15m')
    * @param userToken - Optional user token for authentication (takes precedence over default token)
-   * @returns Promise<ResourceMetricsTimeSeries> - The metrics data
+   * @returns Promise<ComponentMetricsTimeSeries> - The metrics data
    */
   async fetchMetricsByComponent(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,
     componentName: string,
     options?: {
-      limit?: number;
-      offset?: number;
       startTime?: string;
       endTime?: string;
+      step?: string;
     },
     userToken?: string,
   ): Promise<ComponentMetricsTimeSeries> {
@@ -371,69 +365,53 @@ export class ObservabilityService {
         `Fetching metrics for component ${componentName} in environment ${environmentName}`,
       );
 
-      // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
         namespaceName,
         environmentName,
         userToken,
       );
 
-      // Use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         userToken,
         this.logger,
       );
 
+      const searchScope = {
+        namespace: namespaceName,
+        project: projectName,
+        component: componentName,
+        environment: environmentName,
+      };
+
+      const baseBody = {
+        startTime:
+          options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+        endTime: options?.endTime ?? new Date().toISOString(),
+        searchScope,
+        ...(options?.step ? { step: options.step } : {}),
+      };
+
       this.logger.debug(
-        `Sending metrics request for component ${componentId} with limit: ${
-          options?.limit || 100
-        }`,
+        `Sending metrics request for component ${componentName}`,
       );
 
-      const { data, error, response } = await obsClient.POST(
-        '/api/metrics/component/usage',
-        {
-          body: {
-            componentId,
-            environmentId,
-            projectId,
-            componentName,
-            projectName,
-            namespaceName,
-            environmentName,
-            limit: options?.limit || 100,
-            offset: options?.offset || 0,
-            startTime: options?.startTime,
-            endTime: options?.endTime,
-          },
-        },
-      );
-
-      const {
-        data: httpData,
-        error: httpError,
-        response: httpResponse,
-      } = await obsClient.POST('/api/metrics/component/http', {
-        body: {
-          componentId,
-          environmentId,
-          projectId,
-          componentName,
-          projectName,
-          namespaceName,
-          environmentName,
-          limit: options?.limit || 100,
-          offset: options?.offset || 0,
-          startTime: options?.startTime,
-          endTime: options?.endTime,
-        },
-      });
+      const [
+        { data, error, response },
+        { data: httpData, error: httpError, response: httpResponse },
+      ] = await Promise.all([
+        obsClient.POST('/api/v1/metrics/query', {
+          body: { ...baseBody, metric: 'resource' },
+        }),
+        obsClient.POST('/api/v1/metrics/query', {
+          body: { ...baseBody, metric: 'http' },
+        }),
+      ]);
 
       if (error || !response.ok) {
         const errorMessage = extractErrorMessage(error, response);
         this.logger.error(
-          `Failed to fetch metrics for component ${componentId}: ${errorMessage}`,
+          `Failed to fetch resource metrics for component ${componentName}: ${errorMessage}`,
         );
         throw new Error(`Failed to fetch metrics: ${errorMessage}`);
       }
@@ -441,50 +419,48 @@ export class ObservabilityService {
       if (httpError || !httpResponse.ok) {
         const errorMessage = extractErrorMessage(httpError, httpResponse);
         this.logger.error(
-          `Failed to fetch HTTP metrics for component ${componentId}: ${errorMessage}`,
+          `Failed to fetch HTTP metrics for component ${componentName}: ${errorMessage}`,
         );
         throw new Error(`Failed to fetch HTTP metrics: ${errorMessage}`);
       }
 
-      this.logger.debug(
-        `Successfully fetched metrics for component ${componentId}: ${JSON.stringify(
-          data,
-        )}`,
-      );
-
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Metrics fetch completed for component ${componentId} (${totalTime}ms)`,
+        `Metrics fetch completed for component ${componentName} (${totalTime}ms)`,
       );
 
-      // return {...data};
-      // TODO: Fix the ObservabilityClient to return empty arrays if the data is not available
+      const resourceData =
+        data as ObservabilityComponents['schemas']['ResourceMetricsTimeSeries'];
+      const httpMetricsData =
+        httpData as ObservabilityComponents['schemas']['HttpMetricsTimeSeries'];
+
       return {
-        cpuUsage: data.cpuUsage ?? [],
-        cpuRequests: data.cpuRequests ?? [],
-        cpuLimits: data.cpuLimits ?? [],
-        memory: data.memory ?? [],
-        memoryRequests: data.memoryRequests ?? [],
-        memoryLimits: data.memoryLimits ?? [],
-        requestCount: httpData.requestCount ?? [],
-        successfulRequestCount: httpData.successfulRequestCount ?? [],
-        unsuccessfulRequestCount: httpData.unsuccessfulRequestCount ?? [],
-        meanLatency: httpData.meanLatency ?? [],
-        latencyPercentile50th: httpData.latencyPercentile50th ?? [],
-        latencyPercentile90th: httpData.latencyPercentile90th ?? [],
-        latencyPercentile99th: httpData.latencyPercentile99th ?? [],
+        cpuUsage: resourceData.cpuUsage ?? [],
+        cpuRequests: resourceData.cpuRequests ?? [],
+        cpuLimits: resourceData.cpuLimits ?? [],
+        memoryUsage: resourceData.memoryUsage ?? [],
+        memoryRequests: resourceData.memoryRequests ?? [],
+        memoryLimits: resourceData.memoryLimits ?? [],
+        requestCount: httpMetricsData.requestCount ?? [],
+        successfulRequestCount: httpMetricsData.successfulRequestCount ?? [],
+        unsuccessfulRequestCount:
+          httpMetricsData.unsuccessfulRequestCount ?? [],
+        meanLatency: httpMetricsData.meanLatency ?? [],
+        latencyP50: httpMetricsData.latencyP50 ?? [],
+        latencyP90: httpMetricsData.latencyP90 ?? [],
+        latencyP99: httpMetricsData.latencyP99 ?? [],
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
         this.logger.info(
-          `Observability not configured for component ${componentId}`,
+          `Observability not configured for component ${componentName}`,
         );
         throw error;
       }
 
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching metrics for component ${componentId} (${totalTime}ms):`,
+        `Error fetching metrics for component ${componentName} (${totalTime}ms):`,
         error as Error,
       );
       throw error;

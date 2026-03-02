@@ -27,18 +27,14 @@ export interface ObservabilityApi {
   ): Promise<LogsResponse>;
 
   getMetrics(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
     environmentName: string,
     componentName: string,
     namespaceName: string,
     projectName: string,
     options?: {
-      limit?: number;
-      offset?: number;
       startTime?: string;
       endTime?: string;
+      step?: string;
     },
   ): Promise<Metrics>;
 
@@ -99,18 +95,14 @@ export class ObservabilityClient implements ObservabilityApi {
   }
 
   async getMetrics(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
     environmentName: string,
     componentName: string,
     namespaceName: string,
     projectName: string,
     options?: {
-      limit?: number;
-      offset?: number;
       startTime?: string;
       endTime?: string;
+      step?: string;
     },
   ): Promise<Metrics> {
     const { observerUrl } = await this.urlCache.resolveUrls(
@@ -118,35 +110,35 @@ export class ObservabilityClient implements ObservabilityApi {
       environmentName,
     );
 
-    const body = JSON.stringify({
-      componentId,
-      environmentId,
-      projectId,
-      componentName,
-      projectName,
-      namespaceName,
-      environmentName,
-      limit: options?.limit || 100,
-      offset: options?.offset || 0,
-      startTime: options?.startTime,
-      endTime: options?.endTime,
-    });
+    const searchScope = {
+      namespace: namespaceName,
+      project: projectName,
+      component: componentName,
+      environment: environmentName,
+    };
+
+    const baseBody = {
+      startTime:
+        options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+      endTime: options?.endTime ?? new Date().toISOString(),
+      searchScope,
+      ...(options?.step ? { step: options.step } : {}),
+    };
 
     const fetchOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
-      body,
     };
 
     const [usageResponse, httpResponse] = await Promise.all([
-      this.fetchApi.fetch(
-        `${observerUrl}/api/metrics/component/usage`,
-        fetchOptions,
-      ),
-      this.fetchApi.fetch(
-        `${observerUrl}/api/metrics/component/http`,
-        fetchOptions,
-      ),
+      this.fetchApi.fetch(`${observerUrl}/api/v1/metrics/query`, {
+        ...fetchOptions,
+        body: JSON.stringify({ ...baseBody, metric: 'resource' }),
+      }),
+      this.fetchApi.fetch(`${observerUrl}/api/v1/metrics/query`, {
+        ...fetchOptions,
+        body: JSON.stringify({ ...baseBody, metric: 'http' }),
+      }),
     ]);
 
     if (!usageResponse.ok) {
@@ -178,7 +170,7 @@ export class ObservabilityClient implements ObservabilityApi {
         cpuLimits: usageData.cpuLimits ?? [],
       },
       memoryUsage: {
-        memoryUsage: usageData.memory ?? [],
+        memoryUsage: usageData.memoryUsage ?? [],
         memoryRequests: usageData.memoryRequests ?? [],
         memoryLimits: usageData.memoryLimits ?? [],
       },
@@ -189,9 +181,9 @@ export class ObservabilityClient implements ObservabilityApi {
       },
       networkLatency: {
         meanLatency: httpData.meanLatency ?? [],
-        latencyPercentile50th: httpData.latencyPercentile50th ?? [],
-        latencyPercentile90th: httpData.latencyPercentile90th ?? [],
-        latencyPercentile99th: httpData.latencyPercentile99th ?? [],
+        latencyP50: httpData.latencyP50 ?? [],
+        latencyP90: httpData.latencyP90 ?? [],
+        latencyP99: httpData.latencyP99 ?? [],
       },
     };
   }
