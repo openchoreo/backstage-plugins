@@ -5,17 +5,14 @@ import {
   Header,
   Page,
   Progress,
+  Table,
+  TableColumn,
   WarningPanel,
 } from '@backstage/core-components';
 import {
   Box,
-  Button,
-  Card,
-  CardContent,
-  CardActions,
   CircularProgress,
   FormControl,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem,
@@ -24,7 +21,6 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '@openchoreo/backstage-plugin';
 import { useAsync } from 'react-use';
@@ -40,25 +36,10 @@ const useStyles = makeStyles(theme => ({
     minWidth: 300,
     marginBottom: theme.spacing(3),
   },
-  workflowCard: {
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  workflowCardContent: {
-    flexGrow: 1,
-  },
-  workflowName: {
-    fontWeight: 600,
-  },
-  workflowDescription: {
-    color: theme.palette.text.secondary,
-    marginTop: theme.spacing(1),
-  },
   refreshButton: {
-    marginLeft: 'auto',
+    marginLeft: theme.spacing(1),
   },
-  headerActions: {
+  headerRow: {
     display: 'flex',
     alignItems: 'center',
     marginBottom: theme.spacing(2),
@@ -70,10 +51,63 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
+// Workflows Table
+const WorkflowsTable = ({ workflows }: { workflows: Workflow[] }) => {
+  const navigate = useNavigate();
+
+  const columns: TableColumn<Workflow>[] = [
+    {
+      title: 'Name',
+      field: 'name',
+      highlight: true,
+      sorting: false,
+      render: (workflow: Workflow) => (
+        <Typography variant="body2">
+          {workflow.displayName || workflow.name}
+        </Typography>
+      ),
+    },
+    {
+      title: 'Type',
+      field: 'type',
+      width: '15%',
+      render: (workflow: Workflow) => (
+        <Typography variant="body2">{workflow.type || '-'}</Typography>
+      ),
+    },
+    {
+      title: 'Description',
+      field: 'description',
+      render: (workflow: Workflow) => (
+        <Typography variant="body2" noWrap title={workflow.description || ''}>
+          {workflow.description || '-'}
+        </Typography>
+      ),
+    },
+  ];
+
+  return (
+    <Table
+      columns={columns}
+      data={workflows}
+      options={{
+        paging: true,
+        pageSize: 10,
+        pageSizeOptions: [10, 20, 50],
+        search: true,
+        padding: 'dense',
+        draggable: false,
+      }}
+      onRowClick={(_e, workflow) => {
+        if (workflow) navigate(encodeURIComponent(workflow.name));
+      }}
+    />
+  );
+};
+
 // Workflows List Content
 const WorkflowsListContent = () => {
   const classes = useStyles();
-  const navigate = useNavigate();
   const client = useApi(openChoreoClientApiRef);
   const { selectedNamespace, setSelectedNamespace } = useNamespaceContext();
 
@@ -166,22 +200,10 @@ const WorkflowsListContent = () => {
 
       {selectedNamespace && workflowsLoading && <Progress />}
 
-      {selectedNamespace && !workflowsLoading && workflows.length === 0 && (
-        <Box className={classes.emptyState}>
-          <Typography variant="h6">No workflow templates found</Typography>
-          <Typography variant="body2">
-            There are no generic workflow templates available in this namespace.
-          </Typography>
-        </Box>
-      )}
-
-      {selectedNamespace && !workflowsLoading && workflows.length > 0 && (
+      {selectedNamespace && !workflowsLoading && (
         <>
-          <Box className={classes.headerActions}>
-            <Typography variant="h6">
-              {workflows.length} Workflow Template
-              {workflows.length !== 1 ? 's' : ''}
-            </Typography>
+          <Box className={classes.headerRow}>
+            <Typography variant="h6">Workflow Templates</Typography>
             <IconButton
               className={classes.refreshButton}
               onClick={() => refetch()}
@@ -191,39 +213,7 @@ const WorkflowsListContent = () => {
               <RefreshIcon />
             </IconButton>
           </Box>
-          <Grid container spacing={3}>
-            {workflows.map((workflow: Workflow) => (
-              <Grid item xs={12} sm={6} md={4} key={workflow.name}>
-                <Card className={classes.workflowCard}>
-                  <CardContent className={classes.workflowCardContent}>
-                    <Typography variant="h6" className={classes.workflowName}>
-                      {workflow.displayName || workflow.name}
-                    </Typography>
-                    {workflow.description && (
-                      <Typography
-                        variant="body2"
-                        className={classes.workflowDescription}
-                      >
-                        {workflow.description}
-                      </Typography>
-                    )}
-                  </CardContent>
-                  <CardActions>
-                    <Button
-                      size="small"
-                      color="primary"
-                      endIcon={<ChevronRightIcon />}
-                      onClick={() =>
-                        navigate(encodeURIComponent(workflow.name))
-                      }
-                    >
-                      View
-                    </Button>
-                  </CardActions>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          <WorkflowsTable workflows={workflows} />
         </>
       )}
     </Content>

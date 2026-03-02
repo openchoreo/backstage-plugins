@@ -11,6 +11,8 @@ import {
   CreateWorkflowRunRequest,
   PaginatedResponse,
   LogsResponse,
+  WorkflowRunStatusResponse,
+  WorkflowRunEventEntry,
 } from '../types';
 
 /**
@@ -75,24 +77,14 @@ function transformWorkflowRun(run: any): import('../types').WorkflowRun {
 }
 
 /**
- * Error thrown when observability is not configured for workflow runs
- */
-export class ObservabilityNotConfiguredError extends Error {
-  constructor(runName: string) {
-    super(
-      `Workflow run logs are not available for run ${runName}. Observability may not be configured.`,
-    );
-    this.name = 'ObservabilityNotConfiguredError';
-  }
-}
-
-/**
  * Service for managing namespace-level generic workflows
  * Handles workflow templates, runs, and schemas
  *
  * After the Organization CRD removal, the hierarchy is now:
  * Namespace → Project → Component
  */
+const TERMINAL_STATUSES = new Set(['Completed', 'Failed', 'Succeeded']);
+
 export class GenericWorkflowService {
   private logger: LoggerService;
   private baseUrl: string;
@@ -138,14 +130,20 @@ export class GenericWorkflowService {
       }
 
       // Map K8s-style Workflow to the local flat Workflow interface
-      const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => ({
-        name: wf.metadata?.name ?? '',
-        displayName:
-          wf.metadata?.annotations?.['openchoreo.dev/display-name'] ??
-          wf.metadata?.name,
-        description: wf.metadata?.annotations?.['openchoreo.dev/description'],
-        createdAt: wf.metadata?.creationTimestamp,
-      }));
+      const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => {
+        const name: string = wf.metadata?.name ?? '';
+        const isCI =
+          wf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
+          'component';
+        return {
+          name,
+          displayName:
+            wf.metadata?.annotations?.['openchoreo.dev/display-name'] ?? name,
+          description: wf.metadata?.annotations?.['openchoreo.dev/description'],
+          createdAt: wf.metadata?.creationTimestamp,
+          type: isCI ? 'CI' : 'Generic',
+        };
+      });
 
       this.logger.debug(
         `Successfully fetched ${items.length} generic workflows for namespace: ${namespaceName}`,
@@ -418,143 +416,366 @@ export class GenericWorkflowService {
   }
 
   /**
-   * Get logs for a specific workflow run using the observability service.
-   * Uses the pattern: get observer URL from environment, then fetch logs.
-   *
-   * @param namespaceName - The namespace name
-   * @param runName - The workflow run name
-   * @param environmentName - The environment name to get observer URL from (defaults to 'development')
-   * @param token - Optional auth token
+   * Get logs for a specific workflow run.
    */
   async getWorkflowRunLogs(
     namespaceName: string,
     runName: string,
-    environmentName: string = 'development',
+    task?: string,
     token?: string,
   ): Promise<LogsResponse> {
     this.logger.debug(
-      `Fetching logs for workflow run: ${runName} in namespace: ${namespaceName}`,
+      `Fetching logs for workflow run: ${runName} in namespace: ${namespaceName}${
+        task ? `, task: ${task}` : ''
+      }`,
     );
 
     try {
-      // First, get the workflow run to obtain its UUID
-      const workflowRun = await this.getWorkflowRun(
-        namespaceName,
-        runName,
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
         token,
-      );
-      // Use run name for observability API (not UUID)
-      const runId = (workflowRun as any).metadata?.name || runName;
+        logger: this.logger,
+      });
 
-      // Resolve the observer URL via the reference chain
-      const { observerUrl } = await this.resolver.resolveForEnvironment(
-        namespaceName,
-        environmentName,
-        token,
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/logs',
+        {
+          params: {
+            path: { namespaceName, runName },
+            query: { ...(task ? { task } : {}) },
+          },
+        },
       );
 
-      if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(runName);
+      if (!error && response.ok && Array.isArray(data) && data.length > 0) {
+        const logs = data.map((entry: any) => ({
+          timestamp: entry.timestamp ?? '',
+          log: entry.log,
+        }));
+        this.logger.debug(
+          `Fetched ${logs.length} live log entries for run: ${runName}`,
+        );
+        return { logs, totalCount: logs.length };
       }
 
-      // Now use the observability client with the resolved URL
+      const {
+        data: runData,
+        error: runError,
+        response: runResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
+        { params: { path: { namespaceName, runName } } },
+      );
+
+      if (runError || !runResponse.ok || !runData) {
+        return { logs: [], totalCount: 0 };
+      }
+
+      const runStatus = deriveWorkflowRunStatus(runData);
+      if (!TERMINAL_STATUSES.has(runStatus)) {
+        return { logs: [], totalCount: 0 };
+      }
+
+      let observerUrl: string | undefined;
+      const projectName = (runData as any).metadata?.labels?.[
+        CHOREO_LABELS.WORKFLOW_PROJECT
+      ];
+      try {
+        if (projectName) {
+          ({ observerUrl } = await this.resolver.resolveForBuild(
+            namespaceName,
+            projectName,
+            token,
+          ));
+        } else {
+          ({ observerUrl } = await this.resolver.resolveForEnvironment(
+            namespaceName,
+            'development',
+            token,
+          ));
+        }
+      } catch (resolveErr) {
+        this.logger.debug(
+          `Could not resolve observer URL for run ${runName}: ${resolveErr}`,
+        );
+        return { logs: [], totalCount: 0 };
+      }
+
+      if (!observerUrl) {
+        return { logs: [], totalCount: 0 };
+      }
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        token,
+        this.logger,
+      );
+      const startTime = new Date(
+        Date.now() - 30 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const endTime = new Date().toISOString();
+
+      this.logger.debug(
+        `Querying observer logs for run ${runName}, namespace: ${namespaceName}`,
+      );
+
+      const {
+        data: obsData,
+        error: obsError,
+        response: obsResponse,
+      } = await obsClient.POST('/api/v1/logs/query', {
+        body: {
+          startTime,
+          endTime,
+          limit: 1000,
+          sortOrder: 'asc',
+          searchScope: {
+            namespace: namespaceName,
+            workflowRunName: runName,
+          },
+        },
+      });
+
+      if (obsError || !obsResponse.ok) {
+        this.logger.error(
+          `Failed to fetch observer logs for run ${runName}: ${obsResponse.status} ${obsResponse.statusText}`,
+        );
+        return { logs: [], totalCount: 0 };
+      }
+
+      const obsLogs = ((obsData?.logs || []) as any[]).map((entry: any) => ({
+        timestamp: entry.timestamp ?? '',
+        log: entry.log,
+      }));
+
+      this.logger.debug(
+        `Observer fetched ${obsLogs.length} log entries for run: ${runName}`,
+      );
+
+      return {
+        logs: obsLogs,
+        totalCount: obsData?.total ?? obsLogs.length,
+        tookMs: obsData?.tookMs,
+      };
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error fetching logs for workflow run ${runName} in namespace ${namespaceName}:`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get status (including steps) for a specific workflow run
+   */
+  async getWorkflowRunStatus(
+    namespaceName: string,
+    runName: string,
+    token?: string,
+  ): Promise<WorkflowRunStatusResponse> {
+    this.logger.debug(
+      `Fetching status for workflow run: ${runName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/status',
+        {
+          params: {
+            path: { namespaceName, runName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workflow run status: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!data) {
+        throw new Error('No workflow run status data returned');
+      }
+
+      this.logger.debug(
+        `Successfully fetched status for workflow run: ${runName}`,
+      );
+
+      return data as WorkflowRunStatusResponse;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch status for workflow run ${runName} in namespace ${namespaceName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get Kubernetes events for a specific workflow run (optionally filtered by task)
+   */
+  async getWorkflowRunEvents(
+    namespaceName: string,
+    runName: string,
+    task?: string,
+    token?: string,
+  ): Promise<WorkflowRunEventEntry[]> {
+    this.logger.debug(
+      `Fetching events for workflow run: ${runName} in namespace: ${namespaceName}${
+        task ? `, task: ${task}` : ''
+      }`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/events',
+        {
+          params: {
+            path: { namespaceName, runName },
+            query: {
+              ...(task ? { task } : {}),
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch workflow run events: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      if (!Array.isArray(data)) {
+        return [];
+      }
+
+      const entries: WorkflowRunEventEntry[] = data.map((entry: any) => ({
+        timestamp: entry.timestamp,
+        type: entry.type,
+        reason: entry.reason,
+        message: entry.message,
+      }));
+
+      this.logger.debug(
+        `Successfully fetched ${entries.length} events for workflow run: ${runName}`,
+      );
+
+      if (entries.length === 0) {
+        const observerResult = await this.fetchEventsFromObserver(
+          namespaceName,
+          runName,
+          task,
+          token,
+        );
+        if (observerResult !== null) return observerResult;
+      }
+
+      return entries;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch events for workflow run ${runName} in namespace ${namespaceName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fallback: fetch events from the observer (OpenSearch) API for completed CI workflow runs.
+   * Returns null if the run is not a terminal CI run or if the observer is unavailable.
+   */
+  private async fetchEventsFromObserver(
+    namespaceName: string,
+    runName: string,
+    task?: string,
+    token?: string,
+  ): Promise<WorkflowRunEventEntry[] | null> {
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const {
+        data: run,
+        error,
+        response,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
+        { params: { path: { namespaceName, runName } } },
+      );
+
+      if (error || !response.ok || !run) return null;
+
+      const runStatus = deriveWorkflowRunStatus(run);
+      if (!TERMINAL_STATUSES.has(runStatus)) return null;
+
+      const projectName = (run as any).metadata?.labels?.[
+        CHOREO_LABELS.WORKFLOW_PROJECT
+      ];
+      const componentName = (run as any).metadata?.labels?.[
+        CHOREO_LABELS.WORKFLOW_COMPONENT
+      ];
+      if (!projectName || !componentName) return null;
+
+      const { observerUrl } = await this.resolver.resolveForBuild(
+        namespaceName,
+        projectName,
+        token,
+      );
+      if (!observerUrl) return null;
+
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         token,
         this.logger,
       );
 
-      this.logger.debug(
-        `Sending workflow run logs request for run ${runName} with id: ${runId}`,
-      );
-
-      // Call the observability service to get workflow run logs
-      // Wrap in try-catch to handle cases where endpoint doesn't exist
-      let data: any;
-      let response: Response;
-
-      // Calculate timestamps for the request
-      const startTime = new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000,
-      ).toISOString(); // 30 days ago
-      const endTime = new Date().toISOString();
-
-      this.logger.info(
-        `Workflow run logs request timestamps - startTime: ${startTime}, endTime: ${endTime}, runId: ${runId}`,
-      );
-
-      try {
-        const result = await obsClient.POST('/api/v1/logs/query', {
-          body: {
-            startTime,
-            endTime,
-            limit: 1000,
-            sortOrder: 'asc',
-            searchScope: {
-              namespace: namespaceName,
-              workflowRunName: runId,
-            },
+      const {
+        data: obsData,
+        error: obsError,
+        response: obsResponse,
+      } = await obsClient.GET(
+        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events',
+        {
+          params: {
+            path: { namespaceName, projectName, componentName, runName },
+            query: { ...(task ? { step: task } : {}) },
           },
-        });
-        data = result.data;
-        response = result.response;
+        },
+      );
 
-        if (result.error || !response.ok) {
-          this.logger.error(
-            `Failed to fetch workflow run logs for ${runName}: ${response.status} ${response.statusText}`,
-            {
-              error: result.error
-                ? JSON.stringify(result.error)
-                : 'Unknown error',
-            },
-          );
-          throw new Error(
-            `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
-          );
-        }
-      } catch (obsError: unknown) {
-        if (obsError instanceof ObservabilityNotConfiguredError) {
-          throw obsError;
-        }
-        // Only treat connection-refused/fetch-failed errors as "not configured"
-        const message =
-          obsError instanceof Error ? obsError.message : String(obsError);
-        if (
-          message.includes('ECONNREFUSED') ||
-          message.includes('fetch failed')
-        ) {
-          this.logger.info(
-            `Could not reach observability service: ${message}. Treating as not configured.`,
-          );
-          throw new ObservabilityNotConfiguredError(runName);
-        }
-        throw obsError;
-      }
+      if (obsError || !obsResponse.ok || !Array.isArray(obsData)) return null;
+
+      const entries: WorkflowRunEventEntry[] = obsData.map((entry: any) => ({
+        timestamp: entry.timestamp,
+        type: entry.type,
+        reason: entry.reason,
+        message: entry.message,
+      }));
 
       this.logger.debug(
-        `Successfully fetched ${
-          data?.logs?.length || 0
-        } log entries for workflow run: ${runName}`,
+        `Observer fallback: fetched ${entries.length} events for workflow run: ${runName}`,
       );
 
-      return {
-        logs: data?.logs || [],
-        totalCount: data?.total || 0,
-        tookMs: data?.tookMs || 0,
-      };
-    } catch (error: unknown) {
-      if (error instanceof ObservabilityNotConfiguredError) {
-        this.logger.info(
-          `Observability not configured for workflow run ${runName}`,
-        );
-        throw error;
-      }
-
-      this.logger.error(
-        `Error fetching logs for workflow run ${runName} in namespace ${namespaceName}:`,
-        error as Error,
+      return entries;
+    } catch (err) {
+      this.logger.debug(
+        `Observer fallback for events of run ${runName} failed: ${err}`,
       );
-      throw error;
+      return null;
     }
   }
 }

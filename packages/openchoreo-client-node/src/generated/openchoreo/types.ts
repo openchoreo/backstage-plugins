@@ -7719,8 +7719,8 @@ export interface operations {
   getWorkflowRunLogs: {
     parameters: {
       query?: {
-        /** @description Filter logs by step name */
-        step?: string;
+        /** @description Filter logs by task name */
+        task?: string;
         /** @description Return logs newer than a relative duration in seconds */
         sinceSeconds?: number;
       };
@@ -7753,8 +7753,8 @@ export interface operations {
   getWorkflowRunEvents: {
     parameters: {
       query?: {
-        /** @description Filter events by step name */
-        step?: string;
+        /** @description Filter events by task name */
+        task?: string;
       };
       header?: never;
       path: {

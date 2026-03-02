@@ -315,13 +315,11 @@ export class PlatformResourceService {
           break;
         }
         case 'workflows': {
-          // Backend only has list + schema for workflows, no individual GET
-          // Fetch from list and filter by name
           const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/workflows',
+            '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}',
             {
               params: {
-                path: { namespaceName },
+                path: { namespaceName, workflowName: resourceName },
               },
             },
           );
@@ -330,11 +328,7 @@ export class PlatformResourceService {
               `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
             );
           }
-          const wf = data.items?.find((w: any) => w.name === resourceName);
-          if (!wf) {
-            throw new Error(`Workflow '${resourceName}' not found`);
-          }
-          resource = wf as Record<string, unknown>;
+          resource = data as Record<string, unknown>;
           break;
         }
         case 'deploymentpipelines': {

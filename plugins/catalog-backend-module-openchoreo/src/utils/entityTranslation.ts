@@ -331,6 +331,7 @@ export function translateWorkflowToEntity(
     description?: string;
     createdAt?: string;
     parameters?: string;
+    type?: string;
   },
   namespaceName: string,
   config: EntityTranslationConfig,
@@ -359,6 +360,7 @@ export function translateWorkflowToEntity(
     },
     spec: {
       domain: `default/${namespaceName}`,
+      ...(wf.type && { type: wf.type }),
     },
   };
 }

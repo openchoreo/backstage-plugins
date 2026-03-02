@@ -1807,6 +1807,9 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     wf: NewWorkflow,
     namespaceName: string,
   ): WorkflowEntityV1alpha1 {
+    const isCI =
+      wf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
+      'component';
     return translateWF(
       {
         name: getName(wf)!,
@@ -1814,6 +1817,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         description: getDescription(wf),
         createdAt: getCreatedAt(wf),
         parameters: getAnnotation(wf, CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS),
+        type: isCI ? 'CI' : 'Generic',
       },
       namespaceName,
       { locationKey: this.getProviderName() },

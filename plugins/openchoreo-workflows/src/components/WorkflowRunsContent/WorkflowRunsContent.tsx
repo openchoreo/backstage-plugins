@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Content,
@@ -7,7 +7,6 @@ import {
   TableColumn,
   InfoCard,
   StructuredMetadataTable,
-  HeaderTabs,
 } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -22,22 +21,34 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import CloseIcon from '@material-ui/icons/Close';
+import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import EventNoteOutlinedIcon from '@material-ui/icons/EventNoteOutlined';
 import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import type { RJSFSchema, UiSchema } from '@rjsf/utils';
 import type { IChangeEvent } from '@rjsf/core';
+import {
+  VerticalTabNav,
+  TabItemData,
+} from '@openchoreo/backstage-design-system';
+import {
+  DetailPageLayout,
+  formatRelativeTime,
+} from '@openchoreo/backstage-plugin-react';
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
 import { useWorkflowRunDetails } from '../../hooks/useWorkflowRunDetails';
-import { useWorkflowRunLogs } from '../../hooks/useWorkflowRunLogs';
 import { useWorkflowSchema } from '../../hooks/useWorkflowSchema';
 import { genericWorkflowsClientApiRef } from '../../api';
 import { useSelectedNamespace } from '../../context';
 import { WorkflowRunStatusChip } from '../WorkflowRunStatusChip';
-import { WorkflowRunLogs } from '../WorkflowRunLogs';
+import { WorkflowRunStepLogs } from '../WorkflowRunStepLogs';
+import { WorkflowRunEvents } from '../WorkflowRunEvents';
 import type { WorkflowRun } from '../../types';
+
+type RunDetailsTab = 'logs' | 'events' | 'details';
 
 const useStyles = makeStyles(theme => ({
   header: {
@@ -96,21 +107,6 @@ const useStyles = makeStyles(theme => ({
     color: theme.palette.text.secondary,
   },
 }));
-
-// Helper to format relative time
-function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return `${diffDays}d ago`;
-}
 
 // Helper to calculate duration
 function calculateDuration(createdAt: string, finishedAt?: string): string {
@@ -280,7 +276,7 @@ const TriggerForm = ({
 };
 
 /**
- * Sub-component: displays details + logs for a single run.
+ * Sub-component: displays details + logs + events for a single run.
  */
 const RunDetailView = ({
   runName,
@@ -290,31 +286,34 @@ const RunDetailView = ({
   onBack: () => void;
 }) => {
   const classes = useStyles();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState<RunDetailsTab>('logs');
 
   const { run, loading, error, refetch } = useWorkflowRunDetails(runName);
 
-  const runStatus = run?.phase || run?.status;
-  const normalizedStatus = runStatus?.toLowerCase();
-  const isActive =
-    normalizedStatus === 'pending' || normalizedStatus === 'running';
-
-  const {
-    logs,
-    loading: logsLoading,
-    error: logsError,
-    refetch: refetchLogs,
-  } = useWorkflowRunLogs(runName, isActive);
-
   const handleRefresh = () => {
     refetch();
-    refetchLogs();
   };
 
-  const tabs = [
-    { id: 'logs', label: 'Logs' },
-    { id: 'details', label: 'Details' },
-  ];
+  const tabs = useMemo<TabItemData[]>(
+    () => [
+      {
+        id: 'logs',
+        label: 'Logs',
+        icon: <DescriptionOutlinedIcon fontSize="small" />,
+      },
+      {
+        id: 'events',
+        label: 'Events',
+        icon: <EventNoteOutlinedIcon fontSize="small" />,
+      },
+      {
+        id: 'details',
+        label: 'Details',
+        icon: <InfoOutlinedIcon fontSize="small" />,
+      },
+    ],
+    [],
+  );
 
   if (loading && !run) {
     return <Progress />;
@@ -322,45 +321,19 @@ const RunDetailView = ({
 
   if (error) {
     return (
-      <Box>
-        <Box className={classes.header}>
-          <IconButton
-            size="small"
-            onClick={onBack}
-            title="Back to runs"
-            aria-label="Back to runs"
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5">Workflow Run</Typography>
-        </Box>
-        <Alert severity="error">
-          <AlertTitle>Error loading workflow run</AlertTitle>
-          {error.message}
-        </Alert>
-      </Box>
+      <Alert severity="error">
+        <AlertTitle>Error loading workflow run</AlertTitle>
+        {error.message}
+      </Alert>
     );
   }
 
   if (!run) {
     return (
-      <Box>
-        <Box className={classes.header}>
-          <IconButton
-            size="small"
-            onClick={onBack}
-            title="Back to runs"
-            aria-label="Back to runs"
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h5">Workflow Run</Typography>
-        </Box>
-        <Alert severity="warning">
-          <AlertTitle>Workflow run not found</AlertTitle>
-          The workflow run "{runName}" could not be found.
-        </Alert>
-      </Box>
+      <Alert severity="warning">
+        <AlertTitle>Workflow run not found</AlertTitle>
+        The workflow run "{runName}" could not be found.
+      </Alert>
     );
   }
 
@@ -376,57 +349,38 @@ const RunDetailView = ({
     UUID: run.uuid || '-',
   };
 
-  return (
-    <Box>
-      <Box className={classes.header}>
-        <IconButton
-          size="small"
-          onClick={onBack}
-          title="Back to runs"
-          aria-label="Back to runs"
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h5" className={classes.title}>
-          {run.name}
-        </Typography>
-        <WorkflowRunStatusChip status={displayStatus} />
-        {isActive && (
-          <Typography className={classes.pollingIndicator}>
-            (auto-refreshing)
-          </Typography>
-        )}
-        <IconButton
-          onClick={handleRefresh}
-          size="small"
-          title="Refresh"
-          aria-label="Refresh"
-        >
-          <RefreshIcon />
-        </IconButton>
-      </Box>
+  const subtitle = (
+    <>
+      <WorkflowRunStatusChip status={displayStatus} />
+      <Typography variant="body2" color="textSecondary">
+        {run.createdAt ? formatRelativeTime(run.createdAt) : 'Unknown'}
+      </Typography>
+    </>
+  );
 
-      <HeaderTabs
-        tabs={tabs}
-        selectedIndex={activeTab}
-        onChange={setActiveTab}
-      />
+  const actions = (
+    <IconButton
+      onClick={handleRefresh}
+      size="small"
+      title="Refresh"
+      aria-label="Refresh"
+    >
+      <RefreshIcon />
+    </IconButton>
+  );
 
-      <Box className={classes.tabContent}>
-        {activeTab === 0 && (
-          <WorkflowRunLogs
-            logs={logs}
-            loading={logsLoading}
-            error={logsError}
-          />
-        )}
-
-        {activeTab === 1 && (
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'logs':
+        return <WorkflowRunStepLogs runName={runName} />;
+      case 'events':
+        return <WorkflowRunEvents runName={runName} />;
+      case 'details':
+        return (
           <>
             <InfoCard title="Run Details">
               <StructuredMetadataTable metadata={metadata} />
             </InfoCard>
-
             {run.parameters && Object.keys(run.parameters).length > 0 && (
               <Box className={classes.section}>
                 <InfoCard title="Parameters">
@@ -442,9 +396,27 @@ const RunDetailView = ({
               </Box>
             )}
           </>
-        )}
-      </Box>
-    </Box>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <DetailPageLayout
+      title={run.name}
+      subtitle={subtitle}
+      onBack={onBack}
+      actions={actions}
+    >
+      <VerticalTabNav
+        tabs={tabs}
+        activeTabId={activeTab}
+        onChange={tabId => setActiveTab(tabId as RunDetailsTab)}
+      >
+        {renderTabContent()}
+      </VerticalTabNav>
+    </DetailPageLayout>
   );
 };
 
@@ -523,7 +495,7 @@ export const WorkflowRunsContent = () => {
       title: 'Created',
       field: 'createdAt',
       defaultSort: 'desc',
-      render: (row: WorkflowRun) => formatRelativeTime(row.createdAt),
+      render: (row: WorkflowRun) => formatRelativeTime(row.createdAt || ''),
     },
     {
       title: 'Duration',
