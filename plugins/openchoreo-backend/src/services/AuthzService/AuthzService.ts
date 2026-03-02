@@ -1051,11 +1051,14 @@ export class AuthzService {
             metadata: { name: binding.name },
             spec: {
               roleRef: {
-                kind: binding.roleNamespace ? 'AuthzRole' : 'AuthzClusterRole',
-                name: binding.role,
+                kind: binding.role?.namespace
+                  ? 'AuthzRole'
+                  : 'AuthzClusterRole',
+                name: binding.role?.name ?? binding.role,
               },
               entitlement: binding.entitlement,
               effect: binding.effect ?? 'allow',
+              ...(binding.targetPath && { targetPath: binding.targetPath }),
             },
           } as any,
         },
@@ -1114,11 +1117,14 @@ export class AuthzService {
             metadata: { name: binding.name ?? name },
             spec: {
               roleRef: {
-                kind: binding.roleNamespace ? 'AuthzRole' : 'AuthzClusterRole',
-                name: binding.role,
+                kind: binding.role?.namespace
+                  ? 'AuthzRole'
+                  : 'AuthzClusterRole',
+                name: binding.role?.name ?? binding.role,
               },
               entitlement: binding.entitlement,
               effect: binding.effect ?? 'allow',
+              ...(binding.targetPath && { targetPath: binding.targetPath }),
             },
           } as any,
         },
