@@ -13,9 +13,9 @@ import type { paths as ObservabilityPaths } from './generated/observability/type
 import type { paths as AIRCAAgentPaths } from './generated/ai-rca-agent/types';
 
 /**
- * Header name used to route requests to new API handlers on the OpenChoreo backend.
+ * Header name used to route requests to legacy API handlers on the OpenChoreo backend.
  */
-export const OPENCHOREO_API_VERSION_HEADER = 'X-Use-OpenAPI';
+export const OPENCHOREO_LEGACY_ROUTES_HEADER = 'X-Use-Legacy-Routes';
 import { isTracingEnabled, createTracingMiddleware } from './tracing';
 
 /**
@@ -130,14 +130,17 @@ export function createOpenChoreoLegacyApiClient(
     `Creating OpenChoreo Legacy API client with baseUrl: ${baseUrl}`,
   );
 
+  const headers: Record<string, string> = {
+    [OPENCHOREO_LEGACY_ROUTES_HEADER]: 'true',
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const clientOptions: ClientOptions = {
     baseUrl: baseUrl,
     fetch: fetchApi,
-    headers: token
-      ? {
-          Authorization: `Bearer ${token}`,
-        }
-      : undefined,
+    headers,
   };
 
   const client = createClient<OpenChoreoLegacyPaths>(clientOptions);
@@ -155,7 +158,7 @@ export function createOpenChoreoLegacyApiClient(
  * Creates an OpenChoreo API client (new 1.0 API)
  *
  * Uses K8s-style resource descriptors (metadata/spec/status) and dedicated
- * per-resource CRUD endpoints. Attaches the API version routing header.
+ * per-resource CRUD endpoints. Routes to the default OpenAPI handlers.
  *
  * @param config - Configuration options for the client
  * @returns Configured OpenChoreo API client instance
@@ -168,17 +171,14 @@ export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
 
   logger?.debug(`Creating OpenChoreo API client with baseUrl: ${baseUrl}`);
 
-  const headers: Record<string, string> = {
-    [OPENCHOREO_API_VERSION_HEADER]: 'true',
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
   const clientOptions: ClientOptions = {
     baseUrl,
     fetch: fetchApi,
-    headers,
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : undefined,
   };
 
   const client = createClient<OpenChoreoPaths>(clientOptions);

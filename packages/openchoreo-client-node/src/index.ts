@@ -14,7 +14,7 @@ export {
   createOpenChoreoAIRCAAgentApiClient,
   createOpenChoreoClientFromConfig,
   createObservabilityClientWithUrl,
-  OPENCHOREO_API_VERSION_HEADER,
+  OPENCHOREO_LEGACY_ROUTES_HEADER,
   type OpenChoreoClientConfig,
   type OpenChoreoObservabilityClientConfig,
   type OpenChoreoAIRCAAgentClientConfig,

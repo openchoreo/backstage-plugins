@@ -199,7 +199,7 @@ getCondition(project, 'Ready'); // { type: 'Ready', status: 'True', ... }
 
 ## 7. Assumptions
 
-- Legacy and new API share the same base URL, differentiated by the `X-Use-OpenAPI` header
+- Legacy and new API share the same base URL; OpenAPI routing is now the default, legacy handlers require the `X-Use-Legacy-Routes` header
 - New API will have full CRUD for all resource types before 1.0 (component-types, traits, component-workflows currently WIP)
 - List endpoints return full resource descriptors (metadata + spec + status) -- no summary/lightweight list mode
 - The new API response is NOT wrapped in `{ success, data }` -- resources are returned directly
