@@ -204,10 +204,9 @@ export function createOpenChoreoApiClient(config: OpenChoreoClientConfig) {
  *   token: 'your-auth-token'
  * });
  *
- * const { data, error } = await client.POST('/api/logs/component/{componentId}', {
- *   params: { path: { componentId: 'my-component' } },
+ * const { data, error } = await client.POST('/api/v1/logs/query', {
  *   body: {
- *     environmentId: 'dev',
+ *     searchScope: { namespace: 'my-namespace', component: 'my-component' },
  *     limit: 100
  *   }
  * });

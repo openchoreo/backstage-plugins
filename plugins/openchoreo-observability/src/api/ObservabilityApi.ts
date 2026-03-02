@@ -352,9 +352,9 @@ export class ObservabilityClient implements ObservabilityApi {
   }
 
   async getRuntimeLogs(
-    componentId: string,
+    _componentId: string,
     _projectId: string,
-    environmentId: string,
+    _environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,
@@ -374,7 +374,7 @@ export class ObservabilityClient implements ObservabilityApi {
     );
 
     const response = await this.fetchApi.fetch(
-      `${observerUrl}/api/logs/component/${encodeURIComponent(componentId)}`,
+      `${observerUrl}/api/v1/logs/query`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
@@ -383,11 +383,6 @@ export class ObservabilityClient implements ObservabilityApi {
             options?.startTime ||
             new Date(Date.now() - 60 * 60 * 1000).toISOString(),
           endTime: options?.endTime || new Date().toISOString(),
-          environmentId,
-          componentName,
-          projectName,
-          namespaceName,
-          environmentName,
           limit: options?.limit || 100,
           sortOrder: options?.sortOrder || 'desc',
           ...(options?.logLevels &&
@@ -395,6 +390,12 @@ export class ObservabilityClient implements ObservabilityApi {
           ...(options?.searchQuery && {
             searchPhrase: options.searchQuery,
           }),
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            component: componentName,
+            environment: environmentName,
+          },
         }),
       },
     );

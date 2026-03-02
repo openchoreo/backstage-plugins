@@ -484,32 +484,22 @@ export class GenericWorkflowService {
       );
 
       try {
-        const result = await obsClient.POST(
-          '/api/v1/workflow-runs/{runId}/logs' as any,
-          {
-            params: {
-              path: { runId },
-            },
-            body: {
-              startTime,
-              endTime,
-              limit: 1000,
-              sortOrder: 'asc',
-              namespaceName,
+        const result = await obsClient.POST('/api/v1/logs/query', {
+          body: {
+            startTime,
+            endTime,
+            limit: 1000,
+            sortOrder: 'asc',
+            searchScope: {
+              namespace: namespaceName,
+              workflowRunName: runId,
             },
           },
-        );
+        });
         data = result.data;
         response = result.response;
 
         if (result.error || !response.ok) {
-          // If endpoint doesn't exist (404), treat as not configured
-          if (response.status === 404) {
-            this.logger.info(
-              `Workflow run logs endpoint not available (404). The observability service may not support workflow run logs yet.`,
-            );
-            throw new ObservabilityNotConfiguredError(runName);
-          }
           this.logger.error(
             `Failed to fetch workflow run logs for ${runName}: ${response.status} ${response.statusText}`,
             {
@@ -549,7 +539,7 @@ export class GenericWorkflowService {
 
       return {
         logs: data?.logs || [],
-        totalCount: data?.totalCount || 0,
+        totalCount: data?.total || 0,
         tookMs: data?.tookMs || 0,
       };
     } catch (error: unknown) {

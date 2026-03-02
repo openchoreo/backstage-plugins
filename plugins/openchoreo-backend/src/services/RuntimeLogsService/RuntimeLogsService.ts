@@ -34,8 +34,6 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
    * time range, and pagination parameters.
    *
    * @param {Object} request - The request parameters
-   * @param {string} request.componentId - ID of the component to fetch logs for
-   * @param {string} request.environmentId - Environment ID to filter logs
    * @param {string[]} request.logLevels - Optional array of log levels to filter by
    * @param {string} request.startTime - Optional start time for log range
    * @param {string} request.endTime - Optional end time for log range
@@ -46,10 +44,8 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
   async fetchRuntimeLogs(
     request: {
       componentName: string;
-      componentId: string;
       environmentName: string;
-      environmentId: string;
-      logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
+      logLevels?: ('DEBUG' | 'INFO' | 'WARN' | 'ERROR')[];
       startTime?: string;
       endTime?: string;
       limit?: number;
@@ -60,9 +56,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
   ): Promise<RuntimeLogsResponse> {
     try {
       const {
-        componentId,
         componentName,
-        environmentId,
         environmentName,
         logLevels,
         startTime,
@@ -90,27 +84,25 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       );
 
       this.logger.info(
-        `Sending logs request for component ${componentId} with limit: ${limit}`,
+        `Sending logs request for component ${componentName} with limit: ${limit}`,
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/component/{componentId}',
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { componentId },
-          },
           body: {
             startTime:
               startTime || new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Default: 1 hour ago
             endTime: endTime || new Date().toISOString(), // Default: now
-            environmentId,
-            componentName,
-            projectName,
-            namespaceName,
-            environmentName,
             limit,
             sortOrder: 'desc',
             ...(logLevels && logLevels.length > 0 && { logLevels }),
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              component: componentName,
+              environment: environmentName,
+            },
           },
         },
       );
@@ -118,7 +110,7 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       if (error || !response.ok) {
         const errorText = await response.text();
         this.logger.error(
-          `Failed to fetch runtime logs for component ${componentId}: ${response.status} ${response.statusText}`,
+          `Failed to fetch runtime logs for component ${componentName}: ${response.status} ${response.statusText}`,
           { error: errorText },
         );
         throw new Error(
@@ -129,24 +121,24 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
       this.logger.info(
         `Successfully fetched ${
           data.logs?.length || 0
-        } runtime logs for component ${componentId}`,
+        } runtime logs for component ${componentName}`,
       );
 
       return {
         logs: data.logs || [],
-        totalCount: data.totalCount || 0,
+        total: data.total || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
         this.logger.info(
-          `Observability not configured for component ${request.componentId}`,
+          `Observability not configured for component ${request.componentName}`,
         );
         throw error;
       }
 
       this.logger.error(
-        `Error fetching runtime logs for component ${request.componentId}:`,
+        `Error fetching runtime logs for component ${request.componentName}:`,
         error as Error,
       );
       throw error;

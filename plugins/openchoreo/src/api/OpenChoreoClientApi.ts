@@ -1,10 +1,6 @@
 import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import type {
-  ModelsWorkload,
-  ModelsBuild,
-  RuntimeLogsResponse,
-} from '@openchoreo/backstage-plugin-common';
+import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
@@ -249,17 +245,6 @@ export interface ComponentSummary {
   displayName?: string;
 }
 
-/** Build logs params */
-export interface BuildLogsParams {
-  componentName: string;
-  projectName: string;
-  namespaceName: string;
-  buildId: string;
-  buildUuid: string;
-  limit?: number;
-  sortOrder?: 'asc' | 'desc';
-}
-
 /** Component trait response */
 export interface ComponentTrait {
   kind?: 'Trait' | 'ClusterTrait';
@@ -467,14 +452,6 @@ export interface OpenChoreoClientApi {
 
   /** Get list of environments for a component */
   getEnvironments(entity: Entity): Promise<Environment[]>;
-
-  // === Build Logs ===
-
-  /** Fetch build logs */
-  getBuildLogs(params: BuildLogsParams): Promise<RuntimeLogsResponse>;
-
-  /** Fetch build logs for a specific build */
-  fetchBuildLogsForBuild(build: ModelsBuild): Promise<RuntimeLogsResponse>;
 
   /** Fetch builds for a component */
   fetchBuilds(

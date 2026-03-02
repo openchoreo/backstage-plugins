@@ -3,8 +3,6 @@ import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
   ModelsWorkload,
-  ModelsBuild,
-  RuntimeLogsResponse,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -15,7 +13,6 @@ import type {
   WorkflowSchemaResponse,
   ComponentInfo,
   SecretReferencesResponse,
-  BuildLogsParams,
   ComponentTrait,
   UserTypeConfig,
   NamespaceSummary,
@@ -65,7 +62,6 @@ const API_ENDPOINTS = {
   COMPONENT_WORKFLOW_PARAMETERS: '/workflow-parameters',
   SECRET_REFERENCES: '/secret-references',
   COMPONENT: '/component',
-  BUILD_LOGS: '/build-logs',
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
   COMPONENT_TRAITS: '/component-traits',
@@ -555,72 +551,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   }
 
   // ============================================
-  // Build Logs
+  // Builds
   // ============================================
-
-  async getBuildLogs(params: BuildLogsParams): Promise<RuntimeLogsResponse> {
-    interface BuildLogsApiResponse {
-      success?: boolean;
-      data?: {
-        message?: string;
-      };
-      logs?: RuntimeLogsResponse['logs'];
-      totalCount?: number;
-      tookMs?: number;
-    }
-
-    const data = await this.apiFetch<BuildLogsApiResponse>(
-      API_ENDPOINTS.BUILD_LOGS,
-      {
-        params: {
-          componentName: params.componentName,
-          buildId: params.buildId,
-          buildUuid: params.buildUuid,
-          limit: (params.limit || 100).toString(),
-          sortOrder: params.sortOrder || 'desc',
-          projectName: params.projectName,
-          namespaceName: params.namespaceName,
-        },
-      },
-    );
-
-    if (
-      data.success &&
-      data.data?.message === 'observability-logs have not been configured'
-    ) {
-      throw new Error(
-        "Observability has not been configured so build logs aren't available",
-      );
-    }
-
-    return data as RuntimeLogsResponse;
-  }
-
-  async fetchBuildLogsForBuild(
-    build: ModelsBuild,
-  ): Promise<RuntimeLogsResponse> {
-    if (
-      !build.componentName ||
-      !build.name ||
-      !build.uuid ||
-      !build.projectName ||
-      !build.namespaceName
-    ) {
-      throw new Error(
-        'Component name, Build ID, UUID, Project name, or Namespace name not available',
-      );
-    }
-
-    return this.getBuildLogs({
-      componentName: build.componentName,
-      buildId: build.name,
-      buildUuid: build.uuid,
-      projectName: build.projectName,
-      namespaceName: build.namespaceName,
-      limit: 100,
-      sortOrder: 'desc',
-    });
-  }
 
   async fetchBuilds(
     componentName: string,

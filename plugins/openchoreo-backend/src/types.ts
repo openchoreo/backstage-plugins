@@ -6,10 +6,13 @@ import type {
   GitSecretListResponse,
 } from './services/GitSecretsService/GitSecretsService';
 
-// Import generated types from observability client
-export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
-export type RuntimeLogsResponse =
-  ObservabilityComponents['schemas']['LogResponse'];
+// Log types from the unified /api/v1/logs/query endpoint
+export type LogEntry = ObservabilityComponents['schemas']['ComponentLogEntry'];
+export type RuntimeLogsResponse = {
+  logs: ObservabilityComponents['schemas']['ComponentLogEntry'][];
+  total?: number;
+  tookMs?: number;
+};
 
 export interface EnvironmentService {
   fetchDeploymentInfo(request: {
@@ -147,10 +150,8 @@ export interface RuntimeLogsService {
   fetchRuntimeLogs(
     request: {
       componentName: string;
-      componentId: string;
       environmentName: string;
-      environmentId: string;
-      logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
+      logLevels?: ('DEBUG' | 'INFO' | 'WARN' | 'ERROR')[];
       startTime?: string;
       endTime?: string;
       limit?: number;

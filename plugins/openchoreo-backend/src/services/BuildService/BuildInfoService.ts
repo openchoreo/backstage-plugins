@@ -245,11 +245,8 @@ export class BuildInfoService {
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/build/{buildId}',
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { buildId },
-          },
           body: {
             startTime: new Date(
               Date.now() - 30 * 24 * 60 * 60 * 1000,
@@ -257,9 +254,10 @@ export class BuildInfoService {
             endTime: new Date().toISOString(),
             limit: limit || 1000, // Default to 1000 until pagination is implemented
             sortOrder: sortOrder || 'asc',
-            componentName,
-            projectName,
-            namespaceName,
+            searchScope: {
+              namespace: namespaceName,
+              workflowRunName: buildId,
+            },
           },
         },
       );
@@ -283,7 +281,7 @@ export class BuildInfoService {
 
       return {
         logs: data.logs || [],
-        totalCount: data.totalCount || 0,
+        total: data.total || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {

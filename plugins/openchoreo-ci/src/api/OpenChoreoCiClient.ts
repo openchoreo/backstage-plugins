@@ -3,7 +3,6 @@ import { Entity } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
   ModelsBuild,
-  RuntimeLogsResponse,
   WorkflowRunStatusResponse,
   LogEntry,
 } from '@openchoreo/backstage-plugin-common';
@@ -119,32 +118,6 @@ export class OpenChoreoCiClient implements OpenChoreoCiClientApi {
       method: 'PATCH',
       params: entityMetadataToParams(metadata),
       body: { systemParameters, parameters },
-    });
-  }
-
-  // TODO: Deprecate this method and use the new method fetchWorkflowRunLogs instead
-  async fetchBuildLogsForBuild(
-    build: ModelsBuild,
-  ): Promise<RuntimeLogsResponse> {
-    if (
-      !build.componentName ||
-      !build.name ||
-      !build.uuid ||
-      !build.projectName ||
-      !build.namespaceName
-    ) {
-      throw new Error(
-        'Build object is missing required fields for fetching logs',
-      );
-    }
-
-    return this.apiFetch<RuntimeLogsResponse>('/build-logs', {
-      params: {
-        componentName: build.componentName,
-        buildId: build.name,
-        projectName: build.projectName,
-        namespaceName: build.namespaceName,
-      },
     });
   }
 

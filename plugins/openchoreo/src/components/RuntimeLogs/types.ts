@@ -1,22 +1,14 @@
-export interface LogEntry {
-  timestamp: string;
-  log: string;
-  logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
-  componentId: string;
-  environmentId: string;
-  projectId: string;
-  version: string;
-  versionId: string;
-  namespace: string;
-  podId: string;
-  containerName: string;
-  labels: Record<string, string>;
-}
+import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+
+/**
+ * A single component log entry as returned by POST /api/v1/logs/query.
+ */
+export type LogEntry = ObservabilityComponents['schemas']['ComponentLogEntry'];
 
 export interface LogsResponse {
   logs: LogEntry[];
-  totalCount: number;
-  tookMs: number;
+  total?: number;
+  tookMs?: number;
 }
 
 export interface Environment {

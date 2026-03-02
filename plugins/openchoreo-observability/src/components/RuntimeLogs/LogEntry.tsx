@@ -55,7 +55,7 @@ export const LogEntry: FC<LogEntryProps> = ({
     }
 
     try {
-      await navigator.clipboard.writeText(log.log);
+      await navigator.clipboard.writeText(log.log ?? '');
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
@@ -95,16 +95,16 @@ export const LogEntry: FC<LogEntryProps> = ({
       >
         {selectedFields.includes(LogEntryField.Timestamp) && (
           <TableCell className={classes.timestampCell}>
-            {formatTimestamp(log.timestamp)}
+            {formatTimestamp(log.timestamp ?? '')}
           </TableCell>
         )}
         {selectedFields.includes(LogEntryField.LogLevel) && (
           <TableCell>
             <Chip
-              label={log.logLevel}
+              label={log.level}
               size="small"
               className={`${classes.logLevelChip} ${getLogLevelChipClass(
-                log.logLevel,
+                log.level ?? '',
               )}`}
             />
           </TableCell>
@@ -174,7 +174,7 @@ export const LogEntry: FC<LogEntryProps> = ({
                           Environment UID:
                         </span>
                         <span className={classes.metadataValue}>
-                          {log.environmentId}
+                          {log.metadata?.environmentUid}
                         </span>
                       </Box>
 
@@ -192,7 +192,7 @@ export const LogEntry: FC<LogEntryProps> = ({
                           Project UID:
                         </span>
                         <span className={classes.metadataValue}>
-                          {log.projectId}
+                          {log.metadata?.projectUid}
                         </span>
                       </Box>
 
@@ -210,35 +210,37 @@ export const LogEntry: FC<LogEntryProps> = ({
                           Component UID:
                         </span>
                         <span className={classes.metadataValue}>
-                          {log.componentId}
+                          {log.metadata?.componentUid}
                         </span>
                       </Box>
 
                       <Box className={classes.metadataItem}>
                         <span className={classes.metadataKey}>Pod Name:</span>
                         <span className={classes.metadataValue}>
-                          NOT AVAILABLE
+                          {log.metadata?.podName}
                         </span>
                       </Box>
 
                       <Box className={classes.metadataItem}>
-                        <span className={classes.metadataKey}>Pod ID:</span>
+                        <span className={classes.metadataKey}>
+                          Pod Namespace:
+                        </span>
                         <span className={classes.metadataValue}>
-                          {log.podId}
+                          {log.metadata?.podNamespace}
                         </span>
                       </Box>
 
                       <Box className={classes.metadataItem}>
                         <span className={classes.metadataKey}>Namespace:</span>
                         <span className={classes.metadataValue}>
-                          {log.namespace}
+                          {log.metadata?.namespaceName}
                         </span>
                       </Box>
 
                       <Box className={classes.metadataItem}>
                         <span className={classes.metadataKey}>Container:</span>
                         <span className={classes.metadataValue}>
-                          {log.containerName}
+                          {log.metadata?.containerName}
                         </span>
                       </Box>
                     </Box>

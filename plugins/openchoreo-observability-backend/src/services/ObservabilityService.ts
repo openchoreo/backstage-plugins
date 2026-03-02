@@ -16,18 +16,21 @@ export interface RuntimeLogsResponse {
   logs: Array<{
     timestamp: string;
     log: string;
-    logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'FATAL';
-    componentId: string;
-    environmentId: string;
-    projectId: string;
-    version: string;
-    versionId: string;
-    namespace: string;
-    podId: string;
-    containerName: string;
-    labels: Record<string, string>;
+    level: string;
+    metadata?: {
+      componentName?: string;
+      projectName?: string;
+      environmentName?: string;
+      namespaceName?: string;
+      componentUid?: string;
+      projectUid?: string;
+      environmentUid?: string;
+      containerName?: string;
+      podName?: string;
+      podNamespace?: string;
+    };
   }>;
-  totalCount: number;
+  total: number;
   tookMs: number;
 }
 
@@ -208,9 +211,9 @@ export class ObservabilityService {
    * @returns Promise<RuntimeLogsResponse> - The runtime logs data
    */
   async fetchRuntimeLogsByComponent(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
+    _componentId: string,
+    _projectId: string,
+    _environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,
@@ -244,32 +247,37 @@ export class ObservabilityService {
       );
 
       this.logger.debug(
-        `Sending runtime logs request for component ${componentId} with limit: ${
+        `Sending runtime logs request for component ${componentName} with limit: ${
           options?.limit || 100
         }`,
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/component/{componentId}',
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { componentId },
-          },
           body: {
             startTime:
               options?.startTime ||
               new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Default: 1 hour ago
             endTime: options?.endTime || new Date().toISOString(), // Default: now
-            environmentId,
-            componentName,
-            projectName,
-            namespaceName,
-            environmentName,
             limit: options?.limit || 100,
             sortOrder: options?.sortOrder || 'desc',
             ...(options?.logLevels &&
-              options.logLevels.length > 0 && { logLevels: options.logLevels }),
+              options.logLevels.length > 0 && {
+                logLevels: options.logLevels as (
+                  | 'DEBUG'
+                  | 'INFO'
+                  | 'WARN'
+                  | 'ERROR'
+                )[],
+              }),
             ...(options?.searchQuery && { searchPhrase: options.searchQuery }),
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              component: componentName,
+              environment: environmentName,
+            },
           },
         },
       );
@@ -277,7 +285,7 @@ export class ObservabilityService {
       if (error || !response.ok) {
         const errorMessage = extractErrorMessage(error, response);
         this.logger.error(
-          `Failed to fetch runtime logs for component ${componentId}: ${errorMessage}`,
+          `Failed to fetch runtime logs for component ${componentName}: ${errorMessage}`,
         );
         throw new Error(`Failed to fetch runtime logs: ${errorMessage}`);
       }
@@ -285,46 +293,29 @@ export class ObservabilityService {
       this.logger.debug(
         `Successfully fetched ${
           data.logs?.length || 0
-        } runtime logs for component ${componentId}`,
+        } runtime logs for component ${componentName}`,
       );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Runtime logs fetch completed for component ${componentId} (${totalTime}ms)`,
+        `Runtime logs fetch completed for component ${componentName} (${totalTime}ms)`,
       );
 
       return {
         logs:
-          data.logs?.map(rawLog => {
-            const log = rawLog as any;
-            return {
-              timestamp: log.timestamp || '',
-              log: log.log || '',
-              logLevel: (log.logLevel || log.level || 'INFO') as
-                | 'ERROR'
-                | 'WARN'
-                | 'INFO'
-                | 'DEBUG'
-                | 'TRACE'
-                | 'FATAL',
-              componentId: log.componentId || componentId,
-              environmentId: log.environmentId || environmentId,
-              projectId: log.projectId || projectId,
-              version: log.version?.toString() || '',
-              versionId: log.versionId?.toString() || '',
-              namespace: log.namespace?.toString() || '',
-              podId: log.podId?.toString() || '',
-              containerName: log.containerName?.toString() || '',
-              labels: (log.labels as Record<string, string>) || {},
-            };
-          }) || [],
-        totalCount: data.totalCount || 0,
+          data.logs?.map(rawLog => ({
+            timestamp: rawLog.timestamp || '',
+            log: rawLog.log || '',
+            level: (rawLog as any).level || 'INFO',
+            metadata: (rawLog as any).metadata,
+          })) || [],
+        total: data.total || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
         this.logger.info(
-          `Observability not configured for component ${componentId}`,
+          `Observability not configured for component ${componentName}`,
         );
         throw error;
       }

@@ -2,10 +2,7 @@ import { InputError } from '@backstage/errors';
 import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
-import {
-  BuildInfoService,
-  ObservabilityNotConfiguredError as BuildObservabilityNotConfiguredError,
-} from './services/BuildService/BuildInfoService';
+import { BuildInfoService } from './services/BuildService/BuildInfoService';
 import {
   CellDiagramService,
   WorkloadService,
@@ -531,39 +528,6 @@ export async function createRouter({
         userToken,
       ),
     );
-  });
-
-  router.get('/build-logs', async (req, res) => {
-    const { componentName, buildId, buildUuid, projectName, namespaceName } =
-      req.query;
-
-    if (!componentName || !buildId || !buildUuid) {
-      throw new InputError(
-        'componentName, buildId and buildUuid are required query parameters',
-      );
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    try {
-      const result = await buildInfoService.fetchBuildLogs(
-        namespaceName as string,
-        projectName as string,
-        componentName as string,
-        buildId as string,
-        undefined, // limit
-        undefined, // sortOrder
-        userToken,
-      );
-      return res.json(result);
-    } catch (error: unknown) {
-      if (error instanceof BuildObservabilityNotConfiguredError) {
-        return res.status(200).json({
-          message: "Observability hasn't been configured",
-        });
-      }
-      throw error;
-    }
   });
 
   router.get('/workload', async (req, res) => {

@@ -186,9 +186,37 @@ export type {
   AIRCAAgentComponents,
 } from '@openchoreo/openchoreo-client-node';
 
-// Observability types
+// Observability types — aligned with /api/v1/logs/query response schema
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
 
-export type RuntimeLogsResponse =
-  ObservabilityComponents['schemas']['LogResponse'];
-export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
+/** A single component log entry returned by the unified logs query endpoint */
+export type ComponentLogEntry =
+  ObservabilityComponents['schemas']['ComponentLogEntry'];
+
+/** A single workflow/build log entry returned by the unified logs query endpoint */
+export type WorkflowLogEntry =
+  ObservabilityComponents['schemas']['WorkflowLogEntry'];
+
+/**
+ * Response from the unified /api/v1/logs/query endpoint.
+ * `logs` is ComponentLogEntry[] when using ComponentSearchScope,
+ * WorkflowLogEntry[] when using WorkflowSearchScope.
+ */
+export type LogsQueryResponse =
+  ObservabilityComponents['schemas']['LogsQueryResponse'];
+
+/**
+ * @deprecated Use ComponentLogEntry or WorkflowLogEntry instead.
+ * Kept for backwards compatibility — will be removed once all callers are migrated.
+ */
+export type LogEntry = ComponentLogEntry;
+
+/**
+ * @deprecated Use LogsQueryResponse instead.
+ * Kept for backwards compatibility — will be removed once all callers are migrated.
+ */
+export interface RuntimeLogsResponse {
+  logs: ComponentLogEntry[];
+  total?: number;
+  tookMs?: number;
+}

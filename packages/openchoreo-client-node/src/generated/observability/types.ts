@@ -13,7 +13,7 @@ export interface paths {
     };
     /**
      * Health check
-     * @description Check the health status of the observer service including OpenSearch and Prometheus connectivity
+     * @description Check the health status of the observer service.
      */
     get: operations['health'];
     put?: never;
@@ -24,7 +24,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/logs/build/{buildId}': {
+  '/api/v1/logs/query': {
     parameters: {
       query?: never;
       header?: never;
@@ -34,10 +34,10 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get build logs
-     * @description Retrieve logs for a specific build
+     * Query logs
+     * @description Query logs from the observer service
      */
-    post: operations['getBuildLogs'];
+    post: operations['queryLogs'];
     delete?: never;
     options?: never;
     head?: never;
@@ -81,86 +81,6 @@ export interface paths {
     get: operations['getWorkflowRunEvents'];
     put?: never;
     post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/logs/component/{componentId}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get component logs
-     * @description Retrieve logs for a specific component
-     */
-    post: operations['getComponentLogs'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/logs/project/{projectId}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get project logs
-     * @description Retrieve logs for all components in a specific project
-     */
-    post: operations['getProjectLogs'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/logs/gateway': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get gateway logs
-     * @description Retrieve logs from API gateway
-     */
-    post: operations['getGatewayLogs'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/logs/namespace/{namespaceName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get namespace logs
-     * @description Retrieve logs for an entire namespace
-     */
-    post: operations['getNamespaceLogs'];
     delete?: never;
     options?: never;
     head?: never;
@@ -231,232 +151,107 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    BuildLogsRequest: {
-      /**
-       * Format: date-time
-       * @description Start time for log query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
-       */
-      startTime: string;
-      /**
-       * Format: date-time
-       * @description End time for log query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
-       */
-      endTime: string;
-      /**
-       * @description Maximum number of log entries to return
-       * @default 100
-       * @example 100
-       */
-      limit: number;
-      /**
-       * @description Sort order for logs (build logs are sorted in ascending order by default)
-       * @default asc
-       * @example asc
-       * @enum {string}
-       */
-      sortOrder: 'asc' | 'desc';
-      /**
-       * @description Component name
-       * @example my-component
-       */
-      componentName: string;
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
+    ComponentSearchScope: {
+      namespace: string;
+      project?: string;
+      component?: string;
+      environment?: string;
     };
-    ComponentLogsRequest: {
+    WorkflowSearchScope: {
+      namespace: string;
+      workflowRunName?: string;
+    };
+    LogsQueryRequest: {
       /**
        * Format: date-time
-       * @description Start time for log query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
+       * @description The start time of the query
        */
       startTime: string;
       /**
        * Format: date-time
-       * @description End time for log query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
+       * @description The end time of the query
        */
       endTime: string;
       /**
-       * @description Environment identifier
-       * @example env-dev
-       */
-      environmentId: string;
-      /**
-       * @description Kubernetes namespace
-       * @example default
-       */
-      namespace?: string;
-      /**
-       * @description Search phrase to filter logs
-       * @example error
-       */
-      searchPhrase?: string;
-      /**
-       * @description Filter by log levels
-       * @example [
-       *       "ERROR",
-       *       "WARN"
-       *     ]
-       */
-      logLevels?: string[];
-      /**
-       * @description Component versions to filter
-       * @example [
-       *       "v1.0.0",
-       *       "v1.0.1"
-       *     ]
-       */
-      versions?: string[];
-      /**
-       * @description Version IDs to filter
-       * @example [
-       *       "ver-123",
-       *       "ver-456"
-       *     ]
-       */
-      versionIds?: string[];
-      /**
-       * @description Maximum number of log entries to return
+       * @description The maximum number of items to return
        * @default 100
-       * @example 100
        */
       limit: number;
       /**
-       * @description Sort order for logs
+       * @description The sort order of the query
        * @default desc
-       * @example desc
        * @enum {string}
        */
       sortOrder: 'asc' | 'desc';
-      /**
-       * @description Type of logs to retrieve
-       * @example runtime
-       * @enum {string}
-       */
-      logType?: 'runtime' | 'build';
-      /**
-       * @description Build ID for build logs
-       * @example build-123
-       */
-      buildId?: string;
-      /**
-       * @description Build UUID for build logs
-       * @example 550e8400-e29b-41d4-a716-446655440000
-       */
-      buildUuid?: string;
-      /**
-       * @description Component name
-       * @example my-component
-       */
-      componentName: string;
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Environment name
-       * @example my-environment
-       */
-      environmentName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
-    };
-    ProjectLogsRequest: components['schemas']['ComponentLogsRequest'] & {
-      /**
-       * @description Filter logs by specific component IDs
-       * @example [
-       *       "comp-123",
-       *       "comp-456"
-       *     ]
-       */
-      componentIds?: string[];
-    };
-    GatewayLogsRequest: {
-      /**
-       * Format: date-time
-       * @description Start time for log query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
-       */
-      startTime: string;
-      /**
-       * Format: date-time
-       * @description End time for log query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
-       */
-      endTime: string;
-      /**
-       * @description Namespace identifier
-       * @example namespace-789
-       */
-      namespaceName: string;
-      /**
-       * @description Search phrase to filter logs
-       * @example error
-       */
+      searchScope:
+        | components['schemas']['ComponentSearchScope']
+        | components['schemas']['WorkflowSearchScope'];
+      logLevels?: ('DEBUG' | 'INFO' | 'WARN' | 'ERROR')[];
       searchPhrase?: string;
-      /**
-       * @description Map of API IDs to their versions
-       * @example {
-       *       "api-123": "v1",
-       *       "api-456": "v2"
-       *     }
-       */
-      apiIdToVersionMap?: {
-        [key: string]: string;
-      };
-      /**
-       * @description Gateway virtual hosts to filter
-       * @example [
-       *       "api.example.com",
-       *       "gateway.example.com"
-       *     ]
-       */
-      gatewayVHosts?: string[];
-      /**
-       * @description Maximum number of log entries to return
-       * @default 100
-       * @example 100
-       */
-      limit: number;
-      /**
-       * @description Sort order for logs
-       * @default desc
-       * @example desc
-       * @enum {string}
-       */
-      sortOrder: 'asc' | 'desc';
-      /**
-       * @description Type of logs to retrieve
-       * @example runtime
-       * @enum {string}
-       */
-      logType?: 'runtime' | 'build';
     };
-    NamespaceLogsRequest: components['schemas']['ComponentLogsRequest'] & {
+    ComponentLogEntry: {
       /**
-       * @description Kubernetes pod labels to filter logs
-       * @example {
-       *       "app": "myapp",
-       *       "tier": "backend"
-       *     }
+       * Format: date-time
+       * @description The timestamp of the log entry
        */
-      podLabels?: {
-        [key: string]: string;
+      timestamp?: string;
+      /** @description The log message */
+      log?: string;
+      /** @description The log level */
+      level?: string;
+      /** @description The metadata of the log entry */
+      metadata?: {
+        /** @description The OpenChoreo component name that generated the log */
+        componentName?: string;
+        /** @description The OpenChoreo project name that generated the log */
+        projectName?: string;
+        /** @description The OpenChoreo environment name that generated the log */
+        environmentName?: string;
+        /** @description The OpenChoreo namespace name that generated the log */
+        namespaceName?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo component UID that generated the log
+         */
+        componentUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo project UID that generated the log
+         */
+        projectUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo environment UID that generated the log
+         */
+        environmentUid?: string;
+        /** @description The container name that generated the log */
+        containerName?: string;
+        /** @description The Kubernetes pod name that generated the log */
+        podName?: string;
+        /** @description The namespace of the Kubernetes pod that generated the log */
+        podNamespace?: string;
       };
+    };
+    WorkflowLogEntry: {
+      /**
+       * Format: date-time
+       * @description The timestamp of the log entry
+       */
+      timestamp?: string;
+      /** @description The log message */
+      log?: string;
+      /** @description The metadata of the log entry */
+      metadata?: Record<string, never>;
+    };
+    LogsQueryResponse: {
+      /** @description The logs queried successfully */
+      logs?:
+        | components['schemas']['ComponentLogEntry'][]
+        | components['schemas']['WorkflowLogEntry'][];
+      /** @description The total number of logs queried */
+      total?: number;
+      /** @description The time taken to query the logs in milliseconds */
+      tookMs?: number;
     };
     TracesRequest: {
       /**
@@ -590,47 +385,6 @@ export interface components {
        * @example my-namespace
        */
       namespaceName: string;
-    };
-    LogEntry: {
-      /**
-       * Format: date-time
-       * @description Timestamp of the log entry
-       * @example 2025-01-10T12:34:56.789Z
-       */
-      timestamp?: string;
-      /**
-       * @description The actual log message
-       * @example Request processed successfully
-       */
-      log?: string;
-      /**
-       * @description Log level
-       * @example INFO
-       */
-      level?: string;
-      /**
-       * @description Log stream (stdout/stderr)
-       * @example stdout
-       */
-      stream?: string;
-      /** @description Kubernetes metadata */
-      kubernetes?: {
-        [key: string]: unknown;
-      };
-    };
-    LogResponse: {
-      /** @description Array of log entries */
-      logs?: components['schemas']['LogEntry'][];
-      /**
-       * @description Total number of matching logs
-       * @example 1234
-       */
-      totalCount?: number;
-      /**
-       * @description Query execution time in milliseconds
-       * @example 42
-       */
-      tookMs?: number;
     };
     /** @example {
      *       "traces": [
@@ -997,32 +751,29 @@ export interface operations {
       };
     };
   };
-  getBuildLogs: {
+  queryLogs: {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        /** @description The unique identifier of the build */
-        buildId: string;
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['BuildLogsRequest'];
+        'application/json': components['schemas']['LogsQueryRequest'];
       };
     };
     responses: {
-      /** @description Successfully retrieved build logs */
+      /** @description Logs queried successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LogResponse'];
+          'application/json': components['schemas']['LogsQueryResponse'];
         };
       };
-      /** @description Bad request - invalid parameters */
+      /** @description Invalid request */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1031,7 +782,25 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Internal server error */
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;
@@ -1178,183 +947,6 @@ export interface operations {
       };
       /** @description Workflow run not found */
       404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getComponentLogs: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description The unique identifier of the component */
-        componentId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ComponentLogsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved component logs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['LogResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getProjectLogs: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description The unique identifier of the project */
-        projectId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProjectLogsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved project logs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['LogResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getGatewayLogs: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GatewayLogsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved gateway logs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['LogResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getNamespaceLogs: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description The unique identifier of the namespace */
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NamespaceLogsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved namespace logs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['LogResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
         headers: {
           [name: string]: unknown;
         };

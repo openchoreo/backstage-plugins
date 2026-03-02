@@ -2,7 +2,6 @@ import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import type {
   ModelsBuild,
-  RuntimeLogsResponse,
   LogEntry,
   WorkflowRunStatusResponse,
 } from '@openchoreo/backstage-plugin-common';
@@ -58,10 +57,6 @@ export interface OpenChoreoCiClientApi {
     systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,
   ): Promise<any>;
-
-  /** Fetch build logs for a specific build */
-  // TODO: Deprecate this method and use the new method fetchWorkflowRunLogs instead
-  fetchBuildLogsForBuild(build: ModelsBuild): Promise<RuntimeLogsResponse>;
 
   /**
    * Fetch workflow run status for a specific build.

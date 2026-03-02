@@ -275,40 +275,5 @@ export async function createRouter({
     );
   });
 
-  router.get('/build-logs', async (req, res) => {
-    const { componentName, buildId, projectName, namespaceName } = req.query;
-
-    if (!componentName || !buildId || !projectName || !namespaceName) {
-      throw new InputError(
-        'componentName, buildId, projectName and namespaceName are required query parameters',
-      );
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    try {
-      const logs = await workflowService.fetchBuildLogs(
-        namespaceName as string,
-        projectName as string,
-        componentName as string,
-        buildId as string,
-        undefined,
-        undefined,
-        userToken,
-      );
-
-      res.json(logs);
-    } catch (error) {
-      if (error instanceof ObservabilityNotConfiguredError) {
-        res.status(503).json({
-          error: 'ObservabilityNotConfigured',
-          message: error.message,
-        });
-        return;
-      }
-      throw error;
-    }
-  });
-
   return router;
 }

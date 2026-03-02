@@ -1,11 +1,12 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: OpenChoreo Observer API
   description: |
-    The OpenChoreo Observer API provides endpoints for querying build logs, component logs,
-    traces, and metrics from components, projects, gateways, and namespaces.
-    It integrates with OpenSearch for logs, build logs, and traces,
-    and with Prometheus for metrics.
+    The OpenChoreo Observer API provides endpoints for querying logs,
+    traces, and metrics from namespaces for components, projects, and environments,
+    as well as logs from workflows.
+    It integrates with separate observability modules to fetch the actual data via
+    API calls to the adaptors provided by the modules.
   version: 1.0.0
   contact:
     name: OpenChoreo Team
@@ -16,12 +17,11 @@ info:
 tags:
   - name: Logs
     description: Log retrieval endpoints
-  - name: Traces
-    description: Trace retrieval endpoints
-  - name: Metrics
-    description: Resource metrics endpoints
   - name: Health
     description: Health check endpoints
+
+security:
+  - BearerAuth: []
 
 paths:
   /health:
@@ -29,8 +29,9 @@ paths:
       tags:
         - Health
       summary: Health check
-      description: Check the health status of the observer service including OpenSearch and Prometheus connectivity
+      description: Check the health status of the observer service.
       operationId: health
+      security: []
       responses:
         '200':
           description: Service is healthy
@@ -56,47 +57,69 @@ paths:
                     type: string
                     example: 'opensearch: connection failed'
 
-  /api/logs/build/{buildId}:
+  # Logs query endpoint
+  /api/v1/logs/query:
     post:
       tags:
         - Logs
-      summary: Get build logs
-      description: Retrieve logs for a specific build
-      operationId: getBuildLogs
-      parameters:
-        - name: buildId
-          in: path
-          required: true
-          description: The unique identifier of the build
-          schema:
-            type: string
-            example: 'build-123'
+      summary: Query logs
+      description: Query logs from the observer service
+      operationId: queryLogs
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BuildLogsRequest'
+              $ref: '#/components/schemas/LogsQueryRequest'
       responses:
         '200':
-          description: Successfully retrieved build logs
+          description: Logs queried successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LogResponse'
+                $ref: '#/components/schemas/LogsQueryResponse'
         '400':
-          description: Bad request - invalid parameters
+          description: Invalid request
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                title: 'badRequest'
+                errorCode: ''
+                message: "Missing required fields 'startTime' and 'endTime'"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                title: 'unauthorized'
+                errorCode: ''
+                message: 'Invalid or missing token'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                title: 'forbidden'
+                errorCode: ''
+                message: 'Subject <xyz> has no permission to view logs of Namespace foo, Project bar, Component baz in Environment development'
         '500':
-          description: Internal server error
+          description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                title: 'internalServerError'
+                errorCode: 'OBS-V1-L-29'
+                message: ''
 
+  # TODO: Remove this in favor of /api/v1/logs/query
   /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs:
     get:
       tags:
@@ -193,6 +216,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # TODO: Remove this as events support is not available in the observability plane yet
   /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events:
     get:
       tags:
@@ -270,162 +294,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Workflow run not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/logs/component/{componentId}:
-    post:
-      tags:
-        - Logs
-      summary: Get component logs
-      description: Retrieve logs for a specific component
-      operationId: getComponentLogs
-      parameters:
-        - name: componentId
-          in: path
-          required: true
-          description: The unique identifier of the component
-          schema:
-            type: string
-            example: 'comp-123'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ComponentLogsRequest'
-      responses:
-        '200':
-          description: Successfully retrieved component logs
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogResponse'
-        '400':
-          description: Bad request - invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/logs/project/{projectId}:
-    post:
-      tags:
-        - Logs
-      summary: Get project logs
-      description: Retrieve logs for all components in a specific project
-      operationId: getProjectLogs
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          description: The unique identifier of the project
-          schema:
-            type: string
-            example: 'proj-456'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProjectLogsRequest'
-      responses:
-        '200':
-          description: Successfully retrieved project logs
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogResponse'
-        '400':
-          description: Bad request - invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/logs/gateway:
-    post:
-      tags:
-        - Logs
-      summary: Get gateway logs
-      description: Retrieve logs from API gateway
-      operationId: getGatewayLogs
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GatewayLogsRequest'
-      responses:
-        '200':
-          description: Successfully retrieved gateway logs
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogResponse'
-        '400':
-          description: Bad request - invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/logs/namespace/{namespaceName}:
-    post:
-      tags:
-        - Logs
-      summary: Get namespace logs
-      description: Retrieve logs for an entire namespace
-      operationId: getNamespaceLogs
-      parameters:
-        - name: namespaceName
-          in: path
-          required: true
-          description: The unique identifier of the namespace
-          schema:
-            type: string
-            example: 'namespace-789'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NamespaceLogsRequest'
-      responses:
-        '200':
-          description: Successfully retrieved namespace logs
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogResponse'
-        '400':
-          description: Bad request - invalid parameters
           content:
             application/json:
               schema:
@@ -538,228 +406,151 @@ paths:
 
 components:
   schemas:
-    BuildLogsRequest:
+    # Request schemas for logs
+    ComponentSearchScope:
       type: object
-      required:
-        - startTime
-        - endTime
-        - componentName
-        - projectName
-        - namespaceName
       properties:
-        startTime:
-          type: string
-          format: date-time
-          description: Start time for log query in RFC3339 format
-          example: '2025-01-10T00:00:00Z'
-        endTime:
-          type: string
-          format: date-time
-          description: End time for log query in RFC3339 format
-          example: '2025-01-10T23:59:59Z'
-        limit:
-          type: integer
-          description: Maximum number of log entries to return
-          default: 100
-          minimum: 1
-          maximum: 10000
-          example: 100
-        sortOrder:
-          type: string
-          description: Sort order for logs (build logs are sorted in ascending order by default)
-          enum: [asc, desc]
-          default: asc
-          example: 'asc'
-        componentName:
-          type: string
-          description: Component name
-          example: 'my-component'
-        projectName:
-          type: string
-          description: Project name
-          example: 'my-project'
-        namespaceName:
-          type: string
-          description: Namespace name
-          example: 'my-namespace'
-
-    ComponentLogsRequest:
-      type: object
-      required:
-        - startTime
-        - endTime
-        - environmentId
-        - componentName
-        - projectName
-        - namespaceName
-        - environmentName
-      properties:
-        startTime:
-          type: string
-          format: date-time
-          description: Start time for log query in RFC3339 format
-          example: '2025-01-10T00:00:00Z'
-        endTime:
-          type: string
-          format: date-time
-          description: End time for log query in RFC3339 format
-          example: '2025-01-10T23:59:59Z'
-        environmentId:
-          type: string
-          description: Environment identifier
-          example: 'env-dev'
         namespace:
           type: string
-          description: Kubernetes namespace
-          example: 'default'
-        searchPhrase:
+        project:
           type: string
-          description: Search phrase to filter logs
-          example: 'error'
-        logLevels:
-          type: array
-          items:
-            type: string
-          description: Filter by log levels
-          example: ['ERROR', 'WARN']
-        versions:
-          type: array
-          items:
-            type: string
-          description: Component versions to filter
-          example: ['v1.0.0', 'v1.0.1']
-        versionIds:
-          type: array
-          items:
-            type: string
-          description: Version IDs to filter
-          example: ['ver-123', 'ver-456']
-        limit:
-          type: integer
-          description: Maximum number of log entries to return
-          default: 100
-          minimum: 1
-          maximum: 10000
-          example: 100
-        sortOrder:
+        component:
           type: string
-          description: Sort order for logs
-          enum: [asc, desc]
-          default: desc
-          example: 'desc'
-        logType:
+        environment:
           type: string
-          description: Type of logs to retrieve
-          enum: [runtime, build]
-          example: 'runtime'
-        buildId:
-          type: string
-          description: Build ID for build logs
-          example: 'build-123'
-        buildUuid:
-          type: string
-          description: Build UUID for build logs
-          example: '550e8400-e29b-41d4-a716-446655440000'
-        componentName:
-          type: string
-          description: Component name
-          example: 'my-component'
-        projectName:
-          type: string
-          description: Project name
-          example: 'my-project'
-        environmentName:
-          type: string
-          description: Environment name
-          example: 'my-environment'
-        namespaceName:
-          type: string
-          description: Namespace name
-          example: 'my-namespace'
+      required: [namespace]
 
-    ProjectLogsRequest:
-      allOf:
-        - $ref: '#/components/schemas/ComponentLogsRequest'
-        - type: object
-          properties:
-            componentIds:
-              type: array
-              items:
-                type: string
-              description: Filter logs by specific component IDs
-              example: ['comp-123', 'comp-456']
-
-    GatewayLogsRequest:
+    WorkflowSearchScope:
       type: object
-      required:
-        - startTime
-        - endTime
-        - namespaceName
+      properties:
+        namespace:
+          type: string
+        workflowRunName:
+          type: string
+      required: [namespace]
+
+    LogsQueryRequest:
+      type: object
       properties:
         startTime:
           type: string
+          description: The start time of the query
           format: date-time
-          description: Start time for log query in RFC3339 format
-          example: '2025-01-10T00:00:00Z'
         endTime:
           type: string
+          description: The end time of the query
           format: date-time
-          description: End time for log query in RFC3339 format
-          example: '2025-01-10T23:59:59Z'
-        namespaceName:
-          type: string
-          description: Namespace identifier
-          example: 'namespace-789'
-        searchPhrase:
-          type: string
-          description: Search phrase to filter logs
-          example: 'error'
-        apiIdToVersionMap:
-          type: object
-          additionalProperties:
-            type: string
-          description: Map of API IDs to their versions
-          example:
-            api-123: 'v1'
-            api-456: 'v2'
-        gatewayVHosts:
-          type: array
-          items:
-            type: string
-          description: Gateway virtual hosts to filter
-          example: ['api.example.com', 'gateway.example.com']
         limit:
           type: integer
-          description: Maximum number of log entries to return
           default: 100
           minimum: 1
-          maximum: 10000
-          example: 100
+          maximum: 1000
+          description: The maximum number of items to return
         sortOrder:
           type: string
-          description: Sort order for logs
-          enum: [asc, desc]
+          description: The sort order of the query
+          enum:
+            - asc
+            - desc
           default: desc
-          example: 'desc'
-        logType:
+        searchScope:
+          oneOf:
+            - $ref: '#/components/schemas/ComponentSearchScope'
+            - $ref: '#/components/schemas/WorkflowSearchScope'
+        logLevels:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: ['DEBUG', 'INFO', 'WARN', 'ERROR']
+        searchPhrase:
           type: string
-          description: Type of logs to retrieve
-          enum: [runtime, build]
-          example: 'runtime'
+      required: [startTime, endTime, searchScope]
 
-    NamespaceLogsRequest:
-      allOf:
-        - $ref: '#/components/schemas/ComponentLogsRequest'
-        - type: object
+    # Response schemas for logs
+    ComponentLogEntry:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          description: The timestamp of the log entry
+          format: date-time
+        log:
+          type: string
+          description: The log message
+        level:
+          type: string
+          description: The log level
+        metadata:
+          type: object
+          description: The metadata of the log entry
           properties:
-            podLabels:
-              type: object
-              additionalProperties:
-                type: string
-              description: Kubernetes pod labels to filter logs
-              example:
-                app: 'myapp'
-                tier: 'backend'
+            componentName:
+              type: string
+              description: The OpenChoreo component name that generated the log
+            projectName:
+              type: string
+              description: The OpenChoreo project name that generated the log
+            environmentName:
+              type: string
+              description: The OpenChoreo environment name that generated the log
+            namespaceName:
+              type: string
+              description: The OpenChoreo namespace name that generated the log
+            componentUid:
+              type: string
+              description: The OpenChoreo component UID that generated the log
+              format: uuid
+            projectUid:
+              type: string
+              description: The OpenChoreo project UID that generated the log
+              format: uuid
+            environmentUid:
+              type: string
+              description: The OpenChoreo environment UID that generated the log
+              format: uuid
+            containerName:
+              type: string
+              description: The container name that generated the log
+            podName:
+              type: string
+              description: The Kubernetes pod name that generated the log
+            podNamespace:
+              type: string
+              description: The namespace of the Kubernetes pod that generated the log
+
+    WorkflowLogEntry:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          description: The timestamp of the log entry
+          format: date-time
+        log:
+          type: string
+          description: The log message
+        metadata:
+          type: object
+          description: The metadata of the log entry
+
+    LogsQueryResponse:
+      type: object
+      properties:
+        logs:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/ComponentLogEntry'
+            - type: array
+              items:
+                $ref: '#/components/schemas/WorkflowLogEntry'
+          description: The logs queried successfully
+        total:
+          type: integer
+          description: The total number of logs queried
+        tookMs:
+          type: integer
+          description: The time taken to query the logs in milliseconds
 
     TracesRequest:
       type: object
@@ -898,48 +689,6 @@ components:
           type: string
           description: Namespace name
           example: 'my-namespace'
-
-    LogEntry:
-      type: object
-      properties:
-        timestamp:
-          type: string
-          format: date-time
-          description: Timestamp of the log entry
-          example: '2025-01-10T12:34:56.789Z'
-        log:
-          type: string
-          description: The actual log message
-          example: 'Request processed successfully'
-        level:
-          type: string
-          description: Log level
-          example: 'INFO'
-        stream:
-          type: string
-          description: Log stream (stdout/stderr)
-          example: 'stdout'
-        kubernetes:
-          type: object
-          description: Kubernetes metadata
-          additionalProperties: true
-
-    LogResponse:
-      type: object
-      properties:
-        logs:
-          type: array
-          items:
-            $ref: '#/components/schemas/LogEntry'
-          description: Array of log entries
-        totalCount:
-          type: integer
-          description: Total number of matching logs
-          example: 1234
-        tookMs:
-          type: integer
-          description: Query execution time in milliseconds
-          example: 42
 
     TraceResponse:
       type: object

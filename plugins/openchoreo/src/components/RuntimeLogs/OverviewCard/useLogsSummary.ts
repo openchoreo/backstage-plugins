@@ -155,11 +155,12 @@ export function useLogsSummary() {
 
       // Count errors and warnings
       const logs: LogEntry[] = data.logs || [];
-      const errorCount = logs.filter(log => log.logLevel === 'ERROR').length;
-      const warningCount = logs.filter(log => log.logLevel === 'WARN').length;
+      const errorCount = logs.filter(log => log.level === 'ERROR').length;
+      const warningCount = logs.filter(log => log.level === 'WARN').length;
 
       // Get last activity time (most recent log)
-      const lastActivityTime = logs.length > 0 ? logs[0].timestamp : null;
+      const lastActivityTime =
+        logs.length > 0 ? logs[0].timestamp ?? null : null;
 
       setState(prev => ({
         ...prev,
