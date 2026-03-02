@@ -156,13 +156,13 @@ export const transformMetricsData = (
   // Collect all unique timestamps and merge metric values
   Object.entries(usageData).forEach(([metricName, metricData]) => {
     metricData.forEach((point: any) => {
-      if (!timeMap.has(point.time)) {
-        timeMap.set(point.time, {
-          time: point.time,
-          timestamp: new Date(point.time).getTime(),
+      if (!timeMap.has(point.timestamp)) {
+        timeMap.set(point.timestamp, {
+          time: point.timestamp,
+          timestamp: new Date(point.timestamp).getTime(),
         });
       }
-      timeMap.get(point.time)[metricName] = point.value;
+      timeMap.get(point.timestamp)[metricName] = point.value;
     });
   });
 
@@ -204,15 +204,15 @@ export const getMetricConfigs = (
         color: '#8884d8',
       },
       p50Latency: {
-        key: 'latencyPercentile50th',
+        key: 'latencyP50',
         color: '#82ca9d',
       },
       p90Latency: {
-        key: 'latencyPercentile90th',
+        key: 'latencyP90',
         color: '#ffc658',
       },
       p99Latency: {
-        key: 'latencyPercentile99th',
+        key: 'latencyP99',
         color: '#ff7300',
       },
     };

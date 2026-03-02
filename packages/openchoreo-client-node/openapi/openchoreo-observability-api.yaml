@@ -305,6 +305,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # Metrics query endpoint
+  /api/v1/metrics/query:
+    post:
+      tags:
+        - Metrics
+      summary: Query metrics
+      description: Query metrics from the observer service
+      operationId: queryMetrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MetricsQueryRequest'
+      responses:
+        '200':
+          description: Metrics queried successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsQueryResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/traces:
     post:
       tags:
@@ -325,72 +371,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TraceResponse'
-        '400':
-          description: Bad request - invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/metrics/component/http:
-    post:
-      tags:
-        - Metrics
-      summary: Get component HTTP metrics
-      description: Retrieve HTTP request metrics (request counts, latency percentiles) for a component as time series data
-      operationId: getComponentHTTPMetrics
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MetricsRequest'
-      responses:
-        '200':
-          description: Successfully retrieved HTTP metrics
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPMetricsTimeSeries'
-        '400':
-          description: Bad request - invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/metrics/component/usage:
-    post:
-      tags:
-        - Metrics
-      summary: Get component resource metrics
-      description: Retrieve resource usage metrics (CPU, memory) for a component as time series data
-      operationId: getComponentResourceMetrics
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MetricsRequest'
-      responses:
-        '200':
-          description: Successfully retrieved resource metrics
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ResourceMetricsTimeSeries'
         '400':
           description: Bad request - invalid parameters
           content:
@@ -552,6 +532,109 @@ components:
           type: integer
           description: The time taken to query the logs in milliseconds
 
+    # Request schemas for metrics
+    MetricsQueryRequest:
+      type: object
+      properties:
+        metric:
+          type: string
+          description: The type of query to execute
+          enum:
+            - resource
+            - http
+        startTime:
+          type: string
+          description: The start time of the query
+          format: date-time
+        endTime:
+          type: string
+          description: The end time of the query
+          format: date-time
+        step:
+          type: string
+          description: The step of the query to determine the number of points to return. E.g. 1m, 5m, 15m, 30m, 1h
+        searchScope:
+          $ref: '#/components/schemas/ComponentSearchScope'
+      required: [metric, startTime, endTime, searchScope]
+
+    # Response schemas for metrics
+    MetricsTimeSeriesItem:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          description: The timestamp of the time series item
+          format: date-time
+        value:
+          type: number
+          format: double
+          description: The value of the time series item
+
+    ResourceMetricsTimeSeries:
+      type: object
+      properties:
+        cpuUsage:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        cpuRequests:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        cpuLimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        memoryUsage:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        memoryRequests:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        memoryLimits:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+
+    HttpMetricsTimeSeries:
+      type: object
+      properties:
+        requestCount:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        successfulRequestCount:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        unsuccessfulRequestCount:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        meanLatency:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        latencyP50:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        latencyP90:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+        latencyP99:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricsTimeSeriesItem'
+
+    MetricsQueryResponse:
+      oneOf:
+        - $ref: '#/components/schemas/ResourceMetricsTimeSeries'
+        - $ref: '#/components/schemas/HttpMetricsTimeSeries'
+
     TracesRequest:
       type: object
       required:
@@ -627,56 +710,6 @@ components:
             type: string
           description: Component names to filter traces
           example: ['my-component', 'my-component-2']
-        projectName:
-          type: string
-          description: Project name
-          example: 'my-project'
-        environmentName:
-          type: string
-          description: Environment name
-          example: 'my-environment'
-        namespaceName:
-          type: string
-          description: Namespace name
-          example: 'my-namespace'
-
-    MetricsRequest:
-      type: object
-      required:
-        - componentId
-        - environmentId
-        - projectId
-        - componentName
-        - projectName
-        - namespaceName
-        - environmentName
-      properties:
-        componentId:
-          type: string
-          description: Component identifier
-          example: 'comp-123'
-        environmentId:
-          type: string
-          description: Environment identifier
-          example: 'env-dev'
-        projectId:
-          type: string
-          description: Project identifier
-          example: 'proj-456'
-        startTime:
-          type: string
-          format: date-time
-          description: Start time for metrics query in RFC3339 format
-          example: '2025-01-10T00:00:00Z'
-        endTime:
-          type: string
-          format: date-time
-          description: End time for metrics query in RFC3339 format
-          example: '2025-01-10T23:59:59Z'
-        componentName:
-          type: string
-          description: Component name
-          example: 'my-component'
         projectName:
           type: string
           description: Project name
@@ -772,160 +805,6 @@ components:
           format: uuid
           description: OpenChoreo project UID from resource attributes
           example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-
-    TimeValuePoint:
-      type: object
-      properties:
-        time:
-          type: string
-          format: date-time
-          description: Timestamp in ISO 8601 format
-          example: '2025-01-10T12:00:00Z'
-        value:
-          type: number
-          format: double
-          description: Metric value at this timestamp
-          example: 0.75
-
-    ResourceMetricsTimeSeries:
-      type: object
-      properties:
-        cpuUsage:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: CPU usage time series (in cores)
-        cpuRequests:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: CPU requests time series (in cores)
-        cpuLimits:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: CPU limits time series (in cores)
-        memory:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: Memory usage time series (in bytes)
-        memoryRequests:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: Memory requests time series (in bytes)
-        memoryLimits:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: Memory limits time series (in bytes)
-      example:
-        cpuUsage:
-          - time: '2025-01-10T12:00:00Z'
-            value: 0.25
-          - time: '2025-01-10T12:05:00Z'
-            value: 0.30
-        cpuRequests:
-          - time: '2025-01-10T12:00:00Z'
-            value: 0.5
-          - time: '2025-01-10T12:05:00Z'
-            value: 0.5
-        cpuLimits:
-          - time: '2025-01-10T12:00:00Z'
-            value: 1.0
-          - time: '2025-01-10T12:05:00Z'
-            value: 1.0
-        memory:
-          - time: '2025-01-10T12:00:00Z'
-            value: 536870912
-          - time: '2025-01-10T12:05:00Z'
-            value: 549453824
-        memoryRequests:
-          - time: '2025-01-10T12:00:00Z'
-            value: 1073741824
-          - time: '2025-01-10T12:05:00Z'
-            value: 1073741824
-        memoryLimits:
-          - time: '2025-01-10T12:00:00Z'
-            value: 2147483648
-          - time: '2025-01-10T12:05:00Z'
-            value: 2147483648
-
-    HTTPMetricsTimeSeries:
-      type: object
-      properties:
-        requestCount:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: Total HTTP request count time series (requests per second)
-        successfulRequestCount:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: Successful HTTP request count time series (status 200, requests per second)
-        unsuccessfulRequestCount:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: Unsuccessful HTTP request count time series (status != 200, requests per second)
-        meanLatency:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: Mean HTTP request latency time series (in seconds)
-        latencyPercentile50th:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: 50th percentile (median) HTTP request latency time series (in seconds)
-        latencyPercentile90th:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: 90th percentile HTTP request latency time series (in seconds)
-        latencyPercentile99th:
-          type: array
-          items:
-            $ref: '#/components/schemas/TimeValuePoint'
-          description: 99th percentile HTTP request latency time series (in seconds)
-      example:
-        requestCount:
-          - time: '2025-01-10T12:00:00Z'
-            value: 125.5
-          - time: '2025-01-10T12:05:00Z'
-            value: 143.2
-        successfulRequestCount:
-          - time: '2025-01-10T12:00:00Z'
-            value: 120.0
-          - time: '2025-01-10T12:05:00Z'
-            value: 138.5
-        unsuccessfulRequestCount:
-          - time: '2025-01-10T12:00:00Z'
-            value: 5.5
-          - time: '2025-01-10T12:05:00Z'
-            value: 4.7
-        meanLatency:
-          - time: '2025-01-10T12:00:00Z'
-            value: 0.125
-          - time: '2025-01-10T12:05:00Z'
-            value: 0.132
-        latencyPercentile50th:
-          - time: '2025-01-10T12:00:00Z'
-            value: 0.095
-          - time: '2025-01-10T12:05:00Z'
-            value: 0.102
-        latencyPercentile90th:
-          - time: '2025-01-10T12:00:00Z'
-            value: 0.250
-          - time: '2025-01-10T12:05:00Z'
-            value: 0.265
-        latencyPercentile99th:
-          - time: '2025-01-10T12:00:00Z'
-            value: 0.500
-          - time: '2025-01-10T12:05:00Z'
-            value: 0.520
 
     ErrorResponse:
       type: object

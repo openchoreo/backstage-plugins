@@ -87,6 +87,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/metrics/query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Query metrics
+     * @description Query metrics from the observer service
+     */
+    post: operations['queryMetrics'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/traces': {
     parameters: {
       query?: never;
@@ -101,46 +121,6 @@ export interface paths {
      * @description Retrieve distributed traces
      */
     post: operations['getTraces'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/metrics/component/http': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get component HTTP metrics
-     * @description Retrieve HTTP request metrics (request counts, latency percentiles) for a component as time series data
-     */
-    post: operations['getComponentHTTPMetrics'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/metrics/component/usage': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get component resource metrics
-     * @description Retrieve resource usage metrics (CPU, memory) for a component as time series data
-     */
-    post: operations['getComponentResourceMetrics'];
     delete?: never;
     options?: never;
     head?: never;
@@ -253,6 +233,58 @@ export interface components {
       /** @description The time taken to query the logs in milliseconds */
       tookMs?: number;
     };
+    MetricsQueryRequest: {
+      /**
+       * @description The type of query to execute
+       * @enum {string}
+       */
+      metric: 'resource' | 'http';
+      /**
+       * Format: date-time
+       * @description The start time of the query
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description The end time of the query
+       */
+      endTime: string;
+      /** @description The step of the query to determine the number of points to return. E.g. 1m, 5m, 15m, 30m, 1h */
+      step?: string;
+      searchScope: components['schemas']['ComponentSearchScope'];
+    };
+    MetricsTimeSeriesItem: {
+      /**
+       * Format: date-time
+       * @description The timestamp of the time series item
+       */
+      timestamp?: string;
+      /**
+       * Format: double
+       * @description The value of the time series item
+       */
+      value?: number;
+    };
+    ResourceMetricsTimeSeries: {
+      cpuUsage?: components['schemas']['MetricsTimeSeriesItem'][];
+      cpuRequests?: components['schemas']['MetricsTimeSeriesItem'][];
+      cpuLimits?: components['schemas']['MetricsTimeSeriesItem'][];
+      memoryUsage?: components['schemas']['MetricsTimeSeriesItem'][];
+      memoryRequests?: components['schemas']['MetricsTimeSeriesItem'][];
+      memoryLimits?: components['schemas']['MetricsTimeSeriesItem'][];
+    };
+    HttpMetricsTimeSeries: {
+      requestCount?: components['schemas']['MetricsTimeSeriesItem'][];
+      successfulRequestCount?: components['schemas']['MetricsTimeSeriesItem'][];
+      unsuccessfulRequestCount?: components['schemas']['MetricsTimeSeriesItem'][];
+      meanLatency?: components['schemas']['MetricsTimeSeriesItem'][];
+      latencyP50?: components['schemas']['MetricsTimeSeriesItem'][];
+      latencyP90?: components['schemas']['MetricsTimeSeriesItem'][];
+      latencyP99?: components['schemas']['MetricsTimeSeriesItem'][];
+    };
+    MetricsQueryResponse:
+      | components['schemas']['ResourceMetricsTimeSeries']
+      | components['schemas']['HttpMetricsTimeSeries'];
     TracesRequest: {
       /**
        * Format: uuid
@@ -321,55 +353,6 @@ export interface components {
        *     ]
        */
       componentNames: string[];
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Environment name
-       * @example my-environment
-       */
-      environmentName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
-    };
-    MetricsRequest: {
-      /**
-       * @description Component identifier
-       * @example comp-123
-       */
-      componentId: string;
-      /**
-       * @description Environment identifier
-       * @example env-dev
-       */
-      environmentId: string;
-      /**
-       * @description Project identifier
-       * @example proj-456
-       */
-      projectId: string;
-      /**
-       * Format: date-time
-       * @description Start time for metrics query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
-       */
-      startTime?: string;
-      /**
-       * Format: date-time
-       * @description End time for metrics query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
-       */
-      endTime?: string;
-      /**
-       * @description Component name
-       * @example my-component
-       */
-      componentName: string;
       /**
        * @description Project name
        * @example my-project
@@ -470,184 +453,6 @@ export interface components {
        * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
        */
       openchoreoProjectUid?: string;
-    };
-    TimeValuePoint: {
-      /**
-       * Format: date-time
-       * @description Timestamp in ISO 8601 format
-       * @example 2025-01-10T12:00:00Z
-       */
-      time?: string;
-      /**
-       * Format: double
-       * @description Metric value at this timestamp
-       * @example 0.75
-       */
-      value?: number;
-    };
-    /** @example {
-     *       "cpuUsage": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.25
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.3
-     *         }
-     *       ],
-     *       "cpuRequests": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.5
-     *         }
-     *       ],
-     *       "cpuLimits": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 1
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 1
-     *         }
-     *       ],
-     *       "memory": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 536870912
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 549453824
-     *         }
-     *       ],
-     *       "memoryRequests": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 1073741824
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 1073741824
-     *         }
-     *       ],
-     *       "memoryLimits": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 2147483648
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 2147483648
-     *         }
-     *       ]
-     *     } */
-    ResourceMetricsTimeSeries: {
-      /** @description CPU usage time series (in cores) */
-      cpuUsage?: components['schemas']['TimeValuePoint'][];
-      /** @description CPU requests time series (in cores) */
-      cpuRequests?: components['schemas']['TimeValuePoint'][];
-      /** @description CPU limits time series (in cores) */
-      cpuLimits?: components['schemas']['TimeValuePoint'][];
-      /** @description Memory usage time series (in bytes) */
-      memory?: components['schemas']['TimeValuePoint'][];
-      /** @description Memory requests time series (in bytes) */
-      memoryRequests?: components['schemas']['TimeValuePoint'][];
-      /** @description Memory limits time series (in bytes) */
-      memoryLimits?: components['schemas']['TimeValuePoint'][];
-    };
-    /** @example {
-     *       "requestCount": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 125.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 143.2
-     *         }
-     *       ],
-     *       "successfulRequestCount": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 120
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 138.5
-     *         }
-     *       ],
-     *       "unsuccessfulRequestCount": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 5.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 4.7
-     *         }
-     *       ],
-     *       "meanLatency": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.125
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.132
-     *         }
-     *       ],
-     *       "latencyPercentile50th": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.095
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.102
-     *         }
-     *       ],
-     *       "latencyPercentile90th": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.25
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.265
-     *         }
-     *       ],
-     *       "latencyPercentile99th": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.52
-     *         }
-     *       ]
-     *     } */
-    HTTPMetricsTimeSeries: {
-      /** @description Total HTTP request count time series (requests per second) */
-      requestCount?: components['schemas']['TimeValuePoint'][];
-      /** @description Successful HTTP request count time series (status 200, requests per second) */
-      successfulRequestCount?: components['schemas']['TimeValuePoint'][];
-      /** @description Unsuccessful HTTP request count time series (status != 200, requests per second) */
-      unsuccessfulRequestCount?: components['schemas']['TimeValuePoint'][];
-      /** @description Mean HTTP request latency time series (in seconds) */
-      meanLatency?: components['schemas']['TimeValuePoint'][];
-      /** @description 50th percentile (median) HTTP request latency time series (in seconds) */
-      latencyPercentile50th?: components['schemas']['TimeValuePoint'][];
-      /** @description 90th percentile HTTP request latency time series (in seconds) */
-      latencyPercentile90th?: components['schemas']['TimeValuePoint'][];
-      /** @description 99th percentile HTTP request latency time series (in seconds) */
-      latencyPercentile99th?: components['schemas']['TimeValuePoint'][];
     };
     ErrorResponse: {
       /**
@@ -965,6 +770,66 @@ export interface operations {
       };
     };
   };
+  queryMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MetricsQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Metrics queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MetricsQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
   getTraces: {
     parameters: {
       query?: never;
@@ -985,90 +850,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['TraceResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getComponentHTTPMetrics: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MetricsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved HTTP metrics */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPMetricsTimeSeries'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getComponentResourceMetrics: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MetricsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved resource metrics */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourceMetricsTimeSeries'];
         };
       };
       /** @description Bad request - invalid parameters */
