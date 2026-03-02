@@ -532,6 +532,7 @@ export class GenericWorkflowService {
           searchScope: {
             namespace: namespaceName,
             workflowRunName: runName,
+            ...(task ? { taskName: task } : {}),
           },
         },
       });
@@ -672,110 +673,12 @@ export class GenericWorkflowService {
         `Successfully fetched ${entries.length} events for workflow run: ${runName}`,
       );
 
-      if (entries.length === 0) {
-        const observerResult = await this.fetchEventsFromObserver(
-          namespaceName,
-          runName,
-          task,
-          token,
-        );
-        if (observerResult !== null) return observerResult;
-      }
-
       return entries;
     } catch (error) {
       this.logger.error(
         `Failed to fetch events for workflow run ${runName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
-    }
-  }
-
-  /**
-   * Fallback: fetch events from the observer (OpenSearch) API for completed CI workflow runs.
-   * Returns null if the run is not a terminal CI run or if the observer is unavailable.
-   */
-  private async fetchEventsFromObserver(
-    namespaceName: string,
-    runName: string,
-    task?: string,
-    token?: string,
-  ): Promise<WorkflowRunEventEntry[] | null> {
-    try {
-      const client = createOpenChoreoApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const {
-        data: run,
-        error,
-        response,
-      } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
-        { params: { path: { namespaceName, runName } } },
-      );
-
-      if (error || !response.ok || !run) return null;
-
-      const runStatus = deriveWorkflowRunStatus(run);
-      if (!TERMINAL_STATUSES.has(runStatus)) return null;
-
-      const projectName = (run as any).metadata?.labels?.[
-        CHOREO_LABELS.WORKFLOW_PROJECT
-      ];
-      const componentName = (run as any).metadata?.labels?.[
-        CHOREO_LABELS.WORKFLOW_COMPONENT
-      ];
-      if (!projectName || !componentName) return null;
-
-      const { observerUrl } = await this.resolver.resolveForBuild(
-        namespaceName,
-        projectName,
-        token,
-      );
-      if (!observerUrl) return null;
-
-      const obsClient = createObservabilityClientWithUrl(
-        observerUrl,
-        token,
-        this.logger,
-      );
-
-      const {
-        data: obsData,
-        error: obsError,
-        response: obsResponse,
-      } = await obsClient.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName, runName },
-            query: { ...(task ? { step: task } : {}) },
-          },
-        },
-      );
-
-      if (obsError || !obsResponse.ok || !Array.isArray(obsData)) return null;
-
-      const entries: WorkflowRunEventEntry[] = obsData.map((entry: any) => ({
-        timestamp: entry.timestamp,
-        type: entry.type,
-        reason: entry.reason,
-        message: entry.message,
-      }));
-
-      this.logger.debug(
-        `Observer fallback: fetched ${entries.length} events for workflow run: ${runName}`,
-      );
-
-      return entries;
-    } catch (err) {
-      this.logger.debug(
-        `Observer fallback for events of run ${runName} failed: ${err}`,
-      );
-      return null;
     }
   }
 }

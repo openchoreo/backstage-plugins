@@ -513,11 +513,16 @@ export class WorkflowService {
           log: entry.log,
         }));
 
-        this.logger.debug(
-          `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`,
-        );
+        if (entries.length > 0) {
+          this.logger.debug(
+            `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`,
+          );
+          return entries;
+        }
 
-        return entries;
+        this.logger.debug(
+          `Live logs empty for run ${runName}, falling back to observer`,
+        );
       }
 
       // Use observer API for older workflow runs
@@ -541,9 +546,11 @@ export class WorkflowService {
         `Sending workflow run logs request for component ${componentName} with run: ${runName}`,
       );
 
-      const startTime = new Date(
-        Date.now() - 30 * 24 * 60 * 60 * 1000,
-      ).toISOString();
+      const sinceMs =
+        typeof options.sinceSeconds === 'number' && options.sinceSeconds > 0
+          ? options.sinceSeconds * 1000
+          : 30 * 24 * 60 * 60 * 1000;
+      const startTime = new Date(Date.now() - sinceMs).toISOString();
       const endTime = new Date().toISOString();
 
       const { data, error, response } = await obsClient.POST(
@@ -557,6 +564,7 @@ export class WorkflowService {
             searchScope: {
               namespace: namespaceName,
               workflowRunName: runName,
+              ...(options.step ? { taskName: options.step } : {}),
             },
           },
         },
@@ -615,9 +623,9 @@ export class WorkflowService {
     }
 
     this.logger.debug(
-      `Fetching workflow run events for component: ${componentName}, run: ${runName} from ${
-        hasLiveObservability ? 'openchoreo-api' : 'observer-api'
-      }${step ? ` with step: ${step}` : ''}`,
+      `Fetching workflow run events for component: ${componentName}, run: ${runName}${
+        step ? ` with step: ${step}` : ''
+      }`,
     );
 
     try {
@@ -665,81 +673,10 @@ export class WorkflowService {
         this.logger.debug(
           `Successfully fetched ${entries.length} workflow run events from openchoreo-api`,
         );
-
         return entries;
       }
-
-      // Use observer API for older workflow runs
-      const { observerUrl } = await this.resolver.resolveForBuild(
-        namespaceName,
-        projectName,
-        token,
-      );
-
-      if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(componentName);
-      }
-
-      const obsClient = createObservabilityClientWithUrl(
-        observerUrl,
-        token,
-        this.logger,
-      );
-
-      this.logger.debug(
-        `Sending workflow run events request for component ${componentName} with run: ${runName}`,
-      );
-
-      const { data, error, response } = await obsClient.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName, runName },
-            query: {
-              ...(step ? { step } : {}),
-            },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        if (response.status === 404) {
-          this.logger.info(
-            `Workflow run events endpoint not available (404). The observability service may not support workflow run events yet.`,
-          );
-          throw new ObservabilityNotConfiguredError(componentName);
-        }
-
-        this.logger.error(
-          `Failed to fetch workflow run events for component ${componentName}: ${response.status} ${response.statusText}`,
-        );
-        throw new Error(
-          `Failed to fetch workflow run events: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const entries: ComponentWorkflowRunEventEntry[] = (data || []).map(
-        (entry: any) => ({
-          timestamp: entry.timestamp,
-          type: entry.type,
-          reason: entry.reason,
-          message: entry.message,
-        }),
-      );
-
-      this.logger.debug(
-        `Successfully fetched ${entries.length} workflow run events from observer-api`,
-      );
-
-      return entries;
+      return [];
     } catch (error: unknown) {
-      if (error instanceof ObservabilityNotConfiguredError) {
-        this.logger.info(
-          `Observability not configured for component ${componentName}`,
-        );
-        throw error;
-      }
-
       this.logger.error(
         `Error fetching workflow run events for component ${componentName}:`,
         error as Error,
