@@ -28,6 +28,7 @@ import {
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import { transformReleaseBinding } from './services/transformers';
 
 const CLUSTER_SCOPED_KINDS = [
   'clustercomponenttypes',
@@ -724,7 +725,7 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    const bindings = await environmentInfoService.fetchReleaseBindings(
+    const rawBindings = await environmentInfoService.fetchReleaseBindings(
       {
         componentName: componentName as string,
         projectName: projectName as string,
@@ -732,7 +733,10 @@ export async function createRouter({
       },
       userToken,
     );
-    res.json({ success: true, data: bindings });
+    const items = ((rawBindings as any)?.items ?? []).map((binding: any) =>
+      transformReleaseBinding(binding),
+    );
+    res.json({ success: true, data: { items } });
   });
 
   router.patch('/patch-release-binding', requireAuth, async (req, res) => {

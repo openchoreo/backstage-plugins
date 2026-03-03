@@ -94,20 +94,13 @@ export const ReleaseDetailsPage = ({
         ]);
 
         // Find the release binding matching this environment
-        // Handle both legacy format ({ success, data: { items } }) and new API format ({ items })
         const bindingsResult = releaseBindingsResult as any;
-        const bindings: any[] =
-          bindingsResult?.data?.items ?? bindingsResult?.items ?? [];
+        const bindings: any[] = bindingsResult?.data?.items ?? [];
         const matchingBinding =
-          bindings.find(
-            (b: any) =>
-              (b.environment ?? b.spec?.environment) === environmentName,
-          ) ?? null;
+          bindings.find((b: any) => b.environment === environmentName) ?? null;
 
         // Fetch resource tree using the matched binding name
-        const bindingName =
-          matchingBinding?.name ??
-          (matchingBinding?.metadata as Record<string, unknown>)?.name;
+        const bindingName = matchingBinding?.name;
         let nextResourceTreeData: any = { releases: [] };
 
         if (bindingName && namespaceName) {
@@ -197,12 +190,7 @@ export const ReleaseDetailsPage = ({
           resourceTreeData={resourceTreeData}
           releaseBindingData={releaseBindingData}
           namespaceName={namespaceName}
-          releaseBindingName={
-            (releaseBindingData as any)?.name ??
-            ((releaseBindingData as any)?.metadata as Record<string, unknown>)
-              ?.name ??
-            ''
-          }
+          releaseBindingName={(releaseBindingData as any)?.name ?? ''}
           onRefresh={handleManualRefresh}
           isRefreshing={refreshing}
         />
