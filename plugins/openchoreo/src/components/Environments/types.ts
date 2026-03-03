@@ -108,6 +108,7 @@ export interface EnvironmentActionsProps {
   releaseName?: string;
   promotionTargets?: Array<{
     name: string;
+    resourceName?: string;
     requiresApproval?: boolean;
   }>;
   isAlreadyPromoted: (targetEnvName: string) => boolean;
@@ -140,6 +141,7 @@ export interface EnvironmentCardProps {
   }>;
   promotionTargets?: Array<{
     name: string;
+    resourceName?: string;
     requiresApproval?: boolean;
   }>;
   isRefreshing: boolean;

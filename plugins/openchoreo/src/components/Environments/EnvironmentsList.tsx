@@ -92,7 +92,7 @@ export const EnvironmentsList = () => {
       const pendingAction: PendingAction = {
         type: 'promote',
         releaseName,
-        sourceEnvironment: sourceEnv.name,
+        sourceEnvironment: sourceEnv.resourceName ?? sourceEnv.name,
         targetEnvironment: targetEnvName,
       };
 
@@ -148,7 +148,9 @@ export const EnvironmentsList = () => {
               }
               onSuspend={() =>
                 suspendTracker
-                  .withTracking(env.name, () => handleSuspend(env.name))
+                  .withTracking(env.name, () =>
+                    handleSuspend(env.resourceName ?? env.name),
+                  )
                   .catch(err =>
                     notification.showError(`Error suspending: ${err}`),
                   )

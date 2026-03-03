@@ -3,7 +3,6 @@ import { EnvironmentService, Environment, EndpointInfo } from '../../types';
 import {
   createOpenChoreoApiClient,
   fetchAllPages,
-  getName,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
 import type {
@@ -13,6 +12,7 @@ import type {
 import {
   transformEnvironment,
   transformDeploymentPipeline,
+  transformReleaseBinding,
 } from '../transformers';
 
 type ModelsEnvironment = EnvironmentResponse;
@@ -193,17 +193,8 @@ export class EnvironmentInfoService implements EnvironmentService {
       const environments = newEnvironments.map(transformEnvironment);
 
       // Transform new K8s-style bindings to legacy shape
-      const bindings: ReleaseBindingResponse[] = newBindings.map(b => ({
-        name: getName(b) ?? '',
-        componentName: b.spec?.owner?.componentName ?? '',
-        projectName: b.spec?.owner?.projectName ?? '',
-        namespaceName: b.metadata?.namespace ?? '',
-        environment: b.spec?.environment ?? '',
-        releaseName: b.spec?.releaseName ?? '',
-        status: this.deriveBindingStatus(b),
-        createdAt: b.metadata?.creationTimestamp ?? '',
-        componentTypeEnvOverrides: b.spec?.componentTypeEnvOverrides,
-      }));
+      const bindings: ReleaseBindingResponse[] =
+        newBindings.map(transformReleaseBinding);
 
       // Transform environment data with bindings and promotion information
       const transformStart = Date.now();
@@ -232,58 +223,6 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
       return [];
     }
-  }
-
-  /**
-   * Derives a binding status string from K8s conditions.
-   * Matches the Go-side determineReleaseBindingStatus logic:
-   *   1. No conditions → NotReady
-   *   2. < 3 conditions for current generation → NotReady
-   *   3. Any condition False with reason ResourcesDegraded → Failed
-   *   4. Any condition False with reason ResourcesProgressing → NotReady
-   *   5. All conditions present and none degraded → Ready
-   */
-  private deriveBindingStatus(
-    binding: NewReleaseBinding,
-  ): 'Ready' | 'NotReady' | 'Failed' | undefined {
-    const conditions = (binding.status?.conditions ?? []) as Array<{
-      type: string;
-      status: string;
-      reason?: string;
-      observedGeneration?: number;
-    }>;
-
-    if (conditions.length === 0) return 'NotReady';
-
-    const generation = (binding as any).metadata?.generation;
-
-    // Collect conditions for the current generation
-    const conditionsForGeneration = generation
-      ? conditions.filter(c => c.observedGeneration === generation)
-      : conditions;
-
-    // Expected conditions: ReleaseSynced, ResourcesReady, Ready
-    if (conditionsForGeneration.length < 3) return 'NotReady';
-
-    // Check for ResourcesDegraded → Failed
-    if (
-      conditionsForGeneration.some(
-        c => c.status === 'False' && c.reason === 'ResourcesDegraded',
-      )
-    ) {
-      return 'Failed';
-    }
-
-    // Check for ResourcesProgressing → NotReady
-    if (
-      conditionsForGeneration.some(
-        c => c.status === 'False' && c.reason === 'ResourcesProgressing',
-      )
-    ) {
-      return 'NotReady';
-    }
-
-    return 'Ready';
   }
 
   private transformEnvironmentDataWithBindings(
@@ -340,6 +279,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const targets = path.targetEnvironmentRefs.map((ref: any) => ({
         ...ref,
         name: envNameMap.get(ref.name.toLowerCase()) || ref.name,
+        resourceName: ref.name,
       }));
       promotionMap.set(sourceEnv, targets);
     }
@@ -427,6 +367,7 @@ export class EnvironmentInfoService implements EnvironmentService {
     if (promotionTargets && promotionTargets.length > 0) {
       transformedEnv.promotionTargets = promotionTargets.map((ref: any) => ({
         name: ref.name,
+        resourceName: ref.resourceName,
         requiresApproval: ref.requiresApproval,
         isManualApprovalRequired: ref.isManualApprovalRequired,
       }));
@@ -1136,18 +1077,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Release bindings fetched for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
-      // Transform K8s-style bindings to the flat shape expected by the frontend
-      const items = (data.items || []).map((b: NewReleaseBinding) => ({
-        name: getName(b) ?? '',
-        environment: b.spec?.environment ?? '',
-        releaseName: b.spec?.releaseName ?? '',
-        componentTypeEnvOverrides: b.spec?.componentTypeEnvOverrides,
-        traitOverrides: b.spec?.traitOverrides,
-        workloadOverrides: b.spec?.workloadOverrides,
-        status: this.deriveBindingStatus(b),
-      }));
-
-      return { items };
+      return data;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
