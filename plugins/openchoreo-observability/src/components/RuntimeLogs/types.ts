@@ -1,10 +1,10 @@
-import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
+import type { ComponentLogEntry } from '@openchoreo/backstage-plugin-common';
 
 /**
  * A single component log entry as returned by POST /api/v1/logs/query.
  * Fields come from the ComponentLogEntry schema (new unified API).
  */
-export type LogEntry = ObservabilityComponents['schemas']['ComponentLogEntry'];
+export type LogEntry = ComponentLogEntry;
 
 export interface LogsResponse {
   logs: LogEntry[];

@@ -10,23 +10,40 @@ import {
   Tooltip,
   Box,
   Typography,
+  CircularProgress,
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import { WaterfallView } from './WaterfallView';
 import { useTracesTableStyles } from './styles';
-import { Trace } from '../../types';
+import { Trace, Span, SpanDetails } from '../../types';
 import { formatDuration } from './utils';
+
+interface TraceSpansHook {
+  fetchSpans: (traceId: string) => Promise<void>;
+  getSpans: (traceId: string) => Span[] | undefined;
+  isLoading: (traceId: string) => boolean;
+  getError: (traceId: string) => string | undefined;
+}
+
+interface SpanDetailsHook {
+  fetchSpanDetails: (traceId: string, spanId: string) => Promise<void>;
+  getDetails: (traceId: string, spanId: string) => SpanDetails | undefined;
+  isLoading: (traceId: string, spanId: string) => boolean;
+  getError: (traceId: string, spanId: string) => string | undefined;
+}
 
 interface TracesTableProps {
   traces: Trace[];
-  tracesDataMap: Map<string, Trace>;
+  traceSpans: TraceSpansHook;
+  spanDetails: SpanDetailsHook;
   loading?: boolean;
 }
 
 export const TracesTable: FC<TracesTableProps> = ({
   traces,
-  tracesDataMap,
+  traceSpans,
+  spanDetails,
   loading = false,
 }) => {
   const classes = useTracesTableStyles();
@@ -38,6 +55,8 @@ export const TracesTable: FC<TracesTableProps> = ({
       newExpanded.delete(traceId);
     } else {
       newExpanded.add(traceId);
+      // Trigger on-demand span fetch when expanding
+      traceSpans.fetchSpans(traceId);
     }
     setExpandedRows(newExpanded);
   };
@@ -70,7 +89,7 @@ export const TracesTable: FC<TracesTableProps> = ({
           <TableHead>
             <TableRow>
               <TableCell className={classes.headerCell} width="12%">
-                Trace ID
+                Trace Name
               </TableCell>
               <TableCell className={classes.headerCell} width="20%">
                 Start Time
@@ -97,8 +116,11 @@ export const TracesTable: FC<TracesTableProps> = ({
             {traces.length === 0 && !loading && renderEmptyState()}
 
             {traces.map(trace => {
-              const traceData = tracesDataMap.get(trace.traceId);
               const isExpanded = expandedRows.has(trace.traceId);
+              const spans = traceSpans.getSpans(trace.traceId);
+              const spansLoading = traceSpans.isLoading(trace.traceId);
+              const spansError = traceSpans.getError(trace.traceId);
+
               return (
                 <Fragment key={trace.traceId}>
                   <TableRow
@@ -114,7 +136,9 @@ export const TracesTable: FC<TracesTableProps> = ({
                       className={classes.traceIdCell}
                     >
                       <Tooltip title={trace.traceId}>
-                        <span>{trace.traceId.slice(0, 8)}...</span>
+                        <span>
+                          {trace.traceName || `${trace.traceId.slice(0, 8)}...`}
+                        </span>
                       </Tooltip>
                     </TableCell>
                     <TableCell width="20%" className={classes.traceCell}>
@@ -124,10 +148,10 @@ export const TracesTable: FC<TracesTableProps> = ({
                       {trace.endTime}
                     </TableCell>
                     <TableCell width="12%" className={classes.traceCell}>
-                      {formatDuration(trace.durationNanoseconds)}
+                      {formatDuration(trace.durationNs)}
                     </TableCell>
                     <TableCell width="12%" className={classes.traceCell}>
-                      {trace.numberOfSpans}
+                      {trace.spanCount}
                     </TableCell>
                     <TableCell width="12%" align="right">
                       <IconButton
@@ -142,10 +166,34 @@ export const TracesTable: FC<TracesTableProps> = ({
                       </IconButton>
                     </TableCell>
                   </TableRow>
-                  {isExpanded && traceData && (
+
+                  {isExpanded && (
                     <TableRow>
                       <TableCell colSpan={6} style={{ padding: 0 }}>
-                        <WaterfallView trace={traceData} />
+                        {spansLoading && (
+                          <Box
+                            display="flex"
+                            justifyContent="center"
+                            alignItems="center"
+                            p={2}
+                          >
+                            <CircularProgress size={24} />
+                          </Box>
+                        )}
+                        {spansError && (
+                          <Box p={2}>
+                            <Typography variant="body2" color="error">
+                              Failed to load spans: {spansError}
+                            </Typography>
+                          </Box>
+                        )}
+                        {!spansLoading && !spansError && spans && (
+                          <WaterfallView
+                            traceId={trace.traceId}
+                            spans={spans}
+                            spanDetails={spanDetails}
+                          />
+                        )}
                       </TableCell>
                     </TableRow>
                   )}

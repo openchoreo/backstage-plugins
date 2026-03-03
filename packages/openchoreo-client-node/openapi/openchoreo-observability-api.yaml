@@ -351,34 +351,151 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /api/traces:
+  # Traces query endpoints
+  /api/v1alpha1/traces/query:
     post:
       tags:
         - Traces
-      summary: Get traces
-      description: Retrieve distributed traces
-      operationId: getTraces
+      summary: Query traces
+      description: Query traces from the observer service
+      operationId: queryTraces
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TracesRequest'
+              $ref: '#/components/schemas/TracesQueryRequest'
       responses:
         '200':
-          description: Successfully retrieved component traces
+          description: Traces queried successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TraceResponse'
+                $ref: '#/components/schemas/TracesQueryResponse'
         '400':
-          description: Bad request - invalid parameters
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
-          description: Internal server error
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1alpha1/traces/{traceId}/spans/query:
+    post:
+      tags:
+        - Traces
+      summary: Query spans for a trace
+      description: Query spans for a trace from the observer service
+      operationId: querySpansForTrace
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          description: The ID of the trace
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TracesQueryRequest'
+      responses:
+        '200':
+          description: Spans queried successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceSpansQueryResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1alpha1/traces/{traceId}/spans/{spanId}:
+    get:
+      tags:
+        - Traces
+      summary: Get details of a span for a trace
+      description: Get details of a span for a trace from the observer service
+      operationId: getSpanDetailsForTrace
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          description: The ID of the trace
+          schema:
+            type: string
+        - name: spanId
+          in: path
+          required: true
+          description: The ID of the span
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Span details queried successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceSpanDetailsResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
           content:
             application/json:
               schema:
@@ -635,176 +752,152 @@ components:
         - $ref: '#/components/schemas/ResourceMetricsTimeSeries'
         - $ref: '#/components/schemas/HttpMetricsTimeSeries'
 
-    TracesRequest:
+    # Request schemas for traces
+    TracesQueryRequest:
       type: object
-      required:
-        - projectUid
-        - startTime
-        - endTime
-        - componentNames
-        - projectName
-        - namespaceName
-        - environmentName
       properties:
-        projectUid:
-          type: string
-          format: uuid
-          description: Project UID (required)
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        componentUids:
-          type: array
-          items:
-            type: string
-            format: uuid
-          description: Array of component UIDs to filter traces (optional)
-          example:
-            [
-              '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b',
-              '3f7b9e1a-4c6d-4e8f-a2b5-7d1c3e8f4a9b',
-            ]
-        environmentUid:
-          type: string
-          format: uuid
-          description: Environment UID to filter traces (optional)
-          example: '2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c'
-        traceId:
-          type: string
-          description: |
-            Trace ID to filter by (optional). Supports wildcard characters:
-            - `*` matches zero or more characters
-            - `?` matches exactly one character
-
-            Examples:
-            - Exact match: `63d7c3065ab25375e6c5d6bb135a77db`
-            - Prefix match: `63d7c3065ab2537*`
-            - Suffix match: `*135a77db`
-            - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
-          pattern: '^[a-fA-F0-9*?]+$'
-          example: '63d7c3065ab25375*'
         startTime:
           type: string
+          description: The start time of the query
           format: date-time
-          description: Start time for trace query in RFC3339 format (required)
-          example: '2025-01-10T00:00:00Z'
         endTime:
           type: string
+          description: The end time of the query
           format: date-time
-          description: End time for trace query in RFC3339 format (required)
-          example: '2025-01-10T23:59:59Z'
         limit:
           type: integer
-          description: Maximum number of traces to return
           default: 100
           minimum: 1
-          maximum: 10000
-          example: 100
-        sortOrder:
+          maximum: 1000
+          description: The maximum number of items to return
+        sort:
           type: string
-          description: Sort order for traces
-          enum: [asc, desc]
+          description: The sort order of the query
+          enum:
+            - asc
+            - desc
           default: desc
-          example: 'desc'
-        componentNames:
-          type: array
-          items:
-            type: string
-          description: Component names to filter traces
-          example: ['my-component', 'my-component-2']
-        projectName:
-          type: string
-          description: Project name
-          example: 'my-project'
-        environmentName:
-          type: string
-          description: Environment name
-          example: 'my-environment'
-        namespaceName:
-          type: string
-          description: Namespace name
-          example: 'my-namespace'
+        searchScope:
+          $ref: '#/components/schemas/ComponentSearchScope'
+      required: [startTime, endTime, searchScope]
 
-    TraceResponse:
+    # Response schemas for traces
+    TracesQueryResponse:
       type: object
       properties:
         traces:
           type: array
+          description: The list of traces
           items:
-            $ref: '#/components/schemas/Trace'
-          description: Array of traces with their spans
+            type: object
+            properties:
+              traceId:
+                type: string
+                description: The trace ID
+              traceName:
+                type: string
+                description: The name of the trace
+              spanCount:
+                type: integer
+                description: The number of spans in the trace
+              rootSpanId:
+                type: string
+              rootSpanName:
+                type: string
+              rootSpanKind:
+                type: string
+              startTime:
+                type: string
+                description: The start time of the trace
+                format: date-time
+              endTime:
+                type: string
+                description: The end time of the trace
+                format: date-time
+              durationNs:
+                type: number
+                description: The duration of the trace in nanoseconds
+        total:
+          type: integer
+          description: The total number of traces
         tookMs:
           type: integer
-          description: Query execution time in milliseconds
-          example: 15
-      example:
-        traces:
-          - traceId: 'f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8'
-            spans:
-              - spanId: 'ad3537e3f48207d0'
-                name: 'lets-go'
-                durationNanoseconds: 12300000
-                startTime: '2025-12-03T09:16:56.84456548Z'
-                endTime: '2025-12-03T09:16:56.84468848Z'
-                parentSpanId: ''
-                openchoreoComponentUid: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
-                openchoreoProjectUid: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
-        tookMs: 15
+          description: The time taken to query the traces in milliseconds
 
-    Trace:
+    TraceSpansQueryResponse:
       type: object
       properties:
-        traceId:
-          type: string
-          description: Unique trace identifier (32 hexadecimal characters)
-          pattern: '^[a-fA-F0-9]{32}$'
-          example: 'f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8'
         spans:
           type: array
+          description: The list of spans
           items:
-            $ref: '#/components/schemas/Span'
-          description: Array of spans belonging to this trace
+            type: object
+            properties:
+              spanId:
+                type: string
+                description: The span ID
+              spanName:
+                type: string
+                description: The name of the span
+              spanKind:
+                type: string
+                description: The name of the span
+              startTime:
+                type: string
+                description: The start time of the span
+                format: date-time
+              endTime:
+                type: string
+                description: The end time of the span
+                format: date-time
+              durationNs:
+                type: number
+                description: The duration of the span in nanoseconds
+              parentSpanId:
+                type: string
+                description: The parent span ID
+        total:
+          type: integer
+          description: The total number of spans
+        tookMs:
+          type: integer
+          description: The time taken to query the spans in milliseconds
 
-    Span:
+    TraceSpanDetailsResponse:
       type: object
       properties:
         spanId:
           type: string
-          description: Unique span identifier (16 hex characters)
-          pattern: '^[a-f0-9]{16}$'
-          example: 'ad3537e3f48207d0'
-        name:
+          description: The span ID
+        spanName:
           type: string
-          description: Span name/operation
-          example: 'database-query'
-        durationNanoseconds:
-          type: integer
-          format: int64
-          description: Span duration in nanoseconds (calculated from endTime - startTime)
-          example: 101018208
+          description: The name of the span
         startTime:
           type: string
+          description: The start time of the span
           format: date-time
-          description: Span start time in RFC3339Nano format
-          example: '2025-10-28T11:13:56.484388Z'
         endTime:
           type: string
+          description: The end time of the span
           format: date-time
-          description: Span end time in RFC3339Nano format
-          example: '2025-10-28T11:13:56.585406208Z'
+        durationNs:
+          type: number
+          description: The duration of the span in nanoseconds
         parentSpanId:
           type: string
-          description: Parent span identifier (empty if root span)
-          pattern: '^[a-f0-9]{0,16}$'
-          example: 'b72e731db5edfd1d'
-        openchoreoComponentUid:
-          type: string
-          format: uuid
-          description: OpenChoreo component UID from resource attributes
-          example: '8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b'
-        openchoreoProjectUid:
-          type: string
-          format: uuid
-          description: OpenChoreo project UID from resource attributes
-          example: '1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b'
+          description: The parent span ID
+        attributes:
+          type: array
+          items:
+            type: object
+            description: The attributes of the span
+            properties:
+              key:
+                type: string
+                description: The key of the attribute
+              value:
+                type: string
+                description: The value of the attribute
 
     ErrorResponse:
       type: object

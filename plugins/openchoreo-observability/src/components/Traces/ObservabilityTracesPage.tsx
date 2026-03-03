@@ -1,24 +1,29 @@
-import { useMemo, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Box, Button, Typography } from '@material-ui/core';
 import { TracesFilters } from './TracesFilters';
 import { TracesActions } from './TracesActions';
 import { TracesTable } from './TracesTable';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { convertToTableFormat } from './utils';
 import {
   useUrlFilters,
   useTraces,
   useGetEnvironmentsByNamespace,
   useGetComponentsByProject,
 } from '../../hooks';
-import { Trace, Environment } from '../../types';
+import { useTraceSpans } from '../../hooks/useTraceSpans';
+import { useSpanDetails } from '../../hooks/useSpanDetails';
+import { Environment } from '../../types';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
+import { calculateTimeRange } from './utils';
 
 export const ObservabilityTracesPage = () => {
   const { entity } = useEntity();
-  const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespace =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
+  const projectName = entity.metadata.name as string;
+
   const {
     environments,
     loading: environmentsLoading,
@@ -30,19 +35,41 @@ export const ObservabilityTracesPage = () => {
     error: componentsError,
   } = useGetComponentsByProject(entity);
 
-  // URL-synced filters - must be after environments are available
   const { filters, updateFilters } = useUrlFilters({
     environments: environments as Environment[],
   });
 
   const {
     traces,
+    total,
     loading: tracesLoading,
     error: tracesError,
     refresh,
   } = useTraces(filters, entity);
 
-  // Note: Auto-selection of first environment is handled by useUrlFilters hook
+  // Determine which component name to pass for span queries
+  // (mirrors what useTraces does — single selection passes the name)
+  const selectedComponents = filters.componentIds ?? [];
+  const componentName =
+    selectedComponents.length === 1 ? selectedComponents[0] : undefined;
+
+  const { startTime, endTime } = filters.timeRange
+    ? calculateTimeRange(filters.timeRange)
+    : { startTime: undefined, endTime: undefined };
+
+  const traceSpans = useTraceSpans({
+    namespaceName: namespace,
+    projectName,
+    environmentName: filters.environment?.name ?? '',
+    componentName,
+    startTime,
+    endTime,
+  });
+
+  const spanDetails = useSpanDetails({
+    namespaceName: namespace,
+    environmentName: filters.environment?.name ?? '',
+  });
 
   const handleFiltersChange = useCallback(
     (newFilters: Partial<typeof filters>) => {
@@ -55,25 +82,11 @@ export const ObservabilityTracesPage = () => {
     refresh();
   }, [refresh]);
 
-  const tracesDataMap = useMemo(() => {
-    const map = new Map<string, Trace>();
-    traces.forEach(trace => {
-      map.set(trace.traceId, trace);
-    });
-    return map;
-  }, [traces]);
-
-  const tableTraces = useMemo(() => {
-    return convertToTableFormat(traces) as Trace[];
-  }, [traces]);
-
   if (componentsError) {
-    // TODO: Add a toast notification here
     return <></>;
   }
 
   if (environmentsError) {
-    // TODO: Add a toast notification here
     return <></>;
   }
 
@@ -83,10 +96,7 @@ export const ObservabilityTracesPage = () => {
     );
 
     return (
-      <Alert
-        severity={isObservabilityDisabled ? 'info' : 'error'}
-        // className={classes.errorContainer}
-      >
+      <Alert severity={isObservabilityDisabled ? 'info' : 'error'}>
         <Typography variant="body1">
           {isObservabilityDisabled
             ? 'Observability is not enabled for this project in this environment. Please enable observability to view traces'
@@ -119,14 +129,15 @@ export const ObservabilityTracesPage = () => {
           {tracesError && renderError(tracesError)}
 
           <TracesActions
-            totalCount={traces.length}
+            totalCount={total}
             disabled={tracesLoading}
             onRefresh={handleRefresh}
           />
 
           <TracesTable
-            traces={tableTraces}
-            tracesDataMap={tracesDataMap}
+            traces={traces}
+            traceSpans={traceSpans}
+            spanDetails={spanDetails}
             loading={tracesLoading}
           />
         </>
