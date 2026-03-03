@@ -302,6 +302,12 @@ export class EnvironmentInfoService implements EnvironmentService {
       envMap.set(displayName, env);
       envMap.set(displayName.toLowerCase(), env);
       envNameMap.set(displayName.toLowerCase(), displayName);
+      // Also index by K8s resource name so pipeline refs resolve
+      if (env.name && env.name.toLowerCase() !== displayName.toLowerCase()) {
+        envMap.set(env.name, env);
+        envMap.set(env.name.toLowerCase(), env);
+        envNameMap.set(env.name.toLowerCase(), displayName);
+      }
     }
 
     // Build bindings map by environment
@@ -313,7 +319,11 @@ export class EnvironmentInfoService implements EnvironmentService {
     }
 
     // If no pipeline data, use default ordering
-    if (!deploymentPipeline || !deploymentPipeline.promotionPaths) {
+    if (
+      !deploymentPipeline ||
+      !deploymentPipeline.promotionPaths ||
+      deploymentPipeline.promotionPaths.length === 0
+    ) {
       this.logger.debug('No deployment pipeline found, using default ordering');
       return this.transformEnvironmentDataWithBindingsOnly(
         environmentData,
@@ -358,17 +368,6 @@ export class EnvironmentInfoService implements EnvironmentService {
         );
 
         orderedEnvironments.push(transformedEnv);
-      }
-    }
-
-    // Add any environments not in the pipeline at the end
-    for (const env of environmentData) {
-      const envName = env.displayName || env.name;
-      if (!processedEnvs.has(envName)) {
-        const binding = bindingsByEnv.get(envName);
-        orderedEnvironments.push(
-          this.createEnvironmentFromBinding(env, binding),
-        );
       }
     }
 
