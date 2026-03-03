@@ -371,6 +371,16 @@ export interface OpenChoreoClientApi {
   /** Fetch all release bindings for a component */
   fetchReleaseBindings(entity: Entity): Promise<ReleaseBindingsResponse>;
 
+  /** Create or update a release binding for deploy/promote actions */
+  updateReleaseBinding(
+    entity: Entity,
+    environment: string,
+    releaseName: string,
+    componentTypeEnvOverrides?: unknown,
+    traitOverrides?: unknown,
+    workloadOverrides?: any,
+  ): Promise<any>;
+
   /** Patch release binding overrides */
   patchReleaseBindingOverrides(
     entity: Entity,

@@ -735,6 +735,49 @@ export async function createRouter({
     res.json({ success: true, data: bindings });
   });
 
+  router.put('/update-release-binding', requireAuth, async (req, res) => {
+    const {
+      componentName,
+      projectName,
+      namespaceName,
+      environment,
+      componentTypeEnvOverrides,
+      traitOverrides,
+      workloadOverrides,
+      releaseName,
+    } = req.body;
+
+    if (
+      !componentName ||
+      !projectName ||
+      !namespaceName ||
+      !environment ||
+      !releaseName
+    ) {
+      throw new InputError(
+        'componentName, projectName, namespaceName, environment and releaseName are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await environmentInfoService.updateReleaseBinding(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          environment: environment as string,
+          componentTypeEnvOverrides,
+          traitOverrides,
+          workloadOverrides,
+          releaseName: releaseName as string,
+        },
+        userToken,
+      ),
+    );
+  });
+
   router.patch('/patch-release-binding', requireAuth, async (req, res) => {
     const {
       componentName,

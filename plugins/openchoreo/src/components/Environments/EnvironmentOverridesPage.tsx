@@ -471,6 +471,12 @@ export const EnvironmentOverridesPage = ({
     if (totalChanges === 0 && pendingAction && onPendingActionComplete) {
       setSaving(true);
       try {
+        // No override changes — just ensure binding exists with correct releaseName
+        await client.updateReleaseBinding(
+          entity,
+          environment.name.toLowerCase(),
+          pendingAction.releaseName,
+        );
         await onPendingActionComplete(pendingAction);
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : 'Failed to deploy');
@@ -493,18 +499,31 @@ export const EnvironmentOverridesPage = ({
     setSaveError(null);
 
     try {
-      await client.patchReleaseBindingOverrides(
-        entity,
-        environment.name.toLowerCase(),
-        formState.componentTypeFormData,
-        formState.traitFormDataMap,
-        formState.workloadFormData,
-        pendingAction?.releaseName,
-      );
+      if (pendingAction) {
+        // updateReleaseBinding handles create-or-update + sets releaseName
+        // This is the ONLY call needed — replaces both patchReleaseBindingOverrides and deploy/promote
+        await client.updateReleaseBinding(
+          entity,
+          environment.name.toLowerCase(),
+          pendingAction.releaseName,
+          formState.componentTypeFormData,
+          formState.traitFormDataMap,
+          formState.workloadFormData,
+        );
+      } else {
+        // Plain save — use existing patchReleaseBindingOverrides
+        await client.patchReleaseBindingOverrides(
+          entity,
+          environment.name.toLowerCase(),
+          formState.componentTypeFormData,
+          formState.traitFormDataMap,
+          formState.workloadFormData,
+        );
+      }
 
       setShowSaveConfirm(false);
 
-      // If there's a pending action, execute it after saving
+      // If there's a pending action, notify and navigate
       if (pendingAction && onPendingActionComplete) {
         await onPendingActionComplete(pendingAction);
         // onPendingActionComplete handles navigation

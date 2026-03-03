@@ -139,6 +139,7 @@ export function useWorkflowsSummary() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            workflowRunName: `${componentName}-${Date.now()}`,
             workflowName: workflow.name,
             parameters: workflow.parameters,
             labels: {
