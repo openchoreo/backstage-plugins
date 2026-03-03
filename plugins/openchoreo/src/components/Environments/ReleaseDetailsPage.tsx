@@ -6,8 +6,9 @@ import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { useEnvironmentPolling } from './hooks';
 import { ResourceTreeView } from './ReleaseDataRenderer/ResourceTreeView';
-import type { Environment } from './hooks/useEnvironmentData';
+import type { Environment } from './hooks';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -55,6 +56,7 @@ export const ReleaseDetailsPage = ({
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [releaseData, setReleaseData] = useState<any>(null);
   const [resourceTreeData, setResourceTreeData] = useState<any>(null);
   const [releaseBindingData, setReleaseBindingData] = useState<Record<
@@ -67,61 +69,96 @@ export const ReleaseDetailsPage = ({
   const namespaceName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
 
-  const loadReleaseData = useCallback(async () => {
-    if (!environmentName) return;
+  const loadReleaseData = useCallback(
+    async (showLoadingState = true) => {
+      if (!environmentName) return;
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Fetch release data and release bindings in parallel
-      const [releaseResult, releaseBindingsResult] = await Promise.all([
-        client.fetchEnvironmentRelease(entity, environmentName),
-        client.fetchReleaseBindings(entity).catch(() => ({
-          success: false,
-          data: { items: [] },
-        })),
-      ]);
-      setReleaseData(releaseResult);
-
-      // Find the release binding matching this environment
-      // Handle both legacy format ({ success, data: { items } }) and new API format ({ items })
-      const bindingsResult = releaseBindingsResult as any;
-      const bindings: any[] =
-        bindingsResult?.data?.items ?? bindingsResult?.items ?? [];
-      const matchingBinding =
-        bindings.find(
-          (b: any) =>
-            (b.environment ?? b.spec?.environment) === environmentName,
-        ) ?? null;
-      setReleaseBindingData(matchingBinding);
-
-      // Fetch resource tree using the matched binding name
-      const bindingName =
-        matchingBinding?.name ??
-        (matchingBinding?.metadata as Record<string, unknown>)?.name;
-      if (bindingName && namespaceName) {
-        const resourceTreeResult = await client
-          .fetchResourceTree(namespaceName, bindingName as string)
-          .catch(() => ({ releases: [] }));
-        setResourceTreeData(resourceTreeResult);
-      } else {
-        setResourceTreeData({ releases: [] });
+      if (showLoadingState) {
+        setLoading(true);
+        setError(null);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load release details');
-    } finally {
-      setLoading(false);
-    }
-  }, [environmentName, namespaceName, entity, client]);
+
+      try {
+        // Fetch release data and release bindings in parallel
+        const [releaseResult, releaseBindingsResult] = await Promise.all([
+          client.fetchEnvironmentRelease(entity, environmentName),
+          client.fetchReleaseBindings(entity).catch(err => {
+            if (showLoadingState) {
+              return {
+                success: false,
+                data: { items: [] },
+              };
+            }
+            throw err;
+          }),
+        ]);
+
+        // Find the release binding matching this environment
+        // Handle both legacy format ({ success, data: { items } }) and new API format ({ items })
+        const bindingsResult = releaseBindingsResult as any;
+        const bindings: any[] =
+          bindingsResult?.data?.items ?? bindingsResult?.items ?? [];
+        const matchingBinding =
+          bindings.find(
+            (b: any) =>
+              (b.environment ?? b.spec?.environment) === environmentName,
+          ) ?? null;
+
+        // Fetch resource tree using the matched binding name
+        const bindingName =
+          matchingBinding?.name ??
+          (matchingBinding?.metadata as Record<string, unknown>)?.name;
+        let nextResourceTreeData: any = { releases: [] };
+
+        if (bindingName && namespaceName) {
+          nextResourceTreeData = await client
+            .fetchResourceTree(namespaceName, bindingName as string)
+            .catch(err => {
+              if (showLoadingState) {
+                return { releases: [] };
+              }
+              throw err;
+            });
+        }
+
+        setReleaseData(releaseResult);
+        setReleaseBindingData(matchingBinding);
+        setResourceTreeData(nextResourceTreeData);
+      } catch (err: any) {
+        if (showLoadingState) {
+          setError(err.message || 'Failed to load release details');
+        }
+      } finally {
+        if (showLoadingState) {
+          setLoading(false);
+        }
+      }
+    },
+    [environmentName, namespaceName, entity, client],
+  );
 
   useEffect(() => {
     loadReleaseData();
   }, [loadReleaseData]);
 
+  const shouldPollReleaseDetails = Boolean(environmentName);
+  const pollReleaseData = useCallback(() => {
+    void loadReleaseData(false);
+  }, [loadReleaseData]);
+  useEnvironmentPolling(shouldPollReleaseDetails, pollReleaseData);
+
   const handleRetry = () => {
     loadReleaseData();
   };
+
+  const handleManualRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadReleaseData(false);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadReleaseData]);
 
   const actions = error ? (
     <Button onClick={handleRetry} color="primary" variant="outlined">
@@ -166,6 +203,8 @@ export const ReleaseDetailsPage = ({
               ?.name ??
             ''
           }
+          onRefresh={handleManualRefresh}
+          isRefreshing={refreshing}
         />
       )}
 

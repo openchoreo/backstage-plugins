@@ -102,7 +102,7 @@ export const EnvironmentCardContent = ({
               onClick={onOpenReleaseDetails}
               style={{ textTransform: 'none' }}
             >
-              View Release
+              View K8s Artifacts
             </Button>
           </Box>
         )}
