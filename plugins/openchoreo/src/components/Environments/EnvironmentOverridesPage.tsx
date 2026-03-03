@@ -127,6 +127,9 @@ export const EnvironmentOverridesPage = ({
   const releaseNameForOverrides =
     pendingAction?.releaseName || environment.deployment.releaseName;
 
+  // Use K8s resource name for API calls (matches binding.environment from backend)
+  const environmentName = environment.resourceName || environment.name;
+
   // Load data using custom hook
   const {
     loading,
@@ -139,7 +142,7 @@ export const EnvironmentOverridesPage = ({
     reload,
   } = useOverridesData(
     entity,
-    environment.name,
+    environmentName,
     releaseNameForOverrides,
     true, // always open
   );
@@ -474,7 +477,7 @@ export const EnvironmentOverridesPage = ({
         // No override changes — just ensure binding exists with correct releaseName
         await client.updateReleaseBinding(
           entity,
-          environment.name.toLowerCase(),
+          environmentName,
           pendingAction.releaseName,
         );
         await onPendingActionComplete(pendingAction);
@@ -504,7 +507,7 @@ export const EnvironmentOverridesPage = ({
         // This is the ONLY call needed — replaces both patchReleaseBindingOverrides and deploy/promote
         await client.updateReleaseBinding(
           entity,
-          environment.name.toLowerCase(),
+          environmentName,
           pendingAction.releaseName,
           formState.componentTypeFormData,
           formState.traitFormDataMap,
@@ -514,7 +517,7 @@ export const EnvironmentOverridesPage = ({
         // Plain save — use existing patchReleaseBindingOverrides
         await client.patchReleaseBindingOverrides(
           entity,
-          environment.name.toLowerCase(),
+          environmentName,
           formState.componentTypeFormData,
           formState.traitFormDataMap,
           formState.workloadFormData,
@@ -556,7 +559,7 @@ export const EnvironmentOverridesPage = ({
       if (deleteTarget === 'all') {
         await client.patchReleaseBindingOverrides(
           entity,
-          environment.name.toLowerCase(),
+          environmentName,
           {},
           {},
           {},

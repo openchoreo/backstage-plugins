@@ -193,8 +193,9 @@ export class EnvironmentInfoService implements EnvironmentService {
       const environments = newEnvironments.map(transformEnvironment);
 
       // Transform new K8s-style bindings to legacy shape
-      const bindings: ReleaseBindingResponse[] =
-        newBindings.map(transformReleaseBinding);
+      const bindings: ReleaseBindingResponse[] = newBindings.map(
+        transformReleaseBinding,
+      );
 
       // Transform environment data with bindings and promotion information
       const transformStart = Date.now();
