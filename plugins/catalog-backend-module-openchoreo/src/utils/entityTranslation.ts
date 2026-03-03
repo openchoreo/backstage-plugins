@@ -205,10 +205,14 @@ export function translateEnvironmentToEntity(
     gateway?: {
       ingress?: {
         external?: {
+          name?: string;
+          namespace?: string;
           http?: { host?: string; port?: number };
           https?: { port?: number };
         };
         internal?: {
+          name?: string;
+          namespace?: string;
           http?: { host?: string; port?: number };
           https?: { port?: number };
         };

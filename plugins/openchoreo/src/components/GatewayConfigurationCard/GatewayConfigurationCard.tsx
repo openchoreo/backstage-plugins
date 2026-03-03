@@ -112,6 +112,8 @@ interface ListenerSpec {
 }
 
 interface EndpointSpec {
+  name?: string;
+  namespace?: string;
   http?: ListenerSpec;
   https?: ListenerSpec;
 }
@@ -179,6 +181,25 @@ export const GatewayConfigurationCard = ({
             <Box className={classes.panelContent}>
               <Typography className={classes.panelTitle}>External</Typography>
 
+              {ingress.external?.name && (
+                <Box className={classes.valueRow}>
+                  <Typography className={classes.valueLabel}>Name</Typography>
+                  <Typography className={classes.valueText}>
+                    {ingress.external.name}
+                  </Typography>
+                </Box>
+              )}
+              {ingress.external?.namespace && (
+                <Box className={classes.valueRow}>
+                  <Typography className={classes.valueLabel}>
+                    Namespace
+                  </Typography>
+                  <Typography className={classes.valueText}>
+                    {ingress.external.namespace}
+                  </Typography>
+                </Box>
+              )}
+
               <Typography className={classes.protocolLabel}>HTTP</Typography>
               {ingress.external?.http ? (
                 <ListenerRows
@@ -212,6 +233,25 @@ export const GatewayConfigurationCard = ({
             />
             <Box className={classes.panelContent}>
               <Typography className={classes.panelTitle}>Internal</Typography>
+
+              {ingress.internal?.name && (
+                <Box className={classes.valueRow}>
+                  <Typography className={classes.valueLabel}>Name</Typography>
+                  <Typography className={classes.valueText}>
+                    {ingress.internal.name}
+                  </Typography>
+                </Box>
+              )}
+              {ingress.internal?.namespace && (
+                <Box className={classes.valueRow}>
+                  <Typography className={classes.valueLabel}>
+                    Namespace
+                  </Typography>
+                  <Typography className={classes.valueText}>
+                    {ingress.internal.namespace}
+                  </Typography>
+                </Box>
+              )}
 
               <Typography className={classes.protocolLabel}>HTTP</Typography>
               {ingress.internal?.http ? (

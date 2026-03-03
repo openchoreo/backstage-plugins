@@ -24,10 +24,14 @@ export interface ClusterDataplaneEntityV1alpha1 extends Entity {
     gateway?: {
       ingress?: {
         external?: {
+          name?: string;
+          namespace?: string;
           http?: { host?: string; port?: number };
           https?: { port?: number };
         };
         internal?: {
+          name?: string;
+          namespace?: string;
           http?: { host?: string; port?: number };
           https?: { port?: number };
         };

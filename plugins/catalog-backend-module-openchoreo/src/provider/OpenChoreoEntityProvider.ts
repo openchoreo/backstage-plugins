@@ -237,10 +237,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               }),
           );
 
-          this.logger.debug(
-            `Found ${environments.length} environments in namespace: ${nsName}`,
-          );
-
           const environmentEntities: Entity[] = environments.map(env =>
             this.translateNewEnvironmentToEntity(env, nsName),
           );
@@ -1187,7 +1183,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     env: NewEnvironment,
     namespaceName: string,
   ): EnvironmentEntityV1alpha1 {
-    return translateEnvironment(
+    const ingress = env.spec?.gateway?.ingress;
+    const entity = translateEnvironment(
       {
         name: getName(env)!,
         displayName: getDisplayName(env),
@@ -1200,49 +1197,45 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               name: env.spec.dataPlaneRef.name,
             }
           : undefined,
-        dnsPrefix: env.spec?.gateway?.ingress?.external?.http?.host,
-        gateway: env.spec?.gateway
+        dnsPrefix: ingress?.external?.http?.host,
+        gateway: ingress
           ? {
-              ingress: env.spec.gateway.ingress
-                ? {
-                    external: env.spec.gateway.ingress.external
-                      ? {
-                          http: env.spec.gateway.ingress.external.http
-                            ? {
-                                host: env.spec.gateway.ingress.external.http
-                                  .host,
-                                port: env.spec.gateway.ingress.external.http
-                                  .port,
-                              }
-                            : undefined,
-                          https: env.spec.gateway.ingress.external.https
-                            ? {
-                                port: env.spec.gateway.ingress.external.https
-                                  .port,
-                              }
-                            : undefined,
-                        }
-                      : undefined,
-                    internal: env.spec.gateway.ingress.internal
-                      ? {
-                          http: env.spec.gateway.ingress.internal.http
-                            ? {
-                                host: env.spec.gateway.ingress.internal.http
-                                  .host,
-                                port: env.spec.gateway.ingress.internal.http
-                                  .port,
-                              }
-                            : undefined,
-                          https: env.spec.gateway.ingress.internal.https
-                            ? {
-                                port: env.spec.gateway.ingress.internal.https
-                                  .port,
-                              }
-                            : undefined,
-                        }
-                      : undefined,
-                  }
-                : undefined,
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
             }
           : undefined,
         createdAt: getCreatedAt(env),
@@ -1251,6 +1244,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       namespaceName,
       { locationKey: this.getProviderName() },
     );
+    return entity;
   }
 
   /**
@@ -1298,6 +1292,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               ingress: {
                 external: ingress.external
                   ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
                       http: ingress.external.http
                         ? {
                             host: ingress.external.http.host,
@@ -1311,6 +1307,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   : undefined,
                 internal: ingress.internal
                   ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
                       http: ingress.internal.http
                         ? {
                             host: ingress.internal.http.host,
@@ -1709,6 +1707,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               ingress: {
                 external: ingress.external
                   ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
                       http: ingress.external.http
                         ? {
                             host: ingress.external.http.host,
@@ -1722,6 +1722,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                   : undefined,
                 internal: ingress.internal
                   ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
                       http: ingress.internal.http
                         ? {
                             host: ingress.internal.http.host,
