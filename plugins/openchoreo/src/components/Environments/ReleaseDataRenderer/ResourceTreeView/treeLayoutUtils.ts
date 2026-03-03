@@ -50,12 +50,13 @@ function aggregateHealth(nodes: ResourceTreeNode[]): HealthStatus {
  * When resourceTreeData contains `releases`, intermediate Release nodes are created.
  */
 export function buildTreeNodes(
-  releaseData: ReleaseData,
+  releaseData: ReleaseData | null,
   resourceTreeData: ResourceTreeData,
   releaseBindingData?: Record<string, unknown> | null,
 ): TreeNode[] {
   const data = releaseData?.data;
-  if (!data) return [];
+  // If there is no release data but we have a release binding, build a root-only tree
+  if (!data && !releaseBindingData) return [];
 
   const nodes: TreeNode[] = [];
 
@@ -88,7 +89,7 @@ export function buildTreeNodes(
     }
   } else {
     // Fallback to release conditions if no binding data
-    const releaseConditions = data.status?.conditions ?? [];
+    const releaseConditions = data?.status?.conditions ?? [];
     const readyCondition = releaseConditions.find(c => c.type === 'Ready');
     if (readyCondition) {
       rootHealth = readyCondition.status === 'True' ? 'Healthy' : 'Degraded';
@@ -102,7 +103,7 @@ export function buildTreeNodes(
       ?.name as string) ??
     undefined;
   const rootName =
-    bindingName ?? data.spec?.owner?.componentName ?? 'ReleaseBinding';
+    bindingName ?? data?.spec?.owner?.componentName ?? 'ReleaseBinding';
 
   nodes.push({
     id: ROOT_NODE_ID,

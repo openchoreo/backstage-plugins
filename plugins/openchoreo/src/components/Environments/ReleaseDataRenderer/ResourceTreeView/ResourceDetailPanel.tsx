@@ -20,7 +20,7 @@ import type { ReleaseData } from '../types';
 interface ResourceDetailPanelProps {
   node: LayoutNode | null;
   onClose: () => void;
-  releaseData: ReleaseData;
+  releaseData: ReleaseData | null;
   releaseBindingData: Record<string, unknown> | null;
   namespaceName: string;
   releaseBindingName: string;

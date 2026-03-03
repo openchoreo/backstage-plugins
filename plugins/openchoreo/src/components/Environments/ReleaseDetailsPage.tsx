@@ -191,10 +191,10 @@ export const ReleaseDetailsPage = ({
         </Box>
       )}
 
-      {!loading && !error && releaseData && (
+      {!loading && !error && (releaseData || releaseBindingData) && (
         <ResourceTreeView
           releaseData={releaseData}
-          resourceTreeData={resourceTreeData}
+          resourceTreeData={resourceTreeData ?? { releases: [] }}
           releaseBindingData={releaseBindingData}
           namespaceName={namespaceName}
           releaseBindingName={
@@ -208,7 +208,7 @@ export const ReleaseDetailsPage = ({
         />
       )}
 
-      {!loading && !error && !releaseData && (
+      {!loading && !error && !releaseData && !releaseBindingData && (
         <Box className={classes.emptyContainer}>
           <Typography variant="body2" color="textSecondary">
             No release data available for this environment
