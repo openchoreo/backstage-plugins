@@ -19,29 +19,20 @@ export interface ClusterDataplaneEntityV1alpha1 extends Entity {
    */
   spec: {
     /**
-     * Public virtual host for this dataplane
+     * Gateway configuration for this dataplane
      */
-    publicVirtualHost?: string;
-    /**
-     * Namespace virtual host for this dataplane
-     */
-    namespaceVirtualHost?: string;
-    /**
-     * Public HTTP port
-     */
-    publicHTTPPort?: number;
-    /**
-     * Public HTTPS port
-     */
-    publicHTTPSPort?: number;
-    /**
-     * Namespace HTTP port
-     */
-    namespaceHTTPPort?: number;
-    /**
-     * Namespace HTTPS port
-     */
-    namespaceHTTPSPort?: number;
+    gateway?: {
+      ingress?: {
+        external?: {
+          http?: { host?: string; port?: number };
+          https?: { port?: number };
+        };
+        internal?: {
+          http?: { host?: string; port?: number };
+          https?: { port?: number };
+        };
+      };
+    };
     /**
      * Observability plane reference
      */

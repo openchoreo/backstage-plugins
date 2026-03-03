@@ -17,6 +17,7 @@ type AgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
 
 export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
+  const ingress = dataPlane.spec?.gateway?.ingress;
   return {
     name: getName(dataPlane) ?? '',
     namespace: getNamespace(dataPlane) ?? '',
@@ -24,18 +25,32 @@ export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
     description: getDescription(dataPlane),
     imagePullSecretRefs: dataPlane.spec?.imagePullSecretRefs,
     secretStoreRef: dataPlane.spec?.secretStoreRef?.name,
-    publicVirtualHost:
-      dataPlane.spec?.gateway?.ingress?.external?.http?.host ?? '',
-    namespaceVirtualHost:
-      dataPlane.spec?.gateway?.ingress?.internal?.http?.host ?? '',
-    publicHTTPPort:
-      dataPlane.spec?.gateway?.ingress?.external?.http?.port ?? 80,
-    publicHTTPSPort:
-      dataPlane.spec?.gateway?.ingress?.external?.https?.port ?? 443,
-    namespaceHTTPPort:
-      dataPlane.spec?.gateway?.ingress?.internal?.http?.port ?? 80,
-    namespaceHTTPSPort:
-      dataPlane.spec?.gateway?.ingress?.internal?.https?.port ?? 443,
+    gateway: ingress
+      ? {
+          ingress: {
+            external: ingress.external
+              ? {
+                  http: ingress.external.http
+                    ? { host: ingress.external.http.host, port: ingress.external.http.port }
+                    : undefined,
+                  https: ingress.external.https
+                    ? { port: ingress.external.https.port }
+                    : undefined,
+                }
+              : undefined,
+            internal: ingress.internal
+              ? {
+                  http: ingress.internal.http
+                    ? { host: ingress.internal.http.host, port: ingress.internal.http.port }
+                    : undefined,
+                  https: ingress.internal.https
+                    ? { port: ingress.internal.https.port }
+                    : undefined,
+                }
+              : undefined,
+          },
+        }
+      : undefined,
     observabilityPlaneRef: dataPlane.spec?.observabilityPlaneRef?.name,
     agentConnection: dataPlane.status?.agentConnection
       ? transformAgentConnection(dataPlane.status.agentConnection)

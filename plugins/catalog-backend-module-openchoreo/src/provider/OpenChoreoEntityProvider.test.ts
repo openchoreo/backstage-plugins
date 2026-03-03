@@ -77,10 +77,15 @@ const k8sDataPlane = {
   metadata: k8sMeta('default-dp'),
   spec: {
     gateway: {
-      publicVirtualHost: 'api.example.com',
-      organizationVirtualHost: 'internal.example.com',
-      publicHTTPPort: 80,
-      publicHTTPSPort: 443,
+      ingress: {
+        external: {
+          http: { host: 'api.example.com', port: 80 },
+          https: { port: 443 },
+        },
+        internal: {
+          http: { host: 'internal.example.com' },
+        },
+      },
     },
     observabilityPlaneRef: { name: 'default-obs' },
   },

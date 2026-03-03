@@ -45,12 +45,11 @@ export function useInvokeUrl(
               namespaceName,
               dataPlaneRef,
             );
-            // Use publicHTTPPort if available and not 0
-            if (
-              dataPlaneDetails?.publicHTTPPort &&
-              dataPlaneDetails.publicHTTPPort !== 0
-            ) {
-              port = dataPlaneDetails.publicHTTPPort;
+            // Use gateway HTTP port if available and not 0
+            const httpPort =
+              dataPlaneDetails?.gateway?.ingress?.external?.http?.port;
+            if (httpPort && httpPort !== 0) {
+              port = httpPort;
             }
           } catch {
             // Fall back to default port if fetching dataplane details fails

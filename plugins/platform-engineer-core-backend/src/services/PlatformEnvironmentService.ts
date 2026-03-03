@@ -643,7 +643,7 @@ export class PlatformEnvironmentInfoService
     namespaceName: string,
   ): DataPlane[] {
     return dataplaneData.map(dp => {
-      const gateway = dp.spec?.gateway;
+      const ingress = dp.spec?.gateway?.ingress;
       const secretStore = dp.spec?.secretStoreRef;
       const obsRef = dp.spec?.observabilityPlaneRef;
       return {
@@ -654,12 +654,32 @@ export class PlatformEnvironmentInfoService
         namespaceName,
         imagePullSecretRefs: dp.spec?.imagePullSecretRefs,
         secretStoreRef: secretStore?.name,
-        publicVirtualHost: gateway?.ingress?.external?.http?.host,
-        namespaceVirtualHost: gateway?.ingress?.internal?.http?.host,
-        publicHTTPPort: gateway?.ingress?.external?.http?.port,
-        publicHTTPSPort: gateway?.ingress?.external?.https?.port,
-        namespaceHTTPPort: gateway?.ingress?.internal?.http?.port,
-        namespaceHTTPSPort: gateway?.ingress?.internal?.https?.port,
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      http: ingress.external.http
+                        ? { host: ingress.external.http.host, port: ingress.external.http.port }
+                        : undefined,
+                      https: ingress.external.https
+                        ? { port: ingress.external.https.port }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      http: ingress.internal.http
+                        ? { host: ingress.internal.http.host, port: ingress.internal.http.port }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? { port: ingress.internal.https.port }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
         observabilityPlaneRef: obsRef?.name,
         createdAt: getCreatedAt(dp),
         status: isReady(dp) ? 'Ready' : 'NotReady',

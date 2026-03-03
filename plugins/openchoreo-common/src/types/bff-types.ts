@@ -452,6 +452,26 @@ export interface AgentConnectionStatusResponse {
   message?: string;
 }
 
+export interface GatewayListenerSpec {
+  host?: string;
+  /** Format: int32 */
+  port?: number;
+}
+
+export interface GatewayEndpointSpec {
+  http?: GatewayListenerSpec;
+  https?: GatewayListenerSpec;
+}
+
+export interface GatewayNetworkSpec {
+  external?: GatewayEndpointSpec;
+  internal?: GatewayEndpointSpec;
+}
+
+export interface GatewaySpec {
+  ingress?: GatewayNetworkSpec;
+}
+
 export interface DataPlaneResponse {
   name: string;
   namespace: string;
@@ -459,16 +479,7 @@ export interface DataPlaneResponse {
   description?: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
-  publicVirtualHost: string;
-  namespaceVirtualHost: string;
-  /** Format: int32 */
-  publicHTTPPort: number;
-  /** Format: int32 */
-  publicHTTPSPort: number;
-  /** Format: int32 */
-  namespaceHTTPPort: number;
-  /** Format: int32 */
-  namespaceHTTPSPort: number;
+  gateway?: GatewaySpec;
   observabilityPlaneRef?: string;
   agentConnection?: AgentConnectionStatusResponse;
   /** Format: date-time */
@@ -482,16 +493,7 @@ export interface ClusterDataPlaneResponse {
   description?: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
-  publicVirtualHost: string;
-  namespaceVirtualHost: string;
-  /** Format: int32 */
-  publicHTTPPort: number;
-  /** Format: int32 */
-  publicHTTPSPort: number;
-  /** Format: int32 */
-  namespaceHTTPPort: number;
-  /** Format: int32 */
-  namespaceHTTPSPort: number;
+  gateway?: GatewaySpec;
   observabilityPlaneRef?: string;
   agentConnection?: AgentConnectionStatusResponse;
   /** Format: date-time */

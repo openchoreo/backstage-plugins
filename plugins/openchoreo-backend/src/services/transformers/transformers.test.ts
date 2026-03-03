@@ -234,10 +234,14 @@ describe('transformDataPlane', () => {
 
   it('maps gateway fields', () => {
     const result = transformDataPlane(dataPlane);
-    expect(result.publicVirtualHost).toBe('apps.example.com');
-    expect(result.namespaceVirtualHost).toBe('internal.example.com');
-    expect(result.publicHTTPPort).toBe(80);
-    expect(result.publicHTTPSPort).toBe(443);
+    expect(result.gateway?.ingress?.external?.http?.host).toBe(
+      'apps.example.com',
+    );
+    expect(result.gateway?.ingress?.internal?.http?.host).toBe(
+      'internal.example.com',
+    );
+    expect(result.gateway?.ingress?.external?.http?.port).toBe(80);
+    expect(result.gateway?.ingress?.external?.https?.port).toBe(443);
   });
 
   it('maps secretStoreRef to string', () => {
