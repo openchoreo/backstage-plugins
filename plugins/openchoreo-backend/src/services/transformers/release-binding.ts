@@ -4,14 +4,19 @@ import { getName, getNamespace, getCreatedAt } from './common';
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
+const EXPECTED_CONDITION_TYPES = [
+  'ReleaseSynced',
+  'ResourcesReady',
+  'Ready',
+] as const;
+
 /**
  * Derives a binding status string from K8s conditions.
- * Matches the Go-side determineReleaseBindingStatus logic:
- *   1. No conditions → NotReady
- *   2. < 3 conditions for current generation → NotReady
- *   3. Any condition False with reason ResourcesDegraded → Failed
- *   4. Any condition False with reason ResourcesProgressing → NotReady
- *   5. All conditions present and none degraded → Ready
+ *
+ * Improvements over Go-side determineReleaseBindingStatus:
+ *   1. Missing observedGeneration is treated as a match (included in filter)
+ *   2. All three expected condition types must be present with status "True" for Ready
+ *   3. Any False condition → Failed (if ResourcesDegraded) or NotReady (otherwise)
  */
 export function deriveBindingStatus(
   binding: NewReleaseBinding,
@@ -25,17 +30,27 @@ export function deriveBindingStatus(
 
   if (conditions.length === 0) return 'NotReady';
 
-  const generation = (binding as any).metadata?.generation;
+  const generation = (binding as any).metadata?.generation as
+    | number
+    | undefined;
 
-  // Collect conditions for the current generation
+  // Collect conditions for the current generation.
+  // Treat missing observedGeneration as a match so older controllers don't
+  // cause conditions to be silently dropped.
   const conditionsForGeneration = generation
-    ? conditions.filter(c => c.observedGeneration === generation)
+    ? conditions.filter(
+        c =>
+          c.observedGeneration === undefined ||
+          c.observedGeneration === generation,
+      )
     : conditions;
 
-  // Expected conditions: ReleaseSynced, ResourcesReady, Ready
-  if (conditionsForGeneration.length < 3) return 'NotReady';
+  // Need at least the 3 expected condition types for a conclusive status
+  if (conditionsForGeneration.length < EXPECTED_CONDITION_TYPES.length) {
+    return 'NotReady';
+  }
 
-  // Check for ResourcesDegraded → Failed
+  // Any condition with status False and reason ResourcesDegraded → Failed
   if (
     conditionsForGeneration.some(
       c => c.status === 'False' && c.reason === 'ResourcesDegraded',
@@ -44,16 +59,18 @@ export function deriveBindingStatus(
     return 'Failed';
   }
 
-  // Check for ResourcesProgressing → NotReady
-  if (
-    conditionsForGeneration.some(
-      c => c.status === 'False' && c.reason === 'ResourcesProgressing',
-    )
-  ) {
+  // Any other False condition → NotReady (don't rely on a hardcoded reason allowlist)
+  if (conditionsForGeneration.some(c => c.status === 'False')) {
     return 'NotReady';
   }
 
-  return 'Ready';
+  // All three expected types must be present with status "True"
+  const allExpectedTrue = EXPECTED_CONDITION_TYPES.every(type => {
+    const cond = conditionsForGeneration.find(c => c.type === type);
+    return cond?.status === 'True';
+  });
+
+  return allExpectedTrue ? 'Ready' : 'NotReady';
 }
 
 /**
