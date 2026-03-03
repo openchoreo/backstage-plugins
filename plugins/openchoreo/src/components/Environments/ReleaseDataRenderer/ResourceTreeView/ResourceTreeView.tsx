@@ -17,7 +17,7 @@ import type { LayoutNode } from './treeTypes';
 import type { ReleaseData, ResourceTreeData } from '../types';
 
 interface ResourceTreeViewProps {
-  releaseData: ReleaseData;
+  releaseData: ReleaseData | null;
   resourceTreeData: ResourceTreeData;
   releaseBindingData: Record<string, unknown> | null;
   namespaceName: string;

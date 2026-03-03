@@ -55,7 +55,7 @@ function getBindingConditions(binding: Record<string, unknown>): any[] {
 }
 
 interface ReleaseBindingDetailTabsProps {
-  releaseData: ReleaseData;
+  releaseData: ReleaseData | null;
   releaseBindingData: Record<string, unknown> | null;
 }
 
