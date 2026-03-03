@@ -15,6 +15,7 @@ import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { YamlEditor } from '@openchoreo/backstage-plugin-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import YAML from 'yaml';
 import { useStyles } from './styles';
 
@@ -131,6 +132,11 @@ export const EnvironmentFormWithYamlExtension = ({
 
   const initializedRef = useRef(false);
 
+  const [envNameDuplicateError, setEnvNameDuplicateError] = useState<
+    string | null
+  >(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+
   // Current form values - wrapped in useMemo to maintain stable reference
   const data: EnvironmentFormData = useMemo(
     () => ({ ...DEFAULT_FORM_DATA, ...formData }),
@@ -203,6 +209,55 @@ export const EnvironmentFormWithYamlExtension = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Debounced duplicate check for environment name
+  useEffect(() => {
+    const envName = data.environment_name;
+    const nsRef = data.namespace_name;
+    const nsName = nsRef ? extractName(nsRef) : '';
+
+    if (!envName || !isValidK8sName(envName) || !nsName) {
+      setEnvNameDuplicateError(null);
+      setCheckingDuplicate(false);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      return () => {};
+    }
+
+    setCheckingDuplicate(true);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const { items } = await catalogApi.getEntities({
+          filter: { kind: 'Environment' },
+        });
+        const exists = items.some(
+          entity =>
+            entity.metadata.name === envName &&
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ===
+              nsName &&
+            !entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.DELETION_TIMESTAMP
+            ],
+        );
+        if (exists) {
+          setEnvNameDuplicateError(
+            `An environment named "${envName}" already exists in namespace "${nsName}"`,
+          );
+        } else {
+          setEnvNameDuplicateError(null);
+        }
+      } catch {
+        setEnvNameDuplicateError(null);
+      } finally {
+        setCheckingDuplicate(false);
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      setCheckingDuplicate(false);
+    };
+  }, [data.environment_name, data.namespace_name, catalogApi]);
 
   const updateField = useCallback(
     (field: keyof EnvironmentFormData, value: string | boolean) => {
@@ -284,15 +339,24 @@ export const EnvironmentFormWithYamlExtension = ({
                 variant="outlined"
                 required
                 error={
-                  !!data.environment_name &&
-                  !isValidK8sName(data.environment_name)
+                  (!!data.environment_name &&
+                    !isValidK8sName(data.environment_name)) ||
+                  !!envNameDuplicateError
                 }
                 helperText={
                   data.environment_name &&
                   !isValidK8sName(data.environment_name)
                     ? 'Must be lowercase alphanumeric with hyphens, starting and ending with alphanumeric'
-                    : 'Name of the environment (must be a valid Kubernetes name)'
+                    : envNameDuplicateError ||
+                      'Unique name for your environment (must be a valid Kubernetes name)'
                 }
+                InputProps={{
+                  endAdornment: checkingDuplicate ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={20} />
+                    </InputAdornment>
+                  ) : undefined,
+                }}
               />
             </Grid>
 
