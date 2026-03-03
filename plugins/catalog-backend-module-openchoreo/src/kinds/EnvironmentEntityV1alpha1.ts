@@ -38,5 +38,20 @@ export interface EnvironmentEntityV1alpha1 extends Entity {
      * DNS prefix for this environment
      */
     dnsPrefix?: string;
+    /**
+     * Gateway configuration for this environment
+     */
+    gateway?: {
+      ingress?: {
+        external?: {
+          http?: { host?: string; port?: number };
+          https?: { port?: number };
+        };
+        internal?: {
+          http?: { host?: string; port?: number };
+          https?: { port?: number };
+        };
+      };
+    };
   };
 }

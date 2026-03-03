@@ -1201,6 +1201,40 @@ export class OpenChoreoEntityProvider implements EntityProvider {
             }
           : undefined,
         dnsPrefix: env.spec?.gateway?.ingress?.external?.http?.host,
+        gateway: env.spec?.gateway
+          ? {
+              ingress: env.spec.gateway.ingress
+                ? {
+                    external: env.spec.gateway.ingress.external
+                      ? {
+                          http: env.spec.gateway.ingress.external.http
+                            ? {
+                                host: env.spec.gateway.ingress.external.http.host,
+                                port: env.spec.gateway.ingress.external.http.port,
+                              }
+                            : undefined,
+                          https: env.spec.gateway.ingress.external.https
+                            ? { port: env.spec.gateway.ingress.external.https.port }
+                            : undefined,
+                        }
+                      : undefined,
+                    internal: env.spec.gateway.ingress.internal
+                      ? {
+                          http: env.spec.gateway.ingress.internal.http
+                            ? {
+                                host: env.spec.gateway.ingress.internal.http.host,
+                                port: env.spec.gateway.ingress.internal.http.port,
+                              }
+                            : undefined,
+                          https: env.spec.gateway.ingress.internal.https
+                            ? { port: env.spec.gateway.ingress.internal.https.port }
+                            : undefined,
+                        }
+                      : undefined,
+                  }
+                : undefined,
+            }
+          : undefined,
         createdAt: getCreatedAt(env),
         status: isReady(env) ? 'Ready' : 'Not Ready',
       },

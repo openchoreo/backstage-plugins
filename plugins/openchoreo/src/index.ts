@@ -33,6 +33,7 @@ export {
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
   EnvironmentPipelinesTab,
+  EnvironmentGatewayConfigurationCard,
 } from './components/EnvironmentOverview';
 export {
   DataplaneStatusCard,

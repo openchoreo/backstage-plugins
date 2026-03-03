@@ -431,6 +431,7 @@ export interface EnvironmentResponse {
   dataPlaneRef?: DataPlaneRef;
   isProduction: boolean;
   dnsPrefix?: string;
+  gateway?: GatewaySpec;
   /** Format: date-time */
   createdAt: string;
   status?: string;

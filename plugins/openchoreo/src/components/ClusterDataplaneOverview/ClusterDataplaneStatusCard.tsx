@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import PublicIcon from '@material-ui/icons/Public';
 import VisibilityIcon from '@material-ui/icons/Visibility';
 import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
@@ -26,8 +25,6 @@ export const ClusterDataplaneStatusCard = () => {
 
   const status = annotations[CHOREO_ANNOTATIONS.STATUS] || 'Active';
   const observabilityPlaneRef = spec?.observabilityPlaneRef;
-  const publicVirtualHost = spec?.gateway?.ingress?.external?.http?.host;
-
   // Find the observability plane from entity relations
   const observabilityPlaneLink = useMemo(() => {
     const relations = entity.relations || [];
@@ -158,19 +155,6 @@ export const ClusterDataplaneStatusCard = () => {
 
       </Box>
 
-      {publicVirtualHost && (
-        <Box style={{ marginTop: 16 }}>
-          <Box className={classes.infoRow}>
-            <PublicIcon
-              style={{ fontSize: '1rem', marginRight: 8, color: 'inherit' }}
-            />
-            <Typography className={classes.infoLabel}>Public Host:</Typography>
-            <Typography className={classes.infoValue}>
-              {publicVirtualHost}
-            </Typography>
-          </Box>
-        </Box>
-      )}
     </Card>
   );
 };

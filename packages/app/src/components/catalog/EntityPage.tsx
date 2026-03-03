@@ -82,6 +82,7 @@ import {
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
+  EnvironmentGatewayConfigurationCard,
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
   DataplaneGatewayConfigurationCard,
@@ -696,7 +697,11 @@ const environmentPage = (
         <Grid item xs={12}>
           <EnvironmentDeployedComponentsCard />
         </Grid>
-        {/* Row 3: About + Catalog Graph */}
+        {/* Row 3: Gateway Configuration */}
+        <Grid item xs={12}>
+          <EnvironmentGatewayConfigurationCard />
+        </Grid>
+        {/* Row 4: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
