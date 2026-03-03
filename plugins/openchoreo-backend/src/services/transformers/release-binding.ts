@@ -1,5 +1,8 @@
 import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
-import type { ReleaseBindingResponse } from '@openchoreo/backstage-plugin-common';
+import type {
+  ReleaseBindingResponse,
+  ReleaseBindingEndpoint,
+} from '@openchoreo/backstage-plugin-common';
 import { getName, getNamespace, getCreatedAt } from './common';
 
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
@@ -94,11 +97,7 @@ export function transformReleaseBinding(
       | undefined,
     createdAt: getCreatedAt(binding) ?? '',
     status: deriveBindingStatus(binding),
-    endpoints: (binding.status as any)?.endpoints?.map(
-      (ep: { name?: string; url?: string }) => ({
-        name: ep.name ?? '',
-        url: ep.url ?? '',
-      }),
-    ),
+    endpoints: (binding.status as any)
+      ?.endpoints as ReleaseBindingEndpoint[] | undefined,
   };
 }
