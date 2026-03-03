@@ -61,7 +61,7 @@ export const EnvironmentActions = ({
                     promotionTracker.isActive(target.name) ||
                     isAlreadyPromoted(target.name)
                   }
-                  onClick={() => onPromote(target.name)}
+                  onClick={() => onPromote(target.resourceName ?? target.name)}
                 >
                   {isAlreadyPromoted(target.name)
                     ? `Promoted to ${target.name}`
@@ -96,7 +96,12 @@ export const EnvironmentActions = ({
                     promotionTracker.isActive(promotionTargets![0].name) ||
                     isAlreadyPromoted(promotionTargets![0].name)
                   }
-                  onClick={() => onPromote(promotionTargets![0].name)}
+                  onClick={() =>
+                    onPromote(
+                      promotionTargets![0].resourceName ??
+                        promotionTargets![0].name,
+                    )
+                  }
                 >
                   {isAlreadyPromoted(promotionTargets![0].name)
                     ? 'Promoted'

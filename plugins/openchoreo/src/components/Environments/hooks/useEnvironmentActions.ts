@@ -34,11 +34,7 @@ export function useEnvironmentActions(
 
   const handlePromote = useCallback(
     async (sourceEnvName: string, targetEnvName: string) => {
-      await client.promoteToEnvironment(
-        entity,
-        sourceEnvName.toLowerCase(),
-        targetEnvName.toLowerCase(),
-      );
+      await client.promoteToEnvironment(entity, sourceEnvName, targetEnvName);
       await refetch();
       notification.showSuccess(
         `Component promoted from ${sourceEnvName} to ${targetEnvName}`,
@@ -49,7 +45,7 @@ export function useEnvironmentActions(
 
   const handleSuspend = useCallback(
     async (envName: string) => {
-      await client.deleteReleaseBinding(entity, envName.toLowerCase());
+      await client.deleteReleaseBinding(entity, envName);
       await refetch();
       notification.showSuccess(
         `Component suspended from ${envName} successfully`,

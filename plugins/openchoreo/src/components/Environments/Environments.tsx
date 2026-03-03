@@ -102,8 +102,8 @@ export const Environments = () => {
           // Complete the promote after overrides are saved
           await client.promoteToEnvironment(
             entity,
-            pendingAction.sourceEnvironment.toLowerCase(),
-            pendingAction.targetEnvironment.toLowerCase(),
+            pendingAction.sourceEnvironment,
+            pendingAction.targetEnvironment,
           );
           notification.showSuccess(
             `Successfully promoted to ${pendingAction.targetEnvironment}`,

@@ -61,6 +61,7 @@ export interface Environment {
   endpoints: EndpointInfo[];
   promotionTargets?: {
     name: string;
+    resourceName?: string;
     requiresApproval?: boolean;
     isManualApprovalRequired?: boolean;
   }[];
