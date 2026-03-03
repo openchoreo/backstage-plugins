@@ -129,7 +129,11 @@ export const EnvironmentCardContent = ({
             </Box>
           </Box>
           <Tooltip title="View invoke URLs">
-            <IconButton size="small" onClick={() => setInvokeUrlsOpen(true)}>
+            <IconButton
+              size="small"
+              onClick={() => setInvokeUrlsOpen(true)}
+              aria-label="Show invoke URLs"
+            >
               <VisibilityOutlinedIcon fontSize="small" />
             </IconButton>
           </Tooltip>

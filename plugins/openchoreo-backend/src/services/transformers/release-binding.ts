@@ -97,7 +97,13 @@ export function transformReleaseBinding(
       | undefined,
     createdAt: getCreatedAt(binding) ?? '',
     status: deriveBindingStatus(binding),
-    endpoints: (binding.status as any)
-      ?.endpoints as ReleaseBindingEndpoint[] | undefined,
+    endpoints: (() => {
+      const raw = (binding.status as any)?.endpoints;
+      if (!Array.isArray(raw)) return undefined;
+      return raw.filter(
+        (e): e is ReleaseBindingEndpoint =>
+          e !== null && typeof e === 'object' && typeof e.name === 'string',
+      );
+    })(),
   };
 }

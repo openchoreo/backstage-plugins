@@ -659,6 +659,8 @@ export class PlatformEnvironmentInfoService
               ingress: {
                 external: ingress.external
                   ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
                       http: ingress.external.http
                         ? {
                             host: ingress.external.http.host,
@@ -666,12 +668,17 @@ export class PlatformEnvironmentInfoService
                           }
                         : undefined,
                       https: ingress.external.https
-                        ? { port: ingress.external.https.port }
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
                         : undefined,
                     }
                   : undefined,
                 internal: ingress.internal
                   ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
                       http: ingress.internal.http
                         ? {
                             host: ingress.internal.http.host,
@@ -679,7 +686,10 @@ export class PlatformEnvironmentInfoService
                           }
                         : undefined,
                       https: ingress.internal.https
-                        ? { port: ingress.internal.https.port }
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
                         : undefined,
                     }
                   : undefined,

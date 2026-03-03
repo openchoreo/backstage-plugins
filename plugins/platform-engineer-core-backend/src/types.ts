@@ -18,6 +18,8 @@ interface GatewayListenerSpec {
 }
 
 interface GatewayEndpointSpec {
+  name?: string;
+  namespace?: string;
   http?: GatewayListenerSpec;
   https?: GatewayListenerSpec;
 }

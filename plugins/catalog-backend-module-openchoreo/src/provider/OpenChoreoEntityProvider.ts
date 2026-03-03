@@ -1213,6 +1213,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                         : undefined,
                       https: ingress.external.https
                         ? {
+                            host: ingress.external.https.host,
                             port: ingress.external.https.port,
                           }
                         : undefined,
@@ -1230,6 +1231,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                         : undefined,
                       https: ingress.internal.https
                         ? {
+                            host: ingress.internal.https.host,
                             port: ingress.internal.https.port,
                           }
                         : undefined,
@@ -1301,7 +1303,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                           }
                         : undefined,
                       https: ingress.external.https
-                        ? { port: ingress.external.https.port }
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
                         : undefined,
                     }
                   : undefined,
@@ -1316,7 +1321,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                           }
                         : undefined,
                       https: ingress.internal.https
-                        ? { port: ingress.internal.https.port }
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
                         : undefined,
                     }
                   : undefined,
@@ -1716,7 +1724,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                           }
                         : undefined,
                       https: ingress.external.https
-                        ? { port: ingress.external.https.port }
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
                         : undefined,
                     }
                   : undefined,
@@ -1731,7 +1742,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                           }
                         : undefined,
                       https: ingress.internal.https
-                        ? { port: ingress.internal.https.port }
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
                         : undefined,
                     }
                   : undefined,

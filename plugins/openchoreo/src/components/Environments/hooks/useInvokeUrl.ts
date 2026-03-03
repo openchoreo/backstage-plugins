@@ -45,10 +45,15 @@ export function useInvokeUrl(
               namespaceName,
               dataPlaneRef,
             );
-            // Use gateway HTTP port if available and not 0
-            const httpPort =
+            // Use gateway HTTP port if it is a valid TCP port (1–65535)
+            const rawPort =
               dataPlaneDetails?.gateway?.ingress?.external?.http?.port;
-            if (httpPort && httpPort !== 0) {
+            const httpPort = Number(rawPort);
+            if (
+              Number.isInteger(httpPort) &&
+              httpPort >= 1 &&
+              httpPort <= 65535
+            ) {
               port = httpPort;
             }
           } catch {
