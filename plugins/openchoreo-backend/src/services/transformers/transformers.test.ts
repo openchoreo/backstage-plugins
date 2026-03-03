@@ -169,7 +169,7 @@ describe('transformEnvironment', () => {
       dataPlaneRef: { kind: 'DataPlane', name: 'default' },
       isProduction: false,
       gateway: {
-        ingress: { external: { http: { host: 'dev.example.com' } } },
+        ingress: { external: { name: 'external-gw', namespace: 'test-ns', http: { host: 'dev.example.com' } } },
       },
     },
     status: { conditions: [readyCondition] },
@@ -207,10 +207,14 @@ describe('transformDataPlane', () => {
       gateway: {
         ingress: {
           external: {
+            name: 'external-gw',
+            namespace: 'test-ns',
             http: { host: 'apps.example.com', port: 80 },
             https: { port: 443 },
           },
           internal: {
+            name: 'internal-gw',
+            namespace: 'test-ns',
             http: { host: 'internal.example.com' },
           },
         },
