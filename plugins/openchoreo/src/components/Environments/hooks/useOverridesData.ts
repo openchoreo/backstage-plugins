@@ -228,8 +228,7 @@ export function useOverridesData(
 
       // Fetch existing bindings to get current overrides
       const bindingsResponse = await client.fetchReleaseBindings(entity);
-      console.log('BINDINGS RESPONSE', bindingsResponse);
-      
+
       if (bindingsResponse.success && bindingsResponse.data?.items) {
         const bindings = bindingsResponse.data.items as ReleaseBinding[];
         const currentBinding = bindings.find(
@@ -239,8 +238,6 @@ export function useOverridesData(
         if (currentBinding) {
           const componentOverrides =
             currentBinding.componentTypeEnvOverrides || {};
-          console.log('CURRENT BINDING', currentBinding);
-          console.log('COMPONENT OVERRIDES', componentOverrides);
 
           // Track whether actual component overrides exist from backend
           const hasActualComponent = Object.keys(componentOverrides).length > 0;

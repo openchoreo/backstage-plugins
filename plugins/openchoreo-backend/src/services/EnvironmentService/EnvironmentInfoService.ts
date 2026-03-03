@@ -1138,17 +1138,15 @@ export class EnvironmentInfoService implements EnvironmentService {
       );
 
       // Transform K8s-style bindings to the flat shape expected by the frontend
-      const items = (data.items || []).map(
-        (b: NewReleaseBinding) => ({
-          name: getName(b) ?? '',
-          environment: b.spec?.environment ?? '',
-          releaseName: b.spec?.releaseName ?? '',
-          componentTypeEnvOverrides: b.spec?.componentTypeEnvOverrides,
-          traitOverrides: b.spec?.traitOverrides,
-          workloadOverrides: b.spec?.workloadOverrides,
-          status: this.deriveBindingStatus(b),
-        }),
-      );
+      const items = (data.items || []).map((b: NewReleaseBinding) => ({
+        name: getName(b) ?? '',
+        environment: b.spec?.environment ?? '',
+        releaseName: b.spec?.releaseName ?? '',
+        componentTypeEnvOverrides: b.spec?.componentTypeEnvOverrides,
+        traitOverrides: b.spec?.traitOverrides,
+        workloadOverrides: b.spec?.workloadOverrides,
+        status: this.deriveBindingStatus(b),
+      }));
 
       return { items };
     } catch (error: unknown) {
@@ -1196,10 +1194,7 @@ export class EnvironmentInfoService implements EnvironmentService {
       const bindingName = `${request.componentName}-${request.environment}`;
 
       // Try to GET the existing binding
-      const {
-        data: existing,
-        response: getResponse,
-      } = await client.GET(
+      const { data: existing, response: getResponse } = await client.GET(
         '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
         {
           params: {
