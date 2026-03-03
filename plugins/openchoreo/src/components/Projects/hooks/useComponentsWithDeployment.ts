@@ -11,11 +11,10 @@ export interface EnvironmentDeploymentStatus {
   status?: string; // Actual status from ReleaseBinding: Ready, NotReady, Failed, etc.
 }
 
-export interface ComponentDeploymentStatus {
-  production?: EnvironmentDeploymentStatus;
-  staging?: EnvironmentDeploymentStatus;
-  development?: EnvironmentDeploymentStatus;
-}
+export type ComponentDeploymentStatus = Record<
+  string,
+  EnvironmentDeploymentStatus
+>;
 
 export interface ComponentWithDeployment extends Entity {
   deploymentStatus?: ComponentDeploymentStatus;
@@ -91,15 +90,8 @@ export function useComponentsWithDeployment(
               if (bindings && Array.isArray(bindings)) {
                 bindings.forEach(binding => {
                   const envName = binding.environment?.toLowerCase();
-                  if (
-                    envName &&
-                    (envName === 'production' ||
-                      envName === 'staging' ||
-                      envName === 'development')
-                  ) {
-                    deploymentStatus[
-                      envName as keyof ComponentDeploymentStatus
-                    ] = {
+                  if (envName) {
+                    deploymentStatus[envName] = {
                       isDeployed: true,
                       status: binding.status,
                     };

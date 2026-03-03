@@ -544,6 +544,7 @@ export interface ReleaseBindingResponse {
   /** Format: date-time */
   createdAt: string;
   status?: string;
+  endpoints?: { name: string; url: string }[];
 }
 
 export interface WorkloadOverrides {
