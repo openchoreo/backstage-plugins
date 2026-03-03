@@ -1194,7 +1194,11 @@ export class EnvironmentInfoService implements EnvironmentService {
       const bindingName = `${request.componentName}-${request.environment}`;
 
       // Try to GET the existing binding
-      const { data: existing, response: getResponse } = await client.GET(
+      const {
+        data: existing,
+        error: getError,
+        response: getResponse,
+      } = await client.GET(
         '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
         {
           params: {
@@ -1253,7 +1257,17 @@ export class EnvironmentInfoService implements EnvironmentService {
         return data;
       }
 
-      // Binding does not exist — create it with POST
+      // Non-404 error — surface it rather than falling through to create
+      if (getResponse.status !== 404) {
+        const errorDetail = getError ? JSON.stringify(getError) : '';
+        throw new Error(
+          `Failed to fetch release binding: ${getResponse.status} ${
+            getResponse.statusText
+          }${errorDetail ? ` ${errorDetail}` : ''}`,
+        );
+      }
+
+      // Binding does not exist (404) — create it with POST
       const newBinding = {
         metadata: {
           name: bindingName,
@@ -1279,7 +1293,11 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       };
 
-      const { data, error, response } = await client.POST(
+      const {
+        data: createData,
+        error: createError,
+        response: createResponse,
+      } = await client.POST(
         '/api/v1/namespaces/{namespaceName}/releasebindings',
         {
           params: {
@@ -1291,9 +1309,39 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
+      // Handle 409 Conflict — binding was created concurrently, fetch it
+      if (createResponse.status === 409) {
+        this.logger.debug(
+          `Release binding ${bindingName} already exists (409 conflict), fetching existing`,
+        );
+        const {
+          data: conflictExisting,
+          error: conflictGetError,
+          response: conflictGetResponse,
+        } = await client.GET(
+          '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+          {
+            params: {
+              path: {
+                namespaceName: request.namespaceName,
+                releaseBindingName: bindingName,
+              },
+            },
+          },
+        );
+
+        if (conflictGetError || !conflictGetResponse.ok) {
+          throw new Error(
+            `Failed to fetch release binding after 409 conflict: ${conflictGetResponse.status} ${conflictGetResponse.statusText}`,
+          );
+        }
+
+        return conflictExisting;
+      }
+
+      if (createError || !createResponse.ok) {
         throw new Error(
-          `Failed to create release binding: ${response.status} ${response.statusText}`,
+          `Failed to create release binding: ${createResponse.status} ${createResponse.statusText}`,
         );
       }
 
@@ -1302,7 +1350,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Release binding created for ${request.componentName} in ${request.environment}: Total: ${totalTime}ms`,
       );
 
-      return data;
+      return createData;
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
