@@ -164,10 +164,7 @@ export const DataplaneStatusCard = () => {
             </Box>
           </Box>
         )}
-
-
       </Box>
-
     </Card>
   );
 };

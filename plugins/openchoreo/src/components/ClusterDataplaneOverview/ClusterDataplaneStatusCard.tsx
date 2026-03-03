@@ -151,10 +151,7 @@ export const ClusterDataplaneStatusCard = () => {
             </Box>
           </Box>
         )}
-
-
       </Box>
-
     </Card>
   );
 };

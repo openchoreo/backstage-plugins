@@ -414,6 +414,12 @@ describe('OpenChoreoEntityProvider', () => {
       expect(dp.metadata.annotations?.['openchoreo.io/agent-connected']).toBe(
         'true',
       );
+
+      const gateway = (dp.spec as any).gateway;
+      expect(gateway.ingress.external.http.host).toBe('api.example.com');
+      expect(gateway.ingress.external.http.port).toBe(80);
+      expect(gateway.ingress.external.https.port).toBe(443);
+      expect(gateway.ingress.internal.http.host).toBe('internal.example.com');
     });
 
     it('creates API entity from workload endpoint', async () => {

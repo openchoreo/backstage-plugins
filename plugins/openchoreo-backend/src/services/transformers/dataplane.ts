@@ -31,7 +31,10 @@ export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
             external: ingress.external
               ? {
                   http: ingress.external.http
-                    ? { host: ingress.external.http.host, port: ingress.external.http.port }
+                    ? {
+                        host: ingress.external.http.host,
+                        port: ingress.external.http.port,
+                      }
                     : undefined,
                   https: ingress.external.https
                     ? { port: ingress.external.https.port }
@@ -41,7 +44,10 @@ export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
             internal: ingress.internal
               ? {
                   http: ingress.internal.http
-                    ? { host: ingress.internal.http.host, port: ingress.internal.http.port }
+                    ? {
+                        host: ingress.internal.http.host,
+                        port: ingress.internal.http.port,
+                      }
                     : undefined,
                   https: ingress.internal.https
                     ? { port: ingress.internal.https.port }

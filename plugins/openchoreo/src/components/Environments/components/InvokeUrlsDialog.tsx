@@ -80,6 +80,7 @@ const URLRow = ({ url, label }: URLRowProps) => {
           <IconButton
             size="small"
             onClick={handleCopy}
+            aria-label="Copy URL"
             style={{ marginLeft: 4, flexShrink: 0 }}
           >
             <FileCopyOutlinedIcon style={{ fontSize: 16 }} />
