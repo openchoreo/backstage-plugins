@@ -1137,11 +1137,181 @@ export class EnvironmentInfoService implements EnvironmentService {
         `Release bindings fetched for ${request.componentName}: Total: ${totalTime}ms`,
       );
 
-      return data;
+      // Transform K8s-style bindings to the flat shape expected by the frontend
+      const items = (data.items || []).map(
+        (b: NewReleaseBinding) => ({
+          name: getName(b) ?? '',
+          environment: b.spec?.environment ?? '',
+          releaseName: b.spec?.releaseName ?? '',
+          componentTypeEnvOverrides: b.spec?.componentTypeEnvOverrides,
+          traitOverrides: b.spec?.traitOverrides,
+          workloadOverrides: b.spec?.workloadOverrides,
+          status: this.deriveBindingStatus(b),
+        }),
+      );
+
+      return { items };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error fetching release bindings for ${request.componentName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Creates or updates a release binding for deploy/promote actions.
+   * If the binding doesn't exist, creates it with POST.
+   * If it exists, updates it with PUT (merging overrides + releaseName + setting state to Active).
+   *
+   * This replaces the two-step flow of patchReleaseBindingOverrides + deployRelease/promoteToEnvironment.
+   */
+  async updateReleaseBinding(
+    request: {
+      componentName: string;
+      projectName: string;
+      namespaceName: string;
+      environment: string;
+      componentTypeEnvOverrides?: any;
+      traitOverrides?: any;
+      workloadOverrides?: any;
+      releaseName: string;
+    },
+    token?: string,
+  ) {
+    const startTime = Date.now();
+    this.logger.debug(
+      `Updating release binding for component ${request.componentName} in environment ${request.environment}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const bindingName = `${request.componentName}-${request.environment}`;
+
+      // Try to GET the existing binding
+      const {
+        data: existing,
+        response: getResponse,
+      } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+              releaseBindingName: bindingName,
+            },
+          },
+        },
+      );
+
+      if (getResponse.ok && existing) {
+        // Binding exists — update it with PUT
+        const updated = {
+          ...existing,
+          spec: {
+            ...existing.spec!,
+            releaseName: request.releaseName,
+            state: 'Active' as const,
+            ...(request.componentTypeEnvOverrides !== undefined
+              ? { componentTypeEnvOverrides: request.componentTypeEnvOverrides }
+              : {}),
+            ...(request.traitOverrides !== undefined
+              ? { traitOverrides: request.traitOverrides }
+              : {}),
+            ...(request.workloadOverrides !== undefined
+              ? { workloadOverrides: request.workloadOverrides }
+              : {}),
+          },
+        };
+
+        const { data, error, response } = await client.PUT(
+          '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+          {
+            params: {
+              path: {
+                namespaceName: request.namespaceName,
+                releaseBindingName: bindingName,
+              },
+            },
+            body: updated,
+          },
+        );
+
+        if (error || !response.ok) {
+          throw new Error(
+            `Failed to update release binding: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        const totalTime = Date.now() - startTime;
+        this.logger.debug(
+          `Release binding updated for ${request.componentName} in ${request.environment}: Total: ${totalTime}ms`,
+        );
+
+        return data;
+      }
+
+      // Binding does not exist — create it with POST
+      const newBinding = {
+        metadata: {
+          name: bindingName,
+          namespace: request.namespaceName,
+        },
+        spec: {
+          owner: {
+            projectName: request.projectName,
+            componentName: request.componentName,
+          },
+          environment: request.environment,
+          releaseName: request.releaseName,
+          state: 'Active' as const,
+          ...(request.componentTypeEnvOverrides !== undefined
+            ? { componentTypeEnvOverrides: request.componentTypeEnvOverrides }
+            : {}),
+          ...(request.traitOverrides !== undefined
+            ? { traitOverrides: request.traitOverrides }
+            : {}),
+          ...(request.workloadOverrides !== undefined
+            ? { workloadOverrides: request.workloadOverrides }
+            : {}),
+        },
+      };
+
+      const { data, error, response } = await client.POST(
+        '/api/v1/namespaces/{namespaceName}/releasebindings',
+        {
+          params: {
+            path: {
+              namespaceName: request.namespaceName,
+            },
+          },
+          body: newBinding,
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to create release binding: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Release binding created for ${request.componentName} in ${request.environment}: Total: ${totalTime}ms`,
+      );
+
+      return data;
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error updating release binding for ${request.componentName} in ${request.environment} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
