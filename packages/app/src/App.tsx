@@ -14,6 +14,7 @@ import { createTranslationMessages } from '@backstage/core-plugin-api/alpha';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
 import { ScaffolderFieldExtensions } from '@backstage/plugin-scaffolder-react';
 import { ComponentNamePickerFieldExtension } from './scaffolder/ComponentNamePicker';
+import { ResourceNamePickerFieldExtension } from './scaffolder/ResourceNamePicker';
 import { BuildTemplatePickerFieldExtension } from './scaffolder/BuildTemplatePicker';
 import { BuildTemplateParametersFieldExtension } from './scaffolder/BuildTemplateParameters';
 import { BuildWorkflowPickerFieldExtension } from './scaffolder/BuildWorkflowPicker';
@@ -243,6 +244,7 @@ const routes = (
     >
       <ScaffolderFieldExtensions>
         <ComponentNamePickerFieldExtension />
+        <ResourceNamePickerFieldExtension />
         <ProjectNamespaceFieldExtension />
         <BuildTemplatePickerFieldExtension />
         <BuildTemplateParametersFieldExtension />

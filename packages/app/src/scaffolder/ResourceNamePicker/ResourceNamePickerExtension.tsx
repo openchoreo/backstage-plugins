@@ -19,7 +19,7 @@ const K8S_NAME_PATTERN =
   /^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/;
 const MAX_LENGTH = 253;
 
-export const ComponentNamePickerSchema = {
+export const ResourceNamePickerSchema = {
   returnValue: { type: 'string' },
 };
 
@@ -28,7 +28,7 @@ interface ValidationState {
   isValidating: boolean;
 }
 
-export const ComponentNamePicker = ({
+export const ResourceNamePicker = ({
   onChange,
   rawErrors,
   required,
@@ -45,11 +45,19 @@ export const ComponentNamePicker = ({
   const [touched, setTouched] = useState(false);
   const catalogApi = useApi(catalogApiRef);
 
-  // Get the namespace name from form context
-  // Support both nested (project_namespace.namespace_name) and flat (namespace_name) formats
-  const namespaceName =
-    formContext.formData?.project_namespace?.namespace_name ||
-    formContext.formData?.namespace_name;
+  // Get configuration from ui:options
+  const catalogKind =
+    (uiSchema?.['ui:options']?.catalogKind as string) || 'Component';
+  const resourceLabel =
+    (uiSchema?.['ui:options']?.resourceLabel as string) || 'Resource';
+  const namespaceField = uiSchema?.['ui:options']?.namespaceField as
+    | string
+    | undefined;
+
+  // Get the namespace name from form context (only if namespaceField is specified)
+  const namespaceName = namespaceField
+    ? formContext.formData?.[namespaceField]
+    : undefined;
 
   // Extract namespace name from entity reference format
   const extractNsName = useCallback((fullNsName: string): string => {
@@ -58,88 +66,107 @@ export const ComponentNamePicker = ({
     return parts[parts.length - 1];
   }, []);
 
-  // Validate component name format (excluding required check - handled by JSON schema)
-  const validateFormat = useCallback((value: string): string | null => {
-    // Empty value is allowed here - JSON schema handles required validation
-    if (!value) {
+  // Validate resource name format (excluding required check - handled by JSON schema)
+  const validateFormat = useCallback(
+    (value: string): string | null => {
+      // Empty value is allowed here - JSON schema handles required validation
+      if (!value) {
+        return null;
+      }
+
+      if (value.length > MAX_LENGTH) {
+        return `${resourceLabel} name must not exceed ${MAX_LENGTH} characters`;
+      }
+
+      if (!K8S_NAME_PATTERN.test(value)) {
+        if (value !== value.toLowerCase()) {
+          return `${resourceLabel} name must be lowercase`;
+        }
+        if (!/^[a-z0-9]/.test(value)) {
+          return `${resourceLabel} name must start with a lowercase letter or number`;
+        }
+        if (!/[a-z0-9]$/.test(value)) {
+          return `${resourceLabel} name must end with a lowercase letter or number`;
+        }
+        return `${resourceLabel} name must contain only lowercase letters, numbers, hyphens, or dots`;
+      }
+
       return null;
-    }
+    },
+    [resourceLabel],
+  );
 
-    if (value.length > MAX_LENGTH) {
-      return `Component name must not exceed ${MAX_LENGTH} characters`;
-    }
-
-    if (!K8S_NAME_PATTERN.test(value)) {
-      if (value !== value.toLowerCase()) {
-        return 'Component name must be lowercase';
-      }
-      if (!/^[a-z0-9]/.test(value)) {
-        return 'Component name must start with a lowercase letter or number';
-      }
-      if (!/[a-z0-9]$/.test(value)) {
-        return 'Component name must end with a lowercase letter or number';
-      }
-      return 'Component name must contain only lowercase letters, numbers, hyphens, or dots';
-    }
-
-    return null;
-  }, []);
-
-  // Check if component already exists in the namespace
-  const checkComponentExists = useCallback(
-    async (componentName: string, nsName: string): Promise<boolean> => {
-      if (!componentName || !nsName) {
+  // Check if resource already exists in the catalog
+  const checkResourceExists = useCallback(
+    async (resourceName: string, nsName?: string): Promise<boolean> => {
+      if (!resourceName) {
         return false;
       }
 
       try {
-        // Get all components from catalog
+        // Get all entities of the specified kind from catalog
         const { items } = await catalogApi.getEntities({
           filter: {
-            kind: 'Component',
+            kind: catalogKind,
           },
         });
 
-        // Filter components by namespace annotation and check if name exists
-        // Exclude components marked for deletion
-        const existsInOrg = items.some(
-          component =>
-            component.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ===
-              nsName &&
-            component.metadata.name === componentName &&
-            !component.metadata.annotations?.[
+        if (namespaceField && nsName) {
+          // Namespaced resource: check by kind + namespace annotation + name
+          // Exclude resources marked for deletion
+          return items.some(
+            entity =>
+              entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ===
+                nsName &&
+              entity.metadata.name === resourceName &&
+              !entity.metadata.annotations?.[
+                CHOREO_ANNOTATIONS.DELETION_TIMESTAMP
+              ],
+          );
+        }
+
+        // Cluster-scoped resource: check by kind + name only
+        // Exclude resources marked for deletion
+        return items.some(
+          entity =>
+            entity.metadata.name === resourceName &&
+            !entity.metadata.annotations?.[
               CHOREO_ANNOTATIONS.DELETION_TIMESTAMP
             ],
         );
-
-        return existsInOrg;
-      } catch (error) {
+      } catch {
         // On error, don't block - allow the user to proceed
         return false;
       }
     },
-    [catalogApi],
+    [catalogApi, catalogKind, namespaceField],
   );
 
   // Debounced validation
   useEffect(() => {
     const validateAsync = async () => {
-      const componentName = formData || '';
+      const resourceName = formData || '';
 
       // First, validate format
-      const formatError = validateFormat(componentName);
+      const formatError = validateFormat(resourceName);
       if (formatError) {
         setValidationState({ error: formatError, isValidating: false });
         return;
       }
 
-      if (!componentName || !namespaceName) {
+      if (!resourceName) {
         setValidationState({ error: null, isValidating: false });
         return;
       }
 
-      const nsName = extractNsName(namespaceName);
-      if (!nsName) {
+      // For namespaced resources, we need the namespace to check duplicates
+      if (namespaceField && !namespaceName) {
+        setValidationState({ error: null, isValidating: false });
+        return;
+      }
+
+      const nsName = namespaceField ? extractNsName(namespaceName) : undefined;
+      if (namespaceField && !nsName) {
         setValidationState({ error: null, isValidating: false });
         return;
       }
@@ -147,12 +174,15 @@ export const ComponentNamePicker = ({
       // Start validation
       setValidationState({ error: null, isValidating: true });
 
-      // Check if component exists
-      const exists = await checkComponentExists(componentName, nsName);
+      // Check if resource exists
+      const exists = await checkResourceExists(resourceName, nsName);
 
       if (exists) {
+        const message = nsName
+          ? `A ${resourceLabel} named "${resourceName}" already exists in namespace "${nsName}"`
+          : `A ${resourceLabel} named "${resourceName}" already exists`;
         setValidationState({
-          error: `A component named "${componentName}" already exists in namespace "${nsName}"`,
+          error: message,
           isValidating: false,
         });
       } else {
@@ -167,8 +197,10 @@ export const ComponentNamePicker = ({
   }, [
     formData,
     namespaceName,
+    namespaceField,
+    resourceLabel,
     validateFormat,
-    checkComponentExists,
+    checkResourceExists,
     extractNsName,
   ]);
 
@@ -191,17 +223,21 @@ export const ComponentNamePicker = ({
     <FormControl fullWidth margin="normal" error={hasError} required={required}>
       <TextField
         id={idSchema?.$id}
-        label={uiSchema?.['ui:title'] || schema.title || 'Component Name'}
+        label={
+          uiSchema?.['ui:title'] || schema.title || `${resourceLabel} Name`
+        }
         value={formData || ''}
         onChange={handleChange}
         onBlur={handleBlur}
         error={hasError}
         required={required}
-        placeholder="my-component-name"
+        placeholder={`my-${resourceLabel
+          .toLowerCase()
+          .replace(/\s+/g, '-')}-name`}
         helperText={
           hasError && errorMessage
             ? errorMessage
-            : 'Unique name for your component (must be a valid Kubernetes name)'
+            : `Unique name for your ${resourceLabel.toLowerCase()} (must be a valid Kubernetes name)`
         }
         InputProps={{
           endAdornment: validationState.isValidating ? (
@@ -219,7 +255,7 @@ export const ComponentNamePicker = ({
  * Validation function that runs on form submission
  * Note: Required field validation is handled by JSON schema
  */
-export const componentNamePickerValidation = (
+export const resourceNamePickerValidation = (
   value: string,
   validation: FieldValidation,
 ) => {
@@ -229,26 +265,20 @@ export const componentNamePickerValidation = (
   }
 
   if (value.length > MAX_LENGTH) {
-    validation.addError(
-      `Component name must not exceed ${MAX_LENGTH} characters`,
-    );
+    validation.addError(`Name must not exceed ${MAX_LENGTH} characters`);
     return;
   }
 
   if (!K8S_NAME_PATTERN.test(value)) {
     if (value !== value.toLowerCase()) {
-      validation.addError('Component name must be lowercase');
+      validation.addError('Name must be lowercase');
     } else if (!/^[a-z0-9]/.test(value)) {
-      validation.addError(
-        'Component name must start with a lowercase letter or number',
-      );
+      validation.addError('Name must start with a lowercase letter or number');
     } else if (!/[a-z0-9]$/.test(value)) {
-      validation.addError(
-        'Component name must end with a lowercase letter or number',
-      );
+      validation.addError('Name must end with a lowercase letter or number');
     } else {
       validation.addError(
-        'Component name must contain only lowercase letters, numbers, hyphens, or dots',
+        'Name must contain only lowercase letters, numbers, hyphens, or dots',
       );
     }
   }
