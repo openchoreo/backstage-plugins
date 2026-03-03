@@ -99,9 +99,18 @@ export const EnvironmentCardContent = ({
       )}
 
       {hasInvokeUrls && (
-        <Box mt={2} mb={2} display="flex" alignItems="center" justifyContent="space-between">
+        <Box
+          mt={2}
+          mb={2}
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+        >
           <Box display="flex" alignItems="center">
-            <Typography variant="body2" style={{ fontWeight: 500, marginRight: 6 }}>
+            <Typography
+              variant="body2"
+              style={{ fontWeight: 500, marginRight: 6 }}
+            >
               Invoke URLs
             </Typography>
             <Box

@@ -4,7 +4,11 @@ import { Notification } from '../../hooks/useNotification';
 import type { Environment, EndpointInfo } from './hooks/useEnvironmentData';
 
 // Re-export Environment type from the data hook
-export type { Environment, EndpointInfo, EndpointURLDetails } from './hooks/useEnvironmentData';
+export type {
+  Environment,
+  EndpointInfo,
+  EndpointURLDetails,
+} from './hooks/useEnvironmentData';
 export type { Environment as EnvironmentType } from './hooks/useEnvironmentData';
 
 // Re-export pending action types from shared library

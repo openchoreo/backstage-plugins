@@ -13,7 +13,10 @@ import {
   Chip,
 } from '@material-ui/core';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
-import type { EndpointInfo, EndpointURLDetails } from '../hooks/useEnvironmentData';
+import type {
+  EndpointInfo,
+  EndpointURLDetails,
+} from '../hooks/useEnvironmentData';
 
 function buildUrl(details: EndpointURLDetails): string {
   const portPart = details.port ? `:${details.port}` : '';
@@ -74,7 +77,11 @@ const URLRow = ({ url, label }: URLRowProps) => {
           open={copied ? true : undefined}
           leaveDelay={copied ? 0 : 200}
         >
-          <IconButton size="small" onClick={handleCopy} style={{ marginLeft: 4, flexShrink: 0 }}>
+          <IconButton
+            size="small"
+            onClick={handleCopy}
+            style={{ marginLeft: 4, flexShrink: 0 }}
+          >
             <FileCopyOutlinedIcon style={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
