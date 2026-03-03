@@ -3,11 +3,19 @@ import { useApi } from '@backstage/core-plugin-api';
 import { useAsyncRetry } from 'react-use';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
-interface EndpointInfo {
+export interface EndpointURLDetails {
+  host: string;
+  path?: string;
+  port: number;
+  scheme: string;
+}
+
+export interface EndpointInfo {
   name: string;
-  type: string;
-  url: string;
-  visibility: 'project' | 'organization' | 'public';
+  type?: string;
+  externalURLs?: Record<string, EndpointURLDetails>;
+  internalURLs?: Record<string, EndpointURLDetails>;
+  serviceURL?: EndpointURLDetails;
 }
 
 export interface Environment {

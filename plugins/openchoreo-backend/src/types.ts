@@ -38,11 +38,19 @@ export interface EnvironmentService {
   }): Promise<Environment[]>;
 }
 
+export interface EndpointURLDetails {
+  host: string;
+  path?: string;
+  port: number;
+  scheme: string;
+}
+
 export interface EndpointInfo {
   name: string;
-  type: string;
-  url: string;
-  visibility: 'project' | 'organization' | 'public';
+  type?: string;
+  externalURLs?: Record<string, EndpointURLDetails>;
+  internalURLs?: Record<string, EndpointURLDetails>;
+  serviceURL?: EndpointURLDetails;
 }
 
 export interface Environment {

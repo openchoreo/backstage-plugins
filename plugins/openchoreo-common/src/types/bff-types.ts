@@ -527,6 +527,21 @@ export interface ObservabilityPlaneResponse {
 // Release binding & deployment
 // ---------------------------------------------------------------------------
 
+export interface ReleaseBindingEndpointURLDetails {
+  host: string;
+  path?: string;
+  port: number;
+  scheme: string;
+}
+
+export interface ReleaseBindingEndpoint {
+  name: string;
+  type?: string;
+  externalURLs?: Record<string, ReleaseBindingEndpointURLDetails>;
+  internalURLs?: Record<string, ReleaseBindingEndpointURLDetails>;
+  serviceURL?: ReleaseBindingEndpointURLDetails;
+}
+
 export interface ReleaseBindingResponse {
   name: string;
   componentName: string;
@@ -544,7 +559,7 @@ export interface ReleaseBindingResponse {
   /** Format: date-time */
   createdAt: string;
   status?: string;
-  endpoints?: { name: string; url: string }[];
+  endpoints?: ReleaseBindingEndpoint[];
 }
 
 export interface WorkloadOverrides {
