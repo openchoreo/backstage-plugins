@@ -53,6 +53,7 @@ const API_ENDPOINTS = {
   DEPLOY_RELEASE: '/deploy-release',
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
+  UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   ENVIRONMENT_RELEASE: '/environment-release',
   RESOURCE_TREE: '/resourcetree',
@@ -327,6 +328,40 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         params: entityMetadataToParams(metadata),
       },
     );
+  }
+
+  async updateReleaseBinding(
+    entity: Entity,
+    environment: string,
+    releaseName: string,
+    componentTypeEnvOverrides?: unknown,
+    traitOverrides?: unknown,
+    workloadOverrides?: any,
+  ): Promise<any> {
+    const { component, project, namespace } = extractEntityMetadata(entity);
+
+    const body: Record<string, unknown> = {
+      namespaceName: namespace,
+      projectName: project,
+      componentName: component,
+      environment,
+      releaseName,
+    };
+
+    if (componentTypeEnvOverrides !== undefined) {
+      body.componentTypeEnvOverrides = componentTypeEnvOverrides;
+    }
+    if (traitOverrides !== undefined) {
+      body.traitOverrides = traitOverrides;
+    }
+    if (workloadOverrides !== undefined) {
+      body.workloadOverrides = workloadOverrides;
+    }
+
+    return this.apiFetch(API_ENDPOINTS.UPDATE_RELEASE_BINDING, {
+      method: 'PUT',
+      body,
+    });
   }
 
   async patchReleaseBindingOverrides(

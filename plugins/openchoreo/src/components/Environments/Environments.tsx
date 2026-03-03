@@ -89,26 +89,16 @@ export const Environments = () => {
   );
 
   // Handler for when overrides are saved with a pending action
+  // The release binding was already created/updated by updateReleaseBinding
+  // in EnvironmentOverridesPage — just show success and refresh
   const handlePendingActionComplete = useCallback(
     async (pendingAction: PendingAction) => {
       try {
-        if (pendingAction.type === 'deploy') {
-          // Complete the deploy after overrides are saved
-          await client.deployRelease(entity, pendingAction.releaseName);
-          notification.showSuccess(
-            `Successfully deployed to ${pendingAction.targetEnvironment}`,
-          );
-        } else if (pendingAction.type === 'promote') {
-          // Complete the promote after overrides are saved
-          await client.promoteToEnvironment(
-            entity,
-            pendingAction.sourceEnvironment.toLowerCase(),
-            pendingAction.targetEnvironment.toLowerCase(),
-          );
-          notification.showSuccess(
-            `Successfully promoted to ${pendingAction.targetEnvironment}`,
-          );
-        }
+        const actionLabel =
+          pendingAction.type === 'deploy' ? 'deployed' : 'promoted';
+        notification.showSuccess(
+          `Successfully ${actionLabel} to ${pendingAction.targetEnvironment}`,
+        );
         refetch();
         navigateToList();
       } catch (err: any) {
@@ -118,7 +108,7 @@ export const Environments = () => {
         navigateToList();
       }
     },
-    [entity, client, notification, refetch, navigateToList],
+    [notification, refetch, navigateToList],
   );
 
   // Context value
