@@ -957,6 +957,11 @@ export class AuthzService {
           claim: b.spec?.entitlement?.claim ?? '',
           value: b.spec?.entitlement?.value ?? '',
         },
+        hierarchy: {
+          namespace,
+          project: b.spec?.targetPath?.project,
+          component: b.spec?.targetPath?.component,
+        },
         effect: b.spec?.effect ?? 'allow',
       }));
       const bindings = filters
@@ -1021,6 +1026,11 @@ export class AuthzService {
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          hierarchy: {
+            namespace,
+            project: (data as any).spec?.targetPath?.project,
+            component: (data as any).spec?.targetPath?.component,
           },
           effect: (data as any).spec?.effect ?? 'allow',
         },
@@ -1090,6 +1100,11 @@ export class AuthzService {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
           },
+          hierarchy: {
+            namespace: binding.namespace,
+            project: (data as any).spec?.targetPath?.project,
+            component: (data as any).spec?.targetPath?.component,
+          },
           effect: (data as any).spec?.effect ?? 'allow',
         },
       };
@@ -1155,6 +1170,11 @@ export class AuthzService {
           entitlement: {
             claim: (data as any).spec?.entitlement?.claim ?? '',
             value: (data as any).spec?.entitlement?.value ?? '',
+          },
+          hierarchy: {
+            namespace,
+            project: (data as any).spec?.targetPath?.project,
+            component: (data as any).spec?.targetPath?.component,
           },
           effect: (data as any).spec?.effect ?? 'allow',
         },
