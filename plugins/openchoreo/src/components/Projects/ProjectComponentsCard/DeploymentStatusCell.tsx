@@ -20,10 +20,7 @@ export const DeploymentStatusCell = ({
   return (
     <Box className={classes.deploymentStatus}>
       {environments.map(env => {
-        const deployment =
-          component.deploymentStatus?.[
-            env.name.toLowerCase() as keyof typeof component.deploymentStatus
-          ];
+        const deployment = component.deploymentStatus?.[env.name.toLowerCase()];
         const isDeployed = deployment?.isDeployed || false;
         const status = deployment?.status;
 
