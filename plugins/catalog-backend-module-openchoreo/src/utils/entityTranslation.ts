@@ -208,13 +208,13 @@ export function translateEnvironmentToEntity(
           name?: string;
           namespace?: string;
           http?: { host?: string; port?: number };
-          https?: { port?: number };
+          https?: { host?: string; port?: number };
         };
         internal?: {
           name?: string;
           namespace?: string;
           http?: { host?: string; port?: number };
-          https?: { port?: number };
+          https?: { host?: string; port?: number };
         };
       };
     };
