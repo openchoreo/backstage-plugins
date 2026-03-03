@@ -3,7 +3,14 @@ import {
   DiscoveryApi,
   FetchApi,
 } from '@backstage/core-plugin-api';
-import { Metrics, Trace, RCAReportSummary, RCAReportDetailed } from '../types';
+import {
+  Metrics,
+  Trace,
+  Span,
+  SpanDetails,
+  RCAReportSummary,
+  RCAReportDetailed,
+} from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
 
@@ -39,23 +46,44 @@ export interface ObservabilityApi {
   ): Promise<Metrics>;
 
   getTraces(
-    projectId: string,
-    environmentId: string,
-    environmentName: string,
     namespaceName: string,
     projectName: string,
-    componentUids: string[],
+    environmentName: string,
+    componentName?: string,
     options?: {
       limit?: number;
       startTime?: string;
       endTime?: string;
-      traceId?: string;
-      sortOrder?: 'asc' | 'desc';
+      sort?: 'asc' | 'desc';
     },
   ): Promise<{
     traces: Trace[];
+    total: number;
     tookMs: number;
   }>;
+
+  getTraceSpans(
+    traceId: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName?: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<{
+    spans: Span[];
+    total: number;
+    tookMs: number;
+  }>;
+
+  getSpanDetails(
+    traceId: string,
+    spanId: string,
+    namespaceName: string,
+    environmentName: string,
+  ): Promise<SpanDetails>;
 
   getRCAReports(
     namespaceName: string,
@@ -189,21 +217,19 @@ export class ObservabilityClient implements ObservabilityApi {
   }
 
   async getTraces(
-    projectId: string,
-    environmentId: string,
-    environmentName: string,
     namespaceName: string,
     projectName: string,
-    componentUids: string[],
+    environmentName: string,
+    componentName?: string,
     options?: {
       limit?: number;
       startTime?: string;
       endTime?: string;
-      traceId?: string;
-      sortOrder?: 'asc' | 'desc';
+      sort?: 'asc' | 'desc';
     },
   ): Promise<{
     traces: Trace[];
+    total: number;
     tookMs: number;
   }> {
     const { observerUrl } = await this.urlCache.resolveUrls(
@@ -211,23 +237,26 @@ export class ObservabilityClient implements ObservabilityApi {
       environmentName,
     );
 
-    const response = await this.fetchApi.fetch(`${observerUrl}/api/traces`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
-      body: JSON.stringify({
-        projectUid: projectId,
-        componentUids: componentUids.length > 0 ? componentUids : undefined,
-        environmentUid: environmentId,
-        traceId: options?.traceId,
-        startTime: options?.startTime,
-        endTime: options?.endTime,
-        limit: options?.limit || 100,
-        sortOrder: options?.sortOrder || 'desc',
-        projectName,
-        namespaceName,
-        environmentName,
-      }),
-    });
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/traces/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: options?.limit ?? 100,
+          sort: options?.sort ?? 'desc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            ...(componentName ? { component: componentName } : {}),
+            environment: environmentName,
+          },
+        }),
+      },
+    );
 
     if (!response.ok) {
       const error = await this.parseError(response);
@@ -241,8 +270,128 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const data = await response.json();
     return {
-      traces: data.traces || [],
-      tookMs: data.tookMs || 0,
+      traces: (data.traces ?? []).map((t: any) => ({
+        traceId: t.traceId ?? '',
+        traceName: t.traceName,
+        spanCount: t.spanCount ?? 0,
+        rootSpanId: t.rootSpanId,
+        rootSpanName: t.rootSpanName,
+        rootSpanKind: t.rootSpanKind,
+        startTime: t.startTime ?? '',
+        endTime: t.endTime ?? '',
+        durationNs: t.durationNs ?? 0,
+      })),
+      total: data.total ?? 0,
+      tookMs: data.tookMs ?? 0,
+    };
+  }
+
+  async getTraceSpans(
+    traceId: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName?: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+    },
+  ): Promise<{
+    spans: Span[];
+    total: number;
+    tookMs: number;
+  }> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/traces/${encodeURIComponent(
+        traceId,
+      )}/spans/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: 1000,
+          sort: 'asc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            ...(componentName ? { component: componentName } : {}),
+            environment: environmentName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error ||
+          `Failed to fetch spans for trace ${traceId}: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return {
+      spans: (data.spans ?? []).map((s: any) => ({
+        spanId: s.spanId ?? '',
+        spanName: s.spanName ?? '',
+        spanKind: s.spanKind,
+        startTime: s.startTime ?? '',
+        endTime: s.endTime ?? '',
+        durationNs: s.durationNs ?? 0,
+        parentSpanId: s.parentSpanId,
+      })),
+      total: data.total ?? 0,
+      tookMs: data.tookMs ?? 0,
+    };
+  }
+
+  async getSpanDetails(
+    traceId: string,
+    spanId: string,
+    namespaceName: string,
+    environmentName: string,
+  ): Promise<SpanDetails> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/traces/${encodeURIComponent(
+        traceId,
+      )}/spans/${encodeURIComponent(spanId)}`,
+      {
+        headers: { ...DIRECT_HEADER },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error ||
+          `Failed to fetch span details for span ${spanId}: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    return {
+      spanId: data.spanId ?? '',
+      spanName: data.spanName ?? '',
+      spanKind: data.spanKind,
+      startTime: data.startTime ?? '',
+      endTime: data.endTime ?? '',
+      durationNs: data.durationNs ?? 0,
+      parentSpanId: data.parentSpanId,
+      attributes: data.attributes,
+      resourceAttributes: data.resourceAttributes,
     };
   }
 

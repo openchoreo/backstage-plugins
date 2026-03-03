@@ -468,154 +468,282 @@ export class ObservabilityService {
   }
 
   /**
-   * Fetches traces for a specific project.
-   * This method dynamically resolves the observability URL from the main API,
-   * then fetches traces from the observability service.
+   * Fetches traces for a project/component using the v1alpha1 traces query endpoint.
    *
-   * @param projectId - The ID of the project
-   * @param environmentId - The ID of the environment
    * @param namespaceName - The namespace name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
-   * @param componentUids - Array of component UIDs to filter traces (optional)
+   * @param componentName - Optional component name to filter traces
    * @param options - Optional parameters for filtering traces
-   * @param options.limit - The maximum number of traces to return
-   * @param options.startTime - The start time of the traces
-   * @param options.endTime - The end time of the traces
-   * @param options.traceId - Trace ID to filter by (optional, supports wildcards)
-   * @param options.sortOrder - Sort order for traces (asc/desc)
-   * @param userToken - Optional user token for authentication (takes precedence over default token)
+   * @param options.limit - The maximum number of traces to return (default 100)
+   * @param options.startTime - The start time of the query (ISO 8601)
+   * @param options.endTime - The end time of the query (ISO 8601)
+   * @param options.sort - Sort order for traces (asc/desc, default desc)
+   * @param userToken - Optional user token for authentication
    * @returns Promise with traces data
    */
-  async fetchTracesByProject(
-    projectId: string,
-    environmentId: string,
+  async fetchTraces(
     namespaceName: string,
     projectName: string,
     environmentName: string,
-    componentUids: string[],
-    componentNames: string[],
+    componentName?: string,
     options?: {
       limit?: number;
       startTime?: string;
       endTime?: string;
-      traceId?: string;
-      sortOrder?: 'asc' | 'desc';
+      sort?: 'asc' | 'desc';
     },
     userToken?: string,
   ): Promise<{
-    traces: Array<{
-      traceId: string;
-      spans: Array<{
-        spanId: string;
-        name: string;
-        durationNanoseconds: number;
-        startTime: string;
-        endTime: string;
-        parentSpanId?: string;
-      }>;
-    }>;
+    traces: Array<
+      NonNullable<
+        ObservabilityComponents['schemas']['TracesQueryResponse']['traces']
+      >[number]
+    >;
+    total: number;
     tookMs: number;
   }> {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Fetching traces for project ${projectName} in environment ${
-          environmentName || 'all'
-        }`,
+        `Fetching traces for project ${projectName} in environment ${environmentName}`,
       );
 
-      // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
         namespaceName,
         environmentName,
         userToken,
       );
 
-      // Use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         userToken,
         this.logger,
       );
 
-      this.logger.debug(
-        `Sending traces request to ${observerUrl}/api/traces for project ${projectId} with limit: ${
-          options?.limit || 100
-        }`,
-      );
-
       if (!options?.startTime || !options?.endTime) {
         throw new Error('startTime and endTime are required to fetch traces');
       }
 
-      const requestBody = {
-        projectUid: projectId,
-        componentUids: componentUids.length > 0 ? componentUids : undefined,
-        environmentUid: environmentId,
-        traceId: options?.traceId,
-        startTime: options.startTime,
-        endTime: options.endTime,
-        limit: options?.limit || 100,
-        sortOrder: options?.sortOrder || 'desc',
-        componentNames,
-        projectName,
-        namespaceName,
-        environmentName,
-      };
-
-      this.logger.debug(
-        `Calling POST ${observerUrl}/api/traces with body: ${JSON.stringify(
-          requestBody,
-        )}`,
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1alpha1/traces/query',
+        {
+          body: {
+            startTime: options.startTime,
+            endTime: options.endTime,
+            limit: options?.limit ?? 100,
+            sort: options?.sort ?? 'desc',
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              ...(componentName ? { component: componentName } : {}),
+              environment: environmentName,
+            },
+          },
+        },
       );
-
-      const { data, error, response } = await obsClient.POST('/api/traces', {
-        body: requestBody,
-      });
 
       if (error || !response.ok) {
         const errorMessage = extractErrorMessage(error, response);
-        const fullUrl = `${observerUrl}/api/traces`;
         this.logger.error(
-          `Failed to fetch traces for project ${projectId} from ${fullUrl}: ${errorMessage}`,
+          `Failed to fetch traces for project ${projectName}: ${errorMessage}`,
         );
-        throw new Error(
-          `Failed to fetch traces from ${fullUrl}: ${errorMessage}`,
-        );
+        throw new Error(`Failed to fetch traces: ${errorMessage}`);
       }
-
-      this.logger.debug(
-        `Successfully fetched traces for project ${projectId}: ${
-          data?.traces?.length || 0
-        } traces`,
-      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Traces fetch completed for project ${projectId} (${totalTime}ms)`,
+        `Traces fetch completed for project ${projectName}: ${
+          data?.traces?.length ?? 0
+        } traces (${totalTime}ms)`,
       );
 
       return {
-        traces:
-          data?.traces?.map(trace => ({
-            traceId: trace.traceId!,
-            spans:
-              trace.spans?.map(span => ({
-                spanId: span.spanId!,
-                name: span.name!,
-                durationNanoseconds: span.durationNanoseconds!,
-                startTime: span.startTime!,
-                endTime: span.endTime!,
-                parentSpanId: span.parentSpanId ?? undefined,
-              })) || [],
-          })) || [],
-        tookMs: data?.tookMs || 0,
+        traces: data?.traces ?? [],
+        total: data?.total ?? 0,
+        tookMs: data?.tookMs ?? 0,
       };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching traces for project ${projectId} (${totalTime}ms):`,
+        `Error fetching traces for project ${projectName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches spans for a specific trace using the v1alpha1 spans query endpoint.
+   *
+   * @param traceId - The ID of the trace
+   * @param namespaceName - The namespace name
+   * @param projectName - The project name
+   * @param environmentName - The name of the environment
+   * @param componentName - Optional component name
+   * @param options - Optional parameters
+   * @param options.startTime - The start time of the query (ISO 8601)
+   * @param options.endTime - The end time of the query (ISO 8601)
+   * @param userToken - Optional user token for authentication
+   * @returns Promise with spans data
+   */
+  async fetchTraceSpans(
+    traceId: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName?: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+    },
+    userToken?: string,
+  ): Promise<{
+    spans: Array<
+      NonNullable<
+        ObservabilityComponents['schemas']['TraceSpansQueryResponse']['spans']
+      >[number]
+    >;
+    total: number;
+    tookMs: number;
+  }> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching spans for trace ${traceId} in environment ${environmentName}`,
+      );
+
+      const observerUrl = await this.resolveObserverUrl(
+        namespaceName,
+        environmentName,
+        userToken,
+      );
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        userToken,
+        this.logger,
+      );
+
+      if (!options?.startTime || !options?.endTime) {
+        throw new Error(
+          'startTime and endTime are required to fetch trace spans',
+        );
+      }
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1alpha1/traces/{traceId}/spans/query',
+        {
+          params: { path: { traceId } },
+          body: {
+            startTime: options.startTime,
+            endTime: options.endTime,
+            limit: 1000,
+            sort: 'asc',
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              ...(componentName ? { component: componentName } : {}),
+              environment: environmentName,
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMessage = extractErrorMessage(error, response);
+        this.logger.error(
+          `Failed to fetch spans for trace ${traceId}: ${errorMessage}`,
+        );
+        throw new Error(
+          `Failed to fetch spans for trace ${traceId}: ${errorMessage}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Spans fetch completed for trace ${traceId}: ${
+          data?.spans?.length ?? 0
+        } spans (${totalTime}ms)`,
+      );
+
+      return {
+        spans: data?.spans ?? [],
+        total: data?.total ?? 0,
+        tookMs: data?.tookMs ?? 0,
+      };
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching spans for trace ${traceId} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches details for a specific span, including attributes.
+   *
+   * @param traceId - The ID of the trace
+   * @param spanId - The ID of the span
+   * @param namespaceName - The namespace name
+   * @param environmentName - The name of the environment
+   * @param userToken - Optional user token for authentication
+   * @returns Promise with span details including attributes
+   */
+  async fetchSpanDetails(
+    traceId: string,
+    spanId: string,
+    namespaceName: string,
+    environmentName: string,
+    userToken?: string,
+  ): Promise<ObservabilityComponents['schemas']['TraceSpanDetailsResponse']> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching details for span ${spanId} in trace ${traceId}`,
+      );
+
+      const observerUrl = await this.resolveObserverUrl(
+        namespaceName,
+        environmentName,
+        userToken,
+      );
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        userToken,
+        this.logger,
+      );
+
+      const { data, error, response } = await obsClient.GET(
+        '/api/v1alpha1/traces/{traceId}/spans/{spanId}',
+        {
+          params: { path: { traceId, spanId } },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMessage = extractErrorMessage(error, response);
+        this.logger.error(
+          `Failed to fetch details for span ${spanId}: ${errorMessage}`,
+        );
+        throw new Error(
+          `Failed to fetch span details for span ${spanId}: ${errorMessage}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Span details fetch completed for span ${spanId} (${totalTime}ms)`,
+      );
+
+      return data ?? {};
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching span details for span ${spanId} (${totalTime}ms):`,
         error as Error,
       );
       throw error;

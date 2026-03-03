@@ -22,7 +22,9 @@ describe('createRouter', () => {
     observabilityService = {
       fetchMetricsByComponent: jest.fn(),
       fetchEnvironmentsByNamespace: jest.fn(),
-      fetchTracesByProject: jest.fn(),
+      fetchTraces: jest.fn(),
+      fetchTraceSpans: jest.fn(),
+      fetchSpanDetails: jest.fn(),
       fetchRuntimeLogsByComponent: jest.fn(),
       resolveUrls: jest.fn(),
     };

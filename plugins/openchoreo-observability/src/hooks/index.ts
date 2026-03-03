@@ -4,6 +4,8 @@ export { useFilters } from './useFilters';
 export { useUrlFilters } from './useUrlFilters';
 export { useMetrics } from './useMetrics';
 export { useTraces } from './useTraces';
+export { useTraceSpans } from './useTraceSpans';
+export { useSpanDetails } from './useSpanDetails';
 export { useGetComponentsByProject } from './useGetComponentsByProject';
 export { useRCAReport, useRCAReportByAlert } from './useRCAReportByAlert';
 export { useRCAReports } from './useRCAReports';

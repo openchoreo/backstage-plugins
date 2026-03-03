@@ -40,21 +40,30 @@ export type Metrics = {
 };
 
 export interface Span {
-  durationNanoseconds: number;
-  endTime: string;
-  name: string;
   spanId: string;
+  spanName: string;
+  spanKind?: string;
   startTime: string;
+  endTime: string;
+  durationNs: number;
   parentSpanId?: string;
+}
+
+export interface SpanDetails extends Span {
+  attributes?: Record<string, unknown>;
+  resourceAttributes?: Record<string, unknown>;
 }
 
 export interface Trace {
   traceId: string;
+  traceName?: string;
+  spanCount: number;
+  rootSpanId?: string;
+  rootSpanName?: string;
+  rootSpanKind?: string;
   startTime: string;
   endTime: string;
-  durationNanoseconds: number;
-  numberOfSpans: number;
-  spans: Span[];
+  durationNs: number;
 }
 
 export interface TimeRangeOption {

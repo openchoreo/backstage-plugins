@@ -7721,6 +7721,11 @@ export interface operations {
       query?: {
         /** @description Filter logs by task name */
         task?: string;
+        /**
+         * @deprecated
+         * @description Deprecated alias for task. Use task instead.
+         */
+        step?: string;
         /** @description Return logs newer than a relative duration in seconds */
         sinceSeconds?: number;
       };
@@ -7755,6 +7760,11 @@ export interface operations {
       query?: {
         /** @description Filter events by task name */
         task?: string;
+        /**
+         * @deprecated
+         * @description Deprecated alias for task. Use task instead.
+         */
+        step?: string;
       };
       header?: never;
       path: {

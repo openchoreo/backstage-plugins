@@ -107,7 +107,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/traces': {
+  '/api/v1alpha1/traces/query': {
     parameters: {
       query?: never;
       header?: never;
@@ -117,10 +117,50 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get traces
-     * @description Retrieve distributed traces
+     * Query traces
+     * @description Query traces from the observer service
      */
-    post: operations['getTraces'];
+    post: operations['queryTraces'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/traces/{traceId}/spans/query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Query spans for a trace
+     * @description Query spans for a trace from the observer service
+     */
+    post: operations['querySpansForTrace'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/traces/{traceId}/spans/{spanId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get details of a span for a trace
+     * @description Get details of a span for a trace from the observer service
+     */
+    get: operations['getSpanDetailsForTrace'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -285,174 +325,114 @@ export interface components {
     MetricsQueryResponse:
       | components['schemas']['ResourceMetricsTimeSeries']
       | components['schemas']['HttpMetricsTimeSeries'];
-    TracesRequest: {
-      /**
-       * Format: uuid
-       * @description Project UID (required)
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      projectUid: string;
-      /**
-       * @description Array of component UIDs to filter traces (optional)
-       * @example [
-       *       "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
-       *       "3f7b9e1a-4c6d-4e8f-a2b5-7d1c3e8f4a9b"
-       *     ]
-       */
-      componentUids?: string[];
-      /**
-       * Format: uuid
-       * @description Environment UID to filter traces (optional)
-       * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
-       */
-      environmentUid?: string;
-      /**
-       * @description Trace ID to filter by (optional). Supports wildcard characters:
-       *     - `*` matches zero or more characters
-       *     - `?` matches exactly one character
-       *
-       *     Examples:
-       *     - Exact match: `63d7c3065ab25375e6c5d6bb135a77db`
-       *     - Prefix match: `63d7c3065ab2537*`
-       *     - Suffix match: `*135a77db`
-       *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
-       *
-       * @example 63d7c3065ab25375*
-       */
-      traceId?: string;
+    TracesQueryRequest: {
       /**
        * Format: date-time
-       * @description Start time for trace query in RFC3339 format (required)
-       * @example 2025-01-10T00:00:00Z
+       * @description The start time of the query
        */
       startTime: string;
       /**
        * Format: date-time
-       * @description End time for trace query in RFC3339 format (required)
-       * @example 2025-01-10T23:59:59Z
+       * @description The end time of the query
        */
       endTime: string;
       /**
-       * @description Maximum number of traces to return
+       * @description The maximum number of items to return
        * @default 100
-       * @example 100
        */
       limit: number;
       /**
-       * @description Sort order for traces
+       * @description The sort order of the query
        * @default desc
-       * @example desc
        * @enum {string}
        */
-      sortOrder: 'asc' | 'desc';
-      /**
-       * @description Component names to filter traces
-       * @example [
-       *       "my-component",
-       *       "my-component-2"
-       *     ]
-       */
-      componentNames: string[];
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Environment name
-       * @example my-environment
-       */
-      environmentName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
+      sort: 'asc' | 'desc';
+      searchScope: components['schemas']['ComponentSearchScope'];
     };
-    /** @example {
-     *       "traces": [
-     *         {
-     *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
-     *           "spans": [
-     *             {
-     *               "spanId": "ad3537e3f48207d0",
-     *               "name": "lets-go",
-     *               "durationNanoseconds": 12300000,
-     *               "startTime": "2025-12-03T09:16:56.84456548Z",
-     *               "endTime": "2025-12-03T09:16:56.84468848Z",
-     *               "parentSpanId": "",
-     *               "openchoreoComponentUid": "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
-     *               "openchoreoProjectUid": "1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b"
-     *             }
-     *           ]
-     *         }
-     *       ],
-     *       "tookMs": 15
-     *     } */
-    TraceResponse: {
-      /** @description Array of traces with their spans */
-      traces?: components['schemas']['Trace'][];
-      /**
-       * @description Query execution time in milliseconds
-       * @example 15
-       */
+    TracesQueryResponse: {
+      /** @description The list of traces */
+      traces?: {
+        /** @description The trace ID */
+        traceId?: string;
+        /** @description The name of the trace */
+        traceName?: string;
+        /** @description The number of spans in the trace */
+        spanCount?: number;
+        rootSpanId?: string;
+        rootSpanName?: string;
+        rootSpanKind?: string;
+        /**
+         * Format: date-time
+         * @description The start time of the trace
+         */
+        startTime?: string;
+        /**
+         * Format: date-time
+         * @description The end time of the trace
+         */
+        endTime?: string;
+        /** @description The duration of the trace in nanoseconds */
+        durationNs?: number;
+      }[];
+      /** @description The total number of traces */
+      total?: number;
+      /** @description The time taken to query the traces in milliseconds */
       tookMs?: number;
     };
-    Trace: {
-      /**
-       * @description Unique trace identifier (32 hexadecimal characters)
-       * @example f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8
-       */
-      traceId?: string;
-      /** @description Array of spans belonging to this trace */
-      spans?: components['schemas']['Span'][];
+    TraceSpansQueryResponse: {
+      /** @description The list of spans */
+      spans?: {
+        /** @description The span ID */
+        spanId?: string;
+        /** @description The name of the span */
+        spanName?: string;
+        /** @description The name of the span */
+        spanKind?: string;
+        /**
+         * Format: date-time
+         * @description The start time of the span
+         */
+        startTime?: string;
+        /**
+         * Format: date-time
+         * @description The end time of the span
+         */
+        endTime?: string;
+        /** @description The duration of the span in nanoseconds */
+        durationNs?: number;
+        /** @description The parent span ID */
+        parentSpanId?: string;
+      }[];
+      /** @description The total number of spans */
+      total?: number;
+      /** @description The time taken to query the spans in milliseconds */
+      tookMs?: number;
     };
-    Span: {
-      /**
-       * @description Unique span identifier (16 hex characters)
-       * @example ad3537e3f48207d0
-       */
+    TraceSpanDetailsResponse: {
+      /** @description The span ID */
       spanId?: string;
-      /**
-       * @description Span name/operation
-       * @example database-query
-       */
-      name?: string;
-      /**
-       * Format: int64
-       * @description Span duration in nanoseconds (calculated from endTime - startTime)
-       * @example 101018208
-       */
-      durationNanoseconds?: number;
+      /** @description The name of the span */
+      spanName?: string;
       /**
        * Format: date-time
-       * @description Span start time in RFC3339Nano format
-       * @example 2025-10-28T11:13:56.484388Z
+       * @description The start time of the span
        */
       startTime?: string;
       /**
        * Format: date-time
-       * @description Span end time in RFC3339Nano format
-       * @example 2025-10-28T11:13:56.585406208Z
+       * @description The end time of the span
        */
       endTime?: string;
-      /**
-       * @description Parent span identifier (empty if root span)
-       * @example b72e731db5edfd1d
-       */
+      /** @description The duration of the span in nanoseconds */
+      durationNs?: number;
+      /** @description The parent span ID */
       parentSpanId?: string;
-      /**
-       * Format: uuid
-       * @description OpenChoreo component UID from resource attributes
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
-       */
-      openchoreoComponentUid?: string;
-      /**
-       * Format: uuid
-       * @description OpenChoreo project UID from resource attributes
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      openchoreoProjectUid?: string;
+      attributes?: {
+        /** @description The key of the attribute */
+        key?: string;
+        /** @description The value of the attribute */
+        value?: string;
+      }[];
     };
     ErrorResponse: {
       /**
@@ -830,7 +810,7 @@ export interface operations {
       };
     };
   };
-  getTraces: {
+  queryTraces: {
     parameters: {
       query?: never;
       header?: never;
@@ -839,20 +819,20 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['TracesRequest'];
+        'application/json': components['schemas']['TracesQueryRequest'];
       };
     };
     responses: {
-      /** @description Successfully retrieved component traces */
+      /** @description Traces queried successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['TraceResponse'];
+          'application/json': components['schemas']['TracesQueryResponse'];
         };
       };
-      /** @description Bad request - invalid parameters */
+      /** @description Invalid request */
       400: {
         headers: {
           [name: string]: unknown;
@@ -861,7 +841,149 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Internal server error */
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  querySpansForTrace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The ID of the trace */
+        traceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TracesQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Spans queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TraceSpansQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  getSpanDetailsForTrace: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The ID of the trace */
+        traceId: string;
+        /** @description The ID of the span */
+        spanId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Span details queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TraceSpanDetailsResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;
