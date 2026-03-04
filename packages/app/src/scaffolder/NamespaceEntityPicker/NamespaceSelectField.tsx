@@ -54,12 +54,13 @@ export const NamespaceSelectField = ({
           filter: { kind: 'Domain' },
         });
         const active = items.filter(
-          e =>
-            !e.metadata.annotations?.[CHOREO_ANNOTATIONS.DELETION_TIMESTAMP],
+          e => !e.metadata.annotations?.[CHOREO_ANNOTATIONS.DELETION_TIMESTAMP],
         );
         const list: NamespaceOption[] = active.map(e => ({
           name: e.metadata.name,
-          entityRef: `domain:${e.metadata.namespace || 'default'}/${e.metadata.name}`,
+          entityRef: `domain:${e.metadata.namespace || 'default'}/${
+            e.metadata.name
+          }`,
           displayName: e.metadata.title || e.metadata.name,
         }));
         if (ignore) return;

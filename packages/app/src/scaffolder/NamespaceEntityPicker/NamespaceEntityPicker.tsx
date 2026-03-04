@@ -1,7 +1,10 @@
 import { useCallback, useRef } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import { useScaffolderPreselection } from '../ScaffolderPreselectionContext';
-import { NamespaceSelectField, type NamespaceOption } from './NamespaceSelectField';
+import {
+  NamespaceSelectField,
+  type NamespaceOption,
+} from './NamespaceSelectField';
 
 /**
  * Scaffolder field extension for selecting a namespace (Domain entity).
@@ -48,9 +51,7 @@ export const NamespaceEntityPicker = ({
       onChange={onChange}
       label={schema?.title ?? 'Namespace'}
       helperText={
-        hasError
-          ? rawErrors?.[0]
-          : 'Select the namespace for this resource'
+        hasError ? rawErrors?.[0] : 'Select the namespace for this resource'
       }
       required={required}
       error={hasError}

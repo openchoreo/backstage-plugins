@@ -36,7 +36,9 @@ export const ScaffolderNamespacePicker = () => {
 
   const filteredNamespaces = filters.namespace?.values;
   const [selectedNamespaces, setSelectedNamespaces] = useState<string[]>(
-    queryParamNamespaces.length ? queryParamNamespaces : filteredNamespaces ?? [],
+    queryParamNamespaces.length
+      ? queryParamNamespaces
+      : filteredNamespaces ?? [],
   );
 
   useEffect(() => {
