@@ -8,6 +8,12 @@ import { ObserverUrlCache } from './ObserverUrlCache';
 
 export type ChatMessage = { role: string; content: string };
 export type StreamEvent = AIRCAAgentComponents['schemas']['StreamEvent'];
+export type RecommendedAction =
+  AIRCAAgentComponents['schemas']['RecommendedAction'];
+export type ResourceChange = AIRCAAgentComponents['schemas']['ResourceChange'];
+export type EnvVarChange = AIRCAAgentComponents['schemas']['EnvVarChange'];
+export type FileChange = AIRCAAgentComponents['schemas']['FileChange'];
+export type FieldChange = AIRCAAgentComponents['schemas']['FieldChange'];
 
 export interface ChatRoutingContext {
   namespaceName: string;
@@ -28,6 +34,12 @@ export interface RCAAgentApi {
     routing: ChatRoutingContext,
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
+  ): Promise<void>;
+
+  markActionsApplied(
+    reportId: string,
+    routing: ChatRoutingContext,
+    appliedIndices: number[],
   ): Promise<void>;
 }
 
@@ -127,6 +139,40 @@ export class RCAAgentClient implements RCAAgentApi {
       }
     } finally {
       reader.releaseLock();
+    }
+  }
+
+  async markActionsApplied(
+    reportId: string,
+    routing: ChatRoutingContext,
+    appliedIndices: number[],
+  ): Promise<void> {
+    const { rcaAgentUrl } = await this.urlCache.resolveUrls(
+      routing.namespaceName,
+      routing.environmentName,
+    );
+
+    if (!rcaAgentUrl) {
+      throw new Error('RCA service is not configured');
+    }
+
+    const response = await this.fetchApi.fetch(
+      `${rcaAgentUrl}/api/v1/rca-agent/reports/${encodeURIComponent(reportId)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ appliedIndices }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-openchoreo-direct': 'true',
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        error.error || `Update report failed: ${response.statusText}`,
+      );
     }
   }
 }

@@ -27,6 +27,8 @@ describe('createRouter', () => {
       fetchSpanDetails: jest.fn(),
       fetchRuntimeLogsByComponent: jest.fn(),
       resolveUrls: jest.fn(),
+      getReleaseBinding: jest.fn(),
+      updateReleaseBinding: jest.fn(),
     };
     tokenService = {
       getUserToken: jest.fn().mockReturnValue(undefined),

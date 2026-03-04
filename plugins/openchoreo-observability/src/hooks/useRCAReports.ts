@@ -18,7 +18,10 @@ export function useRCAReports(filters: Filters, entity: Entity) {
   const projectName = entity.metadata.name as string;
 
   const fetchReports = useCallback(async () => {
-    if (!filters.environment || !filters.timeRange) {
+    if (!filters.environment || !filters.timeRange || !namespace) {
+      setReports([]);
+      setTotalCount(undefined);
+      setError(null);
       return;
     }
 
@@ -58,13 +61,10 @@ export function useRCAReports(filters: Filters, entity: Entity) {
     projectName,
   ]);
 
-  // Auto-fetch reports when filters change
+  // Auto-fetch reports when filters or entity scope change
   useEffect(() => {
-    if (filters.environment && filters.timeRange) {
-      fetchReports();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.environment, filters.timeRange, filters.rcaStatus]);
+    fetchReports();
+  }, [fetchReports]);
 
   const refresh = useCallback(() => {
     fetchReports();

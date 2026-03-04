@@ -496,4 +496,61 @@ export const useRCAReportStyles = makeStyles(theme => ({
     borderTop: `1px solid ${theme.palette.divider}`,
     margin: theme.spacing(2, 0),
   },
+  fixesPanelWrapper: {
+    maxHeight: `calc(100vh - 240px)`,
+    marginBottom: theme.spacing(1),
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  fixesPanel: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    '& > div:first-child': {
+      alignItems: 'center',
+    },
+    '& > div:last-child': {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'auto',
+      padding: 0,
+    },
+  },
+  fixesContent: {
+    flex: 1,
+    overflow: 'auto',
+    padding: theme.spacing(2),
+  },
+  patchActionCard: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: theme.spacing(1.5),
+    marginBottom: theme.spacing(1.5),
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    overflow: 'hidden',
+    padding: theme.spacing(2),
+    '&:last-child': {
+      marginBottom: 0,
+    },
+  },
+  patchActionDescription: {
+    fontWeight: 500,
+    fontSize: theme.typography.body2.fontSize,
+    color: theme.palette.text.primary,
+    lineHeight: 1.4,
+  },
+  patchActionFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing(1),
+  },
+  patchResultDetails: {
+    fontSize: theme.typography.caption.fontSize,
+    color: theme.palette.text.secondary,
+    fontStyle: 'italic',
+  },
 }));

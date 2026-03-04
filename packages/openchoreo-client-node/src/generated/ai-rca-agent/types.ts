@@ -79,7 +79,13 @@ export interface paths {
     };
     /** Get RCA report by report ID */
     get: operations['getRCAReport'];
-    put?: never;
+    /**
+     * Update report state (mark actions as applied)
+     * @description Marks the specified remediation actions as `applied` in the stored report.
+     *     Called by the frontend after successfully applying fixes client-side.
+     *
+     */
+    put: operations['updateReport'];
     post?: never;
     delete?: never;
     options?: never;
@@ -367,14 +373,52 @@ export interface components {
        * @default suggested
        * @enum {string}
        */
-      status: 'suggested' | 'unchanged' | 'revised';
+      status: 'suggested' | 'revised' | 'applied';
       /** @default [] */
       changes: components['schemas']['ResourceChange'][];
     };
     ResourceChange: {
-      resource: string;
-      field_path: string;
+      /** @description Name of the ReleaseBinding to modify */
+      release_binding: string;
+      /**
+       * @description Environment variable changes, identified by key name
+       * @default []
+       */
+      env: components['schemas']['EnvVarChange'][];
+      /**
+       * @description File mount changes, identified by key name
+       * @default []
+       */
+      files: components['schemas']['FileChange'][];
+      /**
+       * @description Field-level changes for non-array paths (trait overrides, componentType overrides)
+       * @default []
+       */
+      fields: components['schemas']['FieldChange'][];
+    };
+    EnvVarChange: {
+      /** @description Environment variable name (e.g. POSTGRES_DSN) */
+      key: string;
+      /** @description New value for the environment variable */
       value: string;
+    };
+    FileChange: {
+      /** @description File key (e.g. config.yaml) */
+      key: string;
+      /** @description New file content */
+      value?: string;
+      /** @description New mount path (e.g. /app/) */
+      mount_path?: string;
+    };
+    FieldChange: {
+      /** @description RFC 6901 JSON Pointer for non-array fields. Example: /spec/traitOverrides/my-trait/enabled */
+      json_pointer: string;
+      /** @description Value to set at the JSON Pointer location */
+      value: string | number | boolean | Record<string, never> | unknown[];
+    };
+    ReportUpdateRequest: {
+      /** @description Indices of the recommended actions to mark as applied */
+      appliedIndices: number[];
     };
   };
   responses: never;
@@ -576,6 +620,62 @@ export interface operations {
         };
       };
       /** @description Unauthorized - invalid or missing authentication */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Report not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  updateReport: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        report_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReportUpdateRequest'];
+      };
+    };
+    responses: {
+      /** @description Report updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            /** @enum {string} */
+            status: 'ok';
+          };
+        };
+      };
+      /** @description Unauthorized */
       401: {
         headers: {
           [name: string]: unknown;

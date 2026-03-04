@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Typography } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
@@ -10,7 +11,7 @@ import {
 } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RCAReportView } from './RCAReport/RCAReportView';
-import { useApi } from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { rcaAgentApiRef } from '../../api/RCAAgentApi';
 
 export const RCAReport = () => {
@@ -19,6 +20,7 @@ export const RCAReport = () => {
   const { entity } = useEntity();
   const { filters } = useFilters();
   const rcaAgentApi = useApi(rcaAgentApiRef);
+  const discoveryApi = useApi(discoveryApiRef);
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   // Get environments to ensure we have environment data
@@ -31,12 +33,20 @@ export const RCAReport = () => {
     error,
   } = useRCAReport(reportId, environment?.name, entity);
 
-  // Chat context for RCAReportView
+  const [backendBaseUrl, setBackendBaseUrl] = useState<string | undefined>();
+  useEffect(() => {
+    discoveryApi
+      .getBaseUrl('openchoreo-observability-backend')
+      .then(setBackendBaseUrl)
+      .catch(() => {});
+  }, [discoveryApi]);
+
   const chatContext = {
     namespaceName: namespace || '',
     environmentName: environment?.name || '',
     projectName: entity.metadata.name as string,
     rcaAgentApi,
+    backendBaseUrl,
   };
 
   if (loading) {

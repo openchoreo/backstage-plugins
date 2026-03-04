@@ -20,6 +20,8 @@ export function useRCAReport(
 
   const fetchReport = useCallback(async () => {
     if (!reportId || !environmentName) {
+      setReport(null);
+      setError(null);
       return;
     }
 
@@ -47,9 +49,12 @@ export function useRCAReport(
   useEffect(() => {
     if (reportId && environmentName) {
       fetchReport();
+    } else {
+      setReport(null);
+      setError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportId, environmentName]);
+  }, [reportId, environmentName, namespace]);
 
   return {
     report,
