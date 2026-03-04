@@ -2,56 +2,62 @@ apiVersion: scaffolder.backstage.io/v1beta3
 kind: Template
 metadata:
   name: create-openchoreo-componentworkflow
-  title: ComponentWorkflow
-  description: Define a build workflow for how components are built and delivered.
+  title: Workflow
+  description: Define a template for running standalone automation tasks in OpenChoreo
 spec:
   owner: openchoreo-users
-  type: ComponentWorkflow
+  type: Workflow
   # Enable user token injection for user-based authorization at OpenChoreo API
   EXPERIMENTAL_formDecorators:
     - id: openchoreo:inject-user-token
   parameters:
-    - title: ComponentWorkflow Metadata
+    - title: Workflow Metadata
       required:
         - namespace_name
         - componentworkflow_name
       properties:
         componentworkflow_name:
-          title: ComponentWorkflow Name
+          title: Workflow Name
           type: string
-          description: Unique name for your component workflow (must be a valid Kubernetes name)
+          description: Unique name for your workflow (must be a valid Kubernetes name)
           ui:field: ResourceNamePicker
           ui:options:
-            catalogKind: ComponentWorkflow
-            resourceLabel: ComponentWorkflow
+            catalogKind: Workflow
+            resourceLabel: Workflow
             namespaceField: namespace_name
         namespace_name:
           title: Namespace Name
           type: string
           description: Namespace where the component workflow will be created
           ui:field: NamespaceEntityPicker
+        is_component_workflow:
+          title: Component Workflow
+          type: boolean
+          default: false
+          description: Mark this workflow as a component workflow to scope it for component-level automation
+          ui:field: SwitchField
         description:
           title: Description
           type: string
-          description: Describe what this ComponentWorkflow is for
-    - title: ComponentWorkflow Definition
+          description: Describe what this Workflow is for
+    - title: Workflow Definition
       required:
         - yaml_definition
       properties:
         yaml_definition:
-          title: ComponentWorkflow YAML
+          title: Workflow YAML
           type: string
-          description: Edit the ComponentWorkflow YAML definition
+          description: Edit the Workflow YAML definition
           ui:field: ComponentWorkflowYamlEditor
   steps:
     - id: create-openchoreo-componentworkflow
-      name: Create OpenChoreo ComponentWorkflow
+      name: Create OpenChoreo Workflow
       action: openchoreo:componentworkflow-definition:create
       input:
         namespaceName: ${{ parameters.namespace_name }}
         yamlContent: ${{ parameters.yaml_definition }}
   output:
     links:
-      - title: View ComponentWorkflow
+      - title: View Workflow
         icon: catalog
         entityRef: ${{ steps['create-openchoreo-componentworkflow'].output.entityRef }}
