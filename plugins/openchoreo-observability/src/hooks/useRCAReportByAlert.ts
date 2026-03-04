@@ -20,6 +20,7 @@ export function useRCAReport(
 
   const fetchReport = useCallback(async () => {
     if (!reportId || !environmentName) {
+      setLoading(false);
       setReport(null);
       setError(null);
       return;
@@ -50,6 +51,7 @@ export function useRCAReport(
     if (reportId && environmentName) {
       fetchReport();
     } else {
+      setLoading(false);
       setReport(null);
       setError(null);
     }

@@ -250,9 +250,9 @@ export interface components {
       source_query?: string | null;
       source_metric?: string | null;
       condition: components['schemas']['ReportAlertCondition'];
-      component_uid: string;
-      project_uid: string;
-      environment_uid: string;
+      component: string;
+      project: string;
+      environment: string;
     };
     ReportAlertCondition: {
       window: string;
@@ -295,7 +295,7 @@ export interface components {
     };
     Finding: {
       observation: string;
-      component_uid: string;
+      component: string;
       time_range: components['schemas']['TimeRange'];
       evidence:
         | components['schemas']['LogEvidence']
@@ -318,8 +318,8 @@ export interface components {
     LogLine: {
       timestamp: string;
       /** @enum {string} */
-      level: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG';
-      message: string;
+      level: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'UNDEFINED';
+      log: string;
     };
     MetricEvidence: {
       /**
@@ -336,7 +336,7 @@ export interface components {
        */
       type: 'trace';
       trace_id: string;
-      span_id: string;
+      span_id?: string | null;
       summary: string;
       /** @default false */
       is_error: boolean;
@@ -345,7 +345,7 @@ export interface components {
     };
     TimelineEvent: {
       timestamp: string;
-      component_uid?: string | null;
+      component?: string | null;
       event: string;
     };
     InvestigationStep: {

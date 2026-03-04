@@ -395,7 +395,7 @@ const LogEvidenceComponent = ({
             >
               {line.level}
             </span>
-            <span className={classes.logMessageText}>{line.message}</span>
+            <span className={classes.logMessageText}>{line.log}</span>
           </Box>
           <Divider className={classes.logLineDivider} />
         </Fragment>
@@ -552,7 +552,7 @@ const FindingCard = ({
           {evidence?.type &&
             getEvidenceTypeWithComponent(
               evidence.type,
-              finding.component_uid,
+              finding.component,
               classes,
             )}
           {finding.time_range && (
