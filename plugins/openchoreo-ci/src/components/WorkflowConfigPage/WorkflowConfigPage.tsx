@@ -13,7 +13,7 @@ import Form from '@rjsf/material-ui';
 import validator from '@rjsf/validator-ajv8';
 import { RJSFValidationError } from '@rjsf/utils';
 import { JSONSchema7 } from 'json-schema';
-import { useApi } from '@backstage/core-plugin-api';
+import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { openChoreoCiClientApiRef } from '../../api/OpenChoreoCiClientApi';
 import {
@@ -36,7 +36,6 @@ import { useStyles } from './styles';
 
 interface WorkflowConfigPageProps {
   workflowName: string;
-  systemParameters: { [key: string]: unknown } | null;
   parameters?: { [key: string]: unknown } | null;
   onBack: () => void;
   onSaved: () => void;
@@ -44,7 +43,6 @@ interface WorkflowConfigPageProps {
 
 export const WorkflowConfigPage = ({
   workflowName,
-  systemParameters,
   parameters,
   onBack,
   onSaved,
@@ -52,6 +50,7 @@ export const WorkflowConfigPage = ({
   const classes = useStyles();
   const { entity } = useEntity();
   const client = useApi(openChoreoCiClientApiRef);
+  const alertApi = useApi(alertApiRef);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -87,45 +86,24 @@ export const WorkflowConfigPage = ({
         workflowName,
       );
 
-      if (schemaResponse.success && schemaResponse.data) {
-        const rawSchema = schemaResponse.data as JSONSchema7;
+      // The backend returns the raw JSON Schema directly (or a {success, data} wrapper for legacy responses)
+      const rawSchema = (
+        schemaResponse.success !== undefined && schemaResponse.data
+          ? schemaResponse.data
+          : schemaResponse
+      ) as JSONSchema7;
 
-        // Remove commit property from systemParameters.repository.revision if it exists
-        const revisionProperties = (
-          rawSchema.properties?.systemParameters as JSONSchema7
-        )?.properties?.repository as JSONSchema7 | undefined;
-
-        if (
-          revisionProperties?.properties?.revision &&
-          typeof revisionProperties.properties.revision === 'object'
-        ) {
-          const revision = revisionProperties.properties
-            .revision as JSONSchema7;
-          if (revision.properties?.commit) {
-            delete revision.properties.commit;
-
-            // Also remove 'commit' from the required array if it exists
-            if (revision.required && Array.isArray(revision.required)) {
-              revision.required = revision.required.filter(
-                field => field !== 'commit',
-              );
-            }
-          }
-        }
-
-        // Filter out empty object properties before setting schema
-        const filteredSchema = filterEmptyObjectProperties(rawSchema);
-        setSchema(addTitlesToSchema(filteredSchema));
-      } else {
+      if (!rawSchema || typeof rawSchema !== 'object') {
         throw new Error('Failed to fetch workflow schema');
       }
 
-      if (systemParameters) {
-        setFormData({
-          systemParameters,
-          parameters: parameters ? parameters : undefined,
-        });
-        setInitialFormData({ systemParameters, parameters });
+      // Filter out empty object properties before setting schema
+      const filteredSchema = filterEmptyObjectProperties(rawSchema);
+      setSchema(addTitlesToSchema(filteredSchema));
+
+      if (parameters) {
+        setFormData(parameters);
+        setInitialFormData(parameters);
       } else {
         setFormData({});
         setInitialFormData({});
@@ -135,7 +113,7 @@ export const WorkflowConfigPage = ({
     } finally {
       setLoading(false);
     }
-  }, [entity, client, workflowName, systemParameters, parameters]);
+  }, [entity, client, workflowName, parameters]);
 
   useEffect(() => {
     if (workflowName) {
@@ -225,13 +203,13 @@ export const WorkflowConfigPage = ({
     setError(null);
 
     try {
-      await client.updateComponentWorkflowParameters(
-        entity,
-        formData.systemParameters,
-        formData.parameters,
-      );
+      await client.updateComponentWorkflowParameters(entity, formData);
 
       setShowSaveConfirm(false);
+      alertApi.post({
+        message: 'Workflow configuration successfully updated',
+        severity: 'success',
+      });
       onSaved();
       onBack();
     } catch (err) {

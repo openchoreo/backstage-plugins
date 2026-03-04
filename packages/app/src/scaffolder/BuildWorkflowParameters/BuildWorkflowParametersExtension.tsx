@@ -150,22 +150,6 @@ export const BuildWorkflowParameters = ({
           // This prevents rendering empty sections in the RJSF form
           schema = filterEmptyObjectProperties(schema);
 
-          // Strip systemParameters from the schema — these are now standalone
-          // fields in the wizard (repo URL, branch, app path) managed by the converter
-          if (schema.properties?.systemParameters) {
-            const { systemParameters, ...restProperties } = schema.properties;
-            schema = {
-              ...schema,
-              properties: restProperties,
-            };
-            // Also remove from required array if present
-            if (schema.required) {
-              schema.required = schema.required.filter(
-                r => r !== 'systemParameters',
-              );
-            }
-          }
-
           // Unwrap the parameters wrapper — the API returns schema with
           // developer params nested under a "parameters" key, but RJSF should
           // render the inner properties directly (e.g., docker.context).

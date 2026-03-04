@@ -159,27 +159,11 @@ export interface PatchComponentRequest {
 
 export interface ComponentWorkflow {
   name: string;
-  systemParameters: ComponentWorkflowSystemParams;
-  /** @description Developer-defined workflow parameters as arbitrary JSON */
+  /** @description Workflow parameters as arbitrary JSON */
   parameters?: {
     [key: string]: unknown;
   };
 }
-
-export type ComponentWorkflowSystemParams = {
-  repository: ComponentWorkflowRepository;
-};
-
-export type ComponentWorkflowRepository = {
-  url: string;
-  revision: ComponentWorkflowRepositoryRevision;
-  appPath: string;
-};
-
-export type ComponentWorkflowRepositoryRevision = {
-  branch: string;
-  commit?: string;
-};
 
 // ---------------------------------------------------------------------------
 // Component traits
@@ -279,26 +263,10 @@ export interface ComponentWorkflowRunResponse {
 
 export interface ComponentWorkflowConfigResponse {
   name: string;
-  systemParameters?: SystemParametersResponse;
-  /** @description Developer-defined workflow parameters as arbitrary JSON */
+  /** @description Workflow parameters as arbitrary JSON */
   parameters?: {
     [key: string]: unknown;
   };
-}
-
-export interface SystemParametersResponse {
-  repository?: RepositoryResponse;
-}
-
-export interface RepositoryResponse {
-  url: string;
-  appPath: string;
-  revision?: RepositoryRevisionResponse;
-}
-
-export interface RepositoryRevisionResponse {
-  branch: string;
-  commit?: string;
 }
 
 /** @description Status response for a component workflow run */

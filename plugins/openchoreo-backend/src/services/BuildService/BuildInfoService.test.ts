@@ -54,7 +54,7 @@ const k8sWorkflowRun = {
     owner: { projectName: 'my-project', componentName: 'api-service' },
     workflow: {
       name: 'docker-build',
-      systemParameters: {
+      parameters: {
         repository: {
           url: 'https://github.com/org/repo.git',
           revision: { branch: 'main', commit: 'abc1234' },

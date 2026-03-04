@@ -444,7 +444,6 @@ export interface OpenChoreoClientApi {
   /** Update component workflow parameters */
   updateComponentWorkflowParameters(
     entity: Entity,
-    systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,
   ): Promise<any>;
 

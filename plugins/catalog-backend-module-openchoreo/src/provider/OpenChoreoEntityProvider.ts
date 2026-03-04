@@ -1508,24 +1508,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         componentWorkflow: component.spec?.workflow
           ? {
               name: component.spec.workflow.name ?? '',
-              systemParameters: {
-                repository: {
-                  url:
-                    component.spec.workflow.systemParameters?.repository?.url ??
-                    '',
-                  appPath:
-                    component.spec.workflow.systemParameters?.repository
-                      ?.appPath,
-                  revision: {
-                    branch:
-                      component.spec.workflow.systemParameters?.repository
-                        ?.revision?.branch ?? '',
-                    commit:
-                      component.spec.workflow.systemParameters?.repository
-                        ?.revision?.commit,
-                  },
-                },
-              },
               parameters: component.spec.workflow.parameters,
             }
           : undefined,

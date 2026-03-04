@@ -56,14 +56,14 @@ const k8sComponent = {
     autoDeploy: true,
     workflow: {
       name: 'docker-build',
-      systemParameters: {
+      parameters: {
         repository: {
           url: 'https://github.com/org/repo.git',
           revision: { branch: 'main', commit: 'abc1234' },
           appPath: './services/api',
         },
+        dockerfile: 'Dockerfile',
       },
-      parameters: { dockerfile: 'Dockerfile' },
     },
   },
   status: { conditions: [readyCondition] },

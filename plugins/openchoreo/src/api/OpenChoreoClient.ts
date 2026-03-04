@@ -519,7 +519,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
   async updateComponentWorkflowParameters(
     entity: Entity,
-    systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,
   ): Promise<any> {
     const metadata = extractEntityMetadata(entity);
@@ -527,7 +526,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return this.apiFetch(API_ENDPOINTS.COMPONENT_WORKFLOW_PARAMETERS, {
       method: 'PATCH',
       params: entityMetadataToParams(metadata),
-      body: { systemParameters, parameters },
+      body: { parameters },
     });
   }
 
