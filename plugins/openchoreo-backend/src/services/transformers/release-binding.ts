@@ -96,6 +96,8 @@ export function transformReleaseBinding(
       | ReleaseBindingResponse['workloadOverrides']
       | undefined,
     createdAt: getCreatedAt(binding) ?? '',
+    lastSpecUpdateTime:
+      (binding.status as any)?.lastSpecUpdateTime ?? undefined,
     status: deriveBindingStatus(binding),
     endpoints: (() => {
       const raw = (binding.status as any)?.endpoints;
