@@ -8,7 +8,11 @@ import { useWorkloadContext } from '../WorkloadContext';
 
 interface EndpointContentProps {
   endpoints: { [key: string]: WorkloadEndpoint };
-  onEndpointReplace: (endpointName: string, endpoint: WorkloadEndpoint, oldNameToRemove?: string) => void;
+  onEndpointReplace: (
+    endpointName: string,
+    endpoint: WorkloadEndpoint,
+    oldNameToRemove?: string,
+  ) => void;
   onAddEndpoint: () => string;
   onRemoveEndpoint: (endpointName: string) => void;
   disabled: boolean;

@@ -80,9 +80,7 @@ export const SetupCard = ({
                           onChange={handleToggleChange}
                           name="autoDeploy"
                           color="primary"
-                          disabled={
-                            autoDeployUpdating
-                          }
+                          disabled={autoDeployUpdating}
                         />
                       }
                       label={
