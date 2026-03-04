@@ -81,7 +81,7 @@ export const SetupCard = ({
                           name="autoDeploy"
                           color="primary"
                           disabled={
-                            autoDeployUpdating || autoDeploy === undefined
+                            autoDeployUpdating
                           }
                         />
                       }
