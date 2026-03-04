@@ -32,6 +32,7 @@ export {
   buildWorkflowRunPath,
   buildWorkflowConfigPath,
   buildWorkflowListPath,
+  buildCreateComponentPath,
 } from './pathBuilders';
 
 // Hook

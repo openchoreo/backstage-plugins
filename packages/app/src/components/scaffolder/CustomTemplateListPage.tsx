@@ -53,6 +53,7 @@ import { ScaffolderStarredFilter } from './ScaffolderStarredFilter';
 import { ScaffolderCategoryPicker } from './ScaffolderCategoryPicker';
 import { ScaffolderTagPicker } from './ScaffolderTagPicker';
 import { ScaffolderSearchBar } from './ScaffolderSearchBar';
+import { ScaffolderNamespacePicker } from './ScaffolderNamespacePicker';
 import { CustomTemplateCard } from './CustomTemplateCard';
 import { useStyles } from './styles';
 
@@ -290,6 +291,11 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           <Box className={classes.tagFilter}>
             <ScaffolderTagPicker />
           </Box>
+          {isComponentsView && (
+            <Box className={classes.tagFilter}>
+              <ScaffolderNamespacePicker />
+            </Box>
+          )}
           <Box className={classes.starredFilter}>
             <ScaffolderStarredFilter />
           </Box>
@@ -313,6 +319,11 @@ const TemplateListContent = (props: TemplateListPageProps) => {
             <Box className={classes.filterItem}>
               <ScaffolderTagPicker />
             </Box>
+            {isComponentsView && (
+              <Box className={classes.filterItem}>
+                <ScaffolderNamespacePicker />
+              </Box>
+            )}
             <Box className={classes.filterItem}>
               <ScaffolderStarredFilter />
             </Box>

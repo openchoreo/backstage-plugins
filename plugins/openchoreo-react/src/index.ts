@@ -337,6 +337,10 @@ export {
   type UseEntityGraphDataResult,
 } from './hooks/useEntityGraphData';
 export { useProjects } from './hooks/useProjects';
+export {
+  useCreateComponentPath,
+  type UseCreateComponentPathResult,
+} from './hooks/useCreateComponentPath';
 
 // Re-export graph types for consumers
 export { type EntityNode } from '@backstage/plugin-catalog-graph';

@@ -4,6 +4,7 @@ import { Box, Button, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
+import { useCreateComponentPath } from '@openchoreo/backstage-plugin-react';
 import {
   useComponentsWithDeployment,
   useEnvironments,
@@ -23,6 +24,7 @@ export const ProjectComponentsCard = () => {
   const { data: pipelineData, loading: pipelineLoading } =
     useDeploymentPipeline();
   const navigate = useNavigate();
+  const { path: createComponentPath } = useCreateComponentPath(entity);
 
   // Filter and sort environments based on deployment pipeline
   const pipelineEnvironments = useMemo(() => {
@@ -140,10 +142,7 @@ export const ProjectComponentsCard = () => {
             icon: AddIcon,
             tooltip: 'Create a new component',
             isFreeAction: true,
-            onClick: () =>
-              navigate(
-                `/create?view=components&filters[type]=component&project=${entity.metadata.name}`,
-              ),
+            onClick: () => navigate(createComponentPath),
           },
         ]}
         components={{
