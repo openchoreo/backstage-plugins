@@ -111,36 +111,63 @@ export class WorkloadInfoService implements WorkloadService {
       }
 
       const existingWorkload = listData.items[0];
-      if (!existingWorkload) {
-        throw new Error(
-          `No existing workload found for component: ${componentName}`,
+
+      if (existingWorkload) {
+        // Update existing workload
+        const workloadName = existingWorkload.metadata.name;
+        if (!workloadName) {
+          throw new Error(
+            `Workload for component ${componentName} has no name in metadata`,
+          );
+        }
+
+        const { data, error, response } = await client.PUT(
+          '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
+          {
+            params: {
+              path: { namespaceName, workloadName },
+            },
+            body: {
+              ...existingWorkload,
+              spec: workloadSpec as { [key: string]: unknown },
+            },
+          },
         );
+
+        if (error || !response.ok) {
+          throw new Error(
+            `Failed to update workload: ${response.status} ${response.statusText}`,
+          );
+        }
+
+        return data.spec;
       }
 
-      const workloadName = existingWorkload.metadata.name;
-      if (!workloadName) {
-        throw new Error(
-          `Workload for component ${componentName} has no name in metadata`,
-        );
-      }
-
-      // Update the workload with the new spec
-      const { data, error, response } = await client.PUT(
-        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
+      // Create new workload
+      const { data, error, response } = await client.POST(
+        '/api/v1/namespaces/{namespaceName}/workloads',
         {
           params: {
-            path: { namespaceName, workloadName },
+            path: { namespaceName },
           },
           body: {
-            ...existingWorkload,
-            spec: workloadSpec as { [key: string]: unknown },
+            metadata: {
+              name: `${componentName}-workload`,
+            },
+            spec: {
+              ...(workloadSpec as { [key: string]: unknown }),
+              owner: {
+                projectName,
+                componentName,
+              },
+            },
           },
         },
       );
 
       if (error || !response.ok) {
         throw new Error(
-          `Failed to update workload: ${response.status} ${response.statusText}`,
+          `Failed to create workload: ${response.status} ${response.statusText}`,
         );
       }
 
