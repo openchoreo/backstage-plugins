@@ -64,14 +64,19 @@ export class BuildInfoService {
           }),
       );
 
-      // Filter by component label and transform
+      // Filter by component label, transform, and sort by creation time descending
       const builds = items
         .filter(
           (run: any) =>
             run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] ===
             componentName,
         )
-        .map(transformComponentWorkflowRun);
+        .map(transformComponentWorkflowRun)
+        .sort((a, b) => {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
 
       this.logger.debug(
         `Successfully fetched ${builds.length} component workflow runs for component: ${componentName}`,
