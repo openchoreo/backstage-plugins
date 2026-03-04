@@ -1,0 +1,1 @@
+export { NamespaceEntityPickerFieldExtension } from './extensions';
