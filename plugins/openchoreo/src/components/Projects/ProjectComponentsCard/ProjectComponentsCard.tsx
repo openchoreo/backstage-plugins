@@ -24,7 +24,8 @@ export const ProjectComponentsCard = () => {
   const { data: pipelineData, loading: pipelineLoading } =
     useDeploymentPipeline();
   const navigate = useNavigate();
-  const { path: createComponentPath } = useCreateComponentPath(entity);
+  const { path: createComponentPath, loading: createPathLoading } =
+    useCreateComponentPath(entity);
 
   // Filter and sort environments based on deployment pipeline
   const pipelineEnvironments = useMemo(() => {
@@ -142,7 +143,7 @@ export const ProjectComponentsCard = () => {
             icon: AddIcon,
             tooltip: 'Create a new component',
             isFreeAction: true,
-            onClick: () => navigate(createComponentPath),
+            onClick: () => !createPathLoading && navigate(createComponentPath),
           },
         ]}
         components={{

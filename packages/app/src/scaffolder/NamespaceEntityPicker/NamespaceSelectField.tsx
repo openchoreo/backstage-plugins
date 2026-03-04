@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   TextField,
   MenuItem,
@@ -44,6 +44,11 @@ export const NamespaceSelectField = ({
   const catalogApi = useApi(catalogApiRef);
   const [namespaces, setNamespaces] = useState<NamespaceOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string>();
+  const onNamespacesLoadedRef = useRef(onNamespacesLoaded);
+  useEffect(() => {
+    onNamespacesLoadedRef.current = onNamespacesLoaded;
+  });
 
   useEffect(() => {
     let ignore = false;
@@ -65,9 +70,14 @@ export const NamespaceSelectField = ({
         }));
         if (ignore) return;
         setNamespaces(list);
-        onNamespacesLoaded?.(list);
-      } catch {
-        // ignore fetch errors
+        onNamespacesLoadedRef.current?.(list);
+      } catch (err) {
+        if (!ignore) {
+          const message = err instanceof Error ? err.message : String(err);
+          // eslint-disable-next-line no-console
+          console.error('Failed to fetch namespaces', err);
+          setFetchError(message);
+        }
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -90,8 +100,8 @@ export const NamespaceSelectField = ({
       fullWidth
       variant="outlined"
       required={required}
-      error={error}
-      helperText={helperText}
+      error={error || !!fetchError}
+      helperText={fetchError || helperText}
       InputProps={{
         endAdornment: loading ? (
           <InputAdornment position="end">

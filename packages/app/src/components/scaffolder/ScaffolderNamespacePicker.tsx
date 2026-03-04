@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Select,
   MenuItem,
@@ -51,38 +51,61 @@ export const ScaffolderNamespacePicker = () => {
   const [availableNamespaces, setAvailableNamespaces] = useState<string[]>([]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchNamespaces = async () => {
-      const filter: Record<string, string> = {};
-      if (kindFilter && 'value' in kindFilter) {
-        filter.kind = kindFilter.value as string;
+      try {
+        const filter: Record<string, string> = {};
+        if (kindFilter && 'value' in kindFilter) {
+          filter.kind = kindFilter.value as string;
+        }
+        const { facets } = await catalogApi.getEntityFacets({
+          facets: ['metadata.namespace'],
+          filter: Object.keys(filter).length ? filter : undefined,
+        });
+        if (cancelled) return;
+        const namespaces = (facets['metadata.namespace'] || []).map(
+          f => f.value,
+        );
+        setAvailableNamespaces(namespaces.sort());
+      } catch (err) {
+        if (!cancelled) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to fetch namespaces', err);
+        }
       }
-      const { facets } = await catalogApi.getEntityFacets({
-        facets: ['metadata.namespace'],
-        filter: Object.keys(filter).length ? filter : undefined,
-      });
-      const namespaces = (facets['metadata.namespace'] || []).map(f => f.value);
-      setAvailableNamespaces(namespaces.sort());
     };
     fetchNamespaces();
+    return () => {
+      cancelled = true;
+    };
   }, [catalogApi, kindFilter]);
 
   useEffect(() => {
     updateFilters({
-      namespace:
-        selectedNamespaces.length && availableNamespaces.length
-          ? new EntityNamespaceFilter(selectedNamespaces)
-          : undefined,
+      namespace: selectedNamespaces.length
+        ? new EntityNamespaceFilter(selectedNamespaces)
+        : undefined,
     });
-  }, [selectedNamespaces, availableNamespaces, updateFilters]);
+  }, [selectedNamespaces, updateFilters]);
+
+  // Track whether the namespace filter has ever been applied so we can
+  // distinguish "never set yet" (initial mount) from "explicitly cleared".
+  const filterWasSetRef = useRef(false);
 
   // Sync back from external filter changes (e.g. "clear all")
   useEffect(() => {
-    if (
-      filteredNamespaces &&
-      (filteredNamespaces.length !== selectedNamespaces.length ||
-        !filteredNamespaces.every((ns, i) => ns === selectedNamespaces[i]))
-    ) {
-      setSelectedNamespaces(filteredNamespaces);
+    if (filteredNamespaces) {
+      filterWasSetRef.current = true;
+      if (
+        filteredNamespaces.length !== selectedNamespaces.length ||
+        !filteredNamespaces.every((ns, i) => ns === selectedNamespaces[i])
+      ) {
+        setSelectedNamespaces(filteredNamespaces);
+      }
+    } else if (filterWasSetRef.current) {
+      // Filter was explicitly cleared (e.g. "clear all") — not initial mount
+      filterWasSetRef.current = false;
+      setSelectedNamespaces([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredNamespaces]);
@@ -99,7 +122,12 @@ export const ScaffolderNamespacePicker = () => {
 
   return (
     <Box className={classes.root}>
-      <Typography variant="body2" component="label" className={classes.label}>
+      <Typography
+        id="namespace-picker-label"
+        variant="body2"
+        component="label"
+        className={classes.label}
+      >
         Namespace
       </Typography>
       <FormControl
@@ -109,6 +137,7 @@ export const ScaffolderNamespacePicker = () => {
       >
         <Select
           id="namespace-picker"
+          labelId="namespace-picker-label"
           multiple
           displayEmpty
           value={selectedNamespaces}
