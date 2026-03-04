@@ -237,10 +237,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               }),
           );
 
-          this.logger.debug(
-            `Found ${environments.length} environments in namespace: ${nsName}`,
-          );
-
           const environmentEntities: Entity[] = environments.map(env =>
             this.translateNewEnvironmentToEntity(env, nsName),
           );
@@ -1187,7 +1183,8 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     env: NewEnvironment,
     namespaceName: string,
   ): EnvironmentEntityV1alpha1 {
-    return translateEnvironment(
+    const ingress = env.spec?.gateway?.ingress;
+    const entity = translateEnvironment(
       {
         name: getName(env)!,
         displayName: getDisplayName(env),
@@ -1200,13 +1197,56 @@ export class OpenChoreoEntityProvider implements EntityProvider {
               name: env.spec.dataPlaneRef.name,
             }
           : undefined,
-        dnsPrefix: env.spec?.gateway?.ingress?.external?.http?.host,
+        dnsPrefix: ingress?.external?.http?.host,
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
         createdAt: getCreatedAt(env),
         status: isReady(env) ? 'Ready' : 'Not Ready',
       },
       namespaceName,
       { locationKey: this.getProviderName() },
     );
+    return entity;
   }
 
   /**
@@ -1217,7 +1257,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     namespaceName: string,
   ): DataplaneEntityV1alpha1 {
     const dpName = getName(dp)!;
-    const gateway = dp.spec?.gateway;
+    const ingress = dp.spec?.gateway?.ingress;
     const obsPlaneRef = dp.spec?.observabilityPlaneRef;
     const normalizedObsRef = this.normalizeObservabilityPlaneRef(
       obsPlaneRef?.name,
@@ -1239,18 +1279,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
           [CHOREO_ANNOTATIONS.STATUS]: isReady(dp) ? 'Ready' : 'Not Ready',
-          'openchoreo.io/public-virtual-host':
-            gateway?.ingress?.external?.http?.host || '',
-          'openchoreo.io/namespace-virtual-host':
-            gateway?.ingress?.internal?.http?.host || '',
-          'openchoreo.io/public-http-port':
-            gateway?.ingress?.external?.http?.port?.toString() || '',
-          'openchoreo.io/public-https-port':
-            gateway?.ingress?.external?.https?.port?.toString() || '',
-          'openchoreo.io/namespace-http-port':
-            gateway?.ingress?.internal?.http?.port?.toString() || '',
-          'openchoreo.io/namespace-https-port':
-            gateway?.ingress?.internal?.https?.port?.toString() || '',
           [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
         },
@@ -1261,12 +1289,48 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       },
       spec: {
         domain: `default/${namespaceName}`,
-        publicVirtualHost: gateway?.ingress?.external?.http?.host,
-        namespaceVirtualHost: gateway?.ingress?.internal?.http?.host,
-        publicHTTPPort: gateway?.ingress?.external?.http?.port,
-        publicHTTPSPort: gateway?.ingress?.external?.https?.port,
-        namespaceHTTPPort: gateway?.ingress?.internal?.http?.port,
-        namespaceHTTPSPort: gateway?.ingress?.internal?.https?.port,
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
         observabilityPlaneRef: normalizedObsRef,
       },
     };
@@ -1617,7 +1681,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
     cdp: NewClusterDataPlane,
   ): ClusterDataplaneEntityV1alpha1 {
     const cdpName = getName(cdp)!;
-    const gateway = cdp.spec?.gateway;
+    const ingress = cdp.spec?.gateway?.ingress;
     const obsPlaneRef = cdp.spec?.observabilityPlaneRef;
     const obsRefName = obsPlaneRef?.name;
 
@@ -1635,18 +1699,6 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cdp) || '',
           [CHOREO_ANNOTATIONS.STATUS]: isReady(cdp) ? 'Ready' : 'Not Ready',
-          'openchoreo.io/public-virtual-host':
-            gateway?.ingress?.external?.http?.host || '',
-          'openchoreo.io/namespace-virtual-host':
-            gateway?.ingress?.internal?.http?.host || '',
-          'openchoreo.io/public-http-port':
-            gateway?.ingress?.external?.http?.port?.toString() || '',
-          'openchoreo.io/public-https-port':
-            gateway?.ingress?.external?.https?.port?.toString() || '',
-          'openchoreo.io/namespace-http-port':
-            gateway?.ingress?.internal?.http?.port?.toString() || '',
-          'openchoreo.io/namespace-https-port':
-            gateway?.ingress?.internal?.https?.port?.toString() || '',
           ...(obsRefName && {
             [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
           }),
@@ -1658,12 +1710,48 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         },
       },
       spec: {
-        publicVirtualHost: gateway?.ingress?.external?.http?.host,
-        namespaceVirtualHost: gateway?.ingress?.internal?.http?.host,
-        publicHTTPPort: gateway?.ingress?.external?.http?.port,
-        publicHTTPSPort: gateway?.ingress?.external?.https?.port,
-        namespaceHTTPPort: gateway?.ingress?.internal?.http?.port,
-        namespaceHTTPSPort: gateway?.ingress?.internal?.https?.port,
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
         observabilityPlaneRef: obsRefName,
       },
     };

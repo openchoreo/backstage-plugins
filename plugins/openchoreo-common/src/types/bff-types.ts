@@ -431,6 +431,7 @@ export interface EnvironmentResponse {
   dataPlaneRef?: DataPlaneRef;
   isProduction: boolean;
   dnsPrefix?: string;
+  gateway?: GatewaySpec;
   /** Format: date-time */
   createdAt: string;
   status?: string;
@@ -452,6 +453,26 @@ export interface AgentConnectionStatusResponse {
   message?: string;
 }
 
+export interface GatewayListenerSpec {
+  host?: string;
+  /** Format: int32 */
+  port?: number;
+}
+
+export interface GatewayEndpointSpec {
+  http?: GatewayListenerSpec;
+  https?: GatewayListenerSpec;
+}
+
+export interface GatewayNetworkSpec {
+  external?: GatewayEndpointSpec;
+  internal?: GatewayEndpointSpec;
+}
+
+export interface GatewaySpec {
+  ingress?: GatewayNetworkSpec;
+}
+
 export interface DataPlaneResponse {
   name: string;
   namespace: string;
@@ -459,16 +480,7 @@ export interface DataPlaneResponse {
   description?: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
-  publicVirtualHost: string;
-  namespaceVirtualHost: string;
-  /** Format: int32 */
-  publicHTTPPort: number;
-  /** Format: int32 */
-  publicHTTPSPort: number;
-  /** Format: int32 */
-  namespaceHTTPPort: number;
-  /** Format: int32 */
-  namespaceHTTPSPort: number;
+  gateway?: GatewaySpec;
   observabilityPlaneRef?: string;
   agentConnection?: AgentConnectionStatusResponse;
   /** Format: date-time */
@@ -482,16 +494,7 @@ export interface ClusterDataPlaneResponse {
   description?: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
-  publicVirtualHost: string;
-  namespaceVirtualHost: string;
-  /** Format: int32 */
-  publicHTTPPort: number;
-  /** Format: int32 */
-  publicHTTPSPort: number;
-  /** Format: int32 */
-  namespaceHTTPPort: number;
-  /** Format: int32 */
-  namespaceHTTPSPort: number;
+  gateway?: GatewaySpec;
   observabilityPlaneRef?: string;
   agentConnection?: AgentConnectionStatusResponse;
   /** Format: date-time */
@@ -527,6 +530,21 @@ export interface ObservabilityPlaneResponse {
 // Release binding & deployment
 // ---------------------------------------------------------------------------
 
+export interface ReleaseBindingEndpointURLDetails {
+  host: string;
+  path?: string;
+  port: number;
+  scheme: string;
+}
+
+export interface ReleaseBindingEndpoint {
+  name: string;
+  type?: string;
+  externalURLs?: Record<string, ReleaseBindingEndpointURLDetails>;
+  internalURLs?: Record<string, ReleaseBindingEndpointURLDetails>;
+  serviceURL?: ReleaseBindingEndpointURLDetails;
+}
+
 export interface ReleaseBindingResponse {
   name: string;
   componentName: string;
@@ -544,7 +562,7 @@ export interface ReleaseBindingResponse {
   /** Format: date-time */
   createdAt: string;
   status?: string;
-  endpoints?: { name: string; url: string }[];
+  endpoints?: ReleaseBindingEndpoint[];
 }
 
 export interface WorkloadOverrides {

@@ -33,15 +33,20 @@ export {
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
   EnvironmentPipelinesTab,
+  EnvironmentGatewayConfigurationCard,
 } from './components/EnvironmentOverview';
 export {
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
+  DataplaneGatewayConfigurationCard,
 } from './components/DataplaneOverview';
 export {
   ClusterDataplaneStatusCard,
   ClusterDataplaneEnvironmentsCard,
+  ClusterDataplaneGatewayConfigurationCard,
 } from './components/ClusterDataplaneOverview';
+export { GatewayConfigurationCard } from './components/GatewayConfigurationCard';
+export type { GatewayConfigurationCardProps } from './components/GatewayConfigurationCard';
 export { BuildPlaneStatusCard } from './components/BuildPlaneOverview';
 export { ClusterBuildPlaneStatusCard } from './components/ClusterBuildPlaneOverview';
 export {

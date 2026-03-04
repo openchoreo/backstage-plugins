@@ -118,6 +118,8 @@ export type {
   ClusterDataPlaneResponse,
   BuildPlaneResponse,
   ObservabilityPlaneResponse,
+  ReleaseBindingEndpointURLDetails,
+  ReleaseBindingEndpoint,
   ReleaseBindingResponse,
   WorkloadOverrides,
   ContainerOverride,

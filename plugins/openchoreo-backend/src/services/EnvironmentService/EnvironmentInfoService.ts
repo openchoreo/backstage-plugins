@@ -342,8 +342,9 @@ export class EnvironmentInfoService implements EnvironmentService {
       lastDeployed = binding.createdAt;
       releaseName = binding.releaseName;
 
-      // TODO: Once the API is updated to return deployment details,
-      // extract image and endpoints information here
+      if (binding.endpoints && binding.endpoints.length > 0) {
+        endpoints.push(...binding.endpoints);
+      }
     }
 
     const transformedEnv: Environment = {

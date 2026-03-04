@@ -27,29 +27,24 @@ export interface DataplaneEntityV1alpha1 extends Entity {
      */
     registryPrefix?: string;
     /**
-     * Public virtual host for this dataplane
+     * Gateway configuration for this dataplane
      */
-    publicVirtualHost?: string;
-    /**
-     * Namespace virtual host for this dataplane
-     */
-    namespaceVirtualHost?: string;
-    /**
-     * Public HTTP port
-     */
-    publicHTTPPort?: number;
-    /**
-     * Public HTTPS port
-     */
-    publicHTTPSPort?: number;
-    /**
-     * Namespace HTTP port
-     */
-    namespaceHTTPPort?: number;
-    /**
-     * Namespace HTTPS port
-     */
-    namespaceHTTPSPort?: number;
+    gateway?: {
+      ingress?: {
+        external?: {
+          name?: string;
+          namespace?: string;
+          http?: { host?: string; port?: number };
+          https?: { host?: string; port?: number };
+        };
+        internal?: {
+          name?: string;
+          namespace?: string;
+          http?: { host?: string; port?: number };
+          https?: { host?: string; port?: number };
+        };
+      };
+    };
     /**
      * Observability plane reference
      */

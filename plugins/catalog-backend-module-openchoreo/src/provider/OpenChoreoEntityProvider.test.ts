@@ -68,7 +68,21 @@ const k8sEnvironment = {
   spec: {
     dataPlaneRef: { kind: 'DataPlane', name: 'default-dp' },
     isProduction: false,
-    gateway: { publicVirtualHost: 'dev.example.com' },
+    gateway: {
+      ingress: {
+        external: {
+          name: 'env-gateway',
+          namespace: 'choreo-system',
+          http: { host: 'env.example.com', port: 80 },
+          https: { port: 443 },
+        },
+        internal: {
+          name: 'env-gateway',
+          namespace: 'choreo-system',
+          http: { host: 'env-internal.example.com', port: 80 },
+        },
+      },
+    },
   },
   status: { conditions: [readyCondition] },
 };
@@ -77,10 +91,19 @@ const k8sDataPlane = {
   metadata: k8sMeta('default-dp'),
   spec: {
     gateway: {
-      publicVirtualHost: 'api.example.com',
-      organizationVirtualHost: 'internal.example.com',
-      publicHTTPPort: 80,
-      publicHTTPSPort: 443,
+      ingress: {
+        external: {
+          name: 'dp-gateway',
+          namespace: 'choreo-system',
+          http: { host: 'api.example.com', port: 80 },
+          https: { port: 443 },
+        },
+        internal: {
+          name: 'dp-gateway-internal',
+          namespace: 'choreo-system',
+          http: { host: 'internal.example.com' },
+        },
+      },
     },
     observabilityPlaneRef: { name: 'default-obs' },
   },
@@ -398,6 +421,16 @@ describe('OpenChoreoEntityProvider', () => {
       const env = findEntities(entities, 'Environment')[0];
       expect(env.metadata.name).toBe('dev');
       expect(env.metadata.namespace).toBe('test-ns');
+
+      const gateway = (env.spec as any).gateway;
+      expect(gateway.ingress.external.name).toBe('env-gateway');
+      expect(gateway.ingress.external.http.host).toBe('env.example.com');
+      expect(gateway.ingress.external.http.port).toBe(80);
+      expect(gateway.ingress.external.https.port).toBe(443);
+      expect(gateway.ingress.internal.name).toBe('env-gateway');
+      expect(gateway.ingress.internal.http.host).toBe(
+        'env-internal.example.com',
+      );
     });
 
     it('creates Dataplane entity with gateway and agent annotations', async () => {
@@ -409,6 +442,16 @@ describe('OpenChoreoEntityProvider', () => {
       expect(dp.metadata.annotations?.['openchoreo.io/agent-connected']).toBe(
         'true',
       );
+
+      const gateway = (dp.spec as any).gateway;
+      expect(gateway.ingress.external.name).toBe('dp-gateway');
+      expect(gateway.ingress.external.namespace).toBe('choreo-system');
+      expect(gateway.ingress.external.http.host).toBe('api.example.com');
+      expect(gateway.ingress.external.http.port).toBe(80);
+      expect(gateway.ingress.external.https.port).toBe(443);
+      expect(gateway.ingress.internal.name).toBe('dp-gateway-internal');
+      expect(gateway.ingress.internal.namespace).toBe('choreo-system');
+      expect(gateway.ingress.internal.http.host).toBe('internal.example.com');
     });
 
     it('creates API entity from workload endpoint', async () => {

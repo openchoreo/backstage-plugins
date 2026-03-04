@@ -1,10 +1,14 @@
 import type { PendingAction } from '@openchoreo/backstage-plugin-react';
 import { useItemActionTracker } from '../../hooks';
 import { Notification } from '../../hooks/useNotification';
-import type { Environment } from './hooks/useEnvironmentData';
+import type { Environment, EndpointInfo } from './hooks/useEnvironmentData';
 
 // Re-export Environment type from the data hook
-export type { Environment } from './hooks/useEnvironmentData';
+export type {
+  Environment,
+  EndpointInfo,
+  EndpointURLDetails,
+} from './hooks/useEnvironmentData';
 export type { Environment as EnvironmentType } from './hooks/useEnvironmentData';
 
 // Re-export pending action types from shared library
@@ -82,19 +86,11 @@ export interface EnvironmentCardHeaderProps {
  * Props for the EnvironmentCardContent component
  */
 export interface EnvironmentCardContentProps {
-  environmentName: string;
-  resourceName?: string;
   status?: 'Ready' | 'NotReady' | 'Failed';
   lastDeployed?: string;
   image?: string;
   releaseName?: string;
-  dataPlaneRef?: string;
-  endpoints: Array<{
-    name: string;
-    type: string;
-    url: string;
-    visibility: string;
-  }>;
+  endpoints: EndpointInfo[];
   onOpenReleaseDetails: () => void;
 }
 
@@ -133,12 +129,7 @@ export interface EnvironmentCardProps {
     image?: string;
     releaseName?: string;
   };
-  endpoints: Array<{
-    name: string;
-    type: string;
-    url: string;
-    visibility: string;
-  }>;
+  endpoints: EndpointInfo[];
   promotionTargets?: Array<{
     name: string;
     resourceName?: string;

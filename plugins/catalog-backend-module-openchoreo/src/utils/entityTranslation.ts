@@ -202,6 +202,22 @@ export function translateEnvironmentToEntity(
     isProduction?: boolean;
     dataPlaneRef?: { kind?: string; name?: string };
     dnsPrefix?: string;
+    gateway?: {
+      ingress?: {
+        external?: {
+          name?: string;
+          namespace?: string;
+          http?: { host?: string; port?: number };
+          https?: { host?: string; port?: number };
+        };
+        internal?: {
+          name?: string;
+          namespace?: string;
+          http?: { host?: string; port?: number };
+          https?: { host?: string; port?: number };
+        };
+      };
+    };
     createdAt?: string;
     status?: string;
   },
@@ -264,6 +280,7 @@ export function translateEnvironmentToEntity(
       isProduction: environment.isProduction,
       dataPlaneRef: environment.dataPlaneRef?.name,
       dnsPrefix: environment.dnsPrefix,
+      ...(environment.gateway && { gateway: environment.gateway }),
     },
   };
 

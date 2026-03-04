@@ -2646,9 +2646,9 @@ export interface components {
     /** @description Gateway resource endpoint configuration */
     GatewayEndpointSpec: {
       /** @description Name of the Gateway resource */
-      name?: string;
+      name: string;
       /** @description Namespace of the Gateway resource */
-      namespace?: string;
+      namespace: string;
       http?: components['schemas']['GatewayListenerSpec'];
       https?: components['schemas']['GatewayListenerSpec'];
       tls?: components['schemas']['GatewayListenerSpec'];

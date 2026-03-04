@@ -82,10 +82,13 @@ import {
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
+  EnvironmentGatewayConfigurationCard,
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
+  DataplaneGatewayConfigurationCard,
   ClusterDataplaneStatusCard,
   ClusterDataplaneEnvironmentsCard,
+  ClusterDataplaneGatewayConfigurationCard,
   BuildPlaneStatusCard,
   ClusterBuildPlaneStatusCard,
   ObservabilityPlaneStatusCard,
@@ -694,7 +697,11 @@ const environmentPage = (
         <Grid item xs={12}>
           <EnvironmentDeployedComponentsCard />
         </Grid>
-        {/* Row 3: About + Catalog Graph */}
+        {/* Row 3: Gateway Configuration */}
+        <Grid item xs={12}>
+          <EnvironmentGatewayConfigurationCard />
+        </Grid>
+        {/* Row 4: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
@@ -737,7 +744,11 @@ const dataplanePage = (
         <Grid item md={6} xs={12}>
           <DataplaneEnvironmentsCard />
         </Grid>
-        {/* Row 2: About + Catalog Graph */}
+        {/* Row 2: Gateway Configuration */}
+        <Grid item xs={12}>
+          <DataplaneGatewayConfigurationCard />
+        </Grid>
+        {/* Row 3: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
@@ -779,7 +790,11 @@ const clusterDataplanePage = (
         <Grid item md={6} xs={12}>
           <ClusterDataplaneEnvironmentsCard />
         </Grid>
-        {/* Row 2: About + Catalog Graph */}
+        {/* Row 2: Gateway Configuration */}
+        <Grid item xs={12}>
+          <ClusterDataplaneGatewayConfigurationCard />
+        </Grid>
+        {/* Row 3: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>

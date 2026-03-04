@@ -169,7 +169,13 @@ describe('transformEnvironment', () => {
       dataPlaneRef: { kind: 'DataPlane', name: 'default' },
       isProduction: false,
       gateway: {
-        ingress: { external: { http: { host: 'dev.example.com' } } },
+        ingress: {
+          external: {
+            name: 'external-gw',
+            namespace: 'test-ns',
+            http: { host: 'dev.example.com' },
+          },
+        },
       },
     },
     status: { conditions: [readyCondition] },
@@ -207,10 +213,14 @@ describe('transformDataPlane', () => {
       gateway: {
         ingress: {
           external: {
+            name: 'external-gw',
+            namespace: 'test-ns',
             http: { host: 'apps.example.com', port: 80 },
             https: { port: 443 },
           },
           internal: {
+            name: 'internal-gw',
+            namespace: 'test-ns',
             http: { host: 'internal.example.com' },
           },
         },
@@ -234,10 +244,14 @@ describe('transformDataPlane', () => {
 
   it('maps gateway fields', () => {
     const result = transformDataPlane(dataPlane);
-    expect(result.publicVirtualHost).toBe('apps.example.com');
-    expect(result.namespaceVirtualHost).toBe('internal.example.com');
-    expect(result.publicHTTPPort).toBe(80);
-    expect(result.publicHTTPSPort).toBe(443);
+    expect(result.gateway?.ingress?.external?.http?.host).toBe(
+      'apps.example.com',
+    );
+    expect(result.gateway?.ingress?.internal?.http?.host).toBe(
+      'internal.example.com',
+    );
+    expect(result.gateway?.ingress?.external?.http?.port).toBe(80);
+    expect(result.gateway?.ingress?.external?.https?.port).toBe(443);
   });
 
   it('maps secretStoreRef to string', () => {

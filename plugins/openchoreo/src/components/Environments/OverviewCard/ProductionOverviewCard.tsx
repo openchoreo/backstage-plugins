@@ -6,21 +6,165 @@ import {
   IconButton,
   CircularProgress,
   Tooltip,
+  Chip,
+  Divider,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { Link } from '@backstage/core-components';
-import { useEntity } from '@backstage/plugin-catalog-react';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
-import LinkIcon from '@material-ui/icons/Link';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import { Card, StatusBadge } from '@openchoreo/backstage-design-system';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useProductionStatus } from './useProductionStatus';
 import { useOverviewCardStyles } from './styles';
-import { useInvokeUrl } from '../hooks';
+import type {
+  EndpointInfo,
+  EndpointURLDetails,
+} from '../hooks/useEnvironmentData';
+
+function buildUrl(details: EndpointURLDetails): string {
+  const portPart = details.port ? `:${details.port}` : '';
+  const pathPart = details.path || '';
+  return `${details.scheme}://${details.host}${portPart}${pathPart}`;
+}
+
+function buildServiceUrl(details: EndpointURLDetails): string {
+  const portPart = details.port ? `:${details.port}` : '';
+  return `${details.scheme}://${details.host}${portPart}`;
+}
+
+interface InlineURLRowProps {
+  url: string;
+  label: string;
+}
+
+const InlineURLRow = ({ url, label }: InlineURLRowProps) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <Box mb={1}>
+      <Chip
+        label={label}
+        size="small"
+        style={{ fontSize: '0.7rem', height: 18, marginBottom: 4 }}
+      />
+      <Box display="flex" alignItems="center">
+        <Box
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.04)',
+            borderRadius: 4,
+            padding: '4px 8px',
+            minWidth: 0,
+          }}
+        >
+          <Typography
+            variant="body2"
+            style={{
+              fontFamily: 'monospace',
+              fontSize: '0.75rem',
+              wordBreak: 'break-all',
+            }}
+          >
+            {url}
+          </Typography>
+        </Box>
+        <Tooltip
+          title={copied ? 'Copied!' : 'Copy URL'}
+          open={copied ? true : undefined}
+          leaveDelay={copied ? 0 : 200}
+        >
+          <IconButton
+            size="small"
+            onClick={handleCopy}
+            aria-label="Copy URL"
+            style={{ marginLeft: 4, flexShrink: 0, padding: 4 }}
+          >
+            <FileCopyOutlinedIcon style={{ fontSize: 14 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
+  );
+};
+
+interface InlineEndpointsProps {
+  endpoints: EndpointInfo[];
+}
+
+const InlineEndpoints = ({ endpoints }: InlineEndpointsProps) => {
+  if (endpoints.length === 0) return null;
+
+  return (
+    <Box mt={1}>
+      <Typography variant="body2" style={{ fontWeight: 500, marginBottom: 8 }}>
+        Invoke URLs
+      </Typography>
+      {endpoints.map((endpoint, idx) => (
+        <Box key={endpoint.name}>
+          {endpoints.length > 1 && (
+            <Box display="flex" alignItems="center" mb={1}>
+              <Typography variant="caption" style={{ fontWeight: 600 }}>
+                {endpoint.name}
+              </Typography>
+              {endpoint.type && (
+                <Typography
+                  variant="caption"
+                  color="textSecondary"
+                  style={{ marginLeft: 6 }}
+                >
+                  ({endpoint.type})
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {endpoint.externalURLs &&
+            Object.entries(endpoint.externalURLs).map(([protocol, details]) => (
+              <InlineURLRow
+                key={`ext-${protocol}`}
+                url={buildUrl(details)}
+                label="External"
+              />
+            ))}
+
+          {endpoint.internalURLs &&
+            Object.entries(endpoint.internalURLs).map(([protocol, details]) => (
+              <InlineURLRow
+                key={`int-${protocol}`}
+                url={buildUrl(details)}
+                label="Internal"
+              />
+            ))}
+
+          {endpoint.serviceURL && (
+            <InlineURLRow
+              url={buildServiceUrl(endpoint.serviceURL)}
+              label="Project"
+            />
+          )}
+
+          {idx < endpoints.length - 1 && (
+            <Divider style={{ margin: '8px 0' }} />
+          )}
+        </Box>
+      ))}
+    </Box>
+  );
+};
 
 /**
  * Maps deployment status to StatusBadge status type
@@ -42,7 +186,6 @@ function getStatusBadgeStatus(
 
 export const ProductionOverviewCard = () => {
   const classes = useOverviewCardStyles();
-  const { entity } = useEntity();
   const {
     productionEnv,
     isDeployed,
@@ -52,28 +195,6 @@ export const ProductionOverviewCard = () => {
     refreshing,
     refresh,
   } = useProductionStatus();
-
-  // State for copy feedback
-  const [copiedInvokeUrl, setCopiedInvokeUrl] = useState(false);
-
-  // Fetch invoke URL for production environment
-  const { invokeUrl } = useInvokeUrl(
-    entity,
-    productionEnv?.name || '',
-    productionEnv?.resourceName,
-    productionEnv?.deployment?.releaseName,
-    productionEnv?.deployment?.status,
-    productionEnv?.dataPlaneRef,
-  );
-
-  // Handle copy invoke URL
-  const handleCopyInvokeUrl = () => {
-    if (invokeUrl) {
-      navigator.clipboard.writeText(invokeUrl);
-      setCopiedInvokeUrl(true);
-      setTimeout(() => setCopiedInvokeUrl(false), 2000);
-    }
-  };
 
   // Loading state
   if (loading) {
@@ -166,7 +287,6 @@ export const ProductionOverviewCard = () => {
 
   // Deployed state
   const { deployment, endpoints } = productionEnv;
-  const endpointCount = endpoints?.length || 0;
 
   // Truncate image for display
   const getDisplayImage = () => {
@@ -209,44 +329,8 @@ export const ProductionOverviewCard = () => {
           </Tooltip>
         )}
 
-        {deploymentStatus === 'Ready' && endpointCount > 0 && (
-          <Box className={classes.endpointCount}>
-            <LinkIcon className={classes.metaIcon} />
-            <span>
-              {endpointCount} endpoint{endpointCount !== 1 ? 's' : ''} available
-            </span>
-          </Box>
-        )}
-
-        {deploymentStatus === 'Ready' && invokeUrl && (
-          <Box className={classes.invokeUrlContainer}>
-            <Typography variant="h6" color="textSecondary">
-              Invoke URL
-            </Typography>
-            <Box className={classes.invokeUrlContent}>
-              <a
-                href={invokeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={classes.invokeUrlLink}
-              >
-                {invokeUrl}
-              </a>
-              <Tooltip
-                title={copiedInvokeUrl ? 'Copied' : 'Copy invoke URL'}
-                open={copiedInvokeUrl ? true : undefined}
-                leaveDelay={copiedInvokeUrl ? 0 : 200}
-              >
-                <IconButton
-                  size="small"
-                  onClick={handleCopyInvokeUrl}
-                  className={classes.invokeUrlCopyButton}
-                >
-                  <FileCopyOutlinedIcon fontSize="inherit" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Box>
+        {deploymentStatus === 'Ready' && endpoints?.length > 0 && (
+          <InlineEndpoints endpoints={endpoints} />
         )}
       </Box>
 
