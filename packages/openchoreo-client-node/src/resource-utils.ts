@@ -122,3 +122,12 @@ export function getConditionStatus(
 export function isReady(resource: HasConditions): boolean {
   return getConditionStatus(resource, 'Ready') === 'True';
 }
+
+/**
+ * Returns true if the resource has a `Created` condition with status `True`.
+ * Used for plane resources (DataPlane, BuildPlane, ObservabilityPlane) which
+ * use "Created" instead of "Ready" as their readiness condition.
+ */
+export function isCreated(resource: HasConditions): boolean {
+  return getConditionStatus(resource, 'Created') === 'True';
+}

@@ -16,6 +16,7 @@ import {
   getDisplayName,
   getDescription,
   isReady,
+  isCreated,
   type OpenChoreoComponents,
   getAnnotation,
 } from '@openchoreo/openchoreo-client-node';
@@ -1278,7 +1279,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(dp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isReady(dp) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(dp) ? 'Ready' : 'Not Ready',
           [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(dp.status?.agentConnection),
         },
@@ -1364,7 +1365,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(bp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isReady(bp) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(bp) ? 'Ready' : 'Not Ready',
           [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: normalizedObsRef,
           ...this.mapNewAgentConnectionAnnotations(bp.status?.agentConnection),
         },
@@ -1403,7 +1404,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(op) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isReady(op) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(op) ? 'Ready' : 'Not Ready',
           ...(op.spec?.observerURL && {
             [CHOREO_ANNOTATIONS.OBSERVER_URL]: op.spec.observerURL,
           }),
@@ -1698,7 +1699,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cdp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isReady(cdp) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cdp) ? 'Ready' : 'Not Ready',
           ...(obsRefName && {
             [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
           }),
@@ -1779,7 +1780,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cop) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isReady(cop) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cop) ? 'Ready' : 'Not Ready',
           ...(cop.spec?.observerURL && {
             [CHOREO_ANNOTATIONS.OBSERVER_URL]: cop.spec.observerURL,
           }),
@@ -1819,7 +1820,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
           'backstage.io/managed-by-location': `provider:${this.getProviderName()}`,
           'backstage.io/managed-by-origin-location': `provider:${this.getProviderName()}`,
           [CHOREO_ANNOTATIONS.CREATED_AT]: getCreatedAt(cbp) || '',
-          [CHOREO_ANNOTATIONS.STATUS]: isReady(cbp) ? 'Ready' : 'Not Ready',
+          [CHOREO_ANNOTATIONS.STATUS]: isCreated(cbp) ? 'Ready' : 'Not Ready',
           ...(obsRefName && {
             [CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF]: obsRefName,
           }),

@@ -50,6 +50,7 @@ export {
   getCondition,
   getConditionStatus,
   isReady,
+  isCreated,
 } from './resource-utils';
 
 // Export pagination utilities (new API)
