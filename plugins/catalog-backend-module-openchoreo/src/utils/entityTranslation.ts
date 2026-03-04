@@ -17,6 +17,63 @@ import type {
 } from '../kinds';
 
 type ModelsComponent = ComponentResponse;
+type AllowedTraitRef = { kind?: string; name: string };
+type AllowedWorkflowRef = { kind?: string; name: string };
+
+const normalizeAllowedTraits = (
+  traits: Array<string | AllowedTraitRef> | undefined,
+  defaultKind: 'Trait' | 'ClusterTrait',
+): AllowedTraitRef[] | undefined => {
+  if (!traits) return undefined;
+  if (traits.length === 0) return [];
+
+  return traits
+    .map(trait => {
+      if (!trait) return null;
+      if (typeof trait === 'string') {
+        const [maybeKind, ...rest] = trait.split(':');
+        if (
+          rest.length > 0 &&
+          (maybeKind === 'Trait' || maybeKind === 'ClusterTrait')
+        ) {
+          return { kind: maybeKind, name: rest.join(':') };
+        }
+        return { kind: defaultKind, name: trait };
+      }
+
+      return { kind: trait.kind ?? defaultKind, name: trait.name };
+    })
+    .filter((trait): trait is NonNullable<typeof trait> =>
+      Boolean(trait?.name),
+    );
+};
+
+const WORKFLOW_KINDS = new Set(['ComponentWorkflow', 'Workflow']);
+
+const normalizeAllowedWorkflows = (
+  workflows: Array<string | AllowedWorkflowRef> | undefined,
+  defaultKind: 'ComponentWorkflow',
+): AllowedWorkflowRef[] | undefined => {
+  if (!workflows) return undefined;
+  if (workflows.length === 0) return [];
+
+  return workflows
+    .map(workflow => {
+      if (!workflow) return null;
+      if (typeof workflow === 'string') {
+        const [maybeKind, ...rest] = workflow.split(':');
+        if (rest.length > 0 && WORKFLOW_KINDS.has(maybeKind)) {
+          return { kind: maybeKind, name: rest.join(':') };
+        }
+        return { kind: defaultKind, name: workflow };
+      }
+
+      return { kind: workflow.kind ?? defaultKind, name: workflow.name };
+    })
+    .filter((workflow): workflow is NonNullable<typeof workflow> =>
+      Boolean(workflow?.name),
+    );
+};
 
 /**
  * Configuration for component entity translation
@@ -297,8 +354,8 @@ export function translateComponentTypeToEntity(
     displayName?: string;
     description?: string;
     workloadType?: string;
-    allowedWorkflows?: string[];
-    allowedTraits?: Array<{ kind?: string; name: string }>;
+    allowedWorkflows?: Array<string | AllowedWorkflowRef>;
+    allowedTraits?: Array<string | AllowedTraitRef>;
     createdAt?: string;
   },
   namespaceName: string,
@@ -331,8 +388,11 @@ export function translateComponentTypeToEntity(
     spec: {
       domain: `default/${namespaceName}`,
       workloadType: ct.workloadType,
-      allowedWorkflows: ct.allowedWorkflows,
-      allowedTraits: ct.allowedTraits,
+      allowedWorkflows: normalizeAllowedWorkflows(
+        ct.allowedWorkflows,
+        'ComponentWorkflow',
+      ),
+      allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'Trait'),
     },
   } as ComponentTypeEntityV1alpha1;
 }
@@ -521,8 +581,8 @@ export function translateClusterComponentTypeToEntity(
     displayName?: string;
     description?: string;
     workloadType?: string;
-    allowedWorkflows?: string[];
-    allowedTraits?: Array<{ kind?: string; name: string }>;
+    allowedWorkflows?: Array<string | AllowedWorkflowRef>;
+    allowedTraits?: Array<string | AllowedTraitRef>;
     createdAt?: string;
   },
   config: EntityTranslationConfig,
@@ -552,8 +612,11 @@ export function translateClusterComponentTypeToEntity(
     },
     spec: {
       workloadType: ct.workloadType || 'deployment',
-      allowedWorkflows: ct.allowedWorkflows,
-      allowedTraits: ct.allowedTraits,
+      allowedWorkflows: normalizeAllowedWorkflows(
+        ct.allowedWorkflows,
+        'ComponentWorkflow',
+      ),
+      allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'ClusterTrait'),
     },
   } as ClusterComponentTypeEntityV1alpha1;
 }

@@ -52,7 +52,14 @@ const kindPluralNames: Record<string, string> = {
   'Component Workflow': 'Component Workflows',
 };
 
-const PLANE_KINDS = new Set(['dataplane', 'buildplane', 'observabilityplane']);
+const PLANE_KINDS = new Set([
+  'dataplane',
+  'buildplane',
+  'observabilityplane',
+  'clusterdataplane',
+  'clusterbuildplane',
+  'clusterobservabilityplane',
+]);
 
 type GridTemplateKey =
   | 'gridTemplateComponent'

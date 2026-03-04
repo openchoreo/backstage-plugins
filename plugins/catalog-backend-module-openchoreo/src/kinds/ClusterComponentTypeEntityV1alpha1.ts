@@ -23,11 +23,11 @@ export interface ClusterComponentTypeEntityV1alpha1 extends Entity {
      */
     workloadType: string;
     /**
-     * List of allowed component workflow names
+     * List of allowed component workflows
      */
-    allowedWorkflows?: string[];
+    allowedWorkflows?: Array<{ kind?: string; name: string }>;
     /**
-     * List of allowed trait names for this cluster component type (always ClusterTrait kind)
+     * List of allowed traits for this cluster component type (ClusterTrait kind)
      */
     allowedTraits?: Array<{ kind?: string; name: string }>;
   };

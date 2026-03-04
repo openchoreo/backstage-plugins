@@ -111,14 +111,6 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
-      target: /app/templates/create-openchoreo-clustercomponenttype/template.yaml
-      rules:
-        - allow: [Template]
-    - type: file
-      target: /app/templates/create-openchoreo-clustertrait/template.yaml
-      rules:
-        - allow: [Template]
-    - type: file
       target: /app/templates/create-openchoreo-workflow/template.yaml
       rules:
         - allow: [Template]
