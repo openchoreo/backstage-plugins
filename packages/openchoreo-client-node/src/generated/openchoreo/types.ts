@@ -297,6 +297,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get environment observer URL
+     * @description Returns the observer URL for accessing logs and metrics for this environment.
+     */
+    get: operations['getEnvironmentObserverURL'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get RCA agent URL
+     * @description Returns the RCA agent URL for AI-powered root cause analysis for this environment.
+     */
+    get: operations['getRCAAgentURL'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/dataplanes': {
     parameters: {
       query?: never;
@@ -1121,6 +1161,66 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get release resource tree
+     * @description Returns all live Kubernetes resources deployed by the active release for a component in an environment, including child resources like Pods.
+     */
+    get: operations['getReleaseResourceTree'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get resource events
+     * @description Returns Kubernetes events for a specific resource in the release resource tree.
+     */
+    get: operations['getReleaseResourceEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get pod logs
+     * @description Returns logs for a specific pod in the release resource tree.
+     */
+    get: operations['getReleaseResourcePodLogs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/components/{componentName}/deploy': {
     parameters: {
       query?: never;
@@ -1469,7 +1569,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/webhooks/github': {
+  '/api/v1alpha1/autobuild': {
     parameters: {
       query?: never;
       header?: never;
@@ -1479,50 +1579,15 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Handle GitHub webhook
-     * @description Processes incoming GitHub webhook events to trigger builds.
+     * Handle git provider webhook
+     * @description Processes incoming webhook events from any supported git provider to trigger automatic builds.
+     *     The git provider is automatically detected from the request headers:
+     *     - GitHub: `X-Hub-Signature-256`
+     *     - GitLab: `X-Gitlab-Token`
+     *     - Bitbucket: `X-Event-Key`
+     *
      */
-    post: operations['handleGitHubWebhook'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/webhooks/gitlab': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Handle GitLab webhook
-     * @description Processes incoming GitLab webhook events to trigger builds.
-     */
-    post: operations['handleGitLabWebhook'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/webhooks/bitbucket': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Handle Bitbucket webhook
-     * @description Processes incoming Bitbucket webhook events to trigger builds.
-     */
-    post: operations['handleBitbucketWebhook'];
+    post: operations['handleAutoBuild'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1995,7 +2060,8 @@ export interface components {
         | 'FORBIDDEN'
         | 'NOT_FOUND'
         | 'CONFLICT'
-        | 'INTERNAL_ERROR';
+        | 'INTERNAL_ERROR'
+        | 'UNKNOWN_GIT_PROVIDER';
       /** @description Additional error details (e.g., validation errors) */
       details?: {
         /**
@@ -2249,7 +2315,7 @@ export interface components {
     /** @description Paginated list of namespaces */
     NamespaceList: {
       items: components['schemas']['Namespace'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Namespace resource (Kubernetes object without kind/apiVersion).
      *     Control plane namespaces hold resources like Projects, Components, and Environments.
@@ -2268,20 +2334,6 @@ export interface components {
        */
       phase?: 'Active' | 'Terminating';
     };
-    /** @description Reference to a BuildPlane or ClusterBuildPlane */
-    BuildPlaneRef: {
-      /**
-       * @description Kind of build plane
-       * @example BuildPlane
-       * @enum {string}
-       */
-      kind: 'BuildPlane' | 'ClusterBuildPlane';
-      /**
-       * @description Name of the build plane resource
-       * @example default
-       */
-      name: string;
-    };
     /** @description Desired state of a Project */
     ProjectSpec: {
       /**
@@ -2291,7 +2343,6 @@ export interface components {
        * @example default
        */
       deploymentPipelineRef?: string;
-      buildPlaneRef?: components['schemas']['BuildPlaneRef'];
     };
     /** @description Observed state of a Project */
     ProjectStatus: {
@@ -2314,12 +2365,12 @@ export interface components {
     /** @description Paginated list of projects */
     ProjectList: {
       items: components['schemas']['Project'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Paginated list of components */
     ComponentList: {
       items: components['schemas']['Component'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Desired state of a Component */
     ComponentSpec: {
@@ -2586,12 +2637,38 @@ export interface components {
     /** @description Paginated list of environments */
     EnvironmentList: {
       items: components['schemas']['Environment'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Observer URL response for accessing logs and metrics */
+    ObserverURLResponse: {
+      /**
+       * @description URL to the observer service for logs and metrics
+       * @example https://observer.example.com/api/v1
+       */
+      observerUrl?: string;
+      /**
+       * @description Additional information or status message
+       * @example Observer URL is available
+       */
+      message?: string;
+    };
+    /** @description RCA agent URL response for AI-powered root cause analysis */
+    RCAAgentURLResponse: {
+      /**
+       * @description URL to the RCA agent service for AI-powered root cause analysis
+       * @example https://rca-agent.example.com
+       */
+      rcaAgentUrl?: string;
+      /**
+       * @description Additional information or status message
+       * @example RCA agent URL is available
+       */
+      message?: string;
     };
     /** @description Paginated list of data planes */
     DataPlaneList: {
       items: components['schemas']['DataPlane'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description DataPlane resource (Kubernetes object without kind/apiVersion).
      *     Represents a Kubernetes cluster for workload deployment.
@@ -2668,7 +2745,7 @@ export interface components {
     /** @description Paginated list of build planes */
     BuildPlaneList: {
       items: components['schemas']['BuildPlane'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description BuildPlane resource (Kubernetes object without kind/apiVersion).
      *     Represents CI/CD build infrastructure within a namespace.
@@ -2767,7 +2844,7 @@ export interface components {
     /** @description Paginated list of observability planes */
     ObservabilityPlaneList: {
       items: components['schemas']['ObservabilityPlane'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description ObservabilityPlane resource (Kubernetes object without kind/apiVersion).
      *     Represents monitoring and logging infrastructure within a namespace.
@@ -2812,7 +2889,7 @@ export interface components {
     /** @description Paginated list of cluster-scoped data planes */
     ClusterDataPlaneList: {
       items: components['schemas']['ClusterDataPlane'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description ClusterDataPlane resource (Kubernetes object without kind/apiVersion).
      *     Represents a cluster-scoped data plane for workload deployment.
@@ -2857,7 +2934,7 @@ export interface components {
     /** @description List of cluster-scoped build planes */
     ClusterBuildPlaneList: {
       items: components['schemas']['ClusterBuildPlane'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description ClusterBuildPlane resource (Kubernetes object without kind/apiVersion).
      *     Represents cluster-scoped CI/CD build infrastructure.
@@ -2908,7 +2985,7 @@ export interface components {
     /** @description List of cluster-scoped observability planes */
     ClusterObservabilityPlaneList: {
       items: components['schemas']['ClusterObservabilityPlane'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description ClusterObservabilityPlane resource (Kubernetes object without kind/apiVersion).
      *     Represents cluster-scoped monitoring and logging infrastructure.
@@ -2953,7 +3030,7 @@ export interface components {
     /** @description Paginated list of cluster-scoped component types */
     ClusterComponentTypeList: {
       items: components['schemas']['ClusterComponentType'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description ClusterComponentType resource (Kubernetes object without kind/apiVersion).
      *     Cluster-scoped version of ComponentType.
@@ -2972,13 +3049,28 @@ export interface components {
        */
       workloadType: 'deployment' | 'statefulset' | 'cronjob' | 'job' | 'proxy';
       /**
-       * @description List of allowed ComponentWorkflow names for this component type
+       * @description List of allowed Workflow references for this component type
        * @example [
-       *       "docker-build",
-       *       "buildpack-build"
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "docker-build"
+       *       },
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "buildpack-build"
+       *       }
        *     ]
        */
-      allowedWorkflows?: string[];
+      allowedWorkflows?: {
+        /**
+         * @description Kind of the workflow reference. Currently only "Workflow" is supported.
+         * @default Workflow
+         * @enum {string}
+         */
+        kind: 'Workflow';
+        /** @description Name of the workflow resource */
+        name: string;
+      }[];
       /** @description Developer-configurable schema definition */
       schema?: {
         /** @description Reusable type definitions */
@@ -3059,7 +3151,7 @@ export interface components {
     /** @description Paginated list of cluster-scoped traits */
     ClusterTraitList: {
       items: components['schemas']['ClusterTrait'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description ClusterTrait resource (Kubernetes object without kind/apiVersion).
      *     Cluster-scoped version of Trait.
@@ -3147,7 +3239,7 @@ export interface components {
     /** @description Paginated list of component types */
     ComponentTypeList: {
       items: components['schemas']['ComponentType'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Desired state of a ComponentType */
     ComponentTypeSpec: {
@@ -3158,13 +3250,28 @@ export interface components {
        */
       workloadType: 'deployment' | 'statefulset' | 'cronjob' | 'job' | 'proxy';
       /**
-       * @description List of allowed ComponentWorkflow names for this component type
+       * @description List of allowed Workflow references for this component type
        * @example [
-       *       "docker-build",
-       *       "buildpack-build"
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "docker-build"
+       *       },
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "buildpack-build"
+       *       }
        *     ]
        */
-      allowedWorkflows?: string[];
+      allowedWorkflows?: {
+        /**
+         * @description Kind of the workflow reference. Currently only "Workflow" is supported.
+         * @default Workflow
+         * @enum {string}
+         */
+        kind: 'Workflow';
+        /** @description Name of the workflow resource */
+        name: string;
+      }[];
       /** @description Developer-configurable schema definition */
       schema?: {
         /** @description Reusable type definitions */
@@ -3254,7 +3361,7 @@ export interface components {
     /** @description Paginated list of traits */
     TraitList: {
       items: components['schemas']['Trait'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Desired state of a Trait */
     TraitSpec: {
@@ -3377,6 +3484,7 @@ export interface components {
     };
     /** @description Desired state of a Workflow */
     WorkflowSpec: {
+      buildPlaneRef?: components['schemas']['BuildPlaneRef'];
       schema?: components['schemas']['WorkflowSchema'];
       /** @description Kubernetes resource template to render and apply for this workflow run. */
       runTemplate: {
@@ -3384,8 +3492,24 @@ export interface components {
       };
       /** @description Additional resource templates to render and apply alongside the workflow run. */
       resources?: components['schemas']['WorkflowResource'][];
+      /** @description External CR references resolved and injected into the CEL context under their id. */
+      externalRefs?: components['schemas']['ExternalRef'][];
       /** @description Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m). */
       ttlAfterCompletion?: string;
+    };
+    /** @description Reference to a BuildPlane or ClusterBuildPlane */
+    BuildPlaneRef: {
+      /**
+       * @description Kind of build plane
+       * @example BuildPlane
+       * @enum {string}
+       */
+      kind: 'BuildPlane' | 'ClusterBuildPlane';
+      /**
+       * @description Name of the build plane resource
+       * @example default
+       */
+      name: string;
     };
     /** @description Developer-facing schema definition for workflow parameters */
     WorkflowSchema: {
@@ -3408,6 +3532,20 @@ export interface components {
       template: {
         [key: string]: unknown;
       };
+    };
+    /** @description Reference to an external CR whose spec is resolved and injected into the CEL context under the given id. */
+    ExternalRef: {
+      /** @description Unique identifier; becomes the CEL context variable name. */
+      id: string;
+      /** @description API version of the referenced resource. */
+      apiVersion: string;
+      /**
+       * @description Kind of the referenced resource.
+       * @enum {string}
+       */
+      kind: 'SecretReference';
+      /** @description Name of the referenced resource (supports CEL expressions). */
+      name: string;
     };
     /** @description Observed state of a Workflow */
     WorkflowStatus: {
@@ -3717,6 +3855,16 @@ export interface components {
     };
     /** @description Observed state of a ReleaseBinding */
     ReleaseBindingStatus: {
+      /**
+       * Format: int64
+       * @description Most recent generation observed by the controller
+       */
+      observedGeneration?: number;
+      /**
+       * Format: date-time
+       * @description Timestamp of the last spec change observed by the controller
+       */
+      lastSpecUpdateTime?: string;
       /** @description Latest available observations of the ReleaseBinding's current state */
       conditions?: components['schemas']['Condition'][];
       /** @description Resolved invoke URLs for each named workload endpoint */
@@ -3826,7 +3974,7 @@ export interface components {
     /** @description Paginated list of releases */
     ReleaseList: {
       items: components['schemas']['Release'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Release resource (Kubernetes object without kind/apiVersion).
      *     Contains the final Kubernetes manifests deployed to data plane clusters.
@@ -3968,20 +4116,8 @@ export interface components {
       };
       health?: components['schemas']['HealthInfo'];
     };
-    /** @description Response containing resource trees for all releases owned by a release binding */
-    K8sResourceTreeResponse: {
-      /** @description Resource trees per release (dataplane and/or observabilityplane) */
-      releases: components['schemas']['ReleaseResourceTree'][];
-    };
-    /** @description Resource tree for a single release */
-    ReleaseResourceTree: {
-      /** @description Name of the release */
-      name: string;
-      /**
-       * @description Target plane of the release
-       * @enum {string}
-       */
-      targetPlane: 'dataplane' | 'observabilityplane';
+    /** @description Response containing the resource tree for a release */
+    ResourceTreeResponse: {
       /** @description All resource nodes in the tree */
       nodes: components['schemas']['ResourceNode'][];
     };
@@ -4047,6 +4183,23 @@ export interface components {
       /** @description Log entries from the pod */
       logEntries: components['schemas']['PodLogEntry'][];
     };
+    /** @description Response containing resource trees for all releases owned by a release binding */
+    K8sResourceTreeResponse: {
+      /** @description Resource trees per release (dataplane and/or observabilityplane) */
+      releases: components['schemas']['ReleaseResourceTree'][];
+    };
+    /** @description Resource tree for a single release */
+    ReleaseResourceTree: {
+      /** @description Name of the release */
+      name: string;
+      /**
+       * @description Target plane of the release
+       * @enum {string}
+       */
+      targetPlane: 'dataplane' | 'observabilityplane';
+      /** @description All resource nodes in the tree */
+      nodes: components['schemas']['ResourceNode'][];
+    };
     /** @description Request to deploy a release */
     DeployReleaseRequest: {
       /**
@@ -4111,7 +4264,7 @@ export interface components {
     /** @description List of cluster-scoped authorization roles */
     AuthzClusterRoleList: {
       items: components['schemas']['AuthzClusterRole'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Namespace-scoped authorization role (Kubernetes CRD).
      *     Defines a set of actions that can be assigned to subjects via role bindings within a namespace.
@@ -4139,7 +4292,7 @@ export interface components {
     /** @description List of namespace-scoped authorization roles */
     AuthzRoleList: {
       items: components['schemas']['AuthzRole'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Cluster-scoped role binding (Kubernetes CRD).
      *     Binds a cluster role to a subject identified by an entitlement claim.
@@ -4163,7 +4316,7 @@ export interface components {
     /** @description List of cluster-scoped role bindings */
     AuthzClusterRoleBindingList: {
       items: components['schemas']['AuthzClusterRoleBinding'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Namespace-scoped role binding (Kubernetes CRD).
      *     Binds a role to a subject identified by an entitlement claim within a namespace.
@@ -4188,7 +4341,7 @@ export interface components {
     /** @description List of namespace-scoped role bindings */
     AuthzRoleBindingList: {
       items: components['schemas']['AuthzRoleBinding'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Entitlement claim-value pair for subject identification */
     AuthzEntitlementClaim: {
@@ -4638,7 +4791,7 @@ export interface components {
     /** @description Paginated list of secret references */
     SecretReferenceList: {
       items: components['schemas']['SecretReference'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description SecretReference resource (Kubernetes object without kind/apiVersion).
      *     Defines references to external secrets that are synced into the cluster.
@@ -4748,7 +4901,7 @@ export interface components {
     /** @description Paginated list of workloads */
     WorkloadList: {
       items: components['schemas']['Workload'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Workload resource (Kubernetes object without kind/apiVersion).
      *     Defines the source code, container, endpoints and connections for a component.
@@ -4779,7 +4932,7 @@ export interface components {
         [key: string]: components['schemas']['WorkloadEndpoint'];
       };
       /** @description Connection specifications for endpoints consumed by this workload */
-      connections?: components['schemas']['ConnectionSpec'][];
+      connections?: components['schemas']['WorkloadConnection'][];
     };
     /** @description Observed state of a Workload */
     WorkloadStatus: Record<string, never>;
@@ -4823,7 +4976,7 @@ export interface components {
       };
     };
     /** @description A connection to another component's endpoint */
-    ConnectionSpec: {
+    WorkloadConnection: {
       /** @description Target component's project name. If empty, defaults to the same project as the consumer. */
       project?: string;
       /** @description Target component name */
@@ -4854,7 +5007,7 @@ export interface components {
     /** @description Paginated list of deployment pipelines */
     DeploymentPipelineList: {
       items: components['schemas']['DeploymentPipeline'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description DeploymentPipeline resource (Kubernetes object without kind/apiVersion).
      *     Defines promotion paths between environments for component deployments.
@@ -4905,7 +5058,7 @@ export interface components {
     /** @description Paginated list of observability alerts notification channels */
     ObservabilityAlertsNotificationChannelList: {
       items: components['schemas']['ObservabilityAlertsNotificationChannel'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description ObservabilityAlertsNotificationChannel resource (Kubernetes object without kind/apiVersion).
      *     Defines a channel for sending alert notifications. Currently email and webhook notifications are supported.
@@ -5157,6 +5310,8 @@ export interface components {
     ProjectQueryParam: string;
     /** @description Filter resources by component name */
     ComponentQueryParam: string;
+    /** @description Filter workflow runs by workflow name */
+    WorkflowQueryParam: string;
     /** @description Filter resources by environment name */
     EnvironmentQueryParam: string;
     /** @description Workload name */
@@ -5835,6 +5990,64 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getEnvironmentObserverURL: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Observer URL information */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObserverURLResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getRCAAgentURL: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Environment name */
+        envName: components['parameters']['EnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description RCA agent URL information */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RCAAgentURLResponse'];
+        };
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
@@ -7643,6 +7856,8 @@ export interface operations {
   listWorkflowRuns: {
     parameters: {
       query?: {
+        /** @description Filter workflow runs by workflow name */
+        workflow?: components['parameters']['WorkflowQueryParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
         /** @description Opaque pagination cursor from a previous response.
@@ -7767,11 +7982,6 @@ export interface operations {
       query?: {
         /** @description Filter logs by task name */
         task?: string;
-        /**
-         * @deprecated
-         * @description Deprecated alias for task. Use task instead.
-         */
-        step?: string;
         /** @description Return logs newer than a relative duration in seconds */
         sinceSeconds?: number;
       };
@@ -7806,11 +8016,6 @@ export interface operations {
       query?: {
         /** @description Filter events by task name */
         task?: string;
-        /**
-         * @deprecated
-         * @description Deprecated alias for task. Use task instead.
-         */
-        step?: string;
       };
       header?: never;
       path: {
@@ -7952,6 +8157,125 @@ export interface operations {
           'application/json': components['schemas']['SchemaResponse'];
         };
       };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseResourceTree: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Environment name for component-scoped operations */
+        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource tree for the active release */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceTreeResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseResourceEvents: {
+    parameters: {
+      query: {
+        /** @description Kind of the resource */
+        kind: string;
+        /** @description Name of the resource */
+        name: string;
+        /** @description Namespace of the resource */
+        namespace?: string;
+        /** @description UID of the resource for precise event matching */
+        uid?: string;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Environment name for component-scoped operations */
+        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Events for the specified resource */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceEventsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseResourcePodLogs: {
+    parameters: {
+      query: {
+        /** @description Name of the pod */
+        name: string;
+        /** @description Namespace of the pod */
+        namespace: string;
+        /** @description Specific container name to get logs from */
+        container?: string;
+        /** @description Only return logs newer than this many seconds */
+        sinceSeconds?: number;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Environment name for component-scoped operations */
+        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Logs for the specified pod */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourcePodLogsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -8769,68 +9093,17 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  handleGitHubWebhook: {
+  handleAutoBuild: {
     parameters: {
       query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
+      header?: {
+        /** @description GitHub webhook signature header used to detect and validate GitHub events. */
+        'X-Hub-Signature-256'?: string;
+        /** @description GitLab webhook token header used to detect and validate GitLab events. */
+        'X-Gitlab-Token'?: string;
+        /** @description Bitbucket webhook event-key header used to detect Bitbucket events. */
+        'X-Event-Key'?: string;
       };
-    };
-    responses: {
-      /** @description Webhook processed successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['WebhookEventResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  handleGitLabWebhook: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Webhook processed successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['WebhookEventResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  handleBitbucketWebhook: {
-    parameters: {
-      query?: never;
-      header?: never;
       path?: never;
       cookie?: never;
     };

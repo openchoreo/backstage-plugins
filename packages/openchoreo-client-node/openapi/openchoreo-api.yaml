@@ -61,8 +61,8 @@ tags:
     description: Generic workflow templates
   - name: Authorization
     description: Role-based access control and authorization management
-  - name: Webhooks
-    description: Git provider webhook handlers
+  - name: AutoBuild
+    description: Git provider webhook handlers for automatic builds
   - name: SecretReferences
     description: Secret reference management
   - name: Workloads
@@ -637,6 +637,56 @@ paths:
       responses:
         '204':
           description: Environment deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url:
+    get:
+      operationId: getEnvironmentObserverURL
+      summary: Get environment observer URL
+      description: Returns the observer URL for accessing logs and metrics for this environment.
+      tags: [Environments]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/EnvironmentNameParam'
+      responses:
+        '200':
+          description: Observer URL information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObserverURLResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url:
+    get:
+      operationId: getRCAAgentURL
+      summary: Get RCA agent URL
+      description: Returns the RCA agent URL for AI-powered root cause analysis for this environment.
+      tags: [Environments]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/EnvironmentNameParam'
+      responses:
+        '200':
+          description: RCA agent URL information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RCAAgentURLResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2286,6 +2336,7 @@ paths:
       tags: [Workflows]
       parameters:
         - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowQueryParam'
         - $ref: '#/components/parameters/LimitParam'
         - $ref: '#/components/parameters/CursorParam'
       responses:
@@ -2396,13 +2447,6 @@ paths:
           description: Filter logs by task name
           schema:
             type: string
-        - name: step
-          in: query
-          required: false
-          deprecated: true
-          description: Deprecated alias for task. Use task instead.
-          schema:
-            type: string
         - name: sinceSeconds
           in: query
           required: false
@@ -2442,13 +2486,6 @@ paths:
           in: query
           required: false
           description: Filter events by task name
-          schema:
-            type: string
-        - name: step
-          in: query
-          required: false
-          deprecated: true
-          description: Deprecated alias for task. Use task instead.
           schema:
             type: string
       responses:
@@ -2564,6 +2601,141 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SchemaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources:
+    get:
+      operationId: getReleaseResourceTree
+      summary: Get release resource tree
+      description: Returns all live Kubernetes resources deployed by the active release for a component in an environment, including child resources like Pods.
+      tags: [Components]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ProjectNameParam'
+        - $ref: '#/components/parameters/ComponentNameParam'
+        - $ref: '#/components/parameters/ComponentEnvironmentNameParam'
+      responses:
+        '200':
+          description: Resource tree for the active release
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceTreeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events:
+    get:
+      operationId: getReleaseResourceEvents
+      summary: Get resource events
+      description: Returns Kubernetes events for a specific resource in the release resource tree.
+      tags: [Components]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ProjectNameParam'
+        - $ref: '#/components/parameters/ComponentNameParam'
+        - $ref: '#/components/parameters/ComponentEnvironmentNameParam'
+        - name: kind
+          in: query
+          required: true
+          description: Kind of the resource
+          schema:
+            type: string
+        - name: name
+          in: query
+          required: true
+          description: Name of the resource
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: false
+          description: Namespace of the resource
+          schema:
+            type: string
+        - name: uid
+          in: query
+          required: false
+          description: UID of the resource for precise event matching
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Events for the specified resource
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceEventsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs:
+    get:
+      operationId: getReleaseResourcePodLogs
+      summary: Get pod logs
+      description: Returns logs for a specific pod in the release resource tree.
+      tags: [Components]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/ProjectNameParam'
+        - $ref: '#/components/parameters/ComponentNameParam'
+        - $ref: '#/components/parameters/ComponentEnvironmentNameParam'
+        - name: name
+          in: query
+          required: true
+          description: Name of the pod
+          schema:
+            type: string
+        - name: namespace
+          in: query
+          required: true
+          description: Namespace of the pod
+          schema:
+            type: string
+        - name: container
+          in: query
+          required: false
+          description: Specific container name to get logs from
+          schema:
+            type: string
+        - name: sinceSeconds
+          in: query
+          required: false
+          description: Only return logs newer than this many seconds
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+      responses:
+        '200':
+          description: Logs for the specified pod
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourcePodLogsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3401,81 +3573,47 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # =============================================================================
-  # Webhook Endpoints
+  # AutoBuild Endpoints
   # =============================================================================
 
-  /api/v1/webhooks/github:
+  /api/v1alpha1/autobuild:
     post:
-      operationId: handleGitHubWebhook
-      summary: Handle GitHub webhook
-      description: Processes incoming GitHub webhook events to trigger builds.
-      tags: [Webhooks]
+      operationId: handleAutoBuild
+      summary: Handle git provider webhook
+      description: |
+        Processes incoming webhook events from any supported git provider to trigger automatic builds.
+        The git provider is automatically detected from the request headers:
+        - GitHub: `X-Hub-Signature-256`
+        - GitLab: `X-Gitlab-Token`
+        - Bitbucket: `X-Event-Key`
+      tags: [AutoBuild]
       security: []
+      parameters:
+        - in: header
+          name: X-Hub-Signature-256
+          required: false
+          schema:
+            type: string
+          description: GitHub webhook signature header used to detect and validate GitHub events.
+        - in: header
+          name: X-Gitlab-Token
+          required: false
+          schema:
+            type: string
+          description: GitLab webhook token header used to detect and validate GitLab events.
+        - in: header
+          name: X-Event-Key
+          required: false
+          schema:
+            type: string
+          description: Bitbucket webhook event-key header used to detect Bitbucket events.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              description: GitHub webhook payload
-              additionalProperties: true
-      responses:
-        '200':
-          description: Webhook processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WebhookEventResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/webhooks/gitlab:
-    post:
-      operationId: handleGitLabWebhook
-      summary: Handle GitLab webhook
-      description: Processes incoming GitLab webhook events to trigger builds.
-      tags: [Webhooks]
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: GitLab webhook payload
-              additionalProperties: true
-      responses:
-        '200':
-          description: Webhook processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/WebhookEventResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/webhooks/bitbucket:
-    post:
-      operationId: handleBitbucketWebhook
-      summary: Handle Bitbucket webhook
-      description: Processes incoming Bitbucket webhook events to trigger builds.
-      tags: [Webhooks]
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Bitbucket webhook payload
+              description: Git provider webhook payload
               additionalProperties: true
       responses:
         '200':
@@ -4552,6 +4690,15 @@ components:
         type: string
         example: api-service
 
+    WorkflowQueryParam:
+      name: workflow
+      in: query
+      required: false
+      description: Filter workflow runs by workflow name
+      schema:
+        type: string
+        example: my-workflow
+
     EnvironmentQueryParam:
       name: environment
       in: query
@@ -4801,7 +4948,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'Invalid request: name is required'
+            error: "Invalid request: name is required"
             code: BAD_REQUEST
             details:
               - field: name
@@ -4814,7 +4961,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'Authentication required'
+            error: "Authentication required"
             code: UNAUTHORIZED
 
     Forbidden:
@@ -4824,7 +4971,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'You do not have permission to access this resource'
+            error: "You do not have permission to access this resource"
             code: FORBIDDEN
 
     NotFound:
@@ -4854,7 +5001,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: 'Internal server error'
+            error: "Internal server error"
             code: INTERNAL_ERROR
 
   # ===========================================================================
@@ -4885,6 +5032,7 @@ components:
             - NOT_FOUND
             - CONFLICT
             - INTERNAL_ERROR
+            - UNKNOWN_GIT_PROVIDER
           example: NOT_FOUND
         details:
           type: array
@@ -4938,7 +5086,7 @@ components:
           type: string
           format: date-time
           description: Creation timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
 
     Condition:
       type: object
@@ -4956,8 +5104,8 @@ components:
         status:
           type: string
           description: Status of the condition
-          enum: ['True', 'False', 'Unknown']
-          example: 'True'
+          enum: ["True", "False", "Unknown"]
+          example: "True"
         observedGeneration:
           type: integer
           format: int64
@@ -4966,7 +5114,7 @@ components:
           type: string
           format: date-time
           description: Last time the condition transitioned
-          example: '2025-01-06T10:00:05Z'
+          example: "2025-01-06T10:00:05Z"
         reason:
           type: string
           description: Machine-readable reason for the condition
@@ -4974,7 +5122,7 @@ components:
         message:
           type: string
           description: Human-readable message
-          example: 'Project is ready'
+          example: "Project is ready"
 
     # -------------------------------------------------------------------------
     # Version
@@ -5006,7 +5154,7 @@ components:
         buildTime:
           type: string
           description: Build timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         goOS:
           type: string
           description: Target operating system
@@ -5101,7 +5249,7 @@ components:
           minItems: 1
           items:
             type: string
-          example: ['openid', 'profile', 'email']
+          example: ["openid", "profile", "email"]
 
     # -------------------------------------------------------------------------
     # User Type Configuration
@@ -5178,7 +5326,7 @@ components:
             Opaque cursor for fetching the next page. Pass this value as the
             `cursor` query parameter in the next request. Absent when there
             are no more items.
-          example: 'eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30='
+          example: "eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30="
         remainingCount:
           type: integer
           format: int64
@@ -5197,6 +5345,7 @@ components:
       description: Paginated list of namespaces
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -5234,23 +5383,6 @@ components:
     # -------------------------------------------------------------------------
     # Projects
     # -------------------------------------------------------------------------
-    BuildPlaneRef:
-      type: object
-      description: Reference to a BuildPlane or ClusterBuildPlane
-      required:
-        - kind
-        - name
-      properties:
-        kind:
-          type: string
-          description: Kind of build plane
-          enum: [BuildPlane, ClusterBuildPlane]
-          example: BuildPlane
-        name:
-          type: string
-          description: Name of the build plane resource
-          example: default
-
     ProjectSpec:
       type: object
       description: Desired state of a Project
@@ -5261,8 +5393,6 @@ components:
             Reference to the DeploymentPipeline that defines the environments
             and deployment progression for components in this project.
           example: default
-        buildPlaneRef:
-          $ref: '#/components/schemas/BuildPlaneRef'
 
     ProjectStatus:
       type: object
@@ -5300,6 +5430,7 @@ components:
       description: Paginated list of projects
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -5307,6 +5438,7 @@ components:
             $ref: '#/components/schemas/Project'
         pagination:
           $ref: '#/components/schemas/Pagination'
+
 
     # -------------------------------------------------------------------------
     # Components
@@ -5316,6 +5448,7 @@ components:
       description: Paginated list of components
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -5354,7 +5487,7 @@ components:
               default: ComponentType
             name:
               type: string
-              description: 'Component type reference in format: {workloadType}/{componentTypeName}'
+              description: "Component type reference in format: {workloadType}/{componentTypeName}"
               example: deployment/go-service
               pattern: '^(deployment|statefulset|cronjob|job|proxy)/[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         autoDeploy:
@@ -5485,12 +5618,12 @@ components:
           maxLength: 1024
         type:
           type: string
-          description: 'DEPRECATED: Use componentType instead. Legacy component type field.'
+          description: "DEPRECATED: Use componentType instead. Legacy component type field."
           example: service/go-service
           deprecated: true
         componentType:
           type: string
-          description: 'Component type reference (format: {workloadType}/{componentTypeName})'
+          description: "Component type reference (format: {workloadType}/{componentTypeName})"
           example: service/go-service
         autoDeploy:
           type: boolean
@@ -5654,6 +5787,7 @@ components:
       description: Paginated list of environments
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -5661,6 +5795,32 @@ components:
             $ref: '#/components/schemas/Environment'
         pagination:
           $ref: '#/components/schemas/Pagination'
+
+    ObserverURLResponse:
+      type: object
+      description: Observer URL response for accessing logs and metrics
+      properties:
+        observerUrl:
+          type: string
+          description: URL to the observer service for logs and metrics
+          example: https://observer.example.com/api/v1
+        message:
+          type: string
+          description: Additional information or status message
+          example: Observer URL is available
+
+    RCAAgentURLResponse:
+      type: object
+      description: RCA agent URL response for AI-powered root cause analysis
+      properties:
+        rcaAgentUrl:
+          type: string
+          description: URL to the RCA agent service for AI-powered root cause analysis
+          example: https://rca-agent.example.com
+        message:
+          type: string
+          description: Additional information or status message
+          example: RCA agent URL is available
 
     # -------------------------------------------------------------------------
     # DataPlanes
@@ -5670,6 +5830,7 @@ components:
       description: Paginated list of data planes
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -5714,7 +5875,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ['docker-registry-secret']
+          example: ["docker-registry-secret"]
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -5797,6 +5958,7 @@ components:
       description: Paginated list of build planes
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -5951,6 +6113,7 @@ components:
       description: Paginated list of observability planes
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6021,6 +6184,7 @@ components:
       description: Paginated list of cluster-scoped data planes
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6065,7 +6229,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ['docker-registry-secret']
+          example: ["docker-registry-secret"]
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -6095,6 +6259,7 @@ components:
       description: List of cluster-scoped build planes
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6184,6 +6349,7 @@ components:
       description: List of cluster-scoped observability planes
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6254,6 +6420,7 @@ components:
       description: Paginated list of cluster-scoped component types
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6293,10 +6460,26 @@ components:
           example: deployment
         allowedWorkflows:
           type: array
-          description: List of allowed ComponentWorkflow names for this component type
+          description: List of allowed Workflow references for this component type
           items:
-            type: string
-          example: ['docker-build', 'buildpack-build']
+            type: object
+            required:
+              - name
+            properties:
+              kind:
+                type: string
+                description: Kind of the workflow reference. Currently only "Workflow" is supported.
+                enum: [Workflow]
+                default: Workflow
+              name:
+                type: string
+                description: Name of the workflow resource
+                minLength: 1
+          example:
+            - kind: Workflow
+              name: docker-build
+            - kind: Workflow
+              name: buildpack-build
         schema:
           type: object
           description: Developer-configurable schema definition
@@ -6375,7 +6558,7 @@ components:
             properties:
               rule:
                 type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
+                description: "CEL expression wrapped in ${...} that must evaluate to true"
                 pattern: '^\$\{[\s\S]+\}\s*$'
               message:
                 type: string
@@ -6400,11 +6583,11 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
                 pattern: '^\$\{[\s\S]+\}\s*$'
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
                 pattern: '^\$\{[\s\S]+\}\s*$'
               var:
                 type: string
@@ -6426,6 +6609,7 @@ components:
       description: Paginated list of cluster-scoped traits
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6486,10 +6670,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6508,7 +6692,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: 'CEL expression for repeating this patch'
+                description: "CEL expression for repeating this patch"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6531,7 +6715,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: 'CEL expression to filter which resources to patch'
+                    description: "CEL expression to filter which resources to patch"
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -6569,6 +6753,7 @@ components:
       description: Paginated list of component types
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6591,10 +6776,26 @@ components:
           example: deployment
         allowedWorkflows:
           type: array
-          description: List of allowed ComponentWorkflow names for this component type
+          description: List of allowed Workflow references for this component type
           items:
-            type: string
-          example: ['docker-build', 'buildpack-build']
+            type: object
+            required:
+              - name
+            properties:
+              kind:
+                type: string
+                description: Kind of the workflow reference. Currently only "Workflow" is supported.
+                enum: [Workflow]
+                default: Workflow
+              name:
+                type: string
+                description: Name of the workflow resource
+                minLength: 1
+          example:
+            - kind: Workflow
+              name: docker-build
+            - kind: Workflow
+              name: buildpack-build
         schema:
           type: object
           description: Developer-configurable schema definition
@@ -6671,7 +6872,7 @@ components:
             properties:
               rule:
                 type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
+                description: "CEL expression wrapped in ${...} that must evaluate to true"
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6695,10 +6896,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6736,6 +6937,7 @@ components:
       description: Paginated list of traits
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -6775,7 +6977,7 @@ components:
             properties:
               rule:
                 type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
+                description: "CEL expression wrapped in ${...} that must evaluate to true"
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6794,10 +6996,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: 'CEL expression determining if this resource should be created'
+                description: "CEL expression determining if this resource should be created"
               forEach:
                 type: string
-                description: 'CEL expression for generating multiple resources from a list'
+                description: "CEL expression for generating multiple resources from a list"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6816,7 +7018,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: 'CEL expression for repeating this patch'
+                description: "CEL expression for repeating this patch"
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6839,7 +7041,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: 'CEL expression to filter which resources to patch'
+                    description: "CEL expression to filter which resources to patch"
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -6940,6 +7142,8 @@ components:
       required:
         - runTemplate
       properties:
+        buildPlaneRef:
+          $ref: '#/components/schemas/BuildPlaneRef'
         schema:
           $ref: '#/components/schemas/WorkflowSchema'
         runTemplate:
@@ -6951,9 +7155,31 @@ components:
           description: Additional resource templates to render and apply alongside the workflow run.
           items:
             $ref: '#/components/schemas/WorkflowResource'
+        externalRefs:
+          type: array
+          description: External CR references resolved and injected into the CEL context under their id.
+          items:
+            $ref: '#/components/schemas/ExternalRef'
         ttlAfterCompletion:
           type: string
           description: Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m).
+
+    BuildPlaneRef:
+      type: object
+      description: Reference to a BuildPlane or ClusterBuildPlane
+      required:
+        - kind
+        - name
+      properties:
+        kind:
+          type: string
+          description: Kind of build plane
+          enum: [BuildPlane, ClusterBuildPlane]
+          example: BuildPlane
+        name:
+          type: string
+          description: Name of the build plane resource
+          example: default
 
     WorkflowSchema:
       type: object
@@ -6985,6 +7211,32 @@ components:
           type: object
           description: Kubernetes resource template with CEL expressions.
           additionalProperties: true
+
+    ExternalRef:
+      type: object
+      description: Reference to an external CR whose spec is resolved and injected into the CEL context under the given id.
+      required:
+        - id
+        - apiVersion
+        - kind
+        - name
+      properties:
+        id:
+          type: string
+          description: Unique identifier; becomes the CEL context variable name.
+          pattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+          minLength: 2
+          maxLength: 63
+        apiVersion:
+          type: string
+          description: API version of the referenced resource.
+        kind:
+          type: string
+          description: Kind of the referenced resource.
+          enum: [SecretReference]
+        name:
+          type: string
+          description: Name of the referenced resource (supports CEL expressions).
 
     WorkflowStatus:
       type: object
@@ -7159,12 +7411,12 @@ components:
           type: string
           format: date-time
           description: When the step started
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         finishedAt:
           type: string
           format: date-time
           description: When the step finished
-          example: '2025-01-06T10:01:00Z'
+          example: "2025-01-06T10:01:00Z"
 
     WorkflowRunLogEntry:
       type: object
@@ -7176,11 +7428,11 @@ components:
           type: string
           format: date-time
           description: Log entry timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         log:
           type: string
           description: Log message
-          example: 'Step 1: Cloning repository...'
+          example: "Step 1: Cloning repository..."
 
     WorkflowRunEventEntry:
       type: object
@@ -7195,7 +7447,7 @@ components:
           type: string
           format: date-time
           description: Event timestamp
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
         type:
           type: string
           description: Event type
@@ -7207,7 +7459,7 @@ components:
         message:
           type: string
           description: Human-readable description of the event
-          example: 'Container main started'
+          example: "Container main started"
 
     CreateWorkflowRunRequest:
       type: object
@@ -7225,8 +7477,8 @@ components:
           description: User-defined workflow parameters
           additionalProperties: true
           example:
-            database_url: 'postgresql://localhost:5432/mydb'
-            migration_version: 'v2.1.0'
+            database_url: "postgresql://localhost:5432/mydb"
+            migration_version: "v2.1.0"
 
     # -------------------------------------------------------------------------
     # Component Extended Schemas
@@ -7438,6 +7690,14 @@ components:
       type: object
       description: Observed state of a ReleaseBinding
       properties:
+        observedGeneration:
+          type: integer
+          format: int64
+          description: Most recent generation observed by the controller
+        lastSpecUpdateTime:
+          type: string
+          format: date-time
+          description: Timestamp of the last spec change observed by the controller
         conditions:
           type: array
           description: Latest available observations of the ReleaseBinding's current state
@@ -7591,6 +7851,7 @@ components:
       description: Paginated list of releases
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -7806,33 +8067,12 @@ components:
         health:
           $ref: '#/components/schemas/HealthInfo'
 
-    K8sResourceTreeResponse:
+    ResourceTreeResponse:
       type: object
-      description: Response containing resource trees for all releases owned by a release binding
+      description: Response containing the resource tree for a release
       required:
-        - releases
-      properties:
-        releases:
-          type: array
-          description: Resource trees per release (dataplane and/or observabilityplane)
-          items:
-            $ref: '#/components/schemas/ReleaseResourceTree'
-
-    ReleaseResourceTree:
-      type: object
-      description: Resource tree for a single release
-      required:
-        - name
-        - targetPlane
         - nodes
       properties:
-        name:
-          type: string
-          description: Name of the release
-        targetPlane:
-          type: string
-          description: Target plane of the release
-          enum: [dataplane, observabilityplane]
         nodes:
           type: array
           description: All resource nodes in the tree
@@ -7899,11 +8139,11 @@ components:
           type: string
           description: Timestamp of the log entry in RFC3339 format
           format: date-time
-          example: '2024-01-10T12:34:56.789Z'
+          example: "2024-01-10T12:34:56.789Z"
         log:
           type: string
           description: Log message content
-          example: 'Starting application server on port 8080'
+          example: "Starting application server on port 8080"
 
     ResourcePodLogsResponse:
       type: object
@@ -7916,6 +8156,39 @@ components:
           description: Log entries from the pod
           items:
             $ref: '#/components/schemas/PodLogEntry'
+
+    K8sResourceTreeResponse:
+      type: object
+      description: Response containing resource trees for all releases owned by a release binding
+      required:
+        - releases
+      properties:
+        releases:
+          type: array
+          description: Resource trees per release (dataplane and/or observabilityplane)
+          items:
+            $ref: '#/components/schemas/ReleaseResourceTree'
+
+    ReleaseResourceTree:
+      type: object
+      description: Resource tree for a single release
+      required:
+        - name
+        - targetPlane
+        - nodes
+      properties:
+        name:
+          type: string
+          description: Name of the release
+        targetPlane:
+          type: string
+          description: Target plane of the release
+          enum: [dataplane, observabilityplane]
+        nodes:
+          type: array
+          description: All resource nodes in the tree
+          items:
+            $ref: '#/components/schemas/ResourceNode'
 
     # -------------------------------------------------------------------------
     # Deploy/Promote Requests
@@ -7994,7 +8267,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['project:create', 'project:view', 'project:delete']
+          example: ["project:create", "project:view", "project:delete"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8005,6 +8278,7 @@ components:
       description: List of cluster-scoped authorization roles
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -8037,7 +8311,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['component:create', 'component:view']
+          example: ["component:create", "component:view"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8048,6 +8322,7 @@ components:
       description: List of namespace-scoped authorization roles
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -8092,6 +8367,7 @@ components:
       description: List of cluster-scoped role bindings
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -8138,6 +8414,7 @@ components:
       description: List of namespace-scoped role bindings
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -8252,7 +8529,7 @@ components:
           description: Entitlement values
           items:
             type: string
-          example: ['admin-group', 'dev-group']
+          example: ["admin-group", "dev-group"]
 
     Resource:
       type: object
@@ -8310,6 +8587,7 @@ components:
               description: Reason for the decision
               example: User has admin role
 
+
     ActionCapability:
       type: object
       description: Capabilities for a specific action
@@ -8353,7 +8631,8 @@ components:
           type: string
           format: date-time
           description: Time when capabilities were evaluated
-          example: '2025-01-06T10:00:00Z'
+          example: "2025-01-06T10:00:00Z"
+
 
     # -------------------------------------------------------------------------
     # Legacy Authz Schemas (kept for legacy handler compatibility)
@@ -8375,7 +8654,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write', 'delete']
+          example: ["read", "write", "delete"]
         namespace:
           type: string
           description: Namespace for namespace-scoped roles, empty for cluster roles
@@ -8396,7 +8675,7 @@ components:
           description: New list of actions for the role
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
 
     TargetPath:
       type: object
@@ -8506,7 +8785,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write', 'delete']
+          example: ["read", "write", "delete"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8523,7 +8802,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8591,7 +8870,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8608,7 +8887,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ['read', 'write']
+          example: ["read", "write"]
         description:
           type: string
           description: Human-readable description of the role
@@ -8685,7 +8964,7 @@ components:
           description: List of components affected by this webhook
           items:
             type: string
-          example: ['api-service', 'web-app']
+          example: ["api-service", "web-app"]
         triggeredBuilds:
           type: integer
           description: Number of builds triggered
@@ -8699,6 +8978,7 @@ components:
       description: Paginated list of secret references
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -8757,7 +9037,7 @@ components:
           type: string
           format: date-time
           description: When the secret reference was last processed
-          example: '2025-01-06T11:00:00Z'
+          example: "2025-01-06T11:00:00Z"
         secretStores:
           type: array
           description: Secret stores using this reference
@@ -8857,6 +9137,7 @@ components:
       description: Paginated list of workloads
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -8912,7 +9193,7 @@ components:
           type: array
           description: Connection specifications for endpoints consumed by this workload
           items:
-            $ref: '#/components/schemas/ConnectionSpec'
+            $ref: '#/components/schemas/WorkloadConnection'
 
     WorkloadStatus:
       type: object
@@ -9046,6 +9327,7 @@ components:
       description: Paginated list of deployment pipelines
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -9135,6 +9417,7 @@ components:
       description: Paginated list of observability alerts notification channels
       required:
         - items
+        - pagination
       properties:
         items:
           type: array
@@ -9287,11 +9570,11 @@ components:
         subject:
           type: string
           description: Email subject line template using CEL expressions
-          example: '[${alert.severity}] - ${alert.name} Triggered'
+          example: "[${alert.severity}] - ${alert.name} Triggered"
         body:
           type: string
           description: Email body template using CEL expressions
-          example: 'Alert: ${alert.name} triggered at ${alert.startsAt}.'
+          example: "Alert: ${alert.name} triggered at ${alert.startsAt}."
 
     NotificationWebhookConfig:
       type: object
