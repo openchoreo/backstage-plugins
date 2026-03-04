@@ -513,16 +513,12 @@ export class WorkflowService {
           log: entry.log,
         }));
 
-        if (entries.length > 0) {
-          this.logger.debug(
-            `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`,
-          );
-          return entries;
-        }
-
         this.logger.debug(
-          `Live logs empty for run ${runName}, falling back to observer`,
+          entries.length > 0
+            ? `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`
+            : `No live logs yet for run ${runName}`,
         );
+        return entries;
       }
 
       // Use observer API for older workflow runs
