@@ -154,7 +154,7 @@ const AlertDetails = ({
       <Box className={classes.propertyRow}>
         <Typography className={classes.propertyKey}>Component</Typography>
         <Typography className={classes.propertyValue}>
-          <FormattedText text={alertContext.component_uid} />
+          <FormattedText text={alertContext.component} />
         </Typography>
       </Box>
 

@@ -12,16 +12,28 @@ interface FormattedTextProps {
   disableMarkdown?: boolean;
 }
 
-// UUID pattern (case-insensitive)
-const UUID_PATTERN =
-  /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/i;
+// Entity tag patterns:
+//   Raw form: <comp:name>, <proj:name>, <env:name>, <ns:name>
+//   Escaped form: {{comp:name}}, {{proj:name}}, etc. (used after pre-processing for markdown safety)
+const ENTITY_TAG_PATTERN = /(?:<|{{)(comp|proj|env|ns):([^>}]+)(?:>|}})/;
 
 // ISO 8601 timestamp pattern (e.g., 2023-10-05T14:48:00Z or 2023-10-05T14:48:00.123456Z)
 const ISO_TIMESTAMP_PATTERN = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z/;
 
-// Combined pattern to split text by UUIDs and timestamps, keeping delimiters
+// Combined pattern to split text by entity tags (both forms) and timestamps, keeping delimiters
 const SPLIT_PATTERN =
-  /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)/gi;
+  /((?:<|{{)(?:comp|proj|env|ns):[^>}]+(?:>|}})|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)/g;
+
+// Convert <tag:name> to {{tag:name}} so ReactMarkdown doesn't strip them as HTML
+function escapeEntityTags(text: string): string {
+  return text.replace(/<((?:comp|proj|env|ns):[^>]+)>/g, '{{$1}}');
+}
+
+// Map tag type to Backstage catalog kind
+const TAG_TO_KIND: Record<string, string> = {
+  comp: 'component',
+  proj: 'system',
+};
 
 function formatTimestamp(isoString: string): string {
   try {
@@ -50,7 +62,7 @@ function stripMarkdown(text: string): string {
 /**
  * Renders text with:
  * - Inline markdown: bold (**), italic (*), code (`)
- * - UUIDs replaced by entity links (when found in catalog)
+ * - Entity tags (<comp:name>, <proj:name>, etc.) replaced by catalog links
  * - ISO 8601 timestamps replaced by formatted dates
  */
 export const FormattedText = ({
@@ -59,31 +71,27 @@ export const FormattedText = ({
   disableMarkdown = false,
 }: FormattedTextProps) => {
   const classes = useRCAReportStyles();
-  const { entityMap, loading } = useEntityLinkContext();
+  const { namespace } = useEntityLinkContext();
 
-  // Render a single text segment (UUID, timestamp, or plain text)
+  // Render a single text segment (entity tag, timestamp, or plain text)
   const renderSegment = (segment: string, index: number) => {
-    if (UUID_PATTERN.test(segment)) {
-      const entityInfo = entityMap.get(segment);
-      if (loading) {
-        return <Fragment key={index}>...</Fragment>;
+    const tagMatch = segment.match(ENTITY_TAG_PATTERN);
+    if (tagMatch) {
+      const [, tagType, name] = tagMatch;
+      const kind = TAG_TO_KIND[tagType];
+      if (!disableLinks && kind) {
+        return (
+          <Link
+            key={index}
+            to={`/catalog/${namespace}/${kind}/${name}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <strong>{name}</strong>
+          </Link>
+        );
       }
-      const displayText = entityInfo
-        ? entityInfo.title || entityInfo.name
-        : segment;
-      if (disableLinks || !entityInfo) {
-        return <strong key={index}>{displayText}</strong>;
-      }
-      return (
-        <Link
-          key={index}
-          to={entityInfo.path}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <strong>{displayText}</strong>
-        </Link>
-      );
+      return <strong key={index}>{name}</strong>;
     }
 
     if (ISO_TIMESTAMP_PATTERN.test(segment)) {
@@ -115,10 +123,12 @@ export const FormattedText = ({
       em: ({ children }: { children?: ReactNode }) => (
         <em>{processChildren(children)}</em>
       ),
-      code: ({ children }: { children?: ReactNode }) => <code>{children}</code>,
+      code: ({ children }: { children?: ReactNode }) => (
+        <code>{processChildren(children)}</code>
+      ),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entityMap, loading, disableLinks],
+    [namespace, disableLinks],
   );
 
   // Skip markdown processing for title-ish fields, strip any markdown syntax
@@ -128,9 +138,12 @@ export const FormattedText = ({
     return <>{parts.map((part, i) => renderSegment(part, i))}</>;
   }
 
+  // Escape entity tags before markdown parsing to prevent them from being stripped as HTML
+  const safeText = escapeEntityTags(text);
+
   return (
     <span className={classes.markdownContent}>
-      <ReactMarkdown components={markdownComponents}>{text}</ReactMarkdown>
+      <ReactMarkdown components={markdownComponents}>{safeText}</ReactMarkdown>
     </span>
   );
 };

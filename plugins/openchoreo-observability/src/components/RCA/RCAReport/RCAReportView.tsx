@@ -23,10 +23,6 @@ import { QuickFixesPanelSection } from './sections/QuickFixesPanelSection';
 import { patchAppliedKey } from './sections/PatchTabContent';
 import { useRCAReportStyles } from './styles';
 import { EntityLinkContext } from './EntityLinkContext';
-import {
-  useEntitiesByUids,
-  extractEntityUids,
-} from '../../../hooks/useEntitiesByUids';
 import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
 import type { RCAAgentApi, RecommendedAction } from '../../../api/RCAAgentApi';
 
@@ -81,10 +77,7 @@ export const RCAReportView = ({
     () => {
       if (!hasRevised) return null;
       try {
-        if (
-          localStorage.getItem(patchAppliedKey(report.reportId || '')) ===
-          'true'
-        ) {
+        if (localStorage.getItem(patchAppliedKey(reportId)) === 'true') {
           return null;
         }
       } catch {
@@ -93,13 +86,6 @@ export const RCAReportView = ({
       return 'fixes';
     },
   );
-
-  // Extract all entity UIDs from the report
-  const uids = useMemo(() => {
-    return extractEntityUids(JSON.stringify(report));
-  }, [report]);
-
-  const { entityMap, loading: entitiesLoading } = useEntitiesByUids(uids);
 
   const formatTimestamp = (timestamp?: string): string => {
     if (!timestamp) return 'N/A';
@@ -115,6 +101,11 @@ export const RCAReportView = ({
       return timestamp;
     }
   };
+
+  const namespaceValue = useMemo(
+    () => ({ namespace: chatContext.namespaceName }),
+    [chatContext.namespaceName],
+  );
 
   const rcaReport = report.report;
 
@@ -195,7 +186,7 @@ export const RCAReportView = ({
   const investigationPath = rcaReport.investigation_path;
 
   return (
-    <EntityLinkContext.Provider value={{ entityMap, loading: entitiesLoading }}>
+    <EntityLinkContext.Provider value={namespaceValue}>
       <Box>
         <Box className={classes.header}>
           <Box className={classes.headerLeft}>
@@ -338,13 +329,13 @@ export const RCAReportView = ({
             >
               {activePanel === 'chat' && (
                 <ChatPanelSection
-                  reportId={report.reportId || ''}
+                  reportId={reportId}
                   chatContext={chatContext}
                 />
               )}
               {activePanel === 'fixes' && (
                 <QuickFixesPanelSection
-                  reportId={report.reportId || ''}
+                  reportId={reportId}
                   chatContext={chatContext}
                   revisedActions={revisedActions}
                 />

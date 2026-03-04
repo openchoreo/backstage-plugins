@@ -11,9 +11,3 @@ export { useRCAReport, useRCAReportByAlert } from './useRCAReportByAlert';
 export { useRCAReports } from './useRCAReports';
 export { useRuntimeLogs } from './useRuntimeLogs';
 export { useUrlFiltersForRuntimeLogs } from './useUrlFiltersForRuntimeLogs';
-export {
-  useEntitiesByUids,
-  extractEntityUids,
-  type EntityInfo,
-  type EntityMap,
-} from './useEntitiesByUids';
