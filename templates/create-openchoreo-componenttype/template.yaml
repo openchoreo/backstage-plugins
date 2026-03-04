@@ -34,13 +34,7 @@ spec:
           title: Namespace Name
           type: string
           description: Namespace where the component type will be created
-          default: domain:default/default
-          ui:field: EntityPicker
-          ui:options:
-            allowArbitraryValues: false
-            defaultKind: Domain
-            catalogFilter:
-              - kind: Domain
+          ui:field: NamespaceEntityPicker
         description:
           title: Description
           type: string
