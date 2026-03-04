@@ -181,11 +181,13 @@ export function WorkloadEditor({
   const handleEndpointReplace = (
     endpointName: string,
     endpoint: WorkloadEndpoint,
+    oldNameToRemove?: string,
   ) => {
-    const updatedEndpoints = {
-      ...formData.endpoints,
-      [endpointName]: endpoint,
-    };
+    const updatedEndpoints = { ...formData.endpoints };
+    if (oldNameToRemove && oldNameToRemove !== endpointName) {
+      delete updatedEndpoints[oldNameToRemove];
+    }
+    updatedEndpoints[endpointName] = endpoint;
     const updatedData = { ...formData, endpoints: updatedEndpoints };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
