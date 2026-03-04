@@ -260,7 +260,7 @@ export async function createRouter({
       );
     }
 
-    const { systemParameters, parameters } = req.body;
+    const { parameters } = req.body;
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
@@ -268,7 +268,6 @@ export async function createRouter({
         namespaceName as string,
         projectName as string,
         componentName as string,
-        systemParameters,
         parameters,
         userToken,
       ),

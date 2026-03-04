@@ -37,11 +37,10 @@ export function getRepositoryInfo(
   component: ModelsCompleteComponent,
 ): RepositoryInfo {
   const componentWorkflow = component.componentWorkflow;
-  if (!componentWorkflow?.systemParameters?.repository) {
+  const repository = (componentWorkflow?.parameters as any)?.repository;
+  if (!repository) {
     return {};
   }
-
-  const repository = componentWorkflow.systemParameters.repository;
 
   return {
     url: repository.url,

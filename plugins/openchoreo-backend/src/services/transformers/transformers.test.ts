@@ -95,14 +95,14 @@ describe('transformComponent', () => {
       autoDeploy: true,
       workflow: {
         name: 'docker-build',
-        systemParameters: {
+        parameters: {
           repository: {
             url: 'https://github.com/org/repo.git',
             revision: { branch: 'main', commit: 'abc1234' },
             appPath: './services/api',
           },
+          dockerfile: 'Dockerfile',
         },
-        parameters: { dockerfile: 'Dockerfile' },
       },
     },
     status: { conditions: [readyCondition] },
@@ -134,13 +134,12 @@ describe('transformComponent', () => {
     const result = transformComponent(component);
     expect(result.componentWorkflow).toBeDefined();
     expect(result.componentWorkflow!.name).toBe('docker-build');
-    expect(result.componentWorkflow!.systemParameters.repository.url).toBe(
-      'https://github.com/org/repo.git',
-    );
-    expect(
-      result.componentWorkflow!.systemParameters.repository.revision.branch,
-    ).toBe('main');
     expect(result.componentWorkflow!.parameters).toEqual({
+      repository: {
+        url: 'https://github.com/org/repo.git',
+        revision: { branch: 'main', commit: 'abc1234' },
+        appPath: './services/api',
+      },
       dockerfile: 'Dockerfile',
     });
   });

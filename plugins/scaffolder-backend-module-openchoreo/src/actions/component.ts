@@ -558,20 +558,9 @@ export const createComponentAction = (
             createdAt: new Date().toISOString(),
             autoDeploy: autoDeploy,
             // Build componentWorkflow in the BFF shape expected by the catalog entity translator.
-            // The BFF type uses systemParameters.repository whereas the component resource
-            // stores everything in parameters. Extract repository info for the catalog entity.
             componentWorkflow: componentResource.spec.workflow
               ? {
                   name: componentResource.spec.workflow.name,
-                  systemParameters: {
-                    repository: {
-                      url: (ctx.input as any).repo_url || '',
-                      revision: {
-                        branch: (ctx.input as any).branch || 'main',
-                      },
-                      appPath: (ctx.input as any).component_path || '.',
-                    },
-                  },
                   parameters: componentResource.spec.workflow.parameters,
                 }
               : undefined,

@@ -343,10 +343,6 @@ export const Workflows = () => {
         workflowName={
           workflowData.componentDetails.componentWorkflow.name || ''
         }
-        systemParameters={
-          workflowData.componentDetails.componentWorkflow.systemParameters ||
-          null
-        }
         parameters={
           workflowData.componentDetails.componentWorkflow.parameters || null
         }

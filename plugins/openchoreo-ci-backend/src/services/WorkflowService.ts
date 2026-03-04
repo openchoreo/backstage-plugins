@@ -788,20 +788,83 @@ export class WorkflowService {
   }
 
   /**
-   * Update component workflow parameters
-   * @deprecated The workflow-parameters endpoint was removed in OpenChoreo API v0.7.
-   * Workflow parameters are now managed through the component's workflow configuration.
+   * Update component workflow parameters by fetching the full component,
+   * updating only workflow.parameters, and PUTting it back.
    */
   async updateComponentWorkflowParameters(
-    _namespaceName: string,
+    namespaceName: string,
     _projectName: string,
     componentName: string,
-    _systemParameters: { [key: string]: unknown },
-    _parameters?: { [key: string]: unknown },
-    _token?: string,
+    parameters?: { [key: string]: unknown },
+    token?: string,
   ): Promise<unknown> {
-    throw new Error(
-      `updateComponentWorkflowParameters is no longer supported. The workflow-parameters API was removed in OpenChoreo v0.7. Component workflow parameters for '${componentName}' must be managed through the component configuration.`,
+    this.logger.debug(
+      `Updating workflow parameters for component: ${componentName} in namespace: ${namespaceName}`,
     );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // 1. GET the current component
+      const { data: component, error: getError } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        {
+          params: { path: { namespaceName, componentName } },
+        },
+      );
+
+      if (getError || !component) {
+        throw new Error(
+          `Failed to fetch component '${componentName}': ${
+            getError ?? 'no data'
+          }`,
+        );
+      }
+
+      // 2. Update only workflow.parameters
+      const updatedComponent = {
+        ...component,
+        spec: {
+          ...component.spec,
+          workflow: {
+            ...component.spec?.workflow,
+            parameters: parameters ?? component.spec?.workflow?.parameters,
+          },
+        },
+      };
+
+      // 3. PUT the updated component back
+      const {
+        data: result,
+        error: putError,
+        response,
+      } = await client.PUT(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        {
+          params: { path: { namespaceName, componentName } },
+          body: updatedComponent as any,
+        },
+      );
+
+      if (putError || !response.ok) {
+        throw new Error(
+          `Failed to update component '${componentName}': ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully updated workflow parameters for component: ${componentName}`,
+      );
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to update workflow parameters for component ${componentName} in namespace ${namespaceName}: ${error}`,
+      );
+      throw error;
+    }
   }
 }

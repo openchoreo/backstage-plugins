@@ -14,16 +14,6 @@ export interface WorkflowRunDetails {
   image?: string;
   workflow?: {
     name: string;
-    systemParameters?: {
-      repository?: {
-        url: string;
-        appPath: string;
-        revision?: {
-          branch: string;
-          commit?: string;
-        };
-      };
-    };
     parameters?: Record<string, any>;
   };
   createdAt?: string;

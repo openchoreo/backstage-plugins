@@ -15,7 +15,6 @@ export interface WorkflowSchemaResponse {
   success: boolean;
   data?: {
     schema?: unknown;
-    systemParameters?: unknown;
     parameters?: unknown;
   };
 }
@@ -54,7 +53,6 @@ export interface OpenChoreoCiClientApi {
   /** Update component workflow parameters */
   updateComponentWorkflowParameters(
     entity: Entity,
-    systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,
   ): Promise<any>;
 
