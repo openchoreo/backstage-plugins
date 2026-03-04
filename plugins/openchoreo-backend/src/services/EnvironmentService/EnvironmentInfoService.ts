@@ -339,7 +339,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         | 'NotReady'
         | 'Failed'
         | undefined;
-      lastDeployed = binding.createdAt;
+      lastDeployed = binding.lastSpecUpdateTime ?? binding.createdAt;
       releaseName = binding.releaseName;
 
       if (binding.endpoints && binding.endpoints.length > 0) {

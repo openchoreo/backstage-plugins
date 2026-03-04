@@ -529,6 +529,8 @@ export interface ReleaseBindingResponse {
   workloadOverrides?: WorkloadOverrides;
   /** Format: date-time */
   createdAt: string;
+  /** Format: date-time – last time the spec was updated (from status.lastSpecUpdateTime) */
+  lastSpecUpdateTime?: string;
   status?: string;
   endpoints?: ReleaseBindingEndpoint[];
 }
