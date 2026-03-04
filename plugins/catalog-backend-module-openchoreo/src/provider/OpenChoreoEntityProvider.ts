@@ -1496,6 +1496,10 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         name: componentName,
         uid: getUid(component),
         type: componentType,
+        componentType:
+          typeof componentTypeRef === 'object' && componentTypeRef
+            ? { kind: componentTypeRef.kind, name: componentTypeRef.name }
+            : undefined,
         status: isReady(component) ? 'Ready' : 'Not Ready',
         createdAt: getCreatedAt(component),
         description: getDescription(component),

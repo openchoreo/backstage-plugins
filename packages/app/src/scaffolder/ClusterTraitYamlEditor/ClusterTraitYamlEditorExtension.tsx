@@ -5,35 +5,24 @@ import { YamlEditor } from '@openchoreo/backstage-plugin-react';
 import YAML from 'yaml';
 import { useStyles } from './styles';
 
-const DEFAULT_CLUSTER_TRAIT_TEMPLATE = {
-  apiVersion: 'openchoreo.dev/v1alpha1',
-  kind: 'ClusterTrait',
-  metadata: {
-    name: '',
-    annotations: {
-      'openchoreo.dev/display-name': '',
-      'openchoreo.dev/description': '',
-    },
-  },
-  spec: {
-    schema: {
-      parameters: {},
-    },
-    creates: [],
-    patches: [],
-  },
-};
-
 function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.clustertrait_name as string) || '';
   const description = (formData?.description as string) || '';
 
-  const template = structuredClone(DEFAULT_CLUSTER_TRAIT_TEMPLATE);
-  template.metadata.name = name;
-  template.metadata.annotations['openchoreo.dev/display-name'] = name;
-  template.metadata.annotations['openchoreo.dev/description'] = description;
-
-  return YAML.stringify(template, { indent: 2 });
+  return `apiVersion: openchoreo.dev/v1alpha1
+kind: ClusterTrait
+metadata:
+  name: ${name}
+  annotations:
+    openchoreo.dev/display-name: ${name}
+    openchoreo.dev/description: ${description}
+spec:
+  schema:
+    parameters: {}
+    envOverrides: {}
+  creates: []
+  patches: []
+`;
 }
 
 export const ClusterTraitYamlEditorExtension = ({
@@ -49,7 +38,7 @@ export const ClusterTraitYamlEditorExtension = ({
   // formData is preserved by the scaffolder across step navigation, so this ensures
   // user edits are not overwritten when moving back and forth between steps.
   useEffect(() => {
-    if (formData === null && formContext?.formData) {
+    if (!formData && formContext?.formData) {
       const initialYaml = generateInitialYaml(formContext.formData);
       onChange(initialYaml);
     }

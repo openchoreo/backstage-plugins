@@ -12,7 +12,7 @@ export interface ComponentType {
     displayName?: string;
     description?: string;
     workloadType: string;
-    allowedWorkflows?: string[];
+    allowedWorkflows?: Array<string | { kind?: string; name: string }>;
     allowedTraits?: Array<{ kind?: string; name: string }>;
     tags?: string[];
     createdAt?: string;
@@ -122,6 +122,17 @@ export class CtdToTemplateConverter {
       .join(' ');
   }
 
+  private normalizeWorkflowNames(
+    allowedWorkflows?: Array<string | { kind?: string; name: string }>,
+  ): string[] {
+    if (!allowedWorkflows || allowedWorkflows.length === 0) return [];
+    return allowedWorkflows
+      .map(workflow =>
+        typeof workflow === 'string' ? workflow : workflow.name,
+      )
+      .filter(Boolean);
+  }
+
   /**
    * Generate template parameters from component type schema
    * Includes standard fields + component type-specific fields
@@ -226,9 +237,10 @@ export class CtdToTemplateConverter {
     componentType: ComponentType,
     namespaceName: string,
   ): any {
-    const hasAllowedWorkflows =
-      componentType.metadata.allowedWorkflows &&
-      componentType.metadata.allowedWorkflows.length > 0;
+    const allowedWorkflowNames = this.normalizeWorkflowNames(
+      componentType.metadata.allowedWorkflows,
+    );
+    const hasAllowedWorkflows = allowedWorkflowNames.length > 0;
 
     // Build workflow_name field properties
     const workflowNameField: any = {
@@ -243,7 +255,7 @@ export class CtdToTemplateConverter {
 
     // Only add enum if allowedWorkflows is available
     if (hasAllowedWorkflows) {
-      workflowNameField.enum = componentType.metadata.allowedWorkflows;
+      workflowNameField.enum = allowedWorkflowNames;
     }
 
     // Auto Deploy field - only for deploy-from-image (build-from-source and external-ci don't have an immediate image to deploy)

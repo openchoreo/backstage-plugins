@@ -70,9 +70,16 @@ export class ComponentTypeEntityProcessor implements CatalogProcessor {
 
       // Emit usesWorkflow/workflowUsedBy relationships for each allowed workflow
       if (entity.spec.allowedWorkflows) {
-        for (const workflowName of entity.spec.allowedWorkflows) {
+        for (const workflow of entity.spec.allowedWorkflows) {
+          const workflowName =
+            typeof workflow === 'string' ? workflow : workflow.name;
+          if (!workflowName) continue;
+          const workflowKind =
+            typeof workflow === 'string'
+              ? 'componentworkflow'
+              : (workflow.kind || 'ComponentWorkflow').toLowerCase();
           const cwRef = {
-            kind: 'componentworkflow',
+            kind: workflowKind,
             namespace: entity.metadata.namespace || 'default',
             name: workflowName,
           };

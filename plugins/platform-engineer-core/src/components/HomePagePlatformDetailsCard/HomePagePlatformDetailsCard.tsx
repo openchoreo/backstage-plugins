@@ -22,8 +22,17 @@ export const HomePagePlatformDetailsCard = () => {
   const [dataplanesWithEnvironments, setDataplanesWithEnvironments] = useState<
     DataPlaneWithEnvironments[]
   >([]);
+  const [clusterDataplanes, setClusterDataplanes] = useState<
+    DataPlaneWithEnvironments[]
+  >([]);
   const [buildPlanes, setBuildPlanes] = useState<BuildPlane[]>([]);
+  const [clusterBuildPlanes, setClusterBuildPlanes] = useState<BuildPlane[]>(
+    [],
+  );
   const [observabilityPlanes, setObservabilityPlanes] = useState<
+    ObservabilityPlane[]
+  >([]);
+  const [clusterObservabilityPlanes, setClusterObservabilityPlanes] = useState<
     ObservabilityPlane[]
   >([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +52,9 @@ export const HomePagePlatformDetailsCard = () => {
         dataplaneCatalogResult,
         buildPlaneResult,
         obsPlaneResult,
+        clusterDpResult,
+        clusterBpResult,
+        clusterOpResult,
       ] = await Promise.all([
         fetchDataplanesWithEnvironmentsAndComponents(
           discovery,
@@ -52,6 +64,11 @@ export const HomePagePlatformDetailsCard = () => {
         catalogApi.getEntities({ filter: { kind: 'DataPlane' } }),
         catalogApi.getEntities({ filter: { kind: 'BuildPlane' } }),
         catalogApi.getEntities({ filter: { kind: 'ObservabilityPlane' } }),
+        catalogApi.getEntities({ filter: { kind: 'ClusterDataplane' } }),
+        catalogApi.getEntities({ filter: { kind: 'ClusterBuildPlane' } }),
+        catalogApi.getEntities({
+          filter: { kind: 'ClusterObservabilityPlane' },
+        }),
       ]);
 
       // Build lookup map for dataplane agent status from catalog
@@ -69,7 +86,7 @@ export const HomePagePlatformDetailsCard = () => {
         );
       });
 
-      // Enrich dataplanes with agent status
+      // Enrich namespace-scoped dataplanes with agent status
       setDataplanesWithEnvironments(
         dataplanesData.map(dp => ({
           ...dp,
@@ -79,62 +96,85 @@ export const HomePagePlatformDetailsCard = () => {
         })),
       );
 
-      setBuildPlanes(
-        buildPlaneResult.items.map(entity => ({
+      // Cluster dataplanes
+      setClusterDataplanes(
+        clusterDpResult.items.map(entity => ({
           name: entity.metadata.name,
           namespace: entity.metadata.namespace,
           displayName: entity.metadata.title || entity.metadata.name,
           description: entity.metadata.description,
-          namespaceName:
-            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
-            entity.metadata.namespace ||
-            'default',
-          observabilityPlaneRef: (entity.spec as any)?.observabilityPlaneRef,
-          status: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.STATUS],
+          namespaceName: 'openchoreo-cluster',
           agentConnected:
             entity.metadata.annotations?.[
               CHOREO_ANNOTATIONS.AGENT_CONNECTED
             ] === 'true',
-          agentConnectedCount: parseInt(
-            entity.metadata.annotations?.[
-              CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT
-            ] || '0',
-            10,
-          ),
+          environments: [],
         })),
       );
 
-      setObservabilityPlanes(
-        obsPlaneResult.items.map(entity => ({
-          name: entity.metadata.name,
-          namespace: entity.metadata.namespace,
-          displayName: entity.metadata.title || entity.metadata.name,
-          description: entity.metadata.description,
-          namespaceName:
-            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
-            entity.metadata.namespace ||
-            'default',
-          observerURL: (entity.spec as any)?.observerURL,
-          status: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.STATUS],
-          agentConnected:
-            entity.metadata.annotations?.[
-              CHOREO_ANNOTATIONS.AGENT_CONNECTED
-            ] === 'true',
-          agentConnectedCount: parseInt(
-            entity.metadata.annotations?.[
-              CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT
-            ] || '0',
-            10,
-          ),
-        })),
-      );
+      const mapBuildPlane = (
+        entity: (typeof buildPlaneResult.items)[0],
+      ): BuildPlane => ({
+        name: entity.metadata.name,
+        namespace: entity.metadata.namespace,
+        displayName: entity.metadata.title || entity.metadata.name,
+        description: entity.metadata.description,
+        namespaceName:
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
+          entity.metadata.namespace ||
+          'default',
+        observabilityPlaneRef: (entity.spec as any)?.observabilityPlaneRef,
+        status: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.STATUS],
+        agentConnected:
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.AGENT_CONNECTED] ===
+          'true',
+        agentConnectedCount: parseInt(
+          entity.metadata.annotations?.[
+            CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT
+          ] || '0',
+          10,
+        ),
+      });
+
+      setBuildPlanes(buildPlaneResult.items.map(mapBuildPlane));
+      setClusterBuildPlanes(clusterBpResult.items.map(mapBuildPlane));
+
+      const mapObsPlane = (
+        entity: (typeof obsPlaneResult.items)[0],
+      ): ObservabilityPlane => ({
+        name: entity.metadata.name,
+        namespace: entity.metadata.namespace,
+        displayName: entity.metadata.title || entity.metadata.name,
+        description: entity.metadata.description,
+        namespaceName:
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
+          entity.metadata.namespace ||
+          'default',
+        observerURL: (entity.spec as any)?.observerURL,
+        status: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.STATUS],
+        agentConnected:
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.AGENT_CONNECTED] ===
+          'true',
+        agentConnectedCount: parseInt(
+          entity.metadata.annotations?.[
+            CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT
+          ] || '0',
+          10,
+        ),
+      });
+
+      setObservabilityPlanes(obsPlaneResult.items.map(mapObsPlane));
+      setClusterObservabilityPlanes(clusterOpResult.items.map(mapObsPlane));
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to fetch platform details',
       );
       setDataplanesWithEnvironments([]);
+      setClusterDataplanes([]);
       setBuildPlanes([]);
+      setClusterBuildPlanes([]);
       setObservabilityPlanes([]);
+      setClusterObservabilityPlanes([]);
     } finally {
       setLoading(false);
     }
@@ -175,8 +215,11 @@ export const HomePagePlatformDetailsCard = () => {
   return (
     <PlatformDetailsCard
       dataplanesWithEnvironments={dataplanesWithEnvironments}
+      clusterDataplanes={clusterDataplanes}
       buildPlanes={buildPlanes}
+      clusterBuildPlanes={clusterBuildPlanes}
       observabilityPlanes={observabilityPlanes}
+      clusterObservabilityPlanes={clusterObservabilityPlanes}
     />
   );
 };
