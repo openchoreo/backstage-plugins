@@ -686,9 +686,7 @@ export interface WorkloadResponse {
   endpoints?: {
     [key: string]: WorkloadEndpoint;
   };
-  connections?: {
-    [key: string]: Connection;
-  };
+  connections?: Connection[];
 }
 
 export interface Container {
@@ -730,24 +728,27 @@ export interface WorkloadEndpoint {
 }
 
 export interface Connection {
-  inject?: ConnectionInject;
-  params: ConnectionParams;
-  type: string;
-}
-
-export interface ConnectionParams {
-  componentName: string;
+  /** Target component's project name. If empty, defaults to the same project as the consumer. */
+  project?: string;
+  /** Target component name */
+  component: string;
+  /** Target endpoint name on the target component */
   endpoint: string;
-  projectName: string;
+  /** Visibility level at which this connection consumes the endpoint */
+  visibility: 'project' | 'namespace';
+  /** Maps resolved connection address components to environment variable names */
+  envBindings?: ConnectionEnvBindings;
 }
 
-export interface ConnectionInject {
-  env?: ConnectionInjectEnv[];
-}
-
-export interface ConnectionInjectEnv {
-  name: string;
-  value: string;
+export interface ConnectionEnvBindings {
+  /** Env var name for the protocol-appropriate connection string */
+  address?: string;
+  /** Env var name for just the hostname */
+  host?: string;
+  /** Env var name for just the port number */
+  port?: string;
+  /** Env var name for just the base path */
+  basePath?: string;
 }
 
 export interface WorkloadOwner {

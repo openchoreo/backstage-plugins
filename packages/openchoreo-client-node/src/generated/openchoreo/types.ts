@@ -3720,18 +3720,59 @@ export interface components {
       /** @description Latest available observations of the ReleaseBinding's current state */
       conditions?: components['schemas']['Condition'][];
       /** @description Resolved invoke URLs for each named workload endpoint */
-      endpoints?: {
-        /**
-         * @description Endpoint name as defined in the Workload spec
-         * @example http
-         */
-        name: string;
-        /**
-         * @description Resolved public URL for this endpoint
-         * @example https://api-service-dev-default.example.com
-         */
-        invokeURL: string;
-      }[];
+      endpoints?: components['schemas']['EndpointURLStatus'][];
+    };
+    /** @description Resolved URLs for a single named workload endpoint */
+    EndpointURLStatus: {
+      /**
+       * @description Endpoint name as defined in the Workload spec
+       * @example http
+       */
+      name: string;
+      /**
+       * @description Endpoint type (HTTP, REST, gRPC, GraphQL, Websocket, TCP, UDP)
+       * @example HTTP
+       * @enum {string}
+       */
+      type?: 'HTTP' | 'REST' | 'gRPC' | 'GraphQL' | 'Websocket' | 'TCP' | 'UDP';
+      serviceURL?: components['schemas']['EndpointURL'];
+      /**
+       * @description Resolved public URL for this endpoint, derived from the rendered HTTPRoute
+       * @example https://api-service-dev-default.example.com
+       */
+      invokeURL?: string;
+      internalURLs?: components['schemas']['EndpointGatewayURLs'];
+      externalURLs?: components['schemas']['EndpointGatewayURLs'];
+    };
+    /** @description Structured URL with its components */
+    EndpointURL: {
+      /**
+       * @description URL scheme (http, https, tcp, udp, ws, wss, tls)
+       * @example https
+       */
+      scheme?: string;
+      /**
+       * @description Hostname or IP address
+       * @example api-service-dev-default.example.com
+       */
+      host: string;
+      /**
+       * Format: int32
+       * @description Port number
+       * @example 443
+       */
+      port?: number;
+      /**
+       * @description URL path
+       * @example /api/v1
+       */
+      path?: string;
+    };
+    /** @description Resolved gateway URLs for an endpoint */
+    EndpointGatewayURLs: {
+      http?: components['schemas']['EndpointURL'];
+      https?: components['schemas']['EndpointURL'];
+      tls?: components['schemas']['EndpointURL'];
     };
     /** @description Environment-specific workload overrides */
     WorkloadOverrides: {
@@ -4737,10 +4778,8 @@ export interface components {
       endpoints?: {
         [key: string]: components['schemas']['WorkloadEndpoint'];
       };
-      /** @description Named connection specifications */
-      connections?: {
-        [key: string]: components['schemas']['WorkloadConnection'];
-      };
+      /** @description Connection specifications for endpoints consumed by this workload */
+      connections?: components['schemas']['ConnectionSpec'][];
     };
     /** @description Observed state of a Workload */
     WorkloadStatus: Record<string, never>;
@@ -4783,27 +4822,34 @@ export interface components {
         content?: string;
       };
     };
-    /** @description Internal API connection specification */
-    WorkloadConnection: {
+    /** @description A connection to another component's endpoint */
+    ConnectionSpec: {
+      /** @description Target component's project name. If empty, defaults to the same project as the consumer. */
+      project?: string;
+      /** @description Target component name */
+      component: string;
+      /** @description Target endpoint name on the target component */
+      endpoint: string;
       /**
-       * @description Connection type
+       * @description Visibility level at which this connection consumes the endpoint
        * @enum {string}
        */
-      type: 'api';
-      /** @description Connection configuration parameters */
-      params?: {
-        [key: string]: string;
-      };
-      /** @description How connection details are injected into the workload */
-      inject: {
-        /** @description Environment variables to inject */
-        env: {
-          /** @description Environment variable name */
-          name: string;
-          /** @description Template value using connection properties */
-          value: string;
-        }[];
-      };
+      visibility: 'project' | 'namespace';
+      envBindings: components['schemas']['ConnectionEnvBindings'];
+    };
+    /** @description Maps resolved connection address components to environment variable names */
+    ConnectionEnvBindings: {
+      /** @description Env var name for the protocol-appropriate connection string.
+       *     For HTTP/HTTPS/WS/WSS: scheme://host:port/basePath
+       *     For gRPC/TCP/UDP: host:port
+       *      */
+      address?: string;
+      /** @description Env var name for just the hostname */
+      host?: string;
+      /** @description Env var name for just the port number */
+      port?: string;
+      /** @description Env var name for just the base path */
+      basePath?: string;
     };
     /** @description Paginated list of deployment pipelines */
     DeploymentPipelineList: {

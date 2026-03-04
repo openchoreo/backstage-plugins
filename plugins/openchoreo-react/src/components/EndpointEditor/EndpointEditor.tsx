@@ -9,6 +9,10 @@ import {
   Select,
   MenuItem,
   FormControl,
+  FormLabel,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
   InputLabel,
 } from '@material-ui/core';
 import { makeStyles, Theme } from '@material-ui/core/styles';
@@ -56,6 +60,17 @@ const useStyles = makeStyles((theme: Theme) => ({
   nameField: {
     marginBottom: theme.spacing(1.5),
   },
+  visibilityFieldset: {
+    border: `1px solid ${
+      theme.palette.type === 'light'
+        ? 'rgba(0, 0, 0, 0.12)'
+        : 'rgba(255, 255, 255, 0.12)'
+    }`,
+    borderRadius: 4,
+    padding: theme.spacing(0.5, 1),
+    margin: 0,
+    marginBottom: theme.spacing(0.5),
+  },
 }));
 
 const PROTOCOL_TYPES = [
@@ -75,10 +90,22 @@ const VISIBILITY_LABELS: Record<string, string> = {
   internal: 'Internal',
 };
 
-const VISIBILITY_SELECT_OPTIONS = [
-  { value: 'external', label: VISIBILITY_LABELS.external },
-  { value: 'project', label: VISIBILITY_LABELS.project },
-] as const;
+const VISIBILITY_OPTIONS: ReadonlyArray<{
+  value: string;
+  label: string;
+  disabled: boolean;
+  alwaysSelected?: boolean;
+}> = [
+  {
+    value: 'project',
+    label: VISIBILITY_LABELS.project,
+    disabled: true,
+    alwaysSelected: true,
+  },
+  { value: 'namespace', label: VISIBILITY_LABELS.namespace, disabled: false },
+  { value: 'internal', label: VISIBILITY_LABELS.internal, disabled: false },
+  { value: 'external', label: VISIBILITY_LABELS.external, disabled: false },
+];
 
 export interface EndpointEditorProps {
   /** The endpoint name */
@@ -144,15 +171,19 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
             </Typography>
             <Typography className={classes.readOnlyDetails}>
               {endpoint.type} : {endpoint.port}
-              {endpoint.visibility && endpoint.visibility.length > 0 && (
-                <>
-                  {' '}
-                  &middot;{' '}
-                  {endpoint.visibility
-                    .map(v => VISIBILITY_LABELS[v] ?? v)
-                    .join(', ')}
-                </>
-              )}
+              {(() => {
+                const vis = endpoint.visibility ?? [];
+                const displayVis = vis.includes('project')
+                  ? vis
+                  : ['project', ...vis];
+                return displayVis.length > 0 ? (
+                  <>
+                    {' '}
+                    &middot;{' '}
+                    {displayVis.map(v => VISIBILITY_LABELS[v] ?? v).join(', ')}
+                  </>
+                ) : null;
+              })()}
             </Typography>
           </Box>
           <Button
@@ -227,29 +258,49 @@ export const EndpointEditor: FC<EndpointEditorProps> = ({
                 disabled={disabled}
               />
             </Grid>
-            <Grid item xs={6}>
-              <FormControl fullWidth variant="outlined" size="small">
-                <InputLabel>Visibility</InputLabel>
-                <Select
-                  multiple
-                  value={endpoint.visibility ?? []}
-                  onChange={e =>
-                    onChange('visibility', e.target.value as string[])
-                  }
-                  label="Visibility"
-                  disabled={disabled}
-                  renderValue={selected =>
-                    (selected as string[])
-                      .map(v => VISIBILITY_LABELS[v] ?? v)
-                      .join(', ')
-                  }
+            <Grid item xs={12}>
+              <FormControl
+                component="fieldset"
+                size="small"
+                fullWidth
+                disabled={disabled}
+                className={classes.visibilityFieldset}
+              >
+                <FormLabel
+                  component="legend"
+                  style={{ fontSize: '0.75rem', padding: '0 4px' }}
                 >
-                  {VISIBILITY_SELECT_OPTIONS.map(opt => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </Select>
+                  Visibility
+                </FormLabel>
+                <FormGroup row>
+                  {VISIBILITY_OPTIONS.map(opt => {
+                    const currentVisibility = endpoint.visibility ?? [];
+                    const isChecked =
+                      opt.alwaysSelected ||
+                      (currentVisibility as string[]).includes(opt.value);
+                    return (
+                      <FormControlLabel
+                        key={opt.value}
+                        control={
+                          <Checkbox
+                            checked={isChecked}
+                            onChange={() => {
+                              if (opt.alwaysSelected || opt.disabled) return;
+                              const next = isChecked
+                                ? currentVisibility.filter(v => v !== opt.value)
+                                : [...currentVisibility, opt.value];
+                              onChange('visibility', next);
+                            }}
+                            size="small"
+                            color="primary"
+                          />
+                        }
+                        label={opt.label}
+                        disabled={disabled || opt.disabled}
+                      />
+                    );
+                  })}
+                </FormGroup>
               </FormControl>
             </Grid>
             <Grid item xs={6}>

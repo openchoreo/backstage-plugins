@@ -5,7 +5,6 @@ import AddIcon from '@material-ui/icons/Add';
 import type { Connection } from '@openchoreo/backstage-plugin-common';
 import {
   ConnectionEditor,
-  type ConnectionTypeOption,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
@@ -23,31 +22,29 @@ const useStyles = makeStyles(theme => ({
 
 export interface ConnectionListProps {
   /** Connections to display */
-  connections: { [key: string]: Connection };
+  connections: Connection[];
   /** Whether editing is disabled */
   disabled: boolean;
   /** Edit buffer state and handlers from useConnectionEditBuffer */
   editBuffer: UseConnectionEditBufferResult;
   /** Callback when connection should be removed */
-  onRemoveConnection: (connectionName: string) => void;
-  /** Callback to add new connection (returns the new connection name) */
-  onAddConnection: () => string;
-  /** Available connection types */
-  connectionTypes: ConnectionTypeOption[];
+  onRemoveConnection: (index: number) => void;
+  /** Callback to add new connection (returns the new index) */
+  onAddConnection: () => number;
   /** Callback to get projects for a connection */
-  getProjects: (connectionName: string) => ProjectOption[];
+  getProjects: (index: number) => ProjectOption[];
   /** Callback to get components for a connection */
-  getComponents: (connectionName: string) => ComponentOption[];
+  getComponents: (index: number) => ComponentOption[];
   /** Callback to get endpoints for a connection */
-  getEndpoints: (connectionName: string) => EndpointOption[];
-  /** Callback when connection type changes */
-  onTypeChange: (connectionName: string, type: string) => void;
+  getEndpoints: (index: number) => EndpointOption[];
   /** Callback when project changes */
-  onProjectChange: (connectionName: string, projectName: string) => void;
+  onProjectChange: (index: number, projectName: string) => void;
   /** Callback when component changes */
-  onComponentChange: (connectionName: string, componentName: string) => void;
+  onComponentChange: (index: number, componentName: string) => void;
   /** Callback when endpoint changes */
-  onEndpointChange: (connectionName: string, endpoint: string) => void;
+  onEndpointChange: (index: number, endpoint: string) => void;
+  /** Callback to get available visibility options for a connection */
+  getAvailableVisibilities: (index: number) => ('project' | 'namespace')[];
 }
 
 /**
@@ -60,91 +57,91 @@ export const ConnectionList: FC<ConnectionListProps> = ({
   editBuffer,
   onRemoveConnection,
   onAddConnection,
-  connectionTypes,
   getProjects,
   getComponents,
   getEndpoints,
-  onTypeChange,
   onProjectChange,
   onComponentChange,
   onEndpointChange,
+  getAvailableVisibilities,
 }) => {
   const classes = useStyles();
 
   const handleAddConnection = () => {
-    const newConnectionName = onAddConnection();
-    editBuffer.startNew(newConnectionName);
+    const newIndex = onAddConnection();
+    editBuffer.startNew(newIndex);
   };
 
-  const handleRemoveConnection = (connectionName: string) => {
+  const handleRemoveConnection = (index: number) => {
     // If deleting the row being edited, clear edit state first
-    if (editBuffer.isRowEditing(connectionName)) {
+    if (editBuffer.isRowEditing(index)) {
       editBuffer.clearEditState();
     }
-    onRemoveConnection(connectionName);
+    onRemoveConnection(index);
   };
-
-  const connectionEntries = Object.entries(connections);
 
   return (
     <Box>
-      {connectionEntries.map(([connectionName, connection]) => {
-        const isCurrentlyEditing = editBuffer.isRowEditing(connectionName);
-        const effectiveConnectionName =
-          isCurrentlyEditing && editBuffer.editBufferName !== null
-            ? editBuffer.editBufferName
-            : connectionName;
+      {connections.map((connection, index) => {
+        const isCurrentlyEditing = editBuffer.isRowEditing(index);
         const effectiveConnection =
           isCurrentlyEditing && editBuffer.editBuffer
             ? editBuffer.editBuffer
             : connection;
 
         return (
-          <Box key={connectionName} className={classes.rowWrapper}>
+          <Box key={index} className={classes.rowWrapper}>
             <ConnectionEditor
-              connectionName={effectiveConnectionName}
+              index={index}
               connection={effectiveConnection}
               disabled={disabled}
               isEditing={isCurrentlyEditing}
-              onEdit={() => editBuffer.startEdit(connectionName)}
+              onEdit={() => editBuffer.startEdit(index)}
               onApply={editBuffer.applyEdit}
               onCancel={editBuffer.cancelEdit}
               editDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
               deleteDisabled={editBuffer.isAnyRowEditing && !isCurrentlyEditing}
               applyDisabled={isCurrentlyEditing && !editBuffer.isBufferValid}
-              connectionTypes={connectionTypes}
-              projects={getProjects(connectionName)}
-              components={getComponents(connectionName)}
-              endpoints={getEndpoints(connectionName)}
-              onTypeChange={type => {
-                if (isCurrentlyEditing) {
-                  editBuffer.updateBuffer('type', type);
-                }
-                onTypeChange(connectionName, type);
-              }}
+              projects={getProjects(index)}
+              components={getComponents(index)}
+              endpoints={getEndpoints(index)}
               onProjectChange={projectName => {
                 if (isCurrentlyEditing) {
-                  editBuffer.updateBufferParams('projectName', projectName);
-                  editBuffer.updateBufferParams('componentName', '');
-                  editBuffer.updateBufferParams('endpoint', '');
+                  editBuffer.updateBuffer('project', projectName);
+                  editBuffer.updateBuffer('component', '');
+                  editBuffer.updateBuffer('endpoint', '');
+                  editBuffer.updateBuffer('visibility', '');
                 }
-                onProjectChange(connectionName, projectName);
+                onProjectChange(index, projectName);
               }}
               onComponentChange={componentName => {
                 if (isCurrentlyEditing) {
-                  editBuffer.updateBufferParams('componentName', componentName);
-                  editBuffer.updateBufferParams('endpoint', '');
+                  editBuffer.updateBuffer('component', componentName);
+                  editBuffer.updateBuffer('endpoint', '');
+                  editBuffer.updateBuffer('visibility', '');
                 }
-                onComponentChange(connectionName, componentName);
+                onComponentChange(index, componentName);
               }}
               onEndpointChange={endpoint => {
                 if (isCurrentlyEditing) {
-                  editBuffer.updateBufferParams('endpoint', endpoint);
+                  editBuffer.updateBuffer('endpoint', endpoint);
+                  // Reset visibility since available options may change
+                  editBuffer.updateBuffer('visibility', '');
                 }
-                onEndpointChange(connectionName, endpoint);
+                onEndpointChange(index, endpoint);
               }}
-              onNameChange={editBuffer.updateBufferName}
-              onRemove={() => handleRemoveConnection(connectionName)}
+              availableVisibilities={getAvailableVisibilities(index)}
+              onVisibilityChange={visibility => {
+                if (isCurrentlyEditing) {
+                  editBuffer.updateBuffer('visibility', visibility);
+                }
+              }}
+              onEnvBindingChange={(field, value) => {
+                if (isCurrentlyEditing) {
+                  editBuffer.updateBufferEnvBindings(field, value);
+                }
+              }}
+              onRemove={() => handleRemoveConnection(index)}
             />
           </Box>
         );
