@@ -542,10 +542,15 @@ export class WorkflowService {
         `Sending workflow run logs request for component ${componentName} with run: ${runName}`,
       );
 
-      const sinceMs =
+      // The observer rejects queries where the time range exceeds 30 days.
+      // Cap the window at 29 days to stay safely within that limit regardless
+      // of clock skew or boundary-comparison behaviour on the observer side.
+      const maxAllowedMs = 29 * 24 * 60 * 60 * 1000;
+      const requestedMs =
         typeof options.sinceSeconds === 'number' && options.sinceSeconds > 0
           ? options.sinceSeconds * 1000
-          : 30 * 24 * 60 * 60 * 1000;
+          : maxAllowedMs;
+      const sinceMs = Math.min(requestedMs, maxAllowedMs);
       const startTime = new Date(Date.now() - sinceMs).toISOString();
       const endTime = new Date().toISOString();
 
