@@ -54,6 +54,11 @@ export const NamespaceProjectsCard = () => {
         columns={columns}
         data={systems || []}
         isLoading={loading}
+        onRowClick={(_event, rowData) => {
+          if (!rowData) return;
+          const ns = rowData.metadata.namespace || 'default';
+          navigate(`/catalog/${ns}/system/${rowData.metadata.name}`);
+        }}
         emptyContent={
           <Box p={3}>
             <Typography variant="body1" color="textSecondary" align="center">

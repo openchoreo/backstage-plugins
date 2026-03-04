@@ -2,6 +2,7 @@ import { Link, Table, TableColumn } from '@backstage/core-components';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
 import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
 import { Box, Typography } from '@material-ui/core';
+import { useNavigate } from 'react-router-dom';
 import { useNamespaceResourcesCardStyles } from './styles';
 
 const kindDisplayNames: Record<string, string> = {
@@ -50,6 +51,7 @@ const columns: TableColumn<Entity>[] = [
 export const NamespaceResourcesCard = () => {
   const classes = useNamespaceResourcesCardStyles();
   const { entity } = useEntity();
+  const navigate = useNavigate();
   const { entities, loading } = useRelatedEntities(entity, {
     type: RELATION_HAS_PART,
   });
@@ -65,6 +67,15 @@ export const NamespaceResourcesCard = () => {
         columns={columns}
         data={resources}
         isLoading={loading}
+        onRowClick={(_event, rowData) => {
+          if (!rowData) return;
+          const ns = rowData.metadata.namespace || 'default';
+          navigate(
+            `/catalog/${ns}/${rowData.kind.toLowerCase()}/${
+              rowData.metadata.name
+            }`,
+          );
+        }}
         emptyContent={
           <Box p={3}>
             <Typography variant="body1" color="textSecondary" align="center">

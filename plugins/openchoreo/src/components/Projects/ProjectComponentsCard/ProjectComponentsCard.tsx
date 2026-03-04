@@ -121,6 +121,11 @@ export const ProjectComponentsCard = () => {
         title="Has Components"
         columns={columns}
         data={components}
+        onRowClick={(_event, rowData) => {
+          if (!rowData) return;
+          const ns = rowData.metadata.namespace || 'default';
+          navigate(`/catalog/${ns}/component/${rowData.metadata.name}`);
+        }}
         emptyContent={
           <Box p={3}>
             <Typography variant="body1" color="textSecondary" align="center">

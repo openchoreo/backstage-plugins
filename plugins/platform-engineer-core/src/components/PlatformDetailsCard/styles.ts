@@ -114,6 +114,11 @@ export const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
   },
   planeCompactInfo: {
     display: 'flex',
