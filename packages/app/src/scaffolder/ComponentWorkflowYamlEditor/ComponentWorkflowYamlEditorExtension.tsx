@@ -138,8 +138,8 @@ export const ComponentWorkflowYamlEditorExtension = ({
     <div>
       <div className={classes.helpText}>
         <span>
-          Customize the Workflow definition below. For available fields
-          and configuration options, see the{' '}
+          Customize the Workflow definition below. For available fields and
+          configuration options, see the{' '}
           <a
             className={classes.helpLink}
             href="https://openchoreo.dev/docs/reference/api/platform/workflow/"

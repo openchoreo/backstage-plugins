@@ -20,9 +20,7 @@ export const createComponentWorkflowDefinitionAction = (
         zImpl.object({
           namespaceName: zImpl
             .string()
-            .describe(
-              'The name of the namespace to create the Workflow in',
-            ),
+            .describe('The name of the namespace to create the Workflow in'),
           yamlContent: zImpl
             .string()
             .describe('The YAML content of the Workflow definition'),
@@ -70,9 +68,7 @@ export const createComponentWorkflowDefinitionAction = (
 
       // Validate required fields
       if (resourceObj.kind !== 'Workflow') {
-        throw new Error(
-          `Kind must be Workflow, got: ${resourceObj.kind}`,
-        );
+        throw new Error(`Kind must be Workflow, got: ${resourceObj.kind}`);
       }
 
       if (!resourceObj.apiVersion) {
@@ -187,10 +183,7 @@ export const createComponentWorkflowDefinitionAction = (
         // Set outputs for the scaffolder
         ctx.output('componentWorkflowName', workflowName);
         ctx.output('namespaceName', namespaceName);
-        ctx.output(
-          'entityRef',
-          `workflow:${namespaceName}/${workflowName}`,
-        );
+        ctx.output('entityRef', `workflow:${namespaceName}/${workflowName}`);
       } catch (err) {
         ctx.logger.error(`Error creating Workflow: ${err}`);
         throw err instanceof Error

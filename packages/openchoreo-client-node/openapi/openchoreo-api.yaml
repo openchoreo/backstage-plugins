@@ -4948,7 +4948,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "Invalid request: name is required"
+            error: 'Invalid request: name is required'
             code: BAD_REQUEST
             details:
               - field: name
@@ -4961,7 +4961,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "Authentication required"
+            error: 'Authentication required'
             code: UNAUTHORIZED
 
     Forbidden:
@@ -4971,7 +4971,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "You do not have permission to access this resource"
+            error: 'You do not have permission to access this resource'
             code: FORBIDDEN
 
     NotFound:
@@ -5001,7 +5001,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
           example:
-            error: "Internal server error"
+            error: 'Internal server error'
             code: INTERNAL_ERROR
 
   # ===========================================================================
@@ -5086,7 +5086,7 @@ components:
           type: string
           format: date-time
           description: Creation timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
 
     Condition:
       type: object
@@ -5104,8 +5104,8 @@ components:
         status:
           type: string
           description: Status of the condition
-          enum: ["True", "False", "Unknown"]
-          example: "True"
+          enum: ['True', 'False', 'Unknown']
+          example: 'True'
         observedGeneration:
           type: integer
           format: int64
@@ -5114,7 +5114,7 @@ components:
           type: string
           format: date-time
           description: Last time the condition transitioned
-          example: "2025-01-06T10:00:05Z"
+          example: '2025-01-06T10:00:05Z'
         reason:
           type: string
           description: Machine-readable reason for the condition
@@ -5122,7 +5122,7 @@ components:
         message:
           type: string
           description: Human-readable message
-          example: "Project is ready"
+          example: 'Project is ready'
 
     # -------------------------------------------------------------------------
     # Version
@@ -5154,7 +5154,7 @@ components:
         buildTime:
           type: string
           description: Build timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         goOS:
           type: string
           description: Target operating system
@@ -5249,7 +5249,7 @@ components:
           minItems: 1
           items:
             type: string
-          example: ["openid", "profile", "email"]
+          example: ['openid', 'profile', 'email']
 
     # -------------------------------------------------------------------------
     # User Type Configuration
@@ -5326,7 +5326,7 @@ components:
             Opaque cursor for fetching the next page. Pass this value as the
             `cursor` query parameter in the next request. Absent when there
             are no more items.
-          example: "eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30="
+          example: 'eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30='
         remainingCount:
           type: integer
           format: int64
@@ -5439,7 +5439,6 @@ components:
         pagination:
           $ref: '#/components/schemas/Pagination'
 
-
     # -------------------------------------------------------------------------
     # Components
     # -------------------------------------------------------------------------
@@ -5487,7 +5486,7 @@ components:
               default: ComponentType
             name:
               type: string
-              description: "Component type reference in format: {workloadType}/{componentTypeName}"
+              description: 'Component type reference in format: {workloadType}/{componentTypeName}'
               example: deployment/go-service
               pattern: '^(deployment|statefulset|cronjob|job|proxy)/[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
         autoDeploy:
@@ -5618,12 +5617,12 @@ components:
           maxLength: 1024
         type:
           type: string
-          description: "DEPRECATED: Use componentType instead. Legacy component type field."
+          description: 'DEPRECATED: Use componentType instead. Legacy component type field.'
           example: service/go-service
           deprecated: true
         componentType:
           type: string
-          description: "Component type reference (format: {workloadType}/{componentTypeName})"
+          description: 'Component type reference (format: {workloadType}/{componentTypeName})'
           example: service/go-service
         autoDeploy:
           type: boolean
@@ -5875,7 +5874,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ["docker-registry-secret"]
+          example: ['docker-registry-secret']
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -6229,7 +6228,7 @@ components:
           description: References to SecretReference resources for image pulling
           items:
             type: string
-          example: ["docker-registry-secret"]
+          example: ['docker-registry-secret']
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -6558,7 +6557,7 @@ components:
             properties:
               rule:
                 type: string
-                description: "CEL expression wrapped in ${...} that must evaluate to true"
+                description: 'CEL expression wrapped in ${...} that must evaluate to true'
                 pattern: '^\$\{[\s\S]+\}\s*$'
               message:
                 type: string
@@ -6583,11 +6582,11 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
                 pattern: '^\$\{[\s\S]+\}\s*$'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
                 pattern: '^\$\{[\s\S]+\}\s*$'
               var:
                 type: string
@@ -6670,10 +6669,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6692,7 +6691,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: "CEL expression for repeating this patch"
+                description: 'CEL expression for repeating this patch'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6715,7 +6714,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: "CEL expression to filter which resources to patch"
+                    description: 'CEL expression to filter which resources to patch'
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -6872,7 +6871,7 @@ components:
             properties:
               rule:
                 type: string
-                description: "CEL expression wrapped in ${...} that must evaluate to true"
+                description: 'CEL expression wrapped in ${...} that must evaluate to true'
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6896,10 +6895,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -6977,7 +6976,7 @@ components:
             properties:
               rule:
                 type: string
-                description: "CEL expression wrapped in ${...} that must evaluate to true"
+                description: 'CEL expression wrapped in ${...} that must evaluate to true'
               message:
                 type: string
                 description: Error message shown when the rule evaluates to false
@@ -6996,10 +6995,10 @@ components:
                 default: dataplane
               includeWhen:
                 type: string
-                description: "CEL expression determining if this resource should be created"
+                description: 'CEL expression determining if this resource should be created'
               forEach:
                 type: string
-                description: "CEL expression for generating multiple resources from a list"
+                description: 'CEL expression for generating multiple resources from a list'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -7018,7 +7017,7 @@ components:
             properties:
               forEach:
                 type: string
-                description: "CEL expression for repeating this patch"
+                description: 'CEL expression for repeating this patch'
               var:
                 type: string
                 description: Loop variable name when using forEach
@@ -7041,7 +7040,7 @@ components:
                     description: Resource type to patch
                   where:
                     type: string
-                    description: "CEL expression to filter which resources to patch"
+                    description: 'CEL expression to filter which resources to patch'
               targetPlane:
                 type: string
                 description: Target plane for this patch
@@ -7411,12 +7410,12 @@ components:
           type: string
           format: date-time
           description: When the step started
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         finishedAt:
           type: string
           format: date-time
           description: When the step finished
-          example: "2025-01-06T10:01:00Z"
+          example: '2025-01-06T10:01:00Z'
 
     WorkflowRunLogEntry:
       type: object
@@ -7428,11 +7427,11 @@ components:
           type: string
           format: date-time
           description: Log entry timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         log:
           type: string
           description: Log message
-          example: "Step 1: Cloning repository..."
+          example: 'Step 1: Cloning repository...'
 
     WorkflowRunEventEntry:
       type: object
@@ -7447,7 +7446,7 @@ components:
           type: string
           format: date-time
           description: Event timestamp
-          example: "2025-01-06T10:00:00Z"
+          example: '2025-01-06T10:00:00Z'
         type:
           type: string
           description: Event type
@@ -7459,7 +7458,7 @@ components:
         message:
           type: string
           description: Human-readable description of the event
-          example: "Container main started"
+          example: 'Container main started'
 
     CreateWorkflowRunRequest:
       type: object
@@ -7477,8 +7476,8 @@ components:
           description: User-defined workflow parameters
           additionalProperties: true
           example:
-            database_url: "postgresql://localhost:5432/mydb"
-            migration_version: "v2.1.0"
+            database_url: 'postgresql://localhost:5432/mydb'
+            migration_version: 'v2.1.0'
 
     # -------------------------------------------------------------------------
     # Component Extended Schemas
@@ -8139,11 +8138,11 @@ components:
           type: string
           description: Timestamp of the log entry in RFC3339 format
           format: date-time
-          example: "2024-01-10T12:34:56.789Z"
+          example: '2024-01-10T12:34:56.789Z'
         log:
           type: string
           description: Log message content
-          example: "Starting application server on port 8080"
+          example: 'Starting application server on port 8080'
 
     ResourcePodLogsResponse:
       type: object
@@ -8267,7 +8266,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["project:create", "project:view", "project:delete"]
+          example: ['project:create', 'project:view', 'project:delete']
         description:
           type: string
           description: Human-readable description of the role
@@ -8311,7 +8310,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["component:create", "component:view"]
+          example: ['component:create', 'component:view']
         description:
           type: string
           description: Human-readable description of the role
@@ -8529,7 +8528,7 @@ components:
           description: Entitlement values
           items:
             type: string
-          example: ["admin-group", "dev-group"]
+          example: ['admin-group', 'dev-group']
 
     Resource:
       type: object
@@ -8587,7 +8586,6 @@ components:
               description: Reason for the decision
               example: User has admin role
 
-
     ActionCapability:
       type: object
       description: Capabilities for a specific action
@@ -8631,8 +8629,7 @@ components:
           type: string
           format: date-time
           description: Time when capabilities were evaluated
-          example: "2025-01-06T10:00:00Z"
-
+          example: '2025-01-06T10:00:00Z'
 
     # -------------------------------------------------------------------------
     # Legacy Authz Schemas (kept for legacy handler compatibility)
@@ -8654,7 +8651,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write", "delete"]
+          example: ['read', 'write', 'delete']
         namespace:
           type: string
           description: Namespace for namespace-scoped roles, empty for cluster roles
@@ -8675,7 +8672,7 @@ components:
           description: New list of actions for the role
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
 
     TargetPath:
       type: object
@@ -8785,7 +8782,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write", "delete"]
+          example: ['read', 'write', 'delete']
         description:
           type: string
           description: Human-readable description of the role
@@ -8802,7 +8799,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
         description:
           type: string
           description: Human-readable description of the role
@@ -8870,7 +8867,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
         description:
           type: string
           description: Human-readable description of the role
@@ -8887,7 +8884,7 @@ components:
           description: List of actions this role permits
           items:
             type: string
-          example: ["read", "write"]
+          example: ['read', 'write']
         description:
           type: string
           description: Human-readable description of the role
@@ -8964,7 +8961,7 @@ components:
           description: List of components affected by this webhook
           items:
             type: string
-          example: ["api-service", "web-app"]
+          example: ['api-service', 'web-app']
         triggeredBuilds:
           type: integer
           description: Number of builds triggered
@@ -9037,7 +9034,7 @@ components:
           type: string
           format: date-time
           description: When the secret reference was last processed
-          example: "2025-01-06T11:00:00Z"
+          example: '2025-01-06T11:00:00Z'
         secretStores:
           type: array
           description: Secret stores using this reference
@@ -9570,11 +9567,11 @@ components:
         subject:
           type: string
           description: Email subject line template using CEL expressions
-          example: "[${alert.severity}] - ${alert.name} Triggered"
+          example: '[${alert.severity}] - ${alert.name} Triggered'
         body:
           type: string
           description: Email body template using CEL expressions
-          example: "Alert: ${alert.name} triggered at ${alert.startsAt}."
+          example: 'Alert: ${alert.name} triggered at ${alert.startsAt}.'
 
     NotificationWebhookConfig:
       type: object

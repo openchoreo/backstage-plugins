@@ -95,11 +95,7 @@ export const TraitCard = ({
     <Card variant="outlined" className={classes.card}>
       <CardContent className={classes.cardContent}>
         <Box className={classes.badgeRow}>
-          <Chip
-            label={kindLabel}
-            size="small"
-            className={classes.kindBadge}
-          />
+          <Chip label={kindLabel} size="small" className={classes.kindBadge} />
           {addedCount > 0 && (
             <Chip
               label={`Added (${addedCount})`}
