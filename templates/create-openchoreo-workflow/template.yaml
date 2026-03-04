@@ -28,7 +28,7 @@ spec:
         namespace_name:
           title: Namespace Name
           type: string
-          description: Namespace where the component workflow will be created
+          description: Namespace where the workflow will be created
           ui:field: NamespaceEntityPicker
         is_component_workflow:
           title: Component Workflow
