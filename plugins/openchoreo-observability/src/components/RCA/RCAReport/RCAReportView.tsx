@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Typography, Grid, Box, IconButton, Button } from '@material-ui/core';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import ChatOutlinedIcon from '@material-ui/icons/ChatOutlined';
+import AutorenewIcon from '@material-ui/icons/Autorenew';
 import { InfoCard } from '@backstage/core-components';
 import BugReportOutlinedIcon from '@material-ui/icons/BugReportOutlined';
 import TimelineOutlinedIcon from '@material-ui/icons/TimelineOutlined';
@@ -18,6 +19,8 @@ import { VisibilityImprovementsSection } from './sections/VisibilityImprovements
 import { IncidentOverviewSection } from './sections/IncidentOverviewSection';
 import { AssessmentSection } from './sections/AssessmentSection';
 import { ChatPanelSection } from './sections/ChatPanelSection';
+import { QuickFixesPanelSection } from './sections/QuickFixesPanelSection';
+import { patchAppliedKey } from './sections/PatchTabContent';
 import { useRCAReportStyles } from './styles';
 import { EntityLinkContext } from './EntityLinkContext';
 import {
@@ -25,7 +28,7 @@ import {
   extractEntityUids,
 } from '../../../hooks/useEntitiesByUids';
 import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
-import type { RCAAgentApi } from '../../../api/RCAAgentApi';
+import type { RCAAgentApi, RecommendedAction } from '../../../api/RCAAgentApi';
 
 type RCAReportDetailed = AIRCAAgentComponents['schemas']['RCAReportDetailed'];
 
@@ -34,6 +37,7 @@ interface ChatContext {
   environmentName: string;
   projectName: string;
   rcaAgentApi: RCAAgentApi;
+  backendBaseUrl?: string;
 }
 
 interface RCAReportViewProps {
@@ -50,7 +54,45 @@ export const RCAReportView = ({
   chatContext,
 }: RCAReportViewProps) => {
   const classes = useRCAReportStyles();
-  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  // Compute revised actions from the report
+  const revisedActions = useMemo(() => {
+    const result: { index: number; action: RecommendedAction }[] = [];
+    const recs = (() => {
+      const r = report.report?.result;
+      if (r?.type === 'root_cause_identified') return r.recommendations;
+      if (r?.type === 'no_root_cause_identified') return r.recommendations;
+      return undefined;
+    })();
+    const actions = recs?.recommended_actions;
+    if (actions) {
+      actions.forEach((action, idx) => {
+        if (action.status === 'revised' && action.changes?.length > 0) {
+          result.push({ index: idx, action });
+        }
+      });
+    }
+    return result;
+  }, [report]);
+
+  const hasRevised = revisedActions.length > 0;
+
+  const [activePanel, setActivePanel] = useState<'chat' | 'fixes' | null>(
+    () => {
+      if (!hasRevised) return null;
+      try {
+        if (
+          localStorage.getItem(patchAppliedKey(report.reportId || '')) ===
+          'true'
+        ) {
+          return null;
+        }
+      } catch {
+        // ignore
+      }
+      return 'fixes';
+    },
+  );
 
   // Extract all entity UIDs from the report
   const uids = useMemo(() => {
@@ -176,15 +218,32 @@ export const RCAReportView = ({
               )}
             </Box>
           </Box>
-          <Button
-            variant={isChatOpen ? 'contained' : 'outlined'}
-            color="primary"
-            size="small"
-            startIcon={<ChatOutlinedIcon />}
-            onClick={() => setIsChatOpen(!isChatOpen)}
-          >
-            Chat
-          </Button>
+          <Box display="flex" style={{ gap: 8 }}>
+            {hasRevised && (
+              <Button
+                variant={activePanel === 'fixes' ? 'contained' : 'outlined'}
+                color="primary"
+                size="small"
+                startIcon={<AutorenewIcon />}
+                onClick={() =>
+                  setActivePanel(prev => (prev === 'fixes' ? null : 'fixes'))
+                }
+              >
+                Quick Fixes
+              </Button>
+            )}
+            <Button
+              variant={activePanel === 'chat' ? 'contained' : 'outlined'}
+              color="primary"
+              size="small"
+              startIcon={<ChatOutlinedIcon />}
+              onClick={() =>
+                setActivePanel(prev => (prev === 'chat' ? null : 'chat'))
+              }
+            >
+              Chat
+            </Button>
+          </Box>
         </Box>
         <Box className={classes.content}>
           <Grid container spacing={1}>
@@ -277,10 +336,17 @@ export const RCAReportView = ({
               style={{ flex: '0 0 38%', maxWidth: '38%' }}
               className={classes.sidebarColumn}
             >
-              {isChatOpen && (
+              {activePanel === 'chat' && (
                 <ChatPanelSection
                   reportId={report.reportId || ''}
                   chatContext={chatContext}
+                />
+              )}
+              {activePanel === 'fixes' && (
+                <QuickFixesPanelSection
+                  reportId={report.reportId || ''}
+                  chatContext={chatContext}
+                  revisedActions={revisedActions}
                 />
               )}
               {timeline && timeline.length > 0 && (

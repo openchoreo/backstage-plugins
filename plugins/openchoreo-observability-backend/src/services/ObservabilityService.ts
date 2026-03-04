@@ -94,6 +94,42 @@ export class ObservabilityService {
     );
   }
 
+  async getReleaseBinding(
+    namespaceName: string,
+    bindingName: string,
+    userToken?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      logger: this.logger,
+      token: userToken,
+    });
+    return client.GET(
+      '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+      { params: { path: { namespaceName, releaseBindingName: bindingName } } },
+    );
+  }
+
+  async updateReleaseBinding(
+    namespaceName: string,
+    bindingName: string,
+    body: any,
+    userToken?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      logger: this.logger,
+      token: userToken,
+    });
+    return client.PUT(
+      '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+      {
+        params: { path: { namespaceName, releaseBindingName: bindingName } },
+        body,
+      },
+    );
+  }
+
   /**
    * Resolves the observability URL for a given namespace and environment.
    */
