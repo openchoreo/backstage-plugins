@@ -18,6 +18,10 @@ import { YamlEditor } from '@openchoreo/backstage-plugin-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import YAML from 'yaml';
 import { useStyles } from './styles';
+import {
+  NamespaceSelectField,
+  type NamespaceOption,
+} from '../NamespaceEntityPicker';
 
 export interface EnvironmentFormData {
   environment_name: string;
@@ -121,13 +125,10 @@ export const EnvironmentFormWithYamlExtension = ({
   const [yamlContent, setYamlContent] = useState('');
   const [yamlError, setYamlError] = useState<string | undefined>();
 
-  const [namespaces, setNamespaces] = useState<
-    Array<{ name: string; entityRef: string }>
-  >([]);
+  const [namespaces, setNamespaces] = useState<NamespaceOption[]>([]);
   const [dataplanes, setDataplanes] = useState<
     Array<{ name: string; entityRef: string }>
   >([]);
-  const [loadingNamespaces, setLoadingNamespaces] = useState(true);
   const [loadingDataplanes, setLoadingDataplanes] = useState(true);
 
   const initializedRef = useRef(false);
@@ -142,35 +143,6 @@ export const EnvironmentFormWithYamlExtension = ({
     () => ({ ...DEFAULT_FORM_DATA, ...formData }),
     [formData],
   );
-
-  // Fetch Domain entities for namespace dropdown
-  useEffect(() => {
-    const fetchNamespaces = async () => {
-      try {
-        const { items } = await catalogApi.getEntities({
-          filter: { kind: 'Domain' },
-        });
-        const list = items.map(entity => ({
-          name: entity.metadata.name,
-          entityRef: `domain:${entity.metadata.namespace || 'default'}/${
-            entity.metadata.name
-          }`,
-        }));
-        setNamespaces(list);
-
-        // Auto-select first namespace if none set
-        if (list.length > 0 && !formData?.namespace_name) {
-          onChange({ ...data, namespace_name: list[0].entityRef });
-        }
-      } catch {
-        // ignore fetch errors
-      } finally {
-        setLoadingNamespaces(false);
-      }
-    };
-    fetchNamespaces();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Fetch Dataplane entities
   useEffect(() => {
@@ -362,30 +334,14 @@ export const EnvironmentFormWithYamlExtension = ({
 
             {/* Namespace */}
             <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Namespace"
+              <NamespaceSelectField
                 value={data.namespace_name}
-                onChange={e => updateField('namespace_name', e.target.value)}
-                fullWidth
-                variant="outlined"
-                required
-                disabled={loadingNamespaces}
+                onChange={v => updateField('namespace_name', v)}
+                label="Namespace"
                 helperText="Namespace where the environment will be created"
-                InputProps={{
-                  endAdornment: loadingNamespaces ? (
-                    <InputAdornment position="end">
-                      <CircularProgress size={20} />
-                    </InputAdornment>
-                  ) : undefined,
-                }}
-              >
-                {namespaces.map(ns => (
-                  <MenuItem key={ns.entityRef} value={ns.entityRef}>
-                    {ns.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+                required
+                onNamespacesLoaded={setNamespaces}
+              />
             </Grid>
 
             {/* Data Plane */}
