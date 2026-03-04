@@ -26,23 +26,24 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(1.5),
     paddingBottom: theme.spacing(0.5),
   },
-  header: {
+  badgeRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing(0.25),
+    gap: theme.spacing(0.5),
+    marginBottom: theme.spacing(0.5),
   },
   displayName: {
     fontWeight: 500,
     fontSize: '0.9375rem',
+    wordBreak: 'break-word',
   },
   kindBadge: {
-    marginLeft: theme.spacing(1),
-    height: 20,
+    height: 18,
+    fontSize: '0.6875rem',
   },
   badge: {
-    marginLeft: theme.spacing(1),
-    height: 20,
+    height: 18,
+    fontSize: '0.6875rem',
   },
   traitName: {
     marginBottom: theme.spacing(0.5),
@@ -93,26 +94,24 @@ export const TraitCard = ({
   return (
     <Card variant="outlined" className={classes.card}>
       <CardContent className={classes.cardContent}>
-        <Box className={classes.header}>
-          <Typography variant="subtitle1" className={classes.displayName}>
-            {displayTitle}
-          </Typography>
-          <Box display="flex" alignItems="center">
+        <Box className={classes.badgeRow}>
+          <Chip
+            label={kindLabel}
+            size="small"
+            className={classes.kindBadge}
+          />
+          {addedCount > 0 && (
             <Chip
-              label={kindLabel}
+              label={`Added (${addedCount})`}
               size="small"
-              className={classes.kindBadge}
+              color="primary"
+              className={classes.badge}
             />
-            {addedCount > 0 && (
-              <Chip
-                label={`Added (${addedCount})`}
-                size="small"
-                color="primary"
-                className={classes.badge}
-              />
-            )}
-          </Box>
+          )}
         </Box>
+        <Typography variant="subtitle1" className={classes.displayName}>
+          {displayTitle}
+        </Typography>
         {trait.displayName && (
           <Typography
             variant="caption"
