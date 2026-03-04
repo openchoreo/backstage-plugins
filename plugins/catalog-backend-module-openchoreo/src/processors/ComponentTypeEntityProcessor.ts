@@ -76,8 +76,8 @@ export class ComponentTypeEntityProcessor implements CatalogProcessor {
           if (!workflowName) continue;
           const workflowKind =
             typeof workflow === 'string'
-              ? 'componentworkflow'
-              : (workflow.kind || 'ComponentWorkflow').toLowerCase();
+              ? 'workflow'
+              : (workflow.kind || 'Workflow').toLowerCase();
           const cwRef = {
             kind: workflowKind,
             namespace: entity.metadata.namespace || 'default',

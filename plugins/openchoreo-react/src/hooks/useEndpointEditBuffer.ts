@@ -14,6 +14,8 @@ export interface UseEndpointEditBufferOptions {
   onEndpointReplace?: (
     endpointName: string,
     endpoint: WorkloadEndpoint,
+    /** If renaming, the old key to remove in the same update */
+    oldNameToRemove?: string,
   ) => void;
   /** Callback to remove an endpoint */
   onRemoveEndpoint: (endpointName: string) => void;
@@ -177,13 +179,11 @@ export function useEndpointEditBuffer(
 
     // If name changed and this is not a new endpoint, we need to handle rename
     const nameChanged = endpointName !== editBufferName;
+    const oldNameToRemove =
+      nameChanged && !editingRow.isNew ? endpointName : undefined;
 
     if (onEndpointReplace) {
-      if (nameChanged && !editingRow.isNew) {
-        // Remove old and add new
-        onRemoveEndpoint(endpointName);
-      }
-      onEndpointReplace(editBufferName, editBuffer);
+      onEndpointReplace(editBufferName, editBuffer, oldNameToRemove);
     }
 
     setEditBuffer(null);
