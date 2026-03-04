@@ -34,7 +34,7 @@ import type {
 function processChildren(children: ReactNode): ReactNode {
   return Children.map(children, child => {
     if (typeof child === 'string') {
-      return <FormattedText text={child} disableMarkdown />;
+      return <FormattedText text={child} disableMarkdown disableLinks />;
     }
     return child;
   });
@@ -64,6 +64,9 @@ const markdownComponents = {
   ),
   em: ({ children }: { children?: ReactNode }) => (
     <em>{processChildren(children)}</em>
+  ),
+  code: ({ children }: { children?: ReactNode }) => (
+    <code>{processChildren(children)}</code>
   ),
   h1: ({ children }: { children?: ReactNode }) => (
     <h1>{processChildren(children)}</h1>
