@@ -269,7 +269,13 @@ export const MappingDialog = ({
           />
         );
       case 'review':
-        return <ReviewStep {...stepProps} bindingType={bindingType} namespace={namespace} />;
+        return (
+          <ReviewStep
+            {...stepProps}
+            bindingType={bindingType}
+            namespace={namespace}
+          />
+        );
       default:
         return null;
     }

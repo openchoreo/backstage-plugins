@@ -75,7 +75,12 @@ interface ReviewStepProps extends WizardStepProps {
   namespace?: string;
 }
 
-export const ReviewStep = ({ state, userTypes, bindingType, namespace }: ReviewStepProps) => {
+export const ReviewStep = ({
+  state,
+  userTypes,
+  bindingType,
+  namespace,
+}: ReviewStepProps) => {
   const classes = useStyles();
 
   const selectedUserTypeInfo = userTypes.find(
@@ -86,16 +91,21 @@ export const ReviewStep = ({ state, userTypes, bindingType, namespace }: ReviewS
   const getScopePath = (): string => {
     const effectiveNamespace =
       bindingType === SCOPE_NAMESPACE ? namespace : state.namespace;
+    const isNamespaceScoped = bindingType === SCOPE_NAMESPACE;
 
     if (state.scopeType === 'global') {
-      if (bindingType === SCOPE_NAMESPACE && effectiveNamespace) {
-        return `ns/${effectiveNamespace}/*`;
+      if (isNamespaceScoped) {
+        return effectiveNamespace
+          ? `ns/${effectiveNamespace}/*`
+          : 'Namespace (unspecified)';
       }
       return 'Global (all resources)';
     }
 
     const parts: string[] = [];
-    if (effectiveNamespace) {
+    if (isNamespaceScoped) {
+      parts.push(`ns/${effectiveNamespace || '*'}`);
+    } else if (effectiveNamespace) {
       parts.push(`ns/${effectiveNamespace}`);
     }
 
@@ -107,9 +117,7 @@ export const ReviewStep = ({ state, userTypes, bindingType, namespace }: ReviewS
     }
 
     if (parts.length === 0) {
-      return bindingType === SCOPE_NAMESPACE && effectiveNamespace
-        ? `${effectiveNamespace}/*`
-        : 'Global';
+      return 'Global';
     }
 
     return parts.join('/');
