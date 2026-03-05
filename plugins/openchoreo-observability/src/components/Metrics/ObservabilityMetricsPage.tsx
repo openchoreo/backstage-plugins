@@ -68,51 +68,31 @@ export const ObservabilityMetricsPage = () => {
     error: metricsError,
     fetchMetrics,
     refresh,
-    componentId,
-    projectId,
   } = useMetrics(filters, entity, namespace as string, project as string);
 
   // Track previous filter values to detect changes
   const previousFiltersRef = useRef({
     environmentId: filters.environment?.uid,
     timeRange: filters.timeRange,
-    componentId: componentId,
-    projectId: projectId,
   });
 
-  // Note: Auto-selection of first environment is handled by useUrlFilters hook
-
-  // Fetch metrics when filters change or when component/project IDs become available
+  // Fetch metrics when filters change
   useEffect(() => {
     const currentFilters = {
       environmentId: filters.environment?.uid,
       timeRange: filters.timeRange,
-      componentId: componentId,
-      projectId: projectId,
     };
 
     const filtersChanged =
       JSON.stringify(previousFiltersRef.current) !==
       JSON.stringify(currentFilters);
 
-    if (
-      filters.environment &&
-      filters.timeRange &&
-      componentId &&
-      projectId &&
-      filtersChanged
-    ) {
+    if (filters.environment && filters.timeRange && filtersChanged) {
       fetchMetrics(true);
     }
 
     previousFiltersRef.current = currentFilters;
-  }, [
-    filters.environment,
-    filters.timeRange,
-    componentId,
-    projectId,
-    fetchMetrics,
-  ]);
+  }, [filters.environment, filters.timeRange, fetchMetrics]);
 
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
     updateFilters(newFilters);

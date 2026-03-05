@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import {
@@ -77,7 +77,7 @@ export const createEnvironmentAction = (
       );
 
       const dataPlaneRef = dataPlaneRefName
-        ? { kind: 'DataPlane', name: dataPlaneRefName }
+        ? { kind: 'DataPlane' as const, name: dataPlaneRefName }
         : undefined;
 
       // Get the base URL from configuration
@@ -98,7 +98,7 @@ export const createEnvironmentAction = (
         );
       }
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl,
         token,
         logger: ctx.logger,
@@ -106,17 +106,31 @@ export const createEnvironmentAction = (
 
       try {
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/environments',
+          '/api/v1/namespaces/{namespaceName}/environments',
           {
             params: {
               path: { namespaceName },
             },
             body: {
-              name: ctx.input.environmentName,
-              displayName: ctx.input.displayName,
-              description: ctx.input.description,
-              dataPlaneRef,
-              isProduction: ctx.input.isProduction,
+              metadata: {
+                name: ctx.input.environmentName,
+                annotations: {
+                  ...(ctx.input.displayName
+                    ? {
+                        'openchoreo.dev/display-name': ctx.input.displayName,
+                      }
+                    : {}),
+                  ...(ctx.input.description
+                    ? {
+                        'openchoreo.dev/description': ctx.input.description,
+                      }
+                    : {}),
+                },
+              },
+              spec: {
+                dataPlaneRef,
+                isProduction: ctx.input.isProduction,
+              },
             },
           },
         );
@@ -127,15 +141,12 @@ export const createEnvironmentAction = (
           );
         }
 
-        if (!data.success || !data.data) {
-          throw new Error('API request was not successful');
-        }
-
         ctx.logger.debug(
-          `Environment created successfully: ${JSON.stringify(data.data)}`,
+          `Environment created successfully: ${JSON.stringify(data)}`,
         );
 
-        const environmentName = data.data.name || ctx.input.environmentName;
+        const environmentName =
+          data?.metadata?.name || ctx.input.environmentName;
 
         // Immediately insert the environment into the catalog
         try {
@@ -143,19 +154,25 @@ export const createEnvironmentAction = (
             `Inserting environment '${environmentName}' into catalog immediately...`,
           );
 
+          const annotations = data?.metadata?.annotations || {};
           const entity = translateEnvironmentToEntity(
             {
               name: environmentName,
-              displayName: ctx.input.displayName || data.data.displayName,
-              description: ctx.input.description || data.data.description,
-              uid: data.data.uid,
-              isProduction: ctx.input.isProduction ?? data.data.isProduction,
+              displayName:
+                ctx.input.displayName ||
+                annotations['openchoreo.dev/display-name'],
+              description:
+                ctx.input.description ||
+                annotations['openchoreo.dev/description'],
+              uid: data?.metadata?.uid,
+              isProduction: ctx.input.isProduction ?? data?.spec?.isProduction,
               dataPlaneRef:
-                data.data.dataPlaneRef ||
+                data?.spec?.dataPlaneRef ||
                 (dataPlaneRefName ? { name: dataPlaneRefName } : undefined),
-              dnsPrefix: data.data.dnsPrefix,
-              createdAt: data.data.createdAt || new Date().toISOString(),
-              status: data.data.status,
+              dnsPrefix: undefined,
+              createdAt:
+                data?.metadata?.creationTimestamp || new Date().toISOString(),
+              status: undefined,
             },
             namespaceName,
             {

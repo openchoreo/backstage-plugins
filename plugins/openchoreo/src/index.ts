@@ -10,6 +10,8 @@ export {
   DeploymentPipelineCard,
   AccessControlPage,
 } from './plugin';
+export { AccessControlContent } from './components/AccessControl';
+export { GitSecretsContent } from './components/GitSecrets';
 export * from './components/HomePage/MyProjectsWidget';
 export * from './components/HomePage/QuickActionsSection';
 export { ProjectComponentsCard } from './components/Projects/ProjectComponentsCard';
@@ -31,16 +33,30 @@ export {
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
   EnvironmentPipelinesTab,
+  EnvironmentGatewayConfigurationCard,
 } from './components/EnvironmentOverview';
 export {
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
+  DataplaneGatewayConfigurationCard,
 } from './components/DataplaneOverview';
+export {
+  ClusterDataplaneStatusCard,
+  ClusterDataplaneEnvironmentsCard,
+  ClusterDataplaneGatewayConfigurationCard,
+} from './components/ClusterDataplaneOverview';
+export { GatewayConfigurationCard } from './components/GatewayConfigurationCard';
+export type { GatewayConfigurationCardProps } from './components/GatewayConfigurationCard';
 export { BuildPlaneStatusCard } from './components/BuildPlaneOverview';
+export { ClusterBuildPlaneStatusCard } from './components/ClusterBuildPlaneOverview';
 export {
   ObservabilityPlaneStatusCard,
   ObservabilityPlaneLinkedPlanesCard,
 } from './components/ObservabilityPlaneOverview';
+export {
+  ClusterObservabilityPlaneStatusCard,
+  ClusterObservabilityPlaneLinkedPlanesCard,
+} from './components/ClusterObservabilityPlaneOverview';
 export {
   DeploymentPipelineVisualization,
   PromotionPathsCard,

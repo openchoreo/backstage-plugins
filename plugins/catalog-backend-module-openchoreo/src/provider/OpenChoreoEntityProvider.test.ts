@@ -13,9 +13,6 @@ jest.mock('@openchoreo/openchoreo-client-node', () => ({
   createOpenChoreoApiClient: jest.fn(() => ({
     GET: mockGET,
   })),
-  createOpenChoreoLegacyApiClient: jest.fn(() => ({
-    GET: mockGET,
-  })),
   fetchAllPages: jest.fn((fetchPage: (cursor?: string) => Promise<any>) =>
     fetchPage(undefined).then((page: any) => page.items ?? []),
   ),
@@ -49,11 +46,21 @@ function k8sMeta(name: string, extra?: Record<string, any>) {
 }
 
 const k8sNamespace = {
-  name: 'test-ns',
-  displayName: 'Test Namespace',
-  description: 'A test namespace',
-  createdAt: '2025-01-06T10:00:00Z',
-  status: 'Active',
+  metadata: {
+    name: 'test-ns',
+    namespace: '',
+    uid: 'uid-test-ns',
+    creationTimestamp: '2025-01-06T10:00:00Z',
+    labels: {},
+    annotations: {
+      'openchoreo.dev/display-name': 'Test Namespace',
+      'openchoreo.dev/description': 'A test namespace',
+    },
+  },
+  status: {
+    phase: 'Active',
+    conditions: [readyCondition],
+  },
 };
 
 const k8sEnvironment = {
@@ -61,7 +68,21 @@ const k8sEnvironment = {
   spec: {
     dataPlaneRef: { kind: 'DataPlane', name: 'default-dp' },
     isProduction: false,
-    gateway: { publicVirtualHost: 'dev.example.com' },
+    gateway: {
+      ingress: {
+        external: {
+          name: 'env-gateway',
+          namespace: 'choreo-system',
+          http: { host: 'env.example.com', port: 80 },
+          https: { port: 443 },
+        },
+        internal: {
+          name: 'env-gateway',
+          namespace: 'choreo-system',
+          http: { host: 'env-internal.example.com', port: 80 },
+        },
+      },
+    },
   },
   status: { conditions: [readyCondition] },
 };
@@ -70,10 +91,19 @@ const k8sDataPlane = {
   metadata: k8sMeta('default-dp'),
   spec: {
     gateway: {
-      publicVirtualHost: 'api.example.com',
-      organizationVirtualHost: 'internal.example.com',
-      publicHTTPPort: 80,
-      publicHTTPSPort: 443,
+      ingress: {
+        external: {
+          name: 'dp-gateway',
+          namespace: 'choreo-system',
+          http: { host: 'api.example.com', port: 80 },
+          https: { port: 443 },
+        },
+        internal: {
+          name: 'dp-gateway-internal',
+          namespace: 'choreo-system',
+          http: { host: 'internal.example.com' },
+        },
+      },
     },
     observabilityPlaneRef: { name: 'default-obs' },
   },
@@ -126,7 +156,7 @@ const k8sPipeline = {
 const k8sServiceComponent = {
   metadata: k8sMeta('api-service'),
   spec: {
-    type: 'Service',
+    componentType: { kind: 'ComponentType', name: 'Service' },
     owner: { projectName: 'my-project' },
   },
   status: { conditions: [readyCondition] },
@@ -135,7 +165,7 @@ const k8sServiceComponent = {
 const k8sNonServiceComponent = {
   metadata: k8sMeta('web-app'),
   spec: {
-    type: 'WebApp',
+    componentType: { kind: 'ComponentType', name: 'WebApp' },
     owner: { projectName: 'my-project' },
   },
   status: { conditions: [readyCondition] },
@@ -272,7 +302,7 @@ function findEntities(entities: Entity[], kind: string): Entity[] {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
+describe('OpenChoreoEntityProvider', () => {
   let taskRunner: PersistingTaskRunner;
   let mockConnection: { applyMutation: jest.Mock; refresh: jest.Mock };
 
@@ -296,7 +326,6 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
       mkLogger(),
       config,
       undefined, // no token service
-      true, // useNewApi
     );
 
     await provider.connect(mockConnection as any);
@@ -326,17 +355,25 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
         '/api/v1/namespaces/{namespaceName}/projects': okData({
           items: [k8sProject],
         }),
-        '/api/v1/namespaces/{namespaceName}/deployment-pipelines': okData({
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
           items: [k8sPipeline],
         }),
         '/api/v1/namespaces/{namespaceName}/components': okData({
           items: [k8sServiceComponent, k8sNonServiceComponent],
         }),
-        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}':
-          okData(k8sWorkload),
-        '/api/v1/namespaces/{namespaceName}/component-types/{ctName}/schema':
+        '/api/v1/namespaces/{namespaceName}/workloads': (
+          _path: string,
+          opts?: any,
+        ) => {
+          const comp = opts?.params?.query?.component;
+          if (comp === 'api-service') {
+            return okData({ items: [k8sWorkload] });
+          }
+          return okData({ items: [] });
+        },
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
           okData({ type: 'object', properties: {} }),
-        '/api/v1/namespaces/{namespaceName}/component-types': okData({
+        '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
           items: [k8sComponentType],
         }),
         '/api/v1/namespaces/{namespaceName}/traits': okData({
@@ -384,6 +421,16 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
       const env = findEntities(entities, 'Environment')[0];
       expect(env.metadata.name).toBe('dev');
       expect(env.metadata.namespace).toBe('test-ns');
+
+      const gateway = (env.spec as any).gateway;
+      expect(gateway.ingress.external.name).toBe('env-gateway');
+      expect(gateway.ingress.external.http.host).toBe('env.example.com');
+      expect(gateway.ingress.external.http.port).toBe(80);
+      expect(gateway.ingress.external.https.port).toBe(443);
+      expect(gateway.ingress.internal.name).toBe('env-gateway');
+      expect(gateway.ingress.internal.http.host).toBe(
+        'env-internal.example.com',
+      );
     });
 
     it('creates Dataplane entity with gateway and agent annotations', async () => {
@@ -395,6 +442,16 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
       expect(dp.metadata.annotations?.['openchoreo.io/agent-connected']).toBe(
         'true',
       );
+
+      const gateway = (dp.spec as any).gateway;
+      expect(gateway.ingress.external.name).toBe('dp-gateway');
+      expect(gateway.ingress.external.namespace).toBe('choreo-system');
+      expect(gateway.ingress.external.http.host).toBe('api.example.com');
+      expect(gateway.ingress.external.http.port).toBe(80);
+      expect(gateway.ingress.external.https.port).toBe(443);
+      expect(gateway.ingress.internal.name).toBe('dp-gateway-internal');
+      expect(gateway.ingress.internal.namespace).toBe('choreo-system');
+      expect(gateway.ingress.internal.http.host).toBe('internal.example.com');
     });
 
     it('creates API entity from workload endpoint', async () => {
@@ -444,6 +501,136 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
     });
   });
 
+  describe('endpoint type filtering', () => {
+    it('filters out non-API endpoint types like HTTP', async () => {
+      const httpOnlyWorkload = {
+        metadata: k8sMeta('api-service'),
+        spec: {
+          endpoints: {
+            dashboard: { type: 'HTTP', port: 3000, visibility: ['external'] },
+          },
+        },
+      };
+
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/environments': okData({
+          items: [k8sEnvironment],
+        }),
+        '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
+          items: [k8sDataPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/buildplanes': okData({
+          items: [k8sBuildPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/observabilityplanes': okData({
+          items: [k8sObservabilityPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/projects': okData({
+          items: [k8sProject],
+        }),
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
+          items: [k8sPipeline],
+        }),
+        '/api/v1/namespaces/{namespaceName}/components': okData({
+          items: [k8sServiceComponent],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workloads': okData({
+          items: [httpOnlyWorkload],
+        }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
+          okData({ type: 'object', properties: {} }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
+          items: [k8sComponentType],
+        }),
+        '/api/v1/namespaces/{namespaceName}/traits': okData({
+          items: [k8sTrait],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workflows': okData({
+          items: [k8sWorkflow],
+        }),
+        '/api/v1/namespaces/{namespaceName}/component-workflows': okData({
+          items: [k8sComponentWorkflow],
+        }),
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+
+      const entities = await runProvider();
+
+      // HTTP endpoints should be filtered out — no API entities created
+      expect(findEntities(entities, 'API')).toHaveLength(0);
+
+      // The component should not have providesApis
+      const serviceComp = findEntities(entities, 'Component').find(
+        c => c.metadata.name === 'api-service',
+      );
+      expect((serviceComp?.spec as any)?.providesApis ?? []).toHaveLength(0);
+    });
+
+    it('keeps REST, GraphQL, and gRPC endpoints while filtering others', async () => {
+      const mixedWorkload = {
+        metadata: k8sMeta('api-service'),
+        spec: {
+          endpoints: {
+            rest: { type: 'REST', port: 8080, visibility: ['external'] },
+            grpc: { type: 'gRPC', port: 9090, visibility: ['internal'] },
+            dashboard: { type: 'HTTP', port: 3000, visibility: ['external'] },
+            tcp: { type: 'TCP', port: 5000, visibility: ['internal'] },
+          },
+        },
+      };
+
+      setupPathBasedMocks({
+        '/api/v1/namespaces/{namespaceName}/environments': okData({
+          items: [k8sEnvironment],
+        }),
+        '/api/v1/namespaces/{namespaceName}/dataplanes': okData({
+          items: [k8sDataPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/buildplanes': okData({
+          items: [k8sBuildPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/observabilityplanes': okData({
+          items: [k8sObservabilityPlane],
+        }),
+        '/api/v1/namespaces/{namespaceName}/projects': okData({
+          items: [k8sProject],
+        }),
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
+          items: [k8sPipeline],
+        }),
+        '/api/v1/namespaces/{namespaceName}/components': okData({
+          items: [k8sServiceComponent],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workloads': okData({
+          items: [mixedWorkload],
+        }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema':
+          okData({ type: 'object', properties: {} }),
+        '/api/v1/namespaces/{namespaceName}/componenttypes': okData({
+          items: [k8sComponentType],
+        }),
+        '/api/v1/namespaces/{namespaceName}/traits': okData({
+          items: [k8sTrait],
+        }),
+        '/api/v1/namespaces/{namespaceName}/workflows': okData({
+          items: [k8sWorkflow],
+        }),
+        '/api/v1/namespaces/{namespaceName}/component-workflows': okData({
+          items: [k8sComponentWorkflow],
+        }),
+        '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
+      });
+
+      const entities = await runProvider();
+
+      // Only REST and gRPC should produce API entities (not HTTP or TCP)
+      const apis = findEntities(entities, 'API');
+      expect(apis).toHaveLength(2);
+      const apiNames = apis.map(a => a.metadata.name).sort();
+      expect(apiNames).toEqual(['api-service-grpc', 'api-service-rest']);
+    });
+  });
+
   describe('pipeline deduplication', () => {
     it('creates single pipeline entity when multiple projects reference it', async () => {
       const project1 = {
@@ -466,7 +653,7 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
         '/api/v1/namespaces/{namespaceName}/projects': okData({
           items: [project1, project2],
         }),
-        '/api/v1/namespaces/{namespaceName}/deployment-pipelines': okData({
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
           items: [sharedPipeline],
         }),
         '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
@@ -488,14 +675,13 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
         '/api/v1/namespaces/{namespaceName}/projects': okData({
           items: [k8sProject],
         }),
-        '/api/v1/namespaces/{namespaceName}/deployment-pipelines': okData({
+        '/api/v1/namespaces/{namespaceName}/deploymentpipelines': okData({
           items: [k8sPipeline],
         }),
         '/api/v1/namespaces/{namespaceName}/components': okData({
           items: [k8sServiceComponent],
         }),
-        '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}':
-          errorData(),
+        '/api/v1/namespaces/{namespaceName}/workloads': errorData(),
         '/api/v1/namespaces': okData({ items: [k8sNamespace] }),
       });
 
@@ -511,8 +697,14 @@ describe('OpenChoreoEntityProvider (useNewApi=true)', () => {
 
   describe('namespace-level error isolation', () => {
     it('processes other namespaces when one fails for environments', async () => {
-      const nsOk = { ...k8sNamespace, name: 'ns-ok' };
-      const nsFail = { ...k8sNamespace, name: 'ns-fail' };
+      const nsOk = {
+        ...k8sNamespace,
+        metadata: { ...k8sNamespace.metadata, name: 'ns-ok' },
+      };
+      const nsFail = {
+        ...k8sNamespace,
+        metadata: { ...k8sNamespace.metadata, name: 'ns-fail' },
+      };
 
       // Track calls per namespace for environments
       let envCallCount = 0;

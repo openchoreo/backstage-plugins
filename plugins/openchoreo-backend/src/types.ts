@@ -6,10 +6,13 @@ import type {
   GitSecretListResponse,
 } from './services/GitSecretsService/GitSecretsService';
 
-// Import generated types from observability client
-export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
-export type RuntimeLogsResponse =
-  ObservabilityComponents['schemas']['LogResponse'];
+// Log types from the unified /api/v1/logs/query endpoint
+export type LogEntry = ObservabilityComponents['schemas']['ComponentLogEntry'];
+export type RuntimeLogsResponse = {
+  logs: ObservabilityComponents['schemas']['ComponentLogEntry'][];
+  total?: number;
+  tookMs?: number;
+};
 
 export interface EnvironmentService {
   fetchDeploymentInfo(request: {
@@ -35,11 +38,19 @@ export interface EnvironmentService {
   }): Promise<Environment[]>;
 }
 
+export interface EndpointURLDetails {
+  host: string;
+  path?: string;
+  port: number;
+  scheme: string;
+}
+
 export interface EndpointInfo {
   name: string;
-  type: string;
-  url: string;
-  visibility: 'project' | 'organization' | 'public';
+  type?: string;
+  externalURLs?: Record<string, EndpointURLDetails>;
+  internalURLs?: Record<string, EndpointURLDetails>;
+  serviceURL?: EndpointURLDetails;
 }
 
 export interface Environment {
@@ -58,6 +69,7 @@ export interface Environment {
   endpoints: EndpointInfo[];
   promotionTargets?: {
     name: string;
+    resourceName?: string;
     requiresApproval?: boolean;
     isManualApprovalRequired?: boolean;
   }[];
@@ -147,10 +159,8 @@ export interface RuntimeLogsService {
   fetchRuntimeLogs(
     request: {
       componentName: string;
-      componentId: string;
       environmentName: string;
-      environmentId: string;
-      logLevels?: ('TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL')[];
+      logLevels?: ('DEBUG' | 'INFO' | 'WARN' | 'ERROR')[];
       startTime?: string;
       endTime?: string;
       limit?: number;

@@ -13,6 +13,8 @@ export {
   RELATION_HAS_INSTANCE,
   RELATION_USES_WORKFLOW,
   RELATION_WORKFLOW_USED_BY,
+  RELATION_BUILDS_ON,
+  RELATION_BUILDS,
 } from './constants';
 
 // Permissions
@@ -46,6 +48,8 @@ export {
   openchoreoTraitsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
+  openchoreoClusterComponentTypeCreatePermission,
+  openchoreoClusterTraitCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
   openchoreoPermissions,
   OPENCHOREO_PERMISSION_TO_ACTION,
@@ -58,6 +62,7 @@ export {
   getRepositoryUrl,
   sanitizeLabel,
   filterEmptyObjectProperties,
+  parseWorkflowParametersAnnotation,
 } from './utils';
 export type { RepositoryInfo } from './utils';
 export {
@@ -69,55 +74,143 @@ export {
 // Feature flags types
 export type { OpenChoreoFeatures, FeatureName } from './types/features';
 
-// Re-export types from the generated OpenAPI client for use in frontend plugins
+// BFF response & request types (hand-written, decoupled from generated client)
 export type {
-  OpenChoreoLegacyComponents,
+  APIResponse,
+  ListResponse,
+  NamespaceResponse,
+  ProjectResponse,
+  DeploymentPipelineResponse,
+  PromotionPath,
+  TargetEnvironmentRef,
+  ComponentResponse,
+  ComponentTypeRef,
+  ComponentTypeResponse,
+  AllowedTraitResponse,
+  PatchComponentRequest,
+  ComponentWorkflow,
+  ComponentTraitResponse,
+  ComponentTraitRequest,
+  UpdateComponentTraitsRequest,
+  TraitResponse,
+  ClusterComponentTypeResponse,
+  ClusterTraitResponse,
+  WorkflowResponse,
+  ComponentWorkflowRunResponse,
+  ComponentWorkflowConfigResponse,
+  ComponentWorkflowRunStatusResponse,
+  WorkflowStepStatus,
+  ComponentWorkflowRunLogEntry,
+  ComponentWorkflowRunEventEntry,
+  BuildResponse,
+  BuildTemplateResponse,
+  BuildTemplateParameter,
+  DataPlaneRef,
+  EnvironmentResponse,
+  AgentConnectionStatusResponse,
+  DataPlaneResponse,
+  ClusterDataPlaneResponse,
+  BuildPlaneResponse,
+  ObservabilityPlaneResponse,
+  ReleaseBindingEndpointURLDetails,
+  ReleaseBindingEndpoint,
+  ReleaseBindingResponse,
+  WorkloadOverrides,
+  ContainerOverride,
+  ComponentReleaseResponse,
+  ComponentSchemaResponse,
+  BindingResponse,
+  BindingStatus,
+  ServiceBinding,
+  WebApplicationBinding,
+  ScheduledTaskBinding,
+  EndpointStatus,
+  ExposedEndpoint,
+  WorkloadType,
+  WorkloadResponse,
+  Container,
+  EnvVar,
+  FileVar,
+  EnvVarValueFrom,
+  SecretKeyRef,
+  WorkloadEndpoint,
+  Connection,
+  ConnectionEnvBindings,
+  WorkloadOwner,
+  Schema,
+  SecretReferenceResponse,
+  SecretStoreReference,
+  SecretDataSourceInfo,
+  RemoteReferenceInfo,
+  GitSecretResponse,
+  SubjectType,
+  UserCapabilitiesResponse,
+  SubjectContext,
+  ActionCapability,
+  CapabilityResource,
+  ReleaseResponse,
+  ReleaseSpec,
+  ReleaseStatus,
+  ReleaseOwner,
+  Resource,
+  ResourceStatus,
+  Condition,
+  PromoteComponentRequest,
+  DeployReleaseRequest,
+  PatchReleaseBindingRequest,
+  CreateComponentReleaseRequest,
+} from './types/bff-types';
+
+// Convenience aliases for backwards compatibility
+import type {
+  BuildResponse,
+  WorkloadResponse,
+  ComponentResponse,
+  ComponentWorkflowRunStatusResponse,
+} from './types/bff-types';
+
+export type ModelsBuild = BuildResponse;
+export type ModelsWorkload = WorkloadResponse;
+export type ModelsCompleteComponent = ComponentResponse;
+export type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
+
+// Re-export types from separate OpenAPI specs (not part of this migration)
+export type {
   ObservabilityComponents,
   AIRCAAgentComponents,
 } from '@openchoreo/openchoreo-client-node';
 
-// Export commonly used type aliases for convenience
-import type {
-  OpenChoreoLegacyComponents,
-  ObservabilityComponents,
-} from '@openchoreo/openchoreo-client-node';
+// Observability types — aligned with /api/v1/logs/query response schema
+import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
 
-export type ModelsBuild =
-  OpenChoreoLegacyComponents['schemas']['BuildResponse'];
-export type ModelsWorkload =
-  OpenChoreoLegacyComponents['schemas']['WorkloadResponse'];
-export type ModelsCompleteComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+/** A single component log entry returned by the unified logs query endpoint */
+export type ComponentLogEntry =
+  ObservabilityComponents['schemas']['ComponentLogEntry'];
 
-// Workload-related types
-export type Container = OpenChoreoLegacyComponents['schemas']['Container'];
-export type EnvVar = OpenChoreoLegacyComponents['schemas']['EnvVar'];
-export type FileVar = OpenChoreoLegacyComponents['schemas']['FileVar'];
-export type WorkloadEndpoint =
-  OpenChoreoLegacyComponents['schemas']['WorkloadEndpoint'];
-export type Connection = OpenChoreoLegacyComponents['schemas']['Connection'];
-export type WorkloadOwner =
-  OpenChoreoLegacyComponents['schemas']['WorkloadOwner'];
-export type ConnectionParams =
-  OpenChoreoLegacyComponents['schemas']['ConnectionParams'];
-export type ConnectionInject =
-  OpenChoreoLegacyComponents['schemas']['ConnectionInject'];
-export type Schema = OpenChoreoLegacyComponents['schemas']['Schema'];
+/** A single workflow/build log entry returned by the unified logs query endpoint */
+export type WorkflowLogEntry =
+  ObservabilityComponents['schemas']['WorkflowLogEntry'];
 
-// Workflow run / build logs status types
-export type WorkflowRunStatusResponse =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunStatusResponse'];
-export type WorkflowStepStatus =
-  OpenChoreoLegacyComponents['schemas']['WorkflowStepStatus'];
+/**
+ * Response from the unified /api/v1/logs/query endpoint.
+ * `logs` is ComponentLogEntry[] when using ComponentSearchScope,
+ * WorkflowLogEntry[] when using WorkflowSearchScope.
+ */
+export type LogsQueryResponse =
+  ObservabilityComponents['schemas']['LogsQueryResponse'];
 
-// Define WorkloadType as a string union since it's defined as enum in OpenAPI
-export type WorkloadType =
-  | 'Service'
-  | 'ManualTask'
-  | 'ScheduledTask'
-  | 'WebApplication';
+/**
+ * @deprecated Use ComponentLogEntry or WorkflowLogEntry instead.
+ * Kept for backwards compatibility — will be removed once all callers are migrated.
+ */
+export type LogEntry = ComponentLogEntry;
 
-// Observability types
-export type RuntimeLogsResponse =
-  ObservabilityComponents['schemas']['LogResponse'];
-export type LogEntry = ObservabilityComponents['schemas']['LogEntry'];
+/**
+ * @deprecated Use LogsQueryResponse instead.
+ * Kept for backwards compatibility — will be removed once all callers are migrated.
+ */
+export interface RuntimeLogsResponse {
+  logs: ComponentLogEntry[];
+  total?: number;
+  tookMs?: number;
+}

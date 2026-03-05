@@ -3,9 +3,8 @@ import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
   ModelsWorkload,
-  ModelsBuild,
-  RuntimeLogsResponse,
 } from '@openchoreo/backstage-plugin-common';
+import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
   OpenChoreoClientApi,
   CreateReleaseResponse,
@@ -14,7 +13,6 @@ import type {
   WorkflowSchemaResponse,
   ComponentInfo,
   SecretReferencesResponse,
-  BuildLogsParams,
   ComponentTrait,
   UserTypeConfig,
   NamespaceSummary,
@@ -55,21 +53,23 @@ const API_ENDPOINTS = {
   DEPLOY_RELEASE: '/deploy-release',
   COMPONENT_RELEASE_SCHEMA: '/component-release-schema',
   RELEASE_BINDINGS: '/release-bindings',
+  UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
   ENVIRONMENT_RELEASE: '/environment-release',
-  RESOURCE_TREE: '/resources',
+  RESOURCE_TREE: '/resourcetree',
   RESOURCE_EVENTS: '/resource-events',
   POD_LOGS: '/pod-logs',
   WORKFLOW_SCHEMA: '/workflow-schema',
   COMPONENT_WORKFLOW_PARAMETERS: '/workflow-parameters',
   SECRET_REFERENCES: '/secret-references',
   COMPONENT: '/component',
-  BUILD_LOGS: '/build-logs',
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
   COMPONENT_TRAITS: '/component-traits',
   TRAITS: '/traits',
   TRAIT_SCHEMA: '/trait-schema',
+  CLUSTER_TRAITS: '/cluster-traits',
+  CLUSTER_TRAIT_SCHEMA: '/cluster-trait-schema',
   // Authorization endpoints
   AUTHZ_ACTIONS: '/authz/actions',
   // Configuration endpoints
@@ -330,6 +330,40 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     );
   }
 
+  async updateReleaseBinding(
+    entity: Entity,
+    environment: string,
+    releaseName: string,
+    componentTypeEnvOverrides?: unknown,
+    traitOverrides?: unknown,
+    workloadOverrides?: any,
+  ): Promise<any> {
+    const { component, project, namespace } = extractEntityMetadata(entity);
+
+    const body: Record<string, unknown> = {
+      namespaceName: namespace,
+      projectName: project,
+      componentName: component,
+      environment,
+      releaseName,
+    };
+
+    if (componentTypeEnvOverrides !== undefined) {
+      body.componentTypeEnvOverrides = componentTypeEnvOverrides;
+    }
+    if (traitOverrides !== undefined) {
+      body.traitOverrides = traitOverrides;
+    }
+    if (workloadOverrides !== undefined) {
+      body.workloadOverrides = workloadOverrides;
+    }
+
+    return this.apiFetch(API_ENDPOINTS.UPDATE_RELEASE_BINDING, {
+      method: 'PUT',
+      body,
+    });
+  }
+
   async patchReleaseBindingOverrides(
     entity: Entity,
     environment: string,
@@ -381,74 +415,55 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   }
 
   async fetchResourceTree(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
   ): Promise<any> {
-    const metadata = extractEntityMetadata(entity);
-
     return this.apiFetch(API_ENDPOINTS.RESOURCE_TREE, {
       params: {
-        ...entityMetadataToParams(metadata),
-        environmentName,
+        namespaceName,
+        releaseBindingName,
       },
     });
   }
 
   async fetchResourceEvents(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     resourceParams: {
+      group: string;
+      version: string;
       kind: string;
       name: string;
-      namespace?: string;
-      uid?: string;
     },
   ): Promise<ResourceEventsResponse> {
-    const metadata = extractEntityMetadata(entity);
-    const filteredResourceParams = Object.entries(resourceParams).reduce<
-      Record<string, string>
-    >((params, [key, value]) => {
-      if (value !== undefined) {
-        params[key] = value;
-      }
-      return params;
-    }, {});
-
     return this.apiFetch<ResourceEventsResponse>(
       API_ENDPOINTS.RESOURCE_EVENTS,
       {
         params: {
-          ...entityMetadataToParams(metadata),
-          environmentName,
-          ...filteredResourceParams,
+          namespaceName,
+          releaseBindingName,
+          group: resourceParams.group,
+          version: resourceParams.version,
+          kind: resourceParams.kind,
+          name: resourceParams.name,
         },
       },
     );
   }
 
   async fetchPodLogs(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     params: {
-      name: string;
-      namespace?: string;
-      container?: string;
+      podName: string;
       sinceSeconds?: number;
     },
   ): Promise<PodLogsResponse> {
-    const metadata = extractEntityMetadata(entity);
-
     const queryParams: Record<string, string> = {
-      ...entityMetadataToParams(metadata),
-      environmentName,
-      name: params.name,
+      namespaceName,
+      releaseBindingName,
+      podName: params.podName,
     };
-    if (params.namespace) {
-      queryParams.namespace = params.namespace;
-    }
-    if (params.container) {
-      queryParams.container = params.container;
-    }
     if (params.sinceSeconds !== undefined) {
       queryParams.sinceSeconds = params.sinceSeconds.toString();
     }
@@ -504,7 +519,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
   async updateComponentWorkflowParameters(
     entity: Entity,
-    systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,
   ): Promise<any> {
     const metadata = extractEntityMetadata(entity);
@@ -512,7 +526,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return this.apiFetch(API_ENDPOINTS.COMPONENT_WORKFLOW_PARAMETERS, {
       method: 'PATCH',
       params: entityMetadataToParams(metadata),
-      body: { systemParameters, parameters },
+      body: { parameters },
     });
   }
 
@@ -571,72 +585,8 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   }
 
   // ============================================
-  // Build Logs
+  // Builds
   // ============================================
-
-  async getBuildLogs(params: BuildLogsParams): Promise<RuntimeLogsResponse> {
-    interface BuildLogsApiResponse {
-      success?: boolean;
-      data?: {
-        message?: string;
-      };
-      logs?: RuntimeLogsResponse['logs'];
-      totalCount?: number;
-      tookMs?: number;
-    }
-
-    const data = await this.apiFetch<BuildLogsApiResponse>(
-      API_ENDPOINTS.BUILD_LOGS,
-      {
-        params: {
-          componentName: params.componentName,
-          buildId: params.buildId,
-          buildUuid: params.buildUuid,
-          limit: (params.limit || 100).toString(),
-          sortOrder: params.sortOrder || 'desc',
-          projectName: params.projectName,
-          namespaceName: params.namespaceName,
-        },
-      },
-    );
-
-    if (
-      data.success &&
-      data.data?.message === 'observability-logs have not been configured'
-    ) {
-      throw new Error(
-        "Observability has not been configured so build logs aren't available",
-      );
-    }
-
-    return data as RuntimeLogsResponse;
-  }
-
-  async fetchBuildLogsForBuild(
-    build: ModelsBuild,
-  ): Promise<RuntimeLogsResponse> {
-    if (
-      !build.componentName ||
-      !build.name ||
-      !build.uuid ||
-      !build.projectName ||
-      !build.namespaceName
-    ) {
-      throw new Error(
-        'Component name, Build ID, UUID, Project name, or Namespace name not available',
-      );
-    }
-
-    return this.getBuildLogs({
-      componentName: build.componentName,
-      buildId: build.name,
-      buildUuid: build.uuid,
-      projectName: build.projectName,
-      namespaceName: build.namespaceName,
-      limit: 100,
-      sortOrder: 'desc',
-    });
-  }
 
   async fetchBuilds(
     componentName: string,
@@ -774,6 +724,16 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   ): Promise<any> {
     return this.apiFetch(API_ENDPOINTS.TRAIT_SCHEMA, {
       params: { namespaceName, traitName },
+    });
+  }
+
+  async fetchClusterTraits(): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.CLUSTER_TRAITS);
+  }
+
+  async fetchClusterTraitSchema(clusterTraitName: string): Promise<any> {
+    return this.apiFetch(API_ENDPOINTS.CLUSTER_TRAIT_SCHEMA, {
+      params: { clusterTraitName },
     });
   }
 
@@ -1292,15 +1252,20 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     namespaceName: string,
     resourceName: string,
   ): Promise<Record<string, unknown>> {
+    const params: Record<string, string> = {
+      kind,
+      resourceName,
+    };
+
+    if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(kind)) {
+      params.namespaceName = namespaceName;
+    }
+
     const response = await this.apiFetch<{
       success: boolean;
       data?: Record<string, unknown>;
     }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
-      params: {
-        kind,
-        namespaceName,
-        resourceName,
-      },
+      params,
     });
 
     if (!response.data) {
@@ -1316,16 +1281,21 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     resourceName: string,
     resource: Record<string, unknown>,
   ): Promise<ResourceCRUDResponse> {
+    const params: Record<string, string> = {
+      kind,
+      resourceName,
+    };
+
+    if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(kind)) {
+      params.namespaceName = namespaceName;
+    }
+
     const response = await this.apiFetch<{
       success: boolean;
       data?: ResourceCRUDResponse;
     }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
       method: 'PUT',
-      params: {
-        kind,
-        namespaceName,
-        resourceName,
-      },
+      params,
       body: { resource },
     });
 
@@ -1341,16 +1311,21 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     namespaceName: string,
     resourceName: string,
   ): Promise<ResourceCRUDResponse> {
+    const params: Record<string, string> = {
+      kind,
+      resourceName,
+    };
+
+    if (!CLUSTER_SCOPED_RESOURCE_KINDS.has(kind)) {
+      params.namespaceName = namespaceName;
+    }
+
     const response = await this.apiFetch<{
       success: boolean;
       data?: ResourceCRUDResponse;
     }>(API_ENDPOINTS.PLATFORM_RESOURCE_DEFINITION, {
       method: 'DELETE',
-      params: {
-        kind,
-        namespaceName,
-        resourceName,
-      },
+      params,
     });
 
     if (!response.data) {

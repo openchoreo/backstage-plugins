@@ -1,4 +1,4 @@
-import { MouseEvent, useEffect, useState } from 'react';
+import { MouseEvent, useEffect, useMemo, useState } from 'react';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 import CircularProgress from '@material-ui/core/CircularProgress';
@@ -7,6 +7,7 @@ import {
   DependencyGraph,
   DependencyGraphTypes,
 } from '@backstage/core-components';
+import { stringifyEntityRef } from '@backstage/catalog-model';
 import { EntityNode } from '@backstage/plugin-catalog-graph';
 import { FullScreen, useFullScreenHandle } from 'react-full-screen';
 import { CustomGraphNode } from '../CustomGraphNode';
@@ -163,6 +164,8 @@ function GraphDefs() {
 export type PlatformOverviewGraphViewProps = {
   view: GraphViewDefinition;
   namespace?: string;
+  projects?: string[];
+  allProjects?: string[];
   onNodeClick?: (node: EntityNode, event: MouseEvent<unknown>) => void;
   direction?: DependencyGraphTypes.Direction;
   nodeMargin?: number;
@@ -172,6 +175,8 @@ export type PlatformOverviewGraphViewProps = {
 export function PlatformOverviewGraphView({
   view,
   namespace,
+  projects,
+  allProjects,
   onNodeClick,
   direction = DependencyGraphTypes.Direction.LEFT_RIGHT,
   nodeMargin = 100,
@@ -192,6 +197,30 @@ export function PlatformOverviewGraphView({
     panTo,
   } = useGraphZoom();
 
+  const projectRefs = useMemo(
+    () =>
+      projects?.map(p =>
+        stringifyEntityRef({
+          kind: 'system',
+          namespace: namespace ?? 'default',
+          name: p,
+        }),
+      ),
+    [projects, namespace],
+  );
+
+  const allProjectRefsComputed = useMemo(
+    () =>
+      allProjects?.map(p =>
+        stringifyEntityRef({
+          kind: 'system',
+          namespace: namespace ?? 'default',
+          name: p,
+        }),
+      ),
+    [allProjects, namespace],
+  );
+
   const {
     entityRefs,
     loading: refsLoading,
@@ -204,11 +233,27 @@ export function PlatformOverviewGraphView({
     edges,
     loading: graphLoading,
     error: graphError,
-  } = useEntityGraphData(entityRefs, view, onNodeClick);
+  } = useEntityGraphData(
+    entityRefs,
+    view,
+    onNodeClick,
+    projectRefs,
+    allProjectRefsComputed,
+  );
 
   const loading = refsLoading || graphLoading;
   const error = refsError || graphError;
   const showGraph = !loading && !error && entityCount > 0;
+
+  // Stable key to detect graph content changes (e.g. project filter)
+  const graphContentKey = useMemo(
+    () =>
+      nodes
+        .map(n => n.id)
+        .sort()
+        .join(','),
+    [nodes],
+  );
 
   // Hide the graph until the dagre layout settles to prevent the
   // initial viewBox animation (0 0 0 0 → actual dimensions).
@@ -218,9 +263,10 @@ export function PlatformOverviewGraphView({
       setGraphReady(false);
       return undefined;
     }
+    setGraphReady(false);
     const timer = setTimeout(() => setGraphReady(true), 400);
     return () => clearTimeout(timer);
-  }, [showGraph]);
+  }, [showGraph, graphContentKey]);
 
   const renderContent = () => {
     if (showGraph) {

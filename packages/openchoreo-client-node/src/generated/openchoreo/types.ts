@@ -94,30 +94,15 @@ export interface paths {
     /**
      * Get OAuth protected resource metadata
      * @description Returns OAuth 2.0 protected resource metadata as defined in RFC 9728.
-     *     Used by MCP clients to discover authorization server information.
+     *     Used by MCP clients and the CLI to discover authorization server information
+     *     and client configurations.
+     *
+     *     OpenChoreo-specific extension fields (RFC 9728 §2):
+     *     - `openchoreo_clients`: OAuth client configurations for integrations (e.g., CLI).
+     *     - `openchoreo_security_enabled`: Whether authentication is enforced on this server.
+     *
      */
     get: operations['getOAuthProtectedResourceMetadata'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/.well-known/openid-configuration': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get OpenID configuration
-     * @description Returns OpenID Connect configuration for CLI authentication.
-     *     Includes OAuth2 endpoints, external client configurations, and security status.
-     */
-    get: operations['getOpenIDConfiguration'];
     put?: never;
     post?: never;
     delete?: never;
@@ -139,6 +124,7 @@ export interface paths {
      *     Only namespaces with the label `openchoreo.dev/controlplane-namespace=true` are returned.
      *     This filters out system namespaces (e.g., openchoreo-control-plane, kube-system) and
      *     data plane runtime namespaces.
+     *
      */
     get: operations['listNamespaces'];
     put?: never;
@@ -146,6 +132,7 @@ export interface paths {
      * Create namespace
      * @description Creates a new OpenChoreo control plane namespace.
      *     The namespace is automatically labeled with `openchoreo.dev/controlplane-namespace=true`.
+     *
      */
     post: operations['createNamespace'];
     delete?: never;
@@ -168,13 +155,13 @@ export interface paths {
     get: operations['getNamespace'];
     /**
      * Update namespace
-     * @description Replaces an existing namespace (full update).
+     * @description Replaces an existing control plane namespace (full update).
      */
     put: operations['updateNamespace'];
     post?: never;
     /**
      * Delete namespace
-     * @description Deletes a namespace by name.
+     * @description Deletes a control plane namespace by name.
      */
     delete: operations['deleteNamespace'];
     options?: never;
@@ -273,7 +260,7 @@ export interface paths {
     put?: never;
     /**
      * Create environment
-     * @description Creates a new environment within a namespace.
+     * @description Creates a new environment within an namespace.
      */
     post: operations['createEnvironment'];
     delete?: never;
@@ -365,7 +352,7 @@ export interface paths {
     put?: never;
     /**
      * Create data plane
-     * @description Creates a new data plane within a namespace.
+     * @description Creates a new data plane within an namespace.
      */
     post: operations['createDataPlane'];
     delete?: never;
@@ -411,7 +398,7 @@ export interface paths {
     };
     /**
      * List build planes
-     * @description Returns a list of build planes within a namespace. Typically one per namespace.
+     * @description Returns a paginated list of build planes within a namespace. Typically one per namespace.
      */
     get: operations['listBuildPlanes'];
     put?: never;
@@ -426,7 +413,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/buildplanes/{bpName}': {
+  '/api/v1/namespaces/{namespaceName}/buildplanes/{buildPlaneName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -463,7 +450,7 @@ export interface paths {
     };
     /**
      * List observability planes
-     * @description Returns a list of observability planes within a namespace.
+     * @description Returns a paginated list of observability planes within a namespace.
      */
     get: operations['listObservabilityPlanes'];
     put?: never;
@@ -478,7 +465,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/observabilityplanes/{opName}': {
+  '/api/v1/namespaces/{namespaceName}/observabilityplanes/{observabilityPlaneName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -582,7 +569,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterbuildplanes/{cbpName}': {
+  '/api/v1/clusterbuildplanes/{clusterBuildPlaneName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -590,7 +577,7 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get cluster build plane
+     * Get a cluster build plane
      * @description Returns details of a specific cluster-scoped build plane.
      */
     get: operations['getClusterBuildPlane'];
@@ -619,7 +606,7 @@ export interface paths {
     };
     /**
      * List cluster observability planes
-     * @description Returns a list of cluster-scoped observability planes.
+     * @description Returns a paginated list of cluster-scoped observability planes.
      */
     get: operations['listClusterObservabilityPlanes'];
     put?: never;
@@ -634,7 +621,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/clusterobservabilityplanes/{copName}': {
+  '/api/v1/clusterobservabilityplanes/{clusterObservabilityPlaneName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -642,19 +629,19 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get cluster observability plane
+     * Get a cluster observability plane
      * @description Returns details of a specific cluster-scoped observability plane.
      */
     get: operations['getClusterObservabilityPlane'];
     /**
      * Update cluster observability plane
-     * @description Replaces an existing cluster-scoped observability plane (full update).
+     * @description Replaces an existing cluster observability plane (full update).
      */
     put: operations['updateClusterObservabilityPlane'];
     post?: never;
     /**
      * Delete cluster observability plane
-     * @description Deletes a cluster-scoped observability plane by name.
+     * @description Deletes a cluster observability plane by name.
      */
     delete: operations['deleteClusterObservabilityPlane'];
     options?: never;
@@ -662,7 +649,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/component-types': {
+  '/api/v1/clustercomponenttypes': {
     parameters: {
       query?: never;
       header?: never;
@@ -670,10 +657,62 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List component types
-     * @description Returns a list of component types available in the namespace.
+     * List cluster component types
+     * @description Returns a list of cluster-scoped component types.
      */
-    get: operations['listComponentTypes'];
+    get: operations['listClusterComponentTypes'];
+    put?: never;
+    /**
+     * Create cluster component type
+     * @description Creates a new cluster-scoped component type.
+     */
+    post: operations['createClusterComponentType'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clustercomponenttypes/{cctName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a cluster component type
+     * @description Returns details of a specific cluster-scoped component type.
+     */
+    get: operations['getClusterComponentType'];
+    /**
+     * Update cluster component type
+     * @description Replaces an existing cluster-scoped component type (full update).
+     */
+    put: operations['updateClusterComponentType'];
+    post?: never;
+    /**
+     * Delete cluster component type
+     * @description Deletes a cluster-scoped component type by name.
+     */
+    delete: operations['deleteClusterComponentType'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clustercomponenttypes/{cctName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster component type schema
+     * @description Returns the parameter schema for a specific cluster-scoped component type.
+     */
+    get: operations['getClusterComponentTypeSchema'];
     put?: never;
     post?: never;
     delete?: never;
@@ -682,7 +721,131 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/component-types/{ctName}/schema': {
+  '/api/v1/clustertraits': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster traits
+     * @description Returns a list of cluster-scoped traits.
+     */
+    get: operations['listClusterTraits'];
+    put?: never;
+    /**
+     * Create cluster trait
+     * @description Creates a new cluster-scoped trait.
+     */
+    post: operations['createClusterTrait'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clustertraits/{clusterTraitName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a cluster trait
+     * @description Returns details of a specific cluster-scoped trait.
+     */
+    get: operations['getClusterTrait'];
+    /**
+     * Update cluster trait
+     * @description Replaces an existing cluster-scoped trait (full update).
+     */
+    put: operations['updateClusterTrait'];
+    post?: never;
+    /**
+     * Delete cluster trait
+     * @description Deletes a cluster-scoped trait by name.
+     */
+    delete: operations['deleteClusterTrait'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clustertraits/{clusterTraitName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster trait schema
+     * @description Returns the parameter schema for a specific cluster-scoped trait.
+     */
+    get: operations['getClusterTraitSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/componenttypes': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List component types
+     * @description Returns a paginated list of component types available in the namespace.
+     */
+    get: operations['listComponentTypes'];
+    put?: never;
+    /**
+     * Create component type
+     * @description Creates a new component type within a namespace.
+     */
+    post: operations['createComponentType'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component type
+     * @description Returns details of a specific component type.
+     */
+    get: operations['getComponentType'];
+    /**
+     * Update component type
+     * @description Replaces an existing component type (full update).
+     */
+    put: operations['updateComponentType'];
+    post?: never;
+    /**
+     * Delete component type
+     * @description Deletes a component type by name.
+     */
+    delete: operations['deleteComponentType'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema': {
     parameters: {
       query?: never;
       header?: never;
@@ -711,12 +874,44 @@ export interface paths {
     };
     /**
      * List traits
-     * @description Returns a list of traits available in the namespace.
+     * @description Returns a paginated list of traits available in the namespace.
      */
     get: operations['listTraits'];
     put?: never;
-    post?: never;
+    /**
+     * Create trait
+     * @description Creates a new trait within a namespace.
+     */
+    post: operations['createTrait'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/traits/{traitName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get trait
+     * @description Returns details of a specific trait.
+     */
+    get: operations['getTrait'];
+    /**
+     * Update trait
+     * @description Replaces an existing trait (full update).
+     */
+    put: operations['updateTrait'];
+    post?: never;
+    /**
+     * Delete trait
+     * @description Deletes a trait by name.
+     */
+    delete: operations['deleteTrait'];
     options?: never;
     head?: never;
     patch?: never;
@@ -757,7 +952,7 @@ export interface paths {
     put?: never;
     /**
      * Create workflow
-     * @description Creates a new generic workflow in the namespace.
+     * @description Creates a new generic workflow within a namespace.
      */
     post: operations['createWorkflow'];
     delete?: never;
@@ -814,7 +1009,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/workflow-runs': {
+  '/api/v1/namespaces/{namespaceName}/workflowruns': {
     parameters: {
       query?: never;
       header?: never;
@@ -838,7 +1033,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/workflow-runs/{runName}': {
+  '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -852,17 +1047,13 @@ export interface paths {
     get: operations['getWorkflowRun'];
     put?: never;
     post?: never;
-    /**
-     * Delete workflow run
-     * @description Deletes a workflow run by name.
-     */
-    delete: operations['deleteWorkflowRun'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/component-workflows': {
+  '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/status': {
     parameters: {
       query?: never;
       header?: never;
@@ -870,10 +1061,10 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List component workflows
-     * @description Returns a list of component workflow templates available in the namespace.
+     * Get workflow run status
+     * @description Returns the overall status and per-step status of a specific workflow run.
      */
-    get: operations['listComponentWorkflows'];
+    get: operations['getWorkflowRunStatus'];
     put?: never;
     post?: never;
     delete?: never;
@@ -882,7 +1073,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/component-workflows/{cwName}/schema': {
+  '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/logs': {
     parameters: {
       query?: never;
       header?: never;
@@ -890,10 +1081,30 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get component workflow schema
-     * @description Returns the parameter schema for a specific component workflow.
+     * Get workflow run logs
+     * @description Returns logs for a specific workflow run from the build plane. Logs are fetched live from the build plane; no archived logs are returned for completed runs.
      */
-    get: operations['getComponentWorkflowSchema'];
+    get: operations['getWorkflowRunLogs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get workflow run events
+     * @description Returns Kubernetes events for a specific workflow run.
+     */
+    get: operations['getWorkflowRunEvents'];
     put?: never;
     post?: never;
     delete?: never;
@@ -950,7 +1161,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/component-releases': {
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources': {
     parameters: {
       query?: never;
       header?: never;
@@ -958,10 +1169,10 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List component releases
-     * @description Returns immutable release snapshots in a namespace, optionally filtered by project or component.
+     * Get release resource tree
+     * @description Returns all live Kubernetes resources deployed by the active release for a component in an environment, including child resources like Pods.
      */
-    get: operations['listComponentReleases'];
+    get: operations['getReleaseResourceTree'];
     put?: never;
     post?: never;
     delete?: never;
@@ -970,7 +1181,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/component-releases/{releaseName}': {
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/events': {
     parameters: {
       query?: never;
       header?: never;
@@ -978,34 +1189,10 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * Get component release
-     * @description Returns details of a specific component release.
+     * Get resource events
+     * @description Returns Kubernetes events for a specific resource in the release resource tree.
      */
-    get: operations['getComponentRelease'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete component release
-     * @description Deletes a component release.
-     */
-    delete: operations['deleteComponentRelease'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/component-releases/{releaseName}/schema': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get component release schema
-     * @description Returns the parameter schema for a component release.
-     */
-    get: operations['getComponentReleaseSchema'];
+    get: operations['getReleaseResourceEvents'];
     put?: never;
     post?: never;
     delete?: never;
@@ -1014,7 +1201,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/release-bindings': {
+  '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/release/resources/pod-logs': {
     parameters: {
       query?: never;
       header?: never;
@@ -1022,62 +1209,10 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List release bindings
-     * @description Returns environment-specific release bindings in a namespace, optionally filtered by project, component, or environment.
+     * Get pod logs
+     * @description Returns logs for a specific pod in the release resource tree.
      */
-    get: operations['listReleaseBindings'];
-    put?: never;
-    /**
-     * Create release binding
-     * @description Creates a new environment-specific release binding.
-     */
-    post: operations['createReleaseBinding'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/release-bindings/{bindingName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get release binding
-     * @description Returns details of a specific release binding.
-     */
-    get: operations['getReleaseBinding'];
-    /**
-     * Update release binding
-     * @description Replaces a release binding with environment-specific overrides (full update).
-     */
-    put: operations['updateReleaseBinding'];
-    post?: never;
-    /**
-     * Delete release binding
-     * @description Deletes a release binding.
-     */
-    delete: operations['deleteReleaseBinding'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/releases': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List releases
-     * @description Returns deployed releases in a namespace, optionally filtered by component or environment.
-     */
-    get: operations['listReleases'];
+    get: operations['getReleaseResourcePodLogs'];
     put?: never;
     post?: never;
     delete?: never;
@@ -1126,27 +1261,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/components/{componentName}/observer-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get build observer URL
-     * @description Returns the observer URL for component build logs.
-     */
-    get: operations['getBuildObserverURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/components/{componentName}/workflow-parameters': {
+  '/api/v1/namespaces/{namespaceName}/components/{componentName}/generate-release': {
     parameters: {
       query?: never;
       header?: never;
@@ -1154,61 +1269,13 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /**
-     * Update component workflow parameters
-     * @description Updates the workflow parameters for a component.
-     */
-    put: operations['updateComponentWorkflowParameters'];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/component-workflow-runs': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List component workflow runs
-     * @description Returns a list of workflow runs in a namespace, optionally filtered by project or component.
-     */
-    get: operations['listComponentWorkflowRuns'];
     put?: never;
     /**
-     * Trigger component workflow run
-     * @description Triggers a new workflow run (build) for a component.
+     * Generate component release
+     * @description Generates an immutable release snapshot from the current component state (ComponentType, Traits, Workload).
      */
-    post: operations['createComponentWorkflowRun'];
+    post: operations['generateRelease'];
     delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/component-workflow-runs/{runName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get component workflow run
-     * @description Returns details of a specific workflow run.
-     */
-    get: operations['getComponentWorkflowRun'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete component workflow run
-     * @description Deletes a component workflow run.
-     */
-    delete: operations['deleteComponentWorkflowRun'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1234,7 +1301,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/authz/evaluate': {
+  '/api/v1/authz/evaluates': {
     parameters: {
       query?: never;
       header?: never;
@@ -1245,29 +1312,9 @@ export interface paths {
     put?: never;
     /**
      * Evaluate authorization
-     * @description Evaluates a single authorization request.
+     * @description Evaluates one or more authorization requests in a single call.
      */
-    post: operations['evaluate'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/authz/batch-evaluate': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Batch evaluate authorization
-     * @description Evaluates multiple authorization requests in a single call.
-     */
-    post: operations['batchEvaluate'];
+    post: operations['evaluates'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1355,7 +1402,7 @@ export interface paths {
     };
     /**
      * List cluster role bindings
-     * @description Returns all cluster-scoped role bindings. Supports filtering by role name and/or entitlement.
+     * @description Returns all cluster-scoped role bindings.
      */
     get: operations['listClusterRoleBindings'];
     put?: never;
@@ -1459,7 +1506,7 @@ export interface paths {
     };
     /**
      * List namespace role bindings
-     * @description Returns all namespace-scoped role bindings. Supports filtering by role reference and/or entitlement.
+     * @description Returns all namespace-scoped role bindings.
      */
     get: operations['listNamespaceRoleBindings'];
     put?: never;
@@ -1522,7 +1569,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/webhooks/github': {
+  '/api/v1alpha1/autobuild': {
     parameters: {
       query?: never;
       header?: never;
@@ -1532,57 +1579,22 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Handle GitHub webhook
-     * @description Processes incoming GitHub webhook events to trigger builds.
+     * Handle git provider webhook
+     * @description Processes incoming webhook events from any supported git provider to trigger automatic builds.
+     *     The git provider is automatically detected from the request headers:
+     *     - GitHub: `X-Hub-Signature-256`
+     *     - GitLab: `X-Gitlab-Token`
+     *     - Bitbucket: `X-Event-Key`
+     *
      */
-    post: operations['handleGitHubWebhook'];
+    post: operations['handleAutoBuild'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/v1/webhooks/gitlab': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Handle GitLab webhook
-     * @description Processes incoming GitLab webhook events to trigger builds.
-     */
-    post: operations['handleGitLabWebhook'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/webhooks/bitbucket': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Handle Bitbucket webhook
-     * @description Processes incoming Bitbucket webhook events to trigger builds.
-     */
-    post: operations['handleBitbucketWebhook'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/secret-references': {
+  '/api/v1/namespaces/{namespaceName}/secretreferences': {
     parameters: {
       query?: never;
       header?: never;
@@ -1591,7 +1603,7 @@ export interface paths {
     };
     /**
      * List secret references
-     * @description Returns a list of secret references within a namespace.
+     * @description Returns a paginated list of secret references within a namespace.
      */
     get: operations['listSecretReferences'];
     put?: never;
@@ -1606,7 +1618,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/secret-references/{secretRefName}': {
+  '/api/v1/namespaces/{namespaceName}/secretreferences/{secretReferenceName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -1643,13 +1655,13 @@ export interface paths {
     };
     /**
      * List workloads
-     * @description Returns workload definitions in a namespace, optionally filtered by project or component.
+     * @description Returns a paginated list of workloads within a namespace, optionally filtered by component.
      */
     get: operations['listWorkloads'];
     put?: never;
     /**
      * Create workload
-     * @description Creates a new workload definition in a namespace.
+     * @description Creates a new workload within a namespace.
      */
     post: operations['createWorkload'];
     delete?: never;
@@ -1686,7 +1698,199 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/deployment-pipelines': {
+  '/api/v1/namespaces/{namespaceName}/componentreleases': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List component releases
+     * @description Returns a paginated list of component releases within a namespace, optionally filtered by component.
+     */
+    get: operations['listComponentReleases'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/componentreleases/{componentReleaseName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get component release
+     * @description Returns details of a specific component release.
+     */
+    get: operations['getComponentRelease'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releases': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List releases
+     * @description Returns a paginated list of releases within a namespace, optionally filtered by component and environment.
+     */
+    get: operations['listReleases'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releases/{releaseName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get release
+     * @description Returns details of a specific release.
+     */
+    get: operations['getRelease'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List release bindings
+     * @description Returns a paginated list of release bindings within a namespace, optionally filtered by component.
+     */
+    get: operations['listReleaseBindings'];
+    put?: never;
+    /**
+     * Create release binding
+     * @description Creates a new release binding within a namespace.
+     */
+    post: operations['createReleaseBinding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get release binding
+     * @description Returns details of a specific release binding.
+     */
+    get: operations['getReleaseBinding'];
+    /**
+     * Update release binding
+     * @description Replaces an existing release binding (full update).
+     */
+    put: operations['updateReleaseBinding'];
+    post?: never;
+    /**
+     * Delete release binding
+     * @description Deletes a release binding by name.
+     */
+    delete: operations['deleteReleaseBinding'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/tree': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get K8s resource tree for a release binding
+     * @description Returns a hierarchical view of all live Kubernetes resources deployed by the releases owned by this release binding, including child resources (ReplicaSets, Pods, Jobs).
+     */
+    get: operations['getReleaseBindingK8sResourceTree'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/events': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get K8s resource events for a release binding
+     * @description Returns Kubernetes events for a specific resource in the release binding's resource tree.
+     */
+    get: operations['getReleaseBindingK8sResourceEvents'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}/k8sresources/logs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get pod logs for a release binding
+     * @description Returns logs for a specific pod in the release binding's resource tree.
+     */
+    get: operations['getReleaseBindingK8sResourceLogs'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/deploymentpipelines': {
     parameters: {
       query?: never;
       header?: never;
@@ -1695,13 +1899,13 @@ export interface paths {
     };
     /**
      * List deployment pipelines
-     * @description Returns deployment pipelines in a namespace, optionally filtered by project.
+     * @description Returns a paginated list of deployment pipelines within a namespace.
      */
     get: operations['listDeploymentPipelines'];
     put?: never;
     /**
      * Create deployment pipeline
-     * @description Creates a new deployment pipeline in a namespace.
+     * @description Creates a new deployment pipeline within a namespace.
      */
     post: operations['createDeploymentPipeline'];
     delete?: never;
@@ -1710,7 +1914,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/deployment-pipelines/{pipelineName}': {
+  '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}': {
     parameters: {
       query?: never;
       header?: never;
@@ -1738,6 +1942,102 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List observability alerts notification channels
+     * @description Returns a paginated list of observability alerts notification channels within a namespace.
+     */
+    get: operations['listObservabilityAlertsNotificationChannels'];
+    put?: never;
+    /**
+     * Create observability alerts notification channel
+     * @description Creates a new observability alerts notification channel within a namespace.
+     */
+    post: operations['createObservabilityAlertsNotificationChannel'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/namespaces/{namespaceName}/observabilityalertsnotificationchannels/{observabilityAlertsNotificationChannelName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get observability alerts notification channel
+     * @description Returns details of a specific observability alerts notification channel.
+     */
+    get: operations['getObservabilityAlertsNotificationChannel'];
+    /**
+     * Update observability alerts notification channel
+     * @description Replaces an existing observability alerts notification channel (full update).
+     */
+    put: operations['updateObservabilityAlertsNotificationChannel'];
+    post?: never;
+    /**
+     * Delete observability alerts notification channel
+     * @description Deletes an observability alerts notification channel by name.
+     */
+    delete: operations['deleteObservabilityAlertsNotificationChannel'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/namespaces/{namespaceName}/gitsecrets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List git secrets
+     * @description Returns all git secrets in a namespace.
+     */
+    get: operations['listGitSecrets'];
+    put?: never;
+    /**
+     * Create a git secret
+     * @description Creates a new git secret for source code authentication.
+     */
+    post: operations['createGitSecret'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/namespaces/{namespaceName}/gitsecrets/{gitSecretName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete a git secret
+     * @description Deletes a git secret by name.
+     */
+    delete: operations['deleteGitSecret'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1760,7 +2060,8 @@ export interface components {
         | 'FORBIDDEN'
         | 'NOT_FOUND'
         | 'CONFLICT'
-        | 'INTERNAL_ERROR';
+        | 'INTERNAL_ERROR'
+        | 'UNKNOWN_GIT_PROVIDER';
       /** @description Additional error details (e.g., validation errors) */
       details?: {
         /**
@@ -1775,16 +2076,15 @@ export interface components {
         message?: string;
       }[];
     };
-    /**
-     * @description Standard Kubernetes object metadata (without kind/apiVersion).
+    /** @description Standard Kubernetes object metadata (without kind/apiVersion).
      *     Matches the structure of metav1.ObjectMeta for the fields exposed via the API.
-     */
+     *      */
     ObjectMeta: {
       /**
        * @description Name of the resource (unique within namespace)
        * @example my-project
        */
-      name?: string;
+      name: string;
       /**
        * @description Kubernetes namespace
        * @example my-namespace
@@ -1844,74 +2144,6 @@ export interface components {
        * @example Project is ready
        */
       message?: string;
-    };
-    /** @description Reference to a DataPlane or ClusterDataPlane */
-    DataPlaneRef: {
-      /**
-       * @description Kind of data plane (DataPlane or ClusterDataPlane)
-       * @example DataPlane
-       * @enum {string}
-       */
-      kind: 'DataPlane' | 'ClusterDataPlane';
-      /**
-       * @description Name of the data plane resource
-       * @example default
-       */
-      name: string;
-    };
-    /** @description Status of the cluster agent connection */
-    AgentConnectionStatus: {
-      /**
-       * @description Whether the cluster agent is currently connected
-       * @example true
-       */
-      connected?: boolean;
-      /**
-       * @description Number of connected agent instances
-       * @example 1
-       */
-      connectedAgents?: number;
-      /**
-       * Format: date-time
-       * @description Timestamp of last successful agent connection
-       * @example 2025-01-06T10:00:00Z
-       */
-      lastConnectedTime?: string;
-    };
-    /** @description Gateway configuration for a plane */
-    GatewaySpec: {
-      /**
-       * @description Public virtual host for external traffic
-       * @example apps.example.com
-       */
-      publicVirtualHost?: string;
-      /**
-       * @description Organization virtual host for internal traffic
-       * @example internal.example.com
-       */
-      organizationVirtualHost?: string;
-      /**
-       * Format: int32
-       * @description Public HTTP port
-       * @example 80
-       */
-      publicHTTPPort?: number;
-      /**
-       * Format: int32
-       * @description Public HTTPS port
-       * @example 443
-       */
-      publicHTTPSPort?: number;
-    };
-    /** @description Configuration for the cluster agent */
-    ClusterAgentConfig: {
-      /**
-       * @description CA certificate for cluster agent client authentication (PEM format)
-       * @example -----BEGIN CERTIFICATE-----
-       *     ...
-       *     -----END CERTIFICATE-----
-       */
-      clientCA?: string;
     };
     /** @description Server version information */
     VersionResponse: {
@@ -1979,21 +2211,34 @@ export interface components {
       bearer_methods_supported: string[];
       /** @description Supported OAuth scopes */
       scopes_supported: string[];
-    };
-    /** @description External client configuration */
-    ExternalClient: {
+      /** @description OpenChoreo extension (RFC 9728 §2). OAuth client configurations for
+       *     external integrations (e.g., CLI). Used by clients to discover their
+       *     client_id and required scopes.
+       *      */
+      openchoreo_clients?: components['schemas']['OpenChoreoClient'][];
       /**
-       * @description Name of the external client
+       * @description OpenChoreo extension (RFC 9728 §2). Indicates whether authentication
+       *     is enforced on this server. When false, requests without tokens are
+       *     accepted.
+       *
+       * @example true
+       */
+      openchoreo_security_enabled?: boolean;
+    };
+    /** @description OAuth client configuration for an OpenChoreo external integration (e.g., CLI) */
+    OpenChoreoClient: {
+      /**
+       * @description Name of the client integration
        * @example cli
        */
       name: string;
       /**
-       * @description OAuth2 client ID for this client type
+       * @description OAuth2 client ID
        * @example openchoreo-cli
        */
       client_id: string;
       /**
-       * @description OAuth2 scopes for this client
+       * @description OAuth2 scopes required by this client
        * @example [
        *       "openid",
        *       "profile",
@@ -2001,31 +2246,6 @@ export interface components {
        *     ]
        */
       scopes: string[];
-    };
-    /** @description OpenID Connect configuration response */
-    ClientConfigList: {
-      /**
-       * @description OIDC issuer URL
-       * @example https://auth.openchoreo.dev
-       */
-      issuer?: string;
-      /**
-       * @description OAuth2 token endpoint URL
-       * @example https://auth.openchoreo.dev/oauth2/token
-       */
-      token_endpoint: string;
-      /**
-       * @description OAuth2 authorization endpoint URL
-       * @example https://auth.openchoreo.dev/authorize
-       */
-      authorization_endpoint: string;
-      /**
-       * @description Whether authentication is enabled on the server
-       * @example true
-       */
-      security_enabled: boolean;
-      /** @description Array of external client configurations */
-      external_clients: components['schemas']['ExternalClient'][];
     };
     /** @description Configuration for a user type used in authentication and authorization */
     UserTypeConfig: {
@@ -2069,15 +2289,15 @@ export interface components {
        */
       displayName: string;
     };
-    /**
-     * @description Cursor-based pagination metadata. Uses Kubernetes-native continuation tokens
+    /** @description Cursor-based pagination metadata. Uses Kubernetes-native continuation tokens
      *     for efficient pagination through large result sets.
-     */
+     *      */
     Pagination: {
       /**
        * @description Opaque cursor for fetching the next page. Pass this value as the
        *     `cursor` query parameter in the next request. Absent when there
        *     are no more items.
+       *
        * @example eyJ2IjoibWV0YS5rOHMuaW8vdjEiLCJydiI6MzQ0N30=
        */
       nextCursor?: string;
@@ -2087,6 +2307,7 @@ export interface components {
        *     This is an estimate provided by Kubernetes and may not be exact.
        *     Use for UI hints like "~50 more items". May be absent for
        *     filtered queries.
+       *
        * @example 42
        */
       remainingCount?: number;
@@ -2096,67 +2317,32 @@ export interface components {
       items: components['schemas']['Namespace'][];
       pagination: components['schemas']['Pagination'];
     };
-    /**
-     * @description Namespace resource representing an OpenChoreo control plane namespace.
+    /** @description Namespace resource (Kubernetes object without kind/apiVersion).
      *     Control plane namespaces hold resources like Projects, Components, and Environments.
      *     These namespaces are identified by the label `openchoreo.dev/controlplane-namespace=true`.
-     */
+     *      */
     Namespace: {
-      /**
-       * @description Namespace name (unique identifier)
-       * @example my-namespace
-       */
-      name: string;
-      /**
-       * @description Human-readable display name
-       * @example My Namespace
-       */
-      displayName?: string;
-      /**
-       * @description Namespace description
-       * @example Main development namespace
-       */
-      description?: string;
-      /**
-       * @description Kubernetes namespace for the namespace
-       * @example my-namespace
-       */
-      namespace?: string;
-      /**
-       * Format: date-time
-       * @description Creation timestamp
-       * @example 2025-01-06T10:00:00Z
-       */
-      createdAt: string;
-      /**
-       * @description Namespace status
-       * @example Ready
-       */
-      status?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      readonly status?: components['schemas']['NamespaceStatus'];
     };
-    /** @description Reference to a BuildPlane or ClusterBuildPlane */
-    BuildPlaneRef: {
+    /** @description Observed state of a Namespace */
+    NamespaceStatus: {
       /**
-       * @description Kind of build plane
-       * @example BuildPlane
+       * @description Namespace phase
+       * @example Active
        * @enum {string}
        */
-      kind: 'BuildPlane' | 'ClusterBuildPlane';
-      /**
-       * @description Name of the build plane resource
-       * @example default
-       */
-      name: string;
+      phase?: 'Active' | 'Terminating';
     };
     /** @description Desired state of a Project */
     ProjectSpec: {
       /**
        * @description Reference to the DeploymentPipeline that defines the environments
        *     and deployment progression for components in this project.
+       *
        * @example default
        */
       deploymentPipelineRef?: string;
-      buildPlaneRef?: components['schemas']['BuildPlaneRef'];
     };
     /** @description Observed state of a Project */
     ProjectStatus: {
@@ -2168,177 +2354,290 @@ export interface components {
       /** @description Current state conditions of the Project */
       conditions?: components['schemas']['Condition'][];
     };
-    /**
-     * @description Project resource (Kubernetes object without kind/apiVersion).
+    /** @description Project resource (Kubernetes object without kind/apiVersion).
      *     Projects group components within a namespace and reference a deployment pipeline.
-     */
+     *      */
     Project: {
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ProjectSpec'];
-      status?: components['schemas']['ProjectStatus'];
+      readonly status?: components['schemas']['ProjectStatus'];
     };
     /** @description Paginated list of projects */
     ProjectList: {
       items: components['schemas']['Project'][];
-      pagination?: components['schemas']['Pagination'];
+      pagination: components['schemas']['Pagination'];
     };
     /** @description Paginated list of components */
     ComponentList: {
       items: components['schemas']['Component'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Ownership information for a Component */
-    ComponentOwner: {
-      /**
-       * @description Name of the owning Project
-       * @example my-project
-       */
-      projectName: string;
-    };
-    /** @description Workflow configuration for a Component (references a ComponentWorkflow CR) */
-    ComponentWorkflowRunConfig: {
-      /**
-       * @description Name of the ComponentWorkflow CR to use
-       * @example docker-build
-       */
-      name: string;
-      systemParameters: components['schemas']['SystemParametersValues'];
-      /** @description User-defined workflow parameters */
-      parameters?: {
-        [key: string]: unknown;
+    /** @description Desired state of a Component */
+    ComponentSpec: {
+      /** @description Ownership information for the component */
+      owner: {
+        /**
+         * @description Name of the project this component belongs to
+         * @example my-project
+         */
+        projectName: string;
       };
-    };
-    /** @description System parameters containing repository information */
-    SystemParametersValues: {
-      repository: {
+      /** @description Reference to the ComponentType or ClusterComponentType */
+      componentType: {
         /**
-         * @description Git repository URL
-         * @example https://github.com/org/repo.git
+         * @description Kind of component type (ComponentType or ClusterComponentType)
+         * @default ComponentType
+         * @enum {string}
          */
-        url: string;
-        revision: {
-          /**
-           * @description Git branch to build from
-           * @example main
-           */
-          branch: string;
-          /**
-           * @description Specific commit SHA (optional)
-           * @example abc1234def5678
-           */
-          commit?: string;
-        };
-        /**
-         * @description Path to application within repository
-         * @example ./services/api
-         */
-        appPath: string;
-      };
-    };
-    /** @description Information about the latest ComponentRelease for a Component */
-    ComponentLatestRelease: {
-      /**
-       * @description Name of the ComponentRelease resource
-       * @example api-service-abc123
-       */
-      name: string;
-      /**
-       * @description Hash of the ComponentRelease spec
-       * @example sha256:abc123
-       */
-      releaseHash: string;
-    };
-    /**
-     * @description Component resource (Kubernetes object without kind/apiVersion).
-     *     Components group source code and deployment configuration within a Project.
-     */
-    Component: {
-      metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the Component */
-      spec?: {
-        owner: components['schemas']['ComponentOwner'];
-        /**
-         * @deprecated
-         * @description LEGACY: Component type (e.g., Service, WebApplication). Use componentType for new components.
-         * @example Service
-         */
-        type?: string;
+        kind: 'ComponentType' | 'ClusterComponentType';
         /**
          * @description Component type reference in format: {workloadType}/{componentTypeName}
          * @example deployment/go-service
          */
-        componentType?: string;
-        /**
-         * @description Whether to automatically deploy to default environment when created
-         * @default false
-         * @example true
-         */
-        autoDeploy: boolean;
-        /**
-         * @description Whether to automatically trigger builds on code push
-         * @example false
-         */
-        autoBuild?: boolean;
-        /** @description ComponentType parameters (schema defined by the referenced ComponentType) */
-        parameters?: {
-          [key: string]: unknown;
-        };
-        /** @description Trait instances to compose into this component */
-        traits?: components['schemas']['ComponentTrait'][];
-        workflow?: components['schemas']['ComponentWorkflowRunConfig'];
+        name: string;
       };
-      /** @description Observed state of the Component */
-      status?: {
+      /**
+       * @description Whether to automatically deploy to default environment when created
+       * @default false
+       * @example true
+       */
+      autoDeploy: boolean;
+      /**
+       * @description Whether to automatically trigger builds on code push
+       * @example false
+       */
+      autoBuild?: boolean;
+      /** @description ComponentType parameter values (schema defined by the referenced ComponentType) */
+      parameters?: {
+        [key: string]: unknown;
+      };
+      /** @description Trait instances attached to the component */
+      traits?: components['schemas']['ComponentTrait'][];
+      workflow?: components['schemas']['ComponentWorkflowConfig'];
+    };
+    /** @description Observed state of a Component */
+    ComponentStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed Component
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the Component */
+      conditions?: components['schemas']['Condition'][];
+      /** @description Information about the latest ComponentRelease created for this component */
+      latestRelease?: {
         /**
-         * Format: int64
-         * @description Generation most recently observed by the controller
+         * @description Name of the latest ComponentRelease resource
+         * @example my-component-abc123
          */
-        observedGeneration?: number;
-        /** @description Current state conditions */
-        conditions?: components['schemas']['Condition'][];
-        latestRelease?: components['schemas']['ComponentLatestRelease'];
+        name?: string;
+        /**
+         * @description Hash of the latest ComponentRelease spec
+         * @example sha256:abc123
+         */
+        releaseHash?: string;
       };
     };
-    /** @description Component workflow configuration (legacy schema, prefer ComponentWorkflowRunConfig) */
+    /** @description Component resource (Kubernetes object without kind/apiVersion).
+     *     Components group source code and deployment configuration within a project.
+     *      */
+    Component: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ComponentSpec'];
+      readonly status?: components['schemas']['ComponentStatus'];
+    };
+    /** @description Component workflow configuration */
     ComponentWorkflowConfig: {
       /**
        * @description Workflow name
        * @example docker-build
        */
       name?: string;
-      systemParameters?: components['schemas']['SystemParametersValues'];
+      /** @description System-managed parameters (repository info) */
+      systemParameters?: {
+        repository?: {
+          /**
+           * @description Git repository URL
+           * @example https://github.com/org/repo.git
+           */
+          url?: string;
+          revision?: {
+            /**
+             * @description Git branch
+             * @example main
+             */
+            branch?: string;
+            /**
+             * @description Git commit SHA
+             * @example abc1234
+             */
+            commit?: string;
+          };
+          /**
+           * @description Path to application within repository
+           * @example ./services/api
+           */
+          appPath?: string;
+        };
+      };
       /** @description User-defined workflow parameters */
       parameters?: {
         [key: string]: unknown;
       };
     };
+    /** @description Request to create a new component */
+    CreateComponentRequest: {
+      /**
+       * @description Component name (must be unique within project)
+       * @example api-service
+       */
+      name: string;
+      /**
+       * @description Human-readable display name
+       * @example API Service
+       */
+      displayName?: string;
+      /**
+       * @description Component description
+       * @example Main REST API service
+       */
+      description?: string;
+      /**
+       * @deprecated
+       * @description DEPRECATED: Use componentType instead. Legacy component type field.
+       * @example service/go-service
+       */
+      type?: string;
+      /**
+       * @description Component type reference (format: {workloadType}/{componentTypeName})
+       * @example service/go-service
+       */
+      componentType?: string;
+      /**
+       * @description Whether to automatically deploy to default environment
+       * @default false
+       * @example true
+       */
+      autoDeploy: boolean;
+      /** @description Component type parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
+      /** @description Trait instances to attach to the component */
+      traits?: components['schemas']['ComponentTraitInput'][];
+      workflow?: components['schemas']['ComponentWorkflowInput'];
+    };
+    /** @description Trait instance to attach to a component */
+    ComponentTraitInput: {
+      /**
+       * @description Kind of trait resource (Trait for namespace-scoped, ClusterTrait for cluster-scoped)
+       * @default Trait
+       * @example Trait
+       * @enum {string}
+       */
+      kind: 'Trait' | 'ClusterTrait';
+      /**
+       * @description Trait resource name
+       * @example autoscaler
+       */
+      name: string;
+      /**
+       * @description Unique instance name within the component
+       * @example api-autoscaler
+       */
+      instanceName: string;
+      /** @description Trait parameter values */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Workflow configuration for component creation */
+    ComponentWorkflowInput: {
+      /**
+       * @description ComponentWorkflow resource name
+       * @example docker-build
+       */
+      name: string;
+      /** @description System parameters including repository configuration */
+      systemParameters: {
+        repository: {
+          /**
+           * @description Git repository URL
+           * @example https://github.com/org/repo.git
+           */
+          url: string;
+          revision: {
+            /**
+             * @description Git branch to build from
+             * @example main
+             */
+            branch: string;
+            /**
+             * @description Specific commit SHA (optional)
+             * @example abc1234
+             */
+            commit?: string;
+          };
+          /**
+           * @description Path to application within repository
+           * @example ./services/api
+           */
+          appPath: string;
+        };
+      };
+      /** @description User-defined workflow parameters */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Desired state of an Environment */
+    EnvironmentSpec: {
+      /** @description Reference to the DataPlane or ClusterDataPlane for this environment.
+       *     If not specified, defaults to a DataPlane named "default" in the same namespace.
+       *     Immutable once set.
+       *      */
+      dataPlaneRef?: {
+        /**
+         * @description Kind of data plane (DataPlane or ClusterDataPlane)
+         * @example DataPlane
+         * @enum {string}
+         */
+        kind: 'DataPlane' | 'ClusterDataPlane';
+        /**
+         * @description Name of the data plane resource
+         * @example default
+         */
+        name: string;
+      };
+      /**
+       * @description Whether this is a production environment
+       * @example false
+       */
+      isProduction?: boolean;
+      gateway?: components['schemas']['GatewaySpec'];
+    };
+    /** @description Observed state of an Environment */
+    EnvironmentStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed Environment
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the Environment */
+      conditions?: components['schemas']['Condition'][];
+    };
+    /** @description Environment resource (Kubernetes object without kind/apiVersion).
+     *     Environments represent deployment targets within a namespace.
+     *      */
+    Environment: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['EnvironmentSpec'];
+      readonly status?: components['schemas']['EnvironmentStatus'];
+    };
     /** @description Paginated list of environments */
     EnvironmentList: {
       items: components['schemas']['Environment'][];
       pagination: components['schemas']['Pagination'];
-    };
-    /** @description Environment resource (Kubernetes object without kind/apiVersion). */
-    Environment: {
-      metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the Environment */
-      spec?: {
-        dataPlaneRef?: components['schemas']['DataPlaneRef'];
-        /**
-         * @description Whether this is a production environment
-         * @example false
-         */
-        isProduction?: boolean;
-        gateway?: components['schemas']['GatewaySpec'];
-      };
-      /** @description Observed state of the Environment */
-      status?: {
-        /**
-         * Format: int64
-         * @description Generation most recently observed by the controller
-         */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-      };
     };
     /** @description Observer URL response for accessing logs and metrics */
     ObserverURLResponse: {
@@ -2371,70 +2670,162 @@ export interface components {
       items: components['schemas']['DataPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description DataPlane resource (Kubernetes object without kind/apiVersion). */
+    /** @description DataPlane resource (Kubernetes object without kind/apiVersion).
+     *     Represents a Kubernetes cluster for workload deployment.
+     *      */
     DataPlane: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the DataPlane */
-      spec?: {
-        /**
-         * @description Logical plane identifier for the physical cluster
-         * @example prod-cluster
-         */
-        planeID?: string;
-        clusterAgent: components['schemas']['ClusterAgentConfig'];
-        gateway: components['schemas']['GatewaySpec'];
-        /**
-         * @description References to SecretReference resources for image pull secrets
-         * @example [
-         *       "docker-registry-secret"
-         *     ]
-         */
-        imagePullSecretRefs?: string[];
-        /** @description Reference to an ESO ClusterSecretStore */
-        secretStoreRef?: {
-          /** @example vault-secret-store */
-          name?: string;
-        };
-        observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
-      };
-      /** @description Observed state of the DataPlane */
-      status?: {
-        /** Format: int64 */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-        agentConnection?: components['schemas']['AgentConnectionStatus'];
-      };
+      spec?: components['schemas']['DataPlaneSpec'];
+      readonly status?: components['schemas']['DataPlaneStatus'];
+    };
+    /** @description Desired state of a DataPlane */
+    DataPlaneSpec: {
+      /**
+       * @description Logical plane identifier for the physical cluster.
+       *     Multiple DataPlane CRs can share the same planeID.
+       *
+       * @example prod-cluster
+       */
+      planeID?: string;
+      clusterAgent?: components['schemas']['ClusterAgentConfig'];
+      gateway?: components['schemas']['GatewaySpec'];
+      /**
+       * @description References to SecretReference resources for image pulling
+       * @example [
+       *       "docker-registry-secret"
+       *     ]
+       */
+      imagePullSecretRefs?: string[];
+      secretStoreRef?: components['schemas']['SecretStoreRef'];
+      observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
+    };
+    /** @description Observed state of a DataPlane */
+    DataPlaneStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed DataPlane
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the DataPlane */
+      conditions?: components['schemas']['Condition'][];
+      agentConnection?: components['schemas']['AgentConnectionStatus'];
+    };
+    /** @description Gateway configuration with ingress and egress network specs */
+    GatewaySpec: {
+      ingress?: components['schemas']['GatewayNetworkSpec'];
+      egress?: components['schemas']['GatewayNetworkSpec'];
+    };
+    /** @description External and internal gateway endpoints */
+    GatewayNetworkSpec: {
+      external?: components['schemas']['GatewayEndpointSpec'];
+      internal?: components['schemas']['GatewayEndpointSpec'];
+    };
+    /** @description Gateway resource endpoint configuration */
+    GatewayEndpointSpec: {
+      /** @description Name of the Gateway resource */
+      name: string;
+      /** @description Namespace of the Gateway resource */
+      namespace: string;
+      http?: components['schemas']['GatewayListenerSpec'];
+      https?: components['schemas']['GatewayListenerSpec'];
+      tls?: components['schemas']['GatewayListenerSpec'];
+    };
+    /** @description Gateway listener configuration */
+    GatewayListenerSpec: {
+      /** @description Name of the listener on the Gateway resource */
+      listenerName?: string;
+      /**
+       * Format: int32
+       * @description Port number
+       */
+      port?: number;
+      /** @description Virtual host for the listener */
+      host?: string;
     };
     /** @description Paginated list of build planes */
     BuildPlaneList: {
       items: components['schemas']['BuildPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description BuildPlane resource (Kubernetes object without kind/apiVersion). */
+    /** @description BuildPlane resource (Kubernetes object without kind/apiVersion).
+     *     Represents CI/CD build infrastructure within a namespace.
+     *      */
     BuildPlane: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the BuildPlane */
-      spec?: {
-        /**
-         * @description Logical plane identifier for the physical cluster
-         * @example ci-cluster
-         */
-        planeID?: string;
-        clusterAgent: components['schemas']['ClusterAgentConfig'];
-        /** @description Reference to an ESO ClusterSecretStore */
-        secretStoreRef?: {
-          /** @example vault-secret-store */
-          name?: string;
-        };
-        observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
-      };
-      /** @description Observed state of the BuildPlane */
-      status?: {
-        /** Format: int64 */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-        agentConnection?: components['schemas']['AgentConnectionStatus'];
-      };
+      spec?: components['schemas']['BuildPlaneSpec'];
+      readonly status?: components['schemas']['BuildPlaneStatus'];
+    };
+    /** @description Desired state of a BuildPlane */
+    BuildPlaneSpec: {
+      /**
+       * @description Logical plane identifier for the physical cluster.
+       *     Multiple BuildPlane CRs can share the same planeID.
+       *
+       * @example ci-cluster
+       */
+      planeID?: string;
+      clusterAgent?: components['schemas']['ClusterAgentConfig'];
+      secretStoreRef?: components['schemas']['SecretStoreRef'];
+      observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
+    };
+    /** @description Observed state of a BuildPlane */
+    BuildPlaneStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed BuildPlane
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the BuildPlane */
+      conditions?: components['schemas']['Condition'][];
+      agentConnection?: components['schemas']['AgentConnectionStatus'];
+    };
+    /** @description Configuration for cluster agent-based communication */
+    ClusterAgentConfig: {
+      clientCA?: components['schemas']['ValueFrom'];
+    };
+    /** @description Reference to a secret or inline value */
+    ValueFrom: {
+      secretRef?: components['schemas']['SecretKeyReference'];
+      /** @description Inline value (optional fallback) */
+      value?: string;
+    };
+    /** @description Reference to a specific key in a Kubernetes secret */
+    SecretKeyReference: {
+      /** @description Name of the secret */
+      name?: string;
+      /** @description Namespace of the secret */
+      namespace?: string;
+      /** @description Key within the secret */
+      key?: string;
+    };
+    /** @description Reference to an External Secrets Operator ClusterSecretStore */
+    SecretStoreRef: {
+      /** @description Name of the ClusterSecretStore resource */
+      name?: string;
+    };
+    /** @description Status of cluster agent connections */
+    AgentConnectionStatus: {
+      /** @description Whether any cluster agent is currently connected */
+      connected?: boolean;
+      /** @description Number of cluster agents currently connected */
+      connectedAgents?: number;
+      /**
+       * Format: date-time
+       * @description When an agent last successfully connected
+       */
+      lastConnectedTime?: string;
+      /**
+       * Format: date-time
+       * @description When the last agent disconnected
+       */
+      lastDisconnectedTime?: string;
+      /**
+       * Format: date-time
+       * @description When control plane last received communication from an agent
+       */
+      lastHeartbeatTime?: string;
+      /** @description Additional information about agent connection status */
+      message?: string;
     };
     /** @description Reference to an ObservabilityPlane or ClusterObservabilityPlane */
     ObservabilityPlaneRef: {
@@ -2455,105 +2846,127 @@ export interface components {
       items: components['schemas']['ObservabilityPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ObservabilityPlane resource (Kubernetes object without kind/apiVersion). */
+    /** @description ObservabilityPlane resource (Kubernetes object without kind/apiVersion).
+     *     Represents monitoring and logging infrastructure within a namespace.
+     *      */
     ObservabilityPlane: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ObservabilityPlane */
-      spec?: {
-        /**
-         * @description Logical plane identifier for the physical cluster
-         * @example monitoring-cluster
-         */
-        planeID?: string;
-        clusterAgent: components['schemas']['ClusterAgentConfig'];
-        /**
-         * @description Base URL of the Observer API
-         * @example http://observer.observability-plane.svc:8080
-         */
-        observerURL: string;
-        /**
-         * @description Base URL of the RCA Agent API
-         * @example http://rca-agent.observability-plane.svc:8080
-         */
-        rcaAgentURL?: string;
-      };
-      /** @description Observed state of the ObservabilityPlane */
-      status?: {
-        /** Format: int64 */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-        agentConnection?: components['schemas']['AgentConnectionStatus'];
-      };
+      spec?: components['schemas']['ObservabilityPlaneSpec'];
+      readonly status?: components['schemas']['ObservabilityPlaneStatus'];
+    };
+    /** @description Desired state of an ObservabilityPlane */
+    ObservabilityPlaneSpec: {
+      /**
+       * @description Logical plane identifier for the physical cluster.
+       *     Multiple ObservabilityPlane CRs can share the same planeID.
+       *
+       * @example shared-obs
+       */
+      planeID?: string;
+      clusterAgent?: components['schemas']['ClusterAgentConfig'];
+      /**
+       * @description Base URL of the Observer API in the observability plane cluster
+       * @example http://observer.observability-plane.svc:8080
+       */
+      observerURL?: string;
+      /**
+       * @description Base URL of the RCA Agent API in the observability plane cluster
+       * @example http://rca-agent.observability-plane.svc:8080
+       */
+      rcaAgentURL?: string;
+    };
+    /** @description Observed state of an ObservabilityPlane */
+    ObservabilityPlaneStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed ObservabilityPlane
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the ObservabilityPlane */
+      conditions?: components['schemas']['Condition'][];
+      agentConnection?: components['schemas']['AgentConnectionStatus'];
     };
     /** @description Paginated list of cluster-scoped data planes */
     ClusterDataPlaneList: {
       items: components['schemas']['ClusterDataPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Cluster-scoped DataPlane resource (Kubernetes object without kind/apiVersion). */
+    /** @description ClusterDataPlane resource (Kubernetes object without kind/apiVersion).
+     *     Represents a cluster-scoped data plane for workload deployment.
+     *      */
     ClusterDataPlane: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ClusterDataPlane */
-      spec?: {
-        /**
-         * @description Logical plane identifier for the physical cluster
-         * @example us-west-prod-cluster
-         */
-        planeID: string;
-        clusterAgent: components['schemas']['ClusterAgentConfig'];
-        gateway: components['schemas']['GatewaySpec'];
-        /**
-         * @description References to SecretReference resources for image pull secrets
-         * @example [
-         *       "docker-registry-secret"
-         *     ]
-         */
-        imagePullSecretRefs?: string[];
-        /** @description Reference to an ESO ClusterSecretStore */
-        secretStoreRef?: {
-          /** @example vault-secret-store */
-          name?: string;
-        };
-        observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
-      };
-      /** @description Observed state of the ClusterDataPlane */
-      status?: {
-        /** Format: int64 */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-        agentConnection?: components['schemas']['AgentConnectionStatus'];
-      };
+      spec?: components['schemas']['ClusterDataPlaneSpec'];
+      readonly status?: components['schemas']['ClusterDataPlaneStatus'];
+    };
+    /** @description Desired state of a ClusterDataPlane */
+    ClusterDataPlaneSpec: {
+      /**
+       * @description Logical plane identifier for the physical cluster.
+       *     Multiple ClusterDataPlane CRs can share the same planeID.
+       *
+       * @example us-west-prod-cluster
+       */
+      planeID?: string;
+      clusterAgent?: components['schemas']['ClusterAgentConfig'];
+      gateway?: components['schemas']['GatewaySpec'];
+      /**
+       * @description References to SecretReference resources for image pulling
+       * @example [
+       *       "docker-registry-secret"
+       *     ]
+       */
+      imagePullSecretRefs?: string[];
+      secretStoreRef?: components['schemas']['SecretStoreRef'];
+      observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
+    };
+    /** @description Observed state of a ClusterDataPlane */
+    ClusterDataPlaneStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed ClusterDataPlane
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the ClusterDataPlane */
+      conditions?: components['schemas']['Condition'][];
+      agentConnection?: components['schemas']['AgentConnectionStatus'];
     };
     /** @description List of cluster-scoped build planes */
     ClusterBuildPlaneList: {
       items: components['schemas']['ClusterBuildPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Cluster-scoped BuildPlane resource (Kubernetes object without kind/apiVersion). */
+    /** @description ClusterBuildPlane resource (Kubernetes object without kind/apiVersion).
+     *     Represents cluster-scoped CI/CD build infrastructure.
+     *      */
     ClusterBuildPlane: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ClusterBuildPlane */
-      spec?: {
-        /**
-         * @description Logical plane identifier for the physical cluster
-         * @example ci-cluster
-         */
-        planeID: string;
-        clusterAgent: components['schemas']['ClusterAgentConfig'];
-        /** @description Reference to an ESO ClusterSecretStore */
-        secretStoreRef?: {
-          /** @example vault-secret-store */
-          name?: string;
-        };
-        observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
-      };
-      /** @description Observed state of the ClusterBuildPlane */
-      status?: {
-        /** Format: int64 */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-        agentConnection?: components['schemas']['AgentConnectionStatus'];
-      };
+      spec?: components['schemas']['ClusterBuildPlaneSpec'];
+      readonly status?: components['schemas']['ClusterBuildPlaneStatus'];
+    };
+    /** @description Desired state of a ClusterBuildPlane */
+    ClusterBuildPlaneSpec: {
+      /**
+       * @description Logical plane identifier for the physical cluster.
+       *     Multiple ClusterBuildPlane CRs can share the same planeID.
+       *
+       * @example ci-cluster
+       */
+      planeID?: string;
+      clusterAgent?: components['schemas']['ClusterAgentConfig'];
+      secretStoreRef?: components['schemas']['SecretStoreRef'];
+      observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
+    };
+    /** @description Observed state of a ClusterBuildPlane */
+    ClusterBuildPlaneStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed ClusterBuildPlane
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the ClusterBuildPlane */
+      conditions?: components['schemas']['Condition'][];
+      agentConnection?: components['schemas']['AgentConnectionStatus'];
     };
     /** @description Reference to a ClusterObservabilityPlane (cluster-scoped only) */
     ClusterObservabilityPlaneRef: {
@@ -2574,118 +2987,471 @@ export interface components {
       items: components['schemas']['ClusterObservabilityPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Cluster-scoped ObservabilityPlane resource (Kubernetes object without kind/apiVersion). */
+    /** @description ClusterObservabilityPlane resource (Kubernetes object without kind/apiVersion).
+     *     Represents cluster-scoped monitoring and logging infrastructure.
+     *      */
     ClusterObservabilityPlane: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ClusterObservabilityPlane */
-      spec?: {
-        /**
-         * @description Logical plane identifier for the physical cluster
-         * @example monitoring-cluster
-         */
-        planeID: string;
-        clusterAgent: components['schemas']['ClusterAgentConfig'];
-        /**
-         * @description Base URL of the Observer API
-         * @example http://observer.observability-plane.svc:8080
-         */
-        observerURL: string;
-        /**
-         * @description Base URL of the RCA Agent API
-         * @example http://rca-agent.observability-plane.svc:8080
-         */
-        rcaAgentURL?: string;
-      };
-      /** @description Observed state of the ClusterObservabilityPlane */
-      status?: {
-        /** Format: int64 */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-        agentConnection?: components['schemas']['AgentConnectionStatus'];
-      };
+      spec?: components['schemas']['ClusterObservabilityPlaneSpec'];
+      readonly status?: components['schemas']['ClusterObservabilityPlaneStatus'];
     };
+    /** @description Desired state of a ClusterObservabilityPlane */
+    ClusterObservabilityPlaneSpec: {
+      /**
+       * @description Logical plane identifier for the physical cluster.
+       *     Multiple ClusterObservabilityPlane CRs can share the same planeID.
+       *
+       * @example monitoring-cluster
+       */
+      planeID?: string;
+      clusterAgent?: components['schemas']['ClusterAgentConfig'];
+      /**
+       * @description Base URL of the Observer API in the observability plane cluster
+       * @example http://observer.observability-plane.svc:8080
+       */
+      observerURL?: string;
+      /**
+       * @description Base URL of the RCA Agent API in the observability plane cluster
+       * @example http://rca-agent.observability-plane.svc:8080
+       */
+      rcaAgentURL?: string;
+    };
+    /** @description Observed state of a ClusterObservabilityPlane */
+    ClusterObservabilityPlaneStatus: {
+      /**
+       * Format: int64
+       * @description Generation of the most recently observed ClusterObservabilityPlane
+       */
+      observedGeneration?: number;
+      /** @description Current state conditions of the ClusterObservabilityPlane */
+      conditions?: components['schemas']['Condition'][];
+      agentConnection?: components['schemas']['AgentConnectionStatus'];
+    };
+    /** @description Paginated list of cluster-scoped component types */
+    ClusterComponentTypeList: {
+      items: components['schemas']['ClusterComponentType'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description ClusterComponentType resource (Kubernetes object without kind/apiVersion).
+     *     Cluster-scoped version of ComponentType.
+     *      */
+    ClusterComponentType: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ClusterComponentTypeSpec'];
+      readonly status?: components['schemas']['ClusterComponentTypeStatus'];
+    };
+    /** @description Desired state of a ClusterComponentType */
+    ClusterComponentTypeSpec: {
+      /**
+       * @description Primary workload resource type for this component type
+       * @example deployment
+       * @enum {string}
+       */
+      workloadType: 'deployment' | 'statefulset' | 'cronjob' | 'job' | 'proxy';
+      /**
+       * @description List of allowed Workflow references for this component type
+       * @example [
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "docker-build"
+       *       },
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "buildpack-build"
+       *       }
+       *     ]
+       */
+      allowedWorkflows?: {
+        /**
+         * @description Kind of the workflow reference. Currently only "Workflow" is supported.
+         * @default Workflow
+         * @enum {string}
+         */
+        kind: 'Workflow';
+        /** @description Name of the workflow resource */
+        name: string;
+      }[];
+      /** @description Developer-configurable schema definition */
+      schema?: {
+        /** @description Reusable type definitions */
+        types?: {
+          [key: string]: unknown;
+        };
+        /** @description Static developer configuration parameters */
+        parameters?: {
+          [key: string]: unknown;
+        };
+        /** @description Environment-specific overrides for platform engineers */
+        envOverrides?: {
+          [key: string]: unknown;
+        };
+      };
+      /** @description Pre-configured trait instances embedded in this component type */
+      traits?: {
+        /**
+         * @description Kind of trait (only ClusterTrait allowed for cluster-scoped)
+         * @default ClusterTrait
+         * @enum {string}
+         */
+        kind: 'ClusterTrait';
+        /** @description Name of the ClusterTrait resource */
+        name: string;
+        /** @description Unique instance name for this trait */
+        instanceName: string;
+        /** @description Trait parameter bindings (concrete values or CEL expressions) */
+        parameters?: {
+          [key: string]: unknown;
+        };
+        /** @description Trait environment override bindings */
+        envOverrides?: {
+          [key: string]: unknown;
+        };
+      }[];
+      /** @description Restricts which ClusterTrait CRs developers can attach to Components of this type. Each entry is an object with "kind" (always ClusterTrait) and "name" referencing a ClusterTrait. If empty or omitted, no additional component-level traits are permitted (only embedded traits defined in spec.traits are allowed). */
+      allowedTraits?: {
+        /**
+         * @description Kind of trait reference (must be ClusterTrait)
+         * @enum {string}
+         */
+        kind: 'ClusterTrait';
+        /** @description Name of the ClusterTrait resource */
+        name: string;
+      }[];
+      /** @description CEL-based validation rules evaluated during rendering */
+      validations?: {
+        /** @description CEL expression wrapped in ${...} that must evaluate to true */
+        rule: string;
+        /** @description Error message shown when the rule evaluates to false */
+        message: string;
+      }[];
+      /** @description Templates that generate Kubernetes resources dynamically */
+      resources: {
+        /** @description Unique identifier for this resource within the component type */
+        id: string;
+        /**
+         * @description Target plane for deployment
+         * @default dataplane
+         * @enum {string}
+         */
+        targetPlane: 'dataplane' | 'observabilityplane';
+        /** @description CEL expression determining if this resource should be created */
+        includeWhen?: string;
+        /** @description CEL expression for generating multiple resources from a list */
+        forEach?: string;
+        /** @description Loop variable name when using forEach */
+        var?: string;
+        /** @description Kubernetes resource template with CEL expressions */
+        template: {
+          [key: string]: unknown;
+        };
+      }[];
+    };
+    /** @description Observed state of a ClusterComponentType */
+    ClusterComponentTypeStatus: Record<string, never>;
+    /** @description Paginated list of cluster-scoped traits */
+    ClusterTraitList: {
+      items: components['schemas']['ClusterTrait'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description ClusterTrait resource (Kubernetes object without kind/apiVersion).
+     *     Cluster-scoped version of Trait.
+     *      */
+    ClusterTrait: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ClusterTraitSpec'];
+      readonly status?: components['schemas']['ClusterTraitStatus'];
+    };
+    /** @description Desired state of a ClusterTrait */
+    ClusterTraitSpec: {
+      /** @description Trait parameter schema definition */
+      schema?: {
+        /** @description Reusable type definitions */
+        types?: {
+          [key: string]: unknown;
+        };
+        /** @description Developer-facing configuration options */
+        parameters?: {
+          [key: string]: unknown;
+        };
+        /** @description Environment-specific overrides */
+        envOverrides?: {
+          [key: string]: unknown;
+        };
+      };
+      /** @description New Kubernetes resources to create when this trait is applied */
+      creates?: {
+        /**
+         * @description Target plane for deployment
+         * @default dataplane
+         * @enum {string}
+         */
+        targetPlane: 'dataplane' | 'observabilityplane';
+        /** @description CEL expression determining if this resource should be created */
+        includeWhen?: string;
+        /** @description CEL expression for generating multiple resources from a list */
+        forEach?: string;
+        /** @description Loop variable name when using forEach */
+        var?: string;
+        /** @description Kubernetes resource template with CEL expressions */
+        template: {
+          [key: string]: unknown;
+        };
+      }[];
+      /** @description Modifications to existing resources generated by the ComponentType */
+      patches?: {
+        /** @description CEL expression for repeating this patch */
+        forEach?: string;
+        /** @description Loop variable name when using forEach */
+        var?: string;
+        /** @description Target resource to patch */
+        target: {
+          /** @description API group of the resource */
+          group: string;
+          /** @description API version of the resource */
+          version: string;
+          /** @description Resource type to patch */
+          kind: string;
+          /** @description CEL expression to filter which resources to patch */
+          where?: string;
+        };
+        /**
+         * @description Target plane for this patch
+         * @default dataplane
+         * @enum {string}
+         */
+        targetPlane: 'dataplane' | 'observabilityplane';
+        /** @description JSONPatch operations to apply */
+        operations: {
+          /**
+           * @description Operation type
+           * @enum {string}
+           */
+          op: 'add' | 'replace' | 'remove';
+          /** @description JSON Pointer to the field to modify */
+          path: string;
+          /** @description Value to set (for add/replace operations) */
+          value?: unknown;
+        }[];
+      }[];
+    };
+    /** @description Observed state of a ClusterTrait */
+    ClusterTraitStatus: Record<string, never>;
     /** @description Paginated list of component types */
     ComponentTypeList: {
       items: components['schemas']['ComponentType'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ComponentType resource (Kubernetes object without kind/apiVersion). Read-only — defined by platform engineers. */
-    ComponentType: {
-      metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ComponentType */
-      spec?: {
+    /** @description Desired state of a ComponentType */
+    ComponentTypeSpec: {
+      /**
+       * @description Primary workload resource type for this component type
+       * @example deployment
+       * @enum {string}
+       */
+      workloadType: 'deployment' | 'statefulset' | 'cronjob' | 'job' | 'proxy';
+      /**
+       * @description List of allowed Workflow references for this component type
+       * @example [
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "docker-build"
+       *       },
+       *       {
+       *         "kind": "Workflow",
+       *         "name": "buildpack-build"
+       *       }
+       *     ]
+       */
+      allowedWorkflows?: {
         /**
-         * @description Type of workload (deployment, statefulset, cronjob, job, proxy)
-         * @example deployment
+         * @description Kind of the workflow reference. Currently only "Workflow" is supported.
+         * @default Workflow
          * @enum {string}
          */
-        workloadType:
-          | 'deployment'
-          | 'statefulset'
-          | 'cronjob'
-          | 'job'
-          | 'proxy';
-        /**
-         * @description List of allowed ComponentWorkflow names for components of this type
-         * @example [
-         *       "docker-build",
-         *       "buildpack-build"
-         *     ]
-         */
-        allowedWorkflows?: string[];
-        /** @description Developer-facing parameter schema */
-        schema?: {
+        kind: 'Workflow';
+        /** @description Name of the workflow resource */
+        name: string;
+      }[];
+      /** @description Developer-configurable schema definition */
+      schema?: {
+        /** @description Reusable type definitions */
+        types?: {
           [key: string]: unknown;
         };
-        /** @description Pre-configured trait instances embedded in this ComponentType */
-        traits?: {
+        /** @description Static developer configuration parameters */
+        parameters?: {
           [key: string]: unknown;
-        }[];
+        };
+        /** @description Environment-specific overrides for platform engineers */
+        envOverrides?: {
+          [key: string]: unknown;
+        };
+      };
+      /** @description Pre-configured trait instances embedded in this component type */
+      traits?: {
         /**
-         * @description List of allowed Trait names developers can attach
-         * @example [
-         *       "autoscaler",
-         *       "logger"
-         *     ]
+         * @description Kind of trait (Trait or ClusterTrait)
+         * @default Trait
+         * @enum {string}
          */
-        allowedTraits?: string[];
-      };
-      /** @description Observed state of the ComponentType */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
-      };
+        kind: 'Trait' | 'ClusterTrait';
+        /** @description Name of the Trait resource */
+        name: string;
+        /** @description Unique instance name for this trait */
+        instanceName: string;
+        /** @description Trait parameter bindings (concrete values or CEL expressions) */
+        parameters?: {
+          [key: string]: unknown;
+        };
+        /** @description Trait environment override bindings */
+        envOverrides?: {
+          [key: string]: unknown;
+        };
+      }[];
+      /** @description Restricts which Trait or ClusterTrait CRs developers can attach to Components of this type. Each entry is an object with "kind" (Trait or ClusterTrait, defaults to Trait) and "name". For example: {"kind": "Trait", "name": "my-trait"} or {"kind": "ClusterTrait", "name": "my-cluster-trait"}. If empty or omitted, no additional component-level traits are permitted (only embedded traits defined in spec.traits are allowed). */
+      allowedTraits?: {
+        /**
+         * @description Kind of trait reference
+         * @default Trait
+         * @enum {string}
+         */
+        kind: 'Trait' | 'ClusterTrait';
+        /** @description Name of the Trait or ClusterTrait resource */
+        name: string;
+      }[];
+      /** @description CEL-based validation rules evaluated during rendering */
+      validations?: {
+        /** @description CEL expression wrapped in ${...} that must evaluate to true */
+        rule: string;
+        /** @description Error message shown when the rule evaluates to false */
+        message: string;
+      }[];
+      /** @description Templates that generate Kubernetes resources dynamically */
+      resources: {
+        /** @description Unique identifier for this resource within the component type */
+        id: string;
+        /**
+         * @description Target plane for deployment
+         * @default dataplane
+         * @enum {string}
+         */
+        targetPlane: 'dataplane' | 'observabilityplane';
+        /** @description CEL expression determining if this resource should be created */
+        includeWhen?: string;
+        /** @description CEL expression for generating multiple resources from a list */
+        forEach?: string;
+        /** @description Loop variable name when using forEach */
+        var?: string;
+        /** @description Kubernetes resource template with CEL expressions */
+        template: {
+          [key: string]: unknown;
+        };
+      }[];
+    };
+    /** @description Observed state of a ComponentType */
+    ComponentTypeStatus: Record<string, never>;
+    /** @description ComponentType resource (Kubernetes object without kind/apiVersion).
+     *     Defines workload templates used by platform engineers to govern component behavior.
+     *      */
+    ComponentType: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ComponentTypeSpec'];
+      readonly status?: components['schemas']['ComponentTypeStatus'];
     };
     /** @description Paginated list of traits */
     TraitList: {
       items: components['schemas']['Trait'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Trait resource (Kubernetes object without kind/apiVersion). Read-only — defined by platform engineers. */
-    Trait: {
-      metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the Trait */
-      spec?: {
-        /** @description Trait parameter schema */
-        schema?: {
+    /** @description Desired state of a Trait */
+    TraitSpec: {
+      /** @description Trait parameter schema definition */
+      schema?: {
+        /** @description Reusable type definitions */
+        types?: {
           [key: string]: unknown;
         };
-        /** @description CEL-based validation rules */
-        validations?: {
+        /** @description Developer-facing configuration options */
+        parameters?: {
           [key: string]: unknown;
-        }[];
-        /** @description Kubernetes resources to create when trait is applied */
-        creates?: {
+        };
+        /** @description Environment-specific overrides */
+        envOverrides?: {
           [key: string]: unknown;
-        }[];
-        /** @description Patches to apply to existing resources */
-        patches?: {
-          [key: string]: unknown;
-        }[];
+        };
       };
-      /** @description Observed state of the Trait */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
-      };
+      /** @description CEL-based validation rules evaluated during rendering */
+      validations?: {
+        /** @description CEL expression wrapped in ${...} that must evaluate to true */
+        rule: string;
+        /** @description Error message shown when the rule evaluates to false */
+        message: string;
+      }[];
+      /** @description New Kubernetes resources to create when this trait is applied */
+      creates?: {
+        /**
+         * @description Target plane for deployment
+         * @default dataplane
+         * @enum {string}
+         */
+        targetPlane: 'dataplane' | 'observabilityplane';
+        /** @description CEL expression determining if this resource should be created */
+        includeWhen?: string;
+        /** @description CEL expression for generating multiple resources from a list */
+        forEach?: string;
+        /** @description Loop variable name when using forEach */
+        var?: string;
+        /** @description Kubernetes resource template with CEL expressions */
+        template: {
+          [key: string]: unknown;
+        };
+      }[];
+      /** @description Modifications to existing resources generated by the ComponentType */
+      patches?: {
+        /** @description CEL expression for repeating this patch */
+        forEach?: string;
+        /** @description Loop variable name when using forEach */
+        var?: string;
+        /** @description Target resource to patch */
+        target: {
+          /** @description API group of the resource */
+          group: string;
+          /** @description API version of the resource */
+          version: string;
+          /** @description Resource type to patch */
+          kind: string;
+          /** @description CEL expression to filter which resources to patch */
+          where?: string;
+        };
+        /**
+         * @description Target plane for this patch
+         * @default dataplane
+         * @enum {string}
+         */
+        targetPlane: 'dataplane' | 'observabilityplane';
+        /** @description JSONPatch operations to apply */
+        operations: {
+          /**
+           * @description Operation type
+           * @enum {string}
+           */
+          op: 'add' | 'replace' | 'remove';
+          /** @description JSON Pointer to the field to modify */
+          path: string;
+          /** @description Value to set (for add/replace operations) */
+          value?: unknown;
+        }[];
+      }[];
+    };
+    /** @description Observed state of a Trait */
+    TraitStatus: Record<string, never>;
+    /** @description Trait resource (Kubernetes object without kind/apiVersion).
+     *     Defines composable cross-cutting concerns that can be applied to components.
+     *      */
+    Trait: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['TraitSpec'];
+      readonly status?: components['schemas']['TraitStatus'];
     };
     /**
      * @description JSON Schema response for component types, traits, or workflows
@@ -2711,92 +3477,165 @@ export interface components {
       items: components['schemas']['Workflow'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Workflow resource (Kubernetes object without kind/apiVersion). */
     Workflow: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the Workflow */
-      spec?: {
-        /** @description Developer-facing parameter schema for workflow runs */
-        schema?: {
-          [key: string]: unknown;
-        };
-        /** @description Kubernetes resource template to render and apply to the cluster */
-        runTemplate?: {
-          [key: string]: unknown;
-        };
-        /** @description Additional Kubernetes resources to create alongside the run template */
-        resources?: {
-          [key: string]: unknown;
-        }[];
-        /**
-         * @description Time-to-live for workflow runs after completion (e.g., "90d", "1h30m")
-         * @example 90d
-         */
-        ttlAfterCompletion?: string;
+      spec?: components['schemas']['WorkflowSpec'];
+      readonly status?: components['schemas']['WorkflowStatus'];
+    };
+    /** @description Desired state of a Workflow */
+    WorkflowSpec: {
+      buildPlaneRef?: components['schemas']['BuildPlaneRef'];
+      schema?: components['schemas']['WorkflowSchema'];
+      /** @description Kubernetes resource template to render and apply for this workflow run. */
+      runTemplate: {
+        [key: string]: unknown;
       };
-      /** @description Observed state of the Workflow */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
+      /** @description Additional resource templates to render and apply alongside the workflow run. */
+      resources?: components['schemas']['WorkflowResource'][];
+      /** @description External CR references resolved and injected into the CEL context under their id. */
+      externalRefs?: components['schemas']['ExternalRef'][];
+      /** @description Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m). */
+      ttlAfterCompletion?: string;
+    };
+    /** @description Reference to a BuildPlane or ClusterBuildPlane */
+    BuildPlaneRef: {
+      /**
+       * @description Kind of build plane
+       * @example BuildPlane
+       * @enum {string}
+       */
+      kind: 'BuildPlane' | 'ClusterBuildPlane';
+      /**
+       * @description Name of the build plane resource
+       * @example default
+       */
+      name: string;
+    };
+    /** @description Developer-facing schema definition for workflow parameters */
+    WorkflowSchema: {
+      /** @description Reusable type definitions */
+      types?: {
+        [key: string]: unknown;
       };
+      /** @description Developer-facing configuration options */
+      parameters?: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Template for generating an additional Kubernetes resource for a workflow run. */
+    WorkflowResource: {
+      /** @description Unique identifier for this resource within the workflow. */
+      id: string;
+      /** @description CEL expression that determines whether this resource is rendered. */
+      includeWhen?: string;
+      /** @description Kubernetes resource template with CEL expressions. */
+      template: {
+        [key: string]: unknown;
+      };
+    };
+    /** @description Reference to an external CR whose spec is resolved and injected into the CEL context under the given id. */
+    ExternalRef: {
+      /** @description Unique identifier; becomes the CEL context variable name. */
+      id: string;
+      /** @description API version of the referenced resource. */
+      apiVersion: string;
+      /**
+       * @description Kind of the referenced resource.
+       * @enum {string}
+       */
+      kind: 'SecretReference';
+      /** @description Name of the referenced resource (supports CEL expressions). */
+      name: string;
+    };
+    /** @description Observed state of a Workflow */
+    WorkflowStatus: {
+      /** @description Kubernetes-style conditions */
+      conditions?: components['schemas']['Condition'][];
     };
     /** @description Paginated list of workflow runs */
     WorkflowRunList: {
       items: components['schemas']['WorkflowRun'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description WorkflowRun resource (Kubernetes object without kind/apiVersion). */
     WorkflowRun: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the WorkflowRun */
-      spec?: {
-        /** @description Workflow configuration referencing the Workflow CR */
-        workflow: {
-          /**
-           * @description Name of the Workflow CR to execute
-           * @example database-migration
-           */
-          name: string;
-          /** @description Developer-provided workflow parameter values */
-          parameters?: {
-            [key: string]: unknown;
-          };
-        };
-        /**
-         * @description Time-to-live after completion (e.g., "90d", "1h30m")
-         * @example 90d
-         */
-        ttlAfterCompletion?: string;
-      };
-      /** @description Observed state of the WorkflowRun */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
-        /** @description Workflow tasks with execution status */
-        tasks?: components['schemas']['WorkflowTask'][];
-        /**
-         * Format: date-time
-         * @description Timestamp when execution started
-         */
-        startedAt?: string;
-        /**
-         * Format: date-time
-         * @description Timestamp when execution completed
-         */
-        completedAt?: string;
+      spec?: components['schemas']['WorkflowRunSpec'];
+      readonly status?: components['schemas']['WorkflowRunStatus'];
+    };
+    /** @description Desired state of a WorkflowRun */
+    WorkflowRunSpec: {
+      workflow: components['schemas']['WorkflowRunConfig'];
+      /** @description Time-to-live for this workflow run after completion (duration string like 10d1h30m). */
+      ttlAfterCompletion?: string;
+    };
+    /** @description Workflow configuration referencing the Workflow and providing schema values. */
+    WorkflowRunConfig: {
+      /** @description Referenced Workflow name */
+      name: string;
+      /** @description Developer-provided parameters for the referenced workflow */
+      parameters?: {
+        [key: string]: unknown;
       };
     };
-    /** @description A single task/step in a workflow execution */
+    /** @description Reference to a Kubernetes resource applied during a workflow run */
+    ResourceReference: {
+      apiVersion: string;
+      kind: string;
+      name: string;
+      namespace?: string;
+    };
+    /** @description A single task/step within a workflow execution */
     WorkflowTask: {
+      name: string;
+      /** @description Current execution phase of the task */
+      phase?: string;
+      /** Format: date-time */
+      startedAt?: string;
+      /** Format: date-time */
+      completedAt?: string;
+      message?: string;
+    };
+    /** @description Observed state of a WorkflowRun */
+    WorkflowRunStatus: {
+      /** @description Kubernetes-style conditions */
+      conditions?: components['schemas']['Condition'][];
+      runReference?: components['schemas']['ResourceReference'];
+      resources?: components['schemas']['ResourceReference'][];
+      tasks?: components['schemas']['WorkflowTask'][];
+      /** Format: date-time */
+      startedAt?: string;
+      /** Format: date-time */
+      completedAt?: string;
+    };
+    /** @description Status of a workflow run including per-step details */
+    WorkflowRunStatusResponse: {
       /**
-       * @description Task name
-       * @example clone
+       * @description Overall workflow run status
+       * @example Running
+       * @enum {string}
        */
-      name?: string;
+      status: 'Pending' | 'Running' | 'Succeeded' | 'Failed' | 'Error';
+      /** @description Per-step status details */
+      steps: components['schemas']['WorkflowStepStatus'][];
       /**
-       * @description Execution phase
+       * @description Whether live logs/events are available from the build plane
+       * @example true
+       */
+      hasLiveObservability: boolean;
+    };
+    /** @description Status of an individual workflow step */
+    WorkflowStepStatus: {
+      /**
+       * @description Step name
+       * @example clone-step
+       */
+      name: string;
+      /**
+       * @description Step phase
        * @example Succeeded
        * @enum {string}
        */
-      phase?:
+      phase:
         | 'Pending'
         | 'Running'
         | 'Succeeded'
@@ -2805,143 +3644,94 @@ export interface components {
         | 'Error';
       /**
        * Format: date-time
-       * @description Timestamp when task started
+       * @description When the step started
+       * @example 2025-01-06T10:00:00Z
        */
       startedAt?: string;
       /**
        * Format: date-time
-       * @description Timestamp when task completed
+       * @description When the step finished
+       * @example 2025-01-06T10:01:00Z
        */
-      completedAt?: string;
-      /**
-       * @description Additional details about task status
-       * @example Build failed: out of memory
-       */
-      message?: string;
+      finishedAt?: string;
     };
-    /** @description Paginated list of component workflow templates */
-    ComponentWorkflowTemplateList: {
-      items: components['schemas']['ComponentWorkflowTemplate'][];
-      pagination: components['schemas']['Pagination'];
-    };
-    /** @description Component workflow template resource */
-    ComponentWorkflowTemplate: {
-      /**
-       * @description ComponentWorkflow name (unique within namespace)
-       * @example docker-build
-       */
-      name: string;
-      /**
-       * @description Human-readable display name
-       * @example Docker Build
-       */
-      displayName?: string;
-      /**
-       * @description ComponentWorkflow description
-       * @example Builds container images using Docker
-       */
-      description?: string;
+    /** @description A single log entry from a workflow run */
+    WorkflowRunLogEntry: {
       /**
        * Format: date-time
-       * @description Creation timestamp
+       * @description Log entry timestamp
        * @example 2025-01-06T10:00:00Z
        */
-      createdAt: string;
-    };
-    /** @description Request to update component workflow parameters */
-    UpdateComponentWorkflowRequest: {
+      timestamp?: string;
       /**
-       * @description ComponentWorkflow template name to use
-       * @example docker-build
+       * @description Log message
+       * @example Step 1: Cloning repository...
        */
-      workflowName?: string;
-      /** @description System parameters including repository configuration */
-      systemParameters?: {
-        repository?: {
-          /**
-           * @description Git repository URL
-           * @example https://github.com/org/repo.git
-           */
-          url?: string;
-          revision?: {
-            /**
-             * @description Git branch
-             * @example main
-             */
-            branch?: string;
-            /**
-             * @description Specific commit SHA
-             * @example abc1234
-             */
-            commit?: string;
-          };
-          /**
-           * @description Path to application within repository
-           * @example ./services/api
-           */
-          appPath?: string;
-        };
+      log: string;
+    };
+    /** @description A single Kubernetes event from a workflow run */
+    WorkflowRunEventEntry: {
+      /**
+       * Format: date-time
+       * @description Event timestamp
+       * @example 2025-01-06T10:00:00Z
+       */
+      timestamp: string;
+      /**
+       * @description Event type
+       * @example Normal
+       */
+      type: string;
+      /**
+       * @description Short machine-understandable reason for the event
+       * @example Started
+       */
+      reason: string;
+      /**
+       * @description Human-readable description of the event
+       * @example Container main started
+       */
+      message: string;
+    };
+    /** @description Request to create a new workflow run */
+    CreateWorkflowRunRequest: {
+      /**
+       * @description Name of the workflow to execute
+       * @example database-migration
+       */
+      workflowName: string;
+      /**
+       * @description User-defined workflow parameters
+       * @example {
+       *       "database_url": "postgresql://localhost:5432/mydb",
+       *       "migration_version": "v2.1.0"
+       *     }
+       */
+      parameters: {
+        [key: string]: unknown;
       };
-      /** @description User-defined workflow parameters */
+    };
+    /** @description Request to patch a component */
+    PatchComponentRequest: {
+      /**
+       * @description Controls auto-deployment to default environment
+       * @example true
+       */
+      autoDeploy?: boolean;
+      /** @description ComponentType parameters */
       parameters?: {
         [key: string]: unknown;
       };
     };
-    /** @description Paginated list of component workflow runs */
-    ComponentWorkflowRunList: {
-      items: components['schemas']['ComponentWorkflowRun'][];
-      pagination: components['schemas']['Pagination'];
-    };
-    /** @description ComponentWorkflowRun resource (Kubernetes object without kind/apiVersion). */
-    ComponentWorkflowRun: {
-      metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ComponentWorkflowRun */
-      spec?: {
-        /** @description Identifies the Component that owns this run */
-        owner: {
-          /** @example my-project */
-          projectName: string;
-          /** @example api-service */
-          componentName: string;
-        };
-        workflow: components['schemas']['ComponentWorkflowRunConfig'];
-        /**
-         * @description Time-to-live after completion (e.g., "90d", "1h30m")
-         * @example 90d
-         */
-        ttlAfterCompletion?: string;
-      };
-      /** @description Observed state of the ComponentWorkflowRun */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
-        /** @description Built container image information */
-        imageStatus?: {
-          /**
-           * @description Fully qualified image name
-           * @example registry.example.com/my-namespace/api-service:abc1234
-           */
-          image?: string;
-        };
-        /** @description Workflow tasks with execution status */
-        tasks?: components['schemas']['WorkflowTask'][];
-        /**
-         * Format: date-time
-         * @description Timestamp when execution started
-         */
-        startedAt?: string;
-        /**
-         * Format: date-time
-         * @description Timestamp when execution completed
-         */
-        completedAt?: string;
-      };
-    };
-    /** @description List of component traits */
-    ComponentTraitList: {
-      items: components['schemas']['ComponentTrait'][];
-    };
     /** @description Trait attached to a component */
     ComponentTrait: {
+      /**
+       * @description Kind of trait resource (Trait for namespace-scoped, ClusterTrait for cluster-scoped)
+       * @default Trait
+       * @example Trait
+       * @enum {string}
+       */
+      kind: 'Trait' | 'ClusterTrait';
       /**
        * @description Trait template name
        * @example autoscaler
@@ -2962,109 +3752,179 @@ export interface components {
       items: components['schemas']['ComponentRelease'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ComponentRelease resource — immutable snapshot of a Component at release time (Kubernetes object without kind/apiVersion). */
+    /** @description ComponentRelease resource (Kubernetes object without kind/apiVersion).
+     *     Immutable snapshot of component state at release time.
+     *      */
     ComponentRelease: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ComponentRelease (immutable once created) */
-      spec?: {
-        /** @description Identifies the component and project this release belongs to */
-        owner: {
-          /** @example my-project */
-          projectName: string;
-          /** @example api-service */
-          componentName: string;
-        };
-        /** @description Immutable snapshot of the ComponentType spec at release time */
-        componentType: {
-          [key: string]: unknown;
-        };
-        /** @description Immutable snapshot of trait specs at release time (keyed by trait name) */
-        traits?: {
-          [key: string]: unknown;
-        };
-        /** @description Snapshot of component parameter values and trait configs at release time */
-        componentProfile?: {
-          parameters?: {
-            [key: string]: unknown;
-          };
-          traits?: components['schemas']['ComponentTrait'][];
-        };
-        /** @description Immutable snapshot of the Workload spec at release time (with built image) */
-        workload: {
-          [key: string]: unknown;
-        };
+      spec?: components['schemas']['ComponentReleaseSpec'];
+      /** @description ComponentRelease status (currently empty, immutable after creation) */
+      readonly status?: Record<string, never>;
+    };
+    /** @description Desired state of a ComponentRelease */
+    ComponentReleaseSpec: {
+      /** @description Identifies the component and project this release belongs to */
+      owner: {
+        /**
+         * @description Parent project name
+         * @example my-project
+         */
+        projectName: string;
+        /**
+         * @description Parent component name
+         * @example api-service
+         */
+        componentName: string;
       };
-      /** @description Observed state of the ComponentRelease */
-      status?: Record<string, never>;
+      /** @description Frozen ComponentType spec at release time */
+      componentType: {
+        [key: string]: unknown;
+      };
+      /** @description Frozen trait specs at release time (keyed by trait name) */
+      traits?: {
+        [key: string]: unknown;
+      };
+      /** @description Snapshot of component parameters and trait configs */
+      componentProfile?: {
+        /** @description Component type parameters */
+        parameters?: {
+          [key: string]: unknown;
+        };
+        /** @description Component trait instances */
+        traits?: components['schemas']['ComponentTrait'][];
+      };
+      /** @description Frozen workload spec at release time */
+      workload: {
+        [key: string]: unknown;
+      };
     };
     /** @description Paginated list of release bindings */
     ReleaseBindingList: {
       items: components['schemas']['ReleaseBinding'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ReleaseBinding resource — binds a ComponentRelease to an Environment (Kubernetes object without kind/apiVersion). */
+    /** @description ReleaseBinding resource (Kubernetes object without kind/apiVersion).
+     *     Binds a ComponentRelease to a specific environment.
+     *      */
     ReleaseBinding: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the ReleaseBinding */
-      spec?: {
-        /** @description Identifies the component and project this binding belongs to */
-        owner: {
-          /** @example my-project */
-          projectName: string;
-          /** @example api-service */
-          componentName: string;
-        };
+      spec?: components['schemas']['ReleaseBindingSpec'];
+      readonly status?: components['schemas']['ReleaseBindingStatus'];
+    };
+    /** @description Desired state of a ReleaseBinding */
+    ReleaseBindingSpec: {
+      /** @description Owner identifies the component and project this ReleaseBinding belongs to */
+      owner: {
         /**
-         * @description Target environment name (immutable once set)
-         * @example dev
+         * @description Name of the project
+         * @example my-project
          */
-        environment: string;
+        projectName: string;
         /**
-         * @description Name of the ComponentRelease to bind
-         * @example api-service-abc1234
+         * @description Name of the component
+         * @example api-service
          */
-        releaseName?: string;
-        /** @description Environment-specific ComponentType parameter overrides */
-        componentTypeEnvOverrides?: {
-          [key: string]: unknown;
-        };
-        /** @description Environment-specific trait overrides keyed by instanceName */
-        traitOverrides?: {
-          [key: string]: unknown;
-        };
-        workloadOverrides?: components['schemas']['WorkloadOverrides'];
-        /**
-         * @description Controls whether resources are deployed or undeployed
-         * @default Active
-         * @example Active
-         * @enum {string}
-         */
-        state: 'Active' | 'Undeploy';
+        componentName: string;
       };
-      /** @description Observed state of the ReleaseBinding */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
-        /** @description Resolved invoke URLs for each named workload endpoint */
-        endpoints?: {
-          /**
-           * @description Endpoint name
-           * @example http
-           */
-          name?: string;
-          /**
-           * @description Resolved public URL
-           * @example https://api.example.com
-           */
-          invokeURL?: string;
-        }[];
+      /**
+       * @description Target environment name
+       * @example dev
+       */
+      environment: string;
+      /**
+       * @description Reference to component release
+       * @example v1.0.0
+       */
+      releaseName?: string;
+      /** @description Environment-specific ComponentType overrides */
+      componentTypeEnvOverrides?: {
+        [key: string]: unknown;
       };
+      /** @description Environment-specific trait overrides */
+      traitOverrides?: {
+        [key: string]: unknown;
+      };
+      workloadOverrides?: components['schemas']['WorkloadOverrides'];
+      /**
+       * @description Controls the state of the Release created by this binding
+       * @default Active
+       * @example Active
+       * @enum {string}
+       */
+      state: 'Active' | 'Undeploy';
+    };
+    /** @description Observed state of a ReleaseBinding */
+    ReleaseBindingStatus: {
+      /**
+       * Format: int64
+       * @description Most recent generation observed by the controller
+       */
+      observedGeneration?: number;
+      /**
+       * Format: date-time
+       * @description Timestamp of the last spec change observed by the controller
+       */
+      lastSpecUpdateTime?: string;
+      /** @description Latest available observations of the ReleaseBinding's current state */
+      conditions?: components['schemas']['Condition'][];
+      /** @description Resolved invoke URLs for each named workload endpoint */
+      endpoints?: components['schemas']['EndpointURLStatus'][];
+    };
+    /** @description Resolved URLs for a single named workload endpoint */
+    EndpointURLStatus: {
+      /**
+       * @description Endpoint name as defined in the Workload spec
+       * @example http
+       */
+      name: string;
+      /**
+       * @description Endpoint type (HTTP, REST, gRPC, GraphQL, Websocket, TCP, UDP)
+       * @example HTTP
+       * @enum {string}
+       */
+      type?: 'HTTP' | 'REST' | 'gRPC' | 'GraphQL' | 'Websocket' | 'TCP' | 'UDP';
+      serviceURL?: components['schemas']['EndpointURL'];
+      /**
+       * @description Resolved public URL for this endpoint, derived from the rendered HTTPRoute
+       * @example https://api-service-dev-default.example.com
+       */
+      invokeURL?: string;
+      internalURLs?: components['schemas']['EndpointGatewayURLs'];
+      externalURLs?: components['schemas']['EndpointGatewayURLs'];
+    };
+    /** @description Structured URL with its components */
+    EndpointURL: {
+      /**
+       * @description URL scheme (http, https, tcp, udp, ws, wss, tls)
+       * @example https
+       */
+      scheme?: string;
+      /**
+       * @description Hostname or IP address
+       * @example api-service-dev-default.example.com
+       */
+      host: string;
+      /**
+       * Format: int32
+       * @description Port number
+       * @example 443
+       */
+      port?: number;
+      /**
+       * @description URL path
+       * @example /api/v1
+       */
+      path?: string;
+    };
+    /** @description Resolved gateway URLs for an endpoint */
+    EndpointGatewayURLs: {
+      http?: components['schemas']['EndpointURL'];
+      https?: components['schemas']['EndpointURL'];
+      tls?: components['schemas']['EndpointURL'];
     };
     /** @description Environment-specific workload overrides */
     WorkloadOverrides: {
-      /** @description Container overrides keyed by container name */
-      containers?: {
-        [key: string]: components['schemas']['ContainerOverride'];
-      };
+      container?: components['schemas']['ContainerOverride'];
     };
     /** @description Container-level overrides */
     ContainerOverride: {
@@ -3111,19 +3971,234 @@ export interface components {
       value?: string;
       valueFrom?: components['schemas']['EnvVarValueFrom'];
     };
-    /** @description Deployed release with Kubernetes resources */
+    /** @description Paginated list of releases */
+    ReleaseList: {
+      items: components['schemas']['Release'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Release resource (Kubernetes object without kind/apiVersion).
+     *     Contains the final Kubernetes manifests deployed to data plane clusters.
+     *      */
     Release: {
-      /** @description Release specification */
-      spec?: {
-        /** @description Kubernetes resources in this release */
-        resources?: {
-          [key: string]: unknown;
-        }[];
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ReleaseSpec'];
+      readonly status?: components['schemas']['ReleaseStatus'];
+    };
+    /** @description Desired state of a Release */
+    ReleaseSpec: {
+      /** @description Owner identifies the component and project this Release belongs to */
+      owner: {
+        /**
+         * @description Name of the project
+         * @example my-project
+         */
+        projectName: string;
+        /**
+         * @description Name of the component
+         * @example api-service
+         */
+        componentName: string;
       };
-      /** @description Release status */
-      status?: {
+      /**
+       * @description Target environment for this release
+       * @example dev
+       */
+      environmentName: string;
+      /** @description Kubernetes resource templates to apply to the data plane */
+      resources?: {
+        /** @description Unique identifier for the resource */
+        id: string;
+        /** @description Complete Kubernetes resource definition */
+        object: {
+          [key: string]: unknown;
+        };
+      }[];
+      /**
+       * @description Target plane for deployment
+       * @default dataplane
+       * @example dataplane
+       * @enum {string}
+       */
+      targetPlane: 'dataplane' | 'observabilityplane';
+      /**
+       * @description Watch interval for stable release resources (e.g. 5m, 30s)
+       * @example 5m
+       */
+      interval?: string;
+      /**
+       * @description Watch interval for transitioning release resources (e.g. 10s)
+       * @example 10s
+       */
+      progressingInterval?: string;
+    };
+    /** @description Observed state of a Release */
+    ReleaseStatus: {
+      /** @description Latest available observations of the Release's current state */
+      conditions?: components['schemas']['Condition'][];
+      /** @description Resources applied to the data plane with their observed status */
+      resources?: {
+        /** @description Resource identifier matching spec.resources */
+        id?: string;
+        /** @description API group of the resource */
+        group?: string;
+        /** @description API version of the resource */
+        version?: string;
+        /** @description Kind of the resource */
+        kind?: string;
+        /** @description Name of the resource in the data plane */
+        name?: string;
+        /** @description Namespace of the resource in the data plane */
+        namespace?: string;
+        /**
+         * @description Health status of the resource
+         * @enum {string}
+         */
+        healthStatus?:
+          | 'Unknown'
+          | 'Progressing'
+          | 'Healthy'
+          | 'Suspended'
+          | 'Degraded';
+        /** @description Full status of the resource from the data plane */
+        status?: {
+          [key: string]: unknown;
+        };
+      }[];
+    };
+    /** @description Reference to a parent resource in the resource tree */
+    ResourceRef: {
+      /** @description API group of the resource */
+      group?: string;
+      /** @description API version of the resource */
+      version: string;
+      /** @description Kind of the resource */
+      kind: string;
+      /** @description Namespace of the resource */
+      namespace?: string;
+      /** @description Name of the resource */
+      name: string;
+      /** @description UID of the resource */
+      uid: string;
+    };
+    /** @description Health status for a resource node */
+    HealthInfo: {
+      /** @description Health status (Healthy, Degraded, Progressing, Unknown, etc.) */
+      status: string;
+      /** @description Optional human-readable message explaining the health status */
+      message?: string;
+    };
+    /** @description A single resource in the resource tree */
+    ResourceNode: {
+      /** @description API group of the resource */
+      group?: string;
+      /** @description API version of the resource */
+      version: string;
+      /** @description Kind of the resource */
+      kind: string;
+      /** @description Namespace of the resource */
+      namespace?: string;
+      /** @description Name of the resource */
+      name: string;
+      /** @description UID of the resource */
+      uid: string;
+      /** @description Resource version from Kubernetes */
+      resourceVersion?: string;
+      /**
+       * Format: date-time
+       * @description Creation timestamp of the resource
+       */
+      createdAt?: string;
+      /** @description References to parent resources */
+      parentRefs?: components['schemas']['ResourceRef'][];
+      /** @description Full Kubernetes resource object */
+      object: {
         [key: string]: unknown;
       };
+      health?: components['schemas']['HealthInfo'];
+    };
+    /** @description Response containing the resource tree for a release */
+    ResourceTreeResponse: {
+      /** @description All resource nodes in the tree */
+      nodes: components['schemas']['ResourceNode'][];
+    };
+    /** @description A Kubernetes event associated with a resource */
+    ResourceEvent: {
+      /**
+       * @description Type of the event (Normal or Warning)
+       * @example Normal
+       */
+      type: string;
+      /**
+       * @description Short machine-readable reason for the event
+       * @example Scheduled
+       */
+      reason: string;
+      /**
+       * @description Human-readable description of the event
+       * @example Successfully assigned default/my-pod to node-1
+       */
+      message: string;
+      /**
+       * @description Number of times this event has occurred
+       * @example 3
+       */
+      count?: number;
+      /**
+       * Format: date-time
+       * @description First time this event was recorded
+       */
+      firstTimestamp?: string;
+      /**
+       * Format: date-time
+       * @description Most recent time this event was recorded
+       */
+      lastTimestamp?: string;
+      /**
+       * @description Component that generated the event
+       * @example default-scheduler
+       */
+      source?: string;
+    };
+    /** @description Response containing events for a specific resource */
+    ResourceEventsResponse: {
+      /** @description Kubernetes events for the resource */
+      events: components['schemas']['ResourceEvent'][];
+    };
+    /** @description A single log entry from a pod */
+    PodLogEntry: {
+      /**
+       * Format: date-time
+       * @description Timestamp of the log entry in RFC3339 format
+       * @example 2024-01-10T12:34:56.789Z
+       */
+      timestamp: string;
+      /**
+       * @description Log message content
+       * @example Starting application server on port 8080
+       */
+      log: string;
+    };
+    /** @description Response containing logs for a specific pod */
+    ResourcePodLogsResponse: {
+      /** @description Log entries from the pod */
+      logEntries: components['schemas']['PodLogEntry'][];
+    };
+    /** @description Response containing resource trees for all releases owned by a release binding */
+    K8sResourceTreeResponse: {
+      /** @description Resource trees per release (dataplane and/or observabilityplane) */
+      releases: components['schemas']['ReleaseResourceTree'][];
+    };
+    /** @description Resource tree for a single release */
+    ReleaseResourceTree: {
+      /** @description Name of the release */
+      name: string;
+      /**
+       * @description Target plane of the release
+       * @enum {string}
+       */
+      targetPlane: 'dataplane' | 'observabilityplane';
+      /** @description All resource nodes in the tree */
+      nodes: components['schemas']['ResourceNode'][];
     };
     /** @description Request to deploy a release */
     DeployReleaseRequest: {
@@ -3146,6 +4221,14 @@ export interface components {
        */
       targetEnv: string;
     };
+    /** @description Request to generate an immutable release snapshot from the current component state */
+    GenerateReleaseRequest: {
+      /**
+       * @description Optional release name (auto-generated if not provided)
+       * @example v1.0.0
+       */
+      releaseName?: string;
+    };
     /** @description Simple message response */
     MessageResponse: {
       /**
@@ -3154,43 +4237,151 @@ export interface components {
        */
       message: string;
     };
-    /** @description Authorization role with permitted actions */
-    Role: {
-      /**
-       * @description Unique role name
-       * @example admin
-       */
-      name: string;
+    /** @description Cluster-scoped authorization role (Kubernetes CRD).
+     *     Defines a set of actions that can be assigned to subjects via role bindings.
+     *      */
+    AuthzClusterRole: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['AuthzClusterRoleSpec'];
+    };
+    /** @description Specification for a cluster-scoped authorization role */
+    AuthzClusterRoleSpec: {
       /**
        * @description List of actions this role permits
        * @example [
-       *       "read",
-       *       "write",
-       *       "delete"
+       *       "project:create",
+       *       "project:view",
+       *       "project:delete"
        *     ]
        */
       actions: string[];
       /**
-       * @description Namespace for namespace-scoped roles, empty for cluster roles
-       * @example my-namespace
-       */
-      namespace?: string;
-      /**
        * @description Human-readable description of the role
-       * @example Full administrative access
+       * @example Full cluster administration access
        */
       description?: string;
     };
-    /** @description Request to update a role's actions */
-    UpdateRoleRequest: {
+    /** @description List of cluster-scoped authorization roles */
+    AuthzClusterRoleList: {
+      items: components['schemas']['AuthzClusterRole'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Namespace-scoped authorization role (Kubernetes CRD).
+     *     Defines a set of actions that can be assigned to subjects via role bindings within a namespace.
+     *      */
+    AuthzRole: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['AuthzRoleSpec'];
+    };
+    /** @description Specification for a namespace-scoped authorization role */
+    AuthzRoleSpec: {
       /**
-       * @description New list of actions for the role
+       * @description List of actions this role permits
        * @example [
-       *       "read",
-       *       "write"
+       *       "component:create",
+       *       "component:view"
        *     ]
        */
       actions: string[];
+      /**
+       * @description Human-readable description of the role
+       * @example Developer access within namespace
+       */
+      description?: string;
+    };
+    /** @description List of namespace-scoped authorization roles */
+    AuthzRoleList: {
+      items: components['schemas']['AuthzRole'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Cluster-scoped role binding (Kubernetes CRD).
+     *     Binds a cluster role to a subject identified by an entitlement claim.
+     *      */
+    AuthzClusterRoleBinding: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['AuthzClusterRoleBindingSpec'];
+    };
+    /** @description Specification for a cluster-scoped role binding */
+    AuthzClusterRoleBindingSpec: {
+      entitlement: components['schemas']['AuthzEntitlementClaim'];
+      roleRef: components['schemas']['AuthzRoleRef'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+    };
+    /** @description List of cluster-scoped role bindings */
+    AuthzClusterRoleBindingList: {
+      items: components['schemas']['AuthzClusterRoleBinding'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Namespace-scoped role binding (Kubernetes CRD).
+     *     Binds a role to a subject identified by an entitlement claim within a namespace.
+     *      */
+    AuthzRoleBinding: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['AuthzRoleBindingSpec'];
+    };
+    /** @description Specification for a namespace-scoped role binding */
+    AuthzRoleBindingSpec: {
+      entitlement: components['schemas']['AuthzEntitlementClaim'];
+      roleRef: components['schemas']['AuthzRoleRef'];
+      targetPath?: components['schemas']['AuthzTargetPath'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+    };
+    /** @description List of namespace-scoped role bindings */
+    AuthzRoleBindingList: {
+      items: components['schemas']['AuthzRoleBinding'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description Entitlement claim-value pair for subject identification */
+    AuthzEntitlementClaim: {
+      /**
+       * @description JWT claim name
+       * @example groups
+       */
+      claim: string;
+      /**
+       * @description Entitlement value
+       * @example admin-group
+       */
+      value: string;
+    };
+    /** @description Reference to an AuthzRole or AuthzClusterRole */
+    AuthzRoleRef: {
+      /**
+       * @description Kind of role (AuthzRole or AuthzClusterRole)
+       * @example AuthzClusterRole
+       * @enum {string}
+       */
+      kind: 'AuthzRole' | 'AuthzClusterRole';
+      /**
+       * @description Name of the role
+       * @example admin
+       */
+      name: string;
+    };
+    /** @description Target resource path within a namespace (project/component scope) */
+    AuthzTargetPath: {
+      /**
+       * @description Project name
+       * @example my-project
+       */
+      project?: string;
+      /**
+       * @description Component name
+       * @example api-service
+       */
+      component?: string;
     };
     /** @description Entitlement with claim and value */
     Entitlement: {
@@ -3223,55 +4414,9 @@ export interface components {
        */
       component?: string;
     };
-    /** @description Target resource path within a namespace (project/component only) */
-    TargetPath: {
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      project?: string;
-      /**
-       * @description Component name
-       * @example api-service
-       */
-      component?: string;
-    };
     /** @description Additional context for authorization */
     AuthzContext: {
       [key: string]: unknown;
-    };
-    /** @description Mapping of a role to an entitlement within a scope */
-    RoleEntitlementMapping: {
-      /**
-       * @description Unique mapping name
-       * @example admin-binding
-       */
-      name: string;
-      role: components['schemas']['RoleRef'];
-      entitlement: components['schemas']['Entitlement'];
-      hierarchy: components['schemas']['ResourceHierarchy'];
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-      context?: components['schemas']['AuthzContext'];
-    };
-    /** @description Request to update a role mapping */
-    UpdateRoleMappingRequest: {
-      role: components['schemas']['RoleRef'];
-      entitlement: components['schemas']['Entitlement'];
-      hierarchy: components['schemas']['ResourceHierarchy'];
-      /**
-       * @description Policy effect (allow or deny)
-       * @default allow
-       * @example allow
-       * @enum {string}
-       */
-      effect: 'allow' | 'deny';
-      context?: components['schemas']['AuthzContext'];
     };
     /** @description Authenticated subject context */
     SubjectContext: {
@@ -3336,16 +4481,6 @@ export interface components {
         reason?: string;
       };
     };
-    /** @description Batch authorization evaluation request */
-    BatchEvaluateRequest: {
-      /** @description List of evaluation requests */
-      requests: components['schemas']['EvaluateRequest'][];
-    };
-    /** @description Batch authorization evaluation response */
-    BatchEvaluateResponse: {
-      /** @description List of decisions (in same order as requests) */
-      decisions: components['schemas']['Decision'][];
-    };
     /** @description Capabilities for a specific action */
     ActionCapability: {
       /** @description Resources where action is allowed */
@@ -3379,7 +4514,91 @@ export interface components {
        */
       evaluatedAt?: string;
     };
-    /** @description Reference to a cluster role by name only */
+    /** @description Authorization role with permitted actions (legacy) */
+    Role: {
+      /**
+       * @description Unique role name
+       * @example admin
+       */
+      name: string;
+      /**
+       * @description List of actions this role permits
+       * @example [
+       *       "read",
+       *       "write",
+       *       "delete"
+       *     ]
+       */
+      actions: string[];
+      /**
+       * @description Namespace for namespace-scoped roles, empty for cluster roles
+       * @example my-namespace
+       */
+      namespace?: string;
+      /**
+       * @description Human-readable description of the role
+       * @example Full administrative access
+       */
+      description?: string;
+    };
+    /** @description Request to update a role's actions (legacy) */
+    UpdateRoleRequest: {
+      /**
+       * @description New list of actions for the role
+       * @example [
+       *       "read",
+       *       "write"
+       *     ]
+       */
+      actions: string[];
+    };
+    /** @description Target resource path within a namespace (project/component only) (legacy) */
+    TargetPath: {
+      /**
+       * @description Project name
+       * @example my-project
+       */
+      project?: string;
+      /**
+       * @description Component name
+       * @example api-service
+       */
+      component?: string;
+    };
+    /** @description Mapping of a role to an entitlement within a scope (legacy) */
+    RoleEntitlementMapping: {
+      /**
+       * @description Unique mapping name
+       * @example admin-binding
+       */
+      name: string;
+      role: components['schemas']['RoleRef'];
+      entitlement: components['schemas']['Entitlement'];
+      hierarchy: components['schemas']['ResourceHierarchy'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+      context?: components['schemas']['AuthzContext'];
+    };
+    /** @description Request to update a role mapping (legacy) */
+    UpdateRoleMappingRequest: {
+      role: components['schemas']['RoleRef'];
+      entitlement: components['schemas']['Entitlement'];
+      hierarchy: components['schemas']['ResourceHierarchy'];
+      /**
+       * @description Policy effect (allow or deny)
+       * @default allow
+       * @example allow
+       * @enum {string}
+       */
+      effect: 'allow' | 'deny';
+      context?: components['schemas']['AuthzContext'];
+    };
+    /** @description Reference to a cluster role by name only (legacy) */
     ClusterRoleRef: {
       /**
        * @description Cluster role name
@@ -3387,7 +4606,7 @@ export interface components {
        */
       name: string;
     };
-    /** @description Reference to a role by name and namespace */
+    /** @description Reference to a role by name and namespace (legacy) */
     RoleRef: {
       /**
        * @description Role name
@@ -3400,7 +4619,7 @@ export interface components {
        */
       namespace?: string;
     };
-    /** @description Request to create a cluster-scoped role */
+    /** @description Request to create a cluster-scoped role (legacy) */
     CreateClusterRoleRequest: {
       /**
        * @description Unique cluster role name
@@ -3422,7 +4641,7 @@ export interface components {
        */
       description?: string;
     };
-    /** @description Request to update a cluster role */
+    /** @description Request to update a cluster role (legacy) */
     UpdateClusterRoleRequest: {
       /**
        * @description List of actions this role permits
@@ -3438,7 +4657,7 @@ export interface components {
        */
       description?: string;
     };
-    /** @description Request to create a cluster-scoped role binding */
+    /** @description Request to create a cluster-scoped role binding (legacy) */
     CreateClusterRoleBindingRequest: {
       /**
        * @description Unique cluster role binding name
@@ -3459,7 +4678,7 @@ export interface components {
        */
       effect: 'allow' | 'deny';
     };
-    /** @description Request to update a cluster role binding */
+    /** @description Request to update a cluster role binding (legacy) */
     UpdateClusterRoleBindingRequest: {
       entitlement: components['schemas']['Entitlement'];
       /**
@@ -3475,7 +4694,7 @@ export interface components {
        */
       effect: 'allow' | 'deny';
     };
-    /** @description Request to create a namespace-scoped role */
+    /** @description Request to create a namespace-scoped role (legacy) */
     CreateNamespaceRoleRequest: {
       /**
        * @description Unique namespace role name
@@ -3496,7 +4715,7 @@ export interface components {
        */
       description?: string;
     };
-    /** @description Request to update a namespace role */
+    /** @description Request to update a namespace role (legacy) */
     UpdateNamespaceRoleRequest: {
       /**
        * @description List of actions this role permits
@@ -3512,7 +4731,7 @@ export interface components {
        */
       description?: string;
     };
-    /** @description Request to create a namespace-scoped role binding */
+    /** @description Request to create a namespace-scoped role binding (legacy) */
     CreateNamespaceRoleBindingRequest: {
       /**
        * @description Unique namespace role binding name
@@ -3530,7 +4749,7 @@ export interface components {
        */
       effect: 'allow' | 'deny';
     };
-    /** @description Request to update a namespace role binding */
+    /** @description Request to update a namespace role binding (legacy) */
     UpdateNamespaceRoleBindingRequest: {
       entitlement: components['schemas']['Entitlement'];
       role: components['schemas']['RoleRef'];
@@ -3574,56 +4793,64 @@ export interface components {
       items: components['schemas']['SecretReference'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description SecretReference resource (Kubernetes object without kind/apiVersion). */
+    /** @description SecretReference resource (Kubernetes object without kind/apiVersion).
+     *     Defines references to external secrets that are synced into the cluster.
+     *      */
     SecretReference: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the SecretReference */
-      spec?: {
-        /** @description Structure of the resulting Kubernetes Secret */
-        template: {
-          /**
-           * @description Kubernetes secret type
-           * @default Opaque
-           * @example Opaque
-           * @enum {string}
-           */
-          type:
-            | 'Opaque'
-            | 'kubernetes.io/dockerconfigjson'
-            | 'kubernetes.io/dockercfg'
-            | 'kubernetes.io/basic-auth'
-            | 'kubernetes.io/ssh-auth'
-            | 'kubernetes.io/tls'
-            | 'bootstrap.kubernetes.io/token';
-          /** @description Additional metadata for the generated secret */
-          metadata?: {
-            annotations?: {
-              [key: string]: string;
-            };
-            labels?: {
-              [key: string]: string;
-            };
-          };
+      spec?: components['schemas']['SecretReferenceSpec'];
+      readonly status?: components['schemas']['SecretReferenceStatus'];
+    };
+    /** @description Desired state of a SecretReference */
+    SecretReferenceSpec: {
+      template: components['schemas']['SecretTemplate'];
+      /** @description Mapping of secret keys to external secret references */
+      data: components['schemas']['SecretDataSource'][];
+      /**
+       * @description How often to reconcile/refresh the secret
+       * @example 1h
+       */
+      refreshInterval?: string;
+    };
+    /** @description Observed state of a SecretReference */
+    SecretReferenceStatus: {
+      /** @description Latest available observations of the secret reference state */
+      conditions?: components['schemas']['Condition'][];
+      /**
+       * Format: date-time
+       * @description When the secret reference was last processed
+       * @example 2025-01-06T11:00:00Z
+       */
+      lastRefreshTime?: string;
+      /** @description Secret stores using this reference */
+      secretStores?: components['schemas']['SecretStoreReference'][];
+    };
+    /** @description Structure of the resulting Kubernetes Secret */
+    SecretTemplate: {
+      /**
+       * @description Type of the Kubernetes Secret
+       * @default Opaque
+       * @example Opaque
+       * @enum {string}
+       */
+      type:
+        | 'Opaque'
+        | 'kubernetes.io/dockerconfigjson'
+        | 'kubernetes.io/dockercfg'
+        | 'kubernetes.io/basic-auth'
+        | 'kubernetes.io/ssh-auth'
+        | 'kubernetes.io/tls'
+        | 'bootstrap.kubernetes.io/token';
+      /** @description Additional metadata for the generated secret */
+      metadata?: {
+        /** @description Annotations to add to the secret */
+        annotations?: {
+          [key: string]: string;
         };
-        /** @description Secret data sources mapping secret keys to external references */
-        data: components['schemas']['SecretDataSource'][];
-        /**
-         * @description Refresh interval for secret sync (e.g., "1h", "30m")
-         * @example 1h
-         */
-        refreshInterval?: string;
-      };
-      /** @description Observed state of the SecretReference */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
-        /**
-         * Format: date-time
-         * @description Last time the secret was refreshed
-         * @example 2025-01-06T11:00:00Z
-         */
-        lastRefreshTime?: string;
-        /** @description Secret stores currently using this reference */
-        secretStores?: components['schemas']['SecretStoreReference'][];
+        /** @description Labels to add to the secret */
+        labels?: {
+          [key: string]: string;
+        };
       };
     };
     /** @description Reference to a secret store */
@@ -3644,29 +4871,29 @@ export interface components {
        */
       kind: string;
     };
-    /** @description Secret data source information */
+    /** @description Secret data source mapping */
     SecretDataSource: {
       /**
-       * @description Key in the Kubernetes secret
+       * @description Key name in the Kubernetes Secret
        * @example database-password
        */
       secretKey: string;
       remoteRef: components['schemas']['RemoteReference'];
     };
-    /** @description Remote secret reference */
+    /** @description Points to a secret in an external secret store */
     RemoteReference: {
       /**
-       * @description Key in the external secret store
+       * @description Path in the external secret store
        * @example prod/database/password
        */
       key: string;
       /**
-       * @description Property within the secret
+       * @description Specific field within the secret
        * @example password
        */
       property?: string;
       /**
-       * @description Secret version
+       * @description Version of the secret to fetch
        * @example 1
        */
       version?: string;
@@ -3676,86 +4903,129 @@ export interface components {
       items: components['schemas']['Workload'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Workload resource defining source code for a component */
+    /** @description Workload resource (Kubernetes object without kind/apiVersion).
+     *     Defines the source code, container, endpoints and connections for a component.
+     *      */
     Workload: {
       metadata: components['schemas']['ObjectMeta'];
-      /**
-       * @description Workload specification
-       * @example {
-       *       "containers": {
-       *         "main": {
-       *           "image": "registry.example.com/my-namespace/api:v1.0.0",
-       *           "ports": [
-       *             {
-       *               "containerPort": 8080
-       *             }
-       *           ]
-       *         }
-       *       },
-       *       "endpoints": [
-       *         {
-       *           "name": "http",
-       *           "port": 8080
-       *         }
-       *       ]
-       *     }
-       */
-      spec?: {
-        [key: string]: unknown;
-      };
-      /** @description Workload status */
-      status?: {
-        conditions?: components['schemas']['Condition'][];
-      };
+      spec?: components['schemas']['WorkloadSpec'];
+      readonly status?: components['schemas']['WorkloadStatus'];
     };
-    /**
-     * @description Workload specification (source code definition)
-     * @example {
-     *       "containers": {
-     *         "main": {
-     *           "image": "registry.example.com/my-namespace/api:v1.0.0",
-     *           "ports": [
-     *             {
-     *               "containerPort": 8080
-     *             }
-     *           ]
-     *         }
-     *       },
-     *       "endpoints": [
-     *         {
-     *           "name": "http",
-     *           "port": 8080
-     *         }
-     *       ]
-     *     }
-     */
+    /** @description Desired state of a Workload */
     WorkloadSpec: {
-      [key: string]: unknown;
+      /** @description Owner reference for the workload */
+      owner?: {
+        /**
+         * @description Name of the owning project
+         * @example my-project
+         */
+        projectName: string;
+        /**
+         * @description Name of the owning component
+         * @example api-service
+         */
+        componentName: string;
+      };
+      container?: components['schemas']['WorkloadContainer'];
+      /** @description Named endpoint specifications */
+      endpoints?: {
+        [key: string]: components['schemas']['WorkloadEndpoint'];
+      };
+      /** @description Connection specifications for endpoints consumed by this workload */
+      connections?: components['schemas']['WorkloadConnection'][];
     };
-    /** @description Paginated list of releases */
-    ReleaseList: {
-      items: components['schemas']['Release'][];
-      pagination: components['schemas']['Pagination'];
+    /** @description Observed state of a Workload */
+    WorkloadStatus: Record<string, never>;
+    /** @description Container specification */
+    WorkloadContainer: {
+      /**
+       * @description OCI image to run (digest or tag)
+       * @example registry.example.com/my-namespace/api:v1.0.0
+       */
+      image: string;
+      /** @description Container entrypoint */
+      command?: string[];
+      /** @description Container arguments */
+      args?: string[];
+      /** @description Environment variables */
+      env?: components['schemas']['EnvVar'][];
+      /** @description File configurations */
+      files?: components['schemas']['FileVar'][];
+    };
+    /** @description Network endpoint specification */
+    WorkloadEndpoint: {
+      /** @description Additional endpoint visibilities beyond implicit project visibility */
+      visibility?: ('project' | 'namespace' | 'internal' | 'external')[];
+      /**
+       * @description Protocol/technology of the endpoint
+       * @enum {string}
+       */
+      type: 'HTTP' | 'REST' | 'gRPC' | 'GraphQL' | 'Websocket' | 'TCP' | 'UDP';
+      /** @description Port exposed by the endpoint */
+      port: number;
+      /** @description Container listening port (defaults to port) */
+      targetPort?: number;
+      /** @description Human-readable name for the endpoint */
+      displayName?: string;
+      /** @description Base path of the API exposed via the endpoint */
+      basePath?: string;
+      /** @description API definition schema */
+      schema?: {
+        type?: string;
+        content?: string;
+      };
+    };
+    /** @description A connection to another component's endpoint */
+    WorkloadConnection: {
+      /** @description Target component's project name. If empty, defaults to the same project as the consumer. */
+      project?: string;
+      /** @description Target component name */
+      component: string;
+      /** @description Target endpoint name on the target component */
+      endpoint: string;
+      /**
+       * @description Visibility level at which this connection consumes the endpoint
+       * @enum {string}
+       */
+      visibility: 'project' | 'namespace';
+      envBindings: components['schemas']['ConnectionEnvBindings'];
+    };
+    /** @description Maps resolved connection address components to environment variable names */
+    ConnectionEnvBindings: {
+      /** @description Env var name for the protocol-appropriate connection string.
+       *     For HTTP/HTTPS/WS/WSS: scheme://host:port/basePath
+       *     For gRPC/TCP/UDP: host:port
+       *      */
+      address?: string;
+      /** @description Env var name for just the hostname */
+      host?: string;
+      /** @description Env var name for just the port number */
+      port?: string;
+      /** @description Env var name for just the base path */
+      basePath?: string;
     };
     /** @description Paginated list of deployment pipelines */
     DeploymentPipelineList: {
       items: components['schemas']['DeploymentPipeline'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description DeploymentPipeline resource (Kubernetes object without kind/apiVersion). */
+    /** @description DeploymentPipeline resource (Kubernetes object without kind/apiVersion).
+     *     Defines promotion paths between environments for component deployments.
+     *      */
     DeploymentPipeline: {
       metadata: components['schemas']['ObjectMeta'];
-      /** @description Desired state of the DeploymentPipeline */
-      spec?: {
-        /** @description Promotion paths between environments */
-        promotionPaths?: components['schemas']['PromotionPath'][];
-      };
-      /** @description Observed state of the DeploymentPipeline */
-      status?: {
-        /** Format: int64 */
-        observedGeneration?: number;
-        conditions?: components['schemas']['Condition'][];
-      };
+      spec?: components['schemas']['DeploymentPipelineSpec'];
+      readonly status?: components['schemas']['DeploymentPipelineStatus'];
+    };
+    /** @description Desired state of a DeploymentPipeline */
+    DeploymentPipelineSpec: {
+      /** @description Promotion paths between environments */
+      promotionPaths?: components['schemas']['PromotionPath'][];
+    };
+    /** @description Observed state of a DeploymentPipeline */
+    DeploymentPipelineStatus: {
+      /** @description Latest available observations of the deployment pipeline state */
+      conditions?: components['schemas']['Condition'][];
     };
     /** @description Promotion path between environments */
     PromotionPath: {
@@ -3785,6 +5055,193 @@ export interface components {
        */
       isManualApprovalRequired?: boolean;
     };
+    /** @description Paginated list of observability alerts notification channels */
+    ObservabilityAlertsNotificationChannelList: {
+      items: components['schemas']['ObservabilityAlertsNotificationChannel'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description ObservabilityAlertsNotificationChannel resource (Kubernetes object without kind/apiVersion).
+     *     Defines a channel for sending alert notifications. Currently email and webhook notifications are supported.
+     *      */
+    ObservabilityAlertsNotificationChannel: {
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ObservabilityAlertsNotificationChannelSpec'];
+      readonly status?: components['schemas']['ObservabilityAlertsNotificationChannelStatus'];
+    };
+    /** @description Desired state of an ObservabilityAlertsNotificationChannel */
+    ObservabilityAlertsNotificationChannelSpec: {
+      /**
+       * @description Name of the openchoreo environment this notification channel belongs to
+       * @example dev
+       */
+      environment: string;
+      /**
+       * @description Whether this is the default notification channel for the environment
+       * @default false
+       */
+      isEnvDefault: boolean;
+      /**
+       * @description Type of notification channel
+       * @example email
+       * @enum {string}
+       */
+      type: 'email' | 'webhook';
+      emailConfig?: components['schemas']['NotificationEmailConfig'];
+      webhookConfig?: components['schemas']['NotificationWebhookConfig'];
+    } & (
+      | {
+          /** @enum {unknown} */
+          type: 'email';
+        }
+      | {
+          /** @enum {unknown} */
+          type: 'webhook';
+        }
+    );
+    /** @description Observed state of an ObservabilityAlertsNotificationChannel */
+    ObservabilityAlertsNotificationChannelStatus: Record<string, never>;
+    /** @description Configuration for email notification channels */
+    NotificationEmailConfig: {
+      /**
+       * @description Sender email address
+       * @example alerts@example.com
+       */
+      from: string;
+      /**
+       * @description List of recipient email addresses
+       * @example [
+       *       "team@example.com"
+       *     ]
+       */
+      to: string[];
+      smtp: components['schemas']['NotificationSMTPConfig'];
+      template: components['schemas']['NotificationEmailTemplate'];
+    };
+    /** @description SMTP server configuration */
+    NotificationSMTPConfig: {
+      /**
+       * @description SMTP server hostname
+       * @example smtp.example.com
+       */
+      host: string;
+      /**
+       * @description SMTP server port
+       * @example 587
+       */
+      port: number;
+      auth: components['schemas']['NotificationSMTPAuth'];
+      tls: components['schemas']['NotificationSMTPTLSConfig'];
+    };
+    /** @description SMTP authentication configuration */
+    NotificationSMTPAuth: {
+      username: components['schemas']['NotificationSecretValueFrom'];
+      password: components['schemas']['NotificationSecretValueFrom'];
+    };
+    /** @description TLS configuration for SMTP */
+    NotificationSMTPTLSConfig: {
+      /**
+       * @description Skip TLS certificate verification (not recommended for production)
+       * @default false
+       */
+      insecureSkipVerify: boolean;
+    };
+    /** @description Email template with CEL expressions */
+    NotificationEmailTemplate: {
+      /**
+       * @description Email subject line template using CEL expressions
+       * @example [${alert.severity}] - ${alert.name} Triggered
+       */
+      subject: string;
+      /**
+       * @description Email body template using CEL expressions
+       * @example Alert: ${alert.name} triggered at ${alert.startsAt}.
+       */
+      body: string;
+    };
+    /** @description Configuration for webhook notification channels */
+    NotificationWebhookConfig: {
+      /**
+       * Format: uri
+       * @description Webhook endpoint URL where alerts will be sent
+       * @example https://hooks.slack.com/services/example
+       */
+      url: string;
+      /** @description Optional HTTP headers to include in the webhook request */
+      headers?: {
+        [key: string]: components['schemas']['NotificationWebhookHeaderValue'];
+      };
+      /** @description Optional JSON payload template using CEL expressions */
+      payloadTemplate?: string;
+    };
+    /** @description Header value that can be provided inline or via secret reference */
+    NotificationWebhookHeaderValue: {
+      /** @description Inline header value */
+      value?: string;
+      valueFrom?: components['schemas']['NotificationSecretValueFrom'];
+    };
+    /** @description How to obtain a secret value */
+    NotificationSecretValueFrom: {
+      secretKeyRef?: components['schemas']['NotificationSecretKeyRef'];
+    };
+    /** @description Reference to a specific key in a Kubernetes secret */
+    NotificationSecretKeyRef: {
+      /**
+       * @description Name of the Kubernetes secret
+       * @example smtp-credentials
+       */
+      name?: string;
+      /**
+       * @description Key within the secret
+       * @example password
+       */
+      key?: string;
+    };
+    /** @description Request body for creating a git secret */
+    CreateGitSecretRequest: {
+      /**
+       * @description Name of the git secret
+       * @example my-git-secret
+       */
+      secretName: string;
+      /**
+       * @description Authentication type
+       * @example basic-auth
+       * @enum {string}
+       */
+      secretType: 'basic-auth' | 'ssh-auth';
+      /** @description Username for basic authentication (optional) */
+      username?: string;
+      /** @description Authentication token (required for basic-auth) */
+      token?: string;
+      /** @description SSH private key (required for ssh-auth) */
+      sshKey?: string;
+      /** @description SSH key ID for AWS CodeCommit (optional for ssh-auth) */
+      sshKeyId?: string;
+    };
+    /** @description Git secret resource */
+    GitSecretResponse: {
+      /**
+       * @description Name of the git secret
+       * @example my-git-secret
+       */
+      name?: string;
+      /**
+       * @description Namespace of the git secret
+       * @example my-namespace
+       */
+      namespace?: string;
+    };
+    /** @description List of git secrets */
+    GitSecretListResponse: {
+      /** @description List of git secrets */
+      items: components['schemas']['GitSecretResponse'][];
+      /** @description Total number of items */
+      totalCount?: number;
+      /** @description Current page number */
+      page?: number;
+      /** @description Number of items per page */
+      pageSize?: number;
+    };
   };
   responses: {
     /** @description Invalid request parameters */
@@ -3793,18 +5250,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Invalid request: name is required",
-         *       "code": "BAD_REQUEST",
-         *       "details": [
-         *         {
-         *           "field": "name",
-         *           "message": "is required"
-         *         }
-         *       ]
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3814,12 +5259,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Authentication required",
-         *       "code": "UNAUTHORIZED"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3829,12 +5268,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "You do not have permission to access this resource",
-         *       "code": "FORBIDDEN"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3844,12 +5277,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Project 'my-project' not found",
-         *       "code": "NOT_FOUND"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3859,12 +5286,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Project 'my-project' already exists",
-         *       "code": "CONFLICT"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3874,12 +5295,6 @@ export interface components {
         [name: string]: unknown;
       };
       content: {
-        /**
-         * @example {
-         *       "error": "Internal server error",
-         *       "code": "INTERNAL_ERROR"
-         *     }
-         */
         'application/json': components['schemas']['ErrorResponse'];
       };
     };
@@ -3889,6 +5304,18 @@ export interface components {
     NamespaceNameParam: string;
     /** @description Project name */
     ProjectNameParam: string;
+    /** @description Build plane name */
+    BuildPlaneNameParam: string;
+    /** @description Filter resources by project name */
+    ProjectQueryParam: string;
+    /** @description Filter resources by component name */
+    ComponentQueryParam: string;
+    /** @description Filter workflow runs by workflow name */
+    WorkflowQueryParam: string;
+    /** @description Filter resources by environment name */
+    EnvironmentQueryParam: string;
+    /** @description Workload name */
+    WorkloadNameParam: string;
     /** @description Environment name */
     EnvironmentNameParam: string;
     /** @description Environment name for component-scoped operations */
@@ -3897,39 +5324,48 @@ export interface components {
     DataPlaneNameParam: string;
     /** @description ClusterDataPlane name */
     ClusterDataPlaneNameParam: string;
+    /** @description ObservabilityPlane name */
+    ObservabilityPlaneNameParam: string;
+    /** @description ClusterObservabilityPlane name */
+    ClusterObservabilityPlaneNameParam: string;
     /** @description ComponentType name */
     ComponentTypeNameParam: string;
+    /** @description ClusterComponentType name */
+    ClusterComponentTypeNameParam: string;
+    /** @description ClusterTrait name */
+    ClusterTraitNameParam: string;
     /** @description Trait name */
     TraitNameParam: string;
+    /** @description Secret reference name */
+    SecretReferenceNameParam: string;
+    /** @description Deployment pipeline name */
+    DeploymentPipelineNameParam: string;
+    /** @description Observability alerts notification channel name */
+    ObservabilityAlertsNotificationChannelNameParam: string;
     /** @description Workflow name */
     WorkflowNameParam: string;
-    /** @description ComponentWorkflow name */
-    ComponentWorkflowNameParam: string;
     /** @description Component name */
     ComponentNameParam: string;
     /** @description Workflow run name */
     WorkflowRunNameParam: string;
-    /** @description Binding name */
-    BindingNameParam: string;
+    /** @description Release binding name */
+    ReleaseBindingNameParam: string;
+    /** @description Component release name */
+    ComponentReleaseNameParam: string;
     /** @description Release name */
     ReleaseNameParam: string;
     /** @description Role name */
     RoleNameParam: string;
     /** @description Role mapping ID */
     MappingIdParam: number;
+    /** @description Git secret name */
+    GitSecretNameParam: string;
     /** @description Maximum number of items to return per page */
     LimitParam: number;
-    /**
-     * @description Opaque pagination cursor from a previous response.
+    /** @description Opaque pagination cursor from a previous response.
      *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-     */
+     *      */
     CursorParam: string;
-    /** @description Filter by project name */
-    ProjectQueryParam: string;
-    /** @description Filter by component name */
-    ComponentQueryParam: string;
-    /** @description Filter by environment name */
-    EnvironmentQueryParam: string;
   };
   requestBodies: never;
   headers: never;
@@ -4037,35 +5473,14 @@ export interface operations {
       };
     };
   };
-  getOpenIDConfiguration: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OpenID configuration */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ClientConfigList'];
-        };
-      };
-    };
-  };
   listNamespaces: {
     parameters: {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4113,15 +5528,7 @@ export interface operations {
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
-      /** @description Namespace already exists */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
+      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -4181,7 +5588,6 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
-      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -4215,10 +5621,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4371,14 +5776,13 @@ export interface operations {
   listComponents: {
     parameters: {
       query?: {
-        /** @description Filter by project name */
+        /** @description Filter resources by project name */
         project?: components['parameters']['ProjectQueryParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4433,7 +5837,6 @@ export interface operations {
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
       409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
@@ -4443,10 +5846,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4658,10 +6060,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -4812,7 +6213,14 @@ export interface operations {
   };
   listBuildPlanes: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path: {
         /** @description Namespace name */
@@ -4875,14 +6283,14 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description BuildPlane name */
-        bpName: string;
+        /** @description Build plane name */
+        buildPlaneName: components['parameters']['BuildPlaneNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description BuildPlane details */
+      /** @description Build plane details */
       200: {
         headers: {
           [name: string]: unknown;
@@ -4904,8 +6312,8 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description BuildPlane name */
-        bpName: string;
+        /** @description Build plane name */
+        buildPlaneName: components['parameters']['BuildPlaneNameParam'];
       };
       cookie?: never;
     };
@@ -4939,8 +6347,8 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description BuildPlane name */
-        bpName: string;
+        /** @description Build plane name */
+        buildPlaneName: components['parameters']['BuildPlaneNameParam'];
       };
       cookie?: never;
     };
@@ -4961,7 +6369,14 @@ export interface operations {
   };
   listObservabilityPlanes: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path: {
         /** @description Namespace name */
@@ -5025,13 +6440,13 @@ export interface operations {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
         /** @description ObservabilityPlane name */
-        opName: string;
+        observabilityPlaneName: components['parameters']['ObservabilityPlaneNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description ObservabilityPlane details */
+      /** @description Observability plane details */
       200: {
         headers: {
           [name: string]: unknown;
@@ -5054,7 +6469,7 @@ export interface operations {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
         /** @description ObservabilityPlane name */
-        opName: string;
+        observabilityPlaneName: components['parameters']['ObservabilityPlaneNameParam'];
       };
       cookie?: never;
     };
@@ -5089,7 +6504,7 @@ export interface operations {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
         /** @description ObservabilityPlane name */
-        opName: string;
+        observabilityPlaneName: components['parameters']['ObservabilityPlaneNameParam'];
       };
       cookie?: never;
     };
@@ -5113,10 +6528,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5256,7 +6670,14 @@ export interface operations {
   };
   listClusterBuildPlanes: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -5311,14 +6732,14 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description ClusterBuildPlane name */
-        cbpName: string;
+        /** @description Name of the cluster build plane */
+        clusterBuildPlaneName: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description ClusterBuildPlane details */
+      /** @description Cluster build plane details */
       200: {
         headers: {
           [name: string]: unknown;
@@ -5338,8 +6759,8 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description ClusterBuildPlane name */
-        cbpName: string;
+        /** @description Name of the cluster build plane */
+        clusterBuildPlaneName: string;
       };
       cookie?: never;
     };
@@ -5371,8 +6792,8 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description ClusterBuildPlane name */
-        cbpName: string;
+        /** @description Name of the cluster build plane */
+        clusterBuildPlaneName: string;
       };
       cookie?: never;
     };
@@ -5393,7 +6814,14 @@ export interface operations {
   };
   listClusterObservabilityPlanes: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -5449,13 +6877,13 @@ export interface operations {
       header?: never;
       path: {
         /** @description ClusterObservabilityPlane name */
-        copName: string;
+        clusterObservabilityPlaneName: components['parameters']['ClusterObservabilityPlaneNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description ClusterObservabilityPlane details */
+      /** @description Cluster observability plane details */
       200: {
         headers: {
           [name: string]: unknown;
@@ -5476,7 +6904,7 @@ export interface operations {
       header?: never;
       path: {
         /** @description ClusterObservabilityPlane name */
-        copName: string;
+        clusterObservabilityPlaneName: components['parameters']['ClusterObservabilityPlaneNameParam'];
       };
       cookie?: never;
     };
@@ -5509,7 +6937,7 @@ export interface operations {
       header?: never;
       path: {
         /** @description ClusterObservabilityPlane name */
-        copName: string;
+        clusterObservabilityPlaneName: components['parameters']['ClusterObservabilityPlaneNameParam'];
       };
       cookie?: never;
     };
@@ -5528,15 +6956,356 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  listClusterComponentTypes: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster component types */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterComponentTypeList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterComponentType'];
+      };
+    };
+    responses: {
+      /** @description Cluster component type created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterComponentType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterComponentType name */
+        cctName: components['parameters']['ClusterComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster component type details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterComponentType'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterComponentType name */
+        cctName: components['parameters']['ClusterComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterComponentType'];
+      };
+    };
+    responses: {
+      /** @description Cluster component type updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterComponentType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterComponentType name */
+        cctName: components['parameters']['ClusterComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterComponentType deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterComponentTypeSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterComponentType name */
+        cctName: components['parameters']['ClusterComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster component type schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listClusterTraits: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster traits */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterTraitList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterTrait'];
+      };
+    };
+    responses: {
+      /** @description Cluster trait created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterTrait'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterTrait name */
+        clusterTraitName: components['parameters']['ClusterTraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster trait details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterTrait'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterTrait name */
+        clusterTraitName: components['parameters']['ClusterTraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterTrait'];
+      };
+    };
+    responses: {
+      /** @description Cluster trait updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterTrait'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterTrait name */
+        clusterTraitName: components['parameters']['ClusterTraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterTrait deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterTraitSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterTrait name */
+        clusterTraitName: components['parameters']['ClusterTraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster trait schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
   listComponentTypes: {
     parameters: {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5559,6 +7328,129 @@ export interface operations {
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ComponentType'];
+      };
+    };
+    responses: {
+      /** @description Component type created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ComponentType name */
+        ctName: components['parameters']['ComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component type details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentType'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ComponentType name */
+        ctName: components['parameters']['ComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ComponentType'];
+      };
+    };
+    responses: {
+      /** @description Component type updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentType'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteComponentType: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description ComponentType name */
+        ctName: components['parameters']['ComponentTypeNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component type deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };
@@ -5596,10 +7488,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5622,6 +7513,129 @@ export interface operations {
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Trait'];
+      };
+    };
+    responses: {
+      /** @description Trait created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Trait'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Trait name */
+        traitName: components['parameters']['TraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Trait details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Trait'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Trait name */
+        traitName: components['parameters']['TraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Trait'];
+      };
+    };
+    responses: {
+      /** @description Trait updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Trait'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteTrait: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Trait name */
+        traitName: components['parameters']['TraitNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Trait deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };
@@ -5659,10 +7673,9 @@ export interface operations {
       query?: {
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5843,12 +7856,13 @@ export interface operations {
   listWorkflowRuns: {
     parameters: {
       query?: {
+        /** @description Filter workflow runs by workflow name */
+        workflow?: components['parameters']['WorkflowQueryParam'];
         /** @description Maximum number of items to return per page */
         limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
+        /** @description Opaque pagination cursor from a previous response.
          *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
+         *      */
         cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
@@ -5935,7 +7949,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  deleteWorkflowRun: {
+  getWorkflowRunStatus: {
     parameters: {
       query?: never;
       header?: never;
@@ -5949,77 +7963,81 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Workflow run deleted successfully */
-      204: {
+      /** @description Workflow run status */
+      200: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['WorkflowRunStatusResponse'];
+        };
       };
-      401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };
-  listComponentWorkflows: {
+  getWorkflowRunLogs: {
     parameters: {
       query?: {
-        /** @description Maximum number of items to return per page */
-        limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
-         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
-        cursor?: components['parameters']['CursorParam'];
+        /** @description Filter logs by task name */
+        task?: string;
+        /** @description Return logs newer than a relative duration in seconds */
+        sinceSeconds?: number;
       };
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description List of component workflows */
+      /** @description Workflow run logs */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentWorkflowTemplateList'];
+          'application/json': components['schemas']['WorkflowRunLogEntry'][];
         };
       };
-      401: components['responses']['Unauthorized'];
+      400: components['responses']['BadRequest'];
       403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };
-  getComponentWorkflowSchema: {
+  getWorkflowRunEvents: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Filter events by task name */
+        task?: string;
+      };
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description ComponentWorkflow name */
-        cwName: components['parameters']['ComponentWorkflowNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Component workflow schema */
+      /** @description Workflow run events */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['SchemaResponse'];
+          'application/json': components['schemas']['WorkflowRunEventEntry'][];
         };
       };
-      401: components['responses']['Unauthorized'];
+      400: components['responses']['BadRequest'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
@@ -6072,7 +8090,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Component updated */
+      /** @description Component updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
@@ -6085,6 +8103,7 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -6144,66 +8163,31 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  listComponentReleases: {
-    parameters: {
-      query?: {
-        /** @description Filter by project name */
-        project?: components['parameters']['ProjectQueryParam'];
-        /** @description Filter by component name */
-        component?: components['parameters']['ComponentQueryParam'];
-        /** @description Maximum number of items to return per page */
-        limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
-         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
-        cursor?: components['parameters']['CursorParam'];
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description List of component releases */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ComponentReleaseList'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getComponentRelease: {
+  getReleaseResourceTree: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Release name */
-        releaseName: components['parameters']['ReleaseNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Environment name for component-scoped operations */
+        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Component release details */
+      /** @description Resource tree for the active release */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentRelease'];
+          'application/json': components['schemas']['ResourceTreeResponse'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -6212,119 +8196,40 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  deleteComponentRelease: {
+  getReleaseResourceEvents: {
     parameters: {
-      query?: never;
+      query: {
+        /** @description Kind of the resource */
+        kind: string;
+        /** @description Name of the resource */
+        name: string;
+        /** @description Namespace of the resource */
+        namespace?: string;
+        /** @description UID of the resource for precise event matching */
+        uid?: string;
+      };
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Release name */
-        releaseName: components['parameters']['ReleaseNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Environment name for component-scoped operations */
+        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Component release deleted successfully */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getComponentReleaseSchema: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Release name */
-        releaseName: components['parameters']['ReleaseNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Component release schema */
+      /** @description Events for the specified resource */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['SchemaResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  listReleaseBindings: {
-    parameters: {
-      query?: {
-        /** @description Filter by project name */
-        project?: components['parameters']['ProjectQueryParam'];
-        /** @description Filter by component name */
-        component?: components['parameters']['ComponentQueryParam'];
-        /** @description Filter by environment name */
-        environment?: components['parameters']['EnvironmentQueryParam'];
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description List of release bindings */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReleaseBindingList'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  createReleaseBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ReleaseBinding'];
-      };
-    };
-    responses: {
-      /** @description Release binding created */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReleaseBinding'];
+          'application/json': components['schemas']['ResourceEventsResponse'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -6334,122 +8239,43 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  getReleaseBinding: {
+  getReleaseResourcePodLogs: {
     parameters: {
-      query?: never;
+      query: {
+        /** @description Name of the pod */
+        name: string;
+        /** @description Namespace of the pod */
+        namespace: string;
+        /** @description Specific container name to get logs from */
+        container?: string;
+        /** @description Only return logs newer than this many seconds */
+        sinceSeconds?: number;
+      };
       header?: never;
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Binding name */
-        bindingName: components['parameters']['BindingNameParam'];
+        /** @description Project name */
+        projectName: components['parameters']['ProjectNameParam'];
+        /** @description Component name */
+        componentName: components['parameters']['ComponentNameParam'];
+        /** @description Environment name for component-scoped operations */
+        environmentName: components['parameters']['ComponentEnvironmentNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Release binding details */
+      /** @description Logs for the specified pod */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ReleaseBinding'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  updateReleaseBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Binding name */
-        bindingName: components['parameters']['BindingNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ReleaseBinding'];
-      };
-    };
-    responses: {
-      /** @description Release binding updated */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReleaseBinding'];
+          'application/json': components['schemas']['ResourcePodLogsResponse'];
         };
       };
       400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  deleteReleaseBinding: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Binding name */
-        bindingName: components['parameters']['BindingNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Release binding deleted successfully */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  listReleases: {
-    parameters: {
-      query?: {
-        /** @description Filter by component name */
-        component?: components['parameters']['ComponentQueryParam'];
-        /** @description Filter by environment name */
-        environment?: components['parameters']['EnvironmentQueryParam'];
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description List of releases */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReleaseList'];
-        };
-      };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -6524,36 +8350,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  getBuildObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Component name */
-        componentName: components['parameters']['ComponentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Observer URL */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ObserverURLResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  updateComponentWorkflowParameters: {
+  generateRelease: {
     parameters: {
       query?: never;
       header?: never;
@@ -6567,150 +8364,20 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateComponentWorkflowRequest'];
+        'application/json': components['schemas']['GenerateReleaseRequest'];
       };
     };
     responses: {
-      /** @description Workflow parameters updated */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Component'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  listComponentWorkflowRuns: {
-    parameters: {
-      query?: {
-        /** @description Filter by project name */
-        project?: components['parameters']['ProjectQueryParam'];
-        /** @description Filter by component name */
-        component?: components['parameters']['ComponentQueryParam'];
-        /** @description Maximum number of items to return per page */
-        limit?: components['parameters']['LimitParam'];
-        /**
-         * @description Opaque pagination cursor from a previous response.
-         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         */
-        cursor?: components['parameters']['CursorParam'];
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description List of workflow runs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ComponentWorkflowRunList'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  createComponentWorkflowRun: {
-    parameters: {
-      query?: {
-        /** @description Specific git commit SHA to build (optional) */
-        commit?: string;
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ComponentWorkflowRun'];
-      };
-    };
-    responses: {
-      /** @description Workflow run triggered */
+      /** @description Component release created */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentWorkflowRun'];
+          'application/json': components['schemas']['ComponentRelease'];
         };
       };
       400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getComponentWorkflowRun: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Workflow run name */
-        runName: components['parameters']['WorkflowRunNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Workflow run details */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ComponentWorkflowRun'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  deleteComponentWorkflowRun: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Workflow run name */
-        runName: components['parameters']['WorkflowRunNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Component workflow run deleted successfully */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -6740,7 +8407,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  evaluate: {
+  evaluates: {
     parameters: {
       query?: never;
       header?: never;
@@ -6749,44 +8416,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['EvaluateRequest'];
+        'application/json': components['schemas']['EvaluateRequest'][];
       };
     };
     responses: {
-      /** @description Authorization decision */
+      /** @description Authorization decisions in the same order as the input requests (decision[i] corresponds to request[i]) */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Decision'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  batchEvaluate: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['BatchEvaluateRequest'];
-      };
-    };
-    responses: {
-      /** @description Authorization decisions */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['BatchEvaluateResponse'];
+          'application/json': components['schemas']['Decision'][];
         };
       };
       400: components['responses']['BadRequest'];
@@ -6827,7 +8467,14 @@ export interface operations {
   };
   listClusterRoles: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -6840,7 +8487,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'][];
+          'application/json': components['schemas']['AuthzClusterRoleList'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -6857,7 +8504,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateClusterRoleRequest'];
+        'application/json': components['schemas']['AuthzClusterRole'];
       };
     };
     responses: {
@@ -6867,7 +8514,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'];
+          'application/json': components['schemas']['AuthzClusterRole'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -6895,7 +8542,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'];
+          'application/json': components['schemas']['AuthzClusterRole'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -6916,7 +8563,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateClusterRoleRequest'];
+        'application/json': components['schemas']['AuthzClusterRole'];
       };
     };
     responses: {
@@ -6926,7 +8573,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'];
+          'application/json': components['schemas']['AuthzClusterRole'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -6965,14 +8612,12 @@ export interface operations {
   listClusterRoleBindings: {
     parameters: {
       query?: {
-        /** @description Filter by role name */
-        roleName?: string;
-        /** @description Filter by entitlement claim (must be used with value parameter) */
-        claim?: string;
-        /** @description Filter by entitlement value (must be used with claim parameter) */
-        value?: string;
-        /** @description filter by binding effect (allow or deny) */
-        effect?: 'allow' | 'deny';
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
       path?: never;
@@ -6986,7 +8631,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'][];
+          'application/json': components['schemas']['AuthzClusterRoleBindingList'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -7003,7 +8648,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateClusterRoleBindingRequest'];
+        'application/json': components['schemas']['AuthzClusterRoleBinding'];
       };
     };
     responses: {
@@ -7013,7 +8658,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'];
+          'application/json': components['schemas']['AuthzClusterRoleBinding'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7041,7 +8686,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'];
+          'application/json': components['schemas']['AuthzClusterRoleBinding'];
         };
       };
       401: components['responses']['Unauthorized'];
@@ -7062,7 +8707,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateClusterRoleBindingRequest'];
+        'application/json': components['schemas']['AuthzClusterRoleBinding'];
       };
     };
     responses: {
@@ -7072,7 +8717,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'];
+          'application/json': components['schemas']['AuthzClusterRoleBinding'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7110,7 +8755,14 @@ export interface operations {
   };
   listNamespaceRoles: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path: {
         /** @description Namespace name */
@@ -7126,7 +8778,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'][];
+          'application/json': components['schemas']['AuthzRoleList'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7147,7 +8799,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateNamespaceRoleRequest'];
+        'application/json': components['schemas']['AuthzRole'];
       };
     };
     responses: {
@@ -7157,7 +8809,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'];
+          'application/json': components['schemas']['AuthzRole'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7187,7 +8839,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'];
+          'application/json': components['schemas']['AuthzRole'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7211,7 +8863,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateNamespaceRoleRequest'];
+        'application/json': components['schemas']['AuthzRole'];
       };
     };
     responses: {
@@ -7221,7 +8873,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['Role'];
+          'application/json': components['schemas']['AuthzRole'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7263,16 +8915,12 @@ export interface operations {
   listNamespaceRoleBindings: {
     parameters: {
       query?: {
-        /** @description Filter by role reference name */
-        roleName?: string;
-        /** @description Filter by role reference namespace (optional, for namespace-scoped roles) */
-        roleNamespace?: string;
-        /** @description Filter by entitlement claim (must be used with value parameter) */
-        claim?: string;
-        /** @description Filter by entitlement value (must be used with claim parameter) */
-        value?: string;
-        /** @description filter by binding effect (allow or deny) */
-        effect?: 'allow' | 'deny';
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
       path: {
@@ -7289,7 +8937,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'][];
+          'application/json': components['schemas']['AuthzRoleBindingList'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7310,7 +8958,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['CreateNamespaceRoleBindingRequest'];
+        'application/json': components['schemas']['AuthzRoleBinding'];
       };
     };
     responses: {
@@ -7320,7 +8968,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'];
+          'application/json': components['schemas']['AuthzRoleBinding'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7350,7 +8998,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'];
+          'application/json': components['schemas']['AuthzRoleBinding'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7374,7 +9022,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateNamespaceRoleBindingRequest'];
+        'application/json': components['schemas']['AuthzRoleBinding'];
       };
     };
     responses: {
@@ -7384,7 +9032,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['RoleEntitlementMapping'];
+          'application/json': components['schemas']['AuthzRoleBinding'];
         };
       };
       400: components['responses']['BadRequest'];
@@ -7445,68 +9093,17 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  handleGitHubWebhook: {
+  handleAutoBuild: {
     parameters: {
       query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
+      header?: {
+        /** @description GitHub webhook signature header used to detect and validate GitHub events. */
+        'X-Hub-Signature-256'?: string;
+        /** @description GitLab webhook token header used to detect and validate GitLab events. */
+        'X-Gitlab-Token'?: string;
+        /** @description Bitbucket webhook event-key header used to detect Bitbucket events. */
+        'X-Event-Key'?: string;
       };
-    };
-    responses: {
-      /** @description Webhook processed successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['WebhookEventResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  handleGitLabWebhook: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          [key: string]: unknown;
-        };
-      };
-    };
-    responses: {
-      /** @description Webhook processed successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['WebhookEventResponse'];
-        };
-      };
-      400: components['responses']['BadRequest'];
-      401: components['responses']['Unauthorized'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  handleBitbucketWebhook: {
-    parameters: {
-      query?: never;
-      header?: never;
       path?: never;
       cookie?: never;
     };
@@ -7534,7 +9131,14 @@ export interface operations {
   };
   listSecretReferences: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
       header?: never;
       path: {
         /** @description Namespace name */
@@ -7555,7 +9159,6 @@ export interface operations {
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7575,7 +9178,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description SecretReference created successfully */
+      /** @description Secret reference created successfully */
       201: {
         headers: {
           [name: string]: unknown;
@@ -7598,14 +9201,14 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description SecretReference name */
-        secretRefName: string;
+        /** @description Secret reference name */
+        secretReferenceName: components['parameters']['SecretReferenceNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description SecretReference details */
+      /** @description Secret reference details */
       200: {
         headers: {
           [name: string]: unknown;
@@ -7627,8 +9230,8 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description SecretReference name */
-        secretRefName: string;
+        /** @description Secret reference name */
+        secretReferenceName: components['parameters']['SecretReferenceNameParam'];
       };
       cookie?: never;
     };
@@ -7638,7 +9241,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description SecretReference updated successfully */
+      /** @description Secret reference updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
@@ -7651,7 +9254,6 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
-      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7662,14 +9264,14 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description SecretReference name */
-        secretRefName: string;
+        /** @description Secret reference name */
+        secretReferenceName: components['parameters']['SecretReferenceNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description SecretReference deleted successfully */
+      /** @description Secret reference deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;
@@ -7685,10 +9287,14 @@ export interface operations {
   listWorkloads: {
     parameters: {
       query?: {
-        /** @description Filter by project name */
-        project?: components['parameters']['ProjectQueryParam'];
-        /** @description Filter by component name */
+        /** @description Filter resources by component name */
         component?: components['parameters']['ComponentQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
       path: {
@@ -7742,7 +9348,7 @@ export interface operations {
       400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7754,7 +9360,7 @@ export interface operations {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
         /** @description Workload name */
-        workloadName: string;
+        workloadName: components['parameters']['WorkloadNameParam'];
       };
       cookie?: never;
     };
@@ -7783,7 +9389,7 @@ export interface operations {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
         /** @description Workload name */
-        workloadName: string;
+        workloadName: components['parameters']['WorkloadNameParam'];
       };
       cookie?: never;
     };
@@ -7806,7 +9412,6 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
-      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7818,7 +9423,7 @@ export interface operations {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
         /** @description Workload name */
-        workloadName: string;
+        workloadName: components['parameters']['WorkloadNameParam'];
       };
       cookie?: never;
     };
@@ -7837,11 +9442,409 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  listComponentReleases: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by component name */
+        component?: components['parameters']['ComponentQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of component releases */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentReleaseList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getComponentRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Component release name */
+        componentReleaseName: components['parameters']['ComponentReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Component release details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ComponentRelease'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listReleases: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by component name */
+        component?: components['parameters']['ComponentQueryParam'];
+        /** @description Filter resources by environment name */
+        environment?: components['parameters']['EnvironmentQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of releases */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getRelease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release name */
+        releaseName: components['parameters']['ReleaseNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Release'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listReleaseBindings: {
+    parameters: {
+      query?: {
+        /** @description Filter resources by component name */
+        component?: components['parameters']['ComponentQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of release bindings */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBindingList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Release binding created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release binding details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ReleaseBinding'];
+      };
+    };
+    responses: {
+      /** @description Release binding updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReleaseBinding'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteReleaseBinding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Release binding deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBindingK8sResourceTree: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description K8s resource tree */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['K8sResourceTreeResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBindingK8sResourceEvents: {
+    parameters: {
+      query: {
+        /** @description API group of the resource (empty string or omitted for core resources) */
+        group?: string;
+        /** @description API version of the resource (e.g. v1) */
+        version: string;
+        /** @description Kind of the resource */
+        kind: string;
+        /** @description Name of the resource */
+        name: string;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Resource events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourceEventsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getReleaseBindingK8sResourceLogs: {
+    parameters: {
+      query: {
+        /** @description Name of the pod */
+        podName: string;
+        /** @description Number of seconds since which to show logs */
+        sinceSeconds?: number;
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Release binding name */
+        releaseBindingName: components['parameters']['ReleaseBindingNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Pod logs */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ResourcePodLogsResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
   listDeploymentPipelines: {
     parameters: {
       query?: {
-        /** @description Filter by project name */
-        project?: components['parameters']['ProjectQueryParam'];
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
       };
       header?: never;
       path: {
@@ -7863,7 +9866,6 @@ export interface operations {
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7883,7 +9885,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description DeploymentPipeline created successfully */
+      /** @description Deployment pipeline created successfully */
       201: {
         headers: {
           [name: string]: unknown;
@@ -7906,14 +9908,14 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description DeploymentPipeline name */
-        pipelineName: string;
+        /** @description Deployment pipeline name */
+        deploymentPipelineName: components['parameters']['DeploymentPipelineNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description DeploymentPipeline details */
+      /** @description Deployment pipeline details */
       200: {
         headers: {
           [name: string]: unknown;
@@ -7935,8 +9937,8 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description DeploymentPipeline name */
-        pipelineName: string;
+        /** @description Deployment pipeline name */
+        deploymentPipelineName: components['parameters']['DeploymentPipelineNameParam'];
       };
       cookie?: never;
     };
@@ -7946,7 +9948,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description DeploymentPipeline updated successfully */
+      /** @description Deployment pipeline updated successfully */
       200: {
         headers: {
           [name: string]: unknown;
@@ -7959,7 +9961,6 @@ export interface operations {
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
-      409: components['responses']['Conflict'];
       500: components['responses']['InternalError'];
     };
   };
@@ -7970,14 +9971,254 @@ export interface operations {
       path: {
         /** @description Namespace name */
         namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description DeploymentPipeline name */
-        pipelineName: string;
+        /** @description Deployment pipeline name */
+        deploymentPipelineName: components['parameters']['DeploymentPipelineNameParam'];
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description DeploymentPipeline deleted successfully */
+      /** @description Deployment pipeline deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listObservabilityAlertsNotificationChannels: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of observability alerts notification channels */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityAlertsNotificationChannelList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createObservabilityAlertsNotificationChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ObservabilityAlertsNotificationChannel'];
+      };
+    };
+    responses: {
+      /** @description Observability alerts notification channel created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityAlertsNotificationChannel'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getObservabilityAlertsNotificationChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Observability alerts notification channel name */
+        observabilityAlertsNotificationChannelName: components['parameters']['ObservabilityAlertsNotificationChannelNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Observability alerts notification channel details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityAlertsNotificationChannel'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateObservabilityAlertsNotificationChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Observability alerts notification channel name */
+        observabilityAlertsNotificationChannelName: components['parameters']['ObservabilityAlertsNotificationChannelNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ObservabilityAlertsNotificationChannel'];
+      };
+    };
+    responses: {
+      /** @description Observability alerts notification channel updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ObservabilityAlertsNotificationChannel'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteObservabilityAlertsNotificationChannel: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Observability alerts notification channel name */
+        observabilityAlertsNotificationChannelName: components['parameters']['ObservabilityAlertsNotificationChannelNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Observability alerts notification channel deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  listGitSecrets: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of git secrets */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitSecretListResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createGitSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateGitSecretRequest'];
+      };
+    };
+    responses: {
+      /** @description Git secret created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GitSecretResponse'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteGitSecret: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Git secret name */
+        gitSecretName: components['parameters']['GitSecretNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Git secret deleted successfully */
       204: {
         headers: {
           [name: string]: unknown;

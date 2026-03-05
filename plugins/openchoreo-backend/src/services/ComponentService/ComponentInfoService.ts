@@ -1,24 +1,17 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoLegacyApiClient,
-  createOpenChoreoApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
 import { transformComponent } from '../transformers';
 
-// Use the generated type from OpenAPI spec
-export type ModelsCompleteComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+export type ModelsCompleteComponent = ComponentResponse;
 
 export class ComponentInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private useNewApi: boolean;
 
-  constructor(logger: LoggerService, baseUrl: string, useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.useNewApi = useNewApi;
   }
 
   /**
@@ -31,78 +24,12 @@ export class ComponentInfoService {
    */
   async fetchComponentDetails(
     namespaceName: string,
-    projectName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<ModelsCompleteComponent> {
-    if (this.useNewApi) {
-      return this.fetchComponentDetailsNew(namespaceName, componentName, token);
-    }
-    return this.fetchComponentDetailsLegacy(
-      namespaceName,
-      projectName,
-      componentName,
-      token,
-    );
-  }
-
-  private async fetchComponentDetailsLegacy(
-    namespaceName: string,
-    projectName: string,
+    _projectName: string,
     componentName: string,
     token?: string,
   ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
-      `Fetching component details for: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data.success || !data.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(data)}`,
-        );
-      }
-
-      this.logger.debug(
-        `Successfully fetched component details for: ${componentName}`,
-      );
-      return data.data;
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch component details for ${componentName}: ${error}`,
-      );
-      throw error;
-    }
-  }
-
-  private async fetchComponentDetailsNew(
-    namespaceName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<ModelsCompleteComponent> {
-    this.logger.debug(
-      `Fetching component details (new API) for: ${componentName} in namespace: ${namespaceName}`,
+      `Fetching component details for: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -151,86 +78,13 @@ export class ComponentInfoService {
    */
   async patchComponent(
     namespaceName: string,
-    projectName: string,
-    componentName: string,
-    autoDeploy: boolean,
-    token?: string,
-  ): Promise<ModelsCompleteComponent> {
-    if (this.useNewApi) {
-      return this.patchComponentNew(
-        namespaceName,
-        componentName,
-        autoDeploy,
-        token,
-      );
-    }
-    return this.patchComponentLegacy(
-      namespaceName,
-      projectName,
-      componentName,
-      autoDeploy,
-      token,
-    );
-  }
-
-  private async patchComponentLegacy(
-    namespaceName: string,
-    projectName: string,
+    _projectName: string,
     componentName: string,
     autoDeploy: boolean,
     token?: string,
   ): Promise<ModelsCompleteComponent> {
     this.logger.debug(
-      `Patching component: ${componentName} in project: ${projectName}, namespace: ${namespaceName} with autoDeploy: ${autoDeploy}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.PATCH(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName },
-          },
-          body: {
-            autoDeploy,
-          },
-        },
-      );
-
-      if (error || !response.ok || !data) {
-        throw new Error(
-          `Failed to patch component: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data.success || !data.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(data)}`,
-        );
-      }
-
-      this.logger.debug(`Successfully patched component: ${componentName}`);
-      return data.data;
-    } catch (error) {
-      this.logger.error(`Failed to patch component ${componentName}: ${error}`);
-      throw error;
-    }
-  }
-
-  private async patchComponentNew(
-    namespaceName: string,
-    componentName: string,
-    autoDeploy: boolean,
-    token?: string,
-  ): Promise<ModelsCompleteComponent> {
-    this.logger.debug(
-      `Patching component (new API): ${componentName} in namespace: ${namespaceName} with autoDeploy: ${autoDeploy}`,
+      `Patching component: ${componentName} in namespace: ${namespaceName} with autoDeploy: ${autoDeploy}`,
     );
 
     try {
@@ -307,49 +161,26 @@ export class ComponentInfoService {
     );
 
     try {
-      if (this.useNewApi) {
-        // New API: components at namespace level
-        const client = createOpenChoreoApiClient({
-          baseUrl: this.baseUrl,
-          token,
-          logger: this.logger,
-        });
+      // New API: components at namespace level
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
 
-        const { error, response } = await client.DELETE(
-          '/api/v1/namespaces/{namespaceName}/components/{componentName}',
-          {
-            params: {
-              path: { namespaceName, componentName },
-            },
+      const { error, response } = await client.DELETE(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        {
+          params: {
+            path: { namespaceName, componentName },
           },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to delete component: ${response.status} ${response.statusText}`,
         );
-
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to delete component: ${response.status} ${response.statusText}`,
-          );
-        }
-      } else {
-        const client = createOpenChoreoLegacyApiClient({
-          baseUrl: this.baseUrl,
-          token,
-          logger: this.logger,
-        });
-
-        const { error, response } = await client.DELETE(
-          '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
-          {
-            params: {
-              path: { namespaceName, projectName, componentName },
-            },
-          },
-        );
-
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to delete component: ${response.status} ${response.statusText}`,
-          );
-        }
       }
 
       this.logger.info(`Successfully deleted component: ${componentName}`);

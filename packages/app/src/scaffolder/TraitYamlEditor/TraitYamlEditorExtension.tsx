@@ -5,26 +5,6 @@ import { YamlEditor } from '@openchoreo/backstage-plugin-react';
 import YAML from 'yaml';
 import { useStyles } from './styles';
 
-const DEFAULT_TRAIT_TEMPLATE = {
-  apiVersion: 'openchoreo.dev/v1alpha1',
-  kind: 'Trait',
-  metadata: {
-    name: '',
-    namespace: '',
-    annotations: {
-      'openchoreo.dev/display-name': '',
-      'openchoreo.dev/description': '',
-    },
-  },
-  spec: {
-    schema: {
-      parameters: {},
-    },
-    creates: [],
-    patches: [],
-  },
-};
-
 function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.trait_name as string) || '';
   const namespaceName = (formData?.namespace_name as string) || '';
@@ -36,13 +16,23 @@ function generateInitialYaml(formData: Record<string, unknown>): string {
     return parts[parts.length - 1];
   };
 
-  const template = structuredClone(DEFAULT_TRAIT_TEMPLATE);
-  template.metadata.name = name;
-  template.metadata.namespace = extractName(namespaceName);
-  template.metadata.annotations['openchoreo.dev/display-name'] = name;
-  template.metadata.annotations['openchoreo.dev/description'] = description;
+  const namespace = extractName(namespaceName);
 
-  return YAML.stringify(template, { indent: 2 });
+  return `apiVersion: openchoreo.dev/v1alpha1
+kind: Trait
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+  annotations:
+    openchoreo.dev/display-name: ${name}
+    openchoreo.dev/description: ${description}
+spec:
+  schema:
+    parameters: {}
+    envOverrides: {}
+  creates: []
+  patches: []
+`;
 }
 
 export const TraitYamlEditorExtension = ({

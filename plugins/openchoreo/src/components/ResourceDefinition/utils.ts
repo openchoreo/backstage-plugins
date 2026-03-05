@@ -7,7 +7,7 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
   const kindLower = backstageKind.toLowerCase();
   switch (kindLower) {
     case 'componenttype':
-      return 'component-types';
+      return 'componenttypes';
     case 'traittype':
       return 'traits';
     case 'workflow':
@@ -24,6 +24,16 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'observabilityplanes';
     case 'deploymentpipeline':
       return 'deploymentpipelines';
+    case 'clustercomponenttype':
+      return 'clustercomponenttypes';
+    case 'clustertraittype':
+      return 'clustertraits';
+    case 'clusterdataplane':
+      return 'clusterdataplanes';
+    case 'clusterobservabilityplane':
+      return 'clusterobservabilityplanes';
+    case 'clusterbuildplane':
+      return 'clusterbuildplanes';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -54,9 +64,33 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ObservabilityPlane';
     case 'deploymentpipeline':
       return 'DeploymentPipeline';
+    case 'clustercomponenttype':
+      return 'ClusterComponentType';
+    case 'clustertraittype':
+      return 'ClusterTrait'; // ClusterTraitType in Backstage maps to ClusterTrait CRD
+    case 'clusterdataplane':
+      return 'ClusterDataPlane';
+    case 'clusterobservabilityplane':
+      return 'ClusterObservabilityPlane';
+    case 'clusterbuildplane':
+      return 'ClusterBuildPlane';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
+}
+
+/**
+ * Checks if an entity kind is cluster-scoped (no namespace required)
+ */
+export function isClusterScopedKind(kind: string): boolean {
+  const kindLower = kind.toLowerCase();
+  return [
+    'clustercomponenttype',
+    'clustertraittype',
+    'clusterdataplane',
+    'clusterobservabilityplane',
+    'clusterbuildplane',
+  ].includes(kindLower);
 }
 
 /**
@@ -108,5 +142,10 @@ export function isSupportedKind(kind: string): boolean {
     'buildplane',
     'observabilityplane',
     'deploymentpipeline',
+    'clustercomponenttype',
+    'clustertraittype',
+    'clusterdataplane',
+    'clusterobservabilityplane',
+    'clusterbuildplane',
   ].includes(kindLower);
 }

@@ -26,19 +26,24 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(1.5),
     paddingBottom: theme.spacing(0.5),
   },
-  header: {
+  badgeRow: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing(0.25),
+    gap: theme.spacing(0.5),
+    marginBottom: theme.spacing(0.5),
   },
   displayName: {
     fontWeight: 500,
     fontSize: '0.9375rem',
+    wordBreak: 'break-word',
+  },
+  kindBadge: {
+    height: 18,
+    fontSize: '0.6875rem',
   },
   badge: {
-    marginLeft: theme.spacing(1),
-    height: 20,
+    height: 18,
+    fontSize: '0.6875rem',
   },
   traitName: {
     marginBottom: theme.spacing(0.5),
@@ -65,6 +70,7 @@ export interface TraitListItem {
   displayName?: string;
   description?: string;
   createdAt: string;
+  kind?: 'Trait' | 'ClusterTrait';
 }
 
 interface TraitCardProps {
@@ -83,14 +89,13 @@ export const TraitCard = ({
   const classes = useStyles();
 
   const displayTitle = trait.displayName || trait.name;
+  const kindLabel = trait.kind === 'ClusterTrait' ? 'Cluster' : 'Namespace';
 
   return (
     <Card variant="outlined" className={classes.card}>
       <CardContent className={classes.cardContent}>
-        <Box className={classes.header}>
-          <Typography variant="subtitle1" className={classes.displayName}>
-            {displayTitle}
-          </Typography>
+        <Box className={classes.badgeRow}>
+          <Chip label={kindLabel} size="small" className={classes.kindBadge} />
           {addedCount > 0 && (
             <Chip
               label={`Added (${addedCount})`}
@@ -100,6 +105,9 @@ export const TraitCard = ({
             />
           )}
         </Box>
+        <Typography variant="subtitle1" className={classes.displayName}>
+          {displayTitle}
+        </Typography>
         {trait.displayName && (
           <Typography
             variant="caption"

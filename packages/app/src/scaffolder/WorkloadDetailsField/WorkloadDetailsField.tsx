@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
   Box,
@@ -171,6 +171,7 @@ export interface WorkloadDetailsData {
     instanceName: string;
     config: Record<string, any>;
   }>;
+  isEditing?: boolean;
 }
 
 /**
@@ -265,6 +266,9 @@ export const WorkloadDetailsField = ({
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
   const [advancedConfigExpanded, setAdvancedConfigExpanded] = useState(false);
 
+  // Ref to track editing state — readable by emitChange without closure dependency
+  const isAnyEditorActiveRef = useRef(false);
+
   // Propagate changes to parent
   const emitChange = useCallback(
     (
@@ -280,10 +284,12 @@ export const WorkloadDetailsField = ({
         envVars: isFromImage ? newEnvVars : [],
         fileMounts: isFromImage ? newFileMounts : [],
         traits: newTraits.map(t => ({
+          ...(t.kind !== undefined && { kind: t.kind }),
           name: t.name,
           instanceName: t.instanceName,
           config: t.config,
         })),
+        isEditing: isAnyEditorActiveRef.current,
       });
     },
     [onChange, isFromImage],
@@ -594,6 +600,30 @@ export const WorkloadDetailsField = ({
     },
   });
 
+  const isAnyEditorActive =
+    endpointEditBuffer.isAnyRowEditing ||
+    envEditBuffer.isAnyRowEditing ||
+    fileEditBuffer.isAnyRowEditing;
+  isAnyEditorActiveRef.current = isAnyEditorActive;
+
+  // Sync editing state into formData so the stepper validation can block Next
+  useEffect(() => {
+    onChange({
+      ctdParameters,
+      endpoints: isFromImage ? endpoints : {},
+      envVars: isFromImage ? envVars : [],
+      fileMounts: isFromImage ? fileMounts : [],
+      traits: addedTraits.map(t => ({
+        ...(t.kind !== undefined && { kind: t.kind }),
+        name: t.name,
+        instanceName: t.instanceName,
+        config: t.config,
+      })),
+      isEditing: isAnyEditorActive,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAnyEditorActive]);
+
   const handleAddFileVar = useCallback(
     (_containerName: string) => {
       const newFileMounts = [
@@ -656,25 +686,56 @@ export const WorkloadDetailsField = ({
   const hasAllowedTraits =
     Array.isArray(allowedTraits) && allowedTraits.length > 0;
 
+  // Determine what trait kinds to fetch
+  const hasClusterTraits = allowedTraits?.some(t => t.kind === 'ClusterTrait');
+  const hasNamespaceTraits = allowedTraits?.some(
+    t => !t.kind || t.kind === 'Trait',
+  );
+
   // Fetch available traits on mount (only when allowedTraits is specified)
   useEffect(() => {
     let ignore = false;
 
     const fetchTraits = async () => {
-      if (!namespaceName || !hasAllowedTraits) return;
+      if (!hasAllowedTraits) return;
 
       setLoadingTraits(true);
       setTraitError(null);
 
       try {
-        const nsName = namespaceName.split('/').pop() || namespaceName;
-        const result = await client.fetchTraitsByNamespace(nsName, 1, 100);
+        const allItems: TraitListItem[] = [];
 
-        if (!ignore && result.success) {
-          const items = result.data.items as TraitListItem[];
+        // Fetch namespace-scoped traits if needed
+        if (namespaceName && hasNamespaceTraits) {
+          const nsName = namespaceName.split('/').pop() || namespaceName;
+          const result = await client.fetchTraitsByNamespace(nsName, 1, 100);
+          if (result.success) {
+            allItems.push(...(result.data.items as TraitListItem[]));
+          }
+        }
+
+        // Fetch cluster-scoped traits if needed
+        if (hasClusterTraits) {
+          const result = await client.fetchClusterTraits();
+          if (result.success) {
+            const clusterItems = (result.data.items || []).map(
+              (t: TraitListItem) => ({
+                ...t,
+                kind: 'ClusterTrait' as const,
+              }),
+            );
+            allItems.push(...clusterItems);
+          }
+        }
+
+        if (!ignore) {
           setAvailableTraits(
-            items.filter((t: TraitListItem) =>
-              allowedTraits!.some(at => at.name === t.name),
+            allItems.filter((t: TraitListItem) =>
+              allowedTraits!.some(
+                at =>
+                  at.name === t.name &&
+                  (at.kind ?? 'Trait') === (t.kind ?? 'Trait'),
+              ),
             ),
           );
         }
@@ -694,27 +755,41 @@ export const WorkloadDetailsField = ({
     return () => {
       ignore = true;
     };
-  }, [namespaceName, client, allowedTraits, hasAllowedTraits]);
+  }, [
+    namespaceName,
+    client,
+    allowedTraits,
+    hasAllowedTraits,
+    hasClusterTraits,
+    hasNamespaceTraits,
+  ]);
 
   // Re-fetch schemas for restored traits that are missing them
   useEffect(() => {
     let ignore = false;
 
     const hydrateRestoredTraits = async () => {
-      if (!namespaceName) return;
-
       const traitsNeedingSchema = addedTraits.filter(t => !t.schema);
       if (traitsNeedingSchema.length === 0) return;
 
-      const nsName = namespaceName.split('/').pop() || namespaceName;
+      const nsName = namespaceName
+        ? namespaceName.split('/').pop() || namespaceName
+        : '';
       const hydrated = await Promise.all(
         addedTraits.map(async trait => {
           if (trait.schema) return trait;
           try {
-            const result = await client.fetchTraitSchemaByNamespace(
-              nsName,
-              trait.name,
-            );
+            let result;
+            if (trait.kind === 'ClusterTrait') {
+              result = await client.fetchClusterTraitSchema(trait.name);
+            } else if (nsName) {
+              result = await client.fetchTraitSchemaByNamespace(
+                nsName,
+                trait.name,
+              );
+            } else {
+              return trait;
+            }
             if (result.success) {
               return {
                 ...trait,
@@ -744,17 +819,27 @@ export const WorkloadDetailsField = ({
 
   const handleAddTrait = useCallback(
     async (traitName: string) => {
-      if (!traitName || !namespaceName) return;
+      if (!traitName) return;
+
+      // Determine trait kind from available traits
+      const matchedTrait = availableTraits.find(t => t.name === traitName);
+      const traitKind: 'Trait' | 'ClusterTrait' =
+        matchedTrait?.kind === 'ClusterTrait' ? 'ClusterTrait' : 'Trait';
+      const isClusterTrait = traitKind === 'ClusterTrait';
+
+      if (!isClusterTrait && !namespaceName) return;
 
       setLoadingTraitName(traitName);
       setTraitError(null);
 
       try {
-        const nsName = namespaceName.split('/').pop() || namespaceName;
-        const result = await client.fetchTraitSchemaByNamespace(
-          nsName,
-          traitName,
-        );
+        let result;
+        if (isClusterTrait) {
+          result = await client.fetchClusterTraitSchema(traitName);
+        } else {
+          const nsName = namespaceName.split('/').pop() || namespaceName;
+          result = await client.fetchTraitSchemaByNamespace(nsName, traitName);
+        }
 
         if (result.success) {
           const schema = result.data;
@@ -767,6 +852,7 @@ export const WorkloadDetailsField = ({
           const newTrait: AddedTrait = {
             id: `${traitName}-${Date.now()}`,
             name: traitName,
+            kind: traitKind,
             instanceName: `${traitName}-${existingCount + 1}`,
             config: {},
             schema: schema,
@@ -793,6 +879,7 @@ export const WorkloadDetailsField = ({
     [
       namespaceName,
       addedTraits,
+      availableTraits,
       ctdParameters,
       endpoints,
       envVars,
@@ -1276,6 +1363,14 @@ export const workloadDetailsFieldValidation = (
   validation: any,
 ) => {
   if (!value) return;
+
+  // Block navigation when an inline editor is active
+  if (value.isEditing) {
+    validation.addError(
+      'Please save or cancel the item you are currently editing before proceeding.',
+    );
+    return;
+  }
 
   // Validate trait instance names are unique
   if (value.traits && value.traits.length > 0) {

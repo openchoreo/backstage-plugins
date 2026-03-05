@@ -1,20 +1,79 @@
 import { Entity } from '@backstage/catalog-model';
-import { type OpenChoreoLegacyComponents } from '@openchoreo/openchoreo-client-node';
 import {
   CHOREO_ANNOTATIONS,
   CHOREO_LABELS,
   getRepositoryInfo,
   ComponentTypeUtils,
+  type ComponentResponse,
 } from '@openchoreo/backstage-plugin-common';
 import type {
   EnvironmentEntityV1alpha1,
   ComponentTypeEntityV1alpha1,
   TraitTypeEntityV1alpha1,
+  WorkflowEntityV1alpha1,
   ComponentWorkflowEntityV1alpha1,
+  ClusterComponentTypeEntityV1alpha1,
+  ClusterTraitTypeEntityV1alpha1,
 } from '../kinds';
 
-type ModelsComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+type ModelsComponent = ComponentResponse;
+type AllowedTraitRef = { kind?: string; name: string };
+type AllowedWorkflowRef = { kind?: string; name: string };
+
+const normalizeAllowedTraits = (
+  traits: Array<string | AllowedTraitRef> | undefined,
+  defaultKind: 'Trait' | 'ClusterTrait',
+): AllowedTraitRef[] | undefined => {
+  if (!traits) return undefined;
+  if (traits.length === 0) return [];
+
+  return traits
+    .map(trait => {
+      if (!trait) return null;
+      if (typeof trait === 'string') {
+        const [maybeKind, ...rest] = trait.split(':');
+        if (
+          rest.length > 0 &&
+          (maybeKind === 'Trait' || maybeKind === 'ClusterTrait')
+        ) {
+          return { kind: maybeKind, name: rest.join(':') };
+        }
+        return { kind: defaultKind, name: trait };
+      }
+
+      return { kind: trait.kind ?? defaultKind, name: trait.name };
+    })
+    .filter((trait): trait is NonNullable<typeof trait> =>
+      Boolean(trait?.name),
+    );
+};
+
+const WORKFLOW_KINDS = new Set(['ComponentWorkflow', 'Workflow']);
+
+const normalizeAllowedWorkflows = (
+  workflows: Array<string | AllowedWorkflowRef> | undefined,
+  defaultKind: 'Workflow',
+): AllowedWorkflowRef[] | undefined => {
+  if (!workflows) return undefined;
+  if (workflows.length === 0) return [];
+
+  return workflows
+    .map(workflow => {
+      if (!workflow) return null;
+      if (typeof workflow === 'string') {
+        const [maybeKind, ...rest] = workflow.split(':');
+        if (rest.length > 0 && WORKFLOW_KINDS.has(maybeKind)) {
+          return { kind: maybeKind, name: rest.join(':') };
+        }
+        return { kind: defaultKind, name: workflow };
+      }
+
+      return { kind: workflow.kind ?? defaultKind, name: workflow.name };
+    })
+    .filter((workflow): workflow is NonNullable<typeof workflow> =>
+      Boolean(workflow?.name),
+    );
+};
 
 /**
  * Configuration for component entity translation
@@ -142,6 +201,7 @@ export function translateProjectToEntity(
     namespaceName?: string;
     uid?: string;
     deletionTimestamp?: string;
+    buildPlaneRef?: { kind?: string; name?: string };
   },
   namespaceName: string,
   config: ProjectEntityTranslationConfig,
@@ -165,6 +225,12 @@ export function translateProjectToEntity(
         [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
         ...(project.deletionTimestamp && {
           [CHOREO_ANNOTATIONS.DELETION_TIMESTAMP]: project.deletionTimestamp,
+        }),
+        ...(project.buildPlaneRef?.name && {
+          [CHOREO_ANNOTATIONS.BUILD_PLANE_REF]: project.buildPlaneRef.name,
+        }),
+        ...(project.buildPlaneRef?.kind && {
+          [CHOREO_ANNOTATIONS.BUILD_PLANE_REF_KIND]: project.buildPlaneRef.kind,
         }),
       },
       labels: {
@@ -191,8 +257,24 @@ export function translateEnvironmentToEntity(
     description?: string;
     uid?: string;
     isProduction?: boolean;
-    dataPlaneRef?: { name?: string };
+    dataPlaneRef?: { kind?: string; name?: string };
     dnsPrefix?: string;
+    gateway?: {
+      ingress?: {
+        external?: {
+          name?: string;
+          namespace?: string;
+          http?: { host?: string; port?: number };
+          https?: { host?: string; port?: number };
+        };
+        internal?: {
+          name?: string;
+          namespace?: string;
+          http?: { host?: string; port?: number };
+          https?: { host?: string; port?: number };
+        };
+      };
+    };
     createdAt?: string;
     status?: string;
   },
@@ -229,6 +311,10 @@ export function translateEnvironmentToEntity(
         ...(environment.dataPlaneRef?.name && {
           'openchoreo.io/data-plane-ref': environment.dataPlaneRef.name,
         }),
+        ...(environment.dataPlaneRef?.kind && {
+          [CHOREO_ANNOTATIONS.DATA_PLANE_REF_KIND]:
+            environment.dataPlaneRef.kind,
+        }),
         ...(environment.dnsPrefix && {
           'openchoreo.io/dns-prefix': environment.dnsPrefix,
         }),
@@ -251,6 +337,7 @@ export function translateEnvironmentToEntity(
       isProduction: environment.isProduction,
       dataPlaneRef: environment.dataPlaneRef?.name,
       dnsPrefix: environment.dnsPrefix,
+      ...(environment.gateway && { gateway: environment.gateway }),
     },
   };
 
@@ -267,8 +354,8 @@ export function translateComponentTypeToEntity(
     displayName?: string;
     description?: string;
     workloadType?: string;
-    allowedWorkflows?: string[];
-    allowedTraits?: Array<{ kind?: string; name: string }>;
+    allowedWorkflows?: Array<string | AllowedWorkflowRef>;
+    allowedTraits?: Array<string | AllowedTraitRef>;
     createdAt?: string;
   },
   namespaceName: string,
@@ -301,10 +388,58 @@ export function translateComponentTypeToEntity(
     spec: {
       domain: `default/${namespaceName}`,
       workloadType: ct.workloadType,
-      allowedWorkflows: ct.allowedWorkflows,
-      allowedTraits: ct.allowedTraits,
+      allowedWorkflows: normalizeAllowedWorkflows(
+        ct.allowedWorkflows,
+        'Workflow',
+      ),
+      allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'Trait'),
     },
   } as ComponentTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo Workflow to a Backstage Workflow entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateWorkflowToEntity(
+  wf: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    parameters?: string;
+    type?: string;
+  },
+  namespaceName: string,
+  config: EntityTranslationConfig,
+): WorkflowEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'Workflow',
+    metadata: {
+      name: wf.name,
+      namespace: namespaceName,
+      title: wf.displayName || wf.name,
+      description: wf.description || `${wf.name} workflow`,
+      tags: ['openchoreo', 'workflow', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.NAMESPACE]: namespaceName,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: wf.createdAt || '',
+        ...(wf.parameters && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS]: wf.parameters,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      domain: `default/${namespaceName}`,
+      ...(wf.type && { type: wf.type }),
+    },
+  };
 }
 
 /**
@@ -433,5 +568,90 @@ export function translateNamespaceToDomainEntity(
     spec: {
       owner: config.defaultOwner,
     },
+  };
+}
+
+/**
+ * Translates an OpenChoreo ClusterComponentType to a Backstage ClusterComponentType entity.
+ * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
+ */
+export function translateClusterComponentTypeToEntity(
+  ct: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    workloadType?: string;
+    allowedWorkflows?: Array<string | AllowedWorkflowRef>;
+    allowedTraits?: Array<string | AllowedTraitRef>;
+    createdAt?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterComponentTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterComponentType',
+    metadata: {
+      name: ct.name,
+      namespace: 'openchoreo-cluster',
+      title: ct.displayName || ct.name,
+      description: ct.description || `${ct.name} cluster component type`,
+      tags: [
+        'openchoreo',
+        'cluster-component-type',
+        ...(ct.workloadType ? [ct.workloadType] : []),
+        'platform-engineering',
+      ],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: ct.createdAt || '',
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      workloadType: ct.workloadType || 'deployment',
+      allowedWorkflows: normalizeAllowedWorkflows(
+        ct.allowedWorkflows,
+        'Workflow',
+      ),
+      allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'ClusterTrait'),
+    },
+  } as ClusterComponentTypeEntityV1alpha1;
+}
+
+/**
+ * Translates an OpenChoreo ClusterTrait to a Backstage ClusterTraitType entity.
+ * Cluster-scoped: no namespace param, entity namespace is 'openchoreo-cluster', no domain.
+ */
+export function translateClusterTraitToEntity(
+  trait: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterTraitTypeEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterTraitType',
+    metadata: {
+      name: trait.name,
+      namespace: 'openchoreo-cluster',
+      title: trait.displayName || trait.name,
+      description: trait.description || `${trait.name} cluster trait`,
+      tags: ['openchoreo', 'cluster-trait-type', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: trait.createdAt || '',
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {},
   };
 }

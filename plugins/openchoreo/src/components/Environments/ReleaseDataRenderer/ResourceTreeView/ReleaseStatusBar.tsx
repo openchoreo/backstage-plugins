@@ -11,14 +11,14 @@ import type {
   ResourceTreeNode,
 } from '../types';
 
-function getReadyCondition(releaseData: ReleaseData) {
-  const conditions = releaseData.data?.status?.conditions;
+function getReadyCondition(releaseData: ReleaseData | null) {
+  const conditions = releaseData?.data?.status?.conditions;
   if (!conditions) return undefined;
   return conditions.find(c => c.type === 'Ready');
 }
 
 function getOverallHealth(
-  releaseData: ReleaseData,
+  releaseData: ReleaseData | null,
   releaseBindingData?: Record<string, unknown> | null,
 ): { label: string; status: HealthStatus; reason?: string } {
   // Prefer ReleaseBinding status (matches tree root node logic)
@@ -138,7 +138,7 @@ function formatRelativeTime(timestamp: string): string {
 }
 
 interface ReleaseStatusBarProps {
-  releaseData: ReleaseData;
+  releaseData: ReleaseData | null;
   resourceTreeData: ResourceTreeData;
   releaseBindingData?: Record<string, unknown> | null;
 }
@@ -193,7 +193,11 @@ export const ReleaseStatusBar: FC<ReleaseStatusBarProps> = ({
         <Typography className={classes.statusBarLabel}>Resources</Typography>
         <div className={classes.statusBarValue}>
           <Typography variant="body2">
-            {resources.total} resource{resources.total !== 1 ? 's' : ''}
+            {resources.total === 0
+              ? 'No Resources'
+              : `${resources.total} resource${
+                  resources.total !== 1 ? 's' : ''
+                }`}
           </Typography>
         </div>
         {resources.breakdown && (

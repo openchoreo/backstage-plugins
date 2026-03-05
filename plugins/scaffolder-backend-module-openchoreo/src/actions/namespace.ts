@@ -1,5 +1,11 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  getName,
+  getDisplayName,
+  getDescription,
+  getCreatedAt,
+} from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import {
@@ -72,20 +78,31 @@ export const createNamespaceAction = (
         );
       }
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl,
         token,
         logger: ctx.logger,
       });
 
       try {
-        const { data, error, response } = await client.POST('/namespaces', {
-          body: {
-            name: namespaceName,
-            displayName: ctx.input.displayName,
-            description: ctx.input.description,
+        const { data, error, response } = await client.POST(
+          '/api/v1/namespaces',
+          {
+            body: {
+              metadata: {
+                name: namespaceName,
+                annotations: {
+                  ...(ctx.input.displayName && {
+                    'openchoreo.dev/display-name': ctx.input.displayName,
+                  }),
+                  ...(ctx.input.description && {
+                    'openchoreo.dev/description': ctx.input.description,
+                  }),
+                },
+              },
+            },
           },
-        });
+        );
 
         if (error || !response.ok) {
           throw new Error(
@@ -93,15 +110,15 @@ export const createNamespaceAction = (
           );
         }
 
-        if (!data?.success || !data?.data) {
-          throw new Error('API request was not successful');
+        if (!data) {
+          throw new Error('API request returned no data');
         }
 
         ctx.logger.debug(
-          `Namespace created successfully: ${JSON.stringify(data.data)}`,
+          `Namespace created successfully: ${JSON.stringify(data)}`,
         );
 
-        const resultName = data.data.name || namespaceName;
+        const resultName = getName(data) || namespaceName;
 
         // Immediately insert the namespace into the catalog as a Domain entity
         try {
@@ -116,10 +133,10 @@ export const createNamespaceAction = (
           const entity = translateNamespaceToDomainEntity(
             {
               name: resultName,
-              displayName: ctx.input.displayName || data.data.displayName,
-              description: ctx.input.description || data.data.description,
-              createdAt: data.data.createdAt || new Date().toISOString(),
-              status: data.data.status,
+              displayName: ctx.input.displayName || getDisplayName(data),
+              description: ctx.input.description || getDescription(data),
+              createdAt: getCreatedAt(data) || new Date().toISOString(),
+              status: data.status?.phase,
             },
             {
               locationKey: 'provider:OpenChoreoEntityProvider',

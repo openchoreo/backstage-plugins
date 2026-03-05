@@ -8,7 +8,6 @@ import {
   Tooltip,
 } from '@material-ui/core';
 import RefreshIcon from '@material-ui/icons/Refresh';
-import { Entity } from '@backstage/catalog-model';
 import YAML from 'yaml';
 import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
@@ -36,14 +35,14 @@ function getTabsForKind(kind: string): TabConfig[] {
 
 interface ResourceDetailTabsProps {
   node: LayoutNode;
-  entity: Entity;
-  environmentName: string;
+  namespaceName: string;
+  releaseBindingName: string;
 }
 
 export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({
   node,
-  entity,
-  environmentName,
+  namespaceName,
+  releaseBindingName,
 }) => {
   const classes = useTreeStyles();
   const [activeTab, setActiveTab] = useState(0);
@@ -90,8 +89,8 @@ export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({
         {currentTab === 'events' && (
           <ResourceEventsTable
             node={node}
-            entity={entity}
-            environmentName={environmentName}
+            namespaceName={namespaceName}
+            releaseBindingName={releaseBindingName}
             refreshKey={refreshKey}
           />
         )}
@@ -99,8 +98,8 @@ export const ResourceDetailTabs: FC<ResourceDetailTabsProps> = ({
         {currentTab === 'logs' && (
           <ResourcePodLogsViewer
             node={node}
-            entity={entity}
-            environmentName={environmentName}
+            namespaceName={namespaceName}
+            releaseBindingName={releaseBindingName}
             refreshKey={refreshKey}
           />
         )}

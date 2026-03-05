@@ -27,11 +27,11 @@ export interface ComponentTypeEntityV1alpha1 extends Entity {
      */
     workloadType: string;
     /**
-     * List of allowed component workflow names
+     * List of allowed component workflows
      */
-    allowedWorkflows?: string[];
+    allowedWorkflows?: Array<{ kind?: string; name: string }>;
     /**
-     * List of allowed trait names for this component type
+     * List of allowed traits for this component type (Trait or ClusterTrait)
      */
     allowedTraits?: Array<{ kind?: string; name: string }>;
   };

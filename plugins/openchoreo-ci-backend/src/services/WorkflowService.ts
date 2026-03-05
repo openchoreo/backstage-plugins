@@ -1,36 +1,97 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
-  type OpenChoreoLegacyComponents,
+  fetchAllPages,
+  ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
+import {
+  CHOREO_LABELS,
+  type ComponentWorkflowRunResponse,
+  type ComponentWorkflowRunStatusResponse,
+  type WorkflowResponse,
+} from '@openchoreo/backstage-plugin-common';
 import {
   LogEntry,
   RuntimeLogsResponse,
+  WorkflowLogEntry,
   ComponentWorkflowRunEventEntry,
 } from '../types';
 
-// Use generated type from OpenAPI spec
-type ModelsBuild =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
+type ModelsBuild = ComponentWorkflowRunResponse;
 
-// Type definitions matching the API response structures
-type WorkflowSchemaResponse =
-  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
-    data?: {
-      [key: string]: unknown;
-    };
+type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
+
+/**
+ * Derive a string status from a raw K8s WorkflowRun.
+ *
+ * completedAt is treated as the strongest signal: if set, the run is
+ * definitively done and we never return an in-progress status, even if
+ * the K8s conditions are stale (e.g. controller hasn't reconciled yet).
+ */
+function deriveWorkflowRunStatus(run: any): string {
+  const readyCondition = (run.status?.conditions ?? []).find(
+    (c: any) => c.type === 'Ready',
+  );
+  const tasks = (run.status?.tasks ?? []) as any[];
+
+  // completedAt is the strongest completion signal — takes priority
+  if (run.status?.completedAt) {
+    if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
+      return 'Failed';
+    }
+    const reason = readyCondition?.reason;
+    if (reason && reason !== 'Running' && reason !== 'Pending') {
+      return reason;
+    }
+    return 'Succeeded';
+  }
+
+  // Trust the Ready condition when the run has not yet completed
+  if (readyCondition) {
+    return (
+      readyCondition.reason ||
+      (readyCondition.status === 'True' ? 'Succeeded' : 'Running')
+    );
+  }
+
+  // No conditions — fall back to tasks then timing
+  if (tasks.some((t: any) => t.phase === 'Failed' || t.phase === 'Error')) {
+    return 'Failed';
+  }
+  if (tasks.every((t: any) => t.phase === 'Succeeded') && tasks.length > 0) {
+    return 'Succeeded';
+  }
+  if (tasks.some((t: any) => t.phase === 'Running')) {
+    return 'Running';
+  }
+  if (run.status?.startedAt) return 'Running';
+  return 'Pending';
+}
+
+/** Transform a raw K8s-style WorkflowRun object into the flat ModelsBuild shape. */
+function transformWorkflowRun(run: any): ModelsBuild {
+  const labels = run.metadata?.labels ?? {};
+  const annotations = run.metadata?.annotations ?? {};
+  const status = deriveWorkflowRunStatus(run);
+  return {
+    name: run.metadata?.name ?? '',
+    uuid: run.metadata?.uid ?? '',
+    componentName: labels[CHOREO_LABELS.WORKFLOW_COMPONENT] ?? '',
+    projectName: labels[CHOREO_LABELS.WORKFLOW_PROJECT] ?? '',
+    namespaceName: run.metadata?.namespace ?? '',
+    status,
+    commit: annotations['openchoreo.dev/commit'],
+    image: annotations['openchoreo.dev/image'],
+    createdAt: run.metadata?.creationTimestamp,
+    workflow: run.spec?.workflow
+      ? {
+          name: run.spec.workflow.name,
+          parameters: run.spec.workflow.parameters as Record<string, unknown>,
+        }
+      : undefined,
   };
-
-type WorkflowRunStatusResponse =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunStatusResponse'];
-
-type WorkflowListResponse =
-  OpenChoreoLegacyComponents['schemas']['APIResponse'] & {
-    data: OpenChoreoLegacyComponents['schemas']['ListResponse'] & {
-      items: OpenChoreoLegacyComponents['schemas']['WorkflowResponse'][];
-    };
-  };
+}
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -46,10 +107,12 @@ export class ObservabilityNotConfiguredError extends Error {
 export class WorkflowService {
   private logger: LoggerService;
   private baseUrl: string;
+  private readonly resolver: ObservabilityUrlResolver;
 
   constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   // ==================== Build Operations ====================
@@ -65,32 +128,37 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName },
-          },
-        },
+      const allRuns = await fetchAllPages(cursor =>
+        client
+          .GET('/api/v1/namespaces/{namespaceName}/workflowruns', {
+            params: {
+              path: { namespaceName },
+              query: { limit: 100, cursor },
+            },
+          })
+          .then(res => {
+            if (res.error || !res.response.ok) {
+              throw new Error(
+                `Failed to fetch component workflow runs: ${res.response.status} ${res.response.statusText}`,
+              );
+            }
+            return res.data;
+          }),
       );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component workflow runs: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
-
-      const builds = (data.data?.items || []) as any;
+      // Filter by component label and transform to flat response shape
+      const builds = allRuns
+        .filter(
+          (run: any) =>
+            run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] ===
+            componentName,
+        )
+        .map(transformWorkflowRun);
 
       this.logger.debug(
         `Successfully fetched ${builds.length} component workflow runs for component: ${componentName}`,
@@ -116,17 +184,17 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
         {
           params: {
-            path: { namespaceName, projectName, componentName, runName },
+            path: { namespaceName, runName },
           },
         },
       );
@@ -137,12 +205,22 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run data returned');
       }
 
+      const runLabels = (data as any).metadata?.labels ?? {};
+      if (
+        runLabels[CHOREO_LABELS.WORKFLOW_COMPONENT] !== componentName ||
+        runLabels[CHOREO_LABELS.WORKFLOW_PROJECT] !== projectName
+      ) {
+        throw new Error(
+          `Workflow run ${runName} does not belong to component ${componentName} in project ${projectName}`,
+        );
+      }
+
       this.logger.debug(`Successfully fetched workflow run: ${runName}`);
-      return data.data;
+      return transformWorkflowRun(data);
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow run ${runName} for component ${componentName}: ${error}`,
@@ -163,17 +241,17 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/status',
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/status',
         {
           params: {
-            path: { namespaceName, projectName, componentName, runName },
+            path: { namespaceName, runName },
           },
         },
       );
@@ -184,12 +262,12 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run status data returned');
       }
 
       this.logger.debug(`Successfully fetched workflow run status: ${runName}`);
-      return data.data as WorkflowRunStatusResponse;
+      return data as WorkflowRunStatusResponse;
     } catch (error) {
       this.logger.error(
         `Failed to fetch workflow run status ${runName} for component ${componentName}: ${error}`,
@@ -212,19 +290,57 @@ export class WorkflowService {
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
+      // Fetch component to get its configured workflow name
+      const { data: compData, error: compError } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
         {
-          params: {
-            path: { namespaceName, projectName, componentName },
-            query: commit ? { commit } : undefined,
-          },
+          params: { path: { namespaceName, componentName } },
+        },
+      );
+
+      if (compError || !compData) {
+        throw new Error(
+          `Failed to fetch component ${componentName} to determine workflow name`,
+        );
+      }
+
+      const workflowName = (compData as any)?.spec?.workflow?.name;
+      if (!workflowName) {
+        throw new Error(
+          `Component ${componentName} has no workflow configured`,
+        );
+      }
+
+      const parameters: Record<string, unknown> = {};
+      if (commit) {
+        parameters.commit = commit;
+      }
+
+      const { data, error, response } = await client.POST(
+        '/api/v1/namespaces/{namespaceName}/workflowruns',
+        {
+          params: { path: { namespaceName } },
+          body: {
+            metadata: {
+              name: `${componentName}-${Date.now()}`,
+              labels: {
+                [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+                [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
+              },
+            },
+            spec: {
+              workflow: {
+                name: workflowName,
+                parameters: parameters as any,
+              },
+            },
+          } as any,
         },
       );
 
@@ -234,14 +350,16 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success || !data.data) {
+      if (!data) {
         throw new Error('No workflow run data returned');
       }
 
       this.logger.debug(
-        `Successfully triggered component workflow for component: ${componentName}, workflow run name: ${data.data.name}`,
+        `Successfully triggered component workflow for component: ${componentName}, workflow run name: ${
+          (data as any).metadata?.name
+        }`,
       );
-      return data.data as any;
+      return transformWorkflowRun(data);
     } catch (error) {
       this.logger.error(
         `Failed to trigger component workflow for component ${componentName}: ${error}`,
@@ -264,48 +382,16 @@ export class WorkflowService {
     );
 
     try {
-      // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
+      const { observerUrl } = await this.resolver.resolveForBuild(
+        namespaceName,
+        projectName,
         token,
-        logger: this.logger,
-      });
-
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url',
-        {
-          params: {
-            path: {
-              namespaceName,
-              projectName,
-              componentName,
-            },
-          },
-        },
       );
 
-      if (urlError || !urlResponse.ok) {
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      if (!urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data.observerUrl;
       if (!observerUrl) {
         throw new ObservabilityNotConfiguredError(componentName);
       }
 
-      // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         token,
@@ -317,11 +403,8 @@ export class WorkflowService {
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/build/{buildId}',
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { buildId },
-          },
           body: {
             startTime: new Date(
               Date.now() - 30 * 24 * 60 * 60 * 1000,
@@ -329,9 +412,10 @@ export class WorkflowService {
             endTime: new Date().toISOString(),
             limit: limit || 1000, // Default to 1000 until pagination is implemented
             sortOrder: sortOrder || 'asc',
-            componentName,
-            projectName,
-            namespaceName,
+            searchScope: {
+              namespace: namespaceName,
+              workflowRunName: buildId,
+            },
           },
         },
       );
@@ -354,8 +438,8 @@ export class WorkflowService {
       );
 
       return {
-        logs: data.logs || [],
-        totalCount: data.totalCount || 0,
+        logs: (data.logs as WorkflowLogEntry[]) || [],
+        total: data.total || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {
@@ -392,19 +476,19 @@ export class WorkflowService {
     try {
       if (hasLiveObservability) {
         // Use OpenChoreo API directly for recent workflow runs
-        const client = createOpenChoreoLegacyApiClient({
+        const client = createOpenChoreoApiClient({
           baseUrl: this.baseUrl,
           token,
           logger: this.logger,
         });
 
         const { data, error, response } = await client.GET(
-          '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs',
+          '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/logs',
           {
             params: {
-              path: { namespaceName, projectName, componentName, runName },
+              path: { namespaceName, runName },
               query: {
-                ...(options.step ? { step: options.step } : {}),
+                ...(options.step ? { task: options.step } : {}),
                 ...(typeof options.sinceSeconds === 'number' &&
                 options.sinceSeconds > 0
                   ? { sinceSeconds: options.sinceSeconds }
@@ -425,56 +509,29 @@ export class WorkflowService {
         }
 
         const entries: LogEntry[] = data.map(entry => ({
-          timestamp: entry.timestamp,
+          timestamp: entry.timestamp ?? '',
           log: entry.log,
         }));
 
         this.logger.debug(
-          `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`,
+          entries.length > 0
+            ? `Successfully fetched ${entries.length} workflow run logs from openchoreo-api`
+            : `No live logs yet for run ${runName}`,
         );
-
         return entries;
       }
 
       // Use observer API for older workflow runs
-      // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
+      const { observerUrl } = await this.resolver.resolveForBuild(
+        namespaceName,
+        projectName,
         token,
-        logger: this.logger,
-      });
-
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName },
-          },
-        },
       );
 
-      if (urlError || !urlResponse.ok) {
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      if (!urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data.observerUrl;
       if (!observerUrl) {
         throw new ObservabilityNotConfiguredError(componentName);
       }
 
-      // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         token,
@@ -485,26 +542,36 @@ export class WorkflowService {
         `Sending workflow run logs request for component ${componentName} with run: ${runName}`,
       );
 
-      const { data, error, response } = await obsClient.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/logs',
+      // The observer rejects queries where the time range exceeds 30 days.
+      // Cap the window at 29 days to stay safely within that limit regardless
+      // of clock skew or boundary-comparison behaviour on the observer side.
+      const maxAllowedMs = 29 * 24 * 60 * 60 * 1000;
+      const requestedMs =
+        typeof options.sinceSeconds === 'number' && options.sinceSeconds > 0
+          ? options.sinceSeconds * 1000
+          : maxAllowedMs;
+      const sinceMs = Math.min(requestedMs, maxAllowedMs);
+      const startTime = new Date(Date.now() - sinceMs).toISOString();
+      const endTime = new Date().toISOString();
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { namespaceName, projectName, componentName, runName },
-            query: {
-              ...(options.step ? { step: options.step } : {}),
+          body: {
+            startTime,
+            endTime,
+            limit: 1000,
+            sortOrder: 'asc',
+            searchScope: {
+              namespace: namespaceName,
+              workflowRunName: runName,
+              ...(options.step ? { taskName: options.step } : {}),
             },
           },
         },
       );
 
       if (error || !response.ok) {
-        if (response.status === 404) {
-          this.logger.info(
-            `Workflow run logs endpoint not available (404). The observability service may not support workflow run logs yet.`,
-          );
-          throw new ObservabilityNotConfiguredError(componentName);
-        }
-
         this.logger.error(
           `Failed to fetch workflow run logs for component ${componentName}: ${response.status} ${response.statusText}`,
         );
@@ -513,10 +580,12 @@ export class WorkflowService {
         );
       }
 
-      const entries: LogEntry[] = (data || []).map((entry: any) => ({
-        timestamp: entry.timestamp,
-        log: entry.log,
-      }));
+      const entries: LogEntry[] = ((data?.logs || []) as any[]).map(
+        (entry: any) => ({
+          timestamp: entry.timestamp ?? '',
+          log: entry.log,
+        }),
+      );
 
       this.logger.debug(
         `Successfully fetched ${entries.length} workflow run logs from observer-api`,
@@ -555,27 +624,27 @@ export class WorkflowService {
     }
 
     this.logger.debug(
-      `Fetching workflow run events for component: ${componentName}, run: ${runName} from ${
-        hasLiveObservability ? 'openchoreo-api' : 'observer-api'
-      }${step ? ` with step: ${step}` : ''}`,
+      `Fetching workflow run events for component: ${componentName}, run: ${runName}${
+        step ? ` with step: ${step}` : ''
+      }`,
     );
 
     try {
       if (hasLiveObservability) {
         // Use OpenChoreo API directly for recent workflow runs
-        const client = createOpenChoreoLegacyApiClient({
+        const client = createOpenChoreoApiClient({
           baseUrl: this.baseUrl,
           token,
           logger: this.logger,
         });
 
         const { data, error, response } = await client.GET(
-          '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events',
+          '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}/events',
           {
             params: {
-              path: { namespaceName, projectName, componentName, runName },
+              path: { namespaceName, runName },
               query: {
-                ...(step ? { step } : {}),
+                ...(step ? { task: step } : {}),
               },
             },
           },
@@ -605,109 +674,10 @@ export class WorkflowService {
         this.logger.debug(
           `Successfully fetched ${entries.length} workflow run events from openchoreo-api`,
         );
-
         return entries;
       }
-
-      // Use observer API for older workflow runs
-      // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName },
-          },
-        },
-      );
-
-      if (urlError || !urlResponse.ok) {
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      if (!urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data.observerUrl;
-      if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(componentName);
-      }
-
-      // Now use the observability client with the resolved URL
-      const obsClient = createObservabilityClientWithUrl(
-        observerUrl,
-        token,
-        this.logger,
-      );
-
-      this.logger.debug(
-        `Sending workflow run events request for component ${componentName} with run: ${runName}`,
-      );
-
-      const { data, error, response } = await obsClient.GET(
-        '/api/v1/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}/events',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName, runName },
-            query: {
-              ...(step ? { step } : {}),
-            },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        if (response.status === 404) {
-          this.logger.info(
-            `Workflow run events endpoint not available (404). The observability service may not support workflow run events yet.`,
-          );
-          throw new ObservabilityNotConfiguredError(componentName);
-        }
-
-        this.logger.error(
-          `Failed to fetch workflow run events for component ${componentName}: ${response.status} ${response.statusText}`,
-        );
-        throw new Error(
-          `Failed to fetch workflow run events: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const entries: ComponentWorkflowRunEventEntry[] = (data || []).map(
-        (entry: any) => ({
-          timestamp: entry.timestamp,
-          type: entry.type,
-          reason: entry.reason,
-          message: entry.message,
-        }),
-      );
-
-      this.logger.debug(
-        `Successfully fetched ${entries.length} workflow run events from observer-api`,
-      );
-
-      return entries;
+      return [];
     } catch (error: unknown) {
-      if (error instanceof ObservabilityNotConfiguredError) {
-        this.logger.info(
-          `Observability not configured for component ${componentName}`,
-        );
-        throw error;
-      }
-
       this.logger.error(
         `Error fetching workflow run events for component ${componentName}:`,
         error as Error,
@@ -722,20 +692,20 @@ export class WorkflowService {
   async fetchWorkflows(
     namespaceName: string,
     token?: string,
-  ): Promise<WorkflowListResponse> {
+  ): Promise<{ items: WorkflowResponse[] }> {
     this.logger.debug(
       `Fetching component workflows for namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/component-workflows',
+        '/api/v1/namespaces/{namespaceName}/workflows',
         {
           params: {
             path: { namespaceName },
@@ -749,16 +719,20 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('Failed to fetch component workflows');
-      }
-
-      const workflowList: WorkflowListResponse = data as WorkflowListResponse;
+      // Map K8s-style Workflow to flat WorkflowResponse
+      const items: WorkflowResponse[] = (data?.items || []).map((wf: any) => ({
+        name: wf.metadata?.name ?? '',
+        displayName:
+          wf.metadata?.annotations?.['openchoreo.dev/display-name'] ??
+          wf.metadata?.name,
+        description: wf.metadata?.annotations?.['openchoreo.dev/description'],
+        createdAt: wf.metadata?.creationTimestamp,
+      }));
 
       this.logger.debug(
-        `Successfully fetched ${workflowList.data.items.length} component workflows for namespace: ${namespaceName}`,
+        `Successfully fetched ${items.length} workflows for namespace: ${namespaceName}`,
       );
-      return workflowList;
+      return { items };
     } catch (error) {
       this.logger.error(
         `Failed to fetch component workflows for namespace ${namespaceName}: ${error}`,
@@ -774,23 +748,23 @@ export class WorkflowService {
     namespaceName: string,
     workflowName: string,
     token?: string,
-  ): Promise<WorkflowSchemaResponse> {
+  ): Promise<unknown> {
     this.logger.debug(
       `Fetching schema for component workflow: ${workflowName} in namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/component-workflows/{cwName}/schema',
+        '/api/v1/namespaces/{namespaceName}/workflows/{workflowName}/schema',
         {
           params: {
-            path: { namespaceName, cwName: workflowName },
+            path: { namespaceName, workflowName },
           },
         },
       );
@@ -801,17 +775,10 @@ export class WorkflowService {
         );
       }
 
-      if (!data?.success) {
-        throw new Error('Failed to fetch component workflow schema');
-      }
-
-      const workflowSchema: WorkflowSchemaResponse =
-        data as WorkflowSchemaResponse;
-
       this.logger.debug(
         `Successfully fetched schema for component workflow: ${workflowName}`,
       );
-      return workflowSchema;
+      return data;
     } catch (error) {
       this.logger.error(
         `Failed to fetch schema for component workflow ${workflowName} in namespace ${namespaceName}: ${error}`,
@@ -821,57 +788,81 @@ export class WorkflowService {
   }
 
   /**
-   * Update component workflow parameters (PATCH)
+   * Update component workflow parameters by fetching the full component,
+   * updating only workflow.parameters, and PUTting it back.
    */
   async updateComponentWorkflowParameters(
     namespaceName: string,
-    projectName: string,
+    _projectName: string,
     componentName: string,
-    systemParameters: { [key: string]: unknown },
     parameters?: { [key: string]: unknown },
     token?: string,
-  ): Promise<OpenChoreoLegacyComponents['schemas']['APIResponse']> {
+  ): Promise<unknown> {
     this.logger.debug(
-      `Updating workflow parameters for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
+      `Updating workflow parameters for component: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token,
         logger: this.logger,
       });
 
-      const { data, error, response } = await client.PATCH(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-parameters',
+      // 1. GET the current component
+      const { data: component, error: getError } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
         {
-          params: {
-            path: { namespaceName, projectName, componentName },
-          },
-          body: {
-            systemParameters: systemParameters as any,
-            parameters: parameters as any,
-          },
+          params: { path: { namespaceName, componentName } },
         },
       );
 
-      if (error || !response.ok) {
+      if (getError || !component) {
         throw new Error(
-          `Failed to update workflow parameters: ${response.status} ${response.statusText}`,
+          `Failed to fetch component '${componentName}': ${
+            getError ?? 'no data'
+          }`,
         );
       }
 
-      if (!data?.success) {
-        throw new Error('Failed to update workflow parameters');
+      // 2. Update only workflow.parameters
+      const updatedComponent = {
+        ...component,
+        spec: {
+          ...component.spec,
+          workflow: {
+            ...component.spec?.workflow,
+            parameters: parameters ?? component.spec?.workflow?.parameters,
+          },
+        },
+      };
+
+      // 3. PUT the updated component back
+      const {
+        data: result,
+        error: putError,
+        response,
+      } = await client.PUT(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        {
+          params: { path: { namespaceName, componentName } },
+          body: updatedComponent as any,
+        },
+      );
+
+      if (putError || !response.ok) {
+        throw new Error(
+          `Failed to update component '${componentName}': ${response.status} ${response.statusText}`,
+        );
       }
 
       this.logger.debug(
         `Successfully updated workflow parameters for component: ${componentName}`,
       );
-      return data;
+      return result;
     } catch (error) {
       this.logger.error(
-        `Failed to update workflow parameters for component ${componentName}: ${error}`,
+        `Failed to update workflow parameters for component ${componentName} in namespace ${namespaceName}: ${error}`,
       );
       throw error;
     }

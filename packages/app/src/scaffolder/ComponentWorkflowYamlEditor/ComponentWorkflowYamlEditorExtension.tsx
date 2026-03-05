@@ -5,32 +5,36 @@ import { YamlEditor } from '@openchoreo/backstage-plugin-react';
 import YAML from 'yaml';
 import { useStyles } from './styles';
 
-const DEFAULT_COMPONENT_WORKFLOW_TEMPLATE = {
+const DEFAULT_WORKFLOW_TEMPLATE = {
   apiVersion: 'openchoreo.dev/v1alpha1',
-  kind: 'ComponentWorkflow',
+  kind: 'Workflow',
   metadata: {
     name: '',
     namespace: '',
-    annotations: {
-      'openchoreo.dev/display-name': '',
-      'openchoreo.dev/description': '',
-    },
+    annotations: {} as Record<string, string>,
   },
   spec: {
     schema: {
-      systemParameters: {
-        repository: {
-          url: '',
-          revision: {
-            branch: '',
-            commit: '',
-          },
-          appPath: '',
-        },
-      },
       parameters: {},
     },
-    runTemplate: {},
+    runTemplate: {
+      apiVersion: 'argoproj.io/v1alpha1',
+      kind: 'Workflow',
+      metadata: {
+        name: '${metadata.workflowRunName}',
+        namespace: 'openchoreo-ci-${metadata.namespaceName}',
+      },
+      spec: {
+        arguments: {
+          parameters: [] as Array<{ name: string; value: string }>,
+        },
+        serviceAccountName: 'workflow-sa',
+        workflowTemplateRef: {
+          clusterScope: true,
+          name: '',
+        },
+      },
+    },
   },
 };
 
@@ -38,6 +42,7 @@ function generateInitialYaml(formData: Record<string, unknown>): string {
   const name = (formData?.componentworkflow_name as string) || '';
   const namespaceName = (formData?.namespace_name as string) || '';
   const description = (formData?.description as string) || '';
+  const isComponentWorkflow = formData?.is_component_workflow === true;
 
   // Extract namespace from entity reference format (e.g., "domain:default/my-namespace" -> "my-namespace")
   const extractName = (fullName: string): string => {
@@ -45,11 +50,16 @@ function generateInitialYaml(formData: Record<string, unknown>): string {
     return parts[parts.length - 1];
   };
 
-  const template = structuredClone(DEFAULT_COMPONENT_WORKFLOW_TEMPLATE);
+  const template = structuredClone(DEFAULT_WORKFLOW_TEMPLATE);
   template.metadata.name = name;
   template.metadata.namespace = extractName(namespaceName);
-  template.metadata.annotations['openchoreo.dev/display-name'] = name;
-  template.metadata.annotations['openchoreo.dev/description'] = description;
+  if (description) {
+    template.metadata.annotations['openchoreo.dev/description'] = description;
+  }
+  if (isComponentWorkflow) {
+    template.metadata.annotations['openchoreo.dev/workflow-scope'] =
+      'component';
+  }
 
   return YAML.stringify(template, { indent: 2 });
 }
@@ -63,13 +73,46 @@ export const ComponentWorkflowYamlEditorExtension = ({
   const classes = useStyles();
   const [errorText, setErrorText] = useState<string | undefined>();
 
-  // Generate initial YAML from step 1 values only if the field has no existing value.
-  // formData is preserved by the scaffolder across step navigation, so this ensures
-  // user edits are not overwritten when moving back and forth between steps.
+  const isComponentWorkflow =
+    formContext?.formData?.is_component_workflow === true;
+
+  // Generate initial YAML or sync workflow-scope annotation on mount.
+  // This runs each time the step mounts (e.g., navigating back and forth between steps).
   useEffect(() => {
-    if (!formData && formContext?.formData) {
-      const initialYaml = generateInitialYaml(formContext.formData);
-      onChange(initialYaml);
+    if (!formContext?.formData) {
+      return;
+    }
+
+    if (!formData) {
+      // No existing YAML — generate from scratch
+      onChange(generateInitialYaml(formContext.formData));
+      return;
+    }
+
+    // Existing YAML — sync the workflow-scope annotation with the toggle
+    try {
+      const parsed = YAML.parse(formData);
+      if (!parsed?.metadata) {
+        return;
+      }
+      if (!parsed.metadata.annotations) {
+        parsed.metadata.annotations = {};
+      }
+
+      const hasAnnotation =
+        parsed.metadata.annotations['openchoreo.dev/workflow-scope'] ===
+        'component';
+
+      if (isComponentWorkflow && !hasAnnotation) {
+        parsed.metadata.annotations['openchoreo.dev/workflow-scope'] =
+          'component';
+        onChange(YAML.stringify(parsed, { indent: 2 }));
+      } else if (!isComponentWorkflow && hasAnnotation) {
+        delete parsed.metadata.annotations['openchoreo.dev/workflow-scope'];
+        onChange(YAML.stringify(parsed, { indent: 2 }));
+      }
+    } catch {
+      // Don't modify if YAML is invalid
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -95,15 +138,15 @@ export const ComponentWorkflowYamlEditorExtension = ({
     <div>
       <div className={classes.helpText}>
         <span>
-          Customize the ComponentWorkflow definition below. For available fields
-          and configuration options, see the{' '}
+          Customize the Workflow definition below. For available fields and
+          configuration options, see the{' '}
           <a
             className={classes.helpLink}
-            href="https://openchoreo.dev/docs/reference/api/platform/componentworkflow/"
+            href="https://openchoreo.dev/docs/reference/api/platform/workflow/"
             target="_blank"
             rel="noopener noreferrer"
           >
-            ComponentWorkflow documentation
+            Workflow documentation
           </a>
           .
         </span>
@@ -127,7 +170,7 @@ export const componentWorkflowYamlEditorValidation = (
   validation: FieldValidation,
 ) => {
   if (!value || value.trim() === '') {
-    validation.addError('ComponentWorkflow YAML definition is required');
+    validation.addError('Workflow YAML definition is required');
     return;
   }
 
@@ -137,8 +180,8 @@ export const componentWorkflowYamlEditorValidation = (
       validation.addError('YAML content must be a valid object');
       return;
     }
-    if (parsed.kind !== 'ComponentWorkflow') {
-      validation.addError('Kind must be ComponentWorkflow');
+    if (parsed.kind !== 'Workflow') {
+      validation.addError('Kind must be Workflow');
     }
     if (!parsed.apiVersion) {
       validation.addError('apiVersion is required');

@@ -1,6 +1,12 @@
 import { useState, useMemo, useEffect, type FC } from 'react';
-import { Box, Typography } from '@material-ui/core';
-import { Entity } from '@backstage/catalog-model';
+import {
+  Box,
+  Typography,
+  IconButton,
+  Tooltip,
+  CircularProgress,
+} from '@material-ui/core';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import { ResourceTreeEdge } from './ResourceTreeEdge';
 import { ResourceTreeNode } from './ResourceTreeNode';
 import { ResourceDetailPanel } from './ResourceDetailPanel';
@@ -11,19 +17,23 @@ import type { LayoutNode } from './treeTypes';
 import type { ReleaseData, ResourceTreeData } from '../types';
 
 interface ResourceTreeViewProps {
-  releaseData: ReleaseData;
+  releaseData: ReleaseData | null;
   resourceTreeData: ResourceTreeData;
   releaseBindingData: Record<string, unknown> | null;
-  entity: Entity;
-  environmentName: string;
+  namespaceName: string;
+  releaseBindingName: string;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   releaseData,
   resourceTreeData,
   releaseBindingData,
-  entity,
-  environmentName,
+  namespaceName,
+  releaseBindingName,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   const classes = useTreeStyles();
   const [selectedNode, setSelectedNode] = useState<LayoutNode | null>(null);
@@ -60,11 +70,33 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
 
   return (
     <Box className={classes.treeContainer}>
-      <ReleaseStatusBar
-        releaseData={releaseData}
-        resourceTreeData={resourceTreeData}
-        releaseBindingData={releaseBindingData}
-      />
+      <Box className={classes.statusBarWrapper}>
+        <div className={classes.statusBarContent}>
+          <ReleaseStatusBar
+            releaseData={releaseData}
+            resourceTreeData={resourceTreeData}
+            releaseBindingData={releaseBindingData}
+          />
+        </div>
+        <div className={classes.statusBarAction}>
+          <Tooltip title="Refresh artifacts">
+            <span>
+              <IconButton
+                size="small"
+                onClick={onRefresh}
+                disabled={!onRefresh || isRefreshing}
+                aria-label="refresh artifacts"
+              >
+                {isRefreshing ? (
+                  <CircularProgress size={18} />
+                ) : (
+                  <RefreshIcon fontSize="small" />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+        </div>
+      </Box>
       <div className={classes.treeScrollArea}>
         <div
           className={classes.treeCanvas}
@@ -95,8 +127,8 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
         onClose={() => setSelectedNode(null)}
         releaseData={releaseData}
         releaseBindingData={releaseBindingData}
-        entity={entity}
-        environmentName={environmentName}
+        namespaceName={namespaceName}
+        releaseBindingName={releaseBindingName}
       />
     </Box>
   );

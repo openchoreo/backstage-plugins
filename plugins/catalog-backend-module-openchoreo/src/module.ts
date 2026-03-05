@@ -21,6 +21,12 @@ import {
   WorkflowEntityProcessor,
   ComponentWorkflowEntityProcessor,
   CustomAnnotationProcessor,
+  ClusterComponentTypeEntityProcessor,
+  ClusterTraitTypeEntityProcessor,
+  ClusterDataplaneEntityProcessor,
+  ClusterObservabilityPlaneEntityProcessor,
+  ClusterBuildPlaneEntityProcessor,
+  SystemBuildPlaneProcessor,
 } from './processors';
 import {
   immediateCatalogServiceRef,
@@ -118,9 +124,23 @@ export const catalogModuleOpenchoreo = createBackendModule({
         // Register the ComponentWorkflow entity processor
         catalog.addProcessor(new ComponentWorkflowEntityProcessor());
 
-        // Check if new OpenChoreo 1.0 API should be used (defaults to false)
-        const useNewApi =
-          config.getOptionalBoolean('openchoreo.useNewApi') ?? false;
+        // Register the ClusterComponentType entity processor
+        catalog.addProcessor(new ClusterComponentTypeEntityProcessor());
+
+        // Register the ClusterTraitType entity processor
+        catalog.addProcessor(new ClusterTraitTypeEntityProcessor());
+
+        // Register the ClusterDataplane entity processor
+        catalog.addProcessor(new ClusterDataplaneEntityProcessor());
+
+        // Register the ClusterObservabilityPlane entity processor
+        catalog.addProcessor(new ClusterObservabilityPlaneEntityProcessor());
+
+        // Register the ClusterBuildPlane entity processor
+        catalog.addProcessor(new ClusterBuildPlaneEntityProcessor());
+
+        // Register the SystemBuildPlane processor (emits buildsOn/builds relations)
+        catalog.addProcessor(new SystemBuildPlaneProcessor());
 
         // Register the scheduled OpenChoreo entity provider
         catalog.addEntityProvider(
@@ -129,7 +149,6 @@ export const catalogModuleOpenchoreo = createBackendModule({
             logger,
             config,
             tokenService,
-            useNewApi,
           ),
         );
 

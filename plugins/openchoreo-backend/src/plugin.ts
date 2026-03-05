@@ -12,10 +12,13 @@ import { ProjectInfoService } from './services/ProjectService/ProjectInfoService
 import { WorkloadInfoService } from './services/WorkloadService/WorkloadInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
+import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
+import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
 import { SecretReferencesService } from './services/SecretReferencesService/SecretReferencesService';
 import { GitSecretsService } from './services/GitSecretsService/GitSecretsService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
+import { ClusterDataPlaneInfoService } from './services/ClusterDataPlaneService/ClusterDataPlaneInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
@@ -71,81 +74,58 @@ export const choreoPlugin = createBackendPlugin({
         const authEnabled =
           config.getOptionalBoolean('openchoreo.features.auth.enabled') ?? true;
 
-        // Check if new OpenChoreo 1.0 API should be used (defaults to false)
-        const useNewApi =
-          config.getOptionalBoolean('openchoreo.useNewApi') ?? false;
-
         // All services use user tokens forwarded from the frontend
         // No default token - services require token parameter for each API call
         const environmentInfoService = new EnvironmentInfoService(
           logger,
           baseUrl,
-          useNewApi,
         );
 
         const cellDiagramInfoService = new CellDiagramInfoService(
           logger,
           baseUrl,
           config,
-          useNewApi,
         );
 
-        const buildInfoService = new BuildInfoService(
+        const buildInfoService = new BuildInfoService(logger, baseUrl);
+
+        const componentInfoService = new ComponentInfoService(logger, baseUrl);
+
+        const projectInfoService = new ProjectInfoService(logger, baseUrl);
+
+        const workloadInfoService = new WorkloadInfoService(logger, baseUrl);
+
+        const dashboardInfoService = new DashboardInfoService(logger, baseUrl);
+
+        const traitInfoService = new TraitInfoService(logger, baseUrl);
+
+        const clusterTraitInfoService = new ClusterTraitInfoService(
           logger,
           baseUrl,
-          useNewApi,
         );
 
-        const componentInfoService = new ComponentInfoService(
-          logger,
-          baseUrl,
-          useNewApi,
-        );
-
-        const projectInfoService = new ProjectInfoService(
-          logger,
-          baseUrl,
-          useNewApi,
-        );
-
-        const workloadInfoService = new WorkloadInfoService(
-          logger,
-          baseUrl,
-          useNewApi,
-        );
-
-        const dashboardInfoService = new DashboardInfoService(
-          logger,
-          baseUrl,
-          useNewApi,
-        );
-
-        const traitInfoService = new TraitInfoService(
-          logger,
-          baseUrl,
-          useNewApi,
-        );
+        const clusterComponentTypeInfoService =
+          new ClusterComponentTypeInfoService(logger, baseUrl);
 
         const secretReferencesInfoService = new SecretReferencesService(
           logger,
           baseUrl,
-          useNewApi,
         );
 
         const gitSecretsService = new GitSecretsService(logger, baseUrl);
 
-        const authzService = new AuthzService(logger, baseUrl, useNewApi);
+        const authzService = new AuthzService(logger, baseUrl);
 
-        const dataPlaneInfoService = new DataPlaneInfoService(
+        const dataPlaneInfoService = new DataPlaneInfoService(logger, baseUrl);
+
+        const clusterDataPlaneInfoService = new ClusterDataPlaneInfoService(
           logger,
           baseUrl,
-          useNewApi,
         );
 
         const platformResourceService = new PlatformResourceService(
           logger,
           baseUrl,
-          useNewApi,
         );
 
         // Register OpenChoreo component permissions with the permissions registry
@@ -192,10 +172,13 @@ export const choreoPlugin = createBackendPlugin({
             workloadInfoService,
             dashboardInfoService,
             traitInfoService,
+            clusterTraitInfoService,
+            clusterComponentTypeInfoService,
             secretReferencesInfoService,
             gitSecretsService,
             authzService,
             dataPlaneInfoService,
+            clusterDataPlaneInfoService,
             platformResourceService,
             annotationStore,
             catalogService: catalog,

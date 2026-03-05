@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Typography,
   Button,
@@ -46,16 +47,6 @@ import { SCOPE_CLUSTER } from '../constants';
 import { MappingDialog } from './MappingDialog';
 
 const useStyles = makeStyles(theme => ({
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'align-start',
-    marginBottom: theme.spacing(3),
-  },
-  headerActions: {
-    display: 'flex',
-    gap: theme.spacing(1),
-  },
   filters: {
     display: 'flex',
     gap: theme.spacing(2),
@@ -99,7 +90,13 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export const ClusterRoleBindingsContent = () => {
+interface ClusterRoleBindingsContentProps {
+  actionsContainerRef: RefObject<HTMLDivElement>;
+}
+
+export const ClusterRoleBindingsContent = ({
+  actionsContainerRef,
+}: ClusterRoleBindingsContentProps) => {
   const classes = useStyles();
   const notification = useNotification();
   const {
@@ -251,34 +248,33 @@ export const ClusterRoleBindingsContent = () => {
     );
   }
 
+  const actionButtons = (
+    <>
+      <IconButton onClick={() => fetchBindings()} size="small" title="Refresh">
+        <RefreshIcon />
+      </IconButton>
+      <Tooltip title={createDeniedTooltip}>
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={handleCreateBinding}
+            disabled={!canCreate}
+          >
+            New Cluster Role Binding
+          </Button>
+        </span>
+      </Tooltip>
+    </>
+  );
+
   return (
     <Box>
       <NotificationBanner notification={notification.notification} />
-      <Box className={classes.header}>
-        <Typography variant="h5">Cluster Role Bindings</Typography>
-        <Box className={classes.headerActions}>
-          <IconButton
-            onClick={() => fetchBindings()}
-            size="small"
-            title="Refresh"
-          >
-            <RefreshIcon />
-          </IconButton>
-          <Tooltip title={createDeniedTooltip}>
-            <span>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleCreateBinding}
-                disabled={!canCreate}
-              >
-                New Cluster Role Binding
-              </Button>
-            </span>
-          </Tooltip>
-        </Box>
-      </Box>
+      {actionsContainerRef.current &&
+        createPortal(actionButtons, actionsContainerRef.current)}
 
       <Box className={classes.filters}>
         <TextField

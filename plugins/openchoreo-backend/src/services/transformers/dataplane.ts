@@ -1,7 +1,8 @@
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+  DataPlaneResponse,
+  AgentConnectionStatusResponse,
+} from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -14,12 +15,9 @@ import {
 type DataPlane = OpenChoreoComponents['schemas']['DataPlane'];
 type AgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
-type DataPlaneResponse =
-  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
-type AgentConnectionStatusResponse =
-  OpenChoreoLegacyComponents['schemas']['AgentConnectionStatusResponse'];
 
 export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
+  const ingress = dataPlane.spec?.gateway?.ingress;
   return {
     name: getName(dataPlane) ?? '',
     namespace: getNamespace(dataPlane) ?? '',
@@ -27,15 +25,44 @@ export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
     description: getDescription(dataPlane),
     imagePullSecretRefs: dataPlane.spec?.imagePullSecretRefs,
     secretStoreRef: dataPlane.spec?.secretStoreRef?.name,
-    publicVirtualHost: dataPlane.spec?.gateway?.publicVirtualHost ?? '',
-    namespaceVirtualHost:
-      dataPlane.spec?.gateway?.organizationVirtualHost ?? '',
-    publicHTTPPort: dataPlane.spec?.gateway?.publicHTTPPort ?? 80,
-    publicHTTPSPort: dataPlane.spec?.gateway?.publicHTTPSPort ?? 443,
-    // Legacy API had separate namespace ports; new API only has public + organization.
-    // Map public ports to legacy namespace ports for backward compatibility.
-    namespaceHTTPPort: dataPlane.spec?.gateway?.publicHTTPPort ?? 80,
-    namespaceHTTPSPort: dataPlane.spec?.gateway?.publicHTTPSPort ?? 443,
+    gateway: ingress
+      ? {
+          ingress: {
+            external: ingress.external
+              ? {
+                  http: ingress.external.http
+                    ? {
+                        host: ingress.external.http.host,
+                        port: ingress.external.http.port,
+                      }
+                    : undefined,
+                  https: ingress.external.https
+                    ? {
+                        host: ingress.external.https.host,
+                        port: ingress.external.https.port,
+                      }
+                    : undefined,
+                }
+              : undefined,
+            internal: ingress.internal
+              ? {
+                  http: ingress.internal.http
+                    ? {
+                        host: ingress.internal.http.host,
+                        port: ingress.internal.http.port,
+                      }
+                    : undefined,
+                  https: ingress.internal.https
+                    ? {
+                        host: ingress.internal.https.host,
+                        port: ingress.internal.https.port,
+                      }
+                    : undefined,
+                }
+              : undefined,
+          },
+        }
+      : undefined,
     observabilityPlaneRef: dataPlane.spec?.observabilityPlaneRef?.name,
     agentConnection: dataPlane.status?.agentConnection
       ? transformAgentConnection(dataPlane.status.agentConnection)

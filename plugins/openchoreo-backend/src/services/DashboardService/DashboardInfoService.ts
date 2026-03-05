@@ -1,8 +1,5 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import {
-  createOpenChoreoLegacyApiClient,
-  createOpenChoreoApiClient,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 
 export interface DashboardMetrics {
   totalBindings: number;
@@ -11,93 +8,19 @@ export interface DashboardMetrics {
 export class DashboardInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private useNewApi: boolean;
-
-  constructor(logger: LoggerService, baseUrl: string, useNewApi = false) {
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.useNewApi = useNewApi;
   }
 
   async fetchDashboardMetrics(
     namespaceName: string,
-    projectName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<number> {
-    if (this.useNewApi) {
-      return this.fetchDashboardMetricsNew(namespaceName, componentName, token);
-    }
-    return this.fetchDashboardMetricsLegacy(
-      namespaceName,
-      projectName,
-      componentName,
-      token,
-    );
-  }
-
-  private async fetchDashboardMetricsLegacy(
-    namespaceName: string,
-    projectName: string,
+    _projectName: string,
     componentName: string,
     token?: string,
   ): Promise<number> {
     this.logger.info(
-      `Fetching bindings count for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      // Fetch bindings for the component
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/bindings',
-        {
-          params: {
-            path: {
-              namespaceName,
-              projectName,
-              componentName,
-            },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch bindings: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const bindings = data.success && data.data?.items ? data.data.items : [];
-
-      const bindingsCount = bindings.length;
-
-      this.logger.info(
-        `Successfully fetched ${bindingsCount} bindings for component: ${componentName}`,
-      );
-
-      return bindingsCount;
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch bindings for component ${componentName}: ${error}`,
-      );
-      // Return 0 instead of throwing to allow partial results
-      return 0;
-    }
-  }
-
-  private async fetchDashboardMetricsNew(
-    namespaceName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<number> {
-    this.logger.info(
-      `Fetching release bindings count (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+      `Fetching release bindings count for component: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -108,7 +31,7 @@ export class DashboardInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/release-bindings',
+        '/api/v1/namespaces/{namespaceName}/releasebindings',
         {
           params: {
             path: { namespaceName },

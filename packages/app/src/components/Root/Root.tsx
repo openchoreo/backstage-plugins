@@ -2,7 +2,6 @@ import { PropsWithChildren } from 'react';
 import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import ExtensionIcon from '@material-ui/icons/Extension';
-import LibraryBooks from '@material-ui/icons/LibraryBooks';
 import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import LogoFull from './LogoFull';
@@ -34,8 +33,6 @@ import GroupIcon from '@material-ui/icons/People';
 import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 import CategoryIcon from '@material-ui/icons/Category';
 import BubbleChartIcon from '@material-ui/icons/BubbleChart';
-import { AccessControlSidebarItem } from './AccessControlSidebarItem';
-import { GitSecretsSidebarItem } from './GitSecretsSidebarItem';
 
 const useSidebarLogoStyles = makeStyles({
   root: {
@@ -129,17 +126,14 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
             icon={GroupIcon}
           />
           <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
-          <SidebarItem icon={LibraryBooks} to="docs" text="Docs" />
+          {/* TechDocs disabled until proper production support is implemented */}
+          {/* <SidebarItem icon={LibraryBooks} to="docs" text="Docs" /> */}
           <SidebarItem
             icon={CreateComponentIcon}
             to="create"
             text="Create..."
           />
           {/* End global nav */}
-          <SidebarDivider />
-          {/* Admin section */}
-          <AccessControlSidebarItem />
-          <GitSecretsSidebarItem />
           <SidebarScrollWrapper>
             {/* Items in this group will be scrollable if they run out of space */}
           </SidebarScrollWrapper>

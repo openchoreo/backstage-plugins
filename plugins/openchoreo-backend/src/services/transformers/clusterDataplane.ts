@@ -1,0 +1,77 @@
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type {
+  ClusterDataPlaneResponse,
+  AgentConnectionStatusResponse,
+} from '@openchoreo/backstage-plugin-common';
+import {
+  getName,
+  getCreatedAt,
+  getDisplayName,
+  getDescription,
+  deriveStatus,
+} from './common';
+
+type ClusterDataPlane = OpenChoreoComponents['schemas']['ClusterDataPlane'];
+type AgentConnectionStatus =
+  OpenChoreoComponents['schemas']['AgentConnectionStatus'];
+
+export function transformClusterDataPlane(
+  dataPlane: ClusterDataPlane,
+): ClusterDataPlaneResponse {
+  const ingress = dataPlane.spec?.gateway?.ingress;
+  return {
+    name: getName(dataPlane) ?? '',
+    displayName: getDisplayName(dataPlane),
+    description: getDescription(dataPlane),
+    imagePullSecretRefs: dataPlane.spec?.imagePullSecretRefs,
+    secretStoreRef: dataPlane.spec?.secretStoreRef?.name,
+    gateway: ingress
+      ? {
+          ingress: {
+            external: ingress.external
+              ? {
+                  http: ingress.external.http
+                    ? {
+                        host: ingress.external.http.host,
+                        port: ingress.external.http.port,
+                      }
+                    : undefined,
+                  https: ingress.external.https
+                    ? { port: ingress.external.https.port }
+                    : undefined,
+                }
+              : undefined,
+            internal: ingress.internal
+              ? {
+                  http: ingress.internal.http
+                    ? {
+                        host: ingress.internal.http.host,
+                        port: ingress.internal.http.port,
+                      }
+                    : undefined,
+                  https: ingress.internal.https
+                    ? { port: ingress.internal.https.port }
+                    : undefined,
+                }
+              : undefined,
+          },
+        }
+      : undefined,
+    observabilityPlaneRef: dataPlane.spec?.observabilityPlaneRef?.name,
+    agentConnection: dataPlane.status?.agentConnection
+      ? transformAgentConnection(dataPlane.status.agentConnection)
+      : undefined,
+    createdAt: getCreatedAt(dataPlane) ?? '',
+    status: deriveStatus(dataPlane),
+  };
+}
+
+function transformAgentConnection(
+  agent: AgentConnectionStatus,
+): AgentConnectionStatusResponse {
+  return {
+    connected: agent.connected,
+    connectedAgents: agent.connectedAgents,
+    lastConnectedTime: agent.lastConnectedTime,
+  };
+}

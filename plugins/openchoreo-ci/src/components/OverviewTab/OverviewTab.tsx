@@ -28,10 +28,6 @@ export const OverviewTab = ({ workflow }: OverviewTabProps) => {
           {workflow.name}
         </Typography>
       </Box>
-      {workflow.systemParameters &&
-        Object.keys(workflow.systemParameters).length > 0 && (
-          <WorkflowDetailsRenderer data={workflow.systemParameters} />
-        )}
       {workflow.parameters && Object.keys(workflow.parameters).length > 0 && (
         <WorkflowDetailsRenderer data={workflow.parameters} />
       )}

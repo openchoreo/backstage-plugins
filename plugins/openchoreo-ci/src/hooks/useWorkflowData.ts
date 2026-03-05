@@ -9,6 +9,7 @@ import type {
   ModelsBuild,
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 
 interface WorkflowDataState {
   builds: ModelsBuild[];
@@ -66,21 +67,38 @@ export function useWorkflowData() {
       const { componentName, projectName, namespaceName } =
         await getEntityDetails();
 
-      const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
+      const baseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-workflows-backend',
+      );
+
+      const params = new URLSearchParams({ namespaceName });
+      if (projectName) params.set('projectName', projectName);
+      if (componentName) params.set('componentName', componentName);
 
       const response = await fetchApi.fetch(
-        `${baseUrl}/builds?componentName=${encodeURIComponent(
-          componentName,
-        )}&projectName=${encodeURIComponent(
-          projectName,
-        )}&namespaceName=${encodeURIComponent(namespaceName)}`,
+        `${baseUrl}/workflow-runs?${params.toString()}`,
       );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const buildsData = await response.json();
+      const result = await response.json();
+      // Map WorkflowRun items to ModelsBuild shape for UI compatibility
+      const buildsData: ModelsBuild[] = (result.items || []).map(
+        (run: any) => ({
+          name: run.name,
+          uuid: run.uuid || '',
+          componentName:
+            run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
+          projectName:
+            run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
+          namespaceName: run.namespaceName,
+          status: run.status,
+          createdAt: run.createdAt,
+          parameters: run.parameters,
+        }),
+      );
       setState(prev => ({ ...prev, builds: buildsData }));
     } catch (err) {
       setState(prev => ({ ...prev, error: err as Error }));

@@ -70,8 +70,8 @@ const k8sSecretRef = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new SecretReferencesService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new SecretReferencesService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -90,7 +90,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('SecretReferencesService (useNewApi=true)', () => {
+describe('SecretReferencesService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -99,7 +99,7 @@ describe('SecretReferencesService (useNewApi=true)', () => {
     it('fetches and transforms secret references via new API', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sSecretRef] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchSecretReferences(
         'test-ns',
         'token-123',
@@ -124,7 +124,7 @@ describe('SecretReferencesService (useNewApi=true)', () => {
     it('returns empty list when no secrets exist', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchSecretReferences(
         'test-ns',
         'token-123',
@@ -138,7 +138,7 @@ describe('SecretReferencesService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchSecretReferences('test-ns', 'token'),
       ).rejects.toThrow('Failed to fetch secret references');

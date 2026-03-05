@@ -1,1 +1,1 @@
-export { AccessControlPage } from './AccessControlPage';
+export { AccessControlPage, AccessControlContent } from './AccessControlPage';

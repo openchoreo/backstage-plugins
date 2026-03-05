@@ -63,7 +63,7 @@ export function WorkloadEditor({
   onTabChange,
 }: WorkloadEditorProps) {
   const classes = useStyles();
-  const { workloadSpec, setWorkloadSpec, isDeploying, builds, changes } =
+  const { workloadSpec, setWorkloadSpec, isDeploying, changes } =
     useWorkloadContext();
   const { secretReferences } = useSecretReferences();
 
@@ -78,7 +78,7 @@ export function WorkloadEditor({
       componentName: componentName || '',
     },
     endpoints: {},
-    connections: {},
+    connections: [],
   });
 
   const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
@@ -181,11 +181,13 @@ export function WorkloadEditor({
   const handleEndpointReplace = (
     endpointName: string,
     endpoint: WorkloadEndpoint,
+    oldNameToRemove?: string,
   ) => {
-    const updatedEndpoints = {
-      ...formData.endpoints,
-      [endpointName]: endpoint,
-    };
+    const updatedEndpoints = { ...formData.endpoints };
+    if (oldNameToRemove && oldNameToRemove !== endpointName) {
+      delete updatedEndpoints[oldNameToRemove];
+    }
+    updatedEndpoints[endpointName] = endpoint;
     const updatedData = { ...formData, endpoints: updatedEndpoints };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
@@ -217,47 +219,32 @@ export function WorkloadEditor({
     updateWorkloadSpec(updatedData);
   };
 
-  const handleConnectionReplace = (
-    connectionName: string,
-    connection: Connection,
-  ) => {
-    const updatedConnections = {
-      ...formData.connections,
-      [connectionName]: connection,
-    };
+  const handleConnectionReplace = (index: number, connection: Connection) => {
+    const updatedConnections = [...(formData.connections || [])];
+    updatedConnections[index] = connection;
     const updatedData = { ...formData, connections: updatedConnections };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
   };
 
-  const addConnection = (): string => {
-    const connectionName = `connection-${
-      Object.keys(formData.connections || {}).length + 1
-    }`;
+  const addConnection = (): number => {
     const newConnection: Connection = {
-      type: '',
-      params: {
-        componentName: '',
-        endpoint: '',
-        projectName: '',
-      },
-      inject: {
-        env: [],
-      },
+      component: '',
+      endpoint: '',
+      visibility: 'project',
+      envBindings: {},
     };
-    const updatedConnections = {
-      ...formData.connections,
-      [connectionName]: newConnection,
-    };
+    const updatedConnections = [...(formData.connections || []), newConnection];
     const updatedData = { ...formData, connections: updatedConnections };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
-    return connectionName;
+    return updatedConnections.length - 1;
   };
 
-  const removeConnection = (connectionName: string) => {
-    const updatedConnections = { ...formData.connections };
-    delete updatedConnections[connectionName];
+  const removeConnection = (index: number) => {
+    const updatedConnections = (formData.connections || []).filter(
+      (_, i) => i !== index,
+    );
     const updatedData = { ...formData, connections: updatedConnections };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
@@ -273,7 +260,7 @@ export function WorkloadEditor({
 
   const containerCount = formData.container ? 1 : 0;
   const endpointCount = Object.keys(formData.endpoints || {}).length;
-  const connectionCount = Object.keys(formData.connections || {}).length;
+  const connectionCount = (formData.connections || []).length;
 
   // Memoize tabs with status based on changes
   const tabs: TabItemData[] = useMemo(
@@ -324,7 +311,6 @@ export function WorkloadEditor({
           onAddFileVar={addFileVar}
           onRemoveFileVar={removeFileVar}
           onArrayFieldChange={handleArrayFieldChange}
-          builds={builds}
           secretReferences={secretReferences}
         />
       )}
@@ -340,7 +326,7 @@ export function WorkloadEditor({
       {activeTab === 'connections' && (
         <ConnectionContent
           disabled={isDeploying}
-          connections={formData.connections || {}}
+          connections={formData.connections || []}
           onConnectionReplace={handleConnectionReplace}
           onAddConnection={addConnection}
           onRemoveConnection={removeConnection}

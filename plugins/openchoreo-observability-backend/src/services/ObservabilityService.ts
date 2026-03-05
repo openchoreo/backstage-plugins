@@ -6,8 +6,10 @@ import {
 } from '@backstage/backend-plugin-api';
 import { Expand } from '@backstage/types';
 import {
-  createOpenChoreoLegacyApiClient,
+  createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
+  ObservabilityUrlResolver,
+  ObservabilityComponents,
 } from '@openchoreo/openchoreo-client-node';
 import { ComponentMetricsTimeSeries, Environment } from '../types';
 
@@ -15,18 +17,21 @@ export interface RuntimeLogsResponse {
   logs: Array<{
     timestamp: string;
     log: string;
-    logLevel: 'ERROR' | 'WARN' | 'INFO' | 'DEBUG' | 'TRACE' | 'FATAL';
-    componentId: string;
-    environmentId: string;
-    projectId: string;
-    version: string;
-    versionId: string;
-    namespace: string;
-    podId: string;
-    containerName: string;
-    labels: Record<string, string>;
+    level: string;
+    metadata?: {
+      componentName?: string;
+      projectName?: string;
+      environmentName?: string;
+      namespaceName?: string;
+      componentUid?: string;
+      projectUid?: string;
+      environmentUid?: string;
+      containerName?: string;
+      podName?: string;
+      podNamespace?: string;
+    };
   }>;
-  totalCount: number;
+  total: number;
   tookMs: number;
 }
 
@@ -61,6 +66,7 @@ function extractErrorMessage(error: unknown, response: Response): string {
 export class ObservabilityService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
+  private readonly resolver: ObservabilityUrlResolver;
 
   static create(logger: LoggerService, baseUrl: string): ObservabilityService {
     return new ObservabilityService(logger, baseUrl);
@@ -69,15 +75,63 @@ export class ObservabilityService {
   private constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
+  }
+
+  /**
+   * Resolves both the observer and RCA agent URLs for a given namespace and environment.
+   * Used by the frontend to make direct calls to observer/RCA APIs.
+   */
+  async resolveUrls(
+    namespaceName: string,
+    environmentName: string,
+    userToken?: string,
+  ): Promise<{ observerUrl?: string; rcaAgentUrl?: string }> {
+    return this.resolver.resolveForEnvironment(
+      namespaceName,
+      environmentName,
+      userToken,
+    );
+  }
+
+  async getReleaseBinding(
+    namespaceName: string,
+    bindingName: string,
+    userToken?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      logger: this.logger,
+      token: userToken,
+    });
+    return client.GET(
+      '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+      { params: { path: { namespaceName, releaseBindingName: bindingName } } },
+    );
+  }
+
+  async updateReleaseBinding(
+    namespaceName: string,
+    bindingName: string,
+    body: any,
+    userToken?: string,
+  ) {
+    const client = createOpenChoreoApiClient({
+      baseUrl: this.baseUrl,
+      logger: this.logger,
+      token: userToken,
+    });
+    return client.PUT(
+      '/api/v1/namespaces/{namespaceName}/releasebindings/{releaseBindingName}',
+      {
+        params: { path: { namespaceName, releaseBindingName: bindingName } },
+        body,
+      },
+    );
   }
 
   /**
    * Resolves the observability URL for a given namespace and environment.
-   *
-   * @param namespaceName - The namespace name
-   * @param environmentName - The environment name
-   * @param userToken - Optional user token for authentication
-   * @returns The resolved observer URL
    */
   private async resolveObserverUrl(
     namespaceName: string,
@@ -88,41 +142,12 @@ export class ObservabilityService {
       throw new Error('Environment is required to resolve observer URL');
     }
 
-    const mainClient = createOpenChoreoLegacyApiClient({
-      baseUrl: this.baseUrl,
-      token: userToken,
-      logger: this.logger,
-    });
-
-    const {
-      data: urlData,
-      error: urlError,
-      response: urlResponse,
-    } = await mainClient.GET(
-      '/namespaces/{namespaceName}/environments/{envName}/observer-url',
-      {
-        params: {
-          path: {
-            namespaceName,
-            envName: environmentName,
-          },
-        },
-      },
+    const { observerUrl } = await this.resolver.resolveForEnvironment(
+      namespaceName,
+      environmentName,
+      userToken,
     );
 
-    if (urlError || !urlResponse.ok) {
-      throw new Error(
-        `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-      );
-    }
-
-    if (!urlData?.success || !urlData?.data) {
-      throw new Error(
-        `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-      );
-    }
-
-    const observerUrl = urlData.data.observerUrl;
     if (!observerUrl) {
       throw new ObservabilityNotConfiguredError(namespaceName);
     }
@@ -150,14 +175,14 @@ export class ObservabilityService {
         `Starting environment fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         logger: this.logger,
         token: userToken,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/environments',
+        '/api/v1/namespaces/{namespaceName}/environments',
         {
           params: {
             path: { namespaceName },
@@ -172,14 +197,21 @@ export class ObservabilityService {
         return [];
       }
 
-      if (!data.success || !data.data?.items) {
+      if (!data?.items) {
         this.logger.warn(
           `No environments found for namespace ${namespaceName}`,
         );
         return [];
       }
 
-      const environments = data.data.items as Environment[];
+      const environments: Environment[] = data.items.map((item: any) => ({
+        uid: item.metadata?.uid ?? '',
+        name: item.metadata?.name ?? '',
+        namespace: item.metadata?.namespace ?? '',
+        isProduction: item.spec?.isProduction ?? false,
+        dataPlaneRef: item.spec?.dataPlaneRef,
+        createdAt: item.metadata?.creationTimestamp ?? '',
+      }));
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -216,9 +248,9 @@ export class ObservabilityService {
    * @returns Promise<RuntimeLogsResponse> - The runtime logs data
    */
   async fetchRuntimeLogsByComponent(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
+    _componentId: string,
+    _projectId: string,
+    _environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,
@@ -252,32 +284,37 @@ export class ObservabilityService {
       );
 
       this.logger.debug(
-        `Sending runtime logs request for component ${componentId} with limit: ${
+        `Sending runtime logs request for component ${componentName} with limit: ${
           options?.limit || 100
         }`,
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/component/{componentId}',
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { componentId },
-          },
           body: {
             startTime:
               options?.startTime ||
               new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Default: 1 hour ago
             endTime: options?.endTime || new Date().toISOString(), // Default: now
-            environmentId,
-            componentName,
-            projectName,
-            namespaceName,
-            environmentName,
             limit: options?.limit || 100,
             sortOrder: options?.sortOrder || 'desc',
             ...(options?.logLevels &&
-              options.logLevels.length > 0 && { logLevels: options.logLevels }),
+              options.logLevels.length > 0 && {
+                logLevels: options.logLevels as (
+                  | 'DEBUG'
+                  | 'INFO'
+                  | 'WARN'
+                  | 'ERROR'
+                )[],
+              }),
             ...(options?.searchQuery && { searchPhrase: options.searchQuery }),
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              component: componentName,
+              environment: environmentName,
+            },
           },
         },
       );
@@ -285,7 +322,7 @@ export class ObservabilityService {
       if (error || !response.ok) {
         const errorMessage = extractErrorMessage(error, response);
         this.logger.error(
-          `Failed to fetch runtime logs for component ${componentId}: ${errorMessage}`,
+          `Failed to fetch runtime logs for component ${componentName}: ${errorMessage}`,
         );
         throw new Error(`Failed to fetch runtime logs: ${errorMessage}`);
       }
@@ -293,46 +330,29 @@ export class ObservabilityService {
       this.logger.debug(
         `Successfully fetched ${
           data.logs?.length || 0
-        } runtime logs for component ${componentId}`,
+        } runtime logs for component ${componentName}`,
       );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Runtime logs fetch completed for component ${componentId} (${totalTime}ms)`,
+        `Runtime logs fetch completed for component ${componentName} (${totalTime}ms)`,
       );
 
       return {
         logs:
-          data.logs?.map(rawLog => {
-            const log = rawLog as any;
-            return {
-              timestamp: log.timestamp || '',
-              log: log.log || '',
-              logLevel: (log.logLevel || log.level || 'INFO') as
-                | 'ERROR'
-                | 'WARN'
-                | 'INFO'
-                | 'DEBUG'
-                | 'TRACE'
-                | 'FATAL',
-              componentId: log.componentId || componentId,
-              environmentId: log.environmentId || environmentId,
-              projectId: log.projectId || projectId,
-              version: log.version?.toString() || '',
-              versionId: log.versionId?.toString() || '',
-              namespace: log.namespace?.toString() || '',
-              podId: log.podId?.toString() || '',
-              containerName: log.containerName?.toString() || '',
-              labels: (log.labels as Record<string, string>) || {},
-            };
-          }) || [],
-        totalCount: data.totalCount || 0,
+          data.logs?.map(rawLog => ({
+            timestamp: rawLog.timestamp || '',
+            log: rawLog.log || '',
+            level: (rawLog as any).level || 'INFO',
+            metadata: (rawLog as any).metadata,
+          })) || [],
+        total: data.total || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
         this.logger.info(
-          `Observability not configured for component ${componentId}`,
+          `Observability not configured for component ${componentName}`,
         );
         throw error;
       }
@@ -349,36 +369,29 @@ export class ObservabilityService {
   /**
    * Fetches metrics for a specific component.
    * This method dynamically resolves the observability URL from the main API,
-   * then fetches metrics from the observability service.
+   * then fetches metrics from the observability service using the unified
+   * POST /api/v1/metrics/query endpoint.
    *
-   * @param componentId - The ID of the component
-   * @param projectId - The ID of the project
-   * @param environmentId - The ID of the environment
    * @param namespaceName - The namespace name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
    * @param componentName - The name of the component
    * @param options - Optional parameters for filtering metrics
-   * @param options.limit - The maximum number of metrics to return
-   * @param options.offset - The offset from the first metric to return
-   * @param options.startTime - The start time of the metrics
-   * @param options.endTime - The end time of the metrics
+   * @param options.startTime - The start time of the metrics (ISO 8601)
+   * @param options.endTime - The end time of the metrics (ISO 8601)
+   * @param options.step - Resolution step (e.g. '1m', '5m', '15m')
    * @param userToken - Optional user token for authentication (takes precedence over default token)
-   * @returns Promise<ResourceMetricsTimeSeries> - The metrics data
+   * @returns Promise<ComponentMetricsTimeSeries> - The metrics data
    */
   async fetchMetricsByComponent(
-    componentId: string,
-    projectId: string,
-    environmentId: string,
     namespaceName: string,
     projectName: string,
     environmentName: string,
     componentName: string,
     options?: {
-      limit?: number;
-      offset?: number;
       startTime?: string;
       endTime?: string;
+      step?: string;
     },
     userToken?: string,
   ): Promise<ComponentMetricsTimeSeries> {
@@ -388,103 +401,53 @@ export class ObservabilityService {
         `Fetching metrics for component ${componentName} in environment ${environmentName}`,
       );
 
-      // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token: userToken,
-        logger: this.logger,
-      });
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/environments/{environmentName}/observer-url',
-        {
-          params: {
-            path: {
-              namespaceName,
-              projectName,
-              componentName,
-              environmentName,
-            },
-          },
-        },
+      const observerUrl = await this.resolveObserverUrl(
+        namespaceName,
+        environmentName,
+        userToken,
       );
 
-      if (urlError || !urlResponse.ok) {
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      if (!urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data.observerUrl;
-      if (!observerUrl) {
-        throw new ObservabilityNotConfiguredError(componentName);
-      }
-
-      // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         userToken,
         this.logger,
       );
 
+      const searchScope = {
+        namespace: namespaceName,
+        project: projectName,
+        component: componentName,
+        environment: environmentName,
+      };
+
+      const baseBody = {
+        startTime:
+          options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+        endTime: options?.endTime ?? new Date().toISOString(),
+        searchScope,
+        ...(options?.step ? { step: options.step } : {}),
+      };
+
       this.logger.debug(
-        `Sending metrics request for component ${componentId} with limit: ${
-          options?.limit || 100
-        }`,
+        `Sending metrics request for component ${componentName}`,
       );
 
-      const { data, error, response } = await obsClient.POST(
-        '/api/metrics/component/usage',
-        {
-          body: {
-            componentId,
-            environmentId,
-            projectId,
-            componentName,
-            projectName,
-            namespaceName,
-            environmentName,
-            limit: options?.limit || 100,
-            offset: options?.offset || 0,
-            startTime: options?.startTime,
-            endTime: options?.endTime,
-          },
-        },
-      );
-
-      const {
-        data: httpData,
-        error: httpError,
-        response: httpResponse,
-      } = await obsClient.POST('/api/metrics/component/http', {
-        body: {
-          componentId,
-          environmentId,
-          projectId,
-          componentName,
-          projectName,
-          namespaceName,
-          environmentName,
-          limit: options?.limit || 100,
-          offset: options?.offset || 0,
-          startTime: options?.startTime,
-          endTime: options?.endTime,
-        },
-      });
+      const [
+        { data, error, response },
+        { data: httpData, error: httpError, response: httpResponse },
+      ] = await Promise.all([
+        obsClient.POST('/api/v1/metrics/query', {
+          body: { ...baseBody, metric: 'resource' },
+        }),
+        obsClient.POST('/api/v1/metrics/query', {
+          body: { ...baseBody, metric: 'http' },
+        }),
+      ]);
 
       if (error || !response.ok) {
         const errorMessage = extractErrorMessage(error, response);
         this.logger.error(
-          `Failed to fetch metrics for component ${componentId}: ${errorMessage}`,
+          `Failed to fetch resource metrics for component ${componentName}: ${errorMessage}`,
         );
         throw new Error(`Failed to fetch metrics: ${errorMessage}`);
       }
@@ -492,50 +455,48 @@ export class ObservabilityService {
       if (httpError || !httpResponse.ok) {
         const errorMessage = extractErrorMessage(httpError, httpResponse);
         this.logger.error(
-          `Failed to fetch HTTP metrics for component ${componentId}: ${errorMessage}`,
+          `Failed to fetch HTTP metrics for component ${componentName}: ${errorMessage}`,
         );
         throw new Error(`Failed to fetch HTTP metrics: ${errorMessage}`);
       }
 
-      this.logger.debug(
-        `Successfully fetched metrics for component ${componentId}: ${JSON.stringify(
-          data,
-        )}`,
-      );
-
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Metrics fetch completed for component ${componentId} (${totalTime}ms)`,
+        `Metrics fetch completed for component ${componentName} (${totalTime}ms)`,
       );
 
-      // return {...data};
-      // TODO: Fix the ObservabilityClient to return empty arrays if the data is not available
+      const resourceData =
+        data as ObservabilityComponents['schemas']['ResourceMetricsTimeSeries'];
+      const httpMetricsData =
+        httpData as ObservabilityComponents['schemas']['HttpMetricsTimeSeries'];
+
       return {
-        cpuUsage: data.cpuUsage ?? [],
-        cpuRequests: data.cpuRequests ?? [],
-        cpuLimits: data.cpuLimits ?? [],
-        memory: data.memory ?? [],
-        memoryRequests: data.memoryRequests ?? [],
-        memoryLimits: data.memoryLimits ?? [],
-        requestCount: httpData.requestCount ?? [],
-        successfulRequestCount: httpData.successfulRequestCount ?? [],
-        unsuccessfulRequestCount: httpData.unsuccessfulRequestCount ?? [],
-        meanLatency: httpData.meanLatency ?? [],
-        latencyPercentile50th: httpData.latencyPercentile50th ?? [],
-        latencyPercentile90th: httpData.latencyPercentile90th ?? [],
-        latencyPercentile99th: httpData.latencyPercentile99th ?? [],
+        cpuUsage: resourceData.cpuUsage ?? [],
+        cpuRequests: resourceData.cpuRequests ?? [],
+        cpuLimits: resourceData.cpuLimits ?? [],
+        memoryUsage: resourceData.memoryUsage ?? [],
+        memoryRequests: resourceData.memoryRequests ?? [],
+        memoryLimits: resourceData.memoryLimits ?? [],
+        requestCount: httpMetricsData.requestCount ?? [],
+        successfulRequestCount: httpMetricsData.successfulRequestCount ?? [],
+        unsuccessfulRequestCount:
+          httpMetricsData.unsuccessfulRequestCount ?? [],
+        meanLatency: httpMetricsData.meanLatency ?? [],
+        latencyP50: httpMetricsData.latencyP50 ?? [],
+        latencyP90: httpMetricsData.latencyP90 ?? [],
+        latencyP99: httpMetricsData.latencyP99 ?? [],
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
         this.logger.info(
-          `Observability not configured for component ${componentId}`,
+          `Observability not configured for component ${componentName}`,
         );
         throw error;
       }
 
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching metrics for component ${componentId} (${totalTime}ms):`,
+        `Error fetching metrics for component ${componentName} (${totalTime}ms):`,
         error as Error,
       );
       throw error;
@@ -543,154 +504,282 @@ export class ObservabilityService {
   }
 
   /**
-   * Fetches traces for a specific project.
-   * This method dynamically resolves the observability URL from the main API,
-   * then fetches traces from the observability service.
+   * Fetches traces for a project/component using the v1alpha1 traces query endpoint.
    *
-   * @param projectId - The ID of the project
-   * @param environmentId - The ID of the environment
    * @param namespaceName - The namespace name
    * @param projectName - The project name
    * @param environmentName - The name of the environment
-   * @param componentUids - Array of component UIDs to filter traces (optional)
+   * @param componentName - Optional component name to filter traces
    * @param options - Optional parameters for filtering traces
-   * @param options.limit - The maximum number of traces to return
-   * @param options.startTime - The start time of the traces
-   * @param options.endTime - The end time of the traces
-   * @param options.traceId - Trace ID to filter by (optional, supports wildcards)
-   * @param options.sortOrder - Sort order for traces (asc/desc)
-   * @param userToken - Optional user token for authentication (takes precedence over default token)
+   * @param options.limit - The maximum number of traces to return (default 100)
+   * @param options.startTime - The start time of the query (ISO 8601)
+   * @param options.endTime - The end time of the query (ISO 8601)
+   * @param options.sort - Sort order for traces (asc/desc, default desc)
+   * @param userToken - Optional user token for authentication
    * @returns Promise with traces data
    */
-  async fetchTracesByProject(
-    projectId: string,
-    environmentId: string,
+  async fetchTraces(
     namespaceName: string,
     projectName: string,
     environmentName: string,
-    componentUids: string[],
-    componentNames: string[],
+    componentName?: string,
     options?: {
       limit?: number;
       startTime?: string;
       endTime?: string;
-      traceId?: string;
-      sortOrder?: 'asc' | 'desc';
+      sort?: 'asc' | 'desc';
     },
     userToken?: string,
   ): Promise<{
-    traces: Array<{
-      traceId: string;
-      spans: Array<{
-        spanId: string;
-        name: string;
-        durationNanoseconds: number;
-        startTime: string;
-        endTime: string;
-        parentSpanId?: string;
-      }>;
-    }>;
+    traces: Array<
+      NonNullable<
+        ObservabilityComponents['schemas']['TracesQueryResponse']['traces']
+      >[number]
+    >;
+    total: number;
     tookMs: number;
   }> {
     const startTime = Date.now();
     try {
       this.logger.debug(
-        `Fetching traces for project ${projectName} in environment ${
-          environmentName || 'all'
-        }`,
+        `Fetching traces for project ${projectName} in environment ${environmentName}`,
       );
 
-      // Resolve the observer URL using the helper function
       const observerUrl = await this.resolveObserverUrl(
         namespaceName,
         environmentName,
         userToken,
       );
 
-      // Use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         userToken,
         this.logger,
       );
 
-      this.logger.debug(
-        `Sending traces request to ${observerUrl}/api/traces for project ${projectId} with limit: ${
-          options?.limit || 100
-        }`,
-      );
-
       if (!options?.startTime || !options?.endTime) {
         throw new Error('startTime and endTime are required to fetch traces');
       }
 
-      const requestBody = {
-        projectUid: projectId,
-        componentUids: componentUids.length > 0 ? componentUids : undefined,
-        environmentUid: environmentId,
-        traceId: options?.traceId,
-        startTime: options.startTime,
-        endTime: options.endTime,
-        limit: options?.limit || 100,
-        sortOrder: options?.sortOrder || 'desc',
-        componentNames,
-        projectName,
-        namespaceName,
-        environmentName,
-      };
-
-      this.logger.debug(
-        `Calling POST ${observerUrl}/api/traces with body: ${JSON.stringify(
-          requestBody,
-        )}`,
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1alpha1/traces/query',
+        {
+          body: {
+            startTime: options.startTime,
+            endTime: options.endTime,
+            limit: options?.limit ?? 100,
+            sort: options?.sort ?? 'desc',
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              ...(componentName ? { component: componentName } : {}),
+              environment: environmentName,
+            },
+          },
+        },
       );
-
-      const { data, error, response } = await obsClient.POST('/api/traces', {
-        body: requestBody,
-      });
 
       if (error || !response.ok) {
         const errorMessage = extractErrorMessage(error, response);
-        const fullUrl = `${observerUrl}/api/traces`;
         this.logger.error(
-          `Failed to fetch traces for project ${projectId} from ${fullUrl}: ${errorMessage}`,
+          `Failed to fetch traces for project ${projectName}: ${errorMessage}`,
         );
-        throw new Error(
-          `Failed to fetch traces from ${fullUrl}: ${errorMessage}`,
-        );
+        throw new Error(`Failed to fetch traces: ${errorMessage}`);
       }
-
-      this.logger.debug(
-        `Successfully fetched traces for project ${projectId}: ${
-          data?.traces?.length || 0
-        } traces`,
-      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
-        `Traces fetch completed for project ${projectId} (${totalTime}ms)`,
+        `Traces fetch completed for project ${projectName}: ${
+          data?.traces?.length ?? 0
+        } traces (${totalTime}ms)`,
       );
 
       return {
-        traces:
-          data?.traces?.map(trace => ({
-            traceId: trace.traceId!,
-            spans:
-              trace.spans?.map(span => ({
-                spanId: span.spanId!,
-                name: span.name!,
-                durationNanoseconds: span.durationNanoseconds!,
-                startTime: span.startTime!,
-                endTime: span.endTime!,
-                parentSpanId: span.parentSpanId ?? undefined,
-              })) || [],
-          })) || [],
-        tookMs: data?.tookMs || 0,
+        traces: data?.traces ?? [],
+        total: data?.total ?? 0,
+        tookMs: data?.tookMs ?? 0,
       };
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(
-        `Error fetching traces for project ${projectId} (${totalTime}ms):`,
+        `Error fetching traces for project ${projectName} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches spans for a specific trace using the v1alpha1 spans query endpoint.
+   *
+   * @param traceId - The ID of the trace
+   * @param namespaceName - The namespace name
+   * @param projectName - The project name
+   * @param environmentName - The name of the environment
+   * @param componentName - Optional component name
+   * @param options - Optional parameters
+   * @param options.startTime - The start time of the query (ISO 8601)
+   * @param options.endTime - The end time of the query (ISO 8601)
+   * @param userToken - Optional user token for authentication
+   * @returns Promise with spans data
+   */
+  async fetchTraceSpans(
+    traceId: string,
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName?: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+    },
+    userToken?: string,
+  ): Promise<{
+    spans: Array<
+      NonNullable<
+        ObservabilityComponents['schemas']['TraceSpansQueryResponse']['spans']
+      >[number]
+    >;
+    total: number;
+    tookMs: number;
+  }> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching spans for trace ${traceId} in environment ${environmentName}`,
+      );
+
+      const observerUrl = await this.resolveObserverUrl(
+        namespaceName,
+        environmentName,
+        userToken,
+      );
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        userToken,
+        this.logger,
+      );
+
+      if (!options?.startTime || !options?.endTime) {
+        throw new Error(
+          'startTime and endTime are required to fetch trace spans',
+        );
+      }
+
+      const { data, error, response } = await obsClient.POST(
+        '/api/v1alpha1/traces/{traceId}/spans/query',
+        {
+          params: { path: { traceId } },
+          body: {
+            startTime: options.startTime,
+            endTime: options.endTime,
+            limit: 1000,
+            sort: 'asc',
+            searchScope: {
+              namespace: namespaceName,
+              project: projectName,
+              ...(componentName ? { component: componentName } : {}),
+              environment: environmentName,
+            },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMessage = extractErrorMessage(error, response);
+        this.logger.error(
+          `Failed to fetch spans for trace ${traceId}: ${errorMessage}`,
+        );
+        throw new Error(
+          `Failed to fetch spans for trace ${traceId}: ${errorMessage}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Spans fetch completed for trace ${traceId}: ${
+          data?.spans?.length ?? 0
+        } spans (${totalTime}ms)`,
+      );
+
+      return {
+        spans: data?.spans ?? [],
+        total: data?.total ?? 0,
+        tookMs: data?.tookMs ?? 0,
+      };
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching spans for trace ${traceId} (${totalTime}ms):`,
+        error as Error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches details for a specific span, including attributes.
+   *
+   * @param traceId - The ID of the trace
+   * @param spanId - The ID of the span
+   * @param namespaceName - The namespace name
+   * @param environmentName - The name of the environment
+   * @param userToken - Optional user token for authentication
+   * @returns Promise with span details including attributes
+   */
+  async fetchSpanDetails(
+    traceId: string,
+    spanId: string,
+    namespaceName: string,
+    environmentName: string,
+    userToken?: string,
+  ): Promise<ObservabilityComponents['schemas']['TraceSpanDetailsResponse']> {
+    const startTime = Date.now();
+    try {
+      this.logger.debug(
+        `Fetching details for span ${spanId} in trace ${traceId}`,
+      );
+
+      const observerUrl = await this.resolveObserverUrl(
+        namespaceName,
+        environmentName,
+        userToken,
+      );
+
+      const obsClient = createObservabilityClientWithUrl(
+        observerUrl,
+        userToken,
+        this.logger,
+      );
+
+      const { data, error, response } = await obsClient.GET(
+        '/api/v1alpha1/traces/{traceId}/spans/{spanId}',
+        {
+          params: { path: { traceId, spanId } },
+        },
+      );
+
+      if (error || !response.ok) {
+        const errorMessage = extractErrorMessage(error, response);
+        this.logger.error(
+          `Failed to fetch details for span ${spanId}: ${errorMessage}`,
+        );
+        throw new Error(
+          `Failed to fetch span details for span ${spanId}: ${errorMessage}`,
+        );
+      }
+
+      const totalTime = Date.now() - startTime;
+      this.logger.debug(
+        `Span details fetch completed for span ${spanId} (${totalTime}ms)`,
+      );
+
+      return data ?? {};
+    } catch (error: unknown) {
+      const totalTime = Date.now() - startTime;
+      this.logger.error(
+        `Error fetching span details for span ${spanId} (${totalTime}ms):`,
         error as Error,
       );
       throw error;

@@ -11,6 +11,7 @@ import {
 } from '@backstage/catalog-model';
 import { EnvironmentEntityV1alpha1 } from '../kinds/EnvironmentEntityV1alpha1';
 import {
+  CHOREO_ANNOTATIONS,
   RELATION_HOSTED_ON,
   RELATION_HOSTS,
 } from '@openchoreo/backstage-plugin-common';
@@ -74,11 +75,22 @@ export class EnvironmentEntityProcessor implements CatalogProcessor {
         );
       }
 
-      // Emit hostedOn/hosts relationship between Environment and DataPlane
+      // Emit hostedOn/hosts relationship between Environment and DataPlane/ClusterDataPlane
       if (entity.spec.dataPlaneRef) {
+        const refKind = (
+          entity.metadata.annotations?.[
+            CHOREO_ANNOTATIONS.DATA_PLANE_REF_KIND
+          ] || ''
+        )
+          .trim()
+          .toLowerCase();
+        const isClusterDataPlane = refKind === 'clusterdataplane';
+
         const dataplaneRef = {
-          kind: 'dataplane',
-          namespace: entity.metadata.namespace || 'default',
+          kind: isClusterDataPlane ? 'clusterdataplane' : 'dataplane',
+          namespace: isClusterDataPlane
+            ? 'openchoreo-cluster'
+            : entity.metadata.namespace || 'default',
           name: entity.spec.dataPlaneRef,
         };
         // Environment hostedOn DataPlane

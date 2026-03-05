@@ -10,6 +10,7 @@ export const TraitTypeOverviewCard = () => {
   const classes = useDataplaneOverviewStyles();
   const { entity } = useEntity();
 
+  const isCluster = entity.kind === 'ClusterTraitType';
   const annotations = entity.metadata.annotations || {};
   const createdAt = annotations[CHOREO_ANNOTATIONS.CREATED_AT];
   const description = entity.metadata.description;
@@ -29,7 +30,9 @@ export const TraitTypeOverviewCard = () => {
   return (
     <Card padding={24} className={classes.card}>
       <Box className={classes.cardHeader}>
-        <Typography variant="h5">Trait Type Details</Typography>
+        <Typography variant="h5">
+          {isCluster ? 'Cluster Trait Type Details' : 'Trait Type Details'}
+        </Typography>
       </Box>
 
       <Box className={classes.statusGrid}>
@@ -37,7 +40,9 @@ export const TraitTypeOverviewCard = () => {
           <ExtensionIcon className={classes.statusIcon} />
           <Box>
             <Typography className={classes.statusLabel}>Type</Typography>
-            <Typography className={classes.statusValue}>Trait</Typography>
+            <Typography className={classes.statusValue}>
+              {isCluster ? 'Cluster Trait' : 'Trait'}
+            </Typography>
           </Box>
         </Box>
 

@@ -4,31 +4,32 @@ import type {
 } from '@openchoreo/backstage-plugin-common';
 
 // Use generated types from OpenAPI spec
-type TimeValuePoint = ObservabilityComponents['schemas']['TimeValuePoint'];
+export type MetricsTimeSeriesItem =
+  ObservabilityComponents['schemas']['MetricsTimeSeriesItem'];
 
 export type CpuUsageMetrics = {
-  cpuUsage: TimeValuePoint[];
-  cpuRequests: TimeValuePoint[];
-  cpuLimits: TimeValuePoint[];
+  cpuUsage: MetricsTimeSeriesItem[];
+  cpuRequests: MetricsTimeSeriesItem[];
+  cpuLimits: MetricsTimeSeriesItem[];
 };
 
 export type MemoryUsageMetrics = {
-  memoryUsage: TimeValuePoint[];
-  memoryRequests: TimeValuePoint[];
-  memoryLimits: TimeValuePoint[];
+  memoryUsage: MetricsTimeSeriesItem[];
+  memoryRequests: MetricsTimeSeriesItem[];
+  memoryLimits: MetricsTimeSeriesItem[];
 };
 
 export type NetworkThroughputMetrics = {
-  requestCount: TimeValuePoint[];
-  successfulRequestCount: TimeValuePoint[];
-  unsuccessfulRequestCount: TimeValuePoint[];
+  requestCount: MetricsTimeSeriesItem[];
+  successfulRequestCount: MetricsTimeSeriesItem[];
+  unsuccessfulRequestCount: MetricsTimeSeriesItem[];
 };
 
 export type NetworkLatencyMetrics = {
-  meanLatency: TimeValuePoint[];
-  latencyPercentile50th: TimeValuePoint[];
-  latencyPercentile90th: TimeValuePoint[];
-  latencyPercentile99th: TimeValuePoint[];
+  meanLatency: MetricsTimeSeriesItem[];
+  latencyP50: MetricsTimeSeriesItem[];
+  latencyP90: MetricsTimeSeriesItem[];
+  latencyP99: MetricsTimeSeriesItem[];
 };
 
 export type Metrics = {
@@ -39,21 +40,30 @@ export type Metrics = {
 };
 
 export interface Span {
-  durationNanoseconds: number;
-  endTime: string;
-  name: string;
   spanId: string;
+  spanName: string;
+  spanKind?: string;
   startTime: string;
+  endTime: string;
+  durationNs: number;
   parentSpanId?: string;
+}
+
+export interface SpanDetails extends Span {
+  attributes?: Record<string, unknown>;
+  resourceAttributes?: Record<string, unknown>;
 }
 
 export interface Trace {
   traceId: string;
+  traceName?: string;
+  spanCount: number;
+  rootSpanId?: string;
+  rootSpanName?: string;
+  rootSpanKind?: string;
   startTime: string;
   endTime: string;
-  durationNanoseconds: number;
-  numberOfSpans: number;
-  spans: Span[];
+  durationNs: number;
 }
 
 export interface TimeRangeOption {

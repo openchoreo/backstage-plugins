@@ -3,12 +3,9 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   CHOREO_ANNOTATIONS,
-  type OpenChoreoLegacyComponents,
+  type DeploymentPipelineResponse,
 } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
-
-type DeploymentPipelineResponse =
-  OpenChoreoLegacyComponents['schemas']['DeploymentPipelineResponse'];
 
 interface DeploymentPipelineData {
   name: string;

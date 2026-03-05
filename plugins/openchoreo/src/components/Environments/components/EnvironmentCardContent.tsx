@@ -7,56 +7,31 @@ import {
   Tooltip,
   Button,
 } from '@material-ui/core';
-import { Skeleton } from '@material-ui/lab';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import DescriptionOutlinedIcon from '@material-ui/icons/DescriptionOutlined';
-import FileCopyIcon from '@material-ui/icons/FileCopy';
-import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
+import VisibilityOutlinedIcon from '@material-ui/icons/VisibilityOutlined';
 import { StatusBadge } from '@openchoreo/backstage-design-system';
 import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
-import { useEntity } from '@backstage/plugin-catalog-react';
 import { useEnvironmentCardStyles } from '../styles';
 import { EnvironmentCardContentProps } from '../types';
-import { useInvokeUrl } from '../hooks';
+import { InvokeUrlsDialog } from './InvokeUrlsDialog';
 
 /**
  * Content section of an environment card showing deployment details
  */
 export const EnvironmentCardContent = ({
-  environmentName,
-  resourceName,
   status,
   lastDeployed,
   image,
   releaseName,
-  dataPlaneRef,
   endpoints,
   onOpenReleaseDetails,
 }: EnvironmentCardContentProps) => {
   const classes = useEnvironmentCardStyles();
-  const { entity } = useEntity();
 
-  // State for copy feedback
-  const [copiedInvokeUrl, setCopiedInvokeUrl] = useState(false);
+  const [invokeUrlsOpen, setInvokeUrlsOpen] = useState(false);
 
-  // Fetch invoke URL using custom hook
-  const { invokeUrl, loading: loadingInvokeUrl } = useInvokeUrl(
-    entity,
-    environmentName,
-    resourceName,
-    releaseName,
-    status,
-    dataPlaneRef,
-  );
-
-  // Handle copy invoke URL
-  const handleCopyInvokeUrl = () => {
-    if (invokeUrl) {
-      navigator.clipboard.writeText(invokeUrl);
-      setCopiedInvokeUrl(true);
-      setTimeout(() => setCopiedInvokeUrl(false), 2000);
-    }
-  };
+  const hasInvokeUrls = status === 'Ready' && endpoints.length > 0;
 
   return (
     <>
@@ -102,58 +77,11 @@ export const EnvironmentCardContent = ({
               onClick={onOpenReleaseDetails}
               style={{ textTransform: 'none' }}
             >
-              View Release
+              View K8s Artifacts
             </Button>
           </Box>
         )}
       </Box>
-
-      {/* Invoke URL */}
-      {loadingInvokeUrl ? (
-        <Box mt={4} mb={3}>
-          <Skeleton
-            variant="text"
-            width="30%"
-            height={20}
-            style={{ marginBottom: 8 }}
-          />
-          <Skeleton variant="text" width="80%" height={24} />
-        </Box>
-      ) : (
-        invokeUrl && (
-          <Box mt={4} mb={3}>
-            <Typography
-              variant="body2"
-              style={{ fontWeight: 500, marginRight: 8 }}
-            >
-              Invoke URL
-            </Typography>
-            <Box display="flex" alignItems="center" mt={0.5}>
-              <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                <a
-                  href={invokeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={classes.endpointLink}
-                >
-                  {invokeUrl}
-                </a>
-              </Box>
-              <Box sx={{ flexShrink: 0 }}>
-                <Tooltip
-                  title={copiedInvokeUrl ? 'Copied' : 'Copy invoke URL'}
-                  open={copiedInvokeUrl ? true : undefined}
-                  leaveDelay={copiedInvokeUrl ? 0 : 200}
-                >
-                  <IconButton size="small" onClick={handleCopyInvokeUrl}>
-                    <FileCopyOutlinedIcon fontSize="small" />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Box>
-          </Box>
-        )
-      )}
 
       {image && (
         <Box mt={2}>
@@ -170,39 +98,53 @@ export const EnvironmentCardContent = ({
         </Box>
       )}
 
-      {status === 'Ready' && endpoints.length > 0 && (
-        <Box mt={2}>
-          <Typography className={classes.sectionLabel}>Endpoints</Typography>
-          {endpoints.map((endpoint, index) => (
-            <Box
-              key={index}
-              display="flex"
-              alignItems="center"
-              mt={index === 0 ? 0 : 1}
-              sx={{ minWidth: 0, width: '100%' }}
+      {hasInvokeUrls && (
+        <Box
+          mt={2}
+          mb={2}
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+        >
+          <Box display="flex" alignItems="center">
+            <Typography
+              variant="body2"
+              style={{ fontWeight: 500, marginRight: 6 }}
             >
-              <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                <a
-                  href={endpoint.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={classes.endpointLink}
-                >
-                  {endpoint.url}
-                </a>
-              </Box>
-              <Box sx={{ flexShrink: 0 }}>
-                <IconButton
-                  size="small"
-                  onClick={() => navigator.clipboard.writeText(endpoint.url)}
-                >
-                  <FileCopyIcon fontSize="small" />
-                </IconButton>
-              </Box>
+              Invoke URLs
+            </Typography>
+            <Box
+              style={{
+                backgroundColor: 'rgba(0,0,0,0.08)',
+                borderRadius: 10,
+                padding: '0px 7px',
+                lineHeight: '18px',
+                display: 'inline-flex',
+                alignItems: 'center',
+              }}
+            >
+              <Typography variant="caption" color="textSecondary">
+                {endpoints.length}
+              </Typography>
             </Box>
-          ))}
+          </Box>
+          <Tooltip title="View invoke URLs">
+            <IconButton
+              size="small"
+              onClick={() => setInvokeUrlsOpen(true)}
+              aria-label="Show invoke URLs"
+            >
+              <VisibilityOutlinedIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
       )}
+
+      <InvokeUrlsDialog
+        open={invokeUrlsOpen}
+        onClose={() => setInvokeUrlsOpen(false)}
+        endpoints={endpoints}
+      />
     </>
   );
 };

@@ -1,12 +1,8 @@
 import { createContext, useContext } from 'react';
-import type { EntityMap } from '../../../hooks/useEntitiesByUids';
 
-export const EntityLinkContext = createContext<{
-  entityMap: EntityMap;
-  loading: boolean;
-}>({
-  entityMap: new Map(),
-  loading: false,
+/** Provides the OpenChoreo namespace so entity tags can be rendered as catalog links */
+export const EntityLinkContext = createContext<{ namespace: string }>({
+  namespace: 'default',
 });
 
 export const useEntityLinkContext = () => useContext(EntityLinkContext);

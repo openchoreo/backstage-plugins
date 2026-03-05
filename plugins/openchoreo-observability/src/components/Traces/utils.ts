@@ -1,5 +1,3 @@
-import { Trace } from '../../types';
-
 export function parseRfc3339NanoToNanoseconds(rfc3339Nano: string): number {
   // Split timestamp into base and fractional parts and return nanoseconds
   const [base, fractional] = rfc3339Nano.replace('Z', '').split('.');
@@ -37,22 +35,40 @@ export function formatTimeFromString(rfc3339Nano: string): string {
   return rfc3339Nano.endsWith('Z') ? rfc3339Nano : `${rfc3339Nano}Z`;
 }
 
-export const convertToTableFormat = (traces: Trace[]): Trace[] => {
-  return traces.map(trace => {
-    const times = trace.spans.flatMap(span => [
-      parseRfc3339NanoToNanoseconds(span.startTime),
-      parseRfc3339NanoToNanoseconds(span.endTime),
-    ]);
-    const minTime = Math.min(...times);
-    const maxTime = Math.max(...times);
+export function calculateTimeRange(timeRange: string): {
+  startTime: string;
+  endTime: string;
+} {
+  const now = new Date();
+  const endTime = now.toISOString();
 
-    return {
-      traceId: trace.traceId,
-      startTime: nanosecondsToRfc3339Nano(minTime),
-      endTime: nanosecondsToRfc3339Nano(maxTime),
-      durationNanoseconds: maxTime - minTime,
-      numberOfSpans: trace.spans.length,
-      spans: trace.spans,
-    };
-  });
-};
+  let startTime: Date;
+
+  switch (timeRange) {
+    case '10m':
+      startTime = new Date(now.getTime() - 10 * 60 * 1000);
+      break;
+    case '30m':
+      startTime = new Date(now.getTime() - 30 * 60 * 1000);
+      break;
+    case '1h':
+      startTime = new Date(now.getTime() - 60 * 60 * 1000);
+      break;
+    case '24h':
+      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      break;
+    case '7d':
+      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case '14d':
+      startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      break;
+    default:
+      startTime = new Date(now.getTime() - 60 * 60 * 1000);
+  }
+
+  return {
+    startTime: startTime.toISOString(),
+    endTime,
+  };
+}

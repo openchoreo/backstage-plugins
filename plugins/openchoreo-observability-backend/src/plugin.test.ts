@@ -7,52 +7,8 @@ import {
 import { openchoreoObservabilityBackendPlugin } from './plugin';
 import request from 'supertest';
 
-const mockResourceMetricsTimeSeries = {
-  cpuUsage: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  cpuRequests: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  cpuLimits: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  memory: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  memoryRequests: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  memoryLimits: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-};
-
-// TEMPLATE NOTE:
-// Plugin tests are integration tests for your plugin, ensuring that all pieces
-// work together end-to-end. You can still mock injected backend services
-// however, just like anyone who installs your plugin might replace the
-// services with their own implementations.
 describe('plugin', () => {
-  it('should get metrics', async () => {
+  it('should resolve observer URLs', async () => {
     const { server } = await startTestBackend({
       features: [
         openchoreoObservabilityBackendPlugin,
@@ -60,39 +16,31 @@ describe('plugin', () => {
           service: observabilityServiceRef,
           deps: {},
           factory: () => ({
-            fetchMetricsByComponent: jest
-              .fn()
-              .mockResolvedValue(mockResourceMetricsTimeSeries),
+            resolveUrls: jest.fn().mockResolvedValue({
+              observerUrl: 'https://observer.example.com',
+              rcaAgentUrl: 'https://rca.example.com',
+            }),
             fetchEnvironmentsByNamespace: jest.fn().mockResolvedValue([]),
-            fetchTracesByProject: jest.fn().mockResolvedValue({
-              traces: [],
-              tookMs: 0,
-            }),
-            fetchRuntimeLogsByComponent: jest.fn().mockResolvedValue({
-              logs: [],
-              totalCount: 0,
-            }),
+            fetchMetricsByComponent: jest.fn(),
+            fetchTraces: jest.fn(),
+            fetchTraceSpans: jest.fn(),
+            fetchSpanDetails: jest.fn(),
+            fetchRuntimeLogsByComponent: jest.fn(),
+            getReleaseBinding: jest.fn(),
+            updateReleaseBinding: jest.fn(),
           }),
         }),
       ],
     });
 
     const response = await request(server)
-      .post('/api/openchoreo-observability-backend/metrics')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'namespace-1',
-        projectName: 'project-1',
-        options: {
-          limit: 100,
-          offset: 0,
-          startTime: '2025-01-01T00:00:00Z',
-          endTime: '2025-12-31T23:59:59Z',
-        },
-      });
+      .get('/api/openchoreo-observability-backend/resolve-urls')
+      .query({ namespaceName: 'org-1', environmentName: 'dev' });
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(mockResourceMetricsTimeSeries);
+    expect(response.body).toEqual({
+      observerUrl: 'https://observer.example.com',
+      rcaAgentUrl: 'https://rca.example.com',
+    });
   });
 
   it('should forward errors from the ObservabilityService', async () => {
@@ -103,40 +51,30 @@ describe('plugin', () => {
           service: observabilityServiceRef,
           deps: {},
           factory: () => ({
-            fetchMetricsByComponent: jest
+            resolveUrls: jest
               .fn()
-              .mockRejectedValue(new Error('Failed to fetch metrics')),
+              .mockRejectedValue(new Error('Failed to resolve URLs')),
             fetchEnvironmentsByNamespace: jest
               .fn()
               .mockRejectedValue(new Error('Failed to fetch environments')),
-            fetchTracesByProject: jest
-              .fn()
-              .mockRejectedValue(new Error('Failed to fetch traces')),
-            fetchRuntimeLogsByComponent: jest
-              .fn()
-              .mockRejectedValue(new Error('Failed to fetch runtime logs')),
+            fetchMetricsByComponent: jest.fn(),
+            fetchTraces: jest.fn(),
+            fetchTraceSpans: jest.fn(),
+            fetchSpanDetails: jest.fn(),
+            fetchRuntimeLogsByComponent: jest.fn(),
+            getReleaseBinding: jest.fn(),
+            updateReleaseBinding: jest.fn(),
           }),
         }),
       ],
     });
 
-    const getMetricsRes = await request(server)
-      .post('/api/openchoreo-observability-backend/metrics')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'namespace-1',
-        projectName: 'project-1',
-        options: {
-          limit: 100,
-          offset: 0,
-          startTime: '2025-01-01T00:00:00Z',
-          endTime: '2025-12-31T23:59:59Z',
-        },
-      });
-    expect(getMetricsRes.status).toBe(500);
-    expect(getMetricsRes.body).toMatchObject({
-      error: 'Failed to fetch metrics',
+    const response = await request(server)
+      .get('/api/openchoreo-observability-backend/resolve-urls')
+      .query({ namespaceName: 'org-1', environmentName: 'dev' });
+    expect(response.status).toBe(500);
+    expect(response.body).toMatchObject({
+      error: 'Failed to resolve URLs',
     });
   });
 
@@ -148,42 +86,28 @@ describe('plugin', () => {
           service: observabilityServiceRef,
           deps: {},
           factory: () => ({
-            fetchMetricsByComponent: jest
+            resolveUrls: jest
               .fn()
-              .mockRejectedValue(
-                new ObservabilityNotConfiguredError('component-1'),
-              ),
+              .mockRejectedValue(new ObservabilityNotConfiguredError('org-1')),
             fetchEnvironmentsByNamespace: jest.fn().mockResolvedValue([]),
-            fetchTracesByProject: jest.fn().mockResolvedValue({
-              traces: [],
-              tookMs: 0,
-            }),
-            fetchRuntimeLogsByComponent: jest.fn().mockResolvedValue({
-              logs: [],
-              totalCount: 0,
-            }),
+            fetchMetricsByComponent: jest.fn(),
+            fetchTraces: jest.fn(),
+            fetchTraceSpans: jest.fn(),
+            fetchSpanDetails: jest.fn(),
+            fetchRuntimeLogsByComponent: jest.fn(),
+            getReleaseBinding: jest.fn(),
+            updateReleaseBinding: jest.fn(),
           }),
         }),
       ],
     });
 
-    const getMetricsRes = await request(server)
-      .post('/api/openchoreo-observability-backend/metrics')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'namespace-1',
-        projectName: 'project-1',
-        options: {
-          limit: 100,
-          offset: 0,
-          startTime: '2025-01-01T00:00:00Z',
-          endTime: '2025-12-31T23:59:59Z',
-        },
-      });
-    expect(getMetricsRes.status).toBe(404);
-    expect(getMetricsRes.body).toMatchObject({
-      error: 'Observability is not configured for component component-1',
+    const response = await request(server)
+      .get('/api/openchoreo-observability-backend/resolve-urls')
+      .query({ namespaceName: 'org-1', environmentName: 'dev' });
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      error: 'Observability is not configured for component org-1',
     });
   });
 });

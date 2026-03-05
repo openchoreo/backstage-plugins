@@ -202,10 +202,10 @@ export function useRuntimeLogs(
           const sortOrder = options.sortOrder || 'desc';
           if (sortOrder === 'desc') {
             // For descending (newest first), use the timestamp of the last log as the new endTime
-            endTime = lastLog.timestamp;
+            endTime = lastLog.timestamp ?? endTime;
           } else {
             // For ascending (oldest first), use the timestamp of the last log as the new startTime
-            startTime = lastLog.timestamp;
+            startTime = lastLog.timestamp ?? startTime;
           }
         }
 
@@ -229,7 +229,7 @@ export function useRuntimeLogs(
 
         if (reset) {
           setLogs(response.logs);
-          setTotalCount(response.totalCount);
+          setTotalCount(response.total ?? 0);
         } else {
           setLogs(prev => [...prev, ...response.logs]);
         }

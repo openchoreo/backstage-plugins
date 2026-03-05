@@ -111,7 +111,7 @@ catalog:
       rules:
         - allow: [Template]
     - type: file
-      target: /app/templates/create-openchoreo-componentworkflow/template.yaml
+      target: /app/templates/create-openchoreo-workflow/template.yaml
       rules:
         - allow: [Template]
     - type: file

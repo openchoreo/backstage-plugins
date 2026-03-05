@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import {
@@ -91,7 +91,7 @@ export const createProjectAction = (
         );
       }
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl,
         token,
         logger: ctx.logger,
@@ -99,16 +99,30 @@ export const createProjectAction = (
 
       try {
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/projects',
+          '/api/v1/namespaces/{namespaceName}/projects',
           {
             params: {
               path: { namespaceName },
             },
             body: {
-              name: ctx.input.projectName,
-              displayName: ctx.input.displayName,
-              description: ctx.input.description,
-              deploymentPipeline: ctx.input.deploymentPipeline,
+              metadata: {
+                name: ctx.input.projectName,
+                annotations: {
+                  ...(ctx.input.displayName
+                    ? {
+                        'openchoreo.dev/display-name': ctx.input.displayName,
+                      }
+                    : {}),
+                  ...(ctx.input.description
+                    ? {
+                        'openchoreo.dev/description': ctx.input.description,
+                      }
+                    : {}),
+                },
+              },
+              spec: {
+                deploymentPipelineRef: ctx.input.deploymentPipeline,
+              },
             },
           },
         );
@@ -119,15 +133,11 @@ export const createProjectAction = (
           );
         }
 
-        if (!data.success || !data.data) {
-          throw new Error('API request was not successful');
-        }
-
         ctx.logger.debug(
-          `Project created successfully: ${JSON.stringify(data.data)}`,
+          `Project created successfully: ${JSON.stringify(data)}`,
         );
 
-        const projectName = data.data.name || ctx.input.projectName;
+        const projectName = data?.metadata?.name || ctx.input.projectName;
 
         // Immediately insert the project into the catalog
         try {
@@ -139,13 +149,18 @@ export const createProjectAction = (
             config.getOptionalString('openchoreo.defaultOwner') ||
             'openchoreo-users';
 
+          const annotations = data?.metadata?.annotations || {};
           const entity = translateProjectToEntity(
             {
               name: projectName,
-              displayName: ctx.input.displayName || data.data.displayName,
-              description: ctx.input.description || data.data.description,
+              displayName:
+                ctx.input.displayName ||
+                annotations['openchoreo.dev/display-name'],
+              description:
+                ctx.input.description ||
+                annotations['openchoreo.dev/description'],
               namespaceName: namespaceName,
-              uid: data.data.uid,
+              uid: data?.metadata?.uid,
             },
             namespaceName,
             {

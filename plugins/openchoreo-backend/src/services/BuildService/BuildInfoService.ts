@@ -1,17 +1,16 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoLegacyApiClient,
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
   fetchAllPages,
-  type OpenChoreoLegacyComponents,
+  ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
+import type { ComponentWorkflowRunResponse } from '@openchoreo/backstage-plugin-common';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 import { transformComponentWorkflowRun } from '../transformers';
 import { RuntimeLogsResponse } from '../../types';
 
-// Use generated type from OpenAPI spec
-type ModelsBuild =
-  OpenChoreoLegacyComponents['schemas']['ComponentWorkflowRunResponse'];
+type ModelsBuild = ComponentWorkflowRunResponse;
 
 export class ObservabilityNotConfiguredError extends Error {
   constructor(componentName: string) {
@@ -23,88 +22,21 @@ export class ObservabilityNotConfiguredError extends Error {
 export class BuildInfoService {
   private logger: LoggerService;
   private baseUrl: string;
-  private useNewApi: boolean;
-
-  constructor(logger: LoggerService, baseUrl: string, useNewApi = false) {
+  private readonly resolver: ObservabilityUrlResolver;
+  constructor(logger: LoggerService, baseUrl: string) {
     this.logger = logger;
     this.baseUrl = baseUrl;
-    this.useNewApi = useNewApi;
+    this.resolver = new ObservabilityUrlResolver({ baseUrl, logger });
   }
 
   async fetchBuilds(
     namespaceName: string,
-    projectName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<ModelsBuild[]> {
-    if (this.useNewApi) {
-      return this.fetchBuildsNew(namespaceName, componentName, token);
-    }
-    return this.fetchBuildsLegacy(
-      namespaceName,
-      projectName,
-      componentName,
-      token,
-    );
-  }
-
-  private async fetchBuildsLegacy(
-    namespaceName: string,
-    projectName: string,
+    _projectName: string,
     componentName: string,
     token?: string,
   ): Promise<ModelsBuild[]> {
     this.logger.debug(
-      `Fetching component workflow runs for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component workflow runs: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data?.success) {
-        throw new Error('API request was not successful');
-      }
-
-      const builds = (data.data?.items || []) as any;
-
-      this.logger.debug(
-        `Successfully fetched ${builds.length} component workflow runs for component: ${componentName}`,
-      );
-      return builds;
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch component workflow runs for component ${componentName}: ${error}`,
-      );
-      throw error;
-    }
-  }
-
-  private async fetchBuildsNew(
-    namespaceName: string,
-    componentName: string,
-    token?: string,
-  ): Promise<ModelsBuild[]> {
-    this.logger.debug(
-      `Fetching component workflow runs (new API) for component: ${componentName} in namespace: ${namespaceName}`,
+      `Fetching component workflow runs for component: ${componentName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -116,10 +48,10 @@ export class BuildInfoService {
 
       const items = await fetchAllPages(cursor =>
         client
-          .GET('/api/v1/namespaces/{namespaceName}/component-workflow-runs', {
+          .GET('/api/v1/namespaces/{namespaceName}/workflowruns', {
             params: {
               path: { namespaceName },
-              query: { component: componentName, limit: 100, cursor },
+              query: { limit: 100, cursor },
             },
           })
           .then(res => {
@@ -132,7 +64,19 @@ export class BuildInfoService {
           }),
       );
 
-      const builds = items.map(transformComponentWorkflowRun);
+      // Filter by component label, transform, and sort by creation time descending
+      const builds = items
+        .filter(
+          (run: any) =>
+            run.metadata?.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] ===
+            componentName,
+        )
+        .map(transformComponentWorkflowRun)
+        .sort((a, b) => {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return timeB - timeA;
+        });
 
       this.logger.debug(
         `Successfully fetched ${builds.length} component workflow runs for component: ${componentName}`,
@@ -153,72 +97,8 @@ export class BuildInfoService {
     runName: string,
     token?: string,
   ): Promise<any> {
-    if (this.useNewApi) {
-      return this.getWorkflowRunNew(namespaceName, runName, token);
-    }
-    return this.getWorkflowRunLegacy(
-      namespaceName,
-      projectName,
-      componentName,
-      runName,
-      token,
-    );
-  }
-
-  private async getWorkflowRunLegacy(
-    namespaceName: string,
-    projectName: string,
-    componentName: string,
-    runName: string,
-    token?: string,
-  ): Promise<any> {
     this.logger.debug(
-      `Fetching workflow run: ${runName} for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs/{runName}',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName, runName },
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data?.success || !data.data) {
-        throw new Error('No workflow run data returned');
-      }
-
-      this.logger.debug(`Successfully fetched workflow run: ${runName}`);
-      return data.data;
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch workflow run ${runName} for component ${componentName}: ${error}`,
-      );
-      throw error;
-    }
-  }
-
-  private async getWorkflowRunNew(
-    namespaceName: string,
-    runName: string,
-    token?: string,
-  ): Promise<any> {
-    this.logger.debug(
-      `Fetching workflow run (new API): ${runName} in namespace: ${namespaceName}`,
+      `Fetching workflow run: ${runName} in namespace: ${namespaceName}`,
     );
 
     try {
@@ -229,7 +109,7 @@ export class BuildInfoService {
       });
 
       const { data, error, response } = await client.GET(
-        '/api/v1/namespaces/{namespaceName}/component-workflow-runs/{runName}',
+        '/api/v1/namespaces/{namespaceName}/workflowruns/{runName}',
         {
           params: {
             path: { namespaceName, runName },
@@ -240,6 +120,16 @@ export class BuildInfoService {
       if (error || !response.ok) {
         throw new Error(
           `Failed to fetch workflow run: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const runLabels = (data as any)?.metadata?.labels ?? {};
+      if (
+        runLabels[CHOREO_LABELS.WORKFLOW_COMPONENT] !== componentName ||
+        runLabels[CHOREO_LABELS.WORKFLOW_PROJECT] !== projectName
+      ) {
+        throw new Error(
+          `Workflow run ${runName} does not belong to component ${componentName} in project ${projectName}`,
         );
       }
 
@@ -258,85 +148,8 @@ export class BuildInfoService {
     commit?: string,
     token?: string,
   ): Promise<ModelsBuild> {
-    if (this.useNewApi) {
-      return this.triggerBuildNew(
-        namespaceName,
-        projectName,
-        componentName,
-        commit,
-        token,
-      );
-    }
-    return this.triggerBuildLegacy(
-      namespaceName,
-      projectName,
-      componentName,
-      commit,
-      token,
-    );
-  }
-
-  private async triggerBuildLegacy(
-    namespaceName: string,
-    projectName: string,
-    componentName: string,
-    commit?: string,
-    token?: string,
-  ): Promise<ModelsBuild> {
     this.logger.info(
       `Triggering component workflow for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}${
-        commit ? ` with commit: ${commit}` : ''
-      }`,
-    );
-
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const { data, error, response } = await client.POST(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/workflow-runs',
-        {
-          params: {
-            path: { namespaceName, projectName, componentName },
-            query: commit ? { commit } : undefined,
-          },
-        },
-      );
-
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to create component workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data?.success || !data.data) {
-        throw new Error('No workflow run data returned');
-      }
-
-      this.logger.debug(
-        `Successfully triggered component workflow for component: ${componentName}, workflow run name: ${data.data.name}`,
-      );
-      return data.data as any;
-    } catch (error) {
-      this.logger.error(
-        `Failed to trigger component workflow for component ${componentName}: ${error}`,
-      );
-      throw error;
-    }
-  }
-
-  private async triggerBuildNew(
-    namespaceName: string,
-    projectName: string,
-    componentName: string,
-    commit?: string,
-    token?: string,
-  ): Promise<ModelsBuild> {
-    this.logger.info(
-      `Triggering component workflow (new API) for component: ${componentName} in project: ${projectName}, namespace: ${namespaceName}${
         commit ? ` with commit: ${commit}` : ''
       }`,
     );
@@ -348,18 +161,39 @@ export class BuildInfoService {
         logger: this.logger,
       });
 
+      // Fetch component to resolve its configured workflow name
+      const { data: compData, error: compError } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/components/{componentName}',
+        { params: { path: { namespaceName, componentName } } },
+      );
+      if (compError || !compData) {
+        throw new Error(
+          `Failed to fetch component ${componentName} to determine workflow name`,
+        );
+      }
+      const workflowName = (compData as any)?.spec?.workflow?.name;
+      if (!workflowName) {
+        throw new Error(
+          `Component ${componentName} has no workflow configured`,
+        );
+      }
+
+      const parameters: Record<string, unknown> = {};
+      if (commit) parameters.commit = commit;
+
       const { data, error, response } = await client.POST(
-        '/api/v1/namespaces/{namespaceName}/component-workflow-runs',
+        '/api/v1/namespaces/{namespaceName}/workflowruns',
         {
-          params: {
-            path: { namespaceName },
-            query: commit ? { commit } : undefined,
-          },
+          params: { path: { namespaceName } },
           body: {
-            metadata: { name: `${componentName}-run` },
-            spec: {
-              owner: { projectName, componentName },
+            metadata: {
+              name: `${componentName}-${Date.now()}`,
+              labels: {
+                [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+                [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
+              },
             },
+            spec: { workflow: { name: workflowName, parameters } },
           } as any,
         },
       );
@@ -396,48 +230,15 @@ export class BuildInfoService {
     );
 
     try {
-      // First, get the observer URL from the main API
-      const mainClient = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
+      const { observerUrl } = await this.resolver.resolveForBuild(
+        namespaceName,
+        projectName,
         token,
-        logger: this.logger,
-      });
-
-      const {
-        data: urlData,
-        error: urlError,
-        response: urlResponse,
-      } = await mainClient.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/observer-url',
-        {
-          params: {
-            path: {
-              namespaceName,
-              projectName,
-              componentName,
-            },
-          },
-        },
       );
 
-      if (urlError || !urlResponse.ok) {
-        throw new Error(
-          `Failed to get observer URL: ${urlResponse.status} ${urlResponse.statusText}`,
-        );
-      }
-
-      if (!urlData.success || !urlData.data) {
-        throw new Error(
-          `API returned unsuccessful response: ${JSON.stringify(urlData)}`,
-        );
-      }
-
-      const observerUrl = urlData.data.observerUrl;
       if (!observerUrl) {
         throw new ObservabilityNotConfiguredError(componentName);
       }
-
-      // Now use the observability client with the resolved URL
       const obsClient = createObservabilityClientWithUrl(
         observerUrl,
         token,
@@ -449,11 +250,8 @@ export class BuildInfoService {
       );
 
       const { data, error, response } = await obsClient.POST(
-        '/api/logs/build/{buildId}',
+        '/api/v1/logs/query',
         {
-          params: {
-            path: { buildId },
-          },
           body: {
             startTime: new Date(
               Date.now() - 30 * 24 * 60 * 60 * 1000,
@@ -461,9 +259,10 @@ export class BuildInfoService {
             endTime: new Date().toISOString(),
             limit: limit || 1000, // Default to 1000 until pagination is implemented
             sortOrder: sortOrder || 'asc',
-            componentName,
-            projectName,
-            namespaceName,
+            searchScope: {
+              namespace: namespaceName,
+              workflowRunName: buildId,
+            },
           },
         },
       );
@@ -487,7 +286,7 @@ export class BuildInfoService {
 
       return {
         logs: data.logs || [],
-        totalCount: data.totalCount || 0,
+        total: data.total || 0,
         tookMs: data.tookMs || 0,
       };
     } catch (error: unknown) {

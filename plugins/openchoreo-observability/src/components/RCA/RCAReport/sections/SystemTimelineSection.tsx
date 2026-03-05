@@ -63,13 +63,13 @@ export const SystemTimelineSection = ({
                 <Typography variant="caption" color="textSecondary">
                   {formatTimelineTimestamp(event.timestamp)}
                 </Typography>
-                {event.component_uid && (
+                {event.component && (
                   <Typography
                     variant="caption"
                     color="textSecondary"
                     style={{ marginLeft: 8 }}
                   >
-                    <FormattedText text={event.component_uid} />
+                    <FormattedText text={event.component} />
                   </Typography>
                 )}
               </Box>

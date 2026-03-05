@@ -6,6 +6,7 @@ export interface Workflow {
   displayName?: string;
   description?: string;
   createdAt: string;
+  type?: string;
 }
 
 /**
@@ -70,4 +71,33 @@ export interface LogsResponse {
   error?: 'OBSERVABILITY_NOT_CONFIGURED' | string;
   /** Human-readable error message */
   message?: string;
+}
+
+/**
+ * Status of an individual workflow step
+ */
+export interface WorkflowStepStatus {
+  name: string;
+  phase: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+}
+
+/**
+ * Status response for a workflow run including steps
+ */
+export interface WorkflowRunStatusResponse {
+  status: string;
+  steps: WorkflowStepStatus[];
+  hasLiveObservability: boolean;
+}
+
+/**
+ * A single Kubernetes event entry from a workflow run
+ */
+export interface WorkflowRunEventEntry {
+  timestamp: string;
+  type: string;
+  reason: string;
+  message: string;
 }

@@ -201,8 +201,7 @@ export const ComponentNamePicker = ({
         helperText={
           hasError && errorMessage
             ? errorMessage
-            : schema.description ||
-              'Lowercase letters, numbers, hyphens, and dots only. Must start and end with alphanumeric character.'
+            : 'Unique name for your component (must be a valid Kubernetes name)'
         }
         InputProps={{
           endAdornment: validationState.isValidating ? (

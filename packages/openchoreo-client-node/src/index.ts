@@ -14,7 +14,7 @@ export {
   createOpenChoreoAIRCAAgentApiClient,
   createOpenChoreoClientFromConfig,
   createObservabilityClientWithUrl,
-  OPENCHOREO_API_VERSION_HEADER,
+  OPENCHOREO_LEGACY_ROUTES_HEADER,
   type OpenChoreoClientConfig,
   type OpenChoreoObservabilityClientConfig,
   type OpenChoreoAIRCAAgentClientConfig,
@@ -26,6 +26,13 @@ export {
   createTracingMiddleware,
   TRACE_ENV_VAR,
 } from './tracing';
+
+// Export observability URL resolver
+export {
+  ObservabilityUrlResolver,
+  type ObservabilityUrlsResult,
+  type ObservabilityUrlResolverOptions,
+} from './observability-url-resolver';
 
 // Export resource utilities (new API)
 export {
@@ -43,6 +50,7 @@ export {
   getCondition,
   getConditionStatus,
   isReady,
+  isCreated,
 } from './resource-utils';
 
 // Export pagination utilities (new API)

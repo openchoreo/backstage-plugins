@@ -13,7 +13,7 @@ export interface paths {
     };
     /**
      * Health check
-     * @description Check the health status of the observer service including OpenSearch and Prometheus connectivity
+     * @description Check the health status of the observer service.
      */
     get: operations['health'];
     put?: never;
@@ -24,7 +24,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/logs/build/{buildId}': {
+  '/api/v1/logs/query': {
     parameters: {
       query?: never;
       header?: never;
@@ -34,10 +34,10 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get build logs
-     * @description Retrieve logs for a specific build
+     * Query logs
+     * @description Query logs from the observer service
      */
-    post: operations['getBuildLogs'];
+    post: operations['queryLogs'];
     delete?: never;
     options?: never;
     head?: never;
@@ -56,6 +56,7 @@ export interface paths {
      * @description Returns logs from a workflow run stored in the observability plane.
      *     This endpoint is used when logs are older than the TTL and have been archived to OpenSearch.
      *     Logs are returned as a JSON array of log entries with timestamps, optionally filtered by step.
+     *
      */
     get: operations['getComponentWorkflowRunLogs'];
     put?: never;
@@ -86,7 +87,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/logs/component/{componentId}': {
+  '/api/v1/metrics/query': {
     parameters: {
       query?: never;
       header?: never;
@@ -96,17 +97,17 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get component logs
-     * @description Retrieve logs for a specific component
+     * Query metrics
+     * @description Query metrics from the observer service
      */
-    post: operations['getComponentLogs'];
+    post: operations['queryMetrics'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/logs/project/{projectId}': {
+  '/api/v1alpha1/traces/query': {
     parameters: {
       query?: never;
       header?: never;
@@ -116,17 +117,17 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get project logs
-     * @description Retrieve logs for all components in a specific project
+     * Query traces
+     * @description Query traces from the observer service
      */
-    post: operations['getProjectLogs'];
+    post: operations['queryTraces'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/logs/gateway': {
+  '/api/v1alpha1/traces/{traceId}/spans/query': {
     parameters: {
       query?: never;
       header?: never;
@@ -136,90 +137,30 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Get gateway logs
-     * @description Retrieve logs from API gateway
+     * Query spans for a trace
+     * @description Query spans for a trace from the observer service
      */
-    post: operations['getGatewayLogs'];
+    post: operations['querySpansForTrace'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/logs/namespace/{namespaceName}': {
+  '/api/v1alpha1/traces/{traceId}/spans/{spanId}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
-    put?: never;
     /**
-     * Get namespace logs
-     * @description Retrieve logs for an entire namespace
+     * Get details of a span for a trace
+     * @description Get details of a span for a trace from the observer service
      */
-    post: operations['getNamespaceLogs'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/traces': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
+    get: operations['getSpanDetailsForTrace'];
     put?: never;
-    /**
-     * Get traces
-     * @description Retrieve distributed traces
-     */
-    post: operations['getTraces'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/metrics/component/http': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get component HTTP metrics
-     * @description Retrieve HTTP request metrics (request counts, latency percentiles) for a component as time series data
-     */
-    post: operations['getComponentHTTPMetrics'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/metrics/component/usage': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    /**
-     * Get component resource metrics
-     * @description Retrieve resource usage metrics (CPU, memory) for a component as time series data
-     */
-    post: operations['getComponentResourceMetrics'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -230,674 +171,268 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    BuildLogsRequest: {
-      /**
-       * Format: date-time
-       * @description Start time for log query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
-       */
-      startTime: string;
-      /**
-       * Format: date-time
-       * @description End time for log query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
-       */
-      endTime: string;
-      /**
-       * @description Maximum number of log entries to return
-       * @default 100
-       * @example 100
-       */
-      limit: number;
-      /**
-       * @description Sort order for logs (build logs are sorted in ascending order by default)
-       * @default asc
-       * @example asc
-       * @enum {string}
-       */
-      sortOrder: 'asc' | 'desc';
-      /**
-       * @description Component name
-       * @example my-component
-       */
-      componentName: string;
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
+    ComponentSearchScope: {
+      namespace: string;
+      project?: string;
+      component?: string;
+      environment?: string;
     };
-    ComponentLogsRequest: {
+    WorkflowSearchScope: {
+      namespace: string;
+      workflowRunName?: string;
+    };
+    LogsQueryRequest: {
       /**
        * Format: date-time
-       * @description Start time for log query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
+       * @description The start time of the query
        */
       startTime: string;
       /**
        * Format: date-time
-       * @description End time for log query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
+       * @description The end time of the query
        */
       endTime: string;
       /**
-       * @description Environment identifier
-       * @example env-dev
-       */
-      environmentId: string;
-      /**
-       * @description Kubernetes namespace
-       * @example default
-       */
-      namespace?: string;
-      /**
-       * @description Search phrase to filter logs
-       * @example error
-       */
-      searchPhrase?: string;
-      /**
-       * @description Filter by log levels
-       * @example [
-       *       "ERROR",
-       *       "WARN"
-       *     ]
-       */
-      logLevels?: string[];
-      /**
-       * @description Component versions to filter
-       * @example [
-       *       "v1.0.0",
-       *       "v1.0.1"
-       *     ]
-       */
-      versions?: string[];
-      /**
-       * @description Version IDs to filter
-       * @example [
-       *       "ver-123",
-       *       "ver-456"
-       *     ]
-       */
-      versionIds?: string[];
-      /**
-       * @description Maximum number of log entries to return
+       * @description The maximum number of items to return
        * @default 100
-       * @example 100
        */
       limit: number;
       /**
-       * @description Sort order for logs
+       * @description The sort order of the query
        * @default desc
-       * @example desc
        * @enum {string}
        */
       sortOrder: 'asc' | 'desc';
-      /**
-       * @description Type of logs to retrieve
-       * @example runtime
-       * @enum {string}
-       */
-      logType?: 'runtime' | 'build';
-      /**
-       * @description Build ID for build logs
-       * @example build-123
-       */
-      buildId?: string;
-      /**
-       * @description Build UUID for build logs
-       * @example 550e8400-e29b-41d4-a716-446655440000
-       */
-      buildUuid?: string;
-      /**
-       * @description Component name
-       * @example my-component
-       */
-      componentName: string;
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Environment name
-       * @example my-environment
-       */
-      environmentName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
-    };
-    ProjectLogsRequest: components['schemas']['ComponentLogsRequest'] & {
-      /**
-       * @description Filter logs by specific component IDs
-       * @example [
-       *       "comp-123",
-       *       "comp-456"
-       *     ]
-       */
-      componentIds?: string[];
-    };
-    GatewayLogsRequest: {
-      /**
-       * Format: date-time
-       * @description Start time for log query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
-       */
-      startTime: string;
-      /**
-       * Format: date-time
-       * @description End time for log query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
-       */
-      endTime: string;
-      /**
-       * @description Namespace identifier
-       * @example namespace-789
-       */
-      namespaceName: string;
-      /**
-       * @description Search phrase to filter logs
-       * @example error
-       */
+      searchScope:
+        | components['schemas']['ComponentSearchScope']
+        | components['schemas']['WorkflowSearchScope'];
+      logLevels?: ('DEBUG' | 'INFO' | 'WARN' | 'ERROR')[];
       searchPhrase?: string;
-      /**
-       * @description Map of API IDs to their versions
-       * @example {
-       *       "api-123": "v1",
-       *       "api-456": "v2"
-       *     }
-       */
-      apiIdToVersionMap?: {
-        [key: string]: string;
-      };
-      /**
-       * @description Gateway virtual hosts to filter
-       * @example [
-       *       "api.example.com",
-       *       "gateway.example.com"
-       *     ]
-       */
-      gatewayVHosts?: string[];
-      /**
-       * @description Maximum number of log entries to return
-       * @default 100
-       * @example 100
-       */
-      limit: number;
-      /**
-       * @description Sort order for logs
-       * @default desc
-       * @example desc
-       * @enum {string}
-       */
-      sortOrder: 'asc' | 'desc';
-      /**
-       * @description Type of logs to retrieve
-       * @example runtime
-       * @enum {string}
-       */
-      logType?: 'runtime' | 'build';
     };
-    NamespaceLogsRequest: components['schemas']['ComponentLogsRequest'] & {
+    ComponentLogEntry: {
       /**
-       * @description Kubernetes pod labels to filter logs
-       * @example {
-       *       "app": "myapp",
-       *       "tier": "backend"
-       *     }
+       * Format: date-time
+       * @description The timestamp of the log entry
        */
-      podLabels?: {
-        [key: string]: string;
+      timestamp?: string;
+      /** @description The log message */
+      log?: string;
+      /** @description The log level */
+      level?: string;
+      /** @description The metadata of the log entry */
+      metadata?: {
+        /** @description The OpenChoreo component name that generated the log */
+        componentName?: string;
+        /** @description The OpenChoreo project name that generated the log */
+        projectName?: string;
+        /** @description The OpenChoreo environment name that generated the log */
+        environmentName?: string;
+        /** @description The OpenChoreo namespace name that generated the log */
+        namespaceName?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo component UID that generated the log
+         */
+        componentUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo project UID that generated the log
+         */
+        projectUid?: string;
+        /**
+         * Format: uuid
+         * @description The OpenChoreo environment UID that generated the log
+         */
+        environmentUid?: string;
+        /** @description The container name that generated the log */
+        containerName?: string;
+        /** @description The Kubernetes pod name that generated the log */
+        podName?: string;
+        /** @description The namespace of the Kubernetes pod that generated the log */
+        podNamespace?: string;
       };
     };
-    TracesRequest: {
-      /**
-       * Format: uuid
-       * @description Project UID (required)
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      projectUid: string;
-      /**
-       * @description Array of component UIDs to filter traces (optional)
-       * @example [
-       *       "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
-       *       "3f7b9e1a-4c6d-4e8f-a2b5-7d1c3e8f4a9b"
-       *     ]
-       */
-      componentUids?: string[];
-      /**
-       * Format: uuid
-       * @description Environment UID to filter traces (optional)
-       * @example 2f5a8c1e-7d9b-4e3f-6a4c-8e1f2d7a9b5c
-       */
-      environmentUid?: string;
-      /**
-       * @description Trace ID to filter by (optional). Supports wildcard characters:
-       *     - `*` matches zero or more characters
-       *     - `?` matches exactly one character
-       *
-       *     Examples:
-       *     - Exact match: `63d7c3065ab25375e6c5d6bb135a77db`
-       *     - Prefix match: `63d7c3065ab2537*`
-       *     - Suffix match: `*135a77db`
-       *     - Single char wildcard: `63d7c3065ab2537?e6c5d6bb135a77db`
-       * @example 63d7c3065ab25375*
-       */
-      traceId?: string;
+    WorkflowLogEntry: {
       /**
        * Format: date-time
-       * @description Start time for trace query in RFC3339 format (required)
-       * @example 2025-01-10T00:00:00Z
+       * @description The timestamp of the log entry
+       */
+      timestamp?: string;
+      /** @description The log message */
+      log?: string;
+      /** @description The metadata of the log entry */
+      metadata?: Record<string, never>;
+    };
+    LogsQueryResponse: {
+      /** @description The logs queried successfully */
+      logs?:
+        | components['schemas']['ComponentLogEntry'][]
+        | components['schemas']['WorkflowLogEntry'][];
+      /** @description The total number of logs queried */
+      total?: number;
+      /** @description The time taken to query the logs in milliseconds */
+      tookMs?: number;
+    };
+    MetricsQueryRequest: {
+      /**
+       * @description The type of query to execute
+       * @enum {string}
+       */
+      metric: 'resource' | 'http';
+      /**
+       * Format: date-time
+       * @description The start time of the query
        */
       startTime: string;
       /**
        * Format: date-time
-       * @description End time for trace query in RFC3339 format (required)
-       * @example 2025-01-10T23:59:59Z
+       * @description The end time of the query
        */
       endTime: string;
-      /**
-       * @description Maximum number of traces to return
-       * @default 100
-       * @example 100
-       */
-      limit: number;
-      /**
-       * @description Sort order for traces
-       * @default desc
-       * @example desc
-       * @enum {string}
-       */
-      sortOrder: 'asc' | 'desc';
-      /**
-       * @description Component names to filter traces
-       * @example [
-       *       "my-component",
-       *       "my-component-2"
-       *     ]
-       */
-      componentNames: string[];
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Environment name
-       * @example my-environment
-       */
-      environmentName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
+      /** @description The step of the query to determine the number of points to return. E.g. 1m, 5m, 15m, 30m, 1h */
+      step?: string;
+      searchScope: components['schemas']['ComponentSearchScope'];
     };
-    MetricsRequest: {
-      /**
-       * @description Component identifier
-       * @example comp-123
-       */
-      componentId: string;
-      /**
-       * @description Environment identifier
-       * @example env-dev
-       */
-      environmentId: string;
-      /**
-       * @description Project identifier
-       * @example proj-456
-       */
-      projectId: string;
+    MetricsTimeSeriesItem: {
       /**
        * Format: date-time
-       * @description Start time for metrics query in RFC3339 format
-       * @example 2025-01-10T00:00:00Z
-       */
-      startTime?: string;
-      /**
-       * Format: date-time
-       * @description End time for metrics query in RFC3339 format
-       * @example 2025-01-10T23:59:59Z
-       */
-      endTime?: string;
-      /**
-       * @description Component name
-       * @example my-component
-       */
-      componentName: string;
-      /**
-       * @description Project name
-       * @example my-project
-       */
-      projectName: string;
-      /**
-       * @description Environment name
-       * @example my-environment
-       */
-      environmentName: string;
-      /**
-       * @description Namespace name
-       * @example my-namespace
-       */
-      namespaceName: string;
-    };
-    LogEntry: {
-      /**
-       * Format: date-time
-       * @description Timestamp of the log entry
-       * @example 2025-01-10T12:34:56.789Z
+       * @description The timestamp of the time series item
        */
       timestamp?: string;
       /**
-       * @description The actual log message
-       * @example Request processed successfully
+       * Format: double
+       * @description The value of the time series item
        */
-      log?: string;
-      /**
-       * @description Log level
-       * @example INFO
-       */
-      level?: string;
-      /**
-       * @description Log stream (stdout/stderr)
-       * @example stdout
-       */
-      stream?: string;
-      /** @description Kubernetes metadata */
-      kubernetes?: {
-        [key: string]: unknown;
-      };
+      value?: number;
     };
-    LogResponse: {
-      /** @description Array of log entries */
-      logs?: components['schemas']['LogEntry'][];
-      /**
-       * @description Total number of matching logs
-       * @example 1234
-       */
-      totalCount?: number;
-      /**
-       * @description Query execution time in milliseconds
-       * @example 42
-       */
-      tookMs?: number;
+    ResourceMetricsTimeSeries: {
+      cpuUsage?: components['schemas']['MetricsTimeSeriesItem'][];
+      cpuRequests?: components['schemas']['MetricsTimeSeriesItem'][];
+      cpuLimits?: components['schemas']['MetricsTimeSeriesItem'][];
+      memoryUsage?: components['schemas']['MetricsTimeSeriesItem'][];
+      memoryRequests?: components['schemas']['MetricsTimeSeriesItem'][];
+      memoryLimits?: components['schemas']['MetricsTimeSeriesItem'][];
     };
-    /**
-     * @example {
-     *       "traces": [
-     *         {
-     *           "traceId": "f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8",
-     *           "spans": [
-     *             {
-     *               "spanId": "ad3537e3f48207d0",
-     *               "name": "lets-go",
-     *               "durationNanoseconds": 12300000,
-     *               "startTime": "2025-12-03T09:16:56.84456548Z",
-     *               "endTime": "2025-12-03T09:16:56.84468848Z",
-     *               "parentSpanId": "",
-     *               "openchoreoComponentUid": "8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b",
-     *               "openchoreoProjectUid": "1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b"
-     *             }
-     *           ]
-     *         }
-     *       ],
-     *       "tookMs": 15
-     *     }
-     */
-    TraceResponse: {
-      /** @description Array of traces with their spans */
-      traces?: components['schemas']['Trace'][];
-      /**
-       * @description Query execution time in milliseconds
-       * @example 15
-       */
-      tookMs?: number;
+    HttpMetricsTimeSeries: {
+      requestCount?: components['schemas']['MetricsTimeSeriesItem'][];
+      successfulRequestCount?: components['schemas']['MetricsTimeSeriesItem'][];
+      unsuccessfulRequestCount?: components['schemas']['MetricsTimeSeriesItem'][];
+      meanLatency?: components['schemas']['MetricsTimeSeriesItem'][];
+      latencyP50?: components['schemas']['MetricsTimeSeriesItem'][];
+      latencyP90?: components['schemas']['MetricsTimeSeriesItem'][];
+      latencyP99?: components['schemas']['MetricsTimeSeriesItem'][];
     };
-    Trace: {
-      /**
-       * @description Unique trace identifier (32 hexadecimal characters)
-       * @example f3a7b9e1c4d2f5a8b6e3c9f1d4a7e2b8
-       */
-      traceId?: string;
-      /** @description Array of spans belonging to this trace */
-      spans?: components['schemas']['Span'][];
-    };
-    Span: {
-      /**
-       * @description Unique span identifier (16 hex characters)
-       * @example ad3537e3f48207d0
-       */
-      spanId?: string;
-      /**
-       * @description Span name/operation
-       * @example database-query
-       */
-      name?: string;
-      /**
-       * Format: int64
-       * @description Span duration in nanoseconds (calculated from endTime - startTime)
-       * @example 101018208
-       */
-      durationNanoseconds?: number;
+    MetricsQueryResponse:
+      | components['schemas']['ResourceMetricsTimeSeries']
+      | components['schemas']['HttpMetricsTimeSeries'];
+    TracesQueryRequest: {
       /**
        * Format: date-time
-       * @description Span start time in RFC3339Nano format
-       * @example 2025-10-28T11:13:56.484388Z
+       * @description The start time of the query
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description The end time of the query
+       */
+      endTime: string;
+      /**
+       * @description The maximum number of items to return
+       * @default 100
+       */
+      limit: number;
+      /**
+       * @description The sort order of the query
+       * @default desc
+       * @enum {string}
+       */
+      sort: 'asc' | 'desc';
+      searchScope: components['schemas']['ComponentSearchScope'];
+    };
+    TracesQueryResponse: {
+      /** @description The list of traces */
+      traces?: {
+        /** @description The trace ID */
+        traceId?: string;
+        /** @description The name of the trace */
+        traceName?: string;
+        /** @description The number of spans in the trace */
+        spanCount?: number;
+        rootSpanId?: string;
+        rootSpanName?: string;
+        rootSpanKind?: string;
+        /**
+         * Format: date-time
+         * @description The start time of the trace
+         */
+        startTime?: string;
+        /**
+         * Format: date-time
+         * @description The end time of the trace
+         */
+        endTime?: string;
+        /** @description The duration of the trace in nanoseconds */
+        durationNs?: number;
+      }[];
+      /** @description The total number of traces */
+      total?: number;
+      /** @description The time taken to query the traces in milliseconds */
+      tookMs?: number;
+    };
+    TraceSpansQueryResponse: {
+      /** @description The list of spans */
+      spans?: {
+        /** @description The span ID */
+        spanId?: string;
+        /** @description The name of the span */
+        spanName?: string;
+        /** @description The name of the span */
+        spanKind?: string;
+        /**
+         * Format: date-time
+         * @description The start time of the span
+         */
+        startTime?: string;
+        /**
+         * Format: date-time
+         * @description The end time of the span
+         */
+        endTime?: string;
+        /** @description The duration of the span in nanoseconds */
+        durationNs?: number;
+        /** @description The parent span ID */
+        parentSpanId?: string;
+      }[];
+      /** @description The total number of spans */
+      total?: number;
+      /** @description The time taken to query the spans in milliseconds */
+      tookMs?: number;
+    };
+    TraceSpanDetailsResponse: {
+      /** @description The span ID */
+      spanId?: string;
+      /** @description The name of the span */
+      spanName?: string;
+      /**
+       * Format: date-time
+       * @description The start time of the span
        */
       startTime?: string;
       /**
        * Format: date-time
-       * @description Span end time in RFC3339Nano format
-       * @example 2025-10-28T11:13:56.585406208Z
+       * @description The end time of the span
        */
       endTime?: string;
-      /**
-       * @description Parent span identifier (empty if root span)
-       * @example b72e731db5edfd1d
-       */
+      /** @description The duration of the span in nanoseconds */
+      durationNs?: number;
+      /** @description The parent span ID */
       parentSpanId?: string;
-      /**
-       * Format: uuid
-       * @description OpenChoreo component UID from resource attributes
-       * @example 8a4c5e2f-9d3b-4a7e-b1f6-2c8d4e9f3a7b
-       */
-      openchoreoComponentUid?: string;
-      /**
-       * Format: uuid
-       * @description OpenChoreo project UID from resource attributes
-       * @example 1c4e7a9b-3f6d-4e2a-8b5c-7d9f1e3a4c6b
-       */
-      openchoreoProjectUid?: string;
-    };
-    TimeValuePoint: {
-      /**
-       * Format: date-time
-       * @description Timestamp in ISO 8601 format
-       * @example 2025-01-10T12:00:00Z
-       */
-      time?: string;
-      /**
-       * Format: double
-       * @description Metric value at this timestamp
-       * @example 0.75
-       */
-      value?: number;
-    };
-    /**
-     * @example {
-     *       "cpuUsage": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.25
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.3
-     *         }
-     *       ],
-     *       "cpuRequests": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.5
-     *         }
-     *       ],
-     *       "cpuLimits": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 1
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 1
-     *         }
-     *       ],
-     *       "memory": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 536870912
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 549453824
-     *         }
-     *       ],
-     *       "memoryRequests": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 1073741824
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 1073741824
-     *         }
-     *       ],
-     *       "memoryLimits": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 2147483648
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 2147483648
-     *         }
-     *       ]
-     *     }
-     */
-    ResourceMetricsTimeSeries: {
-      /** @description CPU usage time series (in cores) */
-      cpuUsage?: components['schemas']['TimeValuePoint'][];
-      /** @description CPU requests time series (in cores) */
-      cpuRequests?: components['schemas']['TimeValuePoint'][];
-      /** @description CPU limits time series (in cores) */
-      cpuLimits?: components['schemas']['TimeValuePoint'][];
-      /** @description Memory usage time series (in bytes) */
-      memory?: components['schemas']['TimeValuePoint'][];
-      /** @description Memory requests time series (in bytes) */
-      memoryRequests?: components['schemas']['TimeValuePoint'][];
-      /** @description Memory limits time series (in bytes) */
-      memoryLimits?: components['schemas']['TimeValuePoint'][];
-    };
-    /**
-     * @example {
-     *       "requestCount": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 125.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 143.2
-     *         }
-     *       ],
-     *       "successfulRequestCount": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 120
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 138.5
-     *         }
-     *       ],
-     *       "unsuccessfulRequestCount": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 5.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 4.7
-     *         }
-     *       ],
-     *       "meanLatency": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.125
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.132
-     *         }
-     *       ],
-     *       "latencyPercentile50th": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.095
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.102
-     *         }
-     *       ],
-     *       "latencyPercentile90th": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.25
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.265
-     *         }
-     *       ],
-     *       "latencyPercentile99th": [
-     *         {
-     *           "time": "2025-01-10T12:00:00Z",
-     *           "value": 0.5
-     *         },
-     *         {
-     *           "time": "2025-01-10T12:05:00Z",
-     *           "value": 0.52
-     *         }
-     *       ]
-     *     }
-     */
-    HTTPMetricsTimeSeries: {
-      /** @description Total HTTP request count time series (requests per second) */
-      requestCount?: components['schemas']['TimeValuePoint'][];
-      /** @description Successful HTTP request count time series (status 200, requests per second) */
-      successfulRequestCount?: components['schemas']['TimeValuePoint'][];
-      /** @description Unsuccessful HTTP request count time series (status != 200, requests per second) */
-      unsuccessfulRequestCount?: components['schemas']['TimeValuePoint'][];
-      /** @description Mean HTTP request latency time series (in seconds) */
-      meanLatency?: components['schemas']['TimeValuePoint'][];
-      /** @description 50th percentile (median) HTTP request latency time series (in seconds) */
-      latencyPercentile50th?: components['schemas']['TimeValuePoint'][];
-      /** @description 90th percentile HTTP request latency time series (in seconds) */
-      latencyPercentile90th?: components['schemas']['TimeValuePoint'][];
-      /** @description 99th percentile HTTP request latency time series (in seconds) */
-      latencyPercentile99th?: components['schemas']['TimeValuePoint'][];
+      attributes?: {
+        /** @description The key of the attribute */
+        key?: string;
+        /** @description The value of the attribute */
+        value?: string;
+      }[];
     };
     ErrorResponse: {
       /**
@@ -1001,32 +536,29 @@ export interface operations {
       };
     };
   };
-  getBuildLogs: {
+  queryLogs: {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        /** @description The unique identifier of the build */
-        buildId: string;
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['BuildLogsRequest'];
+        'application/json': components['schemas']['LogsQueryRequest'];
       };
     };
     responses: {
-      /** @description Successfully retrieved build logs */
+      /** @description Logs queried successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LogResponse'];
+          'application/json': components['schemas']['LogsQueryResponse'];
         };
       };
-      /** @description Bad request - invalid parameters */
+      /** @description Invalid request */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1035,7 +567,25 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Internal server error */
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;
@@ -1073,26 +623,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example [
-           *       {
-           *         "timestamp": "2025-01-06T10:00:00.123Z",
-           *         "log": "Building application..."
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:05.456Z",
-           *         "log": "Build completed successfully"
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:10.789Z",
-           *         "log": "Pushing image to registry..."
-           *       },
-           *       {
-           *         "timestamp": "2025-01-06T10:00:15.012Z",
-           *         "log": "Image pushed successfully"
-           *       }
-           *     ]
-           */
           'application/json': components['schemas']['ComponentWorkflowRunLogEntry'][];
         };
       };
@@ -1170,15 +700,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          /**
-           * @example [
-           *       {
-           *         "timestamp": "2025-01-06T10:00:00.123Z",
-           *         "type": "build-started",
-           *         "reason": "Build started"
-           *       }
-           *     ]
-           */
           'application/json': components['schemas']['ComponentWorkflowRunEventEntry'][];
         };
       };
@@ -1229,32 +750,152 @@ export interface operations {
       };
     };
   };
-  getComponentLogs: {
+  queryMetrics: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MetricsQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Metrics queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['MetricsQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  queryTraces: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TracesQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Traces queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TracesQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  querySpansForTrace: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description The unique identifier of the component */
-        componentId: string;
+        /** @description The ID of the trace */
+        traceId: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['ComponentLogsRequest'];
+        'application/json': components['schemas']['TracesQueryRequest'];
       };
     };
     responses: {
-      /** @description Successfully retrieved component logs */
+      /** @description Spans queried successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LogResponse'];
+          'application/json': components['schemas']['TraceSpansQueryResponse'];
         };
       };
-      /** @description Bad request - invalid parameters */
+      /** @description Invalid request */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1263,7 +904,25 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Internal server error */
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;
@@ -1274,32 +933,30 @@ export interface operations {
       };
     };
   };
-  getProjectLogs: {
+  getSpanDetailsForTrace: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description The unique identifier of the project */
-        projectId: string;
+        /** @description The ID of the trace */
+        traceId: string;
+        /** @description The ID of the span */
+        spanId: string;
       };
       cookie?: never;
     };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProjectLogsRequest'];
-      };
-    };
+    requestBody?: never;
     responses: {
-      /** @description Successfully retrieved project logs */
+      /** @description Span details queried successfully */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['LogResponse'];
+          'application/json': components['schemas']['TraceSpanDetailsResponse'];
         };
       };
-      /** @description Bad request - invalid parameters */
+      /** @description Invalid request */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1308,8 +965,8 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Internal server error */
-      500: {
+      /** @description Unauthorized */
+      401: {
         headers: {
           [name: string]: unknown;
         };
@@ -1317,32 +974,8 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
-    };
-  };
-  getGatewayLogs: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['GatewayLogsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved gateway logs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['LogResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
+      /** @description Forbidden */
+      403: {
         headers: {
           [name: string]: unknown;
         };
@@ -1350,178 +983,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse'];
         };
       };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getNamespaceLogs: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description The unique identifier of the namespace */
-        namespaceName: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NamespaceLogsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved namespace logs */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['LogResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getTraces: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['TracesRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved component traces */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TraceResponse'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getComponentHTTPMetrics: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MetricsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved HTTP metrics */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPMetricsTimeSeries'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-    };
-  };
-  getComponentResourceMetrics: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['MetricsRequest'];
-      };
-    };
-    responses: {
-      /** @description Successfully retrieved resource metrics */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ResourceMetricsTimeSeries'];
-        };
-      };
-      /** @description Bad request - invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorResponse'];
-        };
-      };
-      /** @description Internal server error */
+      /** @description Internal Server Error */
       500: {
         headers: {
           [name: string]: unknown;

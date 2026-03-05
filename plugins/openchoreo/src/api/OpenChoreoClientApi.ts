@@ -1,10 +1,6 @@
 import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import type {
-  ModelsWorkload,
-  ModelsBuild,
-  RuntimeLogsResponse,
-} from '@openchoreo/backstage-plugin-common';
+import type { ModelsWorkload } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
@@ -249,19 +245,9 @@ export interface ComponentSummary {
   displayName?: string;
 }
 
-/** Build logs params */
-export interface BuildLogsParams {
-  componentName: string;
-  projectName: string;
-  namespaceName: string;
-  buildId: string;
-  buildUuid: string;
-  limit?: number;
-  sortOrder?: 'asc' | 'desc';
-}
-
 /** Component trait response */
 export interface ComponentTrait {
+  kind?: 'Trait' | 'ClusterTrait';
   name: string;
   instanceName: string;
   parameters?: Record<string, unknown>;
@@ -269,7 +255,7 @@ export interface ComponentTrait {
 
 /** Platform resource kind for definition CRUD operations */
 export type PlatformResourceKind =
-  | 'component-types'
+  | 'componenttypes'
   | 'traits'
   | 'workflows'
   | 'component-workflows'
@@ -277,7 +263,22 @@ export type PlatformResourceKind =
   | 'dataplanes'
   | 'buildplanes'
   | 'observabilityplanes'
-  | 'deploymentpipelines';
+  | 'deploymentpipelines'
+  | 'clustercomponenttypes'
+  | 'clustertraits'
+  | 'clusterdataplanes'
+  | 'clusterobservabilityplanes'
+  | 'clusterbuildplanes';
+
+/** Cluster-scoped resource kinds that don't require a namespace */
+export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
+  new Set([
+    'clustercomponenttypes',
+    'clustertraits',
+    'clusterdataplanes',
+    'clusterobservabilityplanes',
+    'clusterbuildplanes',
+  ]);
 
 /** Response for resource CRUD operations */
 export interface ResourceCRUDResponse {
@@ -370,6 +371,16 @@ export interface OpenChoreoClientApi {
   /** Fetch all release bindings for a component */
   fetchReleaseBindings(entity: Entity): Promise<ReleaseBindingsResponse>;
 
+  /** Create or update a release binding for deploy/promote actions */
+  updateReleaseBinding(
+    entity: Entity,
+    environment: string,
+    releaseName: string,
+    componentTypeEnvOverrides?: unknown,
+    traitOverrides?: unknown,
+    workloadOverrides?: any,
+  ): Promise<any>;
+
   /** Patch release binding overrides */
   patchReleaseBindingOverrides(
     entity: Entity,
@@ -386,29 +397,30 @@ export interface OpenChoreoClientApi {
     environmentName: string,
   ): Promise<any>;
 
-  /** Fetch resource tree for a specific environment */
-  fetchResourceTree(entity: Entity, environmentName: string): Promise<any>;
+  /** Fetch resource tree for a specific release binding */
+  fetchResourceTree(
+    namespaceName: string,
+    releaseBindingName: string,
+  ): Promise<any>;
 
   /** Fetch Kubernetes events for a specific resource */
   fetchResourceEvents(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     resourceParams: {
+      group: string;
+      version: string;
       kind: string;
       name: string;
-      namespace?: string;
-      uid?: string;
     },
   ): Promise<ResourceEventsResponse>;
 
   /** Fetch pod logs for a specific pod resource */
   fetchPodLogs(
-    entity: Entity,
-    environmentName: string,
+    namespaceName: string,
+    releaseBindingName: string,
     params: {
-      name: string;
-      namespace?: string;
-      container?: string;
+      podName: string;
       sinceSeconds?: number;
     },
   ): Promise<PodLogsResponse>;
@@ -432,7 +444,6 @@ export interface OpenChoreoClientApi {
   /** Update component workflow parameters */
   updateComponentWorkflowParameters(
     entity: Entity,
-    systemParameters: Record<string, unknown> | null,
     parameters: Record<string, unknown> | null,
   ): Promise<any>;
 
@@ -450,14 +461,6 @@ export interface OpenChoreoClientApi {
 
   /** Get list of environments for a component */
   getEnvironments(entity: Entity): Promise<Environment[]>;
-
-  // === Build Logs ===
-
-  /** Fetch build logs */
-  getBuildLogs(params: BuildLogsParams): Promise<RuntimeLogsResponse>;
-
-  /** Fetch build logs for a specific build */
-  fetchBuildLogsForBuild(build: ModelsBuild): Promise<RuntimeLogsResponse>;
 
   /** Fetch builds for a component */
   fetchBuilds(
@@ -511,6 +514,12 @@ export interface OpenChoreoClientApi {
     namespaceName: string,
     traitName: string,
   ): Promise<any>;
+
+  /** Fetch available cluster-scoped traits */
+  fetchClusterTraits(): Promise<any>;
+
+  /** Fetch schema for a cluster-scoped trait */
+  fetchClusterTraitSchema(clusterTraitName: string): Promise<any>;
 
   // === Authorization Operations ===
 
@@ -583,7 +592,7 @@ export interface OpenChoreoClientApi {
 
   /**
    * Get the full CRD definition for a platform resource
-   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param kind - Resource kind (componenttypes, traits, workflows, component-workflows)
    * @param namespaceName - Kubernetes namespace
    * @param resourceName - Name of the resource
    * @returns The full CRD as an unstructured JSON object
@@ -596,7 +605,7 @@ export interface OpenChoreoClientApi {
 
   /**
    * Update (or create) a platform resource definition
-   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param kind - Resource kind (componenttypes, traits, workflows, component-workflows)
    * @param namespaceName - Kubernetes namespace
    * @param resourceName - Name of the resource
    * @param resource - Full CRD as JSON
@@ -611,7 +620,7 @@ export interface OpenChoreoClientApi {
 
   /**
    * Delete a platform resource definition
-   * @param kind - Resource kind (component-types, traits, workflows, component-workflows)
+   * @param kind - Resource kind (componenttypes, traits, workflows, component-workflows)
    * @param namespaceName - Kubernetes namespace
    * @param resourceName - Name of the resource
    * @returns Operation result

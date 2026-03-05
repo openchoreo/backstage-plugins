@@ -1,18 +1,18 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import {
-  createOpenChoreoLegacyApiClient,
-  type OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import {
   buildComponentResource,
   buildWorkloadResource,
+  type WorkflowParameterMapping,
 } from './componentResourceBuilder';
 import { CatalogClient } from '@backstage/catalog-client';
 import {
   CHOREO_ANNOTATIONS,
   ComponentTypeUtils,
+  parseWorkflowParametersAnnotation,
 } from '@openchoreo/backstage-plugin-common';
 import {
   type ImmediateCatalogService,
@@ -37,8 +37,7 @@ function getCIAnnotationKey(platform: string): string | undefined {
   }
 }
 
-type ModelsComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
+type ModelsComponent = ComponentResponse;
 
 // Kubernetes DNS subdomain name validation
 const K8S_NAME_PATTERN =
@@ -89,6 +88,12 @@ export const createComponentAction = (
               .optional()
               .describe('The description of the component'),
             componentType: zImpl.string().describe('The type of the component'),
+            component_type_kind: zImpl
+              .enum(['ComponentType', 'ClusterComponentType'])
+              .optional()
+              .describe(
+                'The kind of component type (ComponentType or ClusterComponentType)',
+              ),
 
             // Deployment source and optional fields
             deploymentSource: zImpl
@@ -227,6 +232,7 @@ export const createComponentAction = (
         // Traits may come from workloadDetails or top-level (backward compat)
         const rawTraits = workloadDetails?.traits ?? (ctx.input as any).traits;
         const cleanedTraits = rawTraits?.map((trait: any) => ({
+          ...(trait.kind !== undefined && { kind: trait.kind }),
           name: trait.name,
           instanceName: trait.instanceName,
           config: trait.config,
@@ -280,6 +286,7 @@ export const createComponentAction = (
             'branch',
             'component_path',
             'component_type_workload_type',
+            'component_type_kind',
             'ciPlatform',
             'ciIdentifier',
             'external_ci_info',
@@ -298,7 +305,47 @@ export const createComponentAction = (
           `Extracted CTD parameters: ${JSON.stringify(ctdParameters)}`,
         );
 
+        // Fetch WORKFLOW_PARAMETERS annotation from the Workflow entity in catalog.
+        // This tells us where git source fields and implicit fields (projectName,
+        // componentName) should be placed in the workflow parameters structure.
+        let workflowParameterMapping: WorkflowParameterMapping | undefined;
+        if (workflowName) {
+          try {
+            const workflowEntities = await catalogApi.getEntities({
+              filter: {
+                kind: 'Workflow',
+                'metadata.name': workflowName,
+                ...(namespaceName && {
+                  'metadata.namespace': namespaceName,
+                }),
+              },
+            });
+            const workflowEntity = workflowEntities.items[0];
+            const annotation =
+              workflowEntity?.metadata?.annotations?.[
+                CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS
+              ];
+            if (annotation) {
+              workflowParameterMapping = parseWorkflowParametersAnnotation(
+                annotation,
+              ) as WorkflowParameterMapping;
+              ctx.logger.debug(
+                `Parsed WORKFLOW_PARAMETERS annotation: ${JSON.stringify(
+                  workflowParameterMapping,
+                )}`,
+              );
+            }
+          } catch (err) {
+            ctx.logger.warn(
+              `Failed to fetch Workflow entity for annotation lookup: ${err}`,
+            );
+          }
+        }
+
         // Build the ComponentResource from form input
+        const componentTypeKind =
+          (ctx.input as any).component_type_kind || 'ComponentType';
+
         const componentResource = buildComponentResource({
           componentName: ctx.input.componentName,
           displayName: ctx.input.displayName,
@@ -308,6 +355,7 @@ export const createComponentAction = (
           componentType: ctx.input.componentType,
           componentTypeWorkloadType:
             (ctx.input as any).component_type_workload_type || 'deployment',
+          componentTypeKind: componentTypeKind,
           ctdParameters: ctdParameters,
           deploymentSource: deploymentSource,
           autoDeploy: autoDeploy,
@@ -318,6 +366,7 @@ export const createComponentAction = (
           workflowParameters: workflowParameters,
           containerImage: (ctx.input as any).containerImage,
           gitSecretRef: (ctx.input as any).gitSecretRef,
+          workflowParameterMapping: workflowParameterMapping,
           traits: cleanedTraits,
         });
 
@@ -347,40 +396,32 @@ export const createComponentAction = (
           );
         }
 
-        const client = createOpenChoreoLegacyApiClient({
+        const client = createOpenChoreoApiClient({
           baseUrl,
           token,
           logger: ctx.logger,
         });
 
         ctx.logger.debug(
-          `Invoking /apply resource for component: ${componentResource.metadata.name}`,
+          `Creating component: ${componentResource.metadata.name}`,
         );
 
-        // Call the apply API to create the component
-        const {
-          data: applyData,
-          error: applyError,
-          response: applyResponse,
-        } = await client.POST('/apply', {
-          body: componentResource as any,
-        });
+        // Call the API to create the component
+        const { error: applyError, response: applyResponse } =
+          await client.POST('/api/v1/namespaces/{namespaceName}/components', {
+            params: {
+              path: { namespaceName },
+            },
+            body: componentResource as any,
+          });
 
         if (applyError || !applyResponse.ok) {
           throw new Error(
-            `Failed to create component: ${applyResponse.status} ${applyResponse.statusText}`,
+            `Failed to create component: ${applyResponse.status} ${
+              applyResponse.statusText
+            }. Error: ${JSON.stringify(applyError)}`,
           );
         }
-
-        if (!applyData?.success) {
-          throw new Error('API request was not successful');
-        }
-
-        ctx.logger.info(
-          `Component created successfully via /apply: ${JSON.stringify(
-            applyData,
-          )}`,
-        );
 
         // Create Workload CR when there's workload data or when deploying from image.
         //
@@ -395,19 +436,7 @@ export const createComponentAction = (
           workloadFileMounts && workloadFileMounts.length > 0;
         const hasWorkloadData = hasEndpoints || hasEnvVars || hasFileMounts;
 
-        ctx.logger.info(
-          `Workload check: isFromImage=${isFromImage}, hasEndpoints=${hasEndpoints}, ` +
-            `hasEnvVars=${hasEnvVars}, hasFileMounts=${hasFileMounts}, ` +
-            `endpoints=${JSON.stringify(workloadEndpoints)}, ` +
-            `envVars=${JSON.stringify(workloadEnvVars)}, ` +
-            `fileMounts=${JSON.stringify(workloadFileMounts)}`,
-        );
-
         if ((isFromImage && containerImage) || hasWorkloadData) {
-          ctx.logger.info(
-            `Creating Workload resource (deploymentSource: ${deploymentSource}, hasWorkloadData: ${hasWorkloadData}, hasImage: ${!!containerImage})`,
-          );
-
           // Extract port from CTD parameters if available (legacy fallback)
           const port = ctdParameters.port as number | undefined;
 
@@ -437,21 +466,20 @@ export const createComponentAction = (
             data: workloadData,
             error: workloadError,
             response: workloadResponse,
-          } = await client.POST('/apply', {
-            body: workloadResource as any,
-          });
+          } = await client.POST(
+            '/api/v1/namespaces/{namespaceName}/workloads',
+            {
+              params: {
+                path: { namespaceName },
+              },
+              body: workloadResource as any,
+            },
+          );
 
           if (workloadError || !workloadResponse.ok) {
             ctx.logger.error(
               `Failed to create Workload: ${workloadResponse.status} ${workloadResponse.statusText}. ` +
                 `Error: ${JSON.stringify(workloadError)}. ` +
-                `Component was created but workload setup may need manual configuration.`,
-            );
-          } else if (!workloadData?.success) {
-            ctx.logger.error(
-              `Workload API request was not successful: ${JSON.stringify(
-                workloadData,
-              )}. ` +
                 `Component was created but workload setup may need manual configuration.`,
             );
           } else {
@@ -521,7 +549,7 @@ export const createComponentAction = (
             description: ctx.input.description,
             type: fullComponentType, // Use full type format: deployment/service
             componentType: {
-              kind: 'ComponentType',
+              kind: componentTypeKind,
               name: fullComponentType,
             },
             projectName: projectName,
@@ -529,24 +557,11 @@ export const createComponentAction = (
             status: 'Active', // New components are active by default
             createdAt: new Date().toISOString(),
             autoDeploy: autoDeploy,
-            // Repository info is stored in workflow.schema.repository
-            componentWorkflow: (ctx.input as any).repo_url
+            // Build componentWorkflow in the BFF shape expected by the catalog entity translator.
+            componentWorkflow: componentResource.spec.workflow
               ? {
-                  name: (ctx.input as any).workflow_name || 'default',
-                  systemParameters: {
-                    repository: {
-                      url: (ctx.input as any).repo_url,
-                      // secretRef is supported by the backend but not yet in the OpenAPI spec
-                      ...((ctx.input as any).gitSecretRef
-                        ? { secretRef: (ctx.input as any).gitSecretRef }
-                        : {}),
-                      revision: {
-                        branch: (ctx.input as any).branch,
-                      },
-                      appPath: (ctx.input as any).component_path,
-                    } as any,
-                  },
-                  parameters: workflowParameters,
+                  name: componentResource.spec.workflow.name,
+                  parameters: componentResource.spec.workflow.parameters,
                 }
               : undefined,
           };

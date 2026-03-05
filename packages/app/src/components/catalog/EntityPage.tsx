@@ -82,11 +82,19 @@ import {
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
+  EnvironmentGatewayConfigurationCard,
   DataplaneStatusCard,
   DataplaneEnvironmentsCard,
+  DataplaneGatewayConfigurationCard,
+  ClusterDataplaneStatusCard,
+  ClusterDataplaneEnvironmentsCard,
+  ClusterDataplaneGatewayConfigurationCard,
   BuildPlaneStatusCard,
+  ClusterBuildPlaneStatusCard,
   ObservabilityPlaneStatusCard,
   ObservabilityPlaneLinkedPlanesCard,
+  ClusterObservabilityPlaneStatusCard,
+  ClusterObservabilityPlaneLinkedPlanesCard,
   DeploymentPipelineVisualization,
   PromotionPathsCard,
   ComponentTypeOverviewCard,
@@ -126,12 +134,17 @@ import { EntityGitlabContent } from '@immobiliarelabs/backstage-plugin-gitlab';
 const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   domain: 'Namespace',
   dataplane: 'Dataplane',
+  clusterdataplane: 'Cluster Data Plane',
   buildplane: 'Build Plane',
+  clusterbuildplane: 'Cluster Build Plane',
   observabilityplane: 'Observability Plane',
+  clusterobservabilityplane: 'Cluster Observability Plane',
   environment: 'Environment',
   deploymentpipeline: 'Deployment Pipeline',
   componenttype: 'Component Type',
+  clustercomponenttype: 'Cluster Component Type',
   traittype: 'Trait Type',
+  clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
   componentworkflow: 'Component Workflow',
 };
@@ -235,7 +248,7 @@ const serviceEntityPage = (
       <OverviewContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/workflows" title="Workflows">
+    <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
         <Workflows />
       </FeatureGatedContent>
@@ -328,7 +341,7 @@ const genericComponentEntityPage = (
       <OverviewContent />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/workflows" title="Workflows">
+    <EntityLayout.Route path="/workflows" title="Build">
       <FeatureGatedContent feature="workflows">
         <Workflows />
       </FeatureGatedContent>
@@ -684,7 +697,11 @@ const environmentPage = (
         <Grid item xs={12}>
           <EnvironmentDeployedComponentsCard />
         </Grid>
-        {/* Row 3: About + Catalog Graph */}
+        {/* Row 3: Gateway Configuration */}
+        <Grid item xs={12}>
+          <EnvironmentGatewayConfigurationCard />
+        </Grid>
+        {/* Row 4: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
@@ -727,7 +744,11 @@ const dataplanePage = (
         <Grid item md={6} xs={12}>
           <DataplaneEnvironmentsCard />
         </Grid>
-        {/* Row 2: About + Catalog Graph */}
+        {/* Row 2: Gateway Configuration */}
+        <Grid item xs={12}>
+          <DataplaneGatewayConfigurationCard />
+        </Grid>
+        {/* Row 3: About + Catalog Graph */}
         <Grid item md={6} xs={12}>
           <EntityAboutCard variant="gridItem" />
         </Grid>
@@ -738,6 +759,50 @@ const dataplanePage = (
             relations={[
               RELATION_PART_OF,
               RELATION_HAS_PART,
+              RELATION_HOSTED_ON,
+              RELATION_HOSTS,
+              RELATION_OBSERVED_BY,
+              RELATION_OBSERVES,
+            ]}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
+const clusterDataplanePage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Status + Hosted Environments */}
+        <Grid item md={6} xs={12}>
+          <ClusterDataplaneStatusCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <ClusterDataplaneEnvironmentsCard />
+        </Grid>
+        {/* Row 2: Gateway Configuration */}
+        <Grid item xs={12}>
+          <ClusterDataplaneGatewayConfigurationCard />
+        </Grid>
+        {/* Row 3: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[
               RELATION_HOSTED_ON,
               RELATION_HOSTS,
               RELATION_OBSERVED_BY,
@@ -792,6 +857,36 @@ const buildPlanePage = (
   </OpenChoreoEntityLayout>
 );
 
+const clusterBuildPlanePage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ClusterBuildPlaneStatusCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
 const observabilityPlanePage = (
   <OpenChoreoEntityLayout
     contextMenuOptions={{ disableUnregister: 'hidden' }}
@@ -823,6 +918,41 @@ const observabilityPlanePage = (
               RELATION_OBSERVES,
             ]}
             unidirectional={false}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
+const clusterObservabilityPlanePage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        {/* Row 1: Status + Linked Planes */}
+        <Grid item md={6} xs={12}>
+          <ClusterObservabilityPlaneStatusCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <ClusterObservabilityPlaneLinkedPlanesCard />
+        </Grid>
+        {/* Row 2: About + Catalog Graph */}
+        <Grid item md={6} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            relations={[RELATION_OBSERVED_BY, RELATION_OBSERVES]}
             renderNode={CustomGraphNode}
           />
         </Grid>
@@ -937,6 +1067,64 @@ const traitTypePage = (
   </OpenChoreoEntityLayout>
 );
 
+const clusterComponentTypePage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <ComponentTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
+const clusterTraitTypePage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <TraitTypeOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
 const workflowPage = (
   <OpenChoreoEntityLayout
     contextMenuOptions={{ disableUnregister: 'hidden' }}
@@ -961,13 +1149,17 @@ const workflowPage = (
         </Grid>
       </Grid>
     </OpenChoreoEntityLayout.Route>
-    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
-      <ResourceDefinitionTab />
-    </OpenChoreoEntityLayout.Route>
-    <OpenChoreoEntityLayout.Route path="/runs" title="Runs">
+    <OpenChoreoEntityLayout.Route
+      path="/runs"
+      title="Runs"
+      if={entity => (entity.spec as any)?.type === 'Generic'}
+    >
       <EntityNamespaceProvider>
         <WorkflowRunsContent />
       </EntityNamespaceProvider>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
     </OpenChoreoEntityLayout.Route>
   </OpenChoreoEntityLayout>
 );
@@ -1019,11 +1211,21 @@ export const entityPage = (
     <EntitySwitch.Case if={isKind('resource')} children={resourcePage} />
     <EntitySwitch.Case if={isKind('environment')} children={environmentPage} />
     <EntitySwitch.Case if={isKind('dataplane')} children={dataplanePage} />
-    <EntitySwitch.Case if={isKind('buildplane')} children={buildPlanePage} />
-    <EntitySwitch.Case
-      if={isKind('observabilityplane')}
-      children={observabilityPlanePage}
-    />
+    <EntitySwitch.Case if={isKind('clusterdataplane')}>
+      {clusterDataplanePage}
+    </EntitySwitch.Case>
+    <EntitySwitch.Case if={isKind('buildplane')}>
+      {buildPlanePage}
+    </EntitySwitch.Case>
+    <EntitySwitch.Case if={isKind('clusterbuildplane')}>
+      {clusterBuildPlanePage}
+    </EntitySwitch.Case>
+    <EntitySwitch.Case if={isKind('observabilityplane')}>
+      {observabilityPlanePage}
+    </EntitySwitch.Case>
+    <EntitySwitch.Case if={isKind('clusterobservabilityplane')}>
+      {clusterObservabilityPlanePage}
+    </EntitySwitch.Case>
     <EntitySwitch.Case
       if={isKind('deploymentpipeline')}
       children={deploymentPipelinePage}
@@ -1032,7 +1234,15 @@ export const entityPage = (
       if={isKind('componenttype')}
       children={componentTypePage}
     />
+    <EntitySwitch.Case
+      if={isKind('clustercomponenttype')}
+      children={clusterComponentTypePage}
+    />
     <EntitySwitch.Case if={isKind('traittype')} children={traitTypePage} />
+    <EntitySwitch.Case
+      if={isKind('clustertraittype')}
+      children={clusterTraitTypePage}
+    />
     <EntitySwitch.Case if={isKind('workflow')} children={workflowPage} />
     <EntitySwitch.Case
       if={isKind('componentworkflow')}

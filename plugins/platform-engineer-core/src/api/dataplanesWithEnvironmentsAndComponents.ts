@@ -99,7 +99,10 @@ export async function fetchDataplanesWithEnvironmentsAndComponents(
             ...dataplane,
             environments: dataplane.environments.map(env => ({
               ...env,
-              componentCount: componentCountsByEnvironment[env.name] || 0,
+              componentCount:
+                componentCountsByEnvironment[
+                  `${env.namespaceName}/${env.name}`
+                ] || 0,
             })),
           }),
         );

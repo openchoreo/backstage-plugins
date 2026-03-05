@@ -2,9 +2,7 @@ import { useMemo } from 'react';
 import { Box, Typography } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import PublicIcon from '@material-ui/icons/Public';
 import VisibilityIcon from '@material-ui/icons/Visibility';
-import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 import WifiIcon from '@material-ui/icons/Wifi';
 import WifiOffIcon from '@material-ui/icons/WifiOff';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
@@ -29,8 +27,6 @@ export const DataplaneStatusCard = () => {
   // Extract dataplane info from entity spec
   const status = annotations[CHOREO_ANNOTATIONS.STATUS] || 'Active';
   const observabilityPlaneRef = spec?.observabilityPlaneRef;
-  const publicVirtualHost = spec?.publicVirtualHost;
-
   // Find the observability plane from entity relations (has correct namespace)
   const observabilityPlaneLink = useMemo(() => {
     const relations = entity.relations || [];
@@ -48,13 +44,13 @@ export const DataplaneStatusCard = () => {
       return null;
     }
   }, [entity.relations]);
-  const gatewayPort = spec?.gatewayPort;
   const agentConnected =
     annotations[CHOREO_ANNOTATIONS.AGENT_CONNECTED] === 'true';
-  const agentCount = parseInt(
+  const parsedAgentCount = parseInt(
     annotations[CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT] || '0',
     10,
   );
+  const agentCount = Number.isNaN(parsedAgentCount) ? 0 : parsedAgentCount;
   const lastHeartbeat = annotations[CHOREO_ANNOTATIONS.AGENT_LAST_HEARTBEAT];
 
   // Simulate loading for consistency
@@ -76,20 +72,18 @@ export const DataplaneStatusCard = () => {
   }
 
   const formatRelativeTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return 'just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return `${diffHours}h ago`;
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays}d ago`;
-    } catch {
-      return isoString;
-    }
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return isoString;
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    if (diffMs < 0) return 'just now';
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   };
 
   return (
@@ -170,37 +164,7 @@ export const DataplaneStatusCard = () => {
             </Box>
           </Box>
         )}
-
-        {gatewayPort && (
-          <Box className={classes.statusItem}>
-            <SettingsInputComponentIcon
-              className={clsx(classes.statusIcon, classes.statusHealthy)}
-            />
-            <Box>
-              <Typography className={classes.statusLabel}>
-                Gateway Port
-              </Typography>
-              <Typography className={classes.statusValue}>
-                {gatewayPort}
-              </Typography>
-            </Box>
-          </Box>
-        )}
       </Box>
-
-      {publicVirtualHost && (
-        <Box style={{ marginTop: 16 }}>
-          <Box className={classes.infoRow}>
-            <PublicIcon
-              style={{ fontSize: '1rem', marginRight: 8, color: 'inherit' }}
-            />
-            <Typography className={classes.infoLabel}>Public Host:</Typography>
-            <Typography className={classes.infoValue}>
-              {publicVirtualHost}
-            </Typography>
-          </Box>
-        </Box>
-      )}
     </Card>
   );
 };

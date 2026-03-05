@@ -2,10 +2,7 @@ import { InputError } from '@backstage/errors';
 import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
-import {
-  BuildInfoService,
-  ObservabilityNotConfiguredError as BuildObservabilityNotConfiguredError,
-} from './services/BuildService/BuildInfoService';
+import { BuildInfoService } from './services/BuildService/BuildInfoService';
 import {
   CellDiagramService,
   WorkloadService,
@@ -16,9 +13,12 @@ import { ComponentInfoService } from './services/ComponentService/ComponentInfoS
 import { ProjectInfoService } from './services/ProjectService/ProjectInfoService';
 import { DashboardInfoService } from './services/DashboardService/DashboardInfoService';
 import { TraitInfoService } from './services/TraitService/TraitInfoService';
+import { ClusterTraitInfoService } from './services/ClusterTraitService/ClusterTraitInfoService';
+import { ClusterComponentTypeInfoService } from './services/ClusterComponentTypeService/ClusterComponentTypeInfoService';
 import { PlatformResourceService } from './services/PlatformResourceService/PlatformResourceService';
 import { AuthzService } from './services/AuthzService/AuthzService';
 import { DataPlaneInfoService } from './services/DataPlaneService/DataPlaneInfoService';
+import { ClusterDataPlaneInfoService } from './services/ClusterDataPlaneService/ClusterDataPlaneInfoService';
 import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,
@@ -28,6 +28,31 @@ import {
 import type { AuthService, LoggerService } from '@backstage/backend-plugin-api';
 import type { CatalogService } from '@backstage/plugin-catalog-node';
 import type { AnnotationStore } from '@openchoreo/backstage-plugin-catalog-backend-module';
+import { transformReleaseBinding } from './services/transformers';
+
+const CLUSTER_SCOPED_KINDS = [
+  'clustercomponenttypes',
+  'clustertraits',
+  'clusterdataplanes',
+  'clusterobservabilityplanes',
+  'clusterbuildplanes',
+] as const;
+
+const VALID_PLATFORM_RESOURCE_KINDS = [
+  'componenttypes',
+  'traits',
+  'workflows',
+  'component-workflows',
+  'environments',
+  'dataplanes',
+  'buildplanes',
+  'observabilityplanes',
+  'deploymentpipelines',
+  ...CLUSTER_SCOPED_KINDS,
+] as const;
+
+export type PlatformResourceKind =
+  (typeof VALID_PLATFORM_RESOURCE_KINDS)[number];
 
 export async function createRouter({
   environmentInfoService,
@@ -38,10 +63,13 @@ export async function createRouter({
   workloadInfoService,
   dashboardInfoService,
   traitInfoService,
+  clusterTraitInfoService,
+  clusterComponentTypeInfoService,
   secretReferencesInfoService,
   gitSecretsService,
   authzService,
   dataPlaneInfoService,
+  clusterDataPlaneInfoService,
   platformResourceService,
   annotationStore,
   catalogService,
@@ -58,10 +86,13 @@ export async function createRouter({
   workloadInfoService: WorkloadService;
   dashboardInfoService: DashboardInfoService;
   traitInfoService: TraitInfoService;
+  clusterTraitInfoService: ClusterTraitInfoService;
+  clusterComponentTypeInfoService: ClusterComponentTypeInfoService;
   secretReferencesInfoService: SecretReferencesService;
   gitSecretsService: GitSecretsService;
   authzService: AuthzService;
   dataPlaneInfoService: DataPlaneInfoService;
+  clusterDataPlaneInfoService: ClusterDataPlaneInfoService;
   platformResourceService: PlatformResourceService;
   annotationStore: AnnotationStore;
   catalogService: CatalogService;
@@ -270,6 +301,58 @@ export async function createRouter({
     );
   });
 
+  // Endpoint for listing cluster traits
+  router.get('/cluster-traits', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(await clusterTraitInfoService.fetchClusterTraits(userToken));
+  });
+
+  // Endpoint for fetching cluster trait schema
+  router.get('/cluster-trait-schema', async (req, res) => {
+    const { clusterTraitName } = req.query;
+
+    if (!clusterTraitName) {
+      throw new InputError('clusterTraitName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterTraitInfoService.fetchClusterTraitSchema(
+        clusterTraitName as string,
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for listing cluster component types
+  router.get('/cluster-component-types', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+    res.json(
+      await clusterComponentTypeInfoService.fetchClusterComponentTypes(
+        userToken,
+      ),
+    );
+  });
+
+  // Endpoint for fetching cluster component type schema
+  router.get('/cluster-component-type-schema', async (req, res) => {
+    const { cctName } = req.query;
+
+    if (!cctName) {
+      throw new InputError('cctName is a required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterComponentTypeInfoService.fetchClusterComponentTypeSchema(
+        cctName as string,
+        userToken,
+      ),
+    );
+  });
+
   // Endpoint for listing component traits
   router.get('/component-traits', async (req, res) => {
     const { namespaceName, projectName, componentName } = req.query;
@@ -448,39 +531,6 @@ export async function createRouter({
     );
   });
 
-  router.get('/build-logs', async (req, res) => {
-    const { componentName, buildId, buildUuid, projectName, namespaceName } =
-      req.query;
-
-    if (!componentName || !buildId || !buildUuid) {
-      throw new InputError(
-        'componentName, buildId and buildUuid are required query parameters',
-      );
-    }
-
-    const userToken = getUserTokenFromRequest(req);
-
-    try {
-      const result = await buildInfoService.fetchBuildLogs(
-        namespaceName as string,
-        projectName as string,
-        componentName as string,
-        buildId as string,
-        undefined, // limit
-        undefined, // sortOrder
-        userToken,
-      );
-      return res.json(result);
-    } catch (error: unknown) {
-      if (error instanceof BuildObservabilityNotConfiguredError) {
-        return res.status(200).json({
-          message: "Observability hasn't been configured",
-        });
-      }
-      throw error;
-    }
-  });
-
   router.get('/workload', async (req, res) => {
     const { componentName, projectName, namespaceName } = req.query;
 
@@ -648,17 +698,20 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    res.json(
-      await environmentInfoService.fetchComponentReleaseSchema(
-        {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          releaseName: releaseName as string,
-        },
-        userToken,
-      ),
+    const schema = await environmentInfoService.fetchComponentReleaseSchema(
+      {
+        componentName: componentName as string,
+        projectName: projectName as string,
+        namespaceName: namespaceName as string,
+        releaseName: releaseName as string,
+      },
+      userToken,
     );
+    res.json({
+      success: true,
+      data: schema,
+      message: 'Schema fetched successfully',
+    });
   });
 
   router.get('/release-bindings', async (req, res) => {
@@ -672,12 +725,57 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
+    const rawBindings = await environmentInfoService.fetchReleaseBindings(
+      {
+        componentName: componentName as string,
+        projectName: projectName as string,
+        namespaceName: namespaceName as string,
+      },
+      userToken,
+    );
+    const items = ((rawBindings as any)?.items ?? []).map((binding: any) =>
+      transformReleaseBinding(binding),
+    );
+    res.json({ success: true, data: { items } });
+  });
+
+  router.put('/update-release-binding', requireAuth, async (req, res) => {
+    const {
+      componentName,
+      projectName,
+      namespaceName,
+      environment,
+      componentTypeEnvOverrides,
+      traitOverrides,
+      workloadOverrides,
+      releaseName,
+    } = req.body;
+
+    if (
+      !componentName ||
+      !projectName ||
+      !namespaceName ||
+      !environment ||
+      !releaseName
+    ) {
+      throw new InputError(
+        'componentName, projectName, namespaceName, environment and releaseName are required in request body',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
     res.json(
-      await environmentInfoService.fetchReleaseBindings(
+      await environmentInfoService.updateReleaseBinding(
         {
           componentName: componentName as string,
           projectName: projectName as string,
           namespaceName: namespaceName as string,
+          environment: environment as string,
+          componentTypeEnvOverrides,
+          traitOverrides,
+          workloadOverrides,
+          releaseName: releaseName as string,
         },
         userToken,
       ),
@@ -721,13 +819,12 @@ export async function createRouter({
     );
   });
 
-  router.get('/resources', async (req, res) => {
-    const { componentName, projectName, namespaceName, environmentName } =
-      req.query;
+  router.get('/resourcetree', async (req, res) => {
+    const { namespaceName, releaseBindingName } = req.query;
 
-    if (!componentName || !projectName || !namespaceName || !environmentName) {
+    if (!namespaceName || !releaseBindingName) {
       throw new InputError(
-        'componentName, projectName, namespaceName and environmentName are required query parameters',
+        'namespaceName and releaseBindingName are required query parameters',
       );
     }
 
@@ -736,10 +833,8 @@ export async function createRouter({
     res.json(
       await environmentInfoService.fetchResourceTree(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
           namespaceName: namespaceName as string,
-          environmentName: environmentName as string,
+          releaseBindingName: releaseBindingName as string,
         },
         userToken,
       ),
@@ -747,27 +842,20 @@ export async function createRouter({
   });
 
   router.get('/resource-events', requireAuth, async (req, res) => {
-    const {
-      componentName,
-      projectName,
-      namespaceName,
-      environmentName,
-      kind,
-      name,
-      namespace,
-      uid,
-    } = req.query;
+    const { namespaceName, releaseBindingName, group, version, kind, name } =
+      req.query;
 
     if (
-      !componentName ||
-      !projectName ||
       !namespaceName ||
-      !environmentName ||
+      !releaseBindingName ||
+      group === undefined ||
+      group === null ||
+      !version ||
       !kind ||
       !name
     ) {
       throw new InputError(
-        'componentName, projectName, namespaceName, environmentName, kind and name are required query parameters',
+        'namespaceName, releaseBindingName, group, version, kind and name are required query parameters',
       );
     }
 
@@ -776,14 +864,12 @@ export async function createRouter({
     res.json(
       await environmentInfoService.fetchResourceEvents(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
           namespaceName: namespaceName as string,
-          environmentName: environmentName as string,
+          releaseBindingName: releaseBindingName as string,
+          group: group as string,
+          version: version as string,
           kind: kind as string,
           name: name as string,
-          namespace: namespace as string | undefined,
-          uid: uid as string | undefined,
         },
         userToken,
       ),
@@ -791,25 +877,11 @@ export async function createRouter({
   });
 
   router.get('/pod-logs', requireAuth, async (req, res) => {
-    const {
-      componentName,
-      projectName,
-      namespaceName,
-      environmentName,
-      name,
-      namespace,
-      container,
-      sinceSeconds,
-    } = req.query;
-    if (
-      !componentName ||
-      !projectName ||
-      !namespaceName ||
-      !environmentName ||
-      !name
-    ) {
+    const { namespaceName, releaseBindingName, podName, sinceSeconds } =
+      req.query;
+    if (!namespaceName || !releaseBindingName || !podName) {
       throw new InputError(
-        'componentName, projectName, namespaceName, environmentName and name are required query parameters',
+        'namespaceName, releaseBindingName and podName are required query parameters',
       );
     }
     const userToken = getUserTokenFromRequest(req);
@@ -824,13 +896,9 @@ export async function createRouter({
     res.json(
       await environmentInfoService.fetchPodLogs(
         {
-          componentName: componentName as string,
-          projectName: projectName as string,
           namespaceName: namespaceName as string,
-          environmentName: environmentName as string,
-          name: name as string,
-          namespace: namespace as string | undefined,
-          container: container as string | undefined,
+          releaseBindingName: releaseBindingName as string,
+          podName: podName as string,
           sinceSeconds: sinceSecondsValue,
         },
         userToken,
@@ -1461,6 +1529,27 @@ export async function createRouter({
     );
   });
 
+  // ClusterDataPlane endpoints
+  router.get('/cluster-dataplanes', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterDataPlaneInfoService.listClusterDataPlanes(userToken),
+    );
+  });
+
+  router.get('/cluster-dataplanes/:cdpName', async (req, res) => {
+    const { cdpName } = req.params;
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await clusterDataPlaneInfoService.fetchClusterDataPlaneDetails(
+        { name: cdpName },
+        userToken,
+      ),
+    );
+  });
+
   // =====================
   // Platform Resource Definition Endpoints
   // =====================
@@ -1469,42 +1558,32 @@ export async function createRouter({
   router.get('/platform-resource/definition', async (req, res) => {
     const { kind, namespaceName, resourceName } = req.query;
 
-    if (!kind || !namespaceName || !resourceName) {
+    const isClusterScoped = CLUSTER_SCOPED_KINDS.includes(kind as any);
+
+    if (!kind || !resourceName) {
       throw new InputError(
-        'kind, namespaceName and resourceName are required query parameters',
+        'kind and resourceName are required query parameters',
       );
     }
 
-    const validKinds = [
-      'component-types',
-      'traits',
-      'workflows',
-      'component-workflows',
-      'environments',
-      'dataplanes',
-      'buildplanes',
-      'observabilityplanes',
-      'deploymentpipelines',
-    ];
-    if (!validKinds.includes(kind as string)) {
-      throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+    if (!isClusterScoped && !namespaceName) {
+      throw new InputError(
+        'namespaceName is required for namespace-scoped resources',
+      );
+    }
+
+    if (!VALID_PLATFORM_RESOURCE_KINDS.includes(kind as any)) {
+      throw new InputError(
+        `kind must be one of: ${VALID_PLATFORM_RESOURCE_KINDS.join(', ')}`,
+      );
     }
 
     const userToken = getUserTokenFromRequest(req);
 
     res.json(
       await platformResourceService.getResourceDefinition(
-        kind as
-          | 'component-types'
-          | 'traits'
-          | 'workflows'
-          | 'component-workflows'
-          | 'environments'
-          | 'dataplanes'
-          | 'buildplanes'
-          | 'observabilityplanes'
-          | 'deploymentpipelines',
-        namespaceName as string,
+        kind as PlatformResourceKind,
+        (namespaceName as string) || '',
         resourceName as string,
         userToken,
       ),
@@ -1516,25 +1595,24 @@ export async function createRouter({
     const { kind, namespaceName, resourceName } = req.query;
     const { resource } = req.body;
 
-    if (!kind || !namespaceName || !resourceName) {
+    const isClusterScoped = CLUSTER_SCOPED_KINDS.includes(kind as any);
+
+    if (!kind || !resourceName) {
       throw new InputError(
-        'kind, namespaceName and resourceName are required query parameters',
+        'kind and resourceName are required query parameters',
       );
     }
 
-    const validKinds = [
-      'component-types',
-      'traits',
-      'workflows',
-      'component-workflows',
-      'environments',
-      'dataplanes',
-      'buildplanes',
-      'observabilityplanes',
-      'deploymentpipelines',
-    ];
-    if (!validKinds.includes(kind as string)) {
-      throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+    if (!isClusterScoped && !namespaceName) {
+      throw new InputError(
+        'namespaceName is required for namespace-scoped resources',
+      );
+    }
+
+    if (!VALID_PLATFORM_RESOURCE_KINDS.includes(kind as any)) {
+      throw new InputError(
+        `kind must be one of: ${VALID_PLATFORM_RESOURCE_KINDS.join(', ')}`,
+      );
     }
 
     if (!resource || typeof resource !== 'object') {
@@ -1545,17 +1623,8 @@ export async function createRouter({
 
     res.json(
       await platformResourceService.updateResourceDefinition(
-        kind as
-          | 'component-types'
-          | 'traits'
-          | 'workflows'
-          | 'component-workflows'
-          | 'environments'
-          | 'dataplanes'
-          | 'buildplanes'
-          | 'observabilityplanes'
-          | 'deploymentpipelines',
-        namespaceName as string,
+        kind as PlatformResourceKind,
+        (namespaceName as string) || '',
         resourceName as string,
         resource as Record<string, unknown>,
         userToken,
@@ -1570,42 +1639,32 @@ export async function createRouter({
     async (req, res) => {
       const { kind, namespaceName, resourceName } = req.query;
 
-      if (!kind || !namespaceName || !resourceName) {
+      const isClusterScoped = CLUSTER_SCOPED_KINDS.includes(kind as any);
+
+      if (!kind || !resourceName) {
         throw new InputError(
-          'kind, namespaceName and resourceName are required query parameters',
+          'kind and resourceName are required query parameters',
         );
       }
 
-      const validKinds = [
-        'component-types',
-        'traits',
-        'workflows',
-        'component-workflows',
-        'environments',
-        'dataplanes',
-        'buildplanes',
-        'observabilityplanes',
-        'deploymentpipelines',
-      ];
-      if (!validKinds.includes(kind as string)) {
-        throw new InputError(`kind must be one of: ${validKinds.join(', ')}`);
+      if (!isClusterScoped && !namespaceName) {
+        throw new InputError(
+          'namespaceName is required for namespace-scoped resources',
+        );
+      }
+
+      if (!VALID_PLATFORM_RESOURCE_KINDS.includes(kind as any)) {
+        throw new InputError(
+          `kind must be one of: ${VALID_PLATFORM_RESOURCE_KINDS.join(', ')}`,
+        );
       }
 
       const userToken = getUserTokenFromRequest(req);
 
       res.json(
         await platformResourceService.deleteResourceDefinition(
-          kind as
-            | 'component-types'
-            | 'traits'
-            | 'workflows'
-            | 'component-workflows'
-            | 'environments'
-            | 'dataplanes'
-            | 'buildplanes'
-            | 'observabilityplanes'
-            | 'deploymentpipelines',
-          namespaceName as string,
+          kind as PlatformResourceKind,
+          (namespaceName as string) || '',
           resourceName as string,
           userToken,
         ),

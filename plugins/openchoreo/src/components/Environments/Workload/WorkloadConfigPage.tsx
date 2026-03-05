@@ -9,14 +9,9 @@ import { Box, Button, CircularProgress, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Alert, Skeleton } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import {
-  useApi,
-  discoveryApiRef,
-  fetchApiRef,
-} from '@backstage/core-plugin-api';
+import { useApi } from '@backstage/core-plugin-api';
 import {
   ModelsWorkload,
-  ModelsBuild,
   CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
 import {
@@ -29,6 +24,9 @@ import { WorkloadEditor } from './WorkloadEditor';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
+
+/** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
+const EMPTY_BUILDS: never[] = [];
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -69,8 +67,6 @@ export const WorkloadConfigPage = ({
   onTabChange,
 }: WorkloadConfigPageProps) => {
   const classes = useStyles();
-  const discovery = useApi(discoveryApiRef);
-  const fetchApi = useApi(fetchApiRef);
   const client = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
 
@@ -82,7 +78,6 @@ export const WorkloadConfigPage = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isNewWorkload, setIsNewWorkload] = useState(false);
-  const [builds, setBuilds] = useState<ModelsBuild[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
@@ -135,7 +130,7 @@ export const WorkloadConfigPage = ({
               image: '',
             },
             endpoints: {},
-            connections: {},
+            connections: [],
           };
           setWorkloadSpec(defaultWorkload);
           setInitialWorkload(JSON.parse(JSON.stringify(defaultWorkload)));
@@ -151,41 +146,6 @@ export const WorkloadConfigPage = ({
       setIsNewWorkload(false);
     };
   }, [entity, client]);
-
-  // Fetch builds
-  useEffect(() => {
-    const fetchBuilds = async () => {
-      try {
-        const componentName = entity.metadata.name;
-        const projectName =
-          entity.metadata.annotations?.['openchoreo.io/project'];
-        const namespaceName =
-          entity.metadata.annotations?.['openchoreo.io/namespace'];
-
-        const baseUrl = await discovery.getBaseUrl('openchoreo');
-
-        if (projectName && namespaceName && componentName) {
-          const response = await fetchApi.fetch(
-            `${baseUrl}/builds?componentName=${encodeURIComponent(
-              componentName,
-            )}&projectName=${encodeURIComponent(
-              projectName,
-            )}&namespaceName=${encodeURIComponent(namespaceName)}`,
-          );
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-
-          const buildsData = await response.json();
-          setBuilds(buildsData);
-        }
-      } catch (err) {
-        setBuilds([]);
-      }
-    };
-    fetchBuilds();
-  }, [entity.metadata.name, entity.metadata.annotations, fetchApi, discovery]);
 
   // Combined unsaved state: either applied changes or in-progress edits
   const hasUnsavedWork = changes.hasChanges || isEditing;
@@ -265,7 +225,7 @@ export const WorkloadConfigPage = ({
   }, [hasUnsavedWork, navigation, location.pathname]);
 
   const isFromSource = isFromSourceComponent(entity);
-  const hasBuilds = builds.length > 0;
+  const hasImage = !!workloadSpec?.container?.image?.trim();
 
   const handleNext = async () => {
     if (!workloadSpec) {
@@ -300,11 +260,11 @@ export const WorkloadConfigPage = ({
     }
   };
   const enableNext = isFromSource
-    ? builds.some(build => build.image) && !isLoading
+    ? hasImage && !isLoading
     : !isLoading && !!workloadSpec?.container?.image?.trim();
 
   const getAlertMessage = () => {
-    if (isFromSource && !hasBuilds) {
+    if (isFromSource && !hasImage) {
       return 'Build your application first to generate a container image.';
     }
     return 'Configure your workload to enable deployment.';
@@ -389,7 +349,7 @@ export const WorkloadConfigPage = ({
 
       {!isLoading && !error && !isNewWorkload && !enableNext && (
         <Box mb={2}>
-          <Alert severity={isFromSource && !hasBuilds ? 'warning' : 'info'}>
+          <Alert severity={isFromSource && !hasImage ? 'warning' : 'info'}>
             {getAlertMessage()}
           </Alert>
         </Box>
@@ -397,7 +357,7 @@ export const WorkloadConfigPage = ({
 
       {!isLoading && !error && (
         <WorkloadProvider
-          builds={builds}
+          builds={EMPTY_BUILDS}
           workloadSpec={workloadSpec}
           setWorkloadSpec={setWorkloadSpec}
           isDeploying={isProcessing || isLoading}

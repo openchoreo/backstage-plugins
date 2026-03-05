@@ -9,6 +9,7 @@ import type {
   ModelsBuild,
   ModelsCompleteComponent,
 } from '@openchoreo/backstage-plugin-common';
+import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
 
 interface WorkflowsSummaryState {
   latestBuild: ModelsBuild | null;
@@ -40,23 +41,26 @@ export function useWorkflowsSummary() {
       const { componentName, projectName, namespaceName } =
         await getEntityDetails();
 
-      const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+      const componentBaseUrl = await discoveryApi.getBaseUrl('openchoreo');
+      const workflowsBaseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-workflows-backend',
+      );
 
-      // Fetch component details and builds in parallel
-      const [componentResponse, buildsResponse] = await Promise.all([
+      const runsParams = new URLSearchParams({ namespaceName });
+      if (projectName) runsParams.set('projectName', projectName);
+      if (componentName) runsParams.set('componentName', componentName);
+
+      // Fetch component details and workflow runs in parallel
+      const [componentResponse, runsResponse] = await Promise.all([
         fetchApi.fetch(
-          `${baseUrl}/component?componentName=${encodeURIComponent(
+          `${componentBaseUrl}/component?componentName=${encodeURIComponent(
             componentName,
           )}&projectName=${encodeURIComponent(
             projectName,
           )}&namespaceName=${encodeURIComponent(namespaceName)}`,
         ),
         fetchApi.fetch(
-          `${baseUrl}/builds?componentName=${encodeURIComponent(
-            componentName,
-          )}&projectName=${encodeURIComponent(
-            projectName,
-          )}&namespaceName=${encodeURIComponent(namespaceName)}`,
+          `${workflowsBaseUrl}/workflow-runs?${runsParams.toString()}`,
         ),
       ]);
 
@@ -69,16 +73,30 @@ export function useWorkflowsSummary() {
       const componentData = await componentResponse.json();
       let latestBuild: ModelsBuild | null = null;
 
-      if (buildsResponse.ok) {
-        const buildsData: ModelsBuild[] = await buildsResponse.json();
-        const sortedBuilds = [...buildsData].sort(
-          (a, b) =>
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime(),
+      if (!runsResponse.ok) {
+        throw new Error(
+          `Failed to fetch workflow runs: HTTP ${runsResponse.status}: ${runsResponse.statusText}`,
         );
-        // Get the latest build (first in array, sorted by createdAt desc)
-        latestBuild = sortedBuilds.length > 0 ? sortedBuilds[0] : null;
       }
+
+      const result = await runsResponse.json();
+      const runs: ModelsBuild[] = (result.items || []).map((run: any) => ({
+        name: run.name,
+        uuid: run.uuid || '',
+        componentName:
+          run.labels?.[CHOREO_LABELS.WORKFLOW_COMPONENT] || componentName,
+        projectName:
+          run.labels?.[CHOREO_LABELS.WORKFLOW_PROJECT] || projectName,
+        namespaceName: run.namespaceName,
+        status: run.status,
+        createdAt: run.createdAt,
+      }));
+      const sortedBuilds = [...runs].sort(
+        (a, b) =>
+          new Date(b.createdAt || 0).getTime() -
+          new Date(a.createdAt || 0).getTime(),
+      );
+      latestBuild = sortedBuilds.length > 0 ? sortedBuilds[0] : null;
 
       setState(prev => ({
         ...prev,
@@ -102,19 +120,35 @@ export function useWorkflowsSummary() {
       const { componentName, projectName, namespaceName } =
         await getEntityDetails();
 
-      const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+      const workflow = state.componentDetails?.componentWorkflow;
+      if (!workflow?.name) {
+        throw new Error('No workflow configured for this component');
+      }
 
-      const response = await fetchApi.fetch(`${baseUrl}/builds`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          componentName,
-          projectName,
+      const baseUrl = await discoveryApi.getBaseUrl(
+        'openchoreo-workflows-backend',
+      );
+
+      const response = await fetchApi.fetch(
+        `${baseUrl}/workflow-runs?namespaceName=${encodeURIComponent(
           namespaceName,
-        }),
-      });
+        )}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            workflowRunName: `${componentName}-${Date.now()}`,
+            workflowName: workflow.name,
+            parameters: workflow.parameters,
+            labels: {
+              [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
+              [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+            },
+          }),
+        },
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -127,7 +161,13 @@ export function useWorkflowsSummary() {
     } finally {
       setState(prev => ({ ...prev, triggeringBuild: false }));
     }
-  }, [discoveryApi, fetchApi, getEntityDetails, fetchData]);
+  }, [
+    discoveryApi,
+    fetchApi,
+    getEntityDetails,
+    fetchData,
+    state.componentDetails,
+  ]);
 
   const refresh = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true }));

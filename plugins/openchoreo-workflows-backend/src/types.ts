@@ -5,7 +5,37 @@ export interface Workflow {
   name: string;
   displayName?: string;
   description?: string;
-  createdAt: string;
+  createdAt?: string;
+  type?: string;
+}
+
+/**
+ * Status of an individual workflow step
+ */
+export interface WorkflowStepStatus {
+  name: string;
+  phase: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+}
+
+/**
+ * Status response for a workflow run
+ */
+export interface WorkflowRunStatusResponse {
+  status: string;
+  steps: WorkflowStepStatus[];
+  hasLiveObservability: boolean;
+}
+
+/**
+ * A single Kubernetes event entry from a workflow run
+ */
+export interface WorkflowRunEventEntry {
+  timestamp: string;
+  type: string;
+  reason: string;
+  message: string;
 }
 
 /**
@@ -26,10 +56,10 @@ export interface WorkflowRun {
   uuid?: string;
   workflowName: string;
   namespaceName: string;
-  status: WorkflowRunStatus;
+  status: string;
   phase?: string;
   parameters?: Record<string, unknown>;
-  createdAt: string;
+  createdAt?: string;
   finishedAt?: string;
 }
 
@@ -38,6 +68,9 @@ export interface WorkflowRun {
  */
 export interface CreateWorkflowRunRequest {
   workflowName: string;
+  workflowRunName?: string;
+  labels?: Record<string, string>;
+  annotations?: Record<string, string>;
   parameters?: Record<string, unknown>;
 }
 

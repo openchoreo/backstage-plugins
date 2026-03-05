@@ -1,4 +1,1 @@
-export {
-  GenericWorkflowService,
-  ObservabilityNotConfiguredError,
-} from './GenericWorkflowService';
+export { GenericWorkflowService } from './GenericWorkflowService';

@@ -1,7 +1,5 @@
-import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type { ObservabilityPlaneResponse } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -12,8 +10,6 @@ import {
 } from './common';
 
 type ObservabilityPlane = OpenChoreoComponents['schemas']['ObservabilityPlane'];
-type ObservabilityPlaneResponse =
-  OpenChoreoLegacyComponents['schemas']['ObservabilityPlaneResponse'];
 
 export function transformObservabilityPlane(
   plane: ObservabilityPlane,

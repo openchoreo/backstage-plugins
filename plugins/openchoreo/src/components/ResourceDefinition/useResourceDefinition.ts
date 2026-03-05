@@ -3,7 +3,12 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { mapKindToApiKind, cleanCrdForEditing, isSupportedKind } from './utils';
+import {
+  mapKindToApiKind,
+  cleanCrdForEditing,
+  isSupportedKind,
+  isClusterScopedKind,
+} from './utils';
 
 export interface UseResourceDefinitionOptions {
   entity: Entity;
@@ -44,12 +49,13 @@ export function useResourceDefinition({
   const [error, setError] = useState<string | null>(null);
 
   const kind = entity.kind;
+  const clusterScoped = isClusterScopedKind(kind);
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const resourceName = entity.metadata.name;
   const isSupported = isSupportedKind(kind);
 
   const fetchDefinition = useCallback(async () => {
-    if (!isSupported || !namespace || !resourceName) {
+    if (!isSupported || !resourceName || (!clusterScoped && !namespace)) {
       setIsLoading(false);
       return;
     }
@@ -61,7 +67,7 @@ export function useResourceDefinition({
       const apiKind = mapKindToApiKind(kind);
       const data = await client.getResourceDefinition(
         apiKind,
-        namespace,
+        namespace || '',
         resourceName,
       );
       const cleaned = cleanCrdForEditing(data);
@@ -76,7 +82,7 @@ export function useResourceDefinition({
     } finally {
       setIsLoading(false);
     }
-  }, [client, kind, namespace, resourceName, isSupported]);
+  }, [client, kind, namespace, resourceName, isSupported, clusterScoped]);
 
   // Fetch on mount and when entity changes
   useEffect(() => {
@@ -85,7 +91,7 @@ export function useResourceDefinition({
 
   const save = useCallback(
     async (resource: Record<string, unknown>) => {
-      if (!isSupported || !namespace || !resourceName) {
+      if (!isSupported || !resourceName || (!clusterScoped && !namespace)) {
         throw new Error(
           'Cannot save: entity not supported or missing required fields',
         );
@@ -98,7 +104,7 @@ export function useResourceDefinition({
         const apiKind = mapKindToApiKind(kind);
         await client.updateResourceDefinition(
           apiKind,
-          namespace,
+          namespace || '',
           resourceName,
           resource,
         );
@@ -115,11 +121,19 @@ export function useResourceDefinition({
         setIsSaving(false);
       }
     },
-    [client, kind, namespace, resourceName, isSupported, fetchDefinition],
+    [
+      client,
+      kind,
+      namespace,
+      resourceName,
+      isSupported,
+      clusterScoped,
+      fetchDefinition,
+    ],
   );
 
   const deleteResource = useCallback(async () => {
-    if (!isSupported || !namespace || !resourceName) {
+    if (!isSupported || !resourceName || (!clusterScoped && !namespace)) {
       throw new Error(
         'Cannot delete: entity not supported or missing required fields',
       );
@@ -127,14 +141,18 @@ export function useResourceDefinition({
 
     try {
       const apiKind = mapKindToApiKind(kind);
-      await client.deleteResourceDefinition(apiKind, namespace, resourceName);
+      await client.deleteResourceDefinition(
+        apiKind,
+        namespace || '',
+        resourceName,
+      );
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to delete resource';
       setError(message);
       throw err;
     }
-  }, [client, kind, namespace, resourceName, isSupported]);
+  }, [client, kind, namespace, resourceName, isSupported, clusterScoped]);
 
   return {
     definition,

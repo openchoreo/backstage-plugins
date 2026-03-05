@@ -53,15 +53,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     alignItems: 'center',
     padding: theme.spacing(0.5, 0),
   },
-  nameField: {
-    marginBottom: theme.spacing(1.5),
-  },
 }));
-
-export interface ConnectionTypeOption {
-  value: string;
-  label: string;
-}
 
 export interface ProjectOption {
   name: string;
@@ -77,8 +69,8 @@ export interface EndpointOption {
 }
 
 export interface ConnectionEditorProps {
-  /** The connection name */
-  connectionName: string;
+  /** The connection index */
+  index: number;
   /** The connection to edit */
   connection: Connection;
   /** Whether the editor is disabled */
@@ -99,24 +91,24 @@ export interface ConnectionEditorProps {
   deleteDisabled?: boolean;
   /** Disable the Apply button (when validation fails) */
   applyDisabled?: boolean;
-  /** Available connection types */
-  connectionTypes: ConnectionTypeOption[];
   /** Available projects */
   projects: ProjectOption[];
   /** Available components (filtered by selected project) */
   components: ComponentOption[];
   /** Available endpoints (filtered by selected component) */
   endpoints: EndpointOption[];
-  /** Callback when connection type changes */
-  onTypeChange: (type: string) => void;
   /** Callback when project changes */
   onProjectChange: (projectName: string) => void;
   /** Callback when component changes */
   onComponentChange: (componentName: string) => void;
   /** Callback when endpoint changes */
   onEndpointChange: (endpoint: string) => void;
-  /** Callback when the connection name changes */
-  onNameChange: (name: string) => void;
+  /** Available visibility options based on target endpoint and relationship */
+  availableVisibilities: ('project' | 'namespace')[];
+  /** Callback when visibility changes */
+  onVisibilityChange: (visibility: 'project' | 'namespace') => void;
+  /** Callback when an env binding field changes */
+  onEnvBindingChange: (field: string, value: string) => void;
   /** Callback when the connection should be removed */
   onRemove: () => void;
 }
@@ -126,7 +118,6 @@ export interface ConnectionEditorProps {
  * Has two visual states: read-only (displays values) and edit mode (input fields).
  */
 export const ConnectionEditor: FC<ConnectionEditorProps> = ({
-  connectionName,
   connection,
   disabled = false,
   className,
@@ -137,27 +128,25 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
   editDisabled = false,
   deleteDisabled = false,
   applyDisabled = false,
-  connectionTypes,
   projects,
   components,
   endpoints,
-  onTypeChange,
   onProjectChange,
   onComponentChange,
   onEndpointChange,
-  onNameChange,
+  availableVisibilities,
+  onVisibilityChange,
+  onEnvBindingChange,
   onRemove,
 }) => {
   const classes = useStyles();
 
   const formatConnectionSummary = () => {
     const parts = [];
-    if (connection.type) parts.push(connection.type);
-    if (connection.params?.projectName)
-      parts.push(connection.params.projectName);
-    if (connection.params?.componentName)
-      parts.push(connection.params.componentName);
-    if (connection.params?.endpoint) parts.push(connection.params.endpoint);
+    if (connection.project) parts.push(connection.project);
+    if (connection.component) parts.push(connection.component);
+    if (connection.endpoint) parts.push(connection.endpoint);
+    if (connection.visibility) parts.push(`[${connection.visibility}]`);
     return parts.join(' → ') || '(not configured)';
   };
 
@@ -168,7 +157,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
         <Box display="flex" alignItems="center">
           <Box flex={1} className={classes.readOnlyContent}>
             <Typography className={classes.readOnlyName}>
-              {connectionName || '(no name)'}
+              {connection.component || '(no component)'}
             </Typography>
             <Typography className={classes.readOnlyDetails}>
               {formatConnectionSummary()}
@@ -204,39 +193,12 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
     <Box className={className || classes.containerEditing}>
       <Box display="flex" alignItems="flex-start">
         <Box flex={1}>
-          <TextField
-            label="Connection Name"
-            value={connectionName || ''}
-            onChange={e => onNameChange(e.target.value)}
-            fullWidth
-            variant="outlined"
-            size="small"
-            disabled={disabled}
-            className={classes.nameField}
-          />
           <Grid container spacing={1}>
-            <Grid item xs={12}>
-              <FormControl fullWidth variant="outlined" size="small">
-                <InputLabel>Connection Type</InputLabel>
-                <Select
-                  value={connection.type || ''}
-                  onChange={e => onTypeChange(e.target.value as string)}
-                  label="Connection Type"
-                  disabled={disabled}
-                >
-                  {connectionTypes.map(type => (
-                    <MenuItem key={type.value} value={type.value}>
-                      {type.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
             <Grid item xs={6}>
               <FormControl fullWidth variant="outlined" size="small">
                 <InputLabel>Project</InputLabel>
                 <Select
-                  value={connection.params?.projectName || ''}
+                  value={connection.project || ''}
                   onChange={e => onProjectChange(e.target.value as string)}
                   label="Project"
                   disabled={disabled}
@@ -253,10 +215,10 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
               <FormControl fullWidth variant="outlined" size="small">
                 <InputLabel>Component</InputLabel>
                 <Select
-                  value={connection.params?.componentName || ''}
+                  value={connection.component || ''}
                   onChange={e => onComponentChange(e.target.value as string)}
                   label="Component"
-                  disabled={disabled || !connection.params?.projectName}
+                  disabled={disabled || !connection.project}
                 >
                   {components.map(component => (
                     <MenuItem key={component.name} value={component.name}>
@@ -266,14 +228,14 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={6}>
               <FormControl fullWidth variant="outlined" size="small">
                 <InputLabel>Endpoint</InputLabel>
                 <Select
-                  value={connection.params?.endpoint || ''}
+                  value={connection.endpoint || ''}
                   onChange={e => onEndpointChange(e.target.value as string)}
                   label="Endpoint"
-                  disabled={disabled || !connection.params?.componentName}
+                  disabled={disabled || !connection.component}
                 >
                   {endpoints.map(endpoint => (
                     <MenuItem key={endpoint.name} value={endpoint.name}>
@@ -282,6 +244,90 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth variant="outlined" size="small">
+                <InputLabel>Visibility</InputLabel>
+                <Select
+                  value={
+                    connection.visibility &&
+                    availableVisibilities.includes(connection.visibility)
+                      ? connection.visibility
+                      : ''
+                  }
+                  onChange={e =>
+                    onVisibilityChange(
+                      e.target.value as 'project' | 'namespace',
+                    )
+                  }
+                  label="Visibility"
+                  disabled={disabled || availableVisibilities.length === 0}
+                >
+                  {availableVisibilities.includes('project') && (
+                    <MenuItem value="project">Project</MenuItem>
+                  )}
+                  {availableVisibilities.includes('namespace') && (
+                    <MenuItem value="namespace">Namespace</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="caption" color="textSecondary">
+                Environment Variable Bindings
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Address Env Var"
+                value={connection.envBindings?.address || ''}
+                onChange={e => onEnvBindingChange('address', e.target.value)}
+                fullWidth
+                variant="outlined"
+                size="small"
+                disabled={disabled}
+                placeholder="e.g. SVC_ADDRESS"
+                helperText="Full connection string"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Host Env Var"
+                value={connection.envBindings?.host || ''}
+                onChange={e => onEnvBindingChange('host', e.target.value)}
+                fullWidth
+                variant="outlined"
+                size="small"
+                disabled={disabled}
+                placeholder="e.g. SVC_HOST"
+                helperText="Hostname only"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Port Env Var"
+                value={connection.envBindings?.port || ''}
+                onChange={e => onEnvBindingChange('port', e.target.value)}
+                fullWidth
+                variant="outlined"
+                size="small"
+                disabled={disabled}
+                placeholder="e.g. SVC_PORT"
+                helperText="Port number only"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Base Path Env Var"
+                value={connection.envBindings?.basePath || ''}
+                onChange={e => onEnvBindingChange('basePath', e.target.value)}
+                fullWidth
+                variant="outlined"
+                size="small"
+                disabled={disabled}
+                placeholder="e.g. SVC_BASE_PATH"
+                helperText="Base path only"
+              />
             </Grid>
           </Grid>
         </Box>

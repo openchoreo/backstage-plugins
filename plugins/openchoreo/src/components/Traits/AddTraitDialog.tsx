@@ -39,9 +39,12 @@ interface AddTraitDialogProps {
   existingInstanceNames: string[];
 }
 
+type TraitKind = 'Trait' | 'ClusterTrait';
+
 interface TraitListItem {
   name: string;
   createdAt: string;
+  kind: TraitKind;
 }
 
 /**
@@ -143,6 +146,21 @@ function generateUiSchemaWithTitles(
   return uiSchema;
 }
 
+const buildTraitKey = (trait: TraitListItem): string =>
+  `${trait.kind}:${trait.name}`;
+
+const parseTraitKey = (
+  key: string,
+): { kind: TraitKind; name: string } | null => {
+  if (!key) return null;
+  const [kind, ...nameParts] = key.split(':');
+  const name = nameParts.join(':');
+  if (!name || (kind !== 'Trait' && kind !== 'ClusterTrait')) {
+    return null;
+  }
+  return { kind, name };
+};
+
 export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
   open,
   onClose,
@@ -157,9 +175,12 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
 
   const componentTypeName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
+  const componentTypeKind =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND];
+  const isClusterCT = componentTypeKind === 'ClusterComponentType';
 
   const [availableTraits, setAvailableTraits] = useState<TraitListItem[]>([]);
-  const [selectedTrait, setSelectedTrait] = useState<string>('');
+  const [selectedTraitKey, setSelectedTraitKey] = useState<string>('');
   const [instanceName, setInstanceName] = useState<string>('');
   const [parameters, setParameters] = useState<Record<string, any>>({});
   const [traitSchema, setTraitSchema] = useState<JSONSchema7 | null>(null);
@@ -176,6 +197,10 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
 
   // Extract entity metadata
   const metadata = extractEntityMetadata(entity);
+  const selectedTraitMeta = parseTraitKey(selectedTraitKey);
+  const selectedTraitName = selectedTraitMeta?.name ?? '';
+  const selectedTraitKind =
+    selectedTraitMeta?.kind ?? (isClusterCT ? 'ClusterTrait' : 'Trait');
 
   // Fetch available traits on mount
   useEffect(() => {
@@ -190,41 +215,92 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
       try {
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        const response = await fetchApi.fetch(
-          `${baseUrl}/traits?namespaceName=${encodeURIComponent(
-            metadata.namespace,
-          )}&page=1&pageSize=100`,
-        );
+        const fetchNamespaceTraits = async (): Promise<TraitListItem[]> => {
+          const response = await fetchApi.fetch(
+            `${baseUrl}/traits?namespaceName=${encodeURIComponent(
+              metadata.namespace,
+            )}&page=1&pageSize=100`,
+          );
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          const result = await response.json();
+          if (!result.success) {
+            return [];
+          }
+          return (result.data.items || []).map(
+            (trait: { name: string; createdAt: string }) => ({
+              ...trait,
+              kind: 'Trait' as const,
+            }),
+          );
+        };
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const fetchClusterTraits = async (): Promise<TraitListItem[]> => {
+          const response = await fetchApi.fetch(`${baseUrl}/cluster-traits`);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          const result = await response.json();
+          if (!result.success) {
+            return [];
+          }
+          return (result.data.items || []).map(
+            (trait: { name: string; createdAt: string }) => ({
+              ...trait,
+              kind: 'ClusterTrait' as const,
+            }),
+          );
+        };
+
+        let items: TraitListItem[] = [];
+        if (isClusterCT) {
+          items = await fetchClusterTraits();
+        } else {
+          const [nsResult, clusterResult] = await Promise.allSettled([
+            fetchNamespaceTraits(),
+            fetchClusterTraits(),
+          ]);
+          if (nsResult.status === 'rejected') {
+            throw nsResult.reason;
+          }
+          items = [
+            ...nsResult.value,
+            ...(clusterResult.status === 'fulfilled'
+              ? clusterResult.value
+              : []),
+          ];
         }
 
-        const result = await response.json();
-
-        if (!ignore && result.success) {
-          let items: TraitListItem[] = result.data.items || [];
-
+        if (!ignore) {
           // Filter by component type's allowedTraits if available
           if (componentTypeName) {
             try {
+              const ctKind = isClusterCT
+                ? 'ClusterComponentType'
+                : 'ComponentType';
               const ctEntities = await catalogApi.getEntities({
-                filter: { kind: 'ComponentType' },
+                filter: { kind: ctKind },
               });
               // componentTypeName is in format 'workloadType/name' (e.g. 'deployment/service'),
               // but entity metadata.name is just the name part (e.g. 'service')
-              // console.log('ctName', ctName);
               const matchingCt = ctEntities.items.find(
                 e =>
                   `${e.spec?.workloadType}/${e.metadata.name}` ===
                   componentTypeName,
               );
               const allowedTraits = (matchingCt?.spec as any)?.allowedTraits as
-                | Array<{ kind?: string; name: string }>
+                | Array<{ kind?: TraitKind; name: string }>
                 | undefined;
               if (allowedTraits && allowedTraits.length > 0) {
+                const defaultKind: TraitKind = isClusterCT
+                  ? 'ClusterTrait'
+                  : 'Trait';
                 items = items.filter(t =>
-                  allowedTraits.some(at => at.name === t.name),
+                  allowedTraits.some(at => {
+                    const allowedKind = at.kind ?? defaultKind;
+                    return at.name === t.name && allowedKind === t.kind;
+                  }),
                 );
               }
             } catch {
@@ -257,11 +333,12 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     fetchApi,
     catalogApi,
     componentTypeName,
+    isClusterCT,
   ]);
 
   // Fetch schema when trait is selected
   useEffect(() => {
-    if (!selectedTrait) {
+    if (!selectedTraitKey) {
       setTraitSchema(null);
       setUiSchema({});
       setParameters({});
@@ -278,11 +355,16 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
       try {
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-        const response = await fetchApi.fetch(
-          `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
-            metadata.namespace,
-          )}&traitName=${encodeURIComponent(selectedTrait)}`,
-        );
+        const schemaUrl =
+          selectedTraitKind === 'ClusterTrait'
+            ? `${baseUrl}/cluster-trait-schema?clusterTraitName=${encodeURIComponent(
+                selectedTraitName,
+              )}`
+            : `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
+                metadata.namespace,
+              )}&traitName=${encodeURIComponent(selectedTraitName)}`;
+
+        const response = await fetchApi.fetch(schemaUrl);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -300,7 +382,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
           setShowFormErrors(false);
           setYamlValid(true);
           // Set default instance name
-          setInstanceName(`${selectedTrait}-1`);
+          setInstanceName(`${selectedTraitName}-1`);
         }
       } catch (err) {
         if (!ignore) {
@@ -318,7 +400,14 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
     return () => {
       ignore = true;
     };
-  }, [selectedTrait, metadata.namespace, discoveryApi, fetchApi]);
+  }, [
+    selectedTraitKey,
+    selectedTraitName,
+    selectedTraitKind,
+    metadata.namespace,
+    discoveryApi,
+    fetchApi,
+  ]);
 
   // Validate instance name
   useEffect(() => {
@@ -352,7 +441,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
 
   const handleClose = () => {
     // Reset state
-    setSelectedTrait('');
+    setSelectedTraitKey('');
     setInstanceName('');
     setParameters({});
     setTraitSchema(null);
@@ -366,12 +455,13 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
   };
 
   const handleAdd = () => {
-    if (!selectedTrait || !instanceName.trim() || instanceNameError) {
+    if (!selectedTraitName || !instanceName.trim() || instanceNameError) {
       return;
     }
 
     const trait: ComponentTrait = {
-      name: selectedTrait,
+      kind: selectedTraitKind,
+      name: selectedTraitName,
       instanceName: instanceName.trim(),
       parameters,
     };
@@ -381,7 +471,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
   };
 
   const canAdd =
-    selectedTrait &&
+    selectedTraitKey &&
     instanceName.trim() &&
     !instanceNameError &&
     !loadingSchema &&
@@ -406,8 +496,8 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
             <InputLabel>Select a Trait</InputLabel>
             <Select
               label="Select a Trait"
-              value={selectedTrait}
-              onChange={e => setSelectedTrait(e.target.value as string)}
+              value={selectedTraitKey}
+              onChange={e => setSelectedTraitKey(e.target.value as string)}
             >
               {loadingTraits && (
                 <MenuItem disabled>
@@ -420,8 +510,12 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
               )}
               {!loadingTraits &&
                 availableTraits.map(trait => (
-                  <MenuItem key={trait.name} value={trait.name}>
+                  <MenuItem
+                    key={buildTraitKey(trait)}
+                    value={buildTraitKey(trait)}
+                  >
                     {trait.name}
+                    {trait.kind === 'ClusterTrait' ? ' (Cluster)' : ''}
                   </MenuItem>
                 ))}
             </Select>
@@ -437,7 +531,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         )}
 
         {/* Instance Name and Parameters */}
-        {selectedTrait && !loadingSchema && traitSchema && (
+        {selectedTraitKey && !loadingSchema && traitSchema && (
           <>
             <Box className={classes.dialogField}>
               <TextField

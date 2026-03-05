@@ -20,7 +20,9 @@ export const ComponentTypeOverviewCard = () => {
   const annotations = entity.metadata.annotations || {};
 
   const workloadType = spec?.workloadType || 'Unknown';
-  const allowedWorkflows: string[] = spec?.allowedWorkflows || [];
+  const allowedWorkflows = (spec?.allowedWorkflows || [])
+    .map((wf: any) => (typeof wf === 'string' ? wf : wf?.name))
+    .filter(Boolean) as string[];
   const createdAt = annotations[CHOREO_ANNOTATIONS.CREATED_AT];
 
   // Build workflow links from relations

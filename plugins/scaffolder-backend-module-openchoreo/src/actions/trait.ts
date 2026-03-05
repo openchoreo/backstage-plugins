@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
@@ -99,7 +99,7 @@ export const createTraitDefinitionAction = (
         );
       }
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl,
         token,
         logger: ctx.logger,
@@ -107,12 +107,12 @@ export const createTraitDefinitionAction = (
 
       try {
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/traits/definition',
+          '/api/v1/namespaces/{namespaceName}/traits',
           {
             params: {
               path: { namespaceName },
             },
-            body: resourceObj,
+            body: resourceObj as any,
           },
         );
 
@@ -122,12 +122,11 @@ export const createTraitDefinitionAction = (
           );
         }
 
-        if (!data?.success || !data?.data) {
-          throw new Error('API request was not successful');
-        }
-
-        const resultData = data.data as Record<string, unknown>;
-        const resultName = (resultData.name as string) || '';
+        const resultData = data as Record<string, unknown>;
+        const metadata = resultData.metadata as
+          | Record<string, unknown>
+          | undefined;
+        const resultName = (metadata?.name as string) || '';
 
         ctx.logger.debug(
           `Trait created successfully: ${JSON.stringify(resultData)}`,
@@ -140,17 +139,17 @@ export const createTraitDefinitionAction = (
           );
 
           // Extract metadata from the parsed YAML
-          const metadata = resourceObj.metadata as
+          const yamlMetadata = resourceObj.metadata as
             | Record<string, unknown>
             | undefined;
-          const annotations = (metadata?.annotations || {}) as Record<
+          const annotations = (yamlMetadata?.annotations || {}) as Record<
             string,
             string
           >;
 
           const entity = translateTraitToEntity(
             {
-              name: resultName || (metadata?.name as string),
+              name: resultName || (yamlMetadata?.name as string),
               displayName: annotations['openchoreo.dev/display-name'],
               description: annotations['openchoreo.dev/description'],
               createdAt: new Date().toISOString(),

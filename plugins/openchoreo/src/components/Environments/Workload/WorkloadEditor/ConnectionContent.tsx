@@ -2,11 +2,11 @@ import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Connection,
   ModelsWorkload,
+  WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
 import {
   ConnectionList,
   useConnectionEditBuffer,
-  type ConnectionTypeOption,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
@@ -19,16 +19,15 @@ import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import { useWorkloadContext } from '../WorkloadContext';
 
 interface ConnectionContentProps {
-  connections: { [key: string]: Connection };
-  onConnectionReplace: (connectionName: string, connection: Connection) => void;
-  onAddConnection: () => string;
-  onRemoveConnection: (connectionName: string) => void;
+  connections: Connection[];
+  onConnectionReplace: (index: number, connection: Connection) => void;
+  onAddConnection: () => number;
+  onRemoveConnection: (index: number) => void;
   disabled: boolean;
 }
 
-const CONNECTION_TYPES: ConnectionTypeOption[] = [
-  { value: 'api', label: 'API' },
-];
+/** Cached endpoint data for a component, keyed by endpoint name */
+type EndpointMap = { [endpointName: string]: WorkloadEndpoint };
 
 export const ConnectionContent: FC<ConnectionContentProps> = ({
   connections,
@@ -42,15 +41,22 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
   const { entity: selectedEntity } = useEntity();
   const { setEditingSection } = useWorkloadContext();
 
+  // Current entity's project and namespace
+  const currentProject =
+    selectedEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] || '';
+  const currentNamespace =
+    selectedEntity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
+
   const [allComponents, setAllComponents] = useState<Entity[]>([]);
   const [endpointCache, setEndpointCache] = useState<{
-    [key: string]: string[];
+    [key: string]: EndpointMap;
   }>({});
 
   const editBuffer = useConnectionEditBuffer({
     connections,
     onConnectionReplace,
     onRemoveConnection,
+    defaultProject: currentProject,
   });
 
   // Report editing state to context
@@ -69,15 +75,13 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
             !(
               entity.metadata.name === selectedEntity.metadata.name &&
               entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ===
-                selectedEntity.metadata.annotations?.[
-                  CHOREO_ANNOTATIONS.PROJECT
-                ]
+                currentProject
             ),
         ) || [],
       );
     };
     fetchComponents();
-  }, [catalogApi, selectedEntity]);
+  }, [catalogApi, selectedEntity, currentProject]);
 
   // Get unique projects from all components
   const projectList: ProjectOption[] = useMemo(() => {
@@ -110,7 +114,7 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
     [allComponents],
   );
 
-  // Fetch endpoints for a component
+  // Fetch endpoints for a component (caches full endpoint data)
   const fetchEndpoints = useCallback(
     async (projectName: string, componentName: string) => {
       const cacheKey = `${projectName}/${componentName}`;
@@ -124,21 +128,69 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
           c.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] === projectName,
       );
 
-      if (!component) return [];
+      if (!component) return {};
 
       try {
         const workload: ModelsWorkload = await client.fetchWorkloadInfo(
           component,
         );
-        const endpoints = Object.keys(workload?.endpoints || {});
+        const endpoints: EndpointMap = workload?.endpoints || {};
         setEndpointCache(prev => ({ ...prev, [cacheKey]: endpoints }));
         return endpoints;
       } catch {
-        return [];
+        return {};
       }
     },
     [allComponents, client, endpointCache],
   );
+
+  /** Get the effective connection for a given index (buffer if editing, else stored) */
+  const getEffectiveConnection = useCallback(
+    (index: number): Connection | undefined => {
+      return editBuffer.isRowEditing(index) && editBuffer.editBuffer
+        ? editBuffer.editBuffer
+        : connections[index];
+    },
+    [connections, editBuffer],
+  );
+
+  // Fetch endpoints when connections or edit buffer reference uncached components
+  useEffect(() => {
+    const keysToFetch = new Set<string>();
+
+    connections.forEach(conn => {
+      const projectName = conn?.project || currentProject;
+      const componentName = conn?.component;
+      if (projectName && componentName) {
+        const cacheKey = `${projectName}/${componentName}`;
+        if (!endpointCache[cacheKey]) {
+          keysToFetch.add(cacheKey);
+        }
+      }
+    });
+
+    if (editBuffer.editBuffer) {
+      const projectName = editBuffer.editBuffer.project || currentProject;
+      const componentName = editBuffer.editBuffer.component;
+      if (projectName && componentName) {
+        const cacheKey = `${projectName}/${componentName}`;
+        if (!endpointCache[cacheKey]) {
+          keysToFetch.add(cacheKey);
+        }
+      }
+    }
+
+    keysToFetch.forEach(key => {
+      const [projectName, componentName] = key.split('/');
+      fetchEndpoints(projectName, componentName);
+    });
+  }, [
+    connections,
+    editBuffer.editBuffer,
+    currentProject,
+    endpointCache,
+    fetchEndpoints,
+  ]);
 
   // Get projects for a connection
   const getProjects = useCallback((): ProjectOption[] => {
@@ -146,70 +198,118 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
   }, [projectList]);
 
   // Get components for a connection based on its selected project
+  // When project is omitted, the API contract means "same project as the consumer"
   const getComponents = useCallback(
-    (connectionName: string): ComponentOption[] => {
-      const connection =
-        editBuffer.isRowEditing(connectionName) && editBuffer.editBuffer
-          ? editBuffer.editBuffer
-          : connections[connectionName];
-      const projectName = connection?.params?.projectName;
+    (index: number): ComponentOption[] => {
+      const connection = getEffectiveConnection(index);
+      const projectName = connection?.project || currentProject;
       if (!projectName) return [];
       return getComponentsForProject(projectName);
     },
-    [connections, editBuffer, getComponentsForProject],
+    [getEffectiveConnection, getComponentsForProject, currentProject],
   );
 
   // Get endpoints for a connection based on its selected component
   const getEndpoints = useCallback(
-    (connectionName: string): EndpointOption[] => {
-      const connection =
-        editBuffer.isRowEditing(connectionName) && editBuffer.editBuffer
-          ? editBuffer.editBuffer
-          : connections[connectionName];
-      const projectName = connection?.params?.projectName;
-      const componentName = connection?.params?.componentName;
+    (index: number): EndpointOption[] => {
+      const connection = getEffectiveConnection(index);
+      const projectName = connection?.project || currentProject;
+      const componentName = connection?.component;
       if (!projectName || !componentName) return [];
 
       const cacheKey = `${projectName}/${componentName}`;
       const cached = endpointCache[cacheKey];
       if (cached) {
-        return cached.map(name => ({ name }));
+        return Object.keys(cached).map(name => ({ name }));
       }
 
-      // Trigger fetch (will update cache async)
-      fetchEndpoints(projectName, componentName);
+      // Cache miss — the useEffect will trigger the fetch
       return [];
     },
-    [connections, editBuffer, endpointCache, fetchEndpoints],
+    [getEffectiveConnection, endpointCache, currentProject],
   );
 
-  // Handle type change - just for triggering endpoint fetch if needed
-  const handleTypeChange = useCallback(() => {
-    // Type change doesn't need any side effects
-  }, []);
+  // Get available visibility options based on target endpoint and relationship
+  const getAvailableVisibilities = useCallback(
+    (index: number): ('project' | 'namespace')[] => {
+      const connection = getEffectiveConnection(index);
+      const effectiveProject = connection?.project || currentProject;
+      if (
+        !effectiveProject ||
+        !connection?.component ||
+        !connection?.endpoint
+      ) {
+        return [];
+      }
 
-  // Handle project change - clear component and endpoint selections
+      // Look up the target endpoint's declared visibilities
+      const cacheKey = `${effectiveProject}/${connection.component}`;
+      const cached = endpointCache[cacheKey];
+      if (!cached) return [];
+
+      const targetEndpoint = cached[connection.endpoint];
+      if (!targetEndpoint) return [];
+
+      // 'project' visibility is implicitly always available on every endpoint
+      // (the EndpointEditor treats it as always-selected), so we don't check
+      // the stored visibility array for it. Other visibilities must be explicit.
+      const endpointVisibilities = targetEndpoint.visibility || [];
+      const available: ('project' | 'namespace')[] = [];
+
+      // Find the target component's entity to check namespace
+      const targetEntity = allComponents.find(
+        c =>
+          c.metadata.name === connection.component &&
+          c.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ===
+            effectiveProject,
+      );
+      const targetNamespace =
+        targetEntity?.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ||
+        '';
+
+      // 'project' visibility: target is in the same namespace AND same project.
+      // project visibility is implicitly available on all endpoints.
+      if (
+        targetNamespace === currentNamespace &&
+        effectiveProject === currentProject
+      ) {
+        available.push('project');
+      }
+
+      // 'namespace' visibility: only if target endpoint explicitly exposes 'namespace' AND
+      // both components are in the same control plane namespace
+      if (
+        endpointVisibilities.includes('namespace') &&
+        targetNamespace === currentNamespace
+      ) {
+        available.push('namespace');
+      }
+
+      return available;
+    },
+    [
+      getEffectiveConnection,
+      endpointCache,
+      allComponents,
+      currentProject,
+      currentNamespace,
+    ],
+  );
+
+  // Handle project change - no additional side effects needed
   const handleProjectChange = useCallback(
-    (_connectionName: string, _projectName: string) => {
-      // This is handled by the editBuffer's updateBufferParams which clears componentName and endpoint
-      // No additional side effects needed
+    (_index: number, _projectName: string) => {
+      // Handled by editBuffer's updateBuffer which clears component, endpoint, visibility
     },
     [],
   );
 
-  // Handle component change - fetch endpoints
+  // Handle component change - endpoint fetching is handled by the useEffect
   const handleComponentChange = useCallback(
-    (connectionName: string, componentName: string) => {
-      const connection =
-        editBuffer.isRowEditing(connectionName) && editBuffer.editBuffer
-          ? editBuffer.editBuffer
-          : connections[connectionName];
-      const projectName = connection?.params?.projectName;
-      if (projectName && componentName) {
-        fetchEndpoints(projectName, componentName);
-      }
+    (_index: number, _componentName: string) => {
+      // Endpoint fetching is driven by the useEffect that watches connection state
     },
-    [connections, editBuffer, fetchEndpoints],
+    [],
   );
 
   // Handle endpoint change - no side effects needed
@@ -224,14 +324,13 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
       editBuffer={editBuffer}
       onRemoveConnection={onRemoveConnection}
       onAddConnection={onAddConnection}
-      connectionTypes={CONNECTION_TYPES}
       getProjects={getProjects}
       getComponents={getComponents}
       getEndpoints={getEndpoints}
-      onTypeChange={handleTypeChange}
       onProjectChange={handleProjectChange}
       onComponentChange={handleComponentChange}
       onEndpointChange={handleEndpointChange}
+      getAvailableVisibilities={getAvailableVisibilities}
     />
   );
 };

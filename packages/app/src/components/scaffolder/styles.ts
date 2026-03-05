@@ -147,6 +147,16 @@ export const useStyles = makeStyles(theme => ({
     marginTop: theme.spacing(0.5),
     lineHeight: 1.4,
   },
+  workloadTypeBadge: {
+    position: 'absolute',
+    top: theme.spacing(1),
+    left: theme.spacing(1.5),
+    fontSize: '0.65rem',
+    fontWeight: 600,
+    color: theme.palette.primary.main,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+  },
   starButton: {
     position: 'absolute',
     top: theme.spacing(1),

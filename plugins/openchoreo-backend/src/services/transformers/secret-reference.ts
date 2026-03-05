@@ -1,7 +1,5 @@
-import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type { SecretReferenceResponse } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -12,8 +10,6 @@ import {
 } from './common';
 
 type SecretReference = OpenChoreoComponents['schemas']['SecretReference'];
-type SecretReferenceResponse =
-  OpenChoreoLegacyComponents['schemas']['SecretReferenceResponse'];
 
 export function transformSecretReference(
   secret: SecretReference,

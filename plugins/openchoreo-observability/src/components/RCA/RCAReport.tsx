@@ -1,24 +1,26 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Typography } from '@material-ui/core';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
-  useRCAReportByAlert,
+  useRCAReport,
   useFilters,
   useGetEnvironmentsByNamespace,
 } from '../../hooks';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { RCAReportView } from './RCAReport/RCAReportView';
-import { useApi } from '@backstage/core-plugin-api';
+import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { rcaAgentApiRef } from '../../api/RCAAgentApi';
 
 export const RCAReport = () => {
-  const { alertId } = useParams<{ alertId: string }>();
+  const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
   const { entity } = useEntity();
   const { filters } = useFilters();
   const rcaAgentApi = useApi(rcaAgentApiRef);
+  const discoveryApi = useApi(discoveryApiRef);
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
   // Get environments to ensure we have environment data
@@ -29,25 +31,32 @@ export const RCAReport = () => {
     report: detailedReport,
     loading,
     error,
-  } = useRCAReportByAlert(alertId, environment?.uid, environment?.name, entity);
+  } = useRCAReport(reportId, environment?.name, entity);
 
-  // Chat context for RCAReportView
+  const [backendBaseUrl, setBackendBaseUrl] = useState<string | undefined>();
+  useEffect(() => {
+    discoveryApi
+      .getBaseUrl('openchoreo-observability-backend')
+      .then(setBackendBaseUrl)
+      .catch(() => {});
+  }, [discoveryApi]);
+
   const chatContext = {
     namespaceName: namespace || '',
     environmentName: environment?.name || '',
-    environmentUid: environment?.uid || '',
-    projectUid: detailedReport?.projectUid || '',
+    projectName: entity.metadata.name as string,
     rcaAgentApi,
+    backendBaseUrl,
   };
 
   if (loading) {
     return <Progress />;
   }
 
-  if (!alertId) {
+  if (!reportId) {
     return (
       <Alert severity="error">
-        <Typography variant="body1">Alert ID is required</Typography>
+        <Typography variant="body1">Report ID is required</Typography>
       </Alert>
     );
   }
@@ -84,7 +93,7 @@ export const RCAReport = () => {
   return (
     <RCAReportView
       report={detailedReport}
-      alertId={alertId}
+      reportId={reportId}
       onBack={handleBack}
       chatContext={chatContext}
     />

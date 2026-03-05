@@ -82,50 +82,40 @@ export const DataplaneEnvironmentsCard = () => {
       </Box>
 
       <ul className={classes.environmentList}>
-        {environments.map(env => (
-          <li key={env.name} className={classes.environmentItem}>
-            <Box className={classes.environmentInfo}>
-              <Link
-                to={`/catalog/${
-                  parseEntityRef(env.entityRef, {
-                    defaultKind: 'environment',
-                    defaultNamespace: 'default',
-                  }).namespace
-                }/environment/${env.name}`}
-                className={classes.environmentName}
-              >
-                {env.displayName || env.name}
-              </Link>
-              <Typography
-                className={clsx(
-                  classes.environmentType,
-                  env.isProduction
-                    ? classes.productionBadge
-                    : classes.nonProductionBadge,
-                )}
-              >
-                {env.isProduction ? 'prod' : 'non-prod'}
-              </Typography>
-            </Box>
-
-            <Box className={classes.environmentStats}>
-              <Tooltip title="View Environment">
-                <IconButton
-                  size="small"
-                  component={Link}
-                  to={`/catalog/${
-                    parseEntityRef(env.entityRef, {
-                      defaultKind: 'environment',
-                      defaultNamespace: 'default',
-                    }).namespace
-                  }/environment/${env.name}`}
+        {environments.map(env => {
+          const parsedRef = parseEntityRef(env.entityRef, {
+            defaultKind: 'environment',
+            defaultNamespace: 'default',
+          });
+          const envLink = `/catalog/${parsedRef.namespace}/environment/${parsedRef.name}`;
+          return (
+            <li key={env.name} className={classes.environmentItem}>
+              <Box className={classes.environmentInfo}>
+                <Link to={envLink} className={classes.environmentName}>
+                  {env.displayName || env.name}
+                </Link>
+                <Typography
+                  className={clsx(
+                    classes.environmentType,
+                    env.isProduction
+                      ? classes.productionBadge
+                      : classes.nonProductionBadge,
+                  )}
                 >
-                  <LaunchIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </li>
-        ))}
+                  {env.isProduction ? 'prod' : 'non-prod'}
+                </Typography>
+              </Box>
+
+              <Box className={classes.environmentStats}>
+                <Tooltip title="View Environment">
+                  <IconButton size="small" component={Link} to={envLink}>
+                    <LaunchIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </li>
+          );
+        })}
       </ul>
     </Card>
   );

@@ -49,8 +49,8 @@ const k8sWorkload = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new WorkloadInfoService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new WorkloadInfoService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -69,7 +69,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('WorkloadInfoService (useNewApi=true)', () => {
+describe('WorkloadInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -78,7 +78,7 @@ describe('WorkloadInfoService (useNewApi=true)', () => {
     it('fetches workload via new API and returns spec', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sWorkload] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchWorkloadInfo(
         {
           projectName: 'my-project',
@@ -94,7 +94,7 @@ describe('WorkloadInfoService (useNewApi=true)', () => {
     it('throws when no workload found', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchWorkloadInfo(
           {
@@ -110,7 +110,7 @@ describe('WorkloadInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchWorkloadInfo(
           {
@@ -135,7 +135,7 @@ describe('WorkloadInfoService (useNewApi=true)', () => {
       };
       mockPUT.mockResolvedValueOnce(okResponse(updatedWorkload));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.applyWorkload(
         {
           projectName: 'my-project',
@@ -154,7 +154,7 @@ describe('WorkloadInfoService (useNewApi=true)', () => {
     it('throws when no existing workload found', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.applyWorkload(
           {
@@ -172,7 +172,7 @@ describe('WorkloadInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sWorkload] }));
       mockPUT.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.applyWorkload(
           {

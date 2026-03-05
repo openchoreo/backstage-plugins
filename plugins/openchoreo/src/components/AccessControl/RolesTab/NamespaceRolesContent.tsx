@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Typography,
   Button,
@@ -17,32 +18,26 @@ import { useNotification } from '../../../hooks';
 import { NotificationBanner } from '../../Environments/components';
 import { SCOPE_NAMESPACE } from '../constants';
 import { RoleDialog } from './RoleDialog';
-import { NamespaceSelector } from './NamespaceSelector';
 import { RolesTable, BindingSummary } from './RolesTable';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
 const useStyles = makeStyles(theme => ({
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing(3),
-  },
-  headerActions: {
-    display: 'flex',
-    gap: theme.spacing(1),
-  },
   emptyState: {
     textAlign: 'center',
     padding: theme.spacing(4),
   },
-  namespaceSelector: {
-    marginBottom: theme.spacing(2),
-  },
 }));
 
-export const NamespaceRolesContent = () => {
+interface NamespaceRolesContentProps {
+  selectedNamespace: string;
+  actionsContainerRef: RefObject<HTMLDivElement>;
+}
+
+export const NamespaceRolesContent = ({
+  selectedNamespace,
+  actionsContainerRef,
+}: NamespaceRolesContentProps) => {
   const classes = useStyles();
   const notification = useNotification();
   const {
@@ -57,7 +52,6 @@ export const NamespaceRolesContent = () => {
   } = useRolePermissions();
 
   const client = useApi(openChoreoClientApiRef);
-  const [selectedNamespace, setSelectedNamespace] = useState('');
   const { roles, loading, error, fetchRoles, addRole, updateRole, deleteRole } =
     useNamespaceRoles(selectedNamespace || undefined);
 
@@ -159,49 +153,42 @@ export const NamespaceRolesContent = () => {
     );
   }
 
+  const actionButtons = (
+    <>
+      <IconButton
+        onClick={fetchRoles}
+        size="small"
+        title="Refresh"
+        disabled={!selectedNamespace}
+      >
+        <RefreshIcon />
+      </IconButton>
+      <Tooltip
+        title={
+          !selectedNamespace ? 'Select a namespace first' : createDeniedTooltip
+        }
+      >
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={handleCreateRole}
+            disabled={!canCreate || !selectedNamespace}
+          >
+            New Namespace Role
+          </Button>
+        </span>
+      </Tooltip>
+    </>
+  );
+
   return (
     <Box>
       <NotificationBanner notification={notification.notification} />
-      <Box className={classes.header}>
-        <Typography variant="h5">Namespace Roles</Typography>
-        <Box className={classes.headerActions}>
-          <IconButton
-            onClick={fetchRoles}
-            size="small"
-            title="Refresh"
-            disabled={!selectedNamespace}
-          >
-            <RefreshIcon />
-          </IconButton>
-          <Tooltip
-            title={
-              !selectedNamespace
-                ? 'Select a namespace first'
-                : createDeniedTooltip
-            }
-          >
-            <span>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleCreateRole}
-                disabled={!canCreate || !selectedNamespace}
-              >
-                New Namespace Role
-              </Button>
-            </span>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      <Box className={classes.namespaceSelector}>
-        <NamespaceSelector
-          value={selectedNamespace}
-          onChange={setSelectedNamespace}
-          label="Select Namespace"
-        />
-      </Box>
+      {actionsContainerRef.current &&
+        createPortal(actionButtons, actionsContainerRef.current)}
 
       {!selectedNamespace ? (
         <Box className={classes.emptyState}>

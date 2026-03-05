@@ -12,6 +12,7 @@ import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { Link } from '@backstage/core-components';
 import { Card } from '@openchoreo/backstage-design-system';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { useDataplaneOverviewStyles } from '../DataplaneOverview/styles';
 
 interface LinkedPlane {
@@ -51,7 +52,7 @@ export const ObservabilityPlaneLinkedPlanesCard = () => {
 
       const matchesRef = (e: Entity) => {
         const ref =
-          e.metadata.annotations?.['openchoreo.io/observability-plane-ref'];
+          e.metadata.annotations?.[CHOREO_ANNOTATIONS.OBSERVABILITY_PLANE_REF];
         return ref === planeName;
       };
 

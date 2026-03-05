@@ -11,69 +11,24 @@ import {
   observabilityServiceRef,
   ObservabilityNotConfiguredError,
 } from './services/ObservabilityService';
-import { rcaAgentServiceRef } from './services/RCAAgentService';
 import type { OpenChoreoTokenService } from '@openchoreo/openchoreo-auth';
 
-const mockResourceMetricsTimeSeries = {
-  cpuUsage: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  cpuRequests: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  cpuLimits: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  memory: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  memoryRequests: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-  memoryLimits: [
-    {
-      time: '2021-01-01T00:00:00Z',
-      value: 100,
-    },
-  ],
-};
-
-// TEMPLATE NOTE:
-// Testing the router directly allows you to write a unit test that mocks the provided options.
 describe('createRouter', () => {
   let app: express.Express;
   let observabilityService: jest.Mocked<typeof observabilityServiceRef.T>;
-  let rcaAgentService: jest.Mocked<typeof rcaAgentServiceRef.T>;
   let tokenService: jest.Mocked<OpenChoreoTokenService>;
 
   beforeEach(async () => {
     observabilityService = {
       fetchMetricsByComponent: jest.fn(),
       fetchEnvironmentsByNamespace: jest.fn(),
-      fetchTracesByProject: jest.fn(),
+      fetchTraces: jest.fn(),
+      fetchTraceSpans: jest.fn(),
+      fetchSpanDetails: jest.fn(),
       fetchRuntimeLogsByComponent: jest.fn(),
-    };
-    rcaAgentService = {
-      resolveRCAAgentUrl: jest.fn(),
-      createClient: jest.fn(),
-      streamChat: jest.fn(),
-      fetchRCAReportsByProject: jest.fn(),
-      fetchRCAReportByAlert: jest.fn(),
+      resolveUrls: jest.fn(),
+      getReleaseBinding: jest.fn(),
+      updateReleaseBinding: jest.fn(),
     };
     tokenService = {
       getUserToken: jest.fn().mockReturnValue(undefined),
@@ -86,141 +41,107 @@ describe('createRouter', () => {
     const router = await createRouter({
       httpAuth: mockServices.httpAuth(),
       observabilityService,
-      rcaAgentService,
       tokenService,
-      authEnabled: true, // Test with auth enabled
+      authEnabled: true,
     });
     app = express();
     app.use(router);
     app.use(mockErrorHandler());
   });
 
-  it('should fetch metrics by component', async () => {
-    observabilityService.fetchMetricsByComponent.mockResolvedValue(
-      mockResourceMetricsTimeSeries,
-    );
+  it('should resolve observer URLs', async () => {
+    observabilityService.resolveUrls.mockResolvedValue({
+      observerUrl: 'https://observer.example.com',
+      rcaAgentUrl: 'https://rca.example.com',
+    });
 
     const response = await request(app)
-      .post('/metrics')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'org-1',
-        projectName: 'project-1',
-        options: {
-          limit: 100,
-          offset: 0,
-          startTime: '2025-01-01T00:00:00Z',
-          endTime: '2025-12-31T23:59:59Z',
-        },
-      });
+      .get('/resolve-urls')
+      .query({ namespaceName: 'org-1', environmentName: 'dev' });
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual(mockResourceMetricsTimeSeries);
+    expect(response.body).toEqual({
+      observerUrl: 'https://observer.example.com',
+      rcaAgentUrl: 'https://rca.example.com',
+    });
   });
 
-  it('should not allow unauthenticated requests to fetch metrics by component', async () => {
-    observabilityService.fetchMetricsByComponent.mockResolvedValue(
-      mockResourceMetricsTimeSeries,
-    );
+  it('should return 400 when resolve-urls is missing parameters', async () => {
+    const response = await request(app).get('/resolve-urls').query({});
 
-    // TEMPLATE NOTE:
-    // The HttpAuth mock service considers all requests to be authenticated as a
-    // mock user by default. In order to test other cases we need to explicitly
-    // pass an authorization header with mock credentials.
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      error: 'namespaceName and environmentName are required',
+    });
+  });
+
+  it('should not allow unauthenticated requests to resolve-urls', async () => {
     const response = await request(app)
-      .post('/metrics')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'org-1',
-        projectName: 'project-1',
-        options: {
-          limit: 100,
-          offset: 0,
-          startTime: '2025-01-01T00:00:00Z',
-          endTime: '2025-12-31T23:59:59Z',
-        },
-      })
+      .get('/resolve-urls')
+      .query({ namespaceName: 'org-1', environmentName: 'dev' })
       .set('Authorization', mockCredentials.none.header());
 
     expect(response.status).toBe(401);
   });
 
-  it('should return 404 when observability is not configured for metrics', async () => {
-    observabilityService.fetchMetricsByComponent.mockRejectedValue(
-      new ObservabilityNotConfiguredError('component-1'),
+  it('should return 404 when observability is not configured for resolve-urls', async () => {
+    observabilityService.resolveUrls.mockRejectedValue(
+      new ObservabilityNotConfiguredError('org-1'),
     );
 
     const response = await request(app)
-      .post('/metrics')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'org-1',
-        projectName: 'project-1',
-        options: {
-          limit: 100,
-          offset: 0,
-          startTime: '2025-01-01T00:00:00Z',
-          endTime: '2025-12-31T23:59:59Z',
-        },
-      });
+      .get('/resolve-urls')
+      .query({ namespaceName: 'org-1', environmentName: 'dev' });
 
     expect(response.status).toBe(404);
     expect(response.body).toMatchObject({
-      error: 'Observability is not configured for component component-1',
+      error: 'Observability is not configured for component org-1',
     });
   });
 
-  it('should return 404 when observability is not configured for logs', async () => {
-    observabilityService.fetchRuntimeLogsByComponent.mockRejectedValue(
-      new ObservabilityNotConfiguredError('component-1'),
+  it('should return 500 for other errors on resolve-urls', async () => {
+    observabilityService.resolveUrls.mockRejectedValue(
+      new Error('Failed to resolve URLs'),
     );
 
     const response = await request(app)
-      .post('/logs/component/test-component')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'org-1',
-        projectName: 'project-1',
-        environmentName: 'env-1',
-        componentName: 'test-component',
-        options: {
-          limit: 100,
-        },
-      });
-
-    expect(response.status).toBe(404);
-    expect(response.body).toMatchObject({
-      error: 'Observability is not configured for component component-1',
-    });
-  });
-
-  it('should return 500 for other errors', async () => {
-    observabilityService.fetchMetricsByComponent.mockRejectedValue(
-      new Error('Failed to fetch metrics'),
-    );
-
-    const response = await request(app)
-      .post('/metrics')
-      .send({
-        componentId: 'component-1',
-        environmentId: 'environment-1',
-        namespaceName: 'org-1',
-        projectName: 'project-1',
-        options: {
-          limit: 100,
-          offset: 0,
-          startTime: '2025-01-01T00:00:00Z',
-          endTime: '2025-12-31T23:59:59Z',
-        },
-      });
+      .get('/resolve-urls')
+      .query({ namespaceName: 'org-1', environmentName: 'dev' });
 
     expect(response.status).toBe(500);
     expect(response.body).toMatchObject({
-      error: 'Failed to fetch metrics',
+      error: 'Failed to resolve URLs',
+    });
+  });
+
+  it('should fetch environments by namespace', async () => {
+    const mockEnvironments = [
+      {
+        uid: 'env-1',
+        name: 'dev',
+        namespace: 'org-1',
+        isProduction: false,
+        createdAt: '2025-01-01T00:00:00Z',
+      },
+    ];
+    observabilityService.fetchEnvironmentsByNamespace.mockResolvedValue(
+      mockEnvironments,
+    );
+
+    const response = await request(app)
+      .get('/environments')
+      .query({ namespace: 'org-1' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ environments: mockEnvironments });
+  });
+
+  it('should return 400 when namespace is missing for environments', async () => {
+    const response = await request(app).get('/environments').query({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      error: 'Namespace is required',
     });
   });
 });

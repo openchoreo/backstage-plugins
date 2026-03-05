@@ -41,30 +41,39 @@ const readyCondition = {
   message: 'Resource is ready',
 };
 
-const k8sEnvironment = {
-  metadata: {
-    name: 'dev',
-    namespace: 'test-ns',
-    uid: 'env-uid-001',
-    creationTimestamp: '2025-01-06T10:00:00Z',
-    labels: {},
-    annotations: {
-      'openchoreo.dev/display-name': 'dev',
-      'openchoreo.dev/description': 'Dev environment',
+function makeK8sEnvironment(
+  name: string,
+  overrides?: { isProduction?: boolean; displayName?: string },
+) {
+  const display = overrides?.displayName ?? name;
+  return {
+    metadata: {
+      name,
+      namespace: 'test-ns',
+      uid: `env-uid-${name}`,
+      creationTimestamp: '2025-01-06T10:00:00Z',
+      labels: {},
+      annotations: {
+        'openchoreo.dev/display-name': display,
+        'openchoreo.dev/description': `${name} environment`,
+      },
     },
-  },
-  spec: {
-    dataPlaneRef: { kind: 'DataPlane', name: 'default-dp' },
-    isProduction: false,
-    gateway: { publicVirtualHost: 'dev.example.com' },
-  },
-  status: { conditions: [readyCondition] },
-};
+    spec: {
+      dataPlaneRef: { kind: 'DataPlane', name: 'default-dp' },
+      isProduction: overrides?.isProduction ?? false,
+      gateway: { publicVirtualHost: `${name}.example.com` },
+    },
+    status: { conditions: [readyCondition] },
+  };
+}
+
+const k8sEnvironment = makeK8sEnvironment('dev');
 
 const k8sReleaseBinding = {
   metadata: {
     name: 'api-service-dev',
     namespace: 'test-ns',
+    generation: 1,
     creationTimestamp: '2025-01-06T11:00:00Z',
     annotations: {},
     labels: {},
@@ -76,7 +85,32 @@ const k8sReleaseBinding = {
     componentTypeEnvOverrides: {},
   },
   status: {
-    conditions: [readyCondition],
+    conditions: [
+      {
+        type: 'ReleaseSynced',
+        status: 'True',
+        observedGeneration: 1,
+        lastTransitionTime: '2025-01-06T10:00:03Z',
+        reason: 'Reconciled',
+        message: 'Release synced',
+      },
+      {
+        type: 'ResourcesReady',
+        status: 'True',
+        observedGeneration: 1,
+        lastTransitionTime: '2025-01-06T10:00:04Z',
+        reason: 'Reconciled',
+        message: 'Resources ready',
+      },
+      {
+        type: 'Ready',
+        status: 'True',
+        observedGeneration: 1,
+        lastTransitionTime: '2025-01-06T10:00:05Z',
+        reason: 'Reconciled',
+        message: 'Resource is ready',
+      },
+    ],
   },
 };
 
@@ -109,12 +143,8 @@ const k8sPipeline = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return EnvironmentInfoService.create(
-    mockLogger,
-    'http://test:8080',
-    useNewApi,
-  );
+function createService() {
+  return EnvironmentInfoService.create(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -133,7 +163,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('EnvironmentInfoService (useNewApi=true)', () => {
+describe('EnvironmentInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -149,7 +179,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       // 3. deployment pipelines
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDeploymentInfo(
         {
           projectName: 'my-project',
@@ -176,7 +206,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       // pipeline
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDeploymentInfo(
         {
           projectName: 'my-project',
@@ -196,7 +226,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDeploymentInfo(
         {
           projectName: 'my-project',
@@ -221,7 +251,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.promoteComponent(
         {
           sourceEnvironment: 'dev',
@@ -240,7 +270,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
     it('throws when promote API fails', async () => {
       mockPOST.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.promoteComponent(
           {
@@ -269,7 +299,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.deleteReleaseBinding(
         {
           componentName: 'api-service',
@@ -294,7 +324,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.deployRelease(
         {
           componentName: 'api-service',
@@ -312,7 +342,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
     it('throws when deploy fails', async () => {
       mockPOST.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.deployRelease(
           {
@@ -331,7 +361,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
     it('returns release bindings from new API', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchReleaseBindings(
         {
           componentName: 'api-service',
@@ -350,7 +380,7 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       const schema = { type: 'object', properties: {} };
       mockGET.mockResolvedValueOnce(okResponse(schema));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchComponentReleaseSchema(
         {
           componentName: 'api-service',
@@ -370,10 +400,11 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       const release = {
         metadata: { name: 'release-1' },
         spec: { version: '1.0.0' },
+        status: { phase: 'Active' },
       };
       mockGET.mockResolvedValueOnce(okResponse({ items: [release] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchEnvironmentRelease(
         {
           componentName: 'api-service',
@@ -384,13 +415,15 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
         'token-123',
       );
 
-      expect(result).toEqual(release);
+      expect(result).toEqual({
+        data: { spec: release.spec, status: release.status },
+      });
     });
 
     it('returns null when no matching release', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchEnvironmentRelease(
         {
           componentName: 'api-service',
@@ -402,6 +435,146 @@ describe('EnvironmentInfoService (useNewApi=true)', () => {
       );
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('pipeline environment filtering', () => {
+    const allEnvs = [
+      makeK8sEnvironment('dev'),
+      makeK8sEnvironment('staging'),
+      makeK8sEnvironment('pre-prod'),
+      makeK8sEnvironment('prod', {
+        isProduction: true,
+        displayName: 'Production Environment',
+      }),
+      makeK8sEnvironment('qa'),
+    ];
+
+    const pipelineDevStagingProd = {
+      metadata: {
+        name: 'default-pipeline',
+        namespace: 'test-ns',
+        uid: 'pipeline-uid-002',
+        creationTimestamp: '2025-01-06T10:00:00Z',
+        labels: {},
+        annotations: {
+          'openchoreo.dev/display-name': 'Default Pipeline',
+          'openchoreo.dev/description': 'Default pipeline',
+        },
+      },
+      spec: {
+        promotionPaths: [
+          {
+            sourceEnvironmentRef: 'dev',
+            targetEnvironmentRefs: [
+              { name: 'staging', requiresApproval: false },
+            ],
+          },
+          {
+            sourceEnvironmentRef: 'staging',
+            targetEnvironmentRefs: [{ name: 'prod', requiresApproval: true }],
+          },
+        ],
+      },
+      status: { conditions: [readyCondition] },
+    };
+
+    it('only returns pipeline environments when pipeline exists', async () => {
+      // environments (5 in namespace)
+      mockGET.mockResolvedValueOnce(
+        okResponse({ items: allEnvs, pagination: {} }),
+      );
+      // bindings (none)
+      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      // pipeline with dev -> staging -> prod
+      mockGET.mockResolvedValueOnce(
+        okResponse({ items: [pipelineDevStagingProd] }),
+      );
+
+      const service = createService();
+      const result = await service.fetchDeploymentInfo(
+        {
+          projectName: 'my-project',
+          componentName: 'api-service',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      const envNames = result.map(e => e.name);
+      expect(envNames).toEqual(['dev', 'staging', 'Production Environment']);
+      expect(envNames).not.toContain('pre-prod');
+      expect(envNames).not.toContain('qa');
+    });
+
+    it('returns environments in pipeline order', async () => {
+      mockGET.mockResolvedValueOnce(
+        okResponse({ items: allEnvs, pagination: {} }),
+      );
+      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(
+        okResponse({ items: [pipelineDevStagingProd] }),
+      );
+
+      const service = createService();
+      const result = await service.fetchDeploymentInfo(
+        {
+          projectName: 'my-project',
+          componentName: 'api-service',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result[0].name).toBe('dev');
+      expect(result[1].name).toBe('staging');
+      expect(result[2].name).toBe('Production Environment');
+    });
+
+    it('returns all environments when no pipeline exists', async () => {
+      mockGET.mockResolvedValueOnce(
+        okResponse({ items: allEnvs, pagination: {} }),
+      );
+      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      // no pipeline
+      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+
+      const service = createService();
+      const result = await service.fetchDeploymentInfo(
+        {
+          projectName: 'my-project',
+          componentName: 'api-service',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      expect(result).toHaveLength(5);
+    });
+
+    it('returns all environments when pipeline has empty promotionPaths', async () => {
+      const emptyPipeline = {
+        ...pipelineDevStagingProd,
+        spec: { promotionPaths: [] },
+      };
+      mockGET.mockResolvedValueOnce(
+        okResponse({ items: allEnvs, pagination: {} }),
+      );
+      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      mockGET.mockResolvedValueOnce(okResponse({ items: [emptyPipeline] }));
+
+      const service = createService();
+      const result = await service.fetchDeploymentInfo(
+        {
+          projectName: 'my-project',
+          componentName: 'api-service',
+          namespaceName: 'test-ns',
+        },
+        'token-123',
+      );
+
+      // Empty promotionPaths treated as no pipeline → show all environments
+      expect(result).toHaveLength(5);
     });
   });
 });

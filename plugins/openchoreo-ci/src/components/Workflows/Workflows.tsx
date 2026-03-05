@@ -1,9 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   useApi,
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
+import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import {
   Progress,
   ResponseErrorPanel,
@@ -34,16 +35,43 @@ import { BuildWithCommitDialog } from '../BuildWithCommitDialog';
 import { useWorkflowData, useWorkflowRouting } from '../../hooks';
 import type { ModelsBuild } from '@openchoreo/backstage-plugin-common';
 import {
+  CHOREO_LABELS,
+  CHOREO_ANNOTATIONS,
+  parseWorkflowParametersAnnotation,
+} from '@openchoreo/backstage-plugin-common';
+import {
   useComponentEntityDetails,
   useBuildPermission,
   useAsyncOperation,
 } from '@openchoreo/backstage-plugin-react';
 import { useStyles } from './styles';
 
+/**
+ * Set a value at a dot-delimited path in a nested object.
+ * The path should be relative to the parameters root (strip "parameters." prefix first).
+ */
+function setNestedValue(
+  obj: Record<string, any>,
+  path: string,
+  value: any,
+): void {
+  const parts = path.split('.');
+  let current = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!current[part] || typeof current[part] !== 'object') {
+      current[part] = {};
+    }
+    current = current[part];
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
 export const Workflows = () => {
   const classes = useStyles();
   const discoveryApi = useApi(discoveryApiRef);
   const fetchApi = useApi(fetchApiRef);
+  const catalogApi = useApi(catalogApiRef);
   const { getEntityDetails } = useComponentEntityDetails();
   const {
     canBuild,
@@ -66,11 +94,62 @@ export const Workflows = () => {
   // Dialog state
   const [isCommitDialogOpen, setIsCommitDialogOpen] = useState(false);
 
+  // Commit annotation path — non-null only when the workflow annotation has a `commit` key
+  const [commitParamPath, setCommitParamPath] = useState<string | null>(null);
+
   // Data fetching hook
   const workflowData = useWorkflowData();
 
   // Check if component has workflow from componentDetails
   const hasWorkflow = !!workflowData.componentDetails?.componentWorkflow;
+
+  // Fetch WORKFLOW_PARAMETERS annotation to check if `commit` key exists
+  const workflowName = workflowData.componentDetails?.componentWorkflow?.name;
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchCommitAnnotation = async () => {
+      if (!workflowName) {
+        setCommitParamPath(null);
+        return;
+      }
+
+      try {
+        const { namespaceName } = await getEntityDetails();
+        const response = await catalogApi.getEntities({
+          filter: {
+            kind: 'Workflow',
+            'metadata.name': workflowName,
+            'metadata.namespace': namespaceName,
+          },
+        });
+
+        if (ignore) return;
+
+        const workflowEntity = response.items[0];
+        const annotation =
+          workflowEntity?.metadata?.annotations?.[
+            CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS
+          ];
+
+        if (annotation) {
+          const mapping = parseWorkflowParametersAnnotation(annotation);
+          setCommitParamPath(mapping.commit ?? null);
+        } else {
+          setCommitParamPath(null);
+        }
+      } catch {
+        if (!ignore) {
+          setCommitParamPath(null);
+        }
+      }
+    };
+
+    fetchCommitAnnotation();
+    return () => {
+      ignore = true;
+    };
+  }, [workflowName, catalogApi, getEntityDetails]);
 
   // Find run by ID for run-details view
   const selectedRun = useMemo(() => {
@@ -86,20 +165,48 @@ export const Workflows = () => {
       async (commit?: string) => {
         const { componentName, projectName, namespaceName } =
           await getEntityDetails();
-        const baseUrl = await discoveryApi.getBaseUrl('openchoreo-ci-backend');
+        const baseUrl = await discoveryApi.getBaseUrl(
+          'openchoreo-workflows-backend',
+        );
 
-        const response = await fetchApi.fetch(`${baseUrl}/builds`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            componentName,
-            projectName,
+        const workflow = workflowData.componentDetails?.componentWorkflow;
+        if (!workflow?.name) {
+          throw new Error('No workflow configured for this component');
+        }
+
+        // Clone workflow parameters so we can inject commit without mutating the original
+        const parameters = workflow.parameters
+          ? JSON.parse(JSON.stringify(workflow.parameters))
+          : {};
+
+        // If a commit was provided and the annotation defines a commit path, inject it
+        if (commit && commitParamPath) {
+          const path = commitParamPath.startsWith('parameters.')
+            ? commitParamPath.slice('parameters.'.length)
+            : commitParamPath;
+          setNestedValue(parameters, path, commit);
+        }
+
+        const response = await fetchApi.fetch(
+          `${baseUrl}/workflow-runs?namespaceName=${encodeURIComponent(
             namespaceName,
-            commit,
-          }),
-        });
+          )}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              workflowName: workflow.name,
+              workflowRunName: `${componentName}-${Date.now()}`,
+              parameters,
+              labels: {
+                [CHOREO_LABELS.WORKFLOW_PROJECT]: projectName,
+                [CHOREO_LABELS.WORKFLOW_COMPONENT]: componentName,
+              },
+            }),
+          },
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -107,7 +214,7 @@ export const Workflows = () => {
 
         await workflowData.fetchBuilds();
       },
-      [discoveryApi, fetchApi, getEntityDetails, workflowData],
+      [discoveryApi, fetchApi, getEntityDetails, workflowData, commitParamPath],
     ),
   );
 
@@ -174,6 +281,7 @@ export const Workflows = () => {
             isRefreshing={refreshOp.isLoading}
             onRefresh={() => refreshOp.execute()}
             onRowClick={handleOpenRunDetails}
+            commitParamPath={commitParamPath}
           />
         );
       case 'configurations':
@@ -235,10 +343,6 @@ export const Workflows = () => {
         workflowName={
           workflowData.componentDetails.componentWorkflow.name || ''
         }
-        systemParameters={
-          workflowData.componentDetails.componentWorkflow.systemParameters ||
-          null
-        }
         parameters={
           workflowData.componentDetails.componentWorkflow.parameters || null
         }
@@ -291,23 +395,25 @@ export const Workflows = () => {
         <Box className={classes.headerActions}>
           {routingState.tab === 'runs' ? (
             <>
-              <Tooltip title={deniedTooltip}>
-                <span>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={handleOpenCommitDialog}
-                    startIcon={<CodeIcon />}
-                    disabled={
-                      !componentDetails?.componentWorkflow ||
-                      permissionLoading ||
-                      !canBuild
-                    }
-                  >
-                    Build With Commit
-                  </Button>
-                </span>
-              </Tooltip>
+              {commitParamPath && (
+                <Tooltip title={deniedTooltip}>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      onClick={handleOpenCommitDialog}
+                      startIcon={<CodeIcon />}
+                      disabled={
+                        !componentDetails?.componentWorkflow ||
+                        permissionLoading ||
+                        !canBuild
+                      }
+                    >
+                      Build With Commit
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
               <Tooltip title={deniedTooltip}>
                 <span>
                   <Button

@@ -14,10 +14,9 @@ import {
   discoveryApiRef,
   fetchApiRef,
 } from '@backstage/core-plugin-api';
-import type { OpenChoreoLegacyComponents } from '@openchoreo/backstage-plugin-common';
+import type { BuildTemplateResponse } from '@openchoreo/backstage-plugin-common';
 
-type ModelsBuildTemplate =
-  OpenChoreoLegacyComponents['schemas']['BuildTemplateResponse'];
+type ModelsBuildTemplate = BuildTemplateResponse;
 
 /*
  Schema for the Custom Field Explorer

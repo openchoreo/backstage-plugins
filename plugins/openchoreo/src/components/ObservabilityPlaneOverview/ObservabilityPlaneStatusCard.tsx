@@ -23,10 +23,11 @@ export const ObservabilityPlaneStatusCard = () => {
     spec?.observerURL || annotations[CHOREO_ANNOTATIONS.OBSERVER_URL] || '';
   const agentConnected =
     annotations[CHOREO_ANNOTATIONS.AGENT_CONNECTED] === 'true';
-  const agentCount = parseInt(
+  const parsedAgentCount = parseInt(
     annotations[CHOREO_ANNOTATIONS.AGENT_CONNECTED_COUNT] || '0',
     10,
   );
+  const agentCount = Number.isNaN(parsedAgentCount) ? 0 : parsedAgentCount;
   const lastHeartbeat = annotations[CHOREO_ANNOTATIONS.AGENT_LAST_HEARTBEAT];
 
   const loading = false;
@@ -47,20 +48,18 @@ export const ObservabilityPlaneStatusCard = () => {
   }
 
   const formatRelativeTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      if (diffMins < 1) return 'just now';
-      if (diffMins < 60) return `${diffMins}m ago`;
-      const diffHours = Math.floor(diffMins / 60);
-      if (diffHours < 24) return `${diffHours}h ago`;
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays}d ago`;
-    } catch {
-      return isoString;
-    }
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return isoString;
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    if (diffMs < 0) return 'just now';
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
   };
 
   return (

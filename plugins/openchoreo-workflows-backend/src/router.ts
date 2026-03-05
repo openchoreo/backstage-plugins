@@ -1,10 +1,7 @@
 import { InputError } from '@backstage/errors';
 import express from 'express';
 import Router from 'express-promise-router';
-import {
-  GenericWorkflowService,
-  ObservabilityNotConfiguredError,
-} from './services';
+import { GenericWorkflowService } from './services';
 import {
   OpenChoreoTokenService,
   createUserTokenMiddleware,
@@ -65,9 +62,10 @@ export async function createRouter({
     );
   });
 
-  // GET /workflow-runs - List workflow runs (with optional workflow filter)
+  // GET /workflow-runs - List workflow runs (with optional workflow/project/component filter)
   router.get('/workflow-runs', async (req, res) => {
-    const { namespaceName, workflowName } = req.query;
+    const { namespaceName, workflowName, projectName, componentName } =
+      req.query;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -80,6 +78,8 @@ export async function createRouter({
         namespaceName as string,
         workflowName as string | undefined,
         userToken,
+        projectName as string | undefined,
+        componentName as string | undefined,
       ),
     );
   });
@@ -107,7 +107,7 @@ export async function createRouter({
   // GET /workflow-runs/:runName/logs - Get workflow run logs
   router.get('/workflow-runs/:runName/logs', async (req, res) => {
     const { runName } = req.params;
-    const { namespaceName, environmentName } = req.query;
+    const { namespaceName, task } = req.query;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -115,34 +115,61 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    try {
-      const logs = await workflowService.getWorkflowRunLogs(
+    const logs = await workflowService.getWorkflowRunLogs(
+      namespaceName as string,
+      runName,
+      task as string | undefined,
+      userToken,
+    );
+    res.json(logs);
+  });
+
+  // GET /workflow-runs/:runName/status - Get workflow run status (with steps)
+  router.get('/workflow-runs/:runName/status', async (req, res) => {
+    const { runName } = req.params;
+    const { namespaceName } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await workflowService.getWorkflowRunStatus(
         namespaceName as string,
         runName,
-        (environmentName as string) || 'development',
         userToken,
-      );
-      res.json(logs);
-    } catch (error) {
-      // Handle observability not configured gracefully
-      if (error instanceof ObservabilityNotConfiguredError) {
-        res.json({
-          logs: [],
-          totalCount: 0,
-          tookMs: 0,
-          error: 'OBSERVABILITY_NOT_CONFIGURED',
-          message: error.message,
-        });
-        return;
-      }
-      throw error;
+      ),
+    );
+  });
+
+  // GET /workflow-runs/:runName/events - Get workflow run Kubernetes events
+  router.get('/workflow-runs/:runName/events', async (req, res) => {
+    const { runName } = req.params;
+    const { namespaceName, task } = req.query;
+
+    if (!namespaceName) {
+      throw new InputError('namespaceName is required query parameter');
     }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await workflowService.getWorkflowRunEvents(
+        namespaceName as string,
+        runName,
+        task as string | undefined,
+        userToken,
+      ),
+    );
   });
 
   // POST /workflow-runs - Create (trigger) a new workflow run
   router.post('/workflow-runs', requireAuth, async (req, res) => {
     const { namespaceName } = req.query;
-    const { workflowName, parameters } = req.body;
+    const { workflowName, parameters, labels, annotations, workflowRunName } =
+      req.body;
 
     if (!namespaceName) {
       throw new InputError('namespaceName is required query parameter');
@@ -157,7 +184,7 @@ export async function createRouter({
     res.json(
       await workflowService.createWorkflowRun(
         namespaceName as string,
-        { workflowName, parameters },
+        { workflowName, parameters, labels, annotations, workflowRunName },
         userToken,
       ),
     );

@@ -12,7 +12,7 @@ export interface ComponentType {
     displayName?: string;
     description?: string;
     workloadType: string;
-    allowedWorkflows?: string[];
+    allowedWorkflows?: Array<string | { kind?: string; name: string }>;
     allowedTraits?: Array<{ kind?: string; name: string }>;
     tags?: string[];
     createdAt?: string;
@@ -69,6 +69,8 @@ export class CtdToTemplateConverter {
         annotations: {
           [CHOREO_ANNOTATIONS.CTD_NAME]: componentType.metadata.name,
           [CHOREO_ANNOTATIONS.CTD_GENERATED]: 'true',
+          [CHOREO_ANNOTATIONS.WORKLOAD_TYPE]:
+            componentType.metadata.workloadType,
         },
       },
       spec: {
@@ -118,6 +120,17 @@ export class CtdToTemplateConverter {
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  }
+
+  private normalizeWorkflowNames(
+    allowedWorkflows?: Array<string | { kind?: string; name: string }>,
+  ): string[] {
+    if (!allowedWorkflows || allowedWorkflows.length === 0) return [];
+    return allowedWorkflows
+      .map(workflow =>
+        typeof workflow === 'string' ? workflow : workflow.name,
+      )
+      .filter(Boolean);
   }
 
   /**
@@ -224,9 +237,10 @@ export class CtdToTemplateConverter {
     componentType: ComponentType,
     namespaceName: string,
   ): any {
-    const hasAllowedWorkflows =
-      componentType.metadata.allowedWorkflows &&
-      componentType.metadata.allowedWorkflows.length > 0;
+    const allowedWorkflowNames = this.normalizeWorkflowNames(
+      componentType.metadata.allowedWorkflows,
+    );
+    const hasAllowedWorkflows = allowedWorkflowNames.length > 0;
 
     // Build workflow_name field properties
     const workflowNameField: any = {
@@ -241,7 +255,7 @@ export class CtdToTemplateConverter {
 
     // Only add enum if allowedWorkflows is available
     if (hasAllowedWorkflows) {
-      workflowNameField.enum = componentType.metadata.allowedWorkflows;
+      workflowNameField.enum = allowedWorkflowNames;
     }
 
     // Auto Deploy field - only for deploy-from-image (build-from-source and external-ci don't have an immediate image to deploy)
@@ -275,6 +289,7 @@ export class CtdToTemplateConverter {
                 deploymentSource: {
                   const: 'build-from-source',
                 },
+                workflow_name: workflowNameField,
                 git_source: {
                   title: 'Source Repository',
                   type: 'object',
@@ -289,7 +304,6 @@ export class CtdToTemplateConverter {
                     git_secret_ref: { type: 'string' },
                   },
                 },
-                workflow_name: workflowNameField,
                 workflow_parameters: {
                   title: 'Workflow Parameters',
                   type: 'object',
@@ -387,9 +401,73 @@ export class CtdToTemplateConverter {
   }
 
   /**
+   * Convert a ClusterComponentType to a Backstage Template entity.
+   * Unlike namespace-scoped templates, cluster templates:
+   * - Use 'openchoreo-cluster' namespace
+   * - Add CTD_KIND annotation to identify the source as ClusterComponentType
+   * - Pass component_type_kind: 'ClusterComponentType' to the scaffolder action
+   * - Pass empty namespaceName (ProjectNamespaceField renders a namespace dropdown)
+   * - AllowedTraits are exclusively ClusterTraits
+   */
+  convertClusterCtdToTemplateEntity(componentType: ComponentType): Entity {
+    const templateName = this.generateTemplateName(componentType.metadata.name);
+    const title =
+      componentType.metadata.displayName ||
+      this.formatTitle(componentType.metadata.name);
+    const description =
+      componentType.metadata.description || `Create a ${title} component`;
+
+    const templateEntity: Entity = {
+      apiVersion: 'scaffolder.backstage.io/v1beta3',
+      kind: 'Template',
+      metadata: {
+        name: templateName,
+        namespace: 'openchoreo-cluster',
+        title,
+        description,
+        annotations: {
+          [CHOREO_ANNOTATIONS.CTD_NAME]: componentType.metadata.name,
+          [CHOREO_ANNOTATIONS.CTD_GENERATED]: 'true',
+          [CHOREO_ANNOTATIONS.CTD_KIND]: 'ClusterComponentType',
+        },
+      },
+      spec: {
+        owner: this.defaultOwner,
+        type: 'Component',
+        EXPERIMENTAL_formDecorators: [{ id: 'openchoreo:inject-user-token' }],
+        parameters: this.generateParameters(componentType, ''),
+        steps: this.generateSteps(componentType, 'ClusterComponentType'),
+        output: {
+          links: [
+            {
+              title: 'View Component',
+              icon: 'kind:component',
+              entityRef:
+                "component:${{ steps['create-component'].output.namespaceName }}/${{ steps['create-component'].output.componentName }}",
+            },
+          ],
+        },
+      },
+    };
+
+    if (componentType.metadata.displayName) {
+      templateEntity.metadata.annotations![
+        CHOREO_ANNOTATIONS.CTD_DISPLAY_NAME
+      ] = componentType.metadata.displayName;
+    }
+
+    return templateEntity;
+  }
+
+  /**
    * Generate scaffolder steps for the template
    */
-  private generateSteps(componentType: ComponentType): any[] {
+  private generateSteps(
+    componentType: ComponentType,
+    componentTypeKind:
+      | 'ComponentType'
+      | 'ClusterComponentType' = 'ComponentType',
+  ): any[] {
     return [
       {
         id: 'create-component',
@@ -406,6 +484,7 @@ export class CtdToTemplateConverter {
           // Component Type
           componentType: componentType.metadata.name,
           component_type_workload_type: componentType.metadata.workloadType,
+          component_type_kind: componentTypeKind,
 
           // Workload Details (from section 2 — nested under workloadDetails)
           workloadDetails: '${{ parameters.workloadDetails }}',

@@ -10,8 +10,6 @@ import {
   useFilters,
   useGetEnvironmentsByNamespace,
   useRCAReports,
-  extractEntityUids,
-  useEntitiesByUids,
 } from '../../hooks';
 import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
@@ -21,6 +19,10 @@ import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 const RCAListView = () => {
   const { entity } = useEntity();
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+  const namespaceValue = useMemo(
+    () => ({ namespace: namespace || 'default' }),
+    [namespace],
+  );
   const {
     environments,
     loading: environmentsLoading,
@@ -35,19 +37,6 @@ const RCAListView = () => {
     refresh,
     totalCount,
   } = useRCAReports(filters, entity);
-
-  // Extract all entity UIDs from report summaries for name resolution
-  const allUids = useMemo(() => {
-    const uids: string[] = [];
-    for (const report of reports) {
-      if (report.summary) {
-        uids.push(...extractEntityUids(report.summary));
-      }
-    }
-    return uids;
-  }, [reports]);
-
-  const { entityMap, loading: entitiesLoading } = useEntitiesByUids(allUids);
 
   // Auto-select first environment when environments are loaded
   useEffect(() => {
@@ -124,9 +113,7 @@ const RCAListView = () => {
             totalCount={totalCount}
           />
 
-          <EntityLinkContext.Provider
-            value={{ entityMap, loading: entitiesLoading }}
-          >
+          <EntityLinkContext.Provider value={namespaceValue}>
             <RCATable reports={reports} loading={reportsLoading} />
           </EntityLinkContext.Provider>
         </>
@@ -139,7 +126,7 @@ export const RCAPage = () => {
   return (
     <Routes>
       <Route path="/" element={<RCAListView />} />
-      <Route path="/:alertId" element={<RCAReport />} />
+      <Route path="/:reportId" element={<RCAReport />} />
     </Routes>
   );
 };

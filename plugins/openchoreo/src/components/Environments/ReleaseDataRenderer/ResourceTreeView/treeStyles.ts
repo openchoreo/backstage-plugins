@@ -9,6 +9,25 @@ export const useTreeStyles = makeStyles(theme => ({
     minHeight: 400,
     position: 'relative',
   },
+  statusBarWrapper: {
+    display: 'flex',
+    alignItems: 'stretch',
+    flexShrink: 0,
+  },
+  statusBarContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  statusBarAction: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing(0, 1),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    borderLeft: `1px solid ${theme.palette.divider}`,
+    backgroundColor: theme.palette.background.paper,
+    flexShrink: 0,
+  },
   statusBar: {
     display: 'flex',
     flexDirection: 'row',
@@ -133,6 +152,15 @@ export const useTreeStyles = makeStyles(theme => ({
     whiteSpace: 'nowrap',
     color: theme.palette.text.secondary,
     marginTop: 1,
+  },
+  nodeSubtitle: {
+    fontSize: '0.65rem',
+    fontWeight: 400,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: theme.palette.text.disabled,
+    fontStyle: 'normal',
   },
   healthDotContainer: {
     position: 'absolute' as const,

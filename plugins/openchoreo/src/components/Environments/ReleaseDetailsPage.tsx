@@ -3,10 +3,12 @@ import { Box, Button, Typography, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { useEnvironmentPolling } from './hooks';
 import { ResourceTreeView } from './ReleaseDataRenderer/ResourceTreeView';
-import type { Environment } from './hooks/useEnvironmentData';
+import type { Environment } from './hooks';
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -54,6 +56,7 @@ export const ReleaseDetailsPage = ({
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [releaseData, setReleaseData] = useState<any>(null);
   const [resourceTreeData, setResourceTreeData] = useState<any>(null);
   const [releaseBindingData, setReleaseBindingData] = useState<Record<
@@ -63,53 +66,92 @@ export const ReleaseDetailsPage = ({
 
   const environmentName = environment.resourceName || environment.name;
 
-  const loadReleaseData = useCallback(async () => {
-    if (!environmentName) return;
+  const namespaceName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
 
-    setLoading(true);
-    setError(null);
+  const loadReleaseData = useCallback(
+    async (showLoadingState = true) => {
+      if (!environmentName) return;
 
-    try {
-      const [releaseResult, resourceTreeResult, releaseBindingsResult] =
-        await Promise.all([
+      if (showLoadingState) {
+        setLoading(true);
+        setError(null);
+      }
+
+      try {
+        // Fetch release data and release bindings in parallel
+        const [releaseResult, releaseBindingsResult] = await Promise.all([
           client.fetchEnvironmentRelease(entity, environmentName),
-          client.fetchResourceTree(entity, environmentName).catch(() => ({
-            success: false,
-            data: { nodes: [] },
-          })),
-          client.fetchReleaseBindings(entity).catch(() => ({
-            success: false,
-            data: { items: [] },
-          })),
+          client.fetchReleaseBindings(entity).catch(err => {
+            if (showLoadingState) {
+              return {
+                success: false,
+                data: { items: [] },
+              };
+            }
+            throw err;
+          }),
         ]);
-      setReleaseData(releaseResult);
-      setResourceTreeData(resourceTreeResult);
 
-      // Find the release binding matching this environment
-      // Handle both legacy format ({ success, data: { items } }) and new API format ({ items })
-      const bindingsResult = releaseBindingsResult as any;
-      const bindings: any[] =
-        bindingsResult?.data?.items ?? bindingsResult?.items ?? [];
-      const matchingBinding =
-        bindings.find(
-          (b: any) =>
-            (b.environment ?? b.spec?.environment) === environmentName,
-        ) ?? null;
-      setReleaseBindingData(matchingBinding);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load release details');
-    } finally {
-      setLoading(false);
-    }
-  }, [environmentName, entity, client]);
+        // Find the release binding matching this environment
+        const bindingsResult = releaseBindingsResult as any;
+        const bindings: any[] = bindingsResult?.data?.items ?? [];
+        const matchingBinding =
+          bindings.find((b: any) => b.environment === environmentName) ?? null;
+
+        // Fetch resource tree using the matched binding name
+        const bindingName = matchingBinding?.name;
+        let nextResourceTreeData: any = { releases: [] };
+
+        if (bindingName && namespaceName) {
+          nextResourceTreeData = await client
+            .fetchResourceTree(namespaceName, bindingName as string)
+            .catch(err => {
+              if (showLoadingState) {
+                return { releases: [] };
+              }
+              throw err;
+            });
+        }
+
+        setReleaseData(releaseResult);
+        setReleaseBindingData(matchingBinding);
+        setResourceTreeData(nextResourceTreeData);
+      } catch (err: any) {
+        if (showLoadingState) {
+          setError(err.message || 'Failed to load release details');
+        }
+      } finally {
+        if (showLoadingState) {
+          setLoading(false);
+        }
+      }
+    },
+    [environmentName, namespaceName, entity, client],
+  );
 
   useEffect(() => {
     loadReleaseData();
   }, [loadReleaseData]);
 
+  const shouldPollReleaseDetails = Boolean(environmentName);
+  const pollReleaseData = useCallback(() => {
+    void loadReleaseData(false);
+  }, [loadReleaseData]);
+  useEnvironmentPolling(shouldPollReleaseDetails, pollReleaseData);
+
   const handleRetry = () => {
     loadReleaseData();
   };
+
+  const handleManualRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadReleaseData(false);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadReleaseData]);
 
   const actions = error ? (
     <Button onClick={handleRetry} color="primary" variant="outlined">
@@ -142,17 +184,19 @@ export const ReleaseDetailsPage = ({
         </Box>
       )}
 
-      {!loading && !error && releaseData && (
+      {!loading && !error && (releaseData || releaseBindingData) && (
         <ResourceTreeView
           releaseData={releaseData}
-          resourceTreeData={resourceTreeData}
+          resourceTreeData={resourceTreeData ?? { releases: [] }}
           releaseBindingData={releaseBindingData}
-          entity={entity}
-          environmentName={environmentName}
+          namespaceName={namespaceName}
+          releaseBindingName={(releaseBindingData as any)?.name ?? ''}
+          onRefresh={handleManualRefresh}
+          isRefreshing={refreshing}
         />
       )}
 
-      {!loading && !error && !releaseData && (
+      {!loading && !error && !releaseData && !releaseBindingData && (
         <Box className={classes.emptyContainer}>
           <Typography variant="body2" color="textSecondary">
             No release data available for this environment

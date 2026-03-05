@@ -1,16 +1,15 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
-  createOpenChoreoLegacyApiClient,
-  type OpenChoreoLegacyComponents,
+  createOpenChoreoApiClient,
+  fetchAllPages,
+  getName,
+  getNamespace,
+  getDisplayName,
+  getDescription,
+  getCreatedAt,
+  isReady,
+  type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
-
-// Use generated types from OpenAPI spec
-type ModelsEnvironment =
-  OpenChoreoLegacyComponents['schemas']['EnvironmentResponse'];
-type ModelsDataPlane =
-  OpenChoreoLegacyComponents['schemas']['DataPlaneResponse'];
-type ReleaseBindingResponse =
-  OpenChoreoLegacyComponents['schemas']['ReleaseBindingResponse'];
 
 import {
   PlatformEnvironmentService,
@@ -18,6 +17,10 @@ import {
   DataPlane,
   DataPlaneWithEnvironments,
 } from '../types';
+
+type NewEnvironment = OpenChoreoComponents['schemas']['Environment'];
+type NewDataPlane = OpenChoreoComponents['schemas']['DataPlane'];
+type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
 /**
  * Service for managing platform-wide environment information.
@@ -85,17 +88,17 @@ export class PlatformEnvironmentInfoService
         `Starting environment fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/environments',
+        '/api/v1/namespaces/{namespaceName}/environments',
         {
           params: {
-            path: { namespaceName: namespaceName },
+            path: { namespaceName },
           },
         },
       );
@@ -107,15 +110,14 @@ export class PlatformEnvironmentInfoService
         return [];
       }
 
-      if (!data.success || !data.data?.items) {
+      if (!data?.items) {
         this.logger.warn(
           `No environments found for namespace ${namespaceName}`,
         );
         return [];
       }
 
-      const environments = data.data.items;
-      const result = this.transformEnvironmentData(environments, namespaceName);
+      const result = this.transformEnvironmentData(data.items, namespaceName);
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -177,17 +179,17 @@ export class PlatformEnvironmentInfoService
         `Starting dataplane fetch for namespace: ${namespaceName}`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
       });
 
       const { data, error, response } = await client.GET(
-        '/namespaces/{namespaceName}/dataplanes',
+        '/api/v1/namespaces/{namespaceName}/dataplanes',
         {
           params: {
-            path: { namespaceName: namespaceName },
+            path: { namespaceName },
           },
         },
       );
@@ -199,13 +201,12 @@ export class PlatformEnvironmentInfoService
         return [];
       }
 
-      if (!data.success || !data.data?.items) {
+      if (!data?.items) {
         this.logger.warn(`No dataplanes found for namespace ${namespaceName}`);
         return [];
       }
 
-      const dataplanes = data.data.items;
-      const result = this.transformDataPlaneData(dataplanes, namespaceName);
+      const result = this.transformDataPlaneData(data.items, namespaceName);
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -343,7 +344,7 @@ export class PlatformEnvironmentInfoService
         `Starting component counts fetch for ${components.length} components`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -357,32 +358,35 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
-            const { data, error, response } = await client.GET(
-              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
-              {
-                params: {
-                  path: {
-                    namespaceName: component.namespaceName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
+            // Get bindings for this component using namespace-scoped endpoint with component filter
+            const bindings = await fetchAllPages<NewReleaseBinding>(cursor =>
+              client
+                .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
+                  params: {
+                    path: {
+                      namespaceName: component.namespaceName,
+                    },
+                    query: {
+                      component: component.componentName,
+                      cursor,
+                    },
                   },
-                },
-              },
+                })
+                .then(res => {
+                  if (res.error)
+                    throw new Error('Failed to fetch release bindings');
+                  return res.data!;
+                }),
             );
 
-            if (!error && response.ok && data.success && data.data?.items) {
-              // Count environments where this component is deployed
-              const bindings = data.data.items as ReleaseBindingResponse[];
-              bindings.forEach(binding => {
-                const envName = binding.environment;
-                if (envName) {
-                  const currentCount =
-                    componentCountsByEnvironment.get(envName) || 0;
-                  componentCountsByEnvironment.set(envName, currentCount + 1);
-                }
-              });
-            }
+            bindings.forEach(binding => {
+              const envName = binding.spec?.environment;
+              if (envName) {
+                const key = `${component.namespaceName}/${envName}`;
+                const currentCount = componentCountsByEnvironment.get(key) || 0;
+                componentCountsByEnvironment.set(key, currentCount + 1);
+              }
+            });
           } catch (error) {
             this.logger.warn(
               `Failed to fetch bindings for component ${component.namespaceName}/${component.projectName}/${component.componentName}:`,
@@ -430,7 +434,7 @@ export class PlatformEnvironmentInfoService
         `Starting distinct deployed components count for ${components.length} components`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -444,27 +448,22 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
             const { data, error, response } = await client.GET(
-              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
+              '/api/v1/namespaces/{namespaceName}/releasebindings',
               {
                 params: {
                   path: {
                     namespaceName: component.namespaceName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
+                  },
+                  query: {
+                    component: component.componentName,
+                    limit: 1, // We only need to know if at least one binding exists
                   },
                 },
               },
             );
 
-            if (
-              !error &&
-              response.ok &&
-              data.success &&
-              data.data?.items &&
-              data.data.items.length > 0
-            ) {
+            if (!error && response.ok && data?.items && data.items.length > 0) {
               // If component has at least one binding, count it as deployed
               const componentKey = `${component.namespaceName}/${component.projectName}/${component.componentName}`;
               deployedComponents.add(componentKey);
@@ -498,8 +497,8 @@ export class PlatformEnvironmentInfoService
   }
 
   /**
-   * Fetches count of healthy workloads across all components
-   * A workload is considered healthy if its status.status === 'Active'
+   * Fetches count of healthy workloads across all components.
+   * A workload is considered healthy if its Ready condition status is 'True'.
    */
   async fetchHealthyWorkloadCount(
     components: Array<{
@@ -517,7 +516,7 @@ export class PlatformEnvironmentInfoService
         `Starting healthy workload count for ${components.length} components`,
       );
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl: this.baseUrl,
         token: userToken,
         logger: this.logger,
@@ -531,29 +530,31 @@ export class PlatformEnvironmentInfoService
 
         const batchPromises = batch.map(async component => {
           try {
-            // Get bindings for this component
-            const { data, error, response } = await client.GET(
-              '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}/release-bindings',
-              {
-                params: {
-                  path: {
-                    namespaceName: component.namespaceName,
-                    projectName: component.projectName,
-                    componentName: component.componentName,
+            const bindings = await fetchAllPages<NewReleaseBinding>(cursor =>
+              client
+                .GET('/api/v1/namespaces/{namespaceName}/releasebindings', {
+                  params: {
+                    path: {
+                      namespaceName: component.namespaceName,
+                    },
+                    query: {
+                      component: component.componentName,
+                      cursor,
+                    },
                   },
-                },
-              },
+                })
+                .then(res => {
+                  if (res.error)
+                    throw new Error('Failed to fetch release bindings');
+                  return res.data!;
+                }),
             );
 
-            if (!error && response.ok && data.success && data.data?.items) {
-              // Count healthy workloads by checking if status.status === 'Active'
-              const bindings = data.data.items as ReleaseBindingResponse[];
-              const healthyCount = bindings.filter(
-                binding => binding.status === 'Ready',
-              ).length;
-              return healthyCount;
-            }
-            return 0;
+            // Count healthy workloads by checking status conditions
+            const healthyCount = bindings.filter(binding =>
+              isReady(binding),
+            ).length;
+            return healthyCount;
           } catch (error) {
             this.logger.warn(
               `Failed to fetch bindings for component ${component.namespaceName}/${component.projectName}/${component.componentName}:`,
@@ -591,13 +592,13 @@ export class PlatformEnvironmentInfoService
    * Fetches the list of namespace names from the OpenChoreo API.
    */
   private async fetchNamespaceNames(userToken?: string): Promise<string[]> {
-    const client = createOpenChoreoLegacyApiClient({
+    const client = createOpenChoreoApiClient({
       baseUrl: this.baseUrl,
       token: userToken,
       logger: this.logger,
     });
 
-    const { data, error, response } = await client.GET('/namespaces');
+    const { data, error, response } = await client.GET('/api/v1/namespaces');
 
     if (error || !response.ok) {
       this.logger.error(
@@ -606,62 +607,99 @@ export class PlatformEnvironmentInfoService
       return [];
     }
 
-    if (!data.success || !data.data?.items) {
+    if (!data?.items) {
       this.logger.warn('No namespaces found');
       return [];
     }
 
-    const namespaces = data.data.items as Array<{ name: string }>;
-    return namespaces.map(ns => ns.name);
+    return data.items
+      .map(ns => getName(ns))
+      .filter((name): name is string => !!name);
   }
 
   private transformEnvironmentData(
-    environmentData: ModelsEnvironment[],
+    environmentData: NewEnvironment[],
     namespaceName: string,
   ): Environment[] {
     return environmentData.map(env => {
-      const transformedEnv: Environment = {
-        name: env.name,
-        namespace: env.namespace || '',
-        displayName: env.displayName || env.name,
-        description: env.description || '',
-        namespaceName: namespaceName,
-        dataPlaneRef: env.dataPlaneRef?.name || '',
-        isProduction: env.isProduction ?? false,
-        dnsPrefix: env.dnsPrefix || '',
-        createdAt: env.createdAt || '',
-        status: env.status || '',
+      const name = getName(env) || '';
+      return {
+        name,
+        namespace: getNamespace(env) || '',
+        displayName: getDisplayName(env) || name,
+        description: getDescription(env) || '',
+        namespaceName,
+        dataPlaneRef: env.spec?.dataPlaneRef?.name || '',
+        isProduction: env.spec?.isProduction ?? false,
+        dnsPrefix: env.spec?.gateway?.ingress?.external?.http?.host || '',
+        createdAt: getCreatedAt(env) || '',
+        status: isReady(env) ? 'Ready' : 'NotReady',
       };
-
-      return transformedEnv;
     });
   }
 
   private transformDataPlaneData(
-    dataplaneData: ModelsDataPlane[],
+    dataplaneData: NewDataPlane[],
     namespaceName: string,
   ): DataPlane[] {
     return dataplaneData.map(dp => {
-      const transformedDataPlane: DataPlane = {
-        name: dp.name,
-        namespace: dp.namespace,
-        displayName: dp.displayName,
-        description: dp.description,
-        namespaceName: namespaceName,
-        imagePullSecretRefs: dp.imagePullSecretRefs,
-        secretStoreRef: dp.secretStoreRef,
-        publicVirtualHost: dp.publicVirtualHost,
-        namespaceVirtualHost: dp.namespaceVirtualHost,
-        publicHTTPPort: dp.publicHTTPPort,
-        publicHTTPSPort: dp.publicHTTPSPort,
-        namespaceHTTPPort: dp.namespaceHTTPPort,
-        namespaceHTTPSPort: dp.namespaceHTTPSPort,
-        observabilityPlaneRef: dp.observabilityPlaneRef,
-        createdAt: dp.createdAt,
-        status: dp.status,
+      const ingress = dp.spec?.gateway?.ingress;
+      const secretStore = dp.spec?.secretStoreRef;
+      const obsRef = dp.spec?.observabilityPlaneRef;
+      return {
+        name: getName(dp) || '',
+        namespace: getNamespace(dp),
+        displayName: getDisplayName(dp),
+        description: getDescription(dp),
+        namespaceName,
+        imagePullSecretRefs: dp.spec?.imagePullSecretRefs,
+        secretStoreRef: secretStore?.name,
+        gateway: ingress
+          ? {
+              ingress: {
+                external: ingress.external
+                  ? {
+                      name: ingress.external.name,
+                      namespace: ingress.external.namespace,
+                      http: ingress.external.http
+                        ? {
+                            host: ingress.external.http.host,
+                            port: ingress.external.http.port,
+                          }
+                        : undefined,
+                      https: ingress.external.https
+                        ? {
+                            host: ingress.external.https.host,
+                            port: ingress.external.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+                internal: ingress.internal
+                  ? {
+                      name: ingress.internal.name,
+                      namespace: ingress.internal.namespace,
+                      http: ingress.internal.http
+                        ? {
+                            host: ingress.internal.http.host,
+                            port: ingress.internal.http.port,
+                          }
+                        : undefined,
+                      https: ingress.internal.https
+                        ? {
+                            host: ingress.internal.https.host,
+                            port: ingress.internal.https.port,
+                          }
+                        : undefined,
+                    }
+                  : undefined,
+              },
+            }
+          : undefined,
+        observabilityPlaneRef: obsRef?.name,
+        createdAt: getCreatedAt(dp),
+        status: isReady(dp) ? 'Ready' : 'NotReady',
       };
-
-      return transformedDataPlane;
     });
   }
 }

@@ -15,8 +15,13 @@ import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { YamlEditor } from '@openchoreo/backstage-plugin-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import YAML from 'yaml';
 import { useStyles } from './styles';
+import {
+  NamespaceSelectField,
+  type NamespaceOption,
+} from '../NamespaceEntityPicker';
 
 export interface EnvironmentFormData {
   environment_name: string;
@@ -120,51 +125,24 @@ export const EnvironmentFormWithYamlExtension = ({
   const [yamlContent, setYamlContent] = useState('');
   const [yamlError, setYamlError] = useState<string | undefined>();
 
-  const [namespaces, setNamespaces] = useState<
-    Array<{ name: string; entityRef: string }>
-  >([]);
+  const [namespaces, setNamespaces] = useState<NamespaceOption[]>([]);
   const [dataplanes, setDataplanes] = useState<
     Array<{ name: string; entityRef: string }>
   >([]);
-  const [loadingNamespaces, setLoadingNamespaces] = useState(true);
   const [loadingDataplanes, setLoadingDataplanes] = useState(true);
 
   const initializedRef = useRef(false);
+
+  const [envNameDuplicateError, setEnvNameDuplicateError] = useState<
+    string | null
+  >(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
   // Current form values - wrapped in useMemo to maintain stable reference
   const data: EnvironmentFormData = useMemo(
     () => ({ ...DEFAULT_FORM_DATA, ...formData }),
     [formData],
   );
-
-  // Fetch Domain entities for namespace dropdown
-  useEffect(() => {
-    const fetchNamespaces = async () => {
-      try {
-        const { items } = await catalogApi.getEntities({
-          filter: { kind: 'Domain' },
-        });
-        const list = items.map(entity => ({
-          name: entity.metadata.name,
-          entityRef: `domain:${entity.metadata.namespace || 'default'}/${
-            entity.metadata.name
-          }`,
-        }));
-        setNamespaces(list);
-
-        // Auto-select first namespace if none set
-        if (list.length > 0 && !formData?.namespace_name) {
-          onChange({ ...data, namespace_name: list[0].entityRef });
-        }
-      } catch {
-        // ignore fetch errors
-      } finally {
-        setLoadingNamespaces(false);
-      }
-    };
-    fetchNamespaces();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Fetch Dataplane entities
   useEffect(() => {
@@ -203,6 +181,55 @@ export const EnvironmentFormWithYamlExtension = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Debounced duplicate check for environment name
+  useEffect(() => {
+    const envName = data.environment_name;
+    const nsRef = data.namespace_name;
+    const nsName = nsRef ? extractName(nsRef) : '';
+
+    if (!envName || !isValidK8sName(envName) || !nsName) {
+      setEnvNameDuplicateError(null);
+      setCheckingDuplicate(false);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      return () => {};
+    }
+
+    setCheckingDuplicate(true);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const { items } = await catalogApi.getEntities({
+          filter: { kind: 'Environment' },
+        });
+        const exists = items.some(
+          entity =>
+            entity.metadata.name === envName &&
+            entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ===
+              nsName &&
+            !entity.metadata.annotations?.[
+              CHOREO_ANNOTATIONS.DELETION_TIMESTAMP
+            ],
+        );
+        if (exists) {
+          setEnvNameDuplicateError(
+            `An environment named "${envName}" already exists in namespace "${nsName}"`,
+          );
+        } else {
+          setEnvNameDuplicateError(null);
+        }
+      } catch {
+        setEnvNameDuplicateError(null);
+      } finally {
+        setCheckingDuplicate(false);
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      setCheckingDuplicate(false);
+    };
+  }, [data.environment_name, data.namespace_name, catalogApi]);
 
   const updateField = useCallback(
     (field: keyof EnvironmentFormData, value: string | boolean) => {
@@ -284,44 +311,37 @@ export const EnvironmentFormWithYamlExtension = ({
                 variant="outlined"
                 required
                 error={
-                  !!data.environment_name &&
-                  !isValidK8sName(data.environment_name)
+                  (!!data.environment_name &&
+                    !isValidK8sName(data.environment_name)) ||
+                  !!envNameDuplicateError
                 }
                 helperText={
                   data.environment_name &&
                   !isValidK8sName(data.environment_name)
                     ? 'Must be lowercase alphanumeric with hyphens, starting and ending with alphanumeric'
-                    : 'Name of the environment (must be a valid Kubernetes name)'
+                    : envNameDuplicateError ||
+                      'Unique name for your environment (must be a valid Kubernetes name)'
                 }
-              />
-            </Grid>
-
-            {/* Namespace */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                label="Namespace"
-                value={data.namespace_name}
-                onChange={e => updateField('namespace_name', e.target.value)}
-                fullWidth
-                variant="outlined"
-                required
-                disabled={loadingNamespaces}
-                helperText="Namespace where the environment will be created"
                 InputProps={{
-                  endAdornment: loadingNamespaces ? (
+                  endAdornment: checkingDuplicate ? (
                     <InputAdornment position="end">
                       <CircularProgress size={20} />
                     </InputAdornment>
                   ) : undefined,
                 }}
-              >
-                {namespaces.map(ns => (
-                  <MenuItem key={ns.entityRef} value={ns.entityRef}>
-                    {ns.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              />
+            </Grid>
+
+            {/* Namespace */}
+            <Grid item xs={12} sm={6}>
+              <NamespaceSelectField
+                value={data.namespace_name}
+                onChange={v => updateField('namespace_name', v)}
+                label="Namespace"
+                helperText="Namespace where the environment will be created"
+                required
+                onNamespacesLoaded={setNamespaces}
+              />
             </Grid>
 
             {/* Data Plane */}

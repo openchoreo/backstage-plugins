@@ -71,7 +71,6 @@ export {
 export {
   ConnectionEditor,
   type ConnectionEditorProps,
-  type ConnectionTypeOption,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
@@ -244,6 +243,14 @@ export {
   type UseComponentWorkflowPermissionResult,
 } from './hooks/useComponentWorkflowPermission';
 export {
+  useClusterTraitCreatePermission,
+  type UseClusterTraitCreatePermissionResult,
+} from './hooks/useClusterTraitCreatePermission';
+export {
+  useClusterComponentTypePermission,
+  type UseClusterComponentTypePermissionResult,
+} from './hooks/useClusterComponentTypePermission';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,
@@ -329,6 +336,11 @@ export {
   useEntityGraphData,
   type UseEntityGraphDataResult,
 } from './hooks/useEntityGraphData';
+export { useProjects } from './hooks/useProjects';
+export {
+  useCreateComponentPath,
+  type UseCreateComponentPathResult,
+} from './hooks/useCreateComponentPath';
 
 // Re-export graph types for consumers
 export { type EntityNode } from '@backstage/plugin-catalog-graph';

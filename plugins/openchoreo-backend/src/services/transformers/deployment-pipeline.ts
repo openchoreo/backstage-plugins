@@ -1,7 +1,5 @@
-import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type { DeploymentPipelineResponse } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -12,8 +10,6 @@ import {
 } from './common';
 
 type DeploymentPipeline = OpenChoreoComponents['schemas']['DeploymentPipeline'];
-type DeploymentPipelineResponse =
-  OpenChoreoLegacyComponents['schemas']['DeploymentPipelineResponse'];
 
 export function transformDeploymentPipeline(
   pipeline: DeploymentPipeline,

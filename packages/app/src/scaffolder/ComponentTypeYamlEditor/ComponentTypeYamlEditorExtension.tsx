@@ -20,9 +20,43 @@ const DEFAULT_COMPONENT_TYPE_TEMPLATE = {
     workloadType: 'deployment',
     schema: {
       parameters: {},
-      envOverrides: {},
+      envOverrides: {
+        replicas: 'integer | default=1',
+      },
     },
-    resources: [],
+    resources: [
+      {
+        id: 'deployment',
+        template: {
+          apiVersion: 'apps/v1',
+          kind: 'Deployment',
+          metadata: {
+            name: '${metadata.name}',
+            namespace: '${metadata.namespace}',
+            labels: '${metadata.labels}',
+          },
+          spec: {
+            replicas: '${envOverrides.replicas}',
+            selector: {
+              matchLabels: '${metadata.podSelectors}',
+            },
+            template: {
+              metadata: {
+                labels: '${metadata.podSelectors}',
+              },
+              spec: {
+                containers: [
+                  {
+                    name: 'main',
+                    image: '${workload.container.image}',
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+    ],
   },
 };
 

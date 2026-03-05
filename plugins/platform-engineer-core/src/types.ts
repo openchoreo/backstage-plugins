@@ -12,6 +12,25 @@ export interface Environment {
   componentCount?: number;
 }
 
+export interface GatewayListenerSpec {
+  host?: string;
+  port?: number;
+}
+
+export interface GatewayEndpointSpec {
+  http?: GatewayListenerSpec;
+  https?: GatewayListenerSpec;
+}
+
+export interface GatewayNetworkSpec {
+  external?: GatewayEndpointSpec;
+  internal?: GatewayEndpointSpec;
+}
+
+export interface GatewaySpec {
+  ingress?: GatewayNetworkSpec;
+}
+
 export interface DataPlane {
   name: string;
   namespace?: string;
@@ -22,8 +41,7 @@ export interface DataPlane {
   secretStoreRef?: string;
   kubernetesClusterName?: string;
   apiServerURL?: string;
-  publicVirtualHost?: string;
-  namespaceVirtualHost?: string;
+  gateway?: GatewaySpec;
   observerURL?: string;
   observerUsername?: string;
   createdAt?: string;

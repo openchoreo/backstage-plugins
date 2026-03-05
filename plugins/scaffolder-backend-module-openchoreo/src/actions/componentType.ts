@@ -1,5 +1,5 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
@@ -103,35 +103,48 @@ export const createComponentTypeDefinitionAction = (
         );
       }
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl,
         token,
         logger: ctx.logger,
       });
 
       try {
+        // Strip Kubernetes-level fields not expected by the API schema
+        const {
+          apiVersion: _apiVersion,
+          kind: _kind,
+          ...apiBody
+        } = resourceObj;
+
+        ctx.logger.info(
+          `Sending ComponentType creation request to namespace '${namespaceName}': ${JSON.stringify(
+            apiBody,
+          )}`,
+        );
+
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/component-types/definition',
+          '/api/v1/namespaces/{namespaceName}/componenttypes',
           {
             params: {
               path: { namespaceName },
             },
-            body: resourceObj,
+            body: apiBody as any,
           },
         );
 
         if (error || !response.ok) {
-          throw new Error(
-            `Failed to create ComponentType: ${response.status} ${response.statusText}`,
-          );
+          const errorDetail = error
+            ? JSON.stringify(error)
+            : `${response.status} ${response.statusText}`;
+          throw new Error(`Failed to create ComponentType: ${errorDetail}`);
         }
 
-        if (!data?.success || !data?.data) {
-          throw new Error('API request was not successful');
-        }
-
-        const resultData = data.data as Record<string, unknown>;
-        const resultName = (resultData.name as string) || '';
+        const resultData = data as Record<string, unknown>;
+        const metadata = resultData.metadata as
+          | Record<string, unknown>
+          | undefined;
+        const resultName = (metadata?.name as string) || '';
 
         ctx.logger.debug(
           `ComponentType created successfully: ${JSON.stringify(resultData)}`,
@@ -144,10 +157,10 @@ export const createComponentTypeDefinitionAction = (
           );
 
           // Extract metadata from the parsed YAML
-          const metadata = resourceObj.metadata as
+          const yamlMetadata = resourceObj.metadata as
             | Record<string, unknown>
             | undefined;
-          const annotations = (metadata?.annotations || {}) as Record<
+          const annotations = (yamlMetadata?.annotations || {}) as Record<
             string,
             string
           >;
@@ -155,7 +168,7 @@ export const createComponentTypeDefinitionAction = (
 
           const entity = translateComponentTypeToEntity(
             {
-              name: resultName || (metadata?.name as string),
+              name: resultName || (yamlMetadata?.name as string),
               displayName: annotations['openchoreo.dev/display-name'],
               description: annotations['openchoreo.dev/description'],
               workloadType: spec.workloadType as string,
@@ -186,7 +199,9 @@ export const createComponentTypeDefinitionAction = (
         ctx.output('entityRef', `componenttype:${namespaceName}/${resultName}`);
       } catch (err) {
         ctx.logger.error(`Error creating ComponentType: ${err}`);
-        throw new Error(`Failed to create ComponentType: ${err}`);
+        throw err instanceof Error
+          ? err
+          : new Error(`Failed to create ComponentType: ${err}`);
       }
     },
   });

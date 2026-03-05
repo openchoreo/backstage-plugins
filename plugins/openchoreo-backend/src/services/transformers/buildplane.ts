@@ -1,7 +1,5 @@
-import type {
-  OpenChoreoComponents,
-  OpenChoreoLegacyComponents,
-} from '@openchoreo/openchoreo-client-node';
+import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
+import type { BuildPlaneResponse } from '@openchoreo/backstage-plugin-common';
 import {
   getName,
   getNamespace,
@@ -12,8 +10,6 @@ import {
 } from './common';
 
 type BuildPlane = OpenChoreoComponents['schemas']['BuildPlane'];
-type BuildPlaneResponse =
-  OpenChoreoLegacyComponents['schemas']['BuildPlaneResponse'];
 
 export function transformBuildPlane(
   buildPlane: BuildPlane,

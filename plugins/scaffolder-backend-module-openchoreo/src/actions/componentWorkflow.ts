@@ -1,11 +1,11 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoLegacyApiClient } from '@openchoreo/openchoreo-client-node';
+import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
 import {
   type ImmediateCatalogService,
-  translateComponentWorkflowToEntity,
+  translateWorkflowToEntity,
 } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
 export const createComponentWorkflowDefinitionAction = (
@@ -14,37 +14,33 @@ export const createComponentWorkflowDefinitionAction = (
 ) => {
   return createTemplateAction({
     id: 'openchoreo:componentworkflow-definition:create',
-    description: 'Create OpenChoreo ComponentWorkflow',
+    description: 'Create OpenChoreo Workflow',
     schema: {
       input: (zImpl: typeof z) =>
         zImpl.object({
           namespaceName: zImpl
             .string()
-            .describe(
-              'The name of the namespace to create the ComponentWorkflow in',
-            ),
+            .describe('The name of the namespace to create the Workflow in'),
           yamlContent: zImpl
             .string()
-            .describe('The YAML content of the ComponentWorkflow definition'),
+            .describe('The YAML content of the Workflow definition'),
         }),
       output: (zImpl: typeof z) =>
         zImpl.object({
           componentWorkflowName: zImpl
             .string()
-            .describe('The name of the created ComponentWorkflow'),
+            .describe('The name of the created Workflow'),
           namespaceName: zImpl
             .string()
-            .describe('The namespace where the ComponentWorkflow was created'),
+            .describe('The namespace where the Workflow was created'),
           entityRef: zImpl
             .string()
-            .describe('Entity reference for the created ComponentWorkflow'),
+            .describe('Entity reference for the created Workflow'),
         }),
     },
     async handler(ctx) {
       ctx.logger.debug(
-        `Creating ComponentWorkflow with parameters: ${JSON.stringify(
-          ctx.input,
-        )}`,
+        `Creating Workflow with parameters: ${JSON.stringify(ctx.input)}`,
       );
 
       // Extract namespace name from domain format (e.g., "domain:default/my-namespace" -> "my-namespace")
@@ -71,10 +67,8 @@ export const createComponentWorkflowDefinitionAction = (
       }
 
       // Validate required fields
-      if (resourceObj.kind !== 'ComponentWorkflow') {
-        throw new Error(
-          `Kind must be ComponentWorkflow, got: ${resourceObj.kind}`,
-        );
+      if (resourceObj.kind !== 'Workflow') {
+        throw new Error(`Kind must be Workflow, got: ${resourceObj.kind}`);
       }
 
       if (!resourceObj.apiVersion) {
@@ -107,60 +101,63 @@ export const createComponentWorkflowDefinitionAction = (
         );
       }
 
-      const client = createOpenChoreoLegacyApiClient({
+      const client = createOpenChoreoApiClient({
         baseUrl,
         token,
         logger: ctx.logger,
       });
 
       try {
+        ctx.logger.debug(
+          `Sending Workflow creation request to namespace '${namespaceName}': ${JSON.stringify(
+            resourceObj,
+          )}`,
+        );
+
         const { data, error, response } = await client.POST(
-          '/namespaces/{namespaceName}/component-workflows/definition',
+          '/api/v1/namespaces/{namespaceName}/workflows',
           {
             params: {
               path: { namespaceName },
             },
-            body: resourceObj,
+            body: resourceObj as any,
           },
         );
 
         if (error || !response.ok) {
           throw new Error(
-            `Failed to create ComponentWorkflow: ${response.status} ${response.statusText}`,
+            `Failed to create Workflow: ${response.status} ${response.statusText}`,
           );
         }
 
-        if (!data?.success || !data?.data) {
-          throw new Error('API request was not successful');
-        }
-
-        const resultData = data.data as Record<string, unknown>;
-        const resultName = (resultData.name as string) || '';
+        const resultData = data as Record<string, unknown>;
+        const metadata = resultData.metadata as
+          | Record<string, unknown>
+          | undefined;
+        const workflowName = (metadata?.name as string) || '';
 
         ctx.logger.debug(
-          `ComponentWorkflow created successfully: ${JSON.stringify(
-            resultData,
-          )}`,
+          `Workflow created successfully: ${JSON.stringify(resultData)}`,
         );
 
-        // Immediately insert the ComponentWorkflow into the catalog
+        // Immediately insert the Workflow into the catalog
         try {
           ctx.logger.info(
-            `Inserting ComponentWorkflow '${resultName}' into catalog immediately...`,
+            `Inserting Workflow '${workflowName}' into catalog immediately...`,
           );
 
           // Extract metadata from the parsed YAML
-          const metadata = resourceObj.metadata as
+          const yamlMetadata = resourceObj.metadata as
             | Record<string, unknown>
             | undefined;
-          const annotations = (metadata?.annotations || {}) as Record<
+          const annotations = (yamlMetadata?.annotations || {}) as Record<
             string,
             string
           >;
 
-          const entity = translateComponentWorkflowToEntity(
+          const entity = translateWorkflowToEntity(
             {
-              name: resultName || (metadata?.name as string),
+              name: workflowName || (yamlMetadata?.name as string),
               displayName: annotations['openchoreo.dev/display-name'],
               description: annotations['openchoreo.dev/description'],
               createdAt: new Date().toISOString(),
@@ -174,25 +171,24 @@ export const createComponentWorkflowDefinitionAction = (
           await immediateCatalog.insertEntity(entity);
 
           ctx.logger.info(
-            `ComponentWorkflow '${resultName}' successfully added to catalog`,
+            `Workflow '${workflowName}' successfully added to catalog`,
           );
         } catch (catalogError) {
           ctx.logger.error(
-            `Failed to immediately add ComponentWorkflow to catalog: ${catalogError}. ` +
-              `ComponentWorkflow will be visible after the next scheduled catalog sync.`,
+            `Failed to immediately add Workflow to catalog: ${catalogError}. ` +
+              `Workflow will be visible after the next scheduled catalog sync.`,
           );
         }
 
         // Set outputs for the scaffolder
-        ctx.output('componentWorkflowName', resultName);
+        ctx.output('componentWorkflowName', workflowName);
         ctx.output('namespaceName', namespaceName);
-        ctx.output(
-          'entityRef',
-          `componentworkflow:${namespaceName}/${resultName}`,
-        );
+        ctx.output('entityRef', `workflow:${namespaceName}/${workflowName}`);
       } catch (err) {
-        ctx.logger.error(`Error creating ComponentWorkflow: ${err}`);
-        throw new Error(`Failed to create ComponentWorkflow: ${err}`);
+        ctx.logger.error(`Error creating Workflow: ${err}`);
+        throw err instanceof Error
+          ? err
+          : new Error(`Failed to create Workflow: ${err}`);
       }
     },
   });

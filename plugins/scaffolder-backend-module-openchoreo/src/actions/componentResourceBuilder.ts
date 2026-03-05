@@ -14,6 +14,28 @@ export type DeploymentSource =
   | 'external-ci';
 
 /**
+ * Parsed WORKFLOW_PARAMETERS annotation mapping.
+ * Keys are fixed identifiers, values are dot-delimited paths into the workflow schema
+ * (without the leading "parameters." prefix).
+ *
+ * Example annotation:
+ *   repoUrl: parameters.repository.url
+ *   branch: parameters.repository.revision.branch
+ *   appPath: parameters.repository.appPath
+ *   secretRef: parameters.repository.secretRef
+ *   projectName: parameters.scope.projectName
+ *   componentName: parameters.scope.componentName
+ */
+export interface WorkflowParameterMapping {
+  repoUrl?: string;
+  branch?: string;
+  appPath?: string;
+  secretRef?: string;
+  projectName?: string;
+  componentName?: string;
+}
+
+/**
  * Input data for building a component resource
  */
 export interface ComponentResourceInput {
@@ -27,6 +49,7 @@ export interface ComponentResourceInput {
   // Section 2: Component Type Configuration
   componentType: string; // The component type name (e.g., "nodejs-service")
   componentTypeWorkloadType: string; // The workload type (e.g., "deployment")
+  componentTypeKind?: 'ComponentType' | 'ClusterComponentType'; // Defaults to 'ComponentType'
   ctdParameters?: Record<string, any>; // Parameters from component type schema
 
   // Section 3: Deployment Source & CI/CD Setup
@@ -40,8 +63,12 @@ export interface ComponentResourceInput {
   containerImage?: string; // For deploy-from-image
   gitSecretRef?: string; // Secret reference for private repository credentials
 
-  // Section 4: Traits (optional)
+  // Section 4: Annotation mapping for injecting git/scope fields into workflow parameters
+  workflowParameterMapping?: WorkflowParameterMapping;
+
+  // Section 5: Traits (optional)
   traits?: Array<{
+    kind?: string;
     name: string;
     instanceName: string;
     config: Record<string, any>;
@@ -69,7 +96,7 @@ export function buildComponentResource(
         projectName: input.projectName,
       },
       componentType: {
-        kind: 'ComponentType',
+        kind: input.componentTypeKind || 'ComponentType',
         name: `${input.componentTypeWorkloadType}/${input.componentType}`,
       },
       parameters: input.ctdParameters || {},
@@ -92,42 +119,78 @@ export function buildComponentResource(
   // Add workflow configuration only for build-from-source deployment source
   // For external-ci and deploy-from-image, no workflow is attached to the component
   // External CI will create workloads via API, deploy-from-image creates a workload directly
-  if (
-    input.deploymentSource === 'build-from-source' &&
-    input.workflowName &&
-    input.workflowParameters
-  ) {
-    // Build workflow schema from flat workflow parameters
-    // Workflow parameters come in dot-notation (e.g., "docker.context", "repository.url")
-    // Need to convert to nested structure
-    const workflowSchema = convertFlatToNested(input.workflowParameters);
+  if (input.deploymentSource === 'build-from-source' && input.workflowName) {
+    // Build workflow parameters from flat dot-notation to nested structure.
+    // The RJSF form provides the developer-editable fields (e.g., docker.context).
+    // These were filtered to exclude annotation-mapped fields (git source, scope).
+    const workflowParams = input.workflowParameters
+      ? convertFlatToNested(input.workflowParameters)
+      : {};
+
+    // The workflow parameters must match the workflow schema exactly.
+    // The WORKFLOW_PARAMETERS annotation defines where git source fields and
+    // implicit fields (projectName, componentName) live in the schema.
+    // We inject them at the paths specified by the annotation.
+    const mapping = input.workflowParameterMapping;
+    if (mapping) {
+      // Inject git source fields at annotation-defined paths
+      if (mapping.repoUrl && input.repoUrl) {
+        setNestedValue(
+          workflowParams,
+          stripParametersPrefix(mapping.repoUrl),
+          input.repoUrl,
+        );
+      }
+      if (mapping.branch) {
+        setNestedValue(
+          workflowParams,
+          stripParametersPrefix(mapping.branch),
+          input.branch || 'main',
+        );
+      }
+      if (mapping.appPath) {
+        setNestedValue(
+          workflowParams,
+          stripParametersPrefix(mapping.appPath),
+          input.componentPath || '.',
+        );
+      }
+      if (mapping.secretRef && input.gitSecretRef) {
+        setNestedValue(
+          workflowParams,
+          stripParametersPrefix(mapping.secretRef),
+          input.gitSecretRef,
+        );
+      }
+
+      // Inject implicit fields
+      if (mapping.projectName) {
+        setNestedValue(
+          workflowParams,
+          stripParametersPrefix(mapping.projectName),
+          input.projectName,
+        );
+      }
+      if (mapping.componentName) {
+        setNestedValue(
+          workflowParams,
+          stripParametersPrefix(mapping.componentName),
+          input.componentName,
+        );
+      }
+    }
 
     resource.spec.workflow = {
       name: input.workflowName,
-      parameters: workflowSchema,
+      parameters: workflowParams,
     };
-
-    // Build systemParameters.repository from standalone fields
-    // These were previously part of workflow_parameters but are now standalone wizard fields
-    if (input.repoUrl) {
-      const repository: Record<string, any> = {
-        url: input.repoUrl,
-        revision: {
-          branch: input.branch || 'main',
-        },
-        appPath: input.componentPath || '.',
-      };
-      if (input.gitSecretRef) {
-        repository.secretRef = input.gitSecretRef;
-      }
-      resource.spec.workflow.systemParameters = { repository };
-    }
   }
 
   // Add traits (traits) if provided
   if (input.traits && input.traits.length > 0) {
     resource.spec.traits = input.traits.map(
       (trait): ComponentTrait => ({
+        ...(trait.kind !== undefined && { kind: trait.kind }),
         name: trait.name,
         instanceName: trait.instanceName,
         // Convert flat dot-notation config to nested structure (same as workflow parameters)
@@ -231,6 +294,47 @@ export function buildWorkloadResource(
 }
 
 /**
+ * Strip the "parameters." prefix from an annotation path.
+ * e.g., "parameters.repository.url" → "repository.url"
+ */
+function stripParametersPrefix(path: string): string {
+  return path.startsWith('parameters.')
+    ? path.slice('parameters.'.length)
+    : path;
+}
+
+/**
+ * Set a value at a dot-delimited path in a nested object, creating
+ * intermediate objects as needed.
+ *
+ * Example: setNestedValue(obj, "repository.revision.branch", "main")
+ * → obj.repository.revision.branch = "main"
+ */
+const DANGEROUS_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
+function setNestedValue(
+  obj: Record<string, any>,
+  path: string,
+  value: any,
+): void {
+  const parts = path.split('.');
+  let current = obj;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (DANGEROUS_KEYS.has(part)) return;
+    if (!current[part] || typeof current[part] !== 'object') {
+      current[part] = Object.create(null);
+    }
+    current = current[part];
+  }
+
+  const lastKey = parts[parts.length - 1];
+  if (DANGEROUS_KEYS.has(lastKey)) return;
+  current[lastKey] = value;
+}
+
+/**
  * Converts flat dot-notation object to nested structure
  *
  * Example:
@@ -238,7 +342,7 @@ export function buildWorkloadResource(
  * Output: { docker: { context: "/app", filePath: "/Dockerfile" }, repository: { url: "https://..." } }
  */
 function convertFlatToNested(flat: Record<string, any>): Record<string, any> {
-  const nested: Record<string, any> = {};
+  const nested: Record<string, any> = Object.create(null);
 
   for (const [key, value] of Object.entries(flat)) {
     const parts = key.split('.');
@@ -246,13 +350,17 @@ function convertFlatToNested(flat: Record<string, any>): Record<string, any> {
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
+      if (DANGEROUS_KEYS.has(part)) break;
       if (!current[part]) {
-        current[part] = {};
+        current[part] = Object.create(null);
       }
       current = current[part];
     }
 
-    current[parts[parts.length - 1]] = value;
+    const lastKey = parts[parts.length - 1];
+    if (!DANGEROUS_KEYS.has(lastKey)) {
+      current[lastKey] = value;
+    }
   }
 
   return nested;

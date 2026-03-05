@@ -4,10 +4,16 @@ import {
   FetchApi,
 } from '@backstage/core-plugin-api';
 import type { AIRCAAgentComponents } from '@openchoreo/backstage-plugin-common';
+import { ObserverUrlCache } from './ObserverUrlCache';
 
-// Re-export types from generated client
-export type ChatMessage = AIRCAAgentComponents['schemas']['ChatMessage'];
+export type ChatMessage = { role: string; content: string };
 export type StreamEvent = AIRCAAgentComponents['schemas']['StreamEvent'];
+export type RecommendedAction =
+  AIRCAAgentComponents['schemas']['RecommendedAction'];
+export type ResourceChange = AIRCAAgentComponents['schemas']['ResourceChange'];
+export type EnvVarChange = AIRCAAgentComponents['schemas']['EnvVarChange'];
+export type FileChange = AIRCAAgentComponents['schemas']['FileChange'];
+export type FieldChange = AIRCAAgentComponents['schemas']['FieldChange'];
 
 export interface ChatRoutingContext {
   namespaceName: string;
@@ -16,11 +22,10 @@ export interface ChatRoutingContext {
 
 export interface ChatRequest {
   reportId: string;
-  projectUid: string;
-  environmentUid: string;
-  componentUid?: string;
+  namespace: string;
+  project: string;
+  environment: string;
   messages: ChatMessage[];
-  version?: number;
 }
 
 export interface RCAAgentApi {
@@ -30,6 +35,12 @@ export interface RCAAgentApi {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
   ): Promise<void>;
+
+  markActionsApplied(
+    reportId: string,
+    routing: ChatRoutingContext,
+    appliedIndices: number[],
+  ): Promise<void>;
 }
 
 export const rcaAgentApiRef = createApiRef<RCAAgentApi>({
@@ -37,12 +48,12 @@ export const rcaAgentApiRef = createApiRef<RCAAgentApi>({
 });
 
 export class RCAAgentClient implements RCAAgentApi {
-  private readonly discoveryApi: DiscoveryApi;
   private readonly fetchApi: FetchApi;
+  private readonly urlCache: ObserverUrlCache;
 
   constructor(options: { discoveryApi: DiscoveryApi; fetchApi: FetchApi }) {
-    this.discoveryApi = options.discoveryApi;
     this.fetchApi = options.fetchApi;
+    this.urlCache = new ObserverUrlCache(options);
   }
 
   async streamRCAChat(
@@ -51,18 +62,27 @@ export class RCAAgentClient implements RCAAgentApi {
     onEvent: (event: StreamEvent) => void,
     signal?: AbortSignal,
   ): Promise<void> {
-    const baseUrl = await this.discoveryApi.getBaseUrl(
-      'openchoreo-observability-backend',
+    const { rcaAgentUrl } = await this.urlCache.resolveUrls(
+      routing.namespaceName,
+      routing.environmentName,
     );
 
-    const response = await this.fetchApi.fetch(`${baseUrl}/chat`, {
-      method: 'POST',
-      body: JSON.stringify({ ...request, ...routing }),
-      headers: {
-        'Content-Type': 'application/json',
+    if (!rcaAgentUrl) {
+      throw new Error('RCA service is not configured');
+    }
+
+    const response = await this.fetchApi.fetch(
+      `${rcaAgentUrl}/api/v1alpha1/rca-agent/chat`,
+      {
+        method: 'POST',
+        body: JSON.stringify(request),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-openchoreo-direct': 'true',
+        },
+        signal,
       },
-      signal,
-    });
+    );
 
     if (!response.ok) {
       const error = await response.json();
@@ -119,6 +139,40 @@ export class RCAAgentClient implements RCAAgentApi {
       }
     } finally {
       reader.releaseLock();
+    }
+  }
+
+  async markActionsApplied(
+    reportId: string,
+    routing: ChatRoutingContext,
+    appliedIndices: number[],
+  ): Promise<void> {
+    const { rcaAgentUrl } = await this.urlCache.resolveUrls(
+      routing.namespaceName,
+      routing.environmentName,
+    );
+
+    if (!rcaAgentUrl) {
+      throw new Error('RCA service is not configured');
+    }
+
+    const response = await this.fetchApi.fetch(
+      `${rcaAgentUrl}/api/v1/rca-agent/reports/${encodeURIComponent(reportId)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ appliedIndices }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-openchoreo-direct': 'true',
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        error.error || `Update report failed: ${response.statusText}`,
+      );
     }
   }
 }

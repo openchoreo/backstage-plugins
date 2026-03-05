@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Typography,
   Button,
@@ -43,24 +44,10 @@ import {
 } from '../hooks';
 import { useNotification } from '../../../hooks';
 import { NotificationBanner } from '../../Environments/components';
-import { NamespaceSelector } from '../RolesTab/NamespaceSelector';
 import { SCOPE_NAMESPACE } from '../constants';
 import { MappingDialog } from './MappingDialog';
 
 const useStyles = makeStyles(theme => ({
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'align-start',
-    marginBottom: theme.spacing(3),
-  },
-  headerActions: {
-    display: 'flex',
-    gap: theme.spacing(1),
-  },
-  namespaceSelector: {
-    marginBottom: theme.spacing(2),
-  },
   filters: {
     display: 'flex',
     gap: theme.spacing(2),
@@ -136,7 +123,15 @@ const getFormattedScope = (hierarchy?: {
   return parts.join('/');
 };
 
-export const NamespaceRoleBindingsContent = () => {
+interface NamespaceRoleBindingsContentProps {
+  selectedNamespace: string;
+  actionsContainerRef: RefObject<HTMLDivElement>;
+}
+
+export const NamespaceRoleBindingsContent = ({
+  selectedNamespace,
+  actionsContainerRef,
+}: NamespaceRoleBindingsContentProps) => {
   const classes = useStyles();
   const notification = useNotification();
   const {
@@ -149,8 +144,6 @@ export const NamespaceRoleBindingsContent = () => {
     updateDeniedTooltip,
     deleteDeniedTooltip,
   } = useRoleMappingPermissions();
-
-  const [selectedNamespace, setSelectedNamespace] = useState('');
   const {
     bindings,
     loading,
@@ -295,49 +288,42 @@ export const NamespaceRoleBindingsContent = () => {
     );
   }
 
+  const actionButtons = (
+    <>
+      <IconButton
+        onClick={() => fetchBindings()}
+        size="small"
+        title="Refresh"
+        disabled={!selectedNamespace}
+      >
+        <RefreshIcon />
+      </IconButton>
+      <Tooltip
+        title={
+          !selectedNamespace ? 'Select a namespace first' : createDeniedTooltip
+        }
+      >
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={handleCreateBinding}
+            disabled={!canCreate || !selectedNamespace}
+          >
+            New Namespace Role Binding
+          </Button>
+        </span>
+      </Tooltip>
+    </>
+  );
+
   return (
     <Box>
       <NotificationBanner notification={notification.notification} />
-      <Box className={classes.header}>
-        <Typography variant="h5">Namespace Role Bindings</Typography>
-        <Box className={classes.headerActions}>
-          <IconButton
-            onClick={() => fetchBindings()}
-            size="small"
-            title="Refresh"
-            disabled={!selectedNamespace}
-          >
-            <RefreshIcon />
-          </IconButton>
-          <Tooltip
-            title={
-              !selectedNamespace
-                ? 'Select a namespace first'
-                : createDeniedTooltip
-            }
-          >
-            <span>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                onClick={handleCreateBinding}
-                disabled={!canCreate || !selectedNamespace}
-              >
-                New Namespace Role Binding
-              </Button>
-            </span>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      <Box className={classes.namespaceSelector}>
-        <NamespaceSelector
-          value={selectedNamespace}
-          onChange={setSelectedNamespace}
-          label="Select Namespace"
-        />
-      </Box>
+      {actionsContainerRef.current &&
+        createPortal(actionButtons, actionsContainerRef.current)}
 
       {!selectedNamespace ? (
         <Box className={classes.emptyState}>

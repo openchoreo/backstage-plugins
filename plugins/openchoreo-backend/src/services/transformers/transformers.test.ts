@@ -91,19 +91,18 @@ describe('transformComponent', () => {
     metadata: { ...baseMeta, name: 'api-service' },
     spec: {
       owner: { projectName: 'my-project' },
-      type: 'Service',
-      componentType: 'deployment/go-service',
+      componentType: { kind: 'ComponentType', name: 'deployment/go-service' },
       autoDeploy: true,
       workflow: {
         name: 'docker-build',
-        systemParameters: {
+        parameters: {
           repository: {
             url: 'https://github.com/org/repo.git',
             revision: { branch: 'main', commit: 'abc1234' },
             appPath: './services/api',
           },
+          dockerfile: 'Dockerfile',
         },
-        parameters: { dockerfile: 'Dockerfile' },
       },
     },
     status: { conditions: [readyCondition] },
@@ -135,13 +134,12 @@ describe('transformComponent', () => {
     const result = transformComponent(component);
     expect(result.componentWorkflow).toBeDefined();
     expect(result.componentWorkflow!.name).toBe('docker-build');
-    expect(result.componentWorkflow!.systemParameters.repository.url).toBe(
-      'https://github.com/org/repo.git',
-    );
-    expect(
-      result.componentWorkflow!.systemParameters.repository.revision.branch,
-    ).toBe('main');
     expect(result.componentWorkflow!.parameters).toEqual({
+      repository: {
+        url: 'https://github.com/org/repo.git',
+        revision: { branch: 'main', commit: 'abc1234' },
+        appPath: './services/api',
+      },
       dockerfile: 'Dockerfile',
     });
   });
@@ -169,7 +167,15 @@ describe('transformEnvironment', () => {
     spec: {
       dataPlaneRef: { kind: 'DataPlane', name: 'default' },
       isProduction: false,
-      gateway: { publicVirtualHost: 'dev.example.com' },
+      gateway: {
+        ingress: {
+          external: {
+            name: 'external-gw',
+            namespace: 'test-ns',
+            http: { host: 'dev.example.com' },
+          },
+        },
+      },
     },
     status: { conditions: [readyCondition] },
   };
@@ -204,10 +210,19 @@ describe('transformDataPlane', () => {
     spec: {
       clusterAgent: {},
       gateway: {
-        publicVirtualHost: 'apps.example.com',
-        organizationVirtualHost: 'internal.example.com',
-        publicHTTPPort: 80,
-        publicHTTPSPort: 443,
+        ingress: {
+          external: {
+            name: 'external-gw',
+            namespace: 'test-ns',
+            http: { host: 'apps.example.com', port: 80 },
+            https: { port: 443 },
+          },
+          internal: {
+            name: 'internal-gw',
+            namespace: 'test-ns',
+            http: { host: 'internal.example.com' },
+          },
+        },
       },
       imagePullSecretRefs: ['docker-secret'],
       secretStoreRef: { name: 'vault-store' },
@@ -228,10 +243,14 @@ describe('transformDataPlane', () => {
 
   it('maps gateway fields', () => {
     const result = transformDataPlane(dataPlane);
-    expect(result.publicVirtualHost).toBe('apps.example.com');
-    expect(result.namespaceVirtualHost).toBe('internal.example.com');
-    expect(result.publicHTTPPort).toBe(80);
-    expect(result.publicHTTPSPort).toBe(443);
+    expect(result.gateway?.ingress?.external?.http?.host).toBe(
+      'apps.example.com',
+    );
+    expect(result.gateway?.ingress?.internal?.http?.host).toBe(
+      'internal.example.com',
+    );
+    expect(result.gateway?.ingress?.external?.http?.port).toBe(80);
+    expect(result.gateway?.ingress?.external?.https?.port).toBe(443);
   });
 
   it('maps secretStoreRef to string', () => {
@@ -324,66 +343,144 @@ describe('transformObservabilityPlane', () => {
 // ---------------------------------------------------------------------------
 
 describe('transformComponentWorkflowRun', () => {
-  const run: OpenChoreoComponents['schemas']['ComponentWorkflowRun'] = {
+  // New K8s-style WorkflowRun with component/project info in labels
+  const run: OpenChoreoComponents['schemas']['WorkflowRun'] = {
     metadata: {
-      ...baseMeta,
       name: 'run-001',
       uid: 'run-uid-001',
+      namespace: 'my-ns',
+      labels: {
+        'openchoreo.dev/component': 'api-service',
+        'openchoreo.dev/project': 'my-project',
+      },
+      annotations: {
+        'openchoreo.dev/commit': 'abc1234',
+        'openchoreo.dev/image': 'registry.example.com/api-service:abc1234',
+      },
+      creationTimestamp: '2025-01-06T10:00:00Z',
     },
     spec: {
-      owner: { projectName: 'my-project', componentName: 'api-service' },
       workflow: {
         name: 'docker-build',
-        systemParameters: {
-          repository: {
-            url: 'https://github.com/org/repo.git',
-            revision: { branch: 'main', commit: 'abc1234' },
-            appPath: '.',
-          },
-        },
       },
-    },
-    status: {
-      conditions: [readyCondition],
-      imageStatus: {
-        image: 'registry.example.com/api-service:abc1234',
-      },
-      tasks: [
-        {
-          name: 'build',
-          phase: 'Succeeded',
-          startedAt: '2025-01-06T10:00:00Z',
-          completedAt: '2025-01-06T10:05:00Z',
-        },
-      ],
     },
   };
 
-  it('maps ownership from spec.owner', () => {
+  it('maps ownership fields', () => {
     const result = transformComponentWorkflowRun(run);
     expect(result.componentName).toBe('api-service');
     expect(result.projectName).toBe('my-project');
   });
 
-  it('maps uuid from metadata.uid', () => {
+  it('maps uuid', () => {
     expect(transformComponentWorkflowRun(run).uuid).toBe('run-uid-001');
   });
 
-  it('maps image from imageStatus', () => {
+  it('maps image', () => {
     expect(transformComponentWorkflowRun(run).image).toBe(
       'registry.example.com/api-service:abc1234',
     );
   });
 
-  it('maps commit from workflow systemParameters', () => {
+  it('maps commit', () => {
     expect(transformComponentWorkflowRun(run).commit).toBe('abc1234');
   });
 
   it('maps workflow config', () => {
     const result = transformComponentWorkflowRun(run);
     expect(result.workflow?.name).toBe('docker-build');
-    expect(result.workflow?.systemParameters?.repository?.url).toBe(
-      'https://github.com/org/repo.git',
+  });
+
+  it('derives status from Ready condition reason', () => {
+    const withReason: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: {
+        conditions: [
+          {
+            type: 'Ready',
+            status: 'False',
+            reason: 'BuildFailed',
+            lastTransitionTime: '',
+          },
+        ],
+      },
+    };
+    expect(transformComponentWorkflowRun(withReason).status).toBe(
+      'BuildFailed',
+    );
+  });
+
+  it('derives status as Succeeded when Ready condition is True with no reason', () => {
+    const succeeded: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: {
+        conditions: [
+          { type: 'Ready', status: 'True', reason: '', lastTransitionTime: '' },
+        ],
+      },
+    };
+    expect(transformComponentWorkflowRun(succeeded).status).toBe('Succeeded');
+  });
+
+  it('derives status as Running when Ready condition is False with no reason', () => {
+    const running: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: {
+        conditions: [
+          {
+            type: 'Ready',
+            status: 'False',
+            reason: '',
+            lastTransitionTime: '',
+          },
+        ],
+      },
+    };
+    expect(transformComponentWorkflowRun(running).status).toBe('Running');
+  });
+
+  it('derives status as Pending when no Ready condition and no timing fields', () => {
+    const noCondition: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: { conditions: [] },
+    };
+    expect(transformComponentWorkflowRun(noCondition).status).toBe('Pending');
+  });
+
+  it('derives status as Pending when status is absent', () => {
+    const noStatus: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: undefined,
+    };
+    expect(transformComponentWorkflowRun(noStatus).status).toBe('Pending');
+  });
+
+  it('derives status as Running when startedAt is set but no conditions or completedAt', () => {
+    const started: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: { conditions: [], startedAt: '2025-01-06T10:00:01Z' },
+    };
+    expect(transformComponentWorkflowRun(started).status).toBe('Running');
+  });
+
+  it('derives status as Succeeded when completedAt is set even if conditions are stale Running', () => {
+    const staleRunning: OpenChoreoComponents['schemas']['WorkflowRun'] = {
+      ...run,
+      status: {
+        conditions: [
+          {
+            type: 'Ready',
+            status: 'False',
+            reason: 'Running',
+            lastTransitionTime: '',
+          },
+        ],
+        startedAt: '2025-01-06T10:00:01Z',
+        completedAt: '2025-01-06T10:05:00Z',
+      },
+    };
+    expect(transformComponentWorkflowRun(staleRunning).status).toBe(
+      'Succeeded',
     );
   });
 });

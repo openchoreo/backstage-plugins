@@ -12,6 +12,27 @@ export interface Environment {
   componentCount?: number;
 }
 
+interface GatewayListenerSpec {
+  host?: string;
+  port?: number;
+}
+
+interface GatewayEndpointSpec {
+  name?: string;
+  namespace?: string;
+  http?: GatewayListenerSpec;
+  https?: GatewayListenerSpec;
+}
+
+interface GatewayNetworkSpec {
+  external?: GatewayEndpointSpec;
+  internal?: GatewayEndpointSpec;
+}
+
+interface GatewaySpec {
+  ingress?: GatewayNetworkSpec;
+}
+
 export interface DataPlane {
   name: string;
   namespace?: string;
@@ -20,12 +41,7 @@ export interface DataPlane {
   namespaceName: string;
   imagePullSecretRefs?: string[];
   secretStoreRef?: string;
-  publicVirtualHost?: string;
-  namespaceVirtualHost?: string;
-  publicHTTPPort?: number;
-  publicHTTPSPort?: number;
-  namespaceHTTPPort?: number;
-  namespaceHTTPSPort?: number;
+  gateway?: GatewaySpec;
   observabilityPlaneRef?: string;
   createdAt?: string;
   status?: string;

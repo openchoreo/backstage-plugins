@@ -47,9 +47,15 @@ export class ComponentEntityProcessor implements CatalogProcessor {
       name: entity.metadata.name,
     };
 
+    const componentTypeKind =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND];
+    const isClusterCT = componentTypeKind === 'ClusterComponentType';
+
     const ctRef = {
-      kind: 'componenttype',
-      namespace: entity.metadata.namespace || 'default',
+      kind: isClusterCT ? 'clustercomponenttype' : 'componenttype',
+      namespace: isClusterCT
+        ? 'openchoreo-cluster'
+        : entity.metadata.namespace || 'default',
       name: typeName,
     };
 

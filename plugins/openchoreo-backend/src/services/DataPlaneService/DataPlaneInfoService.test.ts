@@ -49,10 +49,15 @@ const k8sDataPlane = {
   spec: {
     clusterAgent: {},
     gateway: {
-      publicVirtualHost: 'apps.example.com',
-      organizationVirtualHost: 'internal.example.com',
-      publicHTTPPort: 80,
-      publicHTTPSPort: 443,
+      ingress: {
+        external: {
+          http: { host: 'apps.example.com', port: 80 },
+          https: { port: 443 },
+        },
+        internal: {
+          http: { host: 'internal.example.com' },
+        },
+      },
     },
     imagePullSecretRefs: ['docker-secret'],
     secretStoreRef: { name: 'vault-store' },
@@ -77,8 +82,8 @@ const k8sDataPlane = {
 
 const mockLogger = mockServices.logger.mock();
 
-function createService(useNewApi = true) {
-  return new DataPlaneInfoService(mockLogger, 'http://test:8080', useNewApi);
+function createService() {
+  return new DataPlaneInfoService(mockLogger, 'http://test:8080');
 }
 
 function okResponse(data: any) {
@@ -97,7 +102,7 @@ function errorResponse(status = 500) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('DataPlaneInfoService (useNewApi=true)', () => {
+describe('DataPlaneInfoService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -108,15 +113,19 @@ describe('DataPlaneInfoService (useNewApi=true)', () => {
         okResponse({ items: [k8sDataPlane], pagination: {} }),
       );
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.listDataPlanes('test-ns', 'token-123');
 
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('prod-dp');
-      expect(result[0].publicVirtualHost).toBe('apps.example.com');
-      expect(result[0].namespaceVirtualHost).toBe('internal.example.com');
-      expect(result[0].publicHTTPPort).toBe(80);
-      expect(result[0].publicHTTPSPort).toBe(443);
+      expect(result[0].gateway?.ingress?.external?.http?.host).toBe(
+        'apps.example.com',
+      );
+      expect(result[0].gateway?.ingress?.internal?.http?.host).toBe(
+        'internal.example.com',
+      );
+      expect(result[0].gateway?.ingress?.external?.http?.port).toBe(80);
+      expect(result[0].gateway?.ingress?.external?.https?.port).toBe(443);
       expect(result[0].secretStoreRef).toBe('vault-store');
       expect(result[0].observabilityPlaneRef).toBe('default-obs');
       expect(result[0].agentConnection?.connected).toBe(true);
@@ -125,7 +134,7 @@ describe('DataPlaneInfoService (useNewApi=true)', () => {
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(service.listDataPlanes('test-ns', 'token')).rejects.toThrow(
         'Failed to list data planes',
       );
@@ -136,20 +145,22 @@ describe('DataPlaneInfoService (useNewApi=true)', () => {
     it('fetches a single data plane and transforms it', async () => {
       mockGET.mockResolvedValueOnce(okResponse(k8sDataPlane));
 
-      const service = createService(true);
+      const service = createService();
       const result = await service.fetchDataPlaneDetails(
         { namespaceName: 'test-ns', dataplaneName: 'prod-dp' },
         'token-123',
       );
 
       expect(result.name).toBe('prod-dp');
-      expect(result.publicVirtualHost).toBe('apps.example.com');
+      expect(result.gateway?.ingress?.external?.http?.host).toBe(
+        'apps.example.com',
+      );
     });
 
     it('throws on API error', async () => {
       mockGET.mockResolvedValueOnce(errorResponse());
 
-      const service = createService(true);
+      const service = createService();
       await expect(
         service.fetchDataPlaneDetails(
           { namespaceName: 'test-ns', dataplaneName: 'prod-dp' },

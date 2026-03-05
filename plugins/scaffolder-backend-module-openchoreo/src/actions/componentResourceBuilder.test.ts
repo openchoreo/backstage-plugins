@@ -104,7 +104,7 @@ describe('buildComponentResource', () => {
       });
     });
 
-    it('should build systemParameters.repository from standalone fields', () => {
+    it('should inject git source fields at annotation-mapped paths in parameters', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
@@ -113,9 +113,14 @@ describe('buildComponentResource', () => {
         repoUrl: 'https://github.com/org/repo.git',
         branch: 'develop',
         componentPath: 'services/api',
+        workflowParameterMapping: {
+          repoUrl: 'parameters.repository.url',
+          branch: 'parameters.repository.revision.branch',
+          appPath: 'parameters.repository.appPath',
+        },
       });
 
-      expect(result.spec.workflow!.systemParameters).toEqual({
+      expect(result.spec.workflow!.parameters).toEqual({
         repository: {
           url: 'https://github.com/org/repo.git',
           revision: { branch: 'develop' },
@@ -124,7 +129,7 @@ describe('buildComponentResource', () => {
       });
     });
 
-    it('should include secretRef in systemParameters.repository when gitSecretRef is provided', () => {
+    it('should inject secretRef at annotation-mapped path when gitSecretRef is provided', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
@@ -134,9 +139,15 @@ describe('buildComponentResource', () => {
         branch: 'main',
         componentPath: '.',
         gitSecretRef: 'my-git-secret',
+        workflowParameterMapping: {
+          repoUrl: 'parameters.repository.url',
+          branch: 'parameters.repository.revision.branch',
+          appPath: 'parameters.repository.appPath',
+          secretRef: 'parameters.repository.secretRef',
+        },
       });
 
-      expect(result.spec.workflow!.systemParameters).toEqual({
+      expect(result.spec.workflow!.parameters).toEqual({
         repository: {
           url: 'https://github.com/org/private-repo.git',
           revision: { branch: 'main' },
@@ -146,7 +157,7 @@ describe('buildComponentResource', () => {
       });
     });
 
-    it('should not include secretRef when gitSecretRef is not provided', () => {
+    it('should not inject secretRef when gitSecretRef is not provided', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
@@ -155,10 +166,16 @@ describe('buildComponentResource', () => {
         repoUrl: 'https://github.com/org/repo.git',
         branch: 'main',
         componentPath: '.',
+        workflowParameterMapping: {
+          repoUrl: 'parameters.repository.url',
+          branch: 'parameters.repository.revision.branch',
+          appPath: 'parameters.repository.appPath',
+          secretRef: 'parameters.repository.secretRef',
+        },
       });
 
       expect(
-        result.spec.workflow!.systemParameters!.repository.secretRef,
+        result.spec.workflow!.parameters!.repository.secretRef,
       ).toBeUndefined();
     });
 
@@ -169,9 +186,14 @@ describe('buildComponentResource', () => {
         workflowName: 'google-cloud-buildpacks',
         workflowParameters: {},
         repoUrl: 'https://github.com/org/repo.git',
+        workflowParameterMapping: {
+          repoUrl: 'parameters.repository.url',
+          branch: 'parameters.repository.revision.branch',
+          appPath: 'parameters.repository.appPath',
+        },
       });
 
-      expect(result.spec.workflow!.systemParameters).toEqual({
+      expect(result.spec.workflow!.parameters).toEqual({
         repository: {
           url: 'https://github.com/org/repo.git',
           revision: { branch: 'main' },
@@ -180,16 +202,45 @@ describe('buildComponentResource', () => {
       });
     });
 
-    it('should not build systemParameters when repoUrl is not provided', () => {
+    it('should inject implicit scope fields (projectName, componentName) at annotation-mapped paths', () => {
       const result = buildComponentResource({
         ...minimalInput,
         deploymentSource: 'build-from-source',
         workflowName: 'google-cloud-buildpacks',
-        workflowParameters: {},
+        workflowParameters: {
+          'docker.context': '/app',
+        },
+        workflowParameterMapping: {
+          projectName: 'parameters.scope.projectName',
+          componentName: 'parameters.scope.componentName',
+        },
       });
 
-      expect(result.spec.workflow).toBeDefined();
-      expect(result.spec.workflow!.systemParameters).toBeUndefined();
+      expect(result.spec.workflow!.parameters).toEqual({
+        docker: { context: '/app' },
+        scope: {
+          projectName: 'my-project',
+          componentName: 'my-service',
+        },
+      });
+    });
+
+    it('should not inject git fields when no annotation mapping is provided', () => {
+      const result = buildComponentResource({
+        ...minimalInput,
+        deploymentSource: 'build-from-source',
+        workflowName: 'google-cloud-buildpacks',
+        workflowParameters: {
+          'docker.context': '/app',
+        },
+        repoUrl: 'https://github.com/org/repo.git',
+        branch: 'main',
+      });
+
+      // Without mapping, git fields are not injected into parameters
+      expect(result.spec.workflow!.parameters).toEqual({
+        docker: { context: '/app' },
+      });
     });
   });
 

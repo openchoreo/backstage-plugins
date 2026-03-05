@@ -10,6 +10,8 @@ import {
 import { createComponentTypeDefinitionAction } from './actions/componentType';
 import { createTraitDefinitionAction } from './actions/trait';
 import { createComponentWorkflowDefinitionAction } from './actions/componentWorkflow';
+import { createClusterComponentTypeDefinitionAction } from './actions/clusterComponentType';
+import { createClusterTraitDefinitionAction } from './actions/clusterTrait';
 import { createEnvironmentAction } from './actions/environment';
 import { createNamespaceAction } from './actions/namespace';
 /**
@@ -47,6 +49,8 @@ export const scaffolderModule = createBackendModule({
           createComponentWorkflowDefinitionAction(config, immediateCatalog),
           createEnvironmentAction(config, immediateCatalog),
           createNamespaceAction(config, immediateCatalog),
+          createClusterComponentTypeDefinitionAction(config, immediateCatalog),
+          createClusterTraitDefinitionAction(config, immediateCatalog),
         );
       },
     });

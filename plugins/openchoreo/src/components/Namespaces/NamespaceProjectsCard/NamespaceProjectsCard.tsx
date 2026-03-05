@@ -77,7 +77,9 @@ export const NamespaceProjectsCard = () => {
             tooltip: 'Create a new project',
             isFreeAction: true,
             onClick: () =>
-              navigate('/create/templates/default/create-openchoreo-project'),
+              navigate(
+                `/create/templates/default/create-openchoreo-project?namespace=${entity.metadata.name}`,
+              ),
           },
         ]}
         components={{

@@ -38,10 +38,10 @@ const useStyles = makeStyles(theme => ({
 }));
 
 /**
- * Git Secrets management page.
- * Allows platform engineers to manage git secrets for accessing private repositories.
+ * Git Secrets content without Page/Header/Content wrapper.
+ * Used inside the unified SettingsPage.
  */
-export const GitSecretsPage = () => {
+export const GitSecretsContent = () => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
   const [selectedNamespace, setSelectedNamespace] = useState<string>('');
@@ -92,84 +92,97 @@ export const GitSecretsPage = () => {
   }, [namespaces]);
 
   return (
+    <>
+      {/* Namespace Selector */}
+      <FormControl variant="outlined" className={classes.namespaceSelector}>
+        <InputLabel id="namespace-select-label">Namespace</InputLabel>
+        <Select
+          labelId="namespace-select-label"
+          label="Namespace"
+          value={selectedNamespace}
+          onChange={handleNamespaceChange}
+          disabled={namespacesLoading}
+        >
+          {namespacesLoading && (
+            <MenuItem disabled>
+              <CircularProgress size={20} style={{ marginRight: 8 }} />
+              Loading namespaces...
+            </MenuItem>
+          )}
+          {!namespacesLoading && sortedNamespaces.length === 0 && (
+            <MenuItem disabled>No namespaces available</MenuItem>
+          )}
+          {!namespacesLoading &&
+            sortedNamespaces.map(ns => (
+              <MenuItem key={ns.name} value={ns.name}>
+                {ns.displayName || ns.name}
+              </MenuItem>
+            ))}
+        </Select>
+      </FormControl>
+
+      {/* Error Display */}
+      {namespacesError && (
+        <WarningPanel severity="error" title="Failed to load namespaces">
+          <Typography>
+            {namespacesError.message ||
+              'An error occurred while loading namespaces.'}
+          </Typography>
+        </WarningPanel>
+      )}
+
+      {secretsError && (
+        <WarningPanel severity="error" title="Failed to load git secrets">
+          <Typography>
+            {secretsError.message ||
+              'An error occurred while loading git secrets.'}
+          </Typography>
+        </WarningPanel>
+      )}
+
+      {/* Content */}
+      {!selectedNamespace ? (
+        <Box textAlign="center" py={4}>
+          <Typography variant="h6" color="textSecondary">
+            Select a namespace to manage git secrets
+          </Typography>
+        </Box>
+      ) : (
+        <SecretsTable
+          secrets={secrets}
+          loading={secretsLoading}
+          onDelete={handleDeleteSecret}
+          onCreateClick={() => setCreateDialogOpen(true)}
+          namespaceName={selectedNamespace}
+        />
+      )}
+
+      {/* Create Secret Dialog */}
+      <CreateSecretDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onSubmit={handleCreateSecret}
+        namespaceName={selectedNamespace}
+        existingSecretNames={secrets.map(s => s.name)}
+      />
+    </>
+  );
+};
+
+/**
+ * Standalone Git Secrets page (backwards compatibility).
+ */
+export const GitSecretsPage = () => {
+  const classes = useStyles();
+
+  return (
     <Page themeId="tool">
       <Header
         title="Git Secrets"
         subtitle="Manage git credentials for accessing private repositories"
       />
       <Content className={classes.content}>
-        {/* Namespace Selector */}
-        <FormControl variant="outlined" className={classes.namespaceSelector}>
-          <InputLabel id="namespace-select-label">Namespace</InputLabel>
-          <Select
-            labelId="namespace-select-label"
-            label="Namespace"
-            value={selectedNamespace}
-            onChange={handleNamespaceChange}
-            disabled={namespacesLoading}
-          >
-            {namespacesLoading && (
-              <MenuItem disabled>
-                <CircularProgress size={20} style={{ marginRight: 8 }} />
-                Loading namespaces...
-              </MenuItem>
-            )}
-            {!namespacesLoading && sortedNamespaces.length === 0 && (
-              <MenuItem disabled>No namespaces available</MenuItem>
-            )}
-            {!namespacesLoading &&
-              sortedNamespaces.map(ns => (
-                <MenuItem key={ns.name} value={ns.name}>
-                  {ns.displayName || ns.name}
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-
-        {/* Error Display */}
-        {namespacesError && (
-          <WarningPanel severity="error" title="Failed to load namespaces">
-            <Typography>
-              {namespacesError.message ||
-                'An error occurred while loading namespaces.'}
-            </Typography>
-          </WarningPanel>
-        )}
-
-        {secretsError && (
-          <WarningPanel severity="error" title="Failed to load git secrets">
-            <Typography>
-              {secretsError.message ||
-                'An error occurred while loading git secrets.'}
-            </Typography>
-          </WarningPanel>
-        )}
-
-        {/* Content */}
-        {!selectedNamespace ? (
-          <Box textAlign="center" py={4}>
-            <Typography variant="h6" color="textSecondary">
-              Select a namespace to manage git secrets
-            </Typography>
-          </Box>
-        ) : (
-          <SecretsTable
-            secrets={secrets}
-            loading={secretsLoading}
-            onDelete={handleDeleteSecret}
-            onCreateClick={() => setCreateDialogOpen(true)}
-            namespaceName={selectedNamespace}
-          />
-        )}
-
-        {/* Create Secret Dialog */}
-        <CreateSecretDialog
-          open={createDialogOpen}
-          onClose={() => setCreateDialogOpen(false)}
-          onSubmit={handleCreateSecret}
-          namespaceName={selectedNamespace}
-          existingSecretNames={secrets.map(s => s.name)}
-        />
+        <GitSecretsContent />
       </Content>
     </Page>
   );

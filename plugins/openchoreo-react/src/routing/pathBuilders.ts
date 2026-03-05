@@ -104,6 +104,31 @@ export function buildWorkflowConfigPath(basePath: string): string {
 }
 
 /**
+ * Build path to the scaffolder component template selection page.
+ * Pre-selects the provided namespaces via `filters[namespace]` query params
+ * so that EntityListProvider (qs-parsed `filters.*`) applies them
+ * automatically to ScaffolderNamespacePicker.
+ * Also sets a bare `namespace` param (first namespace = project namespace) so
+ * ScaffolderPreselectionContext can pre-select it in scaffolder forms.
+ */
+export function buildCreateComponentPath(
+  projectName: string,
+  namespaces: string[],
+): string {
+  const params = new URLSearchParams();
+  params.set('view', 'components');
+  params.append('filters[type]', 'component');
+  for (const ns of namespaces) {
+    params.append('filters[namespace]', ns);
+  }
+  params.set('project', projectName);
+  if (namespaces.length > 0) {
+    params.set('namespace', namespaces[0]);
+  }
+  return `/create?${params.toString()}`;
+}
+
+/**
  * Build path to workflow list with specific tab
  */
 export function buildWorkflowListPath(

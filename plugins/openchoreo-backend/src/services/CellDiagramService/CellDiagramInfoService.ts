@@ -8,19 +8,17 @@ import {
 } from '@wso2/cell-diagram';
 import { CellDiagramService } from '../../types';
 import {
-  createOpenChoreoLegacyApiClient,
   createOpenChoreoApiClient,
   fetchAllPages,
-  type OpenChoreoLegacyComponents,
 } from '@openchoreo/openchoreo-client-node';
-import { ComponentTypeUtils } from '@openchoreo/backstage-plugin-common';
+import {
+  ComponentTypeUtils,
+  type ComponentResponse,
+  type Connection,
+  type WorkloadEndpoint,
+} from '@openchoreo/backstage-plugin-common';
 
-// Use generated type from OpenAPI spec
-type ModelsCompleteComponent =
-  OpenChoreoLegacyComponents['schemas']['ComponentResponse'];
-type WorkloadConnection = OpenChoreoLegacyComponents['schemas']['Connection'];
-type WorkloadEndpoint =
-  OpenChoreoLegacyComponents['schemas']['WorkloadEndpoint'];
+type ModelsCompleteComponent = ComponentResponse;
 
 enum ComponentType {
   SERVICE = 'service',
@@ -51,127 +49,13 @@ export class CellDiagramInfoService implements CellDiagramService {
   private readonly logger: LoggerService;
   private readonly baseUrl: string;
   private readonly componentTypeUtils: ComponentTypeUtils;
-  private readonly useNewApi: boolean;
-
-  public constructor(
-    logger: LoggerService,
-    baseUrl: string,
-    config: Config,
-    useNewApi = false,
-  ) {
+  public constructor(logger: LoggerService, baseUrl: string, config: Config) {
     this.baseUrl = baseUrl;
     this.logger = logger;
     this.componentTypeUtils = ComponentTypeUtils.fromConfig(config);
-    this.useNewApi = useNewApi;
   }
 
   async fetchProjectInfo(
-    {
-      projectName,
-      namespaceName,
-    }: {
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<Project | undefined> {
-    if (this.useNewApi) {
-      return this.fetchProjectInfoNew({ projectName, namespaceName }, token);
-    }
-    return this.fetchProjectInfoLegacy({ projectName, namespaceName }, token);
-  }
-
-  private async fetchProjectInfoLegacy(
-    {
-      projectName,
-      namespaceName,
-    }: {
-      projectName: string;
-      namespaceName: string;
-    },
-    token?: string,
-  ): Promise<Project | undefined> {
-    try {
-      const client = createOpenChoreoLegacyApiClient({
-        baseUrl: this.baseUrl,
-        token,
-        logger: this.logger,
-      });
-
-      const {
-        data: componentsListData,
-        error: listError,
-        response: listResponse,
-      } = await client.GET(
-        '/namespaces/{namespaceName}/projects/{projectName}/components',
-        {
-          params: {
-            path: { namespaceName, projectName },
-          },
-        },
-      );
-
-      if (listError || !listResponse.ok) {
-        this.logger.error(
-          `Failed to fetch components for project ${projectName}`,
-        );
-        return undefined;
-      }
-
-      if (!componentsListData.success || !componentsListData.data?.items) {
-        this.logger.warn('No components found in API response');
-        return undefined;
-      }
-
-      const completeComponents: ModelsCompleteComponent[] = [];
-
-      for (const component of componentsListData.data.items) {
-        const componentName = (component as { name?: string }).name;
-        if (!componentName) continue;
-
-        try {
-          const {
-            data: componentData,
-            error: componentError,
-            response: componentResponse,
-          } = await client.GET(
-            '/namespaces/{namespaceName}/projects/{projectName}/components/{componentName}',
-            {
-              params: {
-                path: {
-                  namespaceName,
-                  projectName,
-                  componentName,
-                },
-                query: {
-                  include: 'type,workload',
-                },
-              },
-            },
-          );
-
-          if (!componentError && componentResponse.ok) {
-            if (componentData.success && componentData.data) {
-              completeComponents.push(componentData.data);
-            }
-          }
-        } catch (error) {
-          this.logger.warn(
-            `Failed to fetch component ${component.name}: ${error}`,
-          );
-        }
-      }
-
-      return this.buildProject(projectName, namespaceName, completeComponents);
-    } catch (error: unknown) {
-      this.logger.error(
-        `Error fetching project info for ${projectName}: ${error}`,
-      );
-      return undefined;
-    }
-  }
-
-  private async fetchProjectInfoNew(
     {
       projectName,
       namespaceName,
@@ -232,11 +116,14 @@ export class CellDiagramInfoService implements CellDiagramService {
       }
 
       // Build a map from component name to workload spec
+      // Key by owner.componentName (not workload metadata name, which differs)
       const workloadMap = new Map<string, Record<string, unknown>>();
       for (const workload of workloadItems) {
-        const wlName = workload.metadata?.name;
-        if (wlName && workload.spec) {
-          workloadMap.set(wlName, workload.spec);
+        const componentName = (
+          workload.spec?.owner as { componentName?: string } | undefined
+        )?.componentName;
+        if (componentName && workload.spec) {
+          workloadMap.set(componentName, workload.spec);
         }
       }
 
@@ -245,8 +132,11 @@ export class CellDiagramInfoService implements CellDiagramService {
       const completeComponents: ModelsCompleteComponent[] = componentItems
         .map(comp => {
           const name = comp.metadata?.name ?? '';
+          const componentTypeRef = comp.spec?.componentType;
           const componentType =
-            comp.spec?.type ?? comp.spec?.componentType ?? '';
+            typeof componentTypeRef === 'string'
+              ? componentTypeRef
+              : componentTypeRef?.name ?? '';
           const workloadSpec = workloadMap.get(name);
 
           return {
@@ -280,9 +170,7 @@ export class CellDiagramInfoService implements CellDiagramService {
       .map(component => {
         // Get connections from workload data included in component response
         const connections = this.generateConnections(
-          component.workload?.connections as
-            | { [key: string]: WorkloadConnection }
-            | undefined,
+          component.workload?.connections as Connection[] | undefined,
           namespaceName,
           projectName,
           completeComponents,
@@ -403,42 +291,37 @@ export class CellDiagramInfoService implements CellDiagramService {
   }
 
   private generateConnections(
-    connections: { [key: string]: WorkloadConnection } | undefined,
+    connections: Connection[] | undefined,
     namespaceName: string,
     projectName: string,
     completeComponents: ModelsCompleteComponent[],
   ): CellDiagramConnection[] {
-    if (!connections) {
+    if (!connections || connections.length === 0) {
       return [];
     }
 
-    const conns: CellDiagramConnection[] = [];
-    Object.entries(connections).forEach(
-      ([connectionName, connection]: [string, WorkloadConnection]) => {
-        const dependentComponentName = connection.params.componentName;
-        const dependentProjectName = connection.params.projectName;
+    return connections.map(connection => {
+      const dependentComponentName = connection.component;
+      const dependentProjectName = connection.project || projectName;
 
-        // Check if dependent component is within the same project
-        const isInternal = dependentProjectName === projectName;
-        const dependentComponent = completeComponents.find(
-          comp => comp.name === dependentComponentName,
-        );
+      // Check if dependent component is within the same project
+      const isInternal = dependentProjectName === projectName;
+      const dependentComponent = completeComponents.find(
+        comp => comp.name === dependentComponentName,
+      );
 
-        const connectionId =
-          isInternal && dependentComponent
-            ? `${namespaceName}:${projectName}:${dependentComponent.name}:${connection.params.endpoint}`
-            : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${connection.params.endpoint}`;
+      const connectionId =
+        isInternal && dependentComponent
+          ? `${namespaceName}:${projectName}:${dependentComponent.name}:${connection.endpoint}`
+          : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${connection.endpoint}`;
 
-        conns.push({
-          id: connectionId,
-          label: connectionName,
-          type: ConnectionType.HTTP, // TODO Infer based on api response
-          onPlatform: isInternal,
-          tooltip: `Connection to ${dependentComponentName} in ${dependentProjectName}`,
-        });
-      },
-    );
-
-    return conns;
+      return {
+        id: connectionId,
+        label: `${dependentComponentName}/${connection.endpoint}`,
+        type: ConnectionType.HTTP, // TODO Infer based on api response
+        onPlatform: isInternal,
+        tooltip: `Connection to ${dependentComponentName} in ${dependentProjectName}`,
+      };
+    });
   }
 }

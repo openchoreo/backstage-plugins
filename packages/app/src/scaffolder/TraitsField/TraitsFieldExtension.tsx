@@ -26,6 +26,11 @@ import { generateUiSchemaWithTitles } from '../utils/rjsfUtils';
 import { TraitPicker } from './TraitPicker';
 import { TraitListItem } from './TraitCard';
 
+const extractNsName = (fullNsName: string): string => {
+  const parts = fullNsName.split('/');
+  return parts[parts.length - 1];
+};
+
 const useStyles = makeStyles(theme => ({
   accordion: {
     marginBottom: theme.spacing(1),
@@ -92,6 +97,7 @@ export type { TraitListItem } from './TraitCard';
 export interface AddedTrait {
   id: string; // Unique ID for this instance (internal tracking)
   name: string; // Trait type name
+  kind?: 'Trait' | 'ClusterTrait'; // Defaults to 'Trait'
   instanceName: string; // User-editable instance name
   config: Record<string, any>;
   schema?: JSONSchema7;
@@ -126,12 +132,23 @@ export const TraitsField = ({
       ? uiSchema['ui:options'].namespaceName
       : '';
 
+  // Get allowedTraits from ui:options (may include kind info)
+  const allowedTraits = uiSchema?.['ui:options']?.allowedTraits as
+    | Array<{ kind?: string; name: string }>
+    | undefined;
+
+  // Determine what trait kinds to fetch
+  const hasClusterTraits = allowedTraits?.some(t => t.kind === 'ClusterTrait');
+  const hasNamespaceTraits = allowedTraits?.some(
+    t => !t.kind || t.kind === 'Trait',
+  );
+
   // Fetch available traits on mount
   useEffect(() => {
     let ignore = false;
 
     const fetchTraits = async () => {
-      if (!namespaceName) {
+      if (!namespaceName && !hasClusterTraits) {
         return;
       }
 
@@ -140,30 +157,59 @@ export const TraitsField = ({
 
       try {
         const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
+        const allItems: TraitListItem[] = [];
 
-        // Extract namespace name if it's in entity reference format
-        const extractNsName = (fullNsName: string): string => {
-          const parts = fullNsName.split('/');
-          return parts[parts.length - 1];
-        };
+        // Fetch namespace-scoped traits if needed
+        if (namespaceName && (hasNamespaceTraits || !allowedTraits)) {
+          const nsName = extractNsName(namespaceName);
 
-        const nsName = extractNsName(namespaceName);
+          const response = await fetchApi.fetch(
+            `${baseUrl}/traits?namespaceName=${encodeURIComponent(
+              nsName,
+            )}&page=1&pageSize=100`,
+          );
 
-        // Use fetchApi which automatically injects Backstage + IDP tokens
-        const response = await fetchApi.fetch(
-          `${baseUrl}/traits?namespaceName=${encodeURIComponent(
-            nsName,
-          )}&page=1&pageSize=100`,
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              allItems.push(...result.data.items);
+            }
+          }
         }
 
-        const result = await response.json();
+        // Fetch cluster-scoped traits if needed
+        if (hasClusterTraits) {
+          const response = await fetchApi.fetch(`${baseUrl}/cluster-traits`);
 
-        if (!ignore && result.success) {
-          setAvailableTraits(result.data.items);
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              const clusterItems = (result.data.items || []).map(
+                (t: TraitListItem) => ({
+                  ...t,
+                  kind: 'ClusterTrait' as const,
+                }),
+              );
+              allItems.push(...clusterItems);
+            }
+          }
+        }
+
+        if (!ignore) {
+          // Filter by allowedTraits if specified
+          if (allowedTraits && allowedTraits.length > 0) {
+            setAvailableTraits(
+              allItems.filter(t =>
+                allowedTraits.some(
+                  at =>
+                    at.name === t.name &&
+                    (at.kind ?? 'Trait') === (t.kind ?? 'Trait'),
+                ),
+              ),
+            );
+          } else {
+            setAvailableTraits(allItems);
+          }
         }
       } catch (err) {
         if (!ignore) {
@@ -181,11 +227,28 @@ export const TraitsField = ({
     return () => {
       ignore = true;
     };
-  }, [namespaceName, discoveryApi, fetchApi]);
+  }, [
+    namespaceName,
+    discoveryApi,
+    fetchApi,
+    allowedTraits,
+    hasClusterTraits,
+    hasNamespaceTraits,
+  ]);
 
   // Fetch schema for a trait and add it
   const handleAddTrait = async (traitName: string) => {
-    if (!traitName || !namespaceName) {
+    if (!traitName) {
+      return;
+    }
+
+    // Determine the trait kind from available traits
+    const matchedTrait = availableTraits.find(t => t.name === traitName);
+    const traitKind: 'Trait' | 'ClusterTrait' =
+      matchedTrait?.kind === 'ClusterTrait' ? 'ClusterTrait' : 'Trait';
+    const isClusterTrait = traitKind === 'ClusterTrait';
+
+    if (!isClusterTrait && !namespaceName) {
       return;
     }
 
@@ -195,20 +258,22 @@ export const TraitsField = ({
     try {
       const baseUrl = await discoveryApi.getBaseUrl('openchoreo');
 
-      // Extract namespace name
-      const extractNsName = (fullNsName: string): string => {
-        const parts = fullNsName.split('/');
-        return parts[parts.length - 1];
-      };
+      let response: Response;
+      if (isClusterTrait) {
+        response = await fetchApi.fetch(
+          `${baseUrl}/cluster-trait-schema?clusterTraitName=${encodeURIComponent(
+            traitName,
+          )}`,
+        );
+      } else {
+        const nsName = extractNsName(namespaceName);
 
-      const nsName = extractNsName(namespaceName);
-
-      // Use fetchApi which automatically injects Backstage + IDP tokens
-      const response = await fetchApi.fetch(
-        `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
-          nsName,
-        )}&traitName=${encodeURIComponent(traitName)}`,
-      );
+        response = await fetchApi.fetch(
+          `${baseUrl}/trait-schema?namespaceName=${encodeURIComponent(
+            nsName,
+          )}&traitName=${encodeURIComponent(traitName)}`,
+        );
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -218,18 +283,17 @@ export const TraitsField = ({
 
       if (result.success) {
         const schema = result.data;
-        // Generate UI schema with sanitized titles for fields without explicit titles
         const generatedUiSchema = generateUiSchemaWithTitles(schema);
 
-        // Count existing traits of this type for instance naming
         const existingCount = addedTraits.filter(
           t => t.name === traitName,
         ).length;
 
         const newTrait: AddedTrait = {
-          id: `${traitName}-${Date.now()}`, // Unique ID for this instance
+          id: `${traitName}-${Date.now()}`,
           name: traitName,
-          instanceName: `${traitName}-${existingCount + 1}`, // Default instance name
+          kind: traitKind,
+          instanceName: `${traitName}-${existingCount + 1}`,
           config: {},
           schema: schema,
           uiSchema: generatedUiSchema,
@@ -238,7 +302,6 @@ export const TraitsField = ({
         const updatedTraits = [...addedTraits, newTrait];
         setAddedTraits(updatedTraits);
         onChange(updatedTraits);
-        // Auto-expand the newly added trait
         setExpandedAccordion(newTrait.id);
       }
     } catch (err) {
