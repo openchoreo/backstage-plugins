@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
   Box,
@@ -171,6 +171,7 @@ export interface WorkloadDetailsData {
     instanceName: string;
     config: Record<string, any>;
   }>;
+  isEditing?: boolean;
 }
 
 /**
@@ -265,6 +266,9 @@ export const WorkloadDetailsField = ({
   const [advancedExpanded, setAdvancedExpanded] = useState(false);
   const [advancedConfigExpanded, setAdvancedConfigExpanded] = useState(false);
 
+  // Ref to track editing state — readable by emitChange without closure dependency
+  const isAnyEditorActiveRef = useRef(false);
+
   // Propagate changes to parent
   const emitChange = useCallback(
     (
@@ -285,6 +289,7 @@ export const WorkloadDetailsField = ({
           instanceName: t.instanceName,
           config: t.config,
         })),
+        isEditing: isAnyEditorActiveRef.current,
       });
     },
     [onChange, isFromImage],
@@ -594,6 +599,30 @@ export const WorkloadDetailsField = ({
       emitChange(ctdParameters, endpoints, envVars, newFileMounts, addedTraits);
     },
   });
+
+  const isAnyEditorActive =
+    endpointEditBuffer.isAnyRowEditing ||
+    envEditBuffer.isAnyRowEditing ||
+    fileEditBuffer.isAnyRowEditing;
+  isAnyEditorActiveRef.current = isAnyEditorActive;
+
+  // Sync editing state into formData so the stepper validation can block Next
+  useEffect(() => {
+    onChange({
+      ctdParameters,
+      endpoints: isFromImage ? endpoints : {},
+      envVars: isFromImage ? envVars : [],
+      fileMounts: isFromImage ? fileMounts : [],
+      traits: addedTraits.map(t => ({
+        ...(t.kind !== undefined && { kind: t.kind }),
+        name: t.name,
+        instanceName: t.instanceName,
+        config: t.config,
+      })),
+      isEditing: isAnyEditorActive,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAnyEditorActive]);
 
   const handleAddFileVar = useCallback(
     (_containerName: string) => {
@@ -1334,6 +1363,14 @@ export const workloadDetailsFieldValidation = (
   validation: any,
 ) => {
   if (!value) return;
+
+  // Block navigation when an inline editor is active
+  if (value.isEditing) {
+    validation.addError(
+      'Please save or cancel the item you are currently editing before proceeding.',
+    );
+    return;
+  }
 
   // Validate trait instance names are unique
   if (value.traits && value.traits.length > 0) {
