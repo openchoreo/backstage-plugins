@@ -1,4 +1,5 @@
 import { Link, Table, TableColumn } from '@backstage/core-components';
+import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
 import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
 import { Box, Typography } from '@material-ui/core';
@@ -16,40 +17,8 @@ function getKindDisplayName(kind: string): string {
   return kindDisplayNames[kind.toLowerCase()] || kind;
 }
 
-const columns: TableColumn<Entity>[] = [
-  {
-    title: 'Name',
-    field: 'metadata.name',
-    highlight: true,
-    render: (entity: Entity) => (
-      <Link
-        to={`/catalog/${
-          entity.metadata.namespace || 'default'
-        }/${entity.kind.toLowerCase()}/${entity.metadata.name}`}
-      >
-        {entity.metadata.title || entity.metadata.name}
-      </Link>
-    ),
-  },
-  {
-    title: 'Kind',
-    field: 'kind',
-    render: (entity: Entity) => (
-      <Typography variant="body2">{getKindDisplayName(entity.kind)}</Typography>
-    ),
-  },
-  {
-    title: 'Description',
-    field: 'metadata.description',
-    render: (entity: Entity) => (
-      <Typography variant="body2">
-        {entity.metadata.description || '-'}
-      </Typography>
-    ),
-  },
-];
-
 export const NamespaceResourcesCard = () => {
+  const app = useApp();
   const classes = useNamespaceResourcesCardStyles();
   const { entity } = useEntity();
   const navigate = useNavigate();
@@ -61,10 +30,49 @@ export const NamespaceResourcesCard = () => {
     e => e.kind.toLowerCase() !== 'system',
   );
 
+  const columns: TableColumn<Entity>[] = [
+    {
+      title: 'Name',
+      field: 'metadata.name',
+      highlight: true,
+      render: (row: Entity) => {
+        const Icon = app.getSystemIcon(`kind:${row.kind.toLowerCase()}`);
+        return (
+          <Box display="flex" alignItems="center" gridGap={6}>
+            {Icon && <Icon fontSize="small" />}
+            <Link
+              to={`/catalog/${
+                row.metadata.namespace || 'default'
+              }/${row.kind.toLowerCase()}/${row.metadata.name}`}
+            >
+              {row.metadata.title || row.metadata.name}
+            </Link>
+          </Box>
+        );
+      },
+    },
+    {
+      title: 'Kind',
+      field: 'kind',
+      render: (row: Entity) => (
+        <Typography variant="body2">{getKindDisplayName(row.kind)}</Typography>
+      ),
+    },
+    {
+      title: 'Description',
+      field: 'metadata.description',
+      render: (row: Entity) => (
+        <Typography variant="body2">
+          {row.metadata.description || '-'}
+        </Typography>
+      ),
+    },
+  ];
+
   return (
     <Box className={classes.cardWrapper}>
       <Table
-        title={`All Resources in ${entity.metadata.namespace} Namespace`}
+        title="Other Resources in Namespace"
         columns={columns}
         data={resources}
         isLoading={loading}

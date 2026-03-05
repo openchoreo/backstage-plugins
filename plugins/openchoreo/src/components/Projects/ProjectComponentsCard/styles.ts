@@ -38,6 +38,7 @@ export const useProjectComponentsCardStyles = makeStyles(theme => ({
   },
   deploymentStatus: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: theme.spacing(1),
     alignItems: 'center',
   },
