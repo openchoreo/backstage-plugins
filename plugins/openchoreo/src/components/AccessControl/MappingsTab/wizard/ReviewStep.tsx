@@ -4,6 +4,8 @@ import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import BlockIcon from '@material-ui/icons/Block';
 import { WizardStepProps } from './types';
 import { getEntitlementClaim } from '../../hooks';
+import { BindingType } from '../MappingDialog';
+import { SCOPE_NAMESPACE } from '../../constants';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -68,7 +70,12 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
+interface ReviewStepProps extends WizardStepProps {
+  bindingType?: BindingType;
+  namespace?: string;
+}
+
+export const ReviewStep = ({ state, userTypes, bindingType, namespace }: ReviewStepProps) => {
   const classes = useStyles();
 
   const selectedUserTypeInfo = userTypes.find(
@@ -77,20 +84,35 @@ export const ReviewStep = ({ state, userTypes }: WizardStepProps) => {
   const entitlementClaim = getEntitlementClaim(selectedUserTypeInfo);
 
   const getScopePath = (): string => {
+    const effectiveNamespace =
+      bindingType === SCOPE_NAMESPACE ? namespace : state.namespace;
+
     if (state.scopeType === 'global') {
+      if (bindingType === SCOPE_NAMESPACE && effectiveNamespace) {
+        return `ns/${effectiveNamespace}/*`;
+      }
       return 'Global (all resources)';
     }
 
     const parts: string[] = [];
-    if (state.namespace) parts.push(state.namespace);
-    if (state.project) parts.push(state.project);
+    if (effectiveNamespace) {
+      parts.push(`ns/${effectiveNamespace}`);
+    }
+
+    if (state.project) parts.push(`project/${state.project}`);
     if (state.component) {
-      parts.push(state.component);
+      parts.push(`component/${state.component}/*`);
     } else if (state.project) {
       parts.push('*');
     }
 
-    return parts.join(' / ') || 'Global';
+    if (parts.length === 0) {
+      return bindingType === SCOPE_NAMESPACE && effectiveNamespace
+        ? `${effectiveNamespace}/*`
+        : 'Global';
+    }
+
+    return parts.join('/');
   };
 
   const getSubjectDescription = (): string => {
