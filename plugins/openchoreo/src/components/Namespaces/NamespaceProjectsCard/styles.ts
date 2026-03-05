@@ -32,6 +32,13 @@ export const useNamespaceProjectsCardStyles = makeStyles(theme => ({
     '& tbody tr:last-child td:last-child': {
       borderBottomRightRadius: '12px !important',
     },
+    '& tbody tr': {
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      '&:hover': {
+        backgroundColor: theme.palette.action.hover,
+      },
+    },
   },
   createProjectButton: {
     textTransform: 'none',

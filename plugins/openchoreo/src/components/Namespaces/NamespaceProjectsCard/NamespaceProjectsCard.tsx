@@ -1,39 +1,17 @@
 import { Link, Table, TableColumn } from '@backstage/core-components';
+import { useApp } from '@backstage/core-plugin-api';
 import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
 import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
 import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
 import { useProjectPermission } from '@openchoreo/backstage-plugin-react';
+import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceProjectsCardStyles } from './styles';
 
-const columns: TableColumn<Entity>[] = [
-  {
-    title: 'Name',
-    field: 'metadata.name',
-    highlight: true,
-    render: (entity: Entity) => (
-      <Link
-        to={`/catalog/${entity.metadata.namespace || 'default'}/system/${
-          entity.metadata.name
-        }`}
-      >
-        {entity.metadata.title || entity.metadata.name}
-      </Link>
-    ),
-  },
-  {
-    title: 'Description',
-    field: 'metadata.description',
-    render: (entity: Entity) => (
-      <Typography variant="body2">
-        {entity.metadata.description || '-'}
-      </Typography>
-    ),
-  },
-];
-
 export const NamespaceProjectsCard = () => {
+  const app = useApp();
+  const Icon = app.getSystemIcon('kind:system');
   const classes = useNamespaceProjectsCardStyles();
   const { entity } = useEntity();
   const { entities: systems, loading } = useRelatedEntities(entity, {
@@ -47,6 +25,35 @@ export const NamespaceProjectsCard = () => {
   } = useProjectPermission();
   const navigate = useNavigate();
 
+  const columns: TableColumn<Entity>[] = [
+    {
+      title: 'Name',
+      field: 'metadata.name',
+      highlight: true,
+      render: (row: Entity) => (
+        <Box display="flex" alignItems="center" gridGap={6}>
+          {Icon && <Icon fontSize="small" />}
+          <Link
+            to={`/catalog/${row.metadata.namespace || 'default'}/system/${
+              row.metadata.name
+            }`}
+          >
+            {row.metadata.title || row.metadata.name}
+          </Link>
+        </Box>
+      ),
+    },
+    {
+      title: 'Description',
+      field: 'metadata.description',
+      render: (row: Entity) => (
+        <Typography variant="body2">
+          {row.metadata.description || '-'}
+        </Typography>
+      ),
+    },
+  ];
+
   return (
     <Box className={classes.cardWrapper}>
       <Table
@@ -54,6 +61,11 @@ export const NamespaceProjectsCard = () => {
         columns={columns}
         data={systems || []}
         isLoading={loading}
+        onRowClick={(event, rowData) => {
+          if (!rowData || !shouldNavigateOnRowClick(event)) return;
+          const ns = rowData.metadata.namespace || 'default';
+          navigate(`/catalog/${ns}/system/${rowData.metadata.name}`);
+        }}
         emptyContent={
           <Box p={3}>
             <Typography variant="body1" color="textSecondary" align="center">

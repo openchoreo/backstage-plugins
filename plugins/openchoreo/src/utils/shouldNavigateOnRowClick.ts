@@ -1,0 +1,18 @@
+import React from 'react';
+
+export function shouldNavigateOnRowClick(event: unknown): boolean {
+  const e = event as React.MouseEvent;
+  if (
+    e.defaultPrevented ||
+    e.button !== 0 ||
+    e.metaKey ||
+    e.ctrlKey ||
+    e.shiftKey ||
+    e.altKey
+  )
+    return false;
+  const target = e.target as HTMLElement;
+  if (target.closest('a, button, input, textarea, select, [role="button"]'))
+    return false;
+  return true;
+}

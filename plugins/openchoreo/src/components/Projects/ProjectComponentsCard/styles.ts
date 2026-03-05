@@ -28,9 +28,17 @@ export const useProjectComponentsCardStyles = makeStyles(theme => ({
     '& tbody tr:last-child td:last-child': {
       borderBottomRightRadius: '12px !important',
     },
+    '& tbody tr': {
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      '&:hover': {
+        backgroundColor: theme.palette.action.hover,
+      },
+    },
   },
   deploymentStatus: {
     display: 'flex',
+    flexWrap: 'wrap',
     gap: theme.spacing(1),
     alignItems: 'center',
   },
