@@ -10,6 +10,7 @@ import {
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
 import { useDebounce } from 'react-use';
+import { Component } from '../../hooks/useGetComponentsByProject';
 import {
   RuntimeLogsFilters,
   Environment,
@@ -24,6 +25,8 @@ interface LogsFilterProps {
   onFiltersChange: (filters: Partial<RuntimeLogsFilters>) => void;
   environments: Environment[];
   environmentsLoading: boolean;
+  components?: Component[];
+  componentsLoading?: boolean;
   disabled?: boolean;
 }
 
@@ -32,6 +35,8 @@ export const LogsFilter: FC<LogsFilterProps> = ({
   onFiltersChange,
   environments,
   environmentsLoading,
+  components = [],
+  componentsLoading = false,
   disabled = false,
 }) => {
   const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
@@ -61,6 +66,10 @@ export const LogsFilter: FC<LogsFilterProps> = ({
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
     onFiltersChange({ timeRange: event.target.value as string });
+  };
+
+  const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
+    onFiltersChange({ componentIds: event.target.value as string[] });
   };
 
   const handleLogLevelSelectChange = (
@@ -99,33 +108,76 @@ export const LogsFilter: FC<LogsFilterProps> = ({
         />
       </Grid>
 
-      <Grid item xs={12} md={2}>
-        <FormControl fullWidth disabled={disabled} variant="outlined">
-          <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
-          <Select
-            multiple
-            value={filters.selectedFields}
-            onChange={handleSelectedFieldsChange}
-            labelId="selected-fields-label"
-            label="Selected Fields"
-            renderValue={selected => (selected as LogEntryField[]).join(', ')}
+      {/* Components filter is only shown if there are components - Project level logs */}
+      {components.length > 0 && (
+        <Grid item xs={12} md={2}>
+          <FormControl
+            fullWidth
+            disabled={disabled || componentsLoading}
+            variant="outlined"
           >
-            {SELECTED_FIELDS.map((field: LogEntryField) => (
-              <MenuItem
-                key={field}
-                value={field}
-                disabled={field === LogEntryField.Log}
+            <InputLabel id="components-label">Components</InputLabel>
+            {componentsLoading ? (
+              <Skeleton variant="rect" height={56} />
+            ) : (
+              <Select
+                multiple
+                value={filters.componentIds || []}
+                onChange={handleComponentChange}
+                labelId="components-label"
+                label="Components"
+                renderValue={selected => {
+                  const selectedArray = selected as string[];
+                  if (selectedArray.length === 0) return 'All';
+                  return selectedArray.join(', ');
+                }}
               >
-                <Checkbox
-                  checked={filters.selectedFields.includes(field)}
+                {components.map(component => (
+                  <MenuItem key={component.name} value={component.name}>
+                    <Checkbox
+                      checked={
+                        (filters.componentIds || []).indexOf(component.name) >
+                        -1
+                      }
+                    />
+                    {component.displayName || component.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            )}
+          </FormControl>
+        </Grid>
+      )}
+
+      {!components.length && (
+        <Grid item xs={12} md={2}>
+          <FormControl fullWidth disabled={disabled} variant="outlined">
+            <InputLabel id="selected-fields-label">Selected Fields</InputLabel>
+            <Select
+              multiple
+              value={filters.selectedFields}
+              onChange={handleSelectedFieldsChange}
+              labelId="selected-fields-label"
+              label="Selected Fields"
+              renderValue={selected => (selected as LogEntryField[]).join(', ')}
+            >
+              {SELECTED_FIELDS.map((field: LogEntryField) => (
+                <MenuItem
+                  key={field}
+                  value={field}
                   disabled={field === LogEntryField.Log}
-                />
-                {field}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
+                >
+                  <Checkbox
+                    checked={filters.selectedFields.includes(field)}
+                    disabled={field === LogEntryField.Log}
+                  />
+                  {field}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+      )}
 
       <Grid item xs={12} md={2}>
         <FormControl fullWidth disabled={disabled} variant="outlined">

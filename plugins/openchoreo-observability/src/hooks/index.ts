@@ -10,4 +10,5 @@ export { useGetComponentsByProject } from './useGetComponentsByProject';
 export { useRCAReport, useRCAReportByAlert } from './useRCAReportByAlert';
 export { useRCAReports } from './useRCAReports';
 export { useRuntimeLogs } from './useRuntimeLogs';
+export { useProjectRuntimeLogs } from './useProjectRuntimeLogs';
 export { useUrlFiltersForRuntimeLogs } from './useUrlFiltersForRuntimeLogs';

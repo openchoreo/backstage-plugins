@@ -3,4 +3,5 @@ export {
   ObservabilityTraces,
   ObservabilityRCA,
   ObservabilityRuntimeLogs,
+  ObservabilityProjectRuntimeLogs,
 } from './plugin';

@@ -72,7 +72,7 @@ export const useLogEntryStyles = makeStyles(theme => ({
   expandedRow: {
     backgroundColor: theme.palette.action.selected,
   },
-  timestampCell: {
+  monospaceCell: {
     fontFamily: 'monospace',
     fontSize: '11px',
     whiteSpace: 'nowrap',
