@@ -5,6 +5,7 @@ import { Box, Button, Tooltip, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
 import { useProjectPermission } from '@openchoreo/backstage-plugin-react';
+import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceProjectsCardStyles } from './styles';
 
 const columns: TableColumn<Entity>[] = [
@@ -54,8 +55,8 @@ export const NamespaceProjectsCard = () => {
         columns={columns}
         data={systems || []}
         isLoading={loading}
-        onRowClick={(_event, rowData) => {
-          if (!rowData) return;
+        onRowClick={(event, rowData) => {
+          if (!rowData || !shouldNavigateOnRowClick(event)) return;
           const ns = rowData.metadata.namespace || 'default';
           navigate(`/catalog/${ns}/system/${rowData.metadata.name}`);
         }}

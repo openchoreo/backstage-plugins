@@ -52,7 +52,7 @@
   "peerDependencies": {
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-router-dom": "*"
+    "react-router-dom": "^6.0.0"
   },
   "resolutions": {
     "react": "18.3.1",

@@ -12,6 +12,7 @@ import {
   ComponentWithDeployment,
   type Environment,
 } from '../hooks';
+import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { DeploymentStatusCell } from './DeploymentStatusCell';
 import { BuildStatusCell } from './BuildStatusCell';
 import { useProjectComponentsCardStyles } from './styles';
@@ -121,8 +122,8 @@ export const ProjectComponentsCard = () => {
         title="Has Components"
         columns={columns}
         data={components}
-        onRowClick={(_event, rowData) => {
-          if (!rowData) return;
+        onRowClick={(event, rowData) => {
+          if (!rowData || !shouldNavigateOnRowClick(event)) return;
           const ns = rowData.metadata.namespace || 'default';
           navigate(`/catalog/${ns}/component/${rowData.metadata.name}`);
         }}

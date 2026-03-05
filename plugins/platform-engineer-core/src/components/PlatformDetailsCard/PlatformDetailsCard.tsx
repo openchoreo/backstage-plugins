@@ -1,4 +1,4 @@
-import { Box, Card, Typography, Grid } from '@material-ui/core';
+import { Box, Card, CardActionArea, Typography, Grid } from '@material-ui/core';
 import StorageIcon from '@material-ui/icons/Storage';
 import BuildIcon from '@material-ui/icons/Build';
 import VisibilityIcon from '@material-ui/icons/Visibility';
@@ -67,46 +67,51 @@ export const PlatformDetailsCard = ({
               <Card
                 key={`${plane.namespaceName}/${plane.name}`}
                 className={classes.planeCompactCard}
-                onClick={() => navigate(detailPath(plane))}
               >
-                <Box className={classes.planeCompactInfo}>
-                  {icon}
-                  <Box>
-                    <Typography variant="h6">
-                      {plane.displayName || plane.name}
-                    </Typography>
-                    <Box display="flex" alignItems="center" gridGap={6}>
-                      <Typography variant="body2" color="textSecondary">
-                        {plane.namespaceName}
+                <CardActionArea
+                  className={classes.planeCardActionArea}
+                  disableRipple
+                  onClick={() => navigate(detailPath(plane))}
+                >
+                  <Box className={classes.planeCompactInfo}>
+                    {icon}
+                    <Box>
+                      <Typography variant="h6">
+                        {plane.displayName || plane.name}
                       </Typography>
-                      {plane.agentConnected !== undefined && (
-                        <Box display="flex" alignItems="center" gridGap={4}>
-                          <span
-                            className={clsx(
-                              classes.agentDot,
-                              plane.agentConnected
-                                ? classes.agentDotConnected
-                                : classes.agentDotDisconnected,
-                            )}
-                          />
-                          <Typography
-                            variant="body2"
-                            style={{
-                              color: plane.agentConnected
-                                ? '#10b981'
-                                : '#ef4444',
-                              fontSize: '0.75rem',
-                            }}
-                          >
-                            {plane.agentConnected
-                              ? 'Connected'
-                              : 'Disconnected'}
-                          </Typography>
-                        </Box>
-                      )}
+                      <Box display="flex" alignItems="center" gridGap={6}>
+                        <Typography variant="body2" color="textSecondary">
+                          {plane.namespaceName}
+                        </Typography>
+                        {plane.agentConnected !== undefined && (
+                          <Box display="flex" alignItems="center" gridGap={4}>
+                            <span
+                              className={clsx(
+                                classes.agentDot,
+                                plane.agentConnected
+                                  ? classes.agentDotConnected
+                                  : classes.agentDotDisconnected,
+                              )}
+                            />
+                            <Typography
+                              variant="body2"
+                              style={{
+                                color: plane.agentConnected
+                                  ? '#10b981'
+                                  : '#ef4444',
+                                fontSize: '0.75rem',
+                              }}
+                            >
+                              {plane.agentConnected
+                                ? 'Connected'
+                                : 'Disconnected'}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
                     </Box>
                   </Box>
-                </Box>
+                </CardActionArea>
               </Card>
             ))}
           </Box>

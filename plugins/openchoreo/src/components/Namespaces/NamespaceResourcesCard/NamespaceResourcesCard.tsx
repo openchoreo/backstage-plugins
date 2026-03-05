@@ -3,6 +3,7 @@ import { Entity, RELATION_HAS_PART } from '@backstage/catalog-model';
 import { useEntity, useRelatedEntities } from '@backstage/plugin-catalog-react';
 import { Box, Typography } from '@material-ui/core';
 import { useNavigate } from 'react-router-dom';
+import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { useNamespaceResourcesCardStyles } from './styles';
 
 const kindDisplayNames: Record<string, string> = {
@@ -67,8 +68,8 @@ export const NamespaceResourcesCard = () => {
         columns={columns}
         data={resources}
         isLoading={loading}
-        onRowClick={(_event, rowData) => {
-          if (!rowData) return;
+        onRowClick={(event, rowData) => {
+          if (!rowData || !shouldNavigateOnRowClick(event)) return;
           const ns = rowData.metadata.namespace || 'default';
           navigate(
             `/catalog/${ns}/${rowData.kind.toLowerCase()}/${
