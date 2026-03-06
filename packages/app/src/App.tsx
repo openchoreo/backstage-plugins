@@ -95,6 +95,7 @@ import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
 import { OpenChoreoProviderSettings } from './components/settings/OpenChoreoProviderSettings';
+import { DependencyGraphZoomOverrides } from './components/graph/DependencyGraphZoomOverrides';
 
 /**
  * Dynamic SignInPage that switches between OAuth and Guest mode
@@ -310,6 +311,7 @@ export default app.createRoot(
   <>
     <AlertDisplay />
     <OAuthRequestDialog />
+    <DependencyGraphZoomOverrides />
     <AppRouter>
       <VisitListener />
       <Root>{routes}</Root>
