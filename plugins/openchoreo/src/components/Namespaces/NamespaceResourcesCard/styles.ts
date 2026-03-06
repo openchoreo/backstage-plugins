@@ -1,6 +1,6 @@
 import { makeStyles } from '@material-ui/core/styles';
 
-export const useNamespaceResourcesCardStyles = makeStyles(_theme => ({
+export const useNamespaceResourcesCardStyles = makeStyles(theme => ({
   cardWrapper: {
     height: '100%',
     '& > div': {
@@ -31,6 +31,13 @@ export const useNamespaceResourcesCardStyles = makeStyles(_theme => ({
     },
     '& tbody tr:last-child td:last-child': {
       borderBottomRightRadius: '12px !important',
+    },
+    '& tbody tr': {
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      '&:hover': {
+        backgroundColor: theme.palette.action.hover,
+      },
     },
   },
 }));

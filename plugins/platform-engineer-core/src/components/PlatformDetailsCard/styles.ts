@@ -110,10 +110,23 @@ export const useStyles = makeStyles(theme => ({
   },
   planeCompactCard: {
     borderRadius: 10,
-    padding: theme.spacing(2),
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    transition: 'background-color 0.2s ease',
+    '&:hover': {
+      backgroundColor: theme.palette.action.hover,
+    },
+  },
+  planeCardActionArea: {
+    '&&': {
+      padding: theme.spacing(2),
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    '&.Mui-focusVisible': {
+      backgroundColor: theme.palette.action.hover,
+      outline: `2px solid ${theme.palette.primary.main}`,
+      outlineOffset: 2,
+    },
   },
   planeCompactInfo: {
     display: 'flex',

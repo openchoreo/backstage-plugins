@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Link, Table, TableColumn } from '@backstage/core-components';
+import { useApp } from '@backstage/core-plugin-api';
 import { Box, Button, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import { useNavigate } from 'react-router-dom';
@@ -12,11 +13,13 @@ import {
   ComponentWithDeployment,
   type Environment,
 } from '../hooks';
+import { shouldNavigateOnRowClick } from '../../../utils/shouldNavigateOnRowClick';
 import { DeploymentStatusCell } from './DeploymentStatusCell';
 import { BuildStatusCell } from './BuildStatusCell';
 import { useProjectComponentsCardStyles } from './styles';
 
 export const ProjectComponentsCard = () => {
+  const app = useApp();
   const classes = useProjectComponentsCardStyles();
   const { entity } = useEntity();
   const { components, loading } = useComponentsWithDeployment(entity);
@@ -50,22 +53,28 @@ export const ProjectComponentsCard = () => {
     {
       title: 'Name',
       field: 'metadata.name',
-      width: '25%',
+      width: '20%',
       highlight: true,
-      render: (component: ComponentWithDeployment) => (
-        <Link
-          to={`/catalog/${
-            component.metadata.namespace || 'default'
-          }/component/${component.metadata.name}`}
-        >
-          {component.metadata.title || component.metadata.name}
-        </Link>
-      ),
+      render: (component: ComponentWithDeployment) => {
+        const Icon = app.getSystemIcon('kind:component');
+        return (
+          <Box display="flex" alignItems="center" gridGap={6}>
+            {Icon && <Icon fontSize="small" />}
+            <Link
+              to={`/catalog/${
+                component.metadata.namespace || 'default'
+              }/component/${component.metadata.name}`}
+            >
+              {component.metadata.title || component.metadata.name}
+            </Link>
+          </Box>
+        );
+      },
     },
     {
       title: 'Type',
       field: 'spec.type',
-      width: '15%',
+      width: '10%',
       render: (component: ComponentWithDeployment) => (
         <Typography variant="body2">
           {String(component.spec?.type || '-')}
@@ -75,7 +84,7 @@ export const ProjectComponentsCard = () => {
     {
       title: 'Description',
       field: 'metadata.description',
-      width: '18%',
+      width: '15%',
       render: (component: ComponentWithDeployment) => (
         <Typography
           variant="body2"
@@ -87,15 +96,15 @@ export const ProjectComponentsCard = () => {
       ),
     },
     {
-      title: 'Latest Build',
-      width: '15%',
+      title: 'Build',
+      width: '5%',
       render: (component: ComponentWithDeployment) => (
         <BuildStatusCell component={component} />
       ),
     },
     {
       title: 'Deployment',
-      width: '22%',
+      width: '40%',
       render: (component: ComponentWithDeployment) => (
         <DeploymentStatusCell
           component={component}
@@ -121,6 +130,11 @@ export const ProjectComponentsCard = () => {
         title="Has Components"
         columns={columns}
         data={components}
+        onRowClick={(event, rowData) => {
+          if (!rowData || !shouldNavigateOnRowClick(event)) return;
+          const ns = rowData.metadata.namespace || 'default';
+          navigate(`/catalog/${ns}/component/${rowData.metadata.name}`);
+        }}
         emptyContent={
           <Box p={3}>
             <Typography variant="body1" color="textSecondary" align="center">
