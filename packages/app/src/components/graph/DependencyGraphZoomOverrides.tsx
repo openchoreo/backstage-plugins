@@ -6,6 +6,7 @@ import { DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR } from '@openchoreo/backstage-plugin-
 type GraphTransform = { x: number; y: number; k: number };
 
 const DEP_GRAPH_SELECTOR = 'svg#dependency-graph';
+const MIN_ZOOM_SCALE = 0.2;
 
 function parseTransform(attr: string | null): GraphTransform {
   if (!attr) {
@@ -54,7 +55,7 @@ export const DependencyGraphZoomOverrides = () => {
       selection.on('.zoom', null);
 
       const current = parseTransform(workspace.getAttribute('transform'));
-      const minScale = Math.min(current.k || 1, 1);
+      const minScale = Math.min(current.k || 1, MIN_ZOOM_SCALE);
 
       const zoomBehavior = d3Zoom
         .zoom<SVGSVGElement, null>()

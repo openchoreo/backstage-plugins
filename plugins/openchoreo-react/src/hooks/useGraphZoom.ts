@@ -43,6 +43,7 @@ function parseViewBox(attr: string): GraphViewBox {
 
 const ZOOM_SCALE_FACTOR = 1.3;
 const ZOOM_ATTACH_DELAY_MS = 300;
+const MIN_ZOOM_SCALE = 0.2;
 
 /**
  * Platform-overview-specific zoom controller. We replace Backstage's clamped
@@ -160,7 +161,7 @@ export function useGraphZoom(): UseGraphZoomResult {
         const fitted = fittedAttr
           ? parseTransform(fittedAttr)
           : { x: 0, y: 0, k: 1 };
-        const minScale = Math.min(fitted.k, 1);
+        const minScale = Math.min(fitted.k, MIN_ZOOM_SCALE);
         fittedTransformRef.current = d3Zoom.zoomIdentity
           .translate(fitted.x, fitted.y)
           .scale(fitted.k);
