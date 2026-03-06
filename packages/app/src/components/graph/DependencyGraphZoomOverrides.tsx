@@ -22,6 +22,16 @@ function parseTransform(attr: string | null): GraphTransform {
   };
 }
 
+/**
+ * Installs a site-wide zoom handler for Backstage dependency graphs.
+ *
+ * Upstream DependencyGraph clamps panning to the viewport bounds, which
+ * prevents moving the diagram when k=1 and makes large graphs inaccessible.
+ * Until Backstage ships a fix we replace the d3-zoom handler in-app so every
+ * catalog graph regains free panning without patching node_modules. Components
+ * that need bespoke controls (Platform Overview) set DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR
+ * to skip this override and manage zoom themselves.
+ */
 export const DependencyGraphZoomOverrides = () => {
   useEffect(() => {
     if (typeof document === 'undefined') {

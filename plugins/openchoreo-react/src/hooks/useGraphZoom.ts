@@ -44,6 +44,12 @@ function parseViewBox(attr: string): GraphViewBox {
 const ZOOM_SCALE_FACTOR = 1.3;
 const ZOOM_ATTACH_DELAY_MS = 300;
 
+/**
+ * Platform-overview-specific zoom controller. We replace Backstage's clamped
+ * d3-zoom behavior so the custom minimap/controls can pan freely even when the
+ * global override is active, and mark the SVG with DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR
+ * so the site-wide patch knows to leave it alone.
+ */
 export function useGraphZoom(): UseGraphZoomResult {
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [transform, setTransform] = useState<GraphTransform>({
