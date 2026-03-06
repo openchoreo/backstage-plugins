@@ -52,6 +52,11 @@ export const LogsTable: FC<LogsTableProps> = ({
             <Skeleton variant="text" width="100%" />
           </TableCell>
         )}
+        {selectedFields.includes(LogEntryField.ComponentName) && (
+          <TableCell width="15%">
+            <Skeleton variant="text" width="100%" />
+          </TableCell>
+        )}
         {selectedFields.includes(LogEntryField.Log) && (
           <TableCell>
             <Skeleton variant="text" width="100%" />
@@ -95,8 +100,12 @@ export const LogsTable: FC<LogsTableProps> = ({
                   width = '15%';
                 } else if (field === LogEntryField.LogLevel) {
                   width = '10%';
+                } else if (field === LogEntryField.ComponentName) {
+                  width = '15%';
                 } else {
-                  width = '75%';
+                  width = selectedFields.includes(LogEntryField.ComponentName)
+                    ? '60%'
+                    : '75%';
                 }
 
                 return (
