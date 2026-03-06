@@ -136,8 +136,13 @@ export const DependencyGraphZoomOverrides = () => {
       return undefined;
     }
 
+    const patchedSvgs = new Set<SVGSVGElement>();
+
     const applyPatch = (svg: SVGSVGElement) => {
       if (svg.getAttribute(DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR) === 'true') {
+        return;
+      }
+      if (patchedSvgs.has(svg)) {
         return;
       }
 
@@ -196,6 +201,7 @@ export const DependencyGraphZoomOverrides = () => {
 
       selection.call(zoomBehavior);
       zoomBehavior.transform(selection, initialTransform);
+      patchedSvgs.add(svg);
     };
 
     const scan = () => {
@@ -213,14 +219,13 @@ export const DependencyGraphZoomOverrides = () => {
     return () => {
       observer.disconnect();
       window.clearInterval(interval);
-      document
-        .querySelectorAll<SVGSVGElement>(DEP_GRAPH_SELECTOR)
-        .forEach(svg => {
-          const selection = d3Selection.select<SVGSVGElement, null>(svg);
-          selection.on('.zoom', null);
-          svg.removeAttribute(DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR);
-          svg.removeAttribute(USER_INTERACTED_ATTR);
-        });
+      patchedSvgs.forEach(svg => {
+        const selection = d3Selection.select<SVGSVGElement, null>(svg);
+        selection.on('.zoom', null);
+        svg.removeAttribute(DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR);
+        svg.removeAttribute(USER_INTERACTED_ATTR);
+      });
+      patchedSvgs.clear();
     };
   }, []);
 
