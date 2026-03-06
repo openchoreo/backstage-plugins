@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
-import { extractInvokeUrl } from '../utils/invokeUrlUtils';
-import { ReleaseData } from '../ReleaseDataRenderer/types';
+import { extractInvokeUrlFromTree } from '../utils/invokeUrlUtils';
 
 const DEFAULT_HTTP_PORT = 19080;
 
@@ -17,6 +17,7 @@ export function useInvokeUrl(
   releaseName: string | undefined,
   status: 'Ready' | 'NotReady' | 'Failed' | undefined,
   dataPlaneRef: string | undefined,
+  releaseBindingName: string | undefined,
 ) {
   const client = useApi(openChoreoClientApiRef);
 
@@ -33,9 +34,8 @@ export function useInvokeUrl(
 
       setLoading(true);
       try {
-        // Extract namespace name from entity
         const namespaceName =
-          entity.metadata.annotations?.['openchoreo.io/namespace'];
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
 
         // Fetch dataplane details if dataPlaneRef is provided
         let port = DEFAULT_HTTP_PORT;
@@ -61,14 +61,17 @@ export function useInvokeUrl(
           }
         }
 
-        const envName = resourceName || environmentName;
-        const releaseData = (await client.fetchEnvironmentRelease(
-          entity,
-          envName,
-        )) as ReleaseData;
-        const url = extractInvokeUrl(releaseData, port);
-        setInvokeUrl(url);
-      } catch (error) {
+        if (releaseBindingName && namespaceName) {
+          const resourceTree = await client.fetchResourceTree(
+            namespaceName,
+            releaseBindingName,
+          );
+          const url = extractInvokeUrlFromTree(resourceTree, port);
+          setInvokeUrl(url);
+        } else {
+          setInvokeUrl(null);
+        }
+      } catch {
         // Silently fail - invoke URL is optional
         setInvokeUrl(null);
       } finally {
@@ -83,6 +86,7 @@ export function useInvokeUrl(
     environmentName,
     resourceName,
     dataPlaneRef,
+    releaseBindingName,
     entity,
     client,
   ]);

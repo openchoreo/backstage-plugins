@@ -1,6 +1,5 @@
 import dagre from '@dagrejs/dagre';
 import type {
-  ReleaseData,
   ResourceTreeData,
   ResourceTreeNode,
   HealthStatus,
@@ -45,32 +44,24 @@ function aggregateHealth(nodes: ResourceTreeNode[]): HealthStatus {
 }
 
 /**
- * Transform API release data and resource tree data into tree nodes.
- * Root node comes from releaseData; child hierarchy from resourceTreeData.
+ * Transform resource tree data into tree nodes.
  * When resourceTreeData contains `releases`, intermediate Release nodes are created.
  */
 export function buildTreeNodes(
-  releaseData: ReleaseData | null,
   resourceTreeData: ResourceTreeData,
   releaseBindingData?: Record<string, unknown> | null,
 ): TreeNode[] {
-  const data = releaseData?.data;
-  // If there is no release data but we have a release binding, build a root-only tree
-  if (!data && !releaseBindingData) return [];
-
   const nodes: TreeNode[] = [];
 
-  // Derive root health from ReleaseBinding status, matching the Deploy page logic
+  // Derive root health from ReleaseBinding status
   let rootHealth: TreeNode['healthStatus'] = 'Unknown';
   if (releaseBindingData) {
-    // Legacy API: status is a flat string ('Ready', 'NotReady', 'Failed')
     if (typeof releaseBindingData.status === 'string') {
       const flatStatus = releaseBindingData.status;
       if (flatStatus === 'Ready') rootHealth = 'Healthy';
       else if (flatStatus === 'Failed') rootHealth = 'Degraded';
       else if (flatStatus === 'NotReady') rootHealth = 'Progressing';
     } else {
-      // New API: derive from status.conditions[type=Ready]
       const bindingStatus = releaseBindingData.status as
         | Record<string, unknown>
         | undefined;
@@ -87,23 +78,14 @@ export function buildTreeNodes(
         else rootHealth = 'Progressing';
       }
     }
-  } else {
-    // Fallback to release conditions if no binding data
-    const releaseConditions = data?.status?.conditions ?? [];
-    const readyCondition = releaseConditions.find(c => c.type === 'Ready');
-    if (readyCondition) {
-      rootHealth = readyCondition.status === 'True' ? 'Healthy' : 'Degraded';
-    }
   }
 
-  // Use ReleaseBinding name if available, fallback to component name
   const bindingName =
     (releaseBindingData?.name as string) ??
     ((releaseBindingData?.metadata as Record<string, unknown>)
       ?.name as string) ??
     undefined;
-  const rootName =
-    bindingName ?? data?.spec?.owner?.componentName ?? 'ReleaseBinding';
+  const rootName = bindingName ?? 'ReleaseBinding';
 
   nodes.push({
     id: ROOT_NODE_ID,
