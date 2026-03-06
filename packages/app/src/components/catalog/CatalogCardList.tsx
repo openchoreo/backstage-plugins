@@ -1,4 +1,4 @@
-import React from 'react';
+import { type ReactNode } from 'react';
 import {
   Box,
   Chip,
@@ -128,7 +128,7 @@ function KindIcon({ kind }: { kind: string }) {
 }
 
 interface CatalogCardListProps {
-  actionButton?: React.ReactNode;
+  actionButton?: ReactNode;
 }
 
 export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
