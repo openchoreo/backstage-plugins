@@ -116,6 +116,7 @@ import {
   ObservabilityTraces,
   ObservabilityRCA,
   ObservabilityRuntimeLogs,
+  ObservabilityProjectRuntimeLogs,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import {
@@ -602,6 +603,11 @@ const systemPage = (
         unidirectional={false}
         renderNode={CustomGraphNode}
       />
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/logs" title="Logs">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityProjectRuntimeLogs />
+      </FeatureGatedContent>
     </EntityLayout.Route>
     <EntityLayout.Route path="/traces" title="Traces">
       <FeatureGatedContent feature="observability">

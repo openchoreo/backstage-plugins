@@ -93,46 +93,62 @@ export const LogEntry: FC<LogEntryProps> = ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {selectedFields.includes(LogEntryField.Timestamp) && (
-          <TableCell className={classes.timestampCell}>
-            {formatTimestamp(log.timestamp ?? '')}
-          </TableCell>
-        )}
-        {selectedFields.includes(LogEntryField.LogLevel) && (
-          <TableCell>
-            <Chip
-              label={log.level}
-              size="small"
-              className={`${classes.logLevelChip} ${getLogLevelChipClass(
-                log.level ?? '',
-              )}`}
-            />
-          </TableCell>
-        )}
-        {selectedFields.includes(LogEntryField.Log) && (
-          <TableCell className={classes.logCell}>
-            <Box display="flex" alignItems="center">
-              <Typography
-                className={`${classes.logMessage} ${
-                  expanded ? classes.expandedLogMessage : ''
-                }`}
-              >
-                {log.log}
-              </Typography>
-              {isHovered && (
-                <Tooltip title={copySuccess ? 'Copied!' : 'Copy log message'}>
-                  <IconButton
-                    className={classes.copyButton}
-                    onClick={handleCopyLog}
-                    size="small"
-                  >
-                    <FileCopyOutlined fontSize="inherit" />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Box>
-          </TableCell>
-        )}
+        {selectedFields.map(field => {
+          if (field === LogEntryField.Timestamp) {
+            return (
+              <TableCell key={field} className={classes.monospaceCell}>
+                {formatTimestamp(log.timestamp ?? '')}
+              </TableCell>
+            );
+          }
+
+          if (field === LogEntryField.LogLevel) {
+            return (
+              <TableCell key={field}>
+                <Chip
+                  label={log.level}
+                  size="small"
+                  className={`${classes.logLevelChip} ${getLogLevelChipClass(
+                    log.level ?? '',
+                  )}`}
+                />
+              </TableCell>
+            );
+          }
+
+          if (field === LogEntryField.ComponentName) {
+            return (
+              <TableCell key={field} className={classes.monospaceCell}>
+                {log.metadata?.componentName ?? componentName ?? ''}
+              </TableCell>
+            );
+          }
+
+          return (
+            <TableCell key={field} className={classes.logCell}>
+              <Box display="flex" alignItems="center">
+                <Typography
+                  className={`${classes.logMessage} ${
+                    expanded ? classes.expandedLogMessage : ''
+                  }`}
+                >
+                  {log.log}
+                </Typography>
+                {isHovered && (
+                  <Tooltip title={copySuccess ? 'Copied!' : 'Copy log message'}>
+                    <IconButton
+                      className={classes.copyButton}
+                      onClick={handleCopyLog}
+                      size="small"
+                    >
+                      <FileCopyOutlined fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            </TableCell>
+          );
+        })}
       </TableRow>
 
       {expanded && (
@@ -165,7 +181,7 @@ export const LogEntry: FC<LogEntryProps> = ({
                           Environment Name:
                         </span>
                         <span className={classes.metadataValue}>
-                          {environmentName}
+                          {log.metadata?.environmentName ?? environmentName}
                         </span>
                       </Box>
 
@@ -183,7 +199,7 @@ export const LogEntry: FC<LogEntryProps> = ({
                           Project Name:
                         </span>
                         <span className={classes.metadataValue}>
-                          {projectName}
+                          {log.metadata?.projectName ?? projectName}
                         </span>
                       </Box>
 
@@ -201,7 +217,7 @@ export const LogEntry: FC<LogEntryProps> = ({
                           Component Name:
                         </span>
                         <span className={classes.metadataValue}>
-                          {componentName}
+                          {log.metadata?.componentName ?? componentName}
                         </span>
                       </Box>
 
