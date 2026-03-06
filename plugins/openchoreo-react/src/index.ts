@@ -308,6 +308,9 @@ export {
   getNodeKindLabel,
 } from './utils/graphUtils';
 export {
+  DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR,
+} from './constants/graph';
+export {
   type GraphViewDefinition,
   type FilterPreset,
   APPLICATION_VIEW,

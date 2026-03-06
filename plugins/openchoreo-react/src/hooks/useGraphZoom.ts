@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as d3Zoom from 'd3-zoom';
 import * as d3Selection from 'd3-selection';
+import { DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR } from '../constants/graph';
 
 export type GraphTransform = { x: number; y: number; k: number };
 export type GraphViewBox = { width: number; height: number };
@@ -76,6 +77,16 @@ export function useGraphZoom(): UseGraphZoomResult {
     let svgObserver: MutationObserver | null = null;
     let attachTimer: ReturnType<typeof setTimeout> | null = null;
 
+    const cleanupZoom = () => {
+      if (svgRef.current) {
+        d3Selection
+          .select<SVGSVGElement, null>(svgRef.current)
+          .on('.zoom', null);
+        svgRef.current.removeAttribute(DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR);
+      }
+      zoomBehaviorRef.current = null;
+    };
+
     function attach() {
       const svg = container!.querySelector(
         'svg#dependency-graph',
@@ -84,8 +95,16 @@ export function useGraphZoom(): UseGraphZoomResult {
 
       if (!svg || !workspace) return;
 
+      if (svgRef.current && svgRef.current !== svg) {
+        cleanupZoom();
+      }
+      if (svgRef.current === svg && zoomBehaviorRef.current) {
+        return;
+      }
+
       svgRef.current = svg;
       workspaceRef.current = workspace;
+      svg.setAttribute(DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR, 'true');
 
       // Set up observers BEFORE reading initial values to avoid race
       // conditions where the attribute changes between read and observe.
@@ -128,11 +147,6 @@ export function useGraphZoom(): UseGraphZoomResult {
       // Attach our own d3-zoom instance after a short delay to let the
       // upstream DependencyGraph finish its initial zoom setup.
       attachTimer = setTimeout(() => {
-        const vb = svg.getAttribute('viewBox');
-        const { width: maxWidth, height: maxHeight } = vb
-          ? parseViewBox(vb)
-          : { width: 0, height: 0 };
-
         // Read the upstream fitted transform so we can allow zooming
         // out to it (k may be < 1 for large graphs) and restore it
         // via fitToView.
@@ -149,28 +163,14 @@ export function useGraphZoom(): UseGraphZoomResult {
           .zoom<SVGSVGElement, null>()
           .scaleExtent([minScale, Infinity])
           .on('zoom', event => {
-            // Clamp transform to prevent panning beyond content bounds
-            // (mirrors upstream DependencyGraph logic)
-            event.transform.x = Math.min(
-              0,
-              Math.max(
-                event.transform.x,
-                maxWidth - maxWidth * event.transform.k,
-              ),
-            );
-            event.transform.y = Math.min(
-              0,
-              Math.max(
-                event.transform.y,
-                maxHeight - maxHeight * event.transform.k,
-              ),
-            );
+            // Allow free panning — the workspace transform tracks the actual viewport state.
             workspace.setAttribute('transform', event.transform.toString());
           });
 
         zoomBehaviorRef.current = zoomBehavior;
 
         const selection = d3Selection.select<SVGSVGElement, null>(svg);
+        selection.on('.zoom', null);
         selection.call(zoomBehavior);
 
         // Sync d3's internal zoom state with the current workspace transform
@@ -196,9 +196,9 @@ export function useGraphZoom(): UseGraphZoomResult {
         workspaceObserver?.disconnect();
         svgObserver?.disconnect();
         if (attachTimer) clearTimeout(attachTimer);
+        cleanupZoom();
         svgRef.current = null;
         workspaceRef.current = null;
-        zoomBehaviorRef.current = null;
         attach();
       }
     });
@@ -209,7 +209,7 @@ export function useGraphZoom(): UseGraphZoomResult {
       containerObserver.disconnect();
       workspaceObserver?.disconnect();
       svgObserver?.disconnect();
-      zoomBehaviorRef.current = null;
+      cleanupZoom();
     };
   }, [container]);
 
