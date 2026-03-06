@@ -395,49 +395,6 @@ describe('EnvironmentInfoService', () => {
     });
   });
 
-  describe('fetchEnvironmentRelease', () => {
-    it('returns first matching release', async () => {
-      const release = {
-        metadata: { name: 'release-1' },
-        spec: { version: '1.0.0' },
-        status: { phase: 'Active' },
-      };
-      mockGET.mockResolvedValueOnce(okResponse({ items: [release] }));
-
-      const service = createService();
-      const result = await service.fetchEnvironmentRelease(
-        {
-          componentName: 'api-service',
-          projectName: 'my-project',
-          namespaceName: 'test-ns',
-          environmentName: 'dev',
-        },
-        'token-123',
-      );
-
-      expect(result).toEqual({
-        data: { spec: release.spec, status: release.status },
-      });
-    });
-
-    it('returns null when no matching release', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-
-      const service = createService();
-      const result = await service.fetchEnvironmentRelease(
-        {
-          componentName: 'api-service',
-          projectName: 'my-project',
-          namespaceName: 'test-ns',
-          environmentName: 'dev',
-        },
-        'token-123',
-      );
-
-      expect(result).toBeNull();
-    });
-  });
-
   describe('pipeline environment filtering', () => {
     const allEnvs = [
       makeK8sEnvironment('dev'),
