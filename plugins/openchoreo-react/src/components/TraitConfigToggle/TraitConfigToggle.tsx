@@ -1,4 +1,4 @@
-import { useState, useCallback, ReactNode } from 'react';
+import { useState, useCallback, useRef, ReactNode } from 'react';
 import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { JSONSchema7 } from 'json-schema';
 import YAML from 'yaml';
@@ -174,13 +174,35 @@ export const TraitConfigToggle = ({
       if (parsed) {
         setYamlError(undefined);
         onValidityChange?.(true);
-        onChange(parsed);
+        // Don't call onChange here — propagate only on blur to avoid
+        // re-rendering the entire parent form on every keystroke.
       } else {
         setYamlError('Invalid YAML: must be a valid YAML object');
         onValidityChange?.(false);
       }
     },
-    [onChange, onValidityChange, parseYaml],
+    [onValidityChange, parseYaml],
+  );
+
+  /** Flush valid YAML to the parent when focus leaves the editor container. */
+  const yamlContainerRef = useRef<HTMLDivElement>(null);
+  const handleYamlBlur = useCallback(
+    (e: React.FocusEvent) => {
+      // Only flush when focus actually leaves the container,
+      // not when it moves between elements inside (e.g. editor ↔ toolbar).
+      if (
+        yamlContainerRef.current &&
+        e.relatedTarget instanceof Node &&
+        yamlContainerRef.current.contains(e.relatedTarget)
+      ) {
+        return;
+      }
+      const parsed = parseYaml(yamlContent);
+      if (parsed) {
+        onChange(parsed);
+      }
+    },
+    [yamlContent, parseYaml, onChange],
   );
 
   return (
@@ -204,7 +226,11 @@ export const TraitConfigToggle = ({
       {mode === 'form' ? (
         children
       ) : (
-        <div className={classes.yamlContainer}>
+        <div
+          ref={yamlContainerRef}
+          className={classes.yamlContainer}
+          onBlur={handleYamlBlur}
+        >
           <YamlEditor
             content={yamlContent}
             onChange={handleYamlChange}
