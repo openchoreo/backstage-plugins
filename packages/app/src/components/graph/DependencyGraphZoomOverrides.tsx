@@ -73,7 +73,9 @@ function getRootEntityRefFromLocation(): string | undefined {
     return decodeURIComponent(queryRoot).trim();
   }
 
-  const match = currentUrl.pathname.match(/^\/catalog\/([^/]+)\/([^/]+)\/([^/]+)/);
+  const match = currentUrl.pathname.match(
+    /^\/catalog\/([^/]+)\/([^/]+)\/([^/]+)/,
+  );
   if (!match) {
     return undefined;
   }
@@ -197,9 +199,8 @@ export const DependencyGraphZoomOverrides = () => {
     };
 
     const scan = () => {
-      const nodes = document.querySelectorAll<SVGSVGElement>(
-        DEP_GRAPH_SELECTOR,
-      );
+      const nodes =
+        document.querySelectorAll<SVGSVGElement>(DEP_GRAPH_SELECTOR);
       nodes.forEach(svg => applyPatch(svg));
     };
 
