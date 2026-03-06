@@ -288,7 +288,7 @@ export function PlatformOverviewGraphView({
               rankMargin={rankMargin}
               paddingX={20}
               paddingY={40}
-              zoom="enabled"
+              zoom="disabled"
               showArrowHeads
               curve="curveMonotoneX"
               fit="contain"
