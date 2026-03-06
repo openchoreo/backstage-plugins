@@ -142,9 +142,6 @@ export const DependencyGraphZoomOverrides = () => {
       if (svg.getAttribute(DEPENDENCY_GRAPH_CUSTOM_ZOOM_ATTR) === 'true') {
         return;
       }
-      if (patchedSvgs.has(svg)) {
-        return;
-      }
 
       const workspace =
         svg.querySelector<SVGGElement>('g#workspace') ?? undefined;
