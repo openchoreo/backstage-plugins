@@ -1,12 +1,16 @@
 import { alertApiRef, useApi, useApp } from '@backstage/core-plugin-api';
 import Box from '@material-ui/core/Box';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListSubheader from '@material-ui/core/ListSubheader';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
+import Popper, { PopperProps } from '@material-ui/core/Popper';
+import TextField from '@material-ui/core/TextField';
 import Typography from '@material-ui/core/Typography';
 import { makeStyles, createStyles, Theme } from '@material-ui/core/styles';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import Autocomplete, {
+  AutocompleteRenderGroupParams,
+} from '@material-ui/lab/Autocomplete';
+import { useEffect, useMemo, useState } from 'react';
 import {
   EntityKindFilter,
   useEntityList,
@@ -98,19 +102,14 @@ const useStyles = makeStyles((theme: Theme) =>
       color: theme.palette.text.primary,
       whiteSpace: 'nowrap',
     },
-    select: {
+    autocomplete: {
       minWidth: 180,
     },
-    renderValue: {
+    option: {
       display: 'flex',
       alignItems: 'center',
-      gap: theme.spacing(1),
-      '& svg': {
-        fontSize: '1.2rem',
-        color: theme.palette.text.secondary,
-      },
     },
-    subheader: {
+    groupHeader: {
       color: theme.palette.text.secondary,
       fontSize: theme.typography.caption.fontSize,
       fontWeight: theme.typography.fontWeightBold as number,
@@ -126,7 +125,36 @@ const useStyles = makeStyles((theme: Theme) =>
         fontSize: '1.2rem',
       },
     },
+    listbox: {
+      // Allow the dropdown to expand without early scrolling;
+      // only scroll when it approaches viewport height in short windows.
+      maxHeight: 'calc(100vh - 170px)',
+    },
   }),
+);
+
+const UNGROUPED_KIND_CATEGORY = '__ungrouped__';
+
+interface KindOption {
+  category: string;
+  kind: string;
+  label: string;
+}
+
+const BottomPinnedPopper = (props: PopperProps) => (
+  <Popper
+    {...props}
+    placement="bottom-start"
+    modifiers={{
+      flip: {
+        enabled: false,
+      },
+      preventOverflow: {
+        boundariesElement: 'window',
+        escapeWithReference: true,
+      },
+    }}
+  />
 );
 
 // Hook to fetch all available Choreo entity kinds from the catalog
@@ -264,7 +292,7 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
 
   const alertApi = useApi(alertApiRef);
 
-  const { error, allKinds, selectedKind, setSelectedKind } =
+  const { loading, error, allKinds, selectedKind, setSelectedKind } =
     useEntityKindFilter({
       initialFilter: initialFilter,
     });
@@ -297,94 +325,137 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     return available;
   }, [allKinds, allowedKinds]);
 
-  // Build grouped menu items
-  const menuItems = useMemo(() => {
-    if (error) return [];
+  const kindOptions = useMemo(() => {
+    if (error) return [] as KindOption[];
 
-    const items: ReactNode[] = [];
+    const options: KindOption[] = [];
 
-    // Add Namespace (domain) as a standalone top-level item
+    // Keep Namespace as the first, ungrouped option.
     if (availableKinds.has('domain')) {
-      const DomainIcon = app.getSystemIcon('kind:domain');
-      items.push(
-        <MenuItem key="domain" value="domain">
-          {DomainIcon && (
-            <ListItemIcon className={classes.listItemIcon}>
-              <DomainIcon />
-            </ListItemIcon>
-          )}
-          {kindDisplayNames.domain}
-        </MenuItem>,
-      );
+      options.push({
+        category: UNGROUPED_KIND_CATEGORY,
+        kind: 'domain',
+        label: kindDisplayNames.domain,
+      });
     }
 
     for (const category of kindCategories) {
-      // Skip platform-only categories for non-platform engineers
       if (category.platformOnly && !isPlatformEngineer) continue;
 
-      // Filter to only kinds that exist in the catalog
       const visibleKinds = category.kinds.filter(k => availableKinds.has(k));
-
-      // Skip category if no kinds are available
       if (visibleKinds.length === 0) continue;
 
-      items.push(
-        <ListSubheader
-          key={`header-${category.label}`}
-          className={classes.subheader}
-          disableSticky
-        >
-          {category.label}
-        </ListSubheader>,
-      );
-
       for (const kind of visibleKinds) {
-        const KindIcon = app.getSystemIcon(`kind:${kind}`);
-        items.push(
-          <MenuItem key={kind} value={kind}>
-            {KindIcon && (
-              <ListItemIcon className={classes.listItemIcon}>
-                <KindIcon />
-              </ListItemIcon>
-            )}
-            {kindDisplayNames[kind] || kind}
-          </MenuItem>,
-        );
+        options.push({
+          category: category.label,
+          kind,
+          label: kindDisplayNames[kind] || kind,
+        });
       }
     }
 
-    return items;
-  }, [availableKinds, isPlatformEngineer, error, classes, app]);
+    return options;
+  }, [availableKinds, isPlatformEngineer, error]);
+
+  const selectedOption = useMemo(() => {
+    const normalizedKind = selectedKind.toLowerCase();
+    const matchedOption = kindOptions.find(
+      option => option.kind === normalizedKind,
+    );
+
+    if (matchedOption) {
+      return matchedOption;
+    }
+
+    return {
+      category: UNGROUPED_KIND_CATEGORY,
+      kind: normalizedKind,
+      label: kindDisplayNames[normalizedKind] || selectedKind,
+    };
+  }, [kindOptions, selectedKind]);
+
+  const autocompleteOptions = useMemo(() => {
+    const hasSelectedOption = kindOptions.some(
+      option => option.kind === selectedOption.kind,
+    );
+
+    if (hasSelectedOption) {
+      return kindOptions;
+    }
+
+    return [selectedOption, ...kindOptions];
+  }, [kindOptions, selectedOption]);
+
+  const renderOption = (option: KindOption) => {
+    const KindIcon = app.getSystemIcon(`kind:${option.kind}`);
+
+    return (
+      <Box className={classes.option}>
+        {KindIcon && (
+          <ListItemIcon className={classes.listItemIcon}>
+            <KindIcon />
+          </ListItemIcon>
+        )}
+        {option.label}
+      </Box>
+    );
+  };
+
+  const renderGroup = (params: AutocompleteRenderGroupParams) => {
+    if (params.group === UNGROUPED_KIND_CATEGORY) {
+      return <li key={params.key}>{params.children}</li>;
+    }
+
+    return (
+      <li key={params.key}>
+        <ListSubheader className={classes.groupHeader} disableSticky>
+          {params.group}
+        </ListSubheader>
+        {params.children}
+      </li>
+    );
+  };
 
   if (error) return null;
 
   return hidden ? null : (
     <Box pb={1} pt={1} className={classes.container}>
       <Typography className={classes.label}>Kind</Typography>
-      <Select
-        className={classes.select}
-        value={selectedKind.toLowerCase()}
-        onChange={e => setSelectedKind(e.target.value as string)}
-        variant="outlined"
+      <Autocomplete<KindOption, false, true, false>
+        className={classes.autocomplete}
+        options={autocompleteOptions}
+        value={selectedOption}
+        classes={{ listbox: classes.listbox }}
+        PopperComponent={BottomPinnedPopper}
+        disableClearable
+        openOnFocus
+        selectOnFocus
+        loading={loading}
+        getOptionLabel={option => option.label}
+        getOptionSelected={(option, value) => option.kind === value.kind}
+        groupBy={option => option.category}
+        onChange={(_event, value) => setSelectedKind(value.kind)}
+        renderOption={renderOption}
+        renderGroup={renderGroup}
+        noOptionsText="No entity kinds found"
         fullWidth
-        renderValue={value => {
-          const kind = value as string;
-          const KindIcon = app.getSystemIcon(`kind:${kind}`);
-          return (
-            <Box className={classes.renderValue}>
-              {KindIcon && <KindIcon />}
-              {kindDisplayNames[kind] || kind}
-            </Box>
-          );
-        }}
-        MenuProps={{
-          anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
-          transformOrigin: { vertical: 'top', horizontal: 'left' },
-          getContentAnchorEl: null,
-        }}
-      >
-        {menuItems}
-      </Select>
+        renderInput={params => (
+          <TextField
+            {...params}
+            variant="outlined"
+            placeholder="Select kind"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {loading ? <CircularProgress size={20} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+      />
     </Box>
   );
 };
