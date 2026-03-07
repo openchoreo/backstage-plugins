@@ -2521,12 +2521,12 @@ export interface components {
       /**
        * @deprecated
        * @description DEPRECATED: Use componentType instead. Legacy component type field.
-       * @example service/go-service
+       * @example deployment/go-service
        */
       type?: string;
       /**
-       * @description Component type reference (format: {workloadType}/{componentTypeName})
-       * @example service/go-service
+       * @description Component type reference in format: {workloadType}/{componentTypeName}
+       * @example deployment/go-service
        */
       componentType?: string;
       /**
@@ -3128,17 +3128,20 @@ export interface components {
       }[];
       /** @description Developer-configurable schema definition */
       schema?: {
-        /** @description Reusable type definitions */
-        types?: {
-          [key: string]: unknown;
-        };
-        /** @description Static developer configuration parameters */
-        parameters?: {
-          [key: string]: unknown;
-        };
-        /** @description Environment-specific overrides for platform engineers */
-        envOverrides?: {
-          [key: string]: unknown;
+        /** @description Schema using OpenChoreo's simple schema format */
+        ocSchema?: {
+          /** @description Reusable type definitions */
+          types?: {
+            [key: string]: unknown;
+          };
+          /** @description Static developer configuration parameters */
+          parameters?: {
+            [key: string]: unknown;
+          };
+          /** @description Environment-specific overrides for platform engineers */
+          envOverrides?: {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Pre-configured trait instances embedded in this component type */
@@ -3225,17 +3228,20 @@ export interface components {
     ClusterTraitSpec: {
       /** @description Trait parameter schema definition */
       schema?: {
-        /** @description Reusable type definitions */
-        types?: {
-          [key: string]: unknown;
-        };
-        /** @description Developer-facing configuration options */
-        parameters?: {
-          [key: string]: unknown;
-        };
-        /** @description Environment-specific overrides */
-        envOverrides?: {
-          [key: string]: unknown;
+        /** @description Schema using OpenChoreo's simple schema format */
+        ocSchema?: {
+          /** @description Reusable type definitions */
+          types?: {
+            [key: string]: unknown;
+          };
+          /** @description Developer-facing configuration options */
+          parameters?: {
+            [key: string]: unknown;
+          };
+          /** @description Environment-specific overrides */
+          envOverrides?: {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description CEL-based validation rules evaluated during rendering */
@@ -3336,17 +3342,20 @@ export interface components {
       }[];
       /** @description Developer-configurable schema definition */
       schema?: {
-        /** @description Reusable type definitions */
-        types?: {
-          [key: string]: unknown;
-        };
-        /** @description Static developer configuration parameters */
-        parameters?: {
-          [key: string]: unknown;
-        };
-        /** @description Environment-specific overrides for platform engineers */
-        envOverrides?: {
-          [key: string]: unknown;
+        /** @description Schema using OpenChoreo's simple schema format */
+        ocSchema?: {
+          /** @description Reusable type definitions */
+          types?: {
+            [key: string]: unknown;
+          };
+          /** @description Static developer configuration parameters */
+          parameters?: {
+            [key: string]: unknown;
+          };
+          /** @description Environment-specific overrides for platform engineers */
+          envOverrides?: {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description Pre-configured trait instances embedded in this component type */
@@ -3434,17 +3443,20 @@ export interface components {
     TraitSpec: {
       /** @description Trait parameter schema definition */
       schema?: {
-        /** @description Reusable type definitions */
-        types?: {
-          [key: string]: unknown;
-        };
-        /** @description Developer-facing configuration options */
-        parameters?: {
-          [key: string]: unknown;
-        };
-        /** @description Environment-specific overrides */
-        envOverrides?: {
-          [key: string]: unknown;
+        /** @description Schema using OpenChoreo's simple schema format */
+        ocSchema?: {
+          /** @description Reusable type definitions */
+          types?: {
+            [key: string]: unknown;
+          };
+          /** @description Developer-facing configuration options */
+          parameters?: {
+            [key: string]: unknown;
+          };
+          /** @description Environment-specific overrides */
+          envOverrides?: {
+            [key: string]: unknown;
+          };
         };
       };
       /** @description CEL-based validation rules evaluated during rendering */
@@ -3602,13 +3614,16 @@ export interface components {
     };
     /** @description Developer-facing schema definition for workflow parameters */
     WorkflowSchema: {
-      /** @description Reusable type definitions */
-      types?: {
-        [key: string]: unknown;
-      };
-      /** @description Developer-facing configuration options */
-      parameters?: {
-        [key: string]: unknown;
+      /** @description Schema using OpenChoreo's simple schema format */
+      ocSchema?: {
+        /** @description Reusable type definitions */
+        types?: {
+          [key: string]: unknown;
+        };
+        /** @description Developer-facing configuration options */
+        parameters?: {
+          [key: string]: unknown;
+        };
       };
     };
     /** @description Template for generating an additional Kubernetes resource for a workflow run. */
