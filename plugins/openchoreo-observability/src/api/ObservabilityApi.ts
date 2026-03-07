@@ -54,7 +54,7 @@ export interface ObservabilityApi {
       limit?: number;
       startTime?: string;
       endTime?: string;
-      sort?: 'asc' | 'desc';
+      sortOrder?: 'asc' | 'desc';
     },
   ): Promise<{
     traces: Trace[];
@@ -105,6 +105,29 @@ export interface ObservabilityApi {
     environmentName: string,
     namespaceName: string,
   ): Promise<RCAReportDetailed>;
+
+  getIncidents(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    incidents: Array<{
+      incidentId: string;
+      alertId: string;
+      status: 'triggered' | 'acknowledged' | 'resolved';
+      description?: string;
+      triggeredAt?: string;
+      resolvedAt?: string;
+    }>;
+    total: number;
+  }>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -225,7 +248,7 @@ export class ObservabilityClient implements ObservabilityApi {
       limit?: number;
       startTime?: string;
       endTime?: string;
-      sort?: 'asc' | 'desc';
+      sortOrder?: 'asc' | 'desc';
     },
   ): Promise<{
     traces: Trace[];
@@ -247,7 +270,7 @@ export class ObservabilityClient implements ObservabilityApi {
             options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
           endTime: options?.endTime ?? new Date().toISOString(),
           limit: options?.limit ?? 100,
-          sort: options?.sort ?? 'desc',
+          sortOrder: options?.sortOrder ?? 'desc',
           searchScope: {
             namespace: namespaceName,
             project: projectName,
@@ -318,7 +341,7 @@ export class ObservabilityClient implements ObservabilityApi {
             options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
           endTime: options?.endTime ?? new Date().toISOString(),
           limit: 1000,
-          sort: 'asc',
+          sortOrder: 'asc',
           searchScope: {
             namespace: namespaceName,
             project: projectName,
@@ -490,6 +513,81 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const data = await response.json();
     return data;
+  }
+
+  async getIncidents(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    incidents: Array<{
+      incidentId: string;
+      alertId: string;
+      status: 'triggered' | 'acknowledged' | 'resolved';
+      description?: string;
+      triggeredAt?: string;
+      resolvedAt?: string;
+    }>;
+    total: number;
+  }> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/incidents/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: options?.limit ?? 100,
+          sortOrder: options?.sortOrder ?? 'desc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            component: componentName,
+            environment: environmentName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(
+        error || `Failed to fetch incidents: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    const validStatuses = ['triggered', 'acknowledged', 'resolved'];
+    return {
+      incidents: (data.incidents ?? [])
+        .filter((i: any) => validStatuses.includes(i.status))
+        .map((i: any) => ({
+          incidentId: i.incidentId ?? '',
+          alertId: i.alertId ?? '',
+          status: i.status,
+          description: i.description,
+          triggeredAt: i.triggeredAt,
+          resolvedAt: i.resolvedAt,
+        })),
+      total: data.total ?? 0,
+    };
   }
 
   async getRuntimeLogs(

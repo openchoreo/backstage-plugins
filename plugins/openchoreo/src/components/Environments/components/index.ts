@@ -6,3 +6,4 @@ export { EnvironmentCardHeader } from './EnvironmentCardHeader';
 export { EnvironmentCardContent } from './EnvironmentCardContent';
 export { EnvironmentActions } from './EnvironmentActions';
 export { InvokeUrlsDialog } from './InvokeUrlsDialog';
+export { IncidentsBanner } from './IncidentsBanner';
