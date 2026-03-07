@@ -23,7 +23,6 @@ export function transformDataPlane(dataPlane: DataPlane): DataPlaneResponse {
     namespace: getNamespace(dataPlane) ?? '',
     displayName: getDisplayName(dataPlane),
     description: getDescription(dataPlane),
-    imagePullSecretRefs: dataPlane.spec?.imagePullSecretRefs,
     secretStoreRef: dataPlane.spec?.secretStoreRef?.name,
     gateway: ingress
       ? {

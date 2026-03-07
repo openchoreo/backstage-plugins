@@ -224,7 +224,6 @@ describe('transformDataPlane', () => {
           },
         },
       },
-      imagePullSecretRefs: ['docker-secret'],
       secretStoreRef: { name: 'vault-store' },
       observabilityPlaneRef: {
         kind: 'ObservabilityPlane',

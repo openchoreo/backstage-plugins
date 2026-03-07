@@ -32,9 +32,9 @@ export interface ReleaseTreeRelease {
   name: string;
   targetPlane: string;
   nodes: ResourceTreeNode[];
-  release?: Record<string, unknown>; // Full Release CR from enriched tree response
+  renderedRelease?: Record<string, unknown>; // Full RenderedRelease CR from enriched tree response
 }
 
 export interface ResourceTreeData {
-  releases?: ReleaseTreeRelease[];
+  renderedReleases?: ReleaseTreeRelease[];
 }
