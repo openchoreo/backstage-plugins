@@ -15,12 +15,10 @@ import { useTreeStyles } from './treeStyles';
 import type { LayoutNode } from './treeTypes';
 import { getHealthChipClass } from '../utils';
 import { useReleaseInfoStyles } from '../styles';
-import type { ReleaseData } from '../types';
 
 interface ResourceDetailPanelProps {
   node: LayoutNode | null;
   onClose: () => void;
-  releaseData: ReleaseData | null;
   releaseBindingData: Record<string, unknown> | null;
   namespaceName: string;
   releaseBindingName: string;
@@ -29,7 +27,6 @@ interface ResourceDetailPanelProps {
 export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
   node,
   onClose,
-  releaseData,
   releaseBindingData,
   namespaceName,
   releaseBindingName,
@@ -86,10 +83,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
 
           {/* Content: root summary/definition tabs, release summary, or resource tabs */}
           {node.isRoot && (
-            <ReleaseBindingDetailTabs
-              releaseData={releaseData}
-              releaseBindingData={releaseBindingData}
-            />
+            <ReleaseBindingDetailTabs releaseBindingData={releaseBindingData} />
           )}
           {!node.isRoot && node.kind === 'Release' && (
             <Box padding={2}>

@@ -24,6 +24,7 @@ export interface RuntimeLogsFilters {
   selectedFields: LogEntryField[];
   environmentId: string;
   timeRange: string;
+  componentIds?: string[];
   searchQuery?: string;
   sortOrder?: 'asc' | 'desc';
   isLive?: boolean;
@@ -72,6 +73,7 @@ export enum LogEntryField {
   Timestamp = 'Timestamp',
   Log = 'Log',
   LogLevel = 'LogLevel',
+  ComponentName = 'Component Name',
 }
 
 export const SELECTED_FIELDS = [

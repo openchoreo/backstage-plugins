@@ -4199,6 +4199,9 @@ export interface components {
       targetPlane: 'dataplane' | 'observabilityplane';
       /** @description All resource nodes in the tree */
       nodes: components['schemas']['ResourceNode'][];
+      /** @description Full Release CR (metadata + spec + status). Same structure as returned by GET /releases/{releaseName}.
+       *      */
+      release?: components['schemas']['Release'];
     };
     /** @description Request to deploy a release */
     DeployReleaseRequest: {

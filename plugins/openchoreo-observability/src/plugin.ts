@@ -80,3 +80,15 @@ export const ObservabilityRuntimeLogs = openchoreoObservabilityPlugin.provide(
     mountPoint: rootRouteRef,
   }),
 );
+
+export const ObservabilityProjectRuntimeLogs =
+  openchoreoObservabilityPlugin.provide(
+    createRoutableExtension({
+      name: 'ObservabilityProjectRuntimeLogs',
+      component: () =>
+        import(
+          './components/RuntimeLogs/ObservabilityProjectRuntimeLogsPage'
+        ).then(m => m.ObservabilityProjectRuntimeLogsPage),
+      mountPoint: rootRouteRef,
+    }),
+  );

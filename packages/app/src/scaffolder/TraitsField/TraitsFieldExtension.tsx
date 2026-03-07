@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
 import {
   Box,
@@ -103,6 +103,144 @@ export interface AddedTrait {
   schema?: JSONSchema7;
   uiSchema?: any; // UI schema with sanitized field labels
 }
+
+/**
+ * Trait accordion item that manages instance name and config as local state.
+ * Prevents the parent from re-rendering on every keystroke.
+ * Changes are flushed to the parent only when the accordion collapses.
+ */
+const TraitAccordionItem = ({
+  trait,
+  index,
+  expanded,
+  onAccordionChange,
+  onRemove,
+  onInstanceNameChange,
+  onConfigChange,
+  classes,
+}: {
+  trait: AddedTrait;
+  index: number;
+  expanded: boolean;
+  onAccordionChange: (
+    event: React.ChangeEvent<{}>,
+    isExpanded: boolean,
+  ) => void;
+  onRemove: () => void;
+  onInstanceNameChange: (instanceName: string) => void;
+  onConfigChange: (config: Record<string, any>) => void;
+  classes: ReturnType<typeof useStyles>;
+}) => {
+  const [localInstanceName, setLocalInstanceName] = useState(
+    trait.instanceName || '',
+  );
+  const [localConfig, setLocalConfig] = useState<Record<string, any>>(
+    trait.config || {},
+  );
+
+  // Sync from parent when trait changes externally (e.g. after add/remove)
+  useEffect(() => {
+    setLocalInstanceName(trait.instanceName || '');
+  }, [trait.instanceName]);
+  useEffect(() => {
+    setLocalConfig(trait.config || {});
+  }, [trait.config]);
+
+  const handleLocalNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalInstanceName(e.target.value);
+  };
+
+  const handleNameBlur = () => {
+    onInstanceNameChange(localInstanceName);
+  };
+
+  const handleLocalConfigChange = useCallback((config: Record<string, any>) => {
+    setLocalConfig(config);
+  }, []);
+
+  // Flush both name and config to parent when accordion collapses
+  const handleAccordionToggle = useCallback(
+    (event: React.ChangeEvent<{}>, isExpanded: boolean) => {
+      if (!isExpanded) {
+        onInstanceNameChange(localInstanceName);
+        onConfigChange(localConfig);
+      }
+      onAccordionChange(event, isExpanded);
+    },
+    [
+      localInstanceName,
+      localConfig,
+      onInstanceNameChange,
+      onConfigChange,
+      onAccordionChange,
+    ],
+  );
+
+  return (
+    <Accordion
+      expanded={expanded}
+      onChange={handleAccordionToggle}
+      className={classes.accordion}
+      elevation={0}
+    >
+      <AccordionSummary
+        expandIcon={<ExpandMoreIcon />}
+        className={classes.accordionSummary}
+      >
+        <Box className={classes.summaryContent}>
+          <Box display="flex" alignItems="center">
+            <Typography className={classes.traitTitle}>
+              {localInstanceName || `${trait.name} #${index + 1}`}
+            </Typography>
+            <Typography className={classes.traitName}>
+              ({trait.name})
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={e => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            size="small"
+            className={classes.deleteButton}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      </AccordionSummary>
+      <AccordionDetails className={classes.accordionDetails}>
+        {/* Instance Name Field */}
+        <Box mb={2}>
+          <TextField
+            label="Instance Name"
+            value={localInstanceName}
+            onChange={handleLocalNameChange}
+            onBlur={handleNameBlur}
+            fullWidth
+            required
+            variant="outlined"
+            size="small"
+            helperText="A unique name to identify this trait instance"
+          />
+        </Box>
+
+        {/* Trait Configuration */}
+        {trait.schema && (
+          <Form
+            schema={trait.schema}
+            uiSchema={trait.uiSchema || {}}
+            formData={localConfig}
+            onChange={data => handleLocalConfigChange(data.formData)}
+            validator={validator}
+            showErrorList={false}
+            tagName="div"
+            children={<div />} // Hide submit button
+          />
+        )}
+      </AccordionDetails>
+    </Accordion>
+  );
+};
 
 /**
  * TraitsField component
@@ -331,13 +469,13 @@ export const TraitsField = ({
     onChange(updatedTraits);
   };
 
-  // Update trait instance name
+  // Instance name is internal to the trait accordion — no parent notification needed.
+  // The parent form receives the final names via onChange from other actions
+  // (add/remove/config change) which read from current addedTraits state.
   const handleInstanceNameChange = (id: string, instanceName: string) => {
-    const updatedTraits = addedTraits.map(trait =>
-      trait.id === id ? { ...trait, instanceName } : trait,
+    setAddedTraits(prev =>
+      prev.map(trait => (trait.id === id ? { ...trait, instanceName } : trait)),
     );
-    setAddedTraits(updatedTraits);
-    onChange(updatedTraits);
   };
 
   // Update trait configuration
@@ -390,72 +528,21 @@ export const TraitsField = ({
             Configured Traits ({addedTraits.length})
           </Typography>
           {addedTraits.map((trait, index) => (
-            <Accordion
+            <TraitAccordionItem
               key={trait.id}
+              trait={trait}
+              index={index}
               expanded={expandedAccordion === trait.id}
-              onChange={handleAccordionChange(trait.id)}
-              className={classes.accordion}
-              elevation={0}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                className={classes.accordionSummary}
-              >
-                <Box className={classes.summaryContent}>
-                  <Box display="flex" alignItems="center">
-                    <Typography className={classes.traitTitle}>
-                      {trait.instanceName || `${trait.name} #${index + 1}`}
-                    </Typography>
-                    <Typography className={classes.traitName}>
-                      ({trait.name})
-                    </Typography>
-                  </Box>
-                  <IconButton
-                    onClick={e => {
-                      e.stopPropagation();
-                      handleRemoveTrait(trait.id);
-                    }}
-                    size="small"
-                    className={classes.deleteButton}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails className={classes.accordionDetails}>
-                {/* Instance Name Field */}
-                <Box mb={2}>
-                  <TextField
-                    label="Instance Name"
-                    value={trait.instanceName || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      handleInstanceNameChange(trait.id, e.target.value)
-                    }
-                    fullWidth
-                    required
-                    variant="outlined"
-                    size="small"
-                    helperText="A unique name to identify this trait instance"
-                  />
-                </Box>
-
-                {/* Trait Configuration */}
-                {trait.schema && (
-                  <Form
-                    schema={trait.schema}
-                    uiSchema={trait.uiSchema || {}}
-                    formData={trait.config}
-                    onChange={data =>
-                      handleTraitConfigChange(trait.id, data.formData)
-                    }
-                    validator={validator}
-                    showErrorList={false}
-                    tagName="div"
-                    children={<div />} // Hide submit button
-                  />
-                )}
-              </AccordionDetails>
-            </Accordion>
+              onAccordionChange={handleAccordionChange(trait.id)}
+              onRemove={() => handleRemoveTrait(trait.id)}
+              onInstanceNameChange={(name: string) =>
+                handleInstanceNameChange(trait.id, name)
+              }
+              onConfigChange={(config: Record<string, any>) =>
+                handleTraitConfigChange(trait.id, config)
+              }
+              classes={classes}
+            />
           ))}
         </Box>
       )}

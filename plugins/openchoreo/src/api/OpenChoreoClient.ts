@@ -55,7 +55,6 @@ const API_ENDPOINTS = {
   RELEASE_BINDINGS: '/release-bindings',
   UPDATE_RELEASE_BINDING: '/update-release-binding',
   PATCH_RELEASE_BINDING: '/patch-release-binding',
-  ENVIRONMENT_RELEASE: '/environment-release',
   RESOURCE_TREE: '/resourcetree',
   RESOURCE_EVENTS: '/resource-events',
   POD_LOGS: '/pod-logs',
@@ -397,20 +396,6 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     return this.apiFetch(API_ENDPOINTS.PATCH_RELEASE_BINDING, {
       method: 'PATCH',
       body: patchReq,
-    });
-  }
-
-  async fetchEnvironmentRelease(
-    entity: Entity,
-    environmentName: string,
-  ): Promise<any> {
-    const metadata = extractEntityMetadata(entity);
-
-    return this.apiFetch(API_ENDPOINTS.ENVIRONMENT_RELEASE, {
-      params: {
-        ...entityMetadataToParams(metadata),
-        environmentName,
-      },
     });
   }
 

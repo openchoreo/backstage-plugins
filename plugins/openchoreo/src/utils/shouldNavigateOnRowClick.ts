@@ -1,7 +1,5 @@
-import React from 'react';
-
 export function shouldNavigateOnRowClick(event: unknown): boolean {
-  const e = event as React.MouseEvent;
+  const e = event as globalThis.MouseEvent;
   if (
     e.defaultPrevented ||
     e.button !== 0 ||

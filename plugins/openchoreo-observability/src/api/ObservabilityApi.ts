@@ -22,7 +22,7 @@ export interface ObservabilityApi {
     namespaceName: string,
     projectName: string,
     environmentName: string,
-    componentName: string,
+    componentName?: string,
     options?: {
       limit?: number;
       startTime?: string;
@@ -499,7 +499,7 @@ export class ObservabilityClient implements ObservabilityApi {
     namespaceName: string,
     projectName: string,
     environmentName: string,
-    componentName: string,
+    componentName?: string,
     options?: {
       limit?: number;
       startTime?: string;
@@ -534,7 +534,7 @@ export class ObservabilityClient implements ObservabilityApi {
           searchScope: {
             namespace: namespaceName,
             project: projectName,
-            component: componentName,
+            ...(componentName ? { component: componentName } : {}),
             environment: environmentName,
           },
         }),
