@@ -2521,12 +2521,12 @@ export interface components {
       /**
        * @deprecated
        * @description DEPRECATED: Use componentType instead. Legacy component type field.
-       * @example service/go-service
+       * @example deployment/go-service
        */
       type?: string;
       /**
-       * @description Component type reference (format: {workloadType}/{componentTypeName})
-       * @example service/go-service
+       * @description Component type reference in format: {workloadType}/{componentTypeName}
+       * @example deployment/go-service
        */
       componentType?: string;
       /**
