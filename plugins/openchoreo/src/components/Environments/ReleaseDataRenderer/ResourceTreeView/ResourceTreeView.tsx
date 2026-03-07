@@ -14,10 +14,9 @@ import { ReleaseStatusBar } from './ReleaseStatusBar';
 import { useTreeStyles } from './treeStyles';
 import { buildTreeNodes, computeTreeLayout } from './treeLayoutUtils';
 import type { LayoutNode } from './treeTypes';
-import type { ReleaseData, ResourceTreeData } from '../types';
+import type { ResourceTreeData } from '../types';
 
 interface ResourceTreeViewProps {
-  releaseData: ReleaseData | null;
   resourceTreeData: ResourceTreeData;
   releaseBindingData: Record<string, unknown> | null;
   namespaceName: string;
@@ -27,7 +26,6 @@ interface ResourceTreeViewProps {
 }
 
 export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
-  releaseData,
   resourceTreeData,
   releaseBindingData,
   namespaceName,
@@ -39,13 +37,9 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
   const [selectedNode, setSelectedNode] = useState<LayoutNode | null>(null);
 
   const layout = useMemo(() => {
-    const nodes = buildTreeNodes(
-      releaseData,
-      resourceTreeData,
-      releaseBindingData,
-    );
+    const nodes = buildTreeNodes(resourceTreeData, releaseBindingData);
     return computeTreeLayout(nodes);
-  }, [releaseData, resourceTreeData, releaseBindingData]);
+  }, [resourceTreeData, releaseBindingData]);
 
   useEffect(() => {
     if (selectedNode && !layout.nodes.some(n => n.id === selectedNode.id)) {
@@ -73,7 +67,6 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
       <Box className={classes.statusBarWrapper}>
         <div className={classes.statusBarContent}>
           <ReleaseStatusBar
-            releaseData={releaseData}
             resourceTreeData={resourceTreeData}
             releaseBindingData={releaseBindingData}
           />
@@ -125,7 +118,6 @@ export const ResourceTreeView: FC<ResourceTreeViewProps> = ({
       <ResourceDetailPanel
         node={selectedNode}
         onClose={() => setSelectedNode(null)}
-        releaseData={releaseData}
         releaseBindingData={releaseBindingData}
         namespaceName={namespaceName}
         releaseBindingName={releaseBindingName}

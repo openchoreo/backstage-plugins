@@ -5,23 +5,14 @@ import { useTreeStyles } from './treeStyles';
 import { getResourceTreeNodes } from './treeLayoutUtils';
 import { getHealthStatusForTab, formatTimestamp } from '../utils';
 import type {
-  ReleaseData,
   ResourceTreeData,
   HealthStatus,
   ResourceTreeNode,
 } from '../types';
 
-function getReadyCondition(releaseData: ReleaseData | null) {
-  const conditions = releaseData?.data?.status?.conditions;
-  if (!conditions) return undefined;
-  return conditions.find(c => c.type === 'Ready');
-}
-
 function getOverallHealth(
-  releaseData: ReleaseData | null,
   releaseBindingData?: Record<string, unknown> | null,
 ): { label: string; status: HealthStatus; reason?: string } {
-  // Prefer ReleaseBinding status (matches tree root node logic)
   if (releaseBindingData) {
     if (typeof releaseBindingData.status === 'string') {
       const flatStatus = releaseBindingData.status;
@@ -53,17 +44,7 @@ function getOverallHealth(
     }
   }
 
-  // Fallback to release conditions
-  const ready = getReadyCondition(releaseData);
-  if (!ready) {
-    return { label: 'Unknown', status: 'Unknown' };
-  }
-  const isReady = ready.status === 'True';
-  return {
-    label: isReady ? 'Healthy' : 'Degraded',
-    status: isReady ? 'Healthy' : 'Degraded',
-    reason: ready.reason,
-  };
+  return { label: 'Unknown', status: 'Unknown' };
 }
 
 function getResourceCounts(nodes: ResourceTreeNode[]) {
@@ -138,20 +119,18 @@ function formatRelativeTime(timestamp: string): string {
 }
 
 interface ReleaseStatusBarProps {
-  releaseData: ReleaseData | null;
   resourceTreeData: ResourceTreeData;
   releaseBindingData?: Record<string, unknown> | null;
 }
 
 export const ReleaseStatusBar: FC<ReleaseStatusBarProps> = ({
-  releaseData,
   resourceTreeData,
   releaseBindingData,
 }) => {
   const classes = useTreeStyles();
 
   const { health, resources, lastUpdated } = useMemo(() => {
-    const h = getOverallHealth(releaseData, releaseBindingData);
+    const h = getOverallHealth(releaseBindingData);
     const nodes = getResourceTreeNodes(resourceTreeData);
     const counts = getResourceCounts(nodes);
     const latestTime = getLatestCreatedAt(nodes);
@@ -169,7 +148,7 @@ export const ReleaseStatusBar: FC<ReleaseStatusBarProps> = ({
           }
         : undefined,
     };
-  }, [releaseData, resourceTreeData, releaseBindingData]);
+  }, [resourceTreeData, releaseBindingData]);
 
   const badgeStatus = getHealthStatusForTab(health.status) ?? 'default';
 

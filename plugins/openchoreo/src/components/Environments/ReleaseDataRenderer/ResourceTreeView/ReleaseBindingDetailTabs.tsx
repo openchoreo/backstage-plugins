@@ -17,7 +17,6 @@ import { YamlViewer } from '@openchoreo/backstage-design-system';
 import { useTreeStyles } from './treeStyles';
 import { useReleaseInfoStyles } from '../styles';
 import { formatTimestamp, getHealthChipClass } from '../utils';
-import type { ReleaseData } from '../types';
 
 /** Helper to extract a field from either flat (legacy) or nested (new API) format */
 function getBindingField(
@@ -55,12 +54,10 @@ function getBindingConditions(binding: Record<string, unknown>): any[] {
 }
 
 interface ReleaseBindingDetailTabsProps {
-  releaseData: ReleaseData | null;
   releaseBindingData: Record<string, unknown> | null;
 }
 
 export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
-  releaseData,
   releaseBindingData,
 }) => {
   const classes = useTreeStyles();
@@ -76,13 +73,9 @@ export const ReleaseBindingDetailTabs: FC<ReleaseBindingDetailTabsProps> = ({
     setActiveTab(0);
   }, [bindingName]);
 
-  // Get conditions from release binding (new API) or fall back to release data conditions
-  const conditions = releaseBindingData
+  const displayConditions = releaseBindingData
     ? getBindingConditions(releaseBindingData)
     : [];
-  const fallbackConditions = releaseData?.data?.status?.conditions ?? [];
-  const displayConditions =
-    conditions.length > 0 ? conditions : fallbackConditions;
 
   const releaseName = releaseBindingData
     ? (getBindingField(releaseBindingData, 'releaseName') as string | undefined)

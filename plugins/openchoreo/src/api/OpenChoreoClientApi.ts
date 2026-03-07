@@ -391,12 +391,6 @@ export interface OpenChoreoClientApi {
     releaseName?: string,
   ): Promise<any>;
 
-  /** Fetch release data for a specific environment */
-  fetchEnvironmentRelease(
-    entity: Entity,
-    environmentName: string,
-  ): Promise<any>;
-
   /** Fetch resource tree for a specific release binding */
   fetchResourceTree(
     namespaceName: string,

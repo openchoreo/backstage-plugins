@@ -5,54 +5,6 @@ export type HealthStatus =
   | 'Suspended'
   | 'Degraded';
 
-export interface ReleaseResource {
-  id: string;
-  group?: string;
-  version: string;
-  kind: string;
-  name: string;
-  namespace?: string;
-  status?: Record<string, unknown>;
-  healthStatus?: HealthStatus;
-  lastObservedTime?: string;
-}
-
-export interface ReleaseCondition {
-  type: string;
-  status: string;
-  lastTransitionTime?: string;
-  reason?: string;
-  message?: string;
-}
-
-export interface SpecResource {
-  id: string;
-  object: Record<string, unknown>;
-}
-
-export interface ReleaseSpec {
-  owner?: {
-    projectName?: string;
-    componentName?: string;
-  };
-  environmentName?: string;
-  resources?: SpecResource[];
-  interval?: string;
-  progressingInterval?: string;
-}
-
-export interface ReleaseStatus {
-  resources?: ReleaseResource[];
-  conditions?: ReleaseCondition[];
-}
-
-export interface ReleaseData {
-  data?: {
-    spec?: ReleaseSpec;
-    status?: ReleaseStatus;
-  };
-}
-
 export interface ResourceTreeParentRef {
   group?: string;
   version: string;
@@ -80,6 +32,7 @@ export interface ReleaseTreeRelease {
   name: string;
   targetPlane: string;
   nodes: ResourceTreeNode[];
+  release?: Record<string, unknown>; // Full Release CR from enriched tree response
 }
 
 export interface ResourceTreeData {

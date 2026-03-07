@@ -57,7 +57,6 @@ export const ReleaseDetailsPage = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [releaseData, setReleaseData] = useState<any>(null);
   const [resourceTreeData, setResourceTreeData] = useState<any>(null);
   const [releaseBindingData, setReleaseBindingData] = useState<Record<
     string,
@@ -79,10 +78,9 @@ export const ReleaseDetailsPage = ({
       }
 
       try {
-        // Fetch release data and release bindings in parallel
-        const [releaseResult, releaseBindingsResult] = await Promise.all([
-          client.fetchEnvironmentRelease(entity, environmentName),
-          client.fetchReleaseBindings(entity).catch(err => {
+        const releaseBindingsResult = await client
+          .fetchReleaseBindings(entity)
+          .catch(err => {
             if (showLoadingState) {
               return {
                 success: false,
@@ -90,8 +88,7 @@ export const ReleaseDetailsPage = ({
               };
             }
             throw err;
-          }),
-        ]);
+          });
 
         // Find the release binding matching this environment
         const bindingsResult = releaseBindingsResult as any;
@@ -114,7 +111,6 @@ export const ReleaseDetailsPage = ({
             });
         }
 
-        setReleaseData(releaseResult);
         setReleaseBindingData(matchingBinding);
         setResourceTreeData(nextResourceTreeData);
       } catch (err: any) {
@@ -184,9 +180,8 @@ export const ReleaseDetailsPage = ({
         </Box>
       )}
 
-      {!loading && !error && (releaseData || releaseBindingData) && (
+      {!loading && !error && releaseBindingData && (
         <ResourceTreeView
-          releaseData={releaseData}
           resourceTreeData={resourceTreeData ?? { releases: [] }}
           releaseBindingData={releaseBindingData}
           namespaceName={namespaceName}
@@ -196,7 +191,7 @@ export const ReleaseDetailsPage = ({
         />
       )}
 
-      {!loading && !error && !releaseData && !releaseBindingData && (
+      {!loading && !error && !releaseBindingData && (
         <Box className={classes.emptyContainer}>
           <Typography variant="body2" color="textSecondary">
             No release data available for this environment

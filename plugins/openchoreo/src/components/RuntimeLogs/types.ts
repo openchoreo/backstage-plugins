@@ -1,9 +1,23 @@
-import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
-
 /**
  * A single component log entry as returned by POST /api/v1/logs/query.
  */
-export type LogEntry = ObservabilityComponents['schemas']['ComponentLogEntry'];
+export interface LogEntry {
+  timestamp?: string;
+  log?: string;
+  level?: string;
+  metadata?: {
+    componentName?: string;
+    projectName?: string;
+    environmentName?: string;
+    namespaceName?: string;
+    componentUid?: string;
+    projectUid?: string;
+    environmentUid?: string;
+    containerName?: string;
+    podName?: string;
+    podNamespace?: string;
+  };
+}
 
 export interface LogsResponse {
   logs: LogEntry[];
