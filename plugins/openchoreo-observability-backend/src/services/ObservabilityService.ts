@@ -514,7 +514,7 @@ export class ObservabilityService {
    * @param options.limit - The maximum number of traces to return (default 100)
    * @param options.startTime - The start time of the query (ISO 8601)
    * @param options.endTime - The end time of the query (ISO 8601)
-   * @param options.sort - Sort order for traces (asc/desc, default desc)
+   * @param options.sortOrder - Sort order for traces (asc/desc, default desc)
    * @param userToken - Optional user token for authentication
    * @returns Promise with traces data
    */
@@ -527,7 +527,7 @@ export class ObservabilityService {
       limit?: number;
       startTime?: string;
       endTime?: string;
-      sort?: 'asc' | 'desc';
+      sortOrder?: 'asc' | 'desc';
     },
     userToken?: string,
   ): Promise<{
@@ -568,7 +568,7 @@ export class ObservabilityService {
             startTime: options.startTime,
             endTime: options.endTime,
             limit: options?.limit ?? 100,
-            sort: options?.sort ?? 'desc',
+            sortOrder: options?.sortOrder ?? 'desc',
             searchScope: {
               namespace: namespaceName,
               project: projectName,
@@ -675,7 +675,7 @@ export class ObservabilityService {
             startTime: options.startTime,
             endTime: options.endTime,
             limit: 1000,
-            sort: 'asc',
+            sortOrder: 'asc',
             searchScope: {
               namespace: namespaceName,
               project: projectName,
