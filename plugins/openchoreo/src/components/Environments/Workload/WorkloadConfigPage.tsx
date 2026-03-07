@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useContext } from 'react';
+import { useEffect, useState, useRef, useContext, useCallback } from 'react';
 import {
   useNavigate,
   useLocation,
@@ -19,14 +19,20 @@ import {
   UnsavedChangesDialog,
 } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import type { ComponentTrait } from '../../../api/OpenChoreoClientApi';
 import { WorkloadProvider } from './WorkloadContext';
 import { WorkloadEditor } from './WorkloadEditor';
 import { isFromSourceComponent } from '../../../utils/componentUtils';
 import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
+import { usePendingChanges } from '../../Traits/hooks/usePendingChanges';
+import {
+  deepCompareObjects,
+} from '@openchoreo/backstage-plugin-react';
 
 /** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
 const EMPTY_BUILDS: never[] = [];
+const EMPTY_TRAITS: ComponentTrait[] = [];
 
 const useStyles = makeStyles(theme => ({
   loadingContainer: {
@@ -70,6 +76,7 @@ export const WorkloadConfigPage = ({
   const client = useApi(openChoreoClientApiRef);
   const { entity } = useEntity();
 
+  // Workload state
   const [workloadSpec, setWorkloadSpec] = useState<ModelsWorkload | null>(null);
   const [initialWorkload, setInitialWorkload] = useState<ModelsWorkload | null>(
     null,
@@ -81,8 +88,28 @@ export const WorkloadConfigPage = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
     useState(false);
-  // Track if any row is being edited in child components
   const [isEditing, setIsEditing] = useState(false);
+
+  // Component config state (traits + parameters)
+  const [initialTraits, setInitialTraits] = useState<ComponentTrait[]>(EMPTY_TRAITS);
+  const [hasParameters, setHasParameters] = useState(false);
+  const [componentParameters, setComponentParameters] = useState<Record<string, unknown>>({});
+  const [initialParameters, setInitialParameters] = useState<Record<string, unknown>>({});
+
+  // Traits management via usePendingChanges
+  const {
+    traitsState,
+    hasChanges: hasTraitChanges,
+    addTrait,
+    editTrait,
+    deleteTrait,
+    undoDelete,
+    getTraitsForSave,
+  } = usePendingChanges(initialTraits);
+
+  // Parameter changes
+  const parameterChanges = deepCompareObjects(initialParameters, componentParameters);
+  const hasParameterChanges = parameterChanges.length > 0;
 
   // Track if we should allow navigation (when user confirms discard)
   const allowNavigationRef = useRef(false);
@@ -94,61 +121,95 @@ export const WorkloadConfigPage = ({
   const location = useLocation();
   const navigation = useContext(NavigationContext);
 
-  // Calculate changes between initial and current workload
-  const changes = useWorkloadChanges(initialWorkload, workloadSpec);
+  // Calculate workload changes
+  const workloadChanges = useWorkloadChanges(initialWorkload, workloadSpec);
 
-  // Fetch workload info
+  // Fetch workload and component config
   useEffect(() => {
-    const fetchWorkload = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await client.fetchWorkloadInfo(entity);
-        setWorkloadSpec(response);
-        // Store a deep copy as initial state for change comparison
-        setInitialWorkload(
-          response ? JSON.parse(JSON.stringify(response)) : null,
-        );
-        setIsNewWorkload(false);
-      } catch (e) {
-        // Handle missing workload differently based on component type
-        if (isFromSourceComponent(entity)) {
-          // From-source component - workload should exist after build
-          setError(
-            'Workload configuration not found. The workload should have been created automatically after a successful build. Please re-run the build workflow.',
+
+        // Fetch workload and traits in parallel
+        const [workloadResult, traitsResult] = await Promise.allSettled([
+          client.fetchWorkloadInfo(entity),
+          client.fetchComponentTraits(entity),
+        ]);
+
+        // Handle workload result
+        if (workloadResult.status === 'fulfilled') {
+          const response = workloadResult.value;
+          setWorkloadSpec(response);
+          setInitialWorkload(
+            response ? JSON.parse(JSON.stringify(response)) : null,
           );
+          setIsNewWorkload(false);
         } else {
-          // Pre-built image - initialize a default workload structure so the editor renders
-          setIsNewWorkload(true);
-          const defaultWorkload = {
-            name: entity.metadata.name,
-            owner: {
-              projectName:
-                entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] || '',
-              componentName: entity.metadata.name,
-            },
-            container: {
-              image: '',
-            },
-            endpoints: {},
-            dependencies: { endpoints: [] },
-          };
-          setWorkloadSpec(defaultWorkload);
-          setInitialWorkload(JSON.parse(JSON.stringify(defaultWorkload)));
+          if (isFromSourceComponent(entity)) {
+            setError(
+              'Workload configuration not found. The workload should have been created automatically after a successful build. Please re-run the build workflow.',
+            );
+          } else {
+            setIsNewWorkload(true);
+            const defaultWorkload = {
+              name: entity.metadata.name,
+              owner: {
+                projectName:
+                  entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] || '',
+                componentName: entity.metadata.name,
+              },
+              container: {
+                image: '',
+              },
+              dependencies: { endpoints: [] },
+              connections: [],
+            };
+            setWorkloadSpec(defaultWorkload);
+            setInitialWorkload(JSON.parse(JSON.stringify(defaultWorkload)));
+          }
         }
+
+        // Handle traits result
+        if (traitsResult.status === 'fulfilled') {
+          setInitialTraits(traitsResult.value);
+        }
+
+        // Note: Parameters are fetched from component details.
+        // For now, we check if the component has parameters by looking at
+        // the component spec. We don't show the Parameters tab if the
+        // component response doesn't have spec.parameters.
+        try {
+          const componentDetails = await client.getComponentDetails(entity);
+          const params = (componentDetails as any)?.parameters;
+          if (params && typeof params === 'object' && Object.keys(params).length > 0) {
+            setHasParameters(true);
+            setComponentParameters(params);
+            setInitialParameters(JSON.parse(JSON.stringify(params)));
+          }
+        } catch {
+          // Component details fetch failure is non-critical for parameters
+        }
+      } catch (e) {
+        setError('Failed to load configuration');
       }
       setIsLoading(false);
     };
-    fetchWorkload();
+    fetchData();
     return () => {
       setWorkloadSpec(null);
       setInitialWorkload(null);
       setError(null);
       setIsNewWorkload(false);
+      setInitialTraits(EMPTY_TRAITS);
+      setHasParameters(false);
+      setComponentParameters({});
+      setInitialParameters({});
     };
   }, [entity, client]);
 
-  // Combined unsaved state: either applied changes or in-progress edits
-  const hasUnsavedWork = changes.hasChanges || isEditing;
+  // Combined unsaved state
+  const hasUnsavedWork =
+    workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges || isEditing;
 
   // Warn user before leaving page with unsaved changes (browser navigation/tab close)
   useEffect(() => {
@@ -174,50 +235,36 @@ export const WorkloadConfigPage = ({
     const originalReplace = navigator.replace;
     const currentPathname = location.pathname;
 
-    // Check if navigation is within the same page (e.g., tab switching)
     const isSamePageNavigation = (to: any): boolean => {
       const targetPathname =
         typeof to === 'string' ? to.split('?')[0] : to.pathname;
       return targetPathname === currentPathname;
     };
 
-    // Override push method
     navigator.push = (to: any, state?: any) => {
-      // Allow navigation if explicitly allowed or if it's within the same page
       if (allowNavigationRef.current || isSamePageNavigation(to)) {
         originalPush.call(navigator, to, state);
         return;
       }
-
-      // Store pending navigation
       pendingNavigationRef.current = {
         to: typeof to === 'string' ? to : to.pathname,
         action: 'push',
       };
-
-      // Show confirmation dialog
       setShowUnsavedChangesDialog(true);
     };
 
-    // Override replace method
     navigator.replace = (to: any, state?: any) => {
-      // Allow navigation if explicitly allowed or if it's within the same page
       if (allowNavigationRef.current || isSamePageNavigation(to)) {
         originalReplace.call(navigator, to, state);
         return;
       }
-
-      // Store pending navigation
       pendingNavigationRef.current = {
         to: typeof to === 'string' ? to : to.pathname,
         action: 'replace',
       };
-
-      // Show confirmation dialog
       setShowUnsavedChangesDialog(true);
     };
 
-    // Cleanup - restore original methods
     return () => {
       navigator.push = originalPush;
       navigator.replace = originalReplace;
@@ -226,6 +273,8 @@ export const WorkloadConfigPage = ({
 
   const isFromSource = isFromSourceComponent(entity);
   const hasImage = !!workloadSpec?.container?.image?.trim();
+
+  const hasAnyChanges = workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges;
 
   const handleNext = async () => {
     if (!workloadSpec) {
@@ -238,10 +287,21 @@ export const WorkloadConfigPage = ({
     setIsProcessing(true);
     setError(null);
     try {
-      // Step 1: Apply workload
-      await client.applyWorkload(entity, workloadSpec);
+      // Step 1: Apply workload (if changed)
+      if (workloadChanges.hasChanges) {
+        await client.applyWorkload(entity, workloadSpec);
+      }
 
-      // Step 2: Create ComponentRelease (auto-generated name)
+      // Step 2: Update component config (traits/parameters) if changed
+      if (hasTraitChanges || hasParameterChanges) {
+        await client.updateComponentConfig(
+          entity,
+          hasTraitChanges ? getTraitsForSave() : undefined,
+          hasParameterChanges ? componentParameters : undefined,
+        );
+      }
+
+      // Step 3: Create ComponentRelease
       const releaseResponse = await client.createComponentRelease(entity);
 
       if (!releaseResponse.data?.name) {
@@ -250,7 +310,7 @@ export const WorkloadConfigPage = ({
 
       const releaseName = releaseResponse.data.name;
 
-      // Step 3: Navigate to overrides page
+      // Step 4: Navigate to overrides page
       setIsProcessing(false);
       allowNavigationRef.current = true;
       onNext(releaseName, lowestEnvironment);
@@ -259,6 +319,7 @@ export const WorkloadConfigPage = ({
       setError(e.message || 'Failed to create release');
     }
   };
+
   const enableNext = isFromSource
     ? hasImage && !isLoading
     : !isLoading && !!workloadSpec?.container?.image?.trim();
@@ -270,22 +331,19 @@ export const WorkloadConfigPage = ({
     return 'Configure your workload to enable deployment.';
   };
 
-  // Handle button click - show confirmation dialog if there are changes
   const handleButtonClick = () => {
-    if (changes.hasChanges) {
+    if (hasAnyChanges) {
       setShowConfirmDialog(true);
     } else {
       handleNext();
     }
   };
 
-  // Handle confirmation dialog confirm
   const handleConfirmSave = () => {
     setShowConfirmDialog(false);
     handleNext();
   };
 
-  // Handle back button click - show warning if there are unsaved changes
   const handleBackClick = () => {
     if (hasUnsavedWork) {
       setShowUnsavedChangesDialog(true);
@@ -294,12 +352,18 @@ export const WorkloadConfigPage = ({
     }
   };
 
-  // Determine button text based on changes
   const getButtonText = () => {
     if (isProcessing) return 'Processing...';
-    if (changes.hasChanges) return 'Save & Next';
+    if (hasAnyChanges) return 'Save & Next';
     return 'Next';
   };
+
+  const totalChanges =
+    workloadChanges.total +
+    (hasTraitChanges
+      ? traitsState.filter(t => t.state !== 'original').length
+      : 0) +
+    parameterChanges.length;
 
   // Header actions - Next/Save & Next button
   const headerActions = !isLoading ? (
@@ -318,10 +382,29 @@ export const WorkloadConfigPage = ({
     </Button>
   ) : null;
 
+  // Callbacks for traits (stable references)
+  const handleAddTrait = useCallback(
+    (trait: ComponentTrait) => addTrait(trait),
+    [addTrait],
+  );
+  const handleEditTrait = useCallback(
+    (instanceName: string, updated: ComponentTrait) =>
+      editTrait(instanceName, updated),
+    [editTrait],
+  );
+  const handleDeleteTrait = useCallback(
+    (instanceName: string) => deleteTrait(instanceName),
+    [deleteTrait],
+  );
+  const handleUndoDeleteTrait = useCallback(
+    (instanceName: string) => undoDelete(instanceName),
+    [undoDelete],
+  );
+
   return (
     <DetailPageLayout
-      title="Configure Workload"
-      subtitle="Configure containers, endpoints, and dependencies for deployment"
+      title="Configure Component"
+      subtitle="Configure workload, parameters, and traits for deployment"
       onBack={handleBackClick}
       actions={headerActions}
     >
@@ -368,6 +451,16 @@ export const WorkloadConfigPage = ({
             entity={entity}
             initialTab={initialTab}
             onTabChange={onTabChange}
+            traitsState={traitsState}
+            onAddTrait={handleAddTrait}
+            onEditTrait={handleEditTrait}
+            onDeleteTrait={handleDeleteTrait}
+            onUndoDeleteTrait={handleUndoDeleteTrait}
+            hasTraitChanges={hasTraitChanges}
+            hasParameters={hasParameters}
+            parameters={componentParameters}
+            onParametersChange={setComponentParameters}
+            hasParameterChanges={hasParameterChanges}
           />
         </WorkloadProvider>
       )}
@@ -376,18 +469,22 @@ export const WorkloadConfigPage = ({
         open={showConfirmDialog}
         onCancel={() => setShowConfirmDialog(false)}
         onConfirm={handleConfirmSave}
-        changes={changes}
+        changes={workloadChanges}
         saving={isProcessing}
+        traitChangesCount={
+          hasTraitChanges
+            ? traitsState.filter(t => t.state !== 'original').length
+            : 0
+        }
+        parameterChangesCount={parameterChanges.length}
       />
 
       <UnsavedChangesDialog
         open={showUnsavedChangesDialog}
         onDiscard={() => {
-          // Allow navigation to proceed
           allowNavigationRef.current = true;
           setShowUnsavedChangesDialog(false);
 
-          // Proceed with the pending navigation if any
           if (pendingNavigationRef.current) {
             const { to, action } = pendingNavigationRef.current;
             if (action === 'push') {
@@ -397,21 +494,18 @@ export const WorkloadConfigPage = ({
             }
             pendingNavigationRef.current = null;
           } else {
-            // No pending navigation, use the back button handler
             onBack();
           }
 
-          // Reset the flag after navigation
           setTimeout(() => {
             allowNavigationRef.current = false;
           }, 100);
         }}
         onStay={() => {
           setShowUnsavedChangesDialog(false);
-          // Clear pending navigation
           pendingNavigationRef.current = null;
         }}
-        changeCount={changes.total}
+        changeCount={totalChanges}
       />
     </DetailPageLayout>
   );

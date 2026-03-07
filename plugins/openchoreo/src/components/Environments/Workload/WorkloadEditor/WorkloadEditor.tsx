@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   ModelsWorkload,
@@ -12,6 +12,8 @@ import {
 import { ContainerContent } from './ContainerContent';
 import { EndpointContent } from './EndpointContent';
 import { DependencyContent } from './DependencyContent';
+import { TraitsContent } from './TraitsContent';
+import { ParametersContent } from './ParametersContent';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
@@ -26,14 +28,26 @@ import {
 import ViewModuleIcon from '@material-ui/icons/ViewModule';
 import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 import LinkIcon from '@material-ui/icons/Link';
+import ExtensionIcon from '@material-ui/icons/Extension';
+import TuneIcon from '@material-ui/icons/Tune';
 import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
+import type { ComponentTrait } from '../../../../api/OpenChoreoClientApi';
+import type { TraitWithState } from '../../../Traits/types';
 
 interface WorkloadEditorProps {
   entity: Entity;
-  /** Initial tab to display (from URL) */
   initialTab?: string;
-  /** Callback when tab changes (to update URL) */
   onTabChange?: (tab: string) => void;
+  traitsState?: TraitWithState[];
+  onAddTrait?: (trait: ComponentTrait) => void;
+  onEditTrait?: (instanceName: string, updated: ComponentTrait) => void;
+  onDeleteTrait?: (instanceName: string) => void;
+  onUndoDeleteTrait?: (instanceName: string) => void;
+  hasTraitChanges?: boolean;
+  hasParameters?: boolean;
+  parameters?: Record<string, unknown>;
+  onParametersChange?: (params: Record<string, unknown>) => void;
+  hasParameterChanges?: boolean;
 }
 
 const useStyles = makeStyles(() => ({
@@ -52,15 +66,25 @@ function getTabStatus(
   hasData: boolean,
 ): TabItemData['status'] {
   const sectionChanges = changes[section];
-  if (sectionChanges.length > 0) return 'info'; // Has modifications
-  if (hasData) return 'success'; // Has data but no changes
-  return undefined; // No data
+  if (sectionChanges.length > 0) return 'info';
+  if (hasData) return 'success';
+  return undefined;
 }
 
 export function WorkloadEditor({
   entity,
   initialTab,
   onTabChange,
+  traitsState,
+  onAddTrait,
+  onEditTrait,
+  onDeleteTrait,
+  onUndoDeleteTrait,
+  hasTraitChanges,
+  hasParameters,
+  parameters,
+  onParametersChange,
+  hasParameterChanges,
 }: WorkloadEditorProps) {
   const classes = useStyles();
   const { workloadSpec, setWorkloadSpec, isDeploying, changes } =
@@ -269,43 +293,100 @@ export function WorkloadEditor({
     handleContainerChange(field, arrayValue);
   };
 
+  const handleTabChange = useCallback(
+    (tabId: string) => {
+      setActiveTab(tabId);
+    },
+    [setActiveTab],
+  );
+
   const containerCount = formData.container ? 1 : 0;
   const endpointCount = Object.keys(formData.endpoints || {}).length;
   const dependencyCount = (formData.dependencies?.endpoints || []).length;
+  const traitCount = traitsState
+    ? traitsState.filter(t => t.state !== 'deleted').length
+    : 0;
 
-  // Memoize tabs with status based on changes
-  const tabs: TabItemData[] = useMemo(
-    () => [
-      {
-        id: 'container',
-        label: 'Container',
-        icon: <ViewModuleIcon />,
-        count: containerCount,
-        status: getTabStatus(changes, 'container', containerCount > 0),
-      },
-      {
-        id: 'endpoints',
-        label: 'Endpoints',
-        icon: <SettingsInputComponentIcon />,
-        count: endpointCount,
-        status: getTabStatus(changes, 'endpoints', endpointCount > 0),
-      },
-      {
-        id: 'dependencies',
-        label: 'Dependencies',
-        icon: <LinkIcon />,
-        count: dependencyCount,
-        status: getTabStatus(changes, 'dependencies', dependencyCount > 0),
-      },
-    ],
-    [containerCount, endpointCount, dependencyCount, changes],
-  );
+  // Build tabs with section headers
+  const tabs: TabItemData[] = useMemo(() => {
+    const tabList: TabItemData[] = [];
+
+    // Workload section header
+    tabList.push({
+      id: 'workload-section',
+      label: 'Workload',
+      isSectionHeader: true,
+    });
+
+    tabList.push({
+      id: 'container',
+      label: 'Container',
+      icon: <ViewModuleIcon />,
+      count: containerCount,
+      status: getTabStatus(changes, 'container', containerCount > 0),
+    });
+
+    tabList.push({
+      id: 'endpoints',
+      label: 'Endpoints',
+      icon: <SettingsInputComponentIcon />,
+      count: endpointCount,
+      status: getTabStatus(changes, 'endpoints', endpointCount > 0),
+    });
+
+    tabList.push({
+      id: 'dependencies',
+      label: 'Dependencies',
+      icon: <LinkIcon />,
+      count: dependencyCount,
+      status: getTabStatus(changes, 'dependencies', dependencyCount > 0),
+    });
+
+    // Component section
+    tabList.push({
+      id: 'component-section',
+      label: 'Component',
+      isSectionHeader: true,
+    });
+
+    if (hasParameters) {
+      tabList.push({
+        id: 'parameters',
+        label: 'Parameters',
+        icon: <TuneIcon />,
+        status: hasParameterChanges ? 'info' : undefined,
+      });
+    }
+
+    tabList.push({
+      id: 'traits',
+      label: 'Traits',
+      icon: <ExtensionIcon />,
+      count: traitCount,
+      status: hasTraitChanges
+        ? 'info'
+        : traitCount > 0
+          ? 'success'
+          : undefined,
+    });
+
+    return tabList;
+  }, [
+    containerCount,
+    endpointCount,
+    dependencyCount,
+    changes,
+    traitCount,
+    hasTraitChanges,
+    hasParameters,
+    hasParameterChanges,
+  ]);
 
   return (
     <VerticalTabNav
       tabs={tabs}
       activeTabId={activeTab}
-      onChange={setActiveTab}
+      onChange={handleTabChange}
       className={classes.tabNav}
     >
       {activeTab === 'container' && (
@@ -343,6 +424,30 @@ export function WorkloadEditor({
           onRemoveDependency={removeDependency}
         />
       )}
+
+      {/* Component tabs */}
+      {activeTab === 'parameters' && hasParameters && onParametersChange && (
+        <ParametersContent
+          parameters={parameters || {}}
+          onChange={onParametersChange}
+          disabled={isDeploying}
+        />
+      )}
+      {activeTab === 'traits' &&
+        traitsState &&
+        onAddTrait &&
+        onEditTrait &&
+        onDeleteTrait &&
+        onUndoDeleteTrait && (
+          <TraitsContent
+            traitsState={traitsState}
+            onAdd={onAddTrait}
+            onEdit={onEditTrait}
+            onDelete={onDeleteTrait}
+            onUndo={onUndoDeleteTrait}
+            disabled={isDeploying}
+          />
+        )}
     </VerticalTabNav>
   );
 }

@@ -402,6 +402,37 @@ export async function createRouter({
       ),
     );
   });
+  // Endpoint for updating component config (traits and/or parameters)
+  router.put('/component-config', requireAuth, async (req, res) => {
+    const { namespaceName, componentName, traits, parameters } = req.body;
+
+    if (!namespaceName || !componentName) {
+      throw new InputError(
+        'namespaceName and componentName are required in request body',
+      );
+    }
+
+    if (traits !== undefined && !Array.isArray(traits)) {
+      throw new InputError('traits must be an array if provided');
+    }
+
+    if (parameters !== undefined && typeof parameters !== 'object') {
+      throw new InputError('parameters must be an object if provided');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await componentInfoService.updateComponentConfig(
+        namespaceName as string,
+        componentName as string,
+        traits,
+        parameters,
+        userToken,
+      ),
+    );
+  });
+
   router.get('/builds', async (req, res) => {
     const { componentName, projectName, namespaceName } = req.query;
 

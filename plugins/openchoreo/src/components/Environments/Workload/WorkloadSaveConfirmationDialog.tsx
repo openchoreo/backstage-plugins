@@ -19,11 +19,26 @@ interface WorkloadSaveConfirmationDialogProps {
   onConfirm: () => void;
   changes: WorkloadChanges;
   saving: boolean;
+  /** Number of trait changes (added/modified/deleted) */
+  traitChangesCount?: number;
+  /** Number of parameter changes */
+  parameterChangesCount?: number;
 }
 
 export const WorkloadSaveConfirmationDialog: FC<
   WorkloadSaveConfirmationDialogProps
-> = ({ open, onCancel, onConfirm, changes, saving }) => {
+> = ({
+  open,
+  onCancel,
+  onConfirm,
+  changes,
+  saving,
+  traitChangesCount = 0,
+  parameterChangesCount = 0,
+}) => {
+  const totalChanges =
+    changes.total + traitChangesCount + parameterChangesCount;
+
   // Convert WorkloadChanges to ChangesSection array for ChangesList component
   const sections: ChangesSection[] = useMemo(() => {
     const result: ChangesSection[] = [];
@@ -49,14 +64,42 @@ export const WorkloadSaveConfirmationDialog: FC<
       });
     }
 
+    if (traitChangesCount > 0) {
+      result.push({
+        title: 'Traits',
+        changes: [
+          {
+            path: 'traits',
+            type: 'modified' as const,
+            oldValue: `${traitChangesCount} pending`,
+            newValue: `${traitChangesCount} ${traitChangesCount === 1 ? 'change' : 'changes'}`,
+          },
+        ],
+      });
+    }
+
+    if (parameterChangesCount > 0) {
+      result.push({
+        title: 'Parameters',
+        changes: [
+          {
+            path: 'parameters',
+            type: 'modified' as const,
+            oldValue: `${parameterChangesCount} pending`,
+            newValue: `${parameterChangesCount} ${parameterChangesCount === 1 ? 'change' : 'changes'}`,
+          },
+        ],
+      });
+    }
+
     return result;
-  }, [changes]);
+  }, [changes, traitChangesCount, parameterChangesCount]);
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
       <DialogTitle>
-        Confirm Save Changes ({changes.total}{' '}
-        {changes.total === 1 ? 'change' : 'changes'})
+        Confirm Save Changes ({totalChanges}{' '}
+        {totalChanges === 1 ? 'change' : 'changes'})
       </DialogTitle>
 
       <DialogContent dividers>
@@ -67,7 +110,7 @@ export const WorkloadSaveConfirmationDialog: FC<
           color="textSecondary"
           style={{ marginTop: 16 }}
         >
-          These changes will be applied to your workload configuration.
+          These changes will be applied to your component configuration.
         </Typography>
       </DialogContent>
 

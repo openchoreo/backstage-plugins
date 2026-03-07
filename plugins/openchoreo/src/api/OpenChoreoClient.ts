@@ -66,6 +66,7 @@ const API_ENDPOINTS = {
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
   COMPONENT_TRAITS: '/component-traits',
+  COMPONENT_CONFIG: '/component-config',
   TRAITS: '/traits',
   TRAIT_SCHEMA: '/trait-schema',
   CLUSTER_TRAITS: '/cluster-traits',
@@ -685,6 +686,24 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: metadata.project,
         componentName: metadata.component,
         traits,
+      },
+    });
+  }
+
+  async updateComponentConfig(
+    entity: Entity,
+    traits?: ComponentTrait[],
+    parameters?: Record<string, unknown>,
+  ): Promise<any> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_CONFIG, {
+      method: 'PUT',
+      body: {
+        namespaceName: metadata.namespace,
+        componentName: metadata.component,
+        ...(traits !== undefined && { traits }),
+        ...(parameters !== undefined && { parameters }),
       },
     });
   }

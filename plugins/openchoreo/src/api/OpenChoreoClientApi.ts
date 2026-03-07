@@ -500,6 +500,13 @@ export interface OpenChoreoClientApi {
     traits: ComponentTrait[],
   ): Promise<ComponentTrait[]>;
 
+  /** Update component config (traits and/or parameters) in a single call */
+  updateComponentConfig(
+    entity: Entity,
+    traits?: ComponentTrait[],
+    parameters?: Record<string, unknown>,
+  ): Promise<any>;
+
   /** Fetch available traits for a namespace (no entity required) */
   fetchTraitsByNamespace(
     namespaceName: string,
