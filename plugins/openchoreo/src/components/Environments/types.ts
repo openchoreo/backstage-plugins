@@ -92,6 +92,8 @@ export interface EnvironmentCardContentProps {
   releaseName?: string;
   endpoints: EndpointInfo[];
   onOpenReleaseDetails: () => void;
+  activeIncidentCount?: number;
+  environmentName?: string;
 }
 
 /**
@@ -143,4 +145,5 @@ export interface EnvironmentCardProps {
   onOpenReleaseDetails: () => void;
   onPromote: (targetEnvName: string) => Promise<void>;
   onSuspend: () => Promise<void>;
+  activeIncidentCount?: number;
 }

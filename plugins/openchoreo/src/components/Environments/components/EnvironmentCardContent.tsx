@@ -15,6 +15,7 @@ import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentCardStyles } from '../styles';
 import { EnvironmentCardContentProps } from '../types';
 import { InvokeUrlsDialog } from './InvokeUrlsDialog';
+import { IncidentsBanner } from './IncidentsBanner';
 
 /**
  * Content section of an environment card showing deployment details
@@ -26,6 +27,8 @@ export const EnvironmentCardContent = ({
   releaseName,
   endpoints,
   onOpenReleaseDetails,
+  activeIncidentCount,
+  environmentName,
 }: EnvironmentCardContentProps) => {
   const classes = useEnvironmentCardStyles();
 
@@ -82,6 +85,16 @@ export const EnvironmentCardContent = ({
           </Box>
         )}
       </Box>
+
+      {status &&
+        activeIncidentCount !== undefined &&
+        activeIncidentCount > 0 &&
+        environmentName && (
+          <IncidentsBanner
+            count={activeIncidentCount}
+            environmentName={environmentName}
+          />
+        )}
 
       {image && (
         <Box mt={2}>
