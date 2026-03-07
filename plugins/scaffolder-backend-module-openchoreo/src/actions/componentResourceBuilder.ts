@@ -180,8 +180,25 @@ export function buildComponentResource(
       }
     }
 
+    // Determine workflow kind and actual name.
+    // ClusterComponentType always uses ClusterWorkflow.
+    // For ComponentType, if the name has a "ClusterWorkflow:" prefix (from merged picker results),
+    // strip the prefix and set kind to ClusterWorkflow.
+    let resolvedWorkflowName = input.workflowName!;
+    let workflowKind: string | undefined;
+
+    if (input.componentTypeKind === 'ClusterComponentType') {
+      workflowKind = 'ClusterWorkflow';
+    } else if (resolvedWorkflowName.startsWith('ClusterWorkflow:')) {
+      workflowKind = 'ClusterWorkflow';
+      resolvedWorkflowName = resolvedWorkflowName.slice(
+        'ClusterWorkflow:'.length,
+      );
+    }
+
     resource.spec.workflow = {
-      name: input.workflowName,
+      ...(workflowKind && { kind: workflowKind }),
+      name: resolvedWorkflowName,
       parameters: workflowParams,
     };
   }

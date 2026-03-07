@@ -57,6 +57,8 @@ tags:
     description: ComponentType templates defined by platform engineers
   - name: Traits
     description: Trait templates for composable cross-cutting concerns
+  - name: ClusterWorkflows
+    description: Cluster-scoped workflow templates for building and automating tasks
   - name: Workflows
     description: Generic workflow templates
   - name: Authorization

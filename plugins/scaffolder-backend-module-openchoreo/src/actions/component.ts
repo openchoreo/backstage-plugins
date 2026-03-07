@@ -311,13 +311,28 @@ export const createComponentAction = (
         let workflowParameterMapping: WorkflowParameterMapping | undefined;
         if (workflowName) {
           try {
+            // Determine if this is a ClusterWorkflow based on component type kind or name prefix
+            const componentTypeKindForLookup =
+              (ctx.input as any).component_type_kind || 'ComponentType';
+            const isClusterWorkflow =
+              componentTypeKindForLookup === 'ClusterComponentType' ||
+              workflowName.startsWith('ClusterWorkflow:');
+            const lookupName = workflowName.startsWith('ClusterWorkflow:')
+              ? workflowName.slice('ClusterWorkflow:'.length)
+              : workflowName;
+
+            let namespaceFilter: Record<string, string> = {};
+            if (isClusterWorkflow) {
+              namespaceFilter = { 'metadata.namespace': 'openchoreo-cluster' };
+            } else if (namespaceName) {
+              namespaceFilter = { 'metadata.namespace': namespaceName };
+            }
+
             const workflowEntities = await catalogApi.getEntities({
               filter: {
-                kind: 'Workflow',
-                'metadata.name': workflowName,
-                ...(namespaceName && {
-                  'metadata.namespace': namespaceName,
-                }),
+                kind: isClusterWorkflow ? 'ClusterWorkflow' : 'Workflow',
+                'metadata.name': lookupName,
+                ...namespaceFilter,
               },
             });
             const workflowEntity = workflowEntities.items[0];

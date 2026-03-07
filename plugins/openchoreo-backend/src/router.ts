@@ -33,6 +33,7 @@ import { transformReleaseBinding } from './services/transformers';
 const CLUSTER_SCOPED_KINDS = [
   'clustercomponenttypes',
   'clustertraits',
+  'clusterworkflows',
   'clusterdataplanes',
   'clusterobservabilityplanes',
   'clusterbuildplanes',

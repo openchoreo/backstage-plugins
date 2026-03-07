@@ -35,6 +35,7 @@ type ResourceKind =
   | 'clustercomponenttypes'
   | 'clustertraits'
   | 'clusterdataplanes'
+  | 'clusterworkflows'
   | 'clusterobservabilityplanes'
   | 'clusterbuildplanes';
 
@@ -51,6 +52,7 @@ const RESOURCE_KIND_TO_CRD_KIND: Record<ResourceKind, string> = {
   deploymentpipelines: 'DeploymentPipeline',
   clustercomponenttypes: 'ClusterComponentType',
   clustertraits: 'ClusterTrait',
+  clusterworkflows: 'ClusterWorkflow',
   clusterdataplanes: 'ClusterDataPlane',
   clusterobservabilityplanes: 'ClusterObservabilityPlane',
   clusterbuildplanes: 'ClusterBuildPlane',
@@ -68,6 +70,7 @@ const NEW_API_KINDS: ReadonlySet<ResourceKind> = new Set([
   'deploymentpipelines',
   'clustercomponenttypes',
   'clustertraits',
+  'clusterworkflows',
   'clusterdataplanes',
   'clusterobservabilityplanes',
   'clusterbuildplanes',
@@ -382,6 +385,23 @@ export class PlatformResourceService {
           resource = data as Record<string, unknown>;
           break;
         }
+        case 'clusterworkflows': {
+          const { data, error, response } = await (client as any).GET(
+            '/api/v1/clusterworkflows/{clusterWorkflowName}',
+            {
+              params: {
+                path: { clusterWorkflowName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          resource = data as Record<string, unknown>;
+          break;
+        }
         case 'clusterdataplanes': {
           const { data, error, response } = await client.GET(
             '/api/v1/clusterdataplanes/{cdpName}',
@@ -622,6 +642,23 @@ export class PlatformResourceService {
           }
           break;
         }
+        case 'clusterworkflows': {
+          const { error, response } = await (client as any).PUT(
+            '/api/v1/clusterworkflows/{clusterWorkflowName}',
+            {
+              params: {
+                path: { clusterWorkflowName: resourceName },
+              },
+              body,
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
         case 'clusterdataplanes': {
           const { error, response } = await client.PUT(
             '/api/v1/clusterdataplanes/{cdpName}',
@@ -832,6 +869,22 @@ export class PlatformResourceService {
             {
               params: {
                 path: { clusterTraitName: resourceName },
+              },
+            },
+          );
+          if (error || !response.ok) {
+            throw new Error(
+              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
+            );
+          }
+          break;
+        }
+        case 'clusterworkflows': {
+          const { error, response } = await (client as any).DELETE(
+            '/api/v1/clusterworkflows/{clusterWorkflowName}',
+            {
+              params: {
+                path: { clusterWorkflowName: resourceName },
               },
             },
           );

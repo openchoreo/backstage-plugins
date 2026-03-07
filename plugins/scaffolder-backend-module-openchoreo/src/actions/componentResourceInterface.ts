@@ -22,6 +22,8 @@ export interface ComponentOwner {
  * @public
  */
 export interface ComponentWorkflow {
+  /** Kind of the workflow: 'Workflow' (namespace-scoped) or 'ClusterWorkflow' (cluster-scoped) */
+  kind?: string;
   /** Reference to Workflow name */
   name: string;
   /** Workflow parameters matching the workflow schema structure exactly */

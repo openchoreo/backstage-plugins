@@ -247,6 +247,14 @@ export interface WorkflowResponse {
   createdAt?: string;
 }
 
+export interface ClusterWorkflowResponse {
+  name: string;
+  displayName?: string;
+  description?: string;
+  /** Format: date-time */
+  createdAt?: string;
+}
+
 export interface ComponentWorkflowRunResponse {
   name: string;
   uuid: string;

@@ -30,6 +30,7 @@ export {
   translateNamespaceToDomainEntity,
   translateClusterComponentTypeToEntity,
   translateClusterTraitToEntity,
+  translateClusterWorkflowToEntity,
   type ComponentEntityTranslationConfig,
   type EntityTranslationConfig,
   type ProjectEntityTranslationConfig,

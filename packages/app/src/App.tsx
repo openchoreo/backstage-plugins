@@ -29,6 +29,7 @@ import { TraitYamlEditorFieldExtension } from './scaffolder/TraitYamlEditor';
 import { ClusterComponentTypeYamlEditorFieldExtension } from './scaffolder/ClusterComponentTypeYamlEditor';
 import { ClusterTraitYamlEditorFieldExtension } from './scaffolder/ClusterTraitYamlEditor';
 import { ComponentWorkflowYamlEditorFieldExtension } from './scaffolder/ComponentWorkflowYamlEditor';
+import { ClusterWorkflowYamlEditorFieldExtension } from './scaffolder/ClusterWorkflowYamlEditor';
 import { GitSecretFieldExtension } from './scaffolder/GitSecretField';
 import { GitSourceFieldExtension } from './scaffolder/GitSourceField';
 import { ProjectNamespaceFieldExtension } from './scaffolder/ProjectNamespaceField';
@@ -163,6 +164,7 @@ const app = createApp({
     'kind:traittype': ExtensionIcon,
     'kind:clustertraittype': ExtensionIcon,
     'kind:workflow': PlayCircleOutlineIcon,
+    'kind:clusterworkflow': PlayCircleOutlineIcon,
     'kind:componentworkflow': SettingsApplicationsIcon,
   },
   bindRoutes({ bind }) {
@@ -261,6 +263,7 @@ const routes = (
         <ClusterComponentTypeYamlEditorFieldExtension />
         <ClusterTraitYamlEditorFieldExtension />
         <ComponentWorkflowYamlEditorFieldExtension />
+        <ClusterWorkflowYamlEditorFieldExtension />
         <EnvironmentFormWithYamlFieldExtension />
         <GitSecretFieldExtension />
         <GitSourceFieldExtension />

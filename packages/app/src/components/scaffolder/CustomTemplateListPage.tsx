@@ -66,6 +66,7 @@ const PLATFORM_TYPES = [
   'ClusterComponentType',
   'ComponentType',
   'Workflow',
+  'ClusterWorkflow',
 ];
 const KNOWN_CARD_TYPES = [...APPLICATION_TYPES, 'Component', ...PLATFORM_TYPES];
 
