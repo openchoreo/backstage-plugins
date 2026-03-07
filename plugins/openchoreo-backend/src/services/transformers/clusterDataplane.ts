@@ -23,7 +23,6 @@ export function transformClusterDataPlane(
     name: getName(dataPlane) ?? '',
     displayName: getDisplayName(dataPlane),
     description: getDescription(dataPlane),
-    imagePullSecretRefs: dataPlane.spec?.imagePullSecretRefs,
     secretStoreRef: dataPlane.spec?.secretStoreRef?.name,
     gateway: ingress
       ? {

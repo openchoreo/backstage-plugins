@@ -98,14 +98,14 @@ export const ReleaseDetailsPage = ({
 
         // Fetch resource tree using the matched binding name
         const bindingName = matchingBinding?.name;
-        let nextResourceTreeData: any = { releases: [] };
+        let nextResourceTreeData: any = { renderedReleases: [] };
 
         if (bindingName && namespaceName) {
           nextResourceTreeData = await client
             .fetchResourceTree(namespaceName, bindingName as string)
             .catch(err => {
               if (showLoadingState) {
-                return { releases: [] };
+                return { renderedReleases: [] };
               }
               throw err;
             });
@@ -182,7 +182,7 @@ export const ReleaseDetailsPage = ({
 
       {!loading && !error && releaseBindingData && (
         <ResourceTreeView
-          resourceTreeData={resourceTreeData ?? { releases: [] }}
+          resourceTreeData={resourceTreeData ?? { renderedReleases: [] }}
           releaseBindingData={releaseBindingData}
           namespaceName={namespaceName}
           releaseBindingName={(releaseBindingData as any)?.name ?? ''}

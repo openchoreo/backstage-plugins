@@ -652,7 +652,6 @@ export class PlatformEnvironmentInfoService
         displayName: getDisplayName(dp),
         description: getDescription(dp),
         namespaceName,
-        imagePullSecretRefs: dp.spec?.imagePullSecretRefs,
         secretStoreRef: secretStore?.name,
         gateway: ingress
           ? {

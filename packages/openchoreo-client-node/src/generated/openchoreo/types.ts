@@ -297,46 +297,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get environment observer URL
-     * @description Returns the observer URL for accessing logs and metrics for this environment.
-     */
-    get: operations['getEnvironmentObserverURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get RCA agent URL
-     * @description Returns the RCA agent URL for AI-powered root cause analysis for this environment.
-     */
-    get: operations['getRCAAgentURL'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/namespaces/{namespaceName}/dataplanes': {
     parameters: {
       query?: never;
@@ -937,6 +897,78 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clusterworkflows': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List cluster workflows
+     * @description Returns a list of cluster-scoped workflows.
+     */
+    get: operations['listClusterWorkflows'];
+    put?: never;
+    /**
+     * Create cluster workflow
+     * @description Creates a new cluster-scoped workflow.
+     */
+    post: operations['createClusterWorkflow'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterworkflows/{clusterWorkflowName}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a cluster workflow
+     * @description Returns details of a specific cluster-scoped workflow.
+     */
+    get: operations['getClusterWorkflow'];
+    /**
+     * Update cluster workflow
+     * @description Replaces an existing cluster-scoped workflow (full update).
+     */
+    put: operations['updateClusterWorkflow'];
+    post?: never;
+    /**
+     * Delete cluster workflow
+     * @description Deletes a cluster-scoped workflow by name.
+     */
+    delete: operations['deleteClusterWorkflow'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusterworkflows/{clusterWorkflowName}/schema': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get cluster workflow schema
+     * @description Returns the parameter schema for a specific cluster-scoped workflow.
+     */
+    get: operations['getClusterWorkflowSchema'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/namespaces/{namespaceName}/workflows': {
     parameters: {
       query?: never;
@@ -1045,7 +1077,11 @@ export interface paths {
      * @description Returns details of a specific workflow run.
      */
     get: operations['getWorkflowRun'];
-    put?: never;
+    /**
+     * Update workflow run
+     * @description Replaces an existing workflow run (full update).
+     */
+    put: operations['updateWorkflowRun'];
     post?: never;
     delete?: never;
     options?: never;
@@ -1738,46 +1774,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/namespaces/{namespaceName}/releases': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List releases
-     * @description Returns a paginated list of releases within a namespace, optionally filtered by component and environment.
-     */
-    get: operations['listReleases'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/namespaces/{namespaceName}/releases/{releaseName}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get release
-     * @description Returns details of a specific release.
-     */
-    get: operations['getRelease'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/namespaces/{namespaceName}/releasebindings': {
     parameters: {
       query?: never;
@@ -2317,7 +2313,7 @@ export interface components {
       items: components['schemas']['Namespace'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Namespace resource (Kubernetes object without kind/apiVersion).
+    /** @description Namespace resource.
      *     Control plane namespaces hold resources like Projects, Components, and Environments.
      *     These namespaces are identified by the label `openchoreo.dev/controlplane-namespace=true`.
      *      */
@@ -2354,10 +2350,20 @@ export interface components {
       /** @description Current state conditions of the Project */
       conditions?: components['schemas']['Condition'][];
     };
-    /** @description Project resource (Kubernetes object without kind/apiVersion).
+    /** @description Project resource.
      *     Projects group components within a namespace and reference a deployment pipeline.
      *      */
     Project: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example Project
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ProjectSpec'];
       readonly status?: components['schemas']['ProjectStatus'];
@@ -2438,10 +2444,20 @@ export interface components {
         releaseHash?: string;
       };
     };
-    /** @description Component resource (Kubernetes object without kind/apiVersion).
+    /** @description Component resource.
      *     Components group source code and deployment configuration within a project.
      *      */
     Component: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example Component
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ComponentSpec'];
       readonly status?: components['schemas']['ComponentStatus'];
@@ -2626,10 +2642,20 @@ export interface components {
       /** @description Current state conditions of the Environment */
       conditions?: components['schemas']['Condition'][];
     };
-    /** @description Environment resource (Kubernetes object without kind/apiVersion).
+    /** @description Environment resource.
      *     Environments represent deployment targets within a namespace.
      *      */
     Environment: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example Environment
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['EnvironmentSpec'];
       readonly status?: components['schemas']['EnvironmentStatus'];
@@ -2639,41 +2665,25 @@ export interface components {
       items: components['schemas']['Environment'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Observer URL response for accessing logs and metrics */
-    ObserverURLResponse: {
-      /**
-       * @description URL to the observer service for logs and metrics
-       * @example https://observer.example.com/api/v1
-       */
-      observerUrl?: string;
-      /**
-       * @description Additional information or status message
-       * @example Observer URL is available
-       */
-      message?: string;
-    };
-    /** @description RCA agent URL response for AI-powered root cause analysis */
-    RCAAgentURLResponse: {
-      /**
-       * @description URL to the RCA agent service for AI-powered root cause analysis
-       * @example https://rca-agent.example.com
-       */
-      rcaAgentUrl?: string;
-      /**
-       * @description Additional information or status message
-       * @example RCA agent URL is available
-       */
-      message?: string;
-    };
     /** @description Paginated list of data planes */
     DataPlaneList: {
       items: components['schemas']['DataPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description DataPlane resource (Kubernetes object without kind/apiVersion).
+    /** @description DataPlane resource.
      *     Represents a Kubernetes cluster for workload deployment.
      *      */
     DataPlane: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example DataPlane
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['DataPlaneSpec'];
       readonly status?: components['schemas']['DataPlaneStatus'];
@@ -2689,13 +2699,6 @@ export interface components {
       planeID?: string;
       clusterAgent?: components['schemas']['ClusterAgentConfig'];
       gateway?: components['schemas']['GatewaySpec'];
-      /**
-       * @description References to SecretReference resources for image pulling
-       * @example [
-       *       "docker-registry-secret"
-       *     ]
-       */
-      imagePullSecretRefs?: string[];
       secretStoreRef?: components['schemas']['SecretStoreRef'];
       observabilityPlaneRef?: components['schemas']['ObservabilityPlaneRef'];
     };
@@ -2747,10 +2750,20 @@ export interface components {
       items: components['schemas']['BuildPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description BuildPlane resource (Kubernetes object without kind/apiVersion).
+    /** @description BuildPlane resource.
      *     Represents CI/CD build infrastructure within a namespace.
      *      */
     BuildPlane: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example BuildPlane
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['BuildPlaneSpec'];
       readonly status?: components['schemas']['BuildPlaneStatus'];
@@ -2846,10 +2859,20 @@ export interface components {
       items: components['schemas']['ObservabilityPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ObservabilityPlane resource (Kubernetes object without kind/apiVersion).
+    /** @description ObservabilityPlane resource.
      *     Represents monitoring and logging infrastructure within a namespace.
      *      */
     ObservabilityPlane: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ObservabilityPlane
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ObservabilityPlaneSpec'];
       readonly status?: components['schemas']['ObservabilityPlaneStatus'];
@@ -2891,10 +2914,20 @@ export interface components {
       items: components['schemas']['ClusterDataPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ClusterDataPlane resource (Kubernetes object without kind/apiVersion).
+    /** @description ClusterDataPlane resource.
      *     Represents a cluster-scoped data plane for workload deployment.
      *      */
     ClusterDataPlane: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterDataPlane
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ClusterDataPlaneSpec'];
       readonly status?: components['schemas']['ClusterDataPlaneStatus'];
@@ -2910,13 +2943,6 @@ export interface components {
       planeID?: string;
       clusterAgent?: components['schemas']['ClusterAgentConfig'];
       gateway?: components['schemas']['GatewaySpec'];
-      /**
-       * @description References to SecretReference resources for image pulling
-       * @example [
-       *       "docker-registry-secret"
-       *     ]
-       */
-      imagePullSecretRefs?: string[];
       secretStoreRef?: components['schemas']['SecretStoreRef'];
       observabilityPlaneRef?: components['schemas']['ClusterObservabilityPlaneRef'];
     };
@@ -2936,10 +2962,20 @@ export interface components {
       items: components['schemas']['ClusterBuildPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ClusterBuildPlane resource (Kubernetes object without kind/apiVersion).
+    /** @description ClusterBuildPlane resource.
      *     Represents cluster-scoped CI/CD build infrastructure.
      *      */
     ClusterBuildPlane: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterBuildPlane
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ClusterBuildPlaneSpec'];
       readonly status?: components['schemas']['ClusterBuildPlaneStatus'];
@@ -2987,10 +3023,20 @@ export interface components {
       items: components['schemas']['ClusterObservabilityPlane'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ClusterObservabilityPlane resource (Kubernetes object without kind/apiVersion).
+    /** @description ClusterObservabilityPlane resource.
      *     Represents cluster-scoped monitoring and logging infrastructure.
      *      */
     ClusterObservabilityPlane: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterObservabilityPlane
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ClusterObservabilityPlaneSpec'];
       readonly status?: components['schemas']['ClusterObservabilityPlaneStatus'];
@@ -3032,10 +3078,20 @@ export interface components {
       items: components['schemas']['ClusterComponentType'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ClusterComponentType resource (Kubernetes object without kind/apiVersion).
+    /** @description ClusterComponentType resource.
      *     Cluster-scoped version of ComponentType.
      *      */
     ClusterComponentType: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterComponentType
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ClusterComponentTypeSpec'];
       readonly status?: components['schemas']['ClusterComponentTypeStatus'];
@@ -3049,26 +3105,25 @@ export interface components {
        */
       workloadType: 'deployment' | 'statefulset' | 'cronjob' | 'job' | 'proxy';
       /**
-       * @description List of allowed Workflow references for this component type
+       * @description List of allowed ClusterWorkflow references for this component type
        * @example [
        *       {
-       *         "kind": "Workflow",
+       *         "kind": "ClusterWorkflow",
        *         "name": "docker-build"
        *       },
        *       {
-       *         "kind": "Workflow",
+       *         "kind": "ClusterWorkflow",
        *         "name": "buildpack-build"
        *       }
        *     ]
        */
       allowedWorkflows?: {
         /**
-         * @description Kind of the workflow reference. Currently only "Workflow" is supported.
-         * @default Workflow
+         * @description Kind of the workflow reference. Must be "ClusterWorkflow".
          * @enum {string}
          */
-        kind: 'Workflow';
-        /** @description Name of the workflow resource */
+        kind: 'ClusterWorkflow';
+        /** @description Name of the ClusterWorkflow resource */
         name: string;
       }[];
       /** @description Developer-configurable schema definition */
@@ -3118,12 +3173,7 @@ export interface components {
         name: string;
       }[];
       /** @description CEL-based validation rules evaluated during rendering */
-      validations?: {
-        /** @description CEL expression wrapped in ${...} that must evaluate to true */
-        rule: string;
-        /** @description Error message shown when the rule evaluates to false */
-        message: string;
-      }[];
+      validations?: components['schemas']['ValidationRule'][];
       /** @description Templates that generate Kubernetes resources dynamically */
       resources: {
         /** @description Unique identifier for this resource within the component type */
@@ -3153,10 +3203,20 @@ export interface components {
       items: components['schemas']['ClusterTrait'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ClusterTrait resource (Kubernetes object without kind/apiVersion).
+    /** @description ClusterTrait resource.
      *     Cluster-scoped version of Trait.
      *      */
     ClusterTrait: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterTrait
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ClusterTraitSpec'];
       readonly status?: components['schemas']['ClusterTraitStatus'];
@@ -3178,6 +3238,8 @@ export interface components {
           [key: string]: unknown;
         };
       };
+      /** @description CEL-based validation rules evaluated during rendering */
+      validations?: components['schemas']['ValidationRule'][];
       /** @description New Kubernetes resources to create when this trait is applied */
       creates?: {
         /**
@@ -3320,12 +3382,7 @@ export interface components {
         name: string;
       }[];
       /** @description CEL-based validation rules evaluated during rendering */
-      validations?: {
-        /** @description CEL expression wrapped in ${...} that must evaluate to true */
-        rule: string;
-        /** @description Error message shown when the rule evaluates to false */
-        message: string;
-      }[];
+      validations?: components['schemas']['ValidationRule'][];
       /** @description Templates that generate Kubernetes resources dynamically */
       resources: {
         /** @description Unique identifier for this resource within the component type */
@@ -3350,10 +3407,20 @@ export interface components {
     };
     /** @description Observed state of a ComponentType */
     ComponentTypeStatus: Record<string, never>;
-    /** @description ComponentType resource (Kubernetes object without kind/apiVersion).
+    /** @description ComponentType resource.
      *     Defines workload templates used by platform engineers to govern component behavior.
      *      */
     ComponentType: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ComponentType
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ComponentTypeSpec'];
       readonly status?: components['schemas']['ComponentTypeStatus'];
@@ -3381,12 +3448,7 @@ export interface components {
         };
       };
       /** @description CEL-based validation rules evaluated during rendering */
-      validations?: {
-        /** @description CEL expression wrapped in ${...} that must evaluate to true */
-        rule: string;
-        /** @description Error message shown when the rule evaluates to false */
-        message: string;
-      }[];
+      validations?: components['schemas']['ValidationRule'][];
       /** @description New Kubernetes resources to create when this trait is applied */
       creates?: {
         /**
@@ -3445,10 +3507,27 @@ export interface components {
     };
     /** @description Observed state of a Trait */
     TraitStatus: Record<string, never>;
-    /** @description Trait resource (Kubernetes object without kind/apiVersion).
+    /** @description CEL-based validation rule evaluated during rendering */
+    ValidationRule: {
+      /** @description CEL expression wrapped in ${...} that must evaluate to true */
+      rule: string;
+      /** @description Error message shown when the rule evaluates to false */
+      message: string;
+    };
+    /** @description Trait resource.
      *     Defines composable cross-cutting concerns that can be applied to components.
      *      */
     Trait: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example Trait
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['TraitSpec'];
       readonly status?: components['schemas']['TraitStatus'];
@@ -3478,6 +3557,16 @@ export interface components {
       pagination: components['schemas']['Pagination'];
     };
     Workflow: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example Workflow
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['WorkflowSpec'];
       readonly status?: components['schemas']['WorkflowStatus'];
@@ -3552,12 +3641,80 @@ export interface components {
       /** @description Kubernetes-style conditions */
       conditions?: components['schemas']['Condition'][];
     };
+    /** @description Paginated list of cluster-scoped workflows */
+    ClusterWorkflowList: {
+      items: components['schemas']['ClusterWorkflow'][];
+      pagination: components['schemas']['Pagination'];
+    };
+    /** @description ClusterWorkflow resource.
+     *     Cluster-scoped version of Workflow that can be referenced by Components across all namespaces.
+     *      */
+    ClusterWorkflow: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ClusterWorkflow
+       */
+      readonly kind?: string;
+      metadata: components['schemas']['ObjectMeta'];
+      spec?: components['schemas']['ClusterWorkflowSpec'];
+      readonly status?: components['schemas']['ClusterWorkflowStatus'];
+    };
+    /** @description Desired state of a ClusterWorkflow */
+    ClusterWorkflowSpec: {
+      /** @description Reference to the ClusterBuildPlane for this workflow's build operations. Defaults to the ClusterBuildPlane named "default" when omitted. */
+      buildPlaneRef?: components['schemas']['ClusterBuildPlaneRef'];
+      schema?: components['schemas']['WorkflowSchema'];
+      /** @description Kubernetes resource template to render and apply for this workflow run. */
+      runTemplate: {
+        [key: string]: unknown;
+      };
+      /** @description Additional resource templates to render and apply alongside the workflow run. */
+      resources?: components['schemas']['WorkflowResource'][];
+      /** @description External CR references resolved and injected into the CEL context under their id. */
+      externalRefs?: components['schemas']['ExternalRef'][];
+      /** @description Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m). */
+      ttlAfterCompletion?: string;
+    };
+    /** @description Reference to a ClusterBuildPlane */
+    ClusterBuildPlaneRef: {
+      /**
+       * @description Kind of build plane (must be ClusterBuildPlane)
+       * @example ClusterBuildPlane
+       * @enum {string}
+       */
+      kind: 'ClusterBuildPlane';
+      /**
+       * @description Name of the cluster build plane resource
+       * @example default
+       */
+      name: string;
+    };
+    /** @description Observed state of a ClusterWorkflow */
+    ClusterWorkflowStatus: {
+      /** @description Kubernetes-style conditions */
+      conditions?: components['schemas']['Condition'][];
+    };
     /** @description Paginated list of workflow runs */
     WorkflowRunList: {
       items: components['schemas']['WorkflowRun'][];
       pagination: components['schemas']['Pagination'];
     };
     WorkflowRun: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example WorkflowRun
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['WorkflowRunSpec'];
       readonly status?: components['schemas']['WorkflowRunStatus'];
@@ -3752,10 +3909,20 @@ export interface components {
       items: components['schemas']['ComponentRelease'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ComponentRelease resource (Kubernetes object without kind/apiVersion).
+    /** @description ComponentRelease resource.
      *     Immutable snapshot of component state at release time.
      *      */
     ComponentRelease: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ComponentRelease
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ComponentReleaseSpec'];
       /** @description ComponentRelease status (currently empty, immutable after creation) */
@@ -3803,10 +3970,20 @@ export interface components {
       items: components['schemas']['ReleaseBinding'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ReleaseBinding resource (Kubernetes object without kind/apiVersion).
+    /** @description ReleaseBinding resource.
      *     Binds a ComponentRelease to a specific environment.
      *      */
     ReleaseBinding: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ReleaseBinding
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ReleaseBindingSpec'];
       readonly status?: components['schemas']['ReleaseBindingStatus'];
@@ -3971,22 +4148,27 @@ export interface components {
       value?: string;
       valueFrom?: components['schemas']['EnvVarValueFrom'];
     };
-    /** @description Paginated list of releases */
-    ReleaseList: {
-      items: components['schemas']['Release'][];
-      pagination: components['schemas']['Pagination'];
-    };
-    /** @description Release resource (Kubernetes object without kind/apiVersion).
-     *     Contains the final Kubernetes manifests deployed to data plane clusters.
+    /** @description RenderedRelease resource.
+     *     Contains the final rendered Kubernetes manifests deployed to data plane clusters.
      *      */
-    Release: {
+    RenderedRelease: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example RenderedRelease
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
-      spec?: components['schemas']['ReleaseSpec'];
-      readonly status?: components['schemas']['ReleaseStatus'];
+      spec?: components['schemas']['RenderedReleaseSpec'];
+      readonly status?: components['schemas']['RenderedReleaseStatus'];
     };
-    /** @description Desired state of a Release */
-    ReleaseSpec: {
-      /** @description Owner identifies the component and project this Release belongs to */
+    /** @description Desired state of a RenderedRelease */
+    RenderedReleaseSpec: {
+      /** @description Owner identifies the component and project this RenderedRelease belongs to */
       owner: {
         /**
          * @description Name of the project
@@ -4000,7 +4182,7 @@ export interface components {
         componentName: string;
       };
       /**
-       * @description Target environment for this release
+       * @description Target environment for this rendered release
        * @example dev
        */
       environmentName: string;
@@ -4021,19 +4203,19 @@ export interface components {
        */
       targetPlane: 'dataplane' | 'observabilityplane';
       /**
-       * @description Watch interval for stable release resources (e.g. 5m, 30s)
+       * @description Watch interval for stable rendered release resources (e.g. 5m, 30s)
        * @example 5m
        */
       interval?: string;
       /**
-       * @description Watch interval for transitioning release resources (e.g. 10s)
+       * @description Watch interval for transitioning rendered release resources (e.g. 10s)
        * @example 10s
        */
       progressingInterval?: string;
     };
-    /** @description Observed state of a Release */
-    ReleaseStatus: {
-      /** @description Latest available observations of the Release's current state */
+    /** @description Observed state of a RenderedRelease */
+    RenderedReleaseStatus: {
+      /** @description Latest available observations of the RenderedRelease's current state */
       conditions?: components['schemas']['Condition'][];
       /** @description Resources applied to the data plane with their observed status */
       resources?: {
@@ -4183,10 +4365,10 @@ export interface components {
       /** @description Log entries from the pod */
       logEntries: components['schemas']['PodLogEntry'][];
     };
-    /** @description Response containing resource trees for all releases owned by a release binding */
+    /** @description Response containing resource trees for all rendered releases owned by a release binding */
     K8sResourceTreeResponse: {
-      /** @description Resource trees per release (dataplane and/or observabilityplane) */
-      releases: components['schemas']['ReleaseResourceTree'][];
+      /** @description Resource trees per rendered release (dataplane and/or observabilityplane) */
+      renderedReleases: components['schemas']['ReleaseResourceTree'][];
     };
     /** @description Resource tree for a single release */
     ReleaseResourceTree: {
@@ -4199,9 +4381,9 @@ export interface components {
       targetPlane: 'dataplane' | 'observabilityplane';
       /** @description All resource nodes in the tree */
       nodes: components['schemas']['ResourceNode'][];
-      /** @description Full Release CR (metadata + spec + status). Same structure as returned by GET /releases/{releaseName}.
+      /** @description Full RenderedRelease CR (metadata + spec + status).
        *      */
-      release?: components['schemas']['Release'];
+      renderedRelease?: components['schemas']['RenderedRelease'];
     };
     /** @description Request to deploy a release */
     DeployReleaseRequest: {
@@ -4244,6 +4426,16 @@ export interface components {
      *     Defines a set of actions that can be assigned to subjects via role bindings.
      *      */
     AuthzClusterRole: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example AuthzClusterRole
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['AuthzClusterRoleSpec'];
     };
@@ -4273,6 +4465,16 @@ export interface components {
      *     Defines a set of actions that can be assigned to subjects via role bindings within a namespace.
      *      */
     AuthzRole: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example AuthzRole
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['AuthzRoleSpec'];
     };
@@ -4301,6 +4503,16 @@ export interface components {
      *     Binds a cluster role to a subject identified by an entitlement claim.
      *      */
     AuthzClusterRoleBinding: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example AuthzClusterRoleBinding
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['AuthzClusterRoleBindingSpec'];
     };
@@ -4325,6 +4537,16 @@ export interface components {
      *     Binds a role to a subject identified by an entitlement claim within a namespace.
      *      */
     AuthzRoleBinding: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example AuthzRoleBinding
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['AuthzRoleBindingSpec'];
     };
@@ -4796,10 +5018,20 @@ export interface components {
       items: components['schemas']['SecretReference'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description SecretReference resource (Kubernetes object without kind/apiVersion).
+    /** @description SecretReference resource.
      *     Defines references to external secrets that are synced into the cluster.
      *      */
     SecretReference: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example SecretReference
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['SecretReferenceSpec'];
       readonly status?: components['schemas']['SecretReferenceStatus'];
@@ -4906,10 +5138,20 @@ export interface components {
       items: components['schemas']['Workload'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description Workload resource (Kubernetes object without kind/apiVersion).
+    /** @description Workload resource.
      *     Defines the source code, container, endpoints and connections for a component.
      *      */
     Workload: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example Workload
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['WorkloadSpec'];
       readonly status?: components['schemas']['WorkloadStatus'];
@@ -5012,10 +5254,20 @@ export interface components {
       items: components['schemas']['DeploymentPipeline'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description DeploymentPipeline resource (Kubernetes object without kind/apiVersion).
+    /** @description DeploymentPipeline resource.
      *     Defines promotion paths between environments for component deployments.
      *      */
     DeploymentPipeline: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example DeploymentPipeline
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['DeploymentPipelineSpec'];
       readonly status?: components['schemas']['DeploymentPipelineStatus'];
@@ -5063,10 +5315,20 @@ export interface components {
       items: components['schemas']['ObservabilityAlertsNotificationChannel'][];
       pagination: components['schemas']['Pagination'];
     };
-    /** @description ObservabilityAlertsNotificationChannel resource (Kubernetes object without kind/apiVersion).
+    /** @description ObservabilityAlertsNotificationChannel resource.
      *     Defines a channel for sending alert notifications. Currently email and webhook notifications are supported.
      *      */
     ObservabilityAlertsNotificationChannel: {
+      /**
+       * @description API version of the resource
+       * @example openchoreo.dev/v1alpha1
+       */
+      readonly apiVersion?: string;
+      /**
+       * @description Kind of the resource
+       * @example ObservabilityAlertsNotificationChannel
+       */
+      readonly kind?: string;
       metadata: components['schemas']['ObjectMeta'];
       spec?: components['schemas']['ObservabilityAlertsNotificationChannelSpec'];
       readonly status?: components['schemas']['ObservabilityAlertsNotificationChannelStatus'];
@@ -5337,6 +5599,8 @@ export interface components {
     ClusterComponentTypeNameParam: string;
     /** @description ClusterTrait name */
     ClusterTraitNameParam: string;
+    /** @description ClusterWorkflow name */
+    ClusterWorkflowNameParam: string;
     /** @description Trait name */
     TraitNameParam: string;
     /** @description Secret reference name */
@@ -5355,8 +5619,6 @@ export interface components {
     ReleaseBindingNameParam: string;
     /** @description Component release name */
     ComponentReleaseNameParam: string;
-    /** @description Release name */
-    ReleaseNameParam: string;
     /** @description Role name */
     RoleNameParam: string;
     /** @description Role mapping ID */
@@ -5993,64 +6255,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getEnvironmentObserverURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Environment name */
-        envName: components['parameters']['EnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Observer URL information */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ObserverURLResponse'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getRCAAgentURL: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Environment name */
-        envName: components['parameters']['EnvironmentNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description RCA agent URL information */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['RCAAgentURLResponse'];
-        };
       };
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
@@ -7671,6 +7875,177 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
+  listClusterWorkflows: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of items to return per page */
+        limit?: components['parameters']['LimitParam'];
+        /** @description Opaque pagination cursor from a previous response.
+         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
+         *      */
+        cursor?: components['parameters']['CursorParam'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List of cluster workflows */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterWorkflowList'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  createClusterWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterWorkflow'];
+      };
+    };
+    responses: {
+      /** @description Cluster workflow created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterWorkflow'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterWorkflow name */
+        clusterWorkflowName: components['parameters']['ClusterWorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster workflow details */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterWorkflow'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateClusterWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterWorkflow name */
+        clusterWorkflowName: components['parameters']['ClusterWorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClusterWorkflow'];
+      };
+    };
+    responses: {
+      /** @description Cluster workflow updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterWorkflow'];
+        };
+      };
+      400: components['responses']['BadRequest'];
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      409: components['responses']['Conflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  deleteClusterWorkflow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterWorkflow name */
+        clusterWorkflowName: components['parameters']['ClusterWorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description ClusterWorkflow deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  getClusterWorkflowSchema: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ClusterWorkflow name */
+        clusterWorkflowName: components['parameters']['ClusterWorkflowNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Cluster workflow schema */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SchemaResponse'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
   listWorkflows: {
     parameters: {
       query?: {
@@ -7946,6 +8321,40 @@ export interface operations {
           'application/json': components['schemas']['WorkflowRun'];
         };
       };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      404: components['responses']['NotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  updateWorkflowRun: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Namespace name */
+        namespaceName: components['parameters']['NamespaceNameParam'];
+        /** @description Workflow run name */
+        runName: components['parameters']['WorkflowRunNameParam'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['WorkflowRun'];
+      };
+    };
+    responses: {
+      /** @description Workflow run updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['WorkflowRun'];
+        };
+      };
+      400: components['responses']['BadRequest'];
       401: components['responses']['Unauthorized'];
       403: components['responses']['Forbidden'];
       404: components['responses']['NotFound'];
@@ -9502,73 +9911,6 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['ComponentRelease'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  listReleases: {
-    parameters: {
-      query?: {
-        /** @description Filter resources by component name */
-        component?: components['parameters']['ComponentQueryParam'];
-        /** @description Filter resources by environment name */
-        environment?: components['parameters']['EnvironmentQueryParam'];
-        /** @description Maximum number of items to return per page */
-        limit?: components['parameters']['LimitParam'];
-        /** @description Opaque pagination cursor from a previous response.
-         *     Pass the `nextCursor` value from pagination metadata to fetch the next page.
-         *      */
-        cursor?: components['parameters']['CursorParam'];
-      };
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description List of releases */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReleaseList'];
-        };
-      };
-      401: components['responses']['Unauthorized'];
-      403: components['responses']['Forbidden'];
-      404: components['responses']['NotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  getRelease: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Namespace name */
-        namespaceName: components['parameters']['NamespaceNameParam'];
-        /** @description Release name */
-        releaseName: components['parameters']['ReleaseNameParam'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Release details */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Release'];
         };
       };
       401: components['responses']['Unauthorized'];

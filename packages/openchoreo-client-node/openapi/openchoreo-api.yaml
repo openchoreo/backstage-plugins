@@ -69,8 +69,6 @@ tags:
     description: Workload source code definitions
   - name: ComponentReleases
     description: Component release management
-  - name: Releases
-    description: Release management
   - name: ReleaseBindings
     description: Release binding management
   - name: DeploymentPipelines
@@ -637,56 +635,6 @@ paths:
       responses:
         '204':
           description: Environment deleted successfully
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/namespaces/{namespaceName}/environments/{envName}/observer-url:
-    get:
-      operationId: getEnvironmentObserverURL
-      summary: Get environment observer URL
-      description: Returns the observer URL for accessing logs and metrics for this environment.
-      tags: [Environments]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/EnvironmentNameParam'
-      responses:
-        '200':
-          description: Observer URL information
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ObserverURLResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/namespaces/{namespaceName}/environments/{envName}/rca-agent-url:
-    get:
-      operationId: getRCAAgentURL
-      summary: Get RCA agent URL
-      description: Returns the RCA agent URL for AI-powered root cause analysis for this environment.
-      tags: [Environments]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/EnvironmentNameParam'
-      responses:
-        '200':
-          description: RCA agent URL information
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RCAAgentURLResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2162,6 +2110,162 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # =============================================================================
+  # ClusterWorkflow Endpoints
+  # =============================================================================
+
+  /api/v1/clusterworkflows:
+    get:
+      operationId: listClusterWorkflows
+      summary: List cluster workflows
+      description: Returns a list of cluster-scoped workflows.
+      tags: [ClusterWorkflows]
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/CursorParam'
+      responses:
+        '200':
+          description: List of cluster workflows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterWorkflowList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      operationId: createClusterWorkflow
+      summary: Create cluster workflow
+      description: Creates a new cluster-scoped workflow.
+      tags: [ClusterWorkflows]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterWorkflow'
+      responses:
+        '201':
+          description: Cluster workflow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterWorkflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/clusterworkflows/{clusterWorkflowName}:
+    get:
+      operationId: getClusterWorkflow
+      summary: Get a cluster workflow
+      description: Returns details of a specific cluster-scoped workflow.
+      tags: [ClusterWorkflows]
+      parameters:
+        - $ref: '#/components/parameters/ClusterWorkflowNameParam'
+      responses:
+        '200':
+          description: Cluster workflow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterWorkflow'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateClusterWorkflow
+      summary: Update cluster workflow
+      description: Replaces an existing cluster-scoped workflow (full update).
+      tags: [ClusterWorkflows]
+      parameters:
+        - $ref: '#/components/parameters/ClusterWorkflowNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterWorkflow'
+      responses:
+        '200':
+          description: Cluster workflow updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterWorkflow'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      operationId: deleteClusterWorkflow
+      summary: Delete cluster workflow
+      description: Deletes a cluster-scoped workflow by name.
+      tags: [ClusterWorkflows]
+      parameters:
+        - $ref: '#/components/parameters/ClusterWorkflowNameParam'
+      responses:
+        '204':
+          description: ClusterWorkflow deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/clusterworkflows/{clusterWorkflowName}/schema:
+    get:
+      operationId: getClusterWorkflowSchema
+      summary: Get cluster workflow schema
+      description: Returns the parameter schema for a specific cluster-scoped workflow.
+      tags: [ClusterWorkflows]
+      parameters:
+        - $ref: '#/components/parameters/ClusterWorkflowNameParam'
+      responses:
+        '200':
+          description: Cluster workflow schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  # =============================================================================
   # Workflow Endpoints (Generic Workflows)
   # =============================================================================
 
@@ -2400,6 +2504,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WorkflowRun'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    put:
+      operationId: updateWorkflowRun
+      summary: Update workflow run
+      description: Replaces an existing workflow run (full update).
+      tags: [Workflows]
+      parameters:
+        - $ref: '#/components/parameters/NamespaceNameParam'
+        - $ref: '#/components/parameters/WorkflowRunNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowRun'
+      responses:
+        '200':
+          description: Workflow run updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowRun'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -3961,63 +4097,6 @@ paths:
           $ref: '#/components/responses/InternalError'
 
   # =============================================================================
-  # Release Endpoints
-  # =============================================================================
-
-  /api/v1/namespaces/{namespaceName}/releases:
-    get:
-      operationId: listReleases
-      summary: List releases
-      description: Returns a paginated list of releases within a namespace, optionally filtered by component and environment.
-      tags: [Releases]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ComponentQueryParam'
-        - $ref: '#/components/parameters/EnvironmentQueryParam'
-        - $ref: '#/components/parameters/LimitParam'
-        - $ref: '#/components/parameters/CursorParam'
-      responses:
-        '200':
-          description: List of releases
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReleaseList'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /api/v1/namespaces/{namespaceName}/releases/{releaseName}:
-    get:
-      operationId: getRelease
-      summary: Get release
-      description: Returns details of a specific release.
-      tags: [Releases]
-      parameters:
-        - $ref: '#/components/parameters/NamespaceNameParam'
-        - $ref: '#/components/parameters/ReleaseNameParam'
-      responses:
-        '200':
-          description: Release details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Release'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  # =============================================================================
   # Release Binding Endpoints
   # =============================================================================
 
@@ -4798,6 +4877,15 @@ components:
         type: string
         example: autoscaler
 
+    ClusterWorkflowNameParam:
+      name: clusterWorkflowName
+      in: path
+      required: true
+      description: ClusterWorkflow name
+      schema:
+        type: string
+        example: docker-build
+
     TraitNameParam:
       name: traitName
       in: path
@@ -4878,15 +4966,6 @@ components:
       schema:
         type: string
         example: api-service-v1.0.0
-
-    ReleaseNameParam:
-      name: releaseName
-      in: path
-      required: true
-      description: Release name
-      schema:
-        type: string
-        example: v1.0.0
 
     RoleNameParam:
       name: roleName
@@ -5357,7 +5436,7 @@ components:
     Namespace:
       type: object
       description: |
-        Namespace resource (Kubernetes object without kind/apiVersion).
+        Namespace resource.
         Control plane namespaces hold resources like Projects, Components, and Environments.
         These namespaces are identified by the label `openchoreo.dev/controlplane-namespace=true`.
       required:
@@ -5411,11 +5490,21 @@ components:
     Project:
       type: object
       description: |
-        Project resource (Kubernetes object without kind/apiVersion).
+        Project resource.
         Projects group components within a namespace and reference a deployment pipeline.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: Project
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -5539,11 +5628,21 @@ components:
     Component:
       type: object
       description: |
-        Component resource (Kubernetes object without kind/apiVersion).
+        Component resource.
         Components group source code and deployment configuration within a project.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: Component
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -5767,11 +5866,21 @@ components:
     Environment:
       type: object
       description: |
-        Environment resource (Kubernetes object without kind/apiVersion).
+        Environment resource.
         Environments represent deployment targets within a namespace.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: Environment
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -5795,32 +5904,6 @@ components:
         pagination:
           $ref: '#/components/schemas/Pagination'
 
-    ObserverURLResponse:
-      type: object
-      description: Observer URL response for accessing logs and metrics
-      properties:
-        observerUrl:
-          type: string
-          description: URL to the observer service for logs and metrics
-          example: https://observer.example.com/api/v1
-        message:
-          type: string
-          description: Additional information or status message
-          example: Observer URL is available
-
-    RCAAgentURLResponse:
-      type: object
-      description: RCA agent URL response for AI-powered root cause analysis
-      properties:
-        rcaAgentUrl:
-          type: string
-          description: URL to the RCA agent service for AI-powered root cause analysis
-          example: https://rca-agent.example.com
-        message:
-          type: string
-          description: Additional information or status message
-          example: RCA agent URL is available
-
     # -------------------------------------------------------------------------
     # DataPlanes
     # -------------------------------------------------------------------------
@@ -5841,11 +5924,21 @@ components:
     DataPlane:
       type: object
       description: |
-        DataPlane resource (Kubernetes object without kind/apiVersion).
+        DataPlane resource.
         Represents a Kubernetes cluster for workload deployment.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: DataPlane
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -5869,12 +5962,6 @@ components:
           $ref: '#/components/schemas/ClusterAgentConfig'
         gateway:
           $ref: '#/components/schemas/GatewaySpec'
-        imagePullSecretRefs:
-          type: array
-          description: References to SecretReference resources for image pulling
-          items:
-            type: string
-          example: ['docker-registry-secret']
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -5969,11 +6056,21 @@ components:
     BuildPlane:
       type: object
       description: |
-        BuildPlane resource (Kubernetes object without kind/apiVersion).
+        BuildPlane resource.
         Represents CI/CD build infrastructure within a namespace.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: BuildPlane
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6124,11 +6221,21 @@ components:
     ObservabilityPlane:
       type: object
       description: |
-        ObservabilityPlane resource (Kubernetes object without kind/apiVersion).
+        ObservabilityPlane resource.
         Represents monitoring and logging infrastructure within a namespace.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ObservabilityPlane
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6195,11 +6302,21 @@ components:
     ClusterDataPlane:
       type: object
       description: |
-        ClusterDataPlane resource (Kubernetes object without kind/apiVersion).
+        ClusterDataPlane resource.
         Represents a cluster-scoped data plane for workload deployment.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterDataPlane
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6223,12 +6340,6 @@ components:
           $ref: '#/components/schemas/ClusterAgentConfig'
         gateway:
           $ref: '#/components/schemas/GatewaySpec'
-        imagePullSecretRefs:
-          type: array
-          description: References to SecretReference resources for image pulling
-          items:
-            type: string
-          example: ['docker-registry-secret']
         secretStoreRef:
           $ref: '#/components/schemas/SecretStoreRef'
         observabilityPlaneRef:
@@ -6270,11 +6381,21 @@ components:
     ClusterBuildPlane:
       type: object
       description: |
-        ClusterBuildPlane resource (Kubernetes object without kind/apiVersion).
+        ClusterBuildPlane resource.
         Represents cluster-scoped CI/CD build infrastructure.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterBuildPlane
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6360,11 +6481,21 @@ components:
     ClusterObservabilityPlane:
       type: object
       description: |
-        ClusterObservabilityPlane resource (Kubernetes object without kind/apiVersion).
+        ClusterObservabilityPlane resource.
         Represents cluster-scoped monitoring and logging infrastructure.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterObservabilityPlane
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6431,11 +6562,21 @@ components:
     ClusterComponentType:
       type: object
       description: |
-        ClusterComponentType resource (Kubernetes object without kind/apiVersion).
+        ClusterComponentType resource.
         Cluster-scoped version of ComponentType.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterComponentType
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6459,25 +6600,25 @@ components:
           example: deployment
         allowedWorkflows:
           type: array
-          description: List of allowed Workflow references for this component type
+          description: List of allowed ClusterWorkflow references for this component type
           items:
             type: object
             required:
+              - kind
               - name
             properties:
               kind:
                 type: string
-                description: Kind of the workflow reference. Currently only "Workflow" is supported.
-                enum: [Workflow]
-                default: Workflow
+                description: Kind of the workflow reference. Must be "ClusterWorkflow".
+                enum: [ClusterWorkflow]
               name:
                 type: string
-                description: Name of the workflow resource
+                description: Name of the ClusterWorkflow resource
                 minLength: 1
           example:
-            - kind: Workflow
+            - kind: ClusterWorkflow
               name: docker-build
-            - kind: Workflow
+            - kind: ClusterWorkflow
               name: buildpack-build
         schema:
           type: object
@@ -6550,18 +6691,7 @@ components:
           type: array
           description: CEL-based validation rules evaluated during rendering
           items:
-            type: object
-            required:
-              - rule
-              - message
-            properties:
-              rule:
-                type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
-                pattern: '^\$\{[\s\S]+\}\s*$'
-              message:
-                type: string
-                description: Error message shown when the rule evaluates to false
+            $ref: '#/components/schemas/ValidationRule'
         resources:
           type: array
           description: Templates that generate Kubernetes resources dynamically
@@ -6620,11 +6750,21 @@ components:
     ClusterTrait:
       type: object
       description: |
-        ClusterTrait resource (Kubernetes object without kind/apiVersion).
+        ClusterTrait resource.
         Cluster-scoped version of Trait.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterTrait
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6654,6 +6794,11 @@ components:
               type: object
               description: Environment-specific overrides
               additionalProperties: true
+        validations:
+          type: array
+          description: CEL-based validation rules evaluated during rendering
+          items:
+            $ref: '#/components/schemas/ValidationRule'
         creates:
           type: array
           description: New Kubernetes resources to create when this trait is applied
@@ -6864,17 +7009,7 @@ components:
           type: array
           description: CEL-based validation rules evaluated during rendering
           items:
-            type: object
-            required:
-              - rule
-              - message
-            properties:
-              rule:
-                type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
-              message:
-                type: string
-                description: Error message shown when the rule evaluates to false
+            $ref: '#/components/schemas/ValidationRule'
         resources:
           type: array
           description: Templates that generate Kubernetes resources dynamically
@@ -6914,11 +7049,21 @@ components:
     ComponentType:
       type: object
       description: |
-        ComponentType resource (Kubernetes object without kind/apiVersion).
+        ComponentType resource.
         Defines workload templates used by platform engineers to govern component behavior.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ComponentType
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -6969,17 +7114,7 @@ components:
           type: array
           description: CEL-based validation rules evaluated during rendering
           items:
-            type: object
-            required:
-              - rule
-              - message
-            properties:
-              rule:
-                type: string
-                description: 'CEL expression wrapped in ${...} that must evaluate to true'
-              message:
-                type: string
-                description: Error message shown when the rule evaluates to false
+            $ref: '#/components/schemas/ValidationRule'
         creates:
           type: array
           description: New Kubernetes resources to create when this trait is applied
@@ -7070,14 +7205,40 @@ components:
       type: object
       description: Observed state of a Trait
 
+    ValidationRule:
+      type: object
+      description: CEL-based validation rule evaluated during rendering
+      required:
+        - rule
+        - message
+      properties:
+        rule:
+          type: string
+          description: 'CEL expression wrapped in ${...} that must evaluate to true'
+          pattern: '^\$\{[\s\S]+\}\s*$'
+        message:
+          type: string
+          description: Error message shown when the rule evaluates to false
+          minLength: 1
+
     Trait:
       type: object
       description: |
-        Trait resource (Kubernetes object without kind/apiVersion).
+        Trait resource.
         Defines composable cross-cutting concerns that can be applied to components.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: Trait
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -7126,6 +7287,16 @@ components:
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: Workflow
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -7248,6 +7419,107 @@ components:
             $ref: '#/components/schemas/Condition'
 
     # -------------------------------------------------------------------------
+    # ClusterWorkflows
+    # -------------------------------------------------------------------------
+    ClusterWorkflowList:
+      type: object
+      description: Paginated list of cluster-scoped workflows
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterWorkflow'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ClusterWorkflow:
+      type: object
+      description: |
+        ClusterWorkflow resource.
+        Cluster-scoped version of Workflow that can be referenced by Components across all namespaces.
+      required:
+        - metadata
+      properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ClusterWorkflow
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/ClusterWorkflowSpec'
+        status:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/ClusterWorkflowStatus'
+
+    ClusterWorkflowSpec:
+      type: object
+      description: Desired state of a ClusterWorkflow
+      required:
+        - runTemplate
+      properties:
+        buildPlaneRef:
+          description: Reference to the ClusterBuildPlane for this workflow's build operations. Defaults to the ClusterBuildPlane named "default" when omitted.
+          allOf:
+            - $ref: '#/components/schemas/ClusterBuildPlaneRef'
+        schema:
+          $ref: '#/components/schemas/WorkflowSchema'
+        runTemplate:
+          type: object
+          description: Kubernetes resource template to render and apply for this workflow run.
+          additionalProperties: true
+        resources:
+          type: array
+          description: Additional resource templates to render and apply alongside the workflow run.
+          items:
+            $ref: '#/components/schemas/WorkflowResource'
+        externalRefs:
+          type: array
+          description: External CR references resolved and injected into the CEL context under their id.
+          items:
+            $ref: '#/components/schemas/ExternalRef'
+        ttlAfterCompletion:
+          type: string
+          description: Time-to-live for WorkflowRun instances after completion (duration string like 10d1h30m).
+
+    ClusterBuildPlaneRef:
+      type: object
+      description: Reference to a ClusterBuildPlane
+      required:
+        - kind
+        - name
+      properties:
+        kind:
+          type: string
+          description: Kind of build plane (must be ClusterBuildPlane)
+          enum: [ClusterBuildPlane]
+          example: ClusterBuildPlane
+        name:
+          type: string
+          description: Name of the cluster build plane resource
+          example: default
+
+    ClusterWorkflowStatus:
+      type: object
+      description: Observed state of a ClusterWorkflow
+      properties:
+        conditions:
+          type: array
+          description: Kubernetes-style conditions
+          items:
+            $ref: '#/components/schemas/Condition'
+
+    # -------------------------------------------------------------------------
     # WorkflowRuns
     # -------------------------------------------------------------------------
     WorkflowRunList:
@@ -7269,6 +7541,16 @@ components:
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: WorkflowRun
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -7541,11 +7823,21 @@ components:
     ComponentRelease:
       type: object
       description: |
-        ComponentRelease resource (Kubernetes object without kind/apiVersion).
+        ComponentRelease resource.
         Immutable snapshot of component state at release time.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ComponentRelease
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -7624,11 +7916,21 @@ components:
     ReleaseBinding:
       type: object
       description: |
-        ReleaseBinding resource (Kubernetes object without kind/apiVersion).
+        ReleaseBinding resource.
         Binds a ComponentRelease to a specific environment.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ReleaseBinding
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -7843,49 +8145,45 @@ components:
           $ref: '#/components/schemas/EnvVarValueFrom'
 
     # -------------------------------------------------------------------------
-    # Release
+    # RenderedRelease
     # -------------------------------------------------------------------------
-    ReleaseList:
-      type: object
-      description: Paginated list of releases
-      required:
-        - items
-        - pagination
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Release'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-
-    Release:
+    RenderedRelease:
       type: object
       description: |
-        Release resource (Kubernetes object without kind/apiVersion).
-        Contains the final Kubernetes manifests deployed to data plane clusters.
+        RenderedRelease resource.
+        Contains the final rendered Kubernetes manifests deployed to data plane clusters.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: RenderedRelease
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
-          $ref: '#/components/schemas/ReleaseSpec'
+          $ref: '#/components/schemas/RenderedReleaseSpec'
         status:
           readOnly: true
           allOf:
-            - $ref: '#/components/schemas/ReleaseStatus'
+            - $ref: '#/components/schemas/RenderedReleaseStatus'
 
-    ReleaseSpec:
+    RenderedReleaseSpec:
       type: object
-      description: Desired state of a Release
+      description: Desired state of a RenderedRelease
       required:
         - owner
         - environmentName
       properties:
         owner:
           type: object
-          description: Owner identifies the component and project this Release belongs to
+          description: Owner identifies the component and project this RenderedRelease belongs to
           required:
             - projectName
             - componentName
@@ -7900,7 +8198,7 @@ components:
               example: api-service
         environmentName:
           type: string
-          description: Target environment for this release
+          description: Target environment for this rendered release
           example: dev
         resources:
           type: array
@@ -7926,20 +8224,20 @@ components:
           example: dataplane
         interval:
           type: string
-          description: Watch interval for stable release resources (e.g. 5m, 30s)
+          description: Watch interval for stable rendered release resources (e.g. 5m, 30s)
           example: 5m
         progressingInterval:
           type: string
-          description: Watch interval for transitioning release resources (e.g. 10s)
+          description: Watch interval for transitioning rendered release resources (e.g. 10s)
           example: 10s
 
-    ReleaseStatus:
+    RenderedReleaseStatus:
       type: object
-      description: Observed state of a Release
+      description: Observed state of a RenderedRelease
       properties:
         conditions:
           type: array
-          description: Latest available observations of the Release's current state
+          description: Latest available observations of the RenderedRelease's current state
           items:
             $ref: '#/components/schemas/Condition'
         resources:
@@ -8158,13 +8456,13 @@ components:
 
     K8sResourceTreeResponse:
       type: object
-      description: Response containing resource trees for all releases owned by a release binding
+      description: Response containing resource trees for all rendered releases owned by a release binding
       required:
-        - releases
+        - renderedReleases
       properties:
-        releases:
+        renderedReleases:
           type: array
-          description: Resource trees per release (dataplane and/or observabilityplane)
+          description: Resource trees per rendered release (dataplane and/or observabilityplane)
           items:
             $ref: '#/components/schemas/ReleaseResourceTree'
 
@@ -8188,12 +8486,11 @@ components:
           description: All resource nodes in the tree
           items:
             $ref: '#/components/schemas/ResourceNode'
-        release:
+        renderedRelease:
           description: >
-            Full Release CR (metadata + spec + status). Same structure as
-            returned by GET /releases/{releaseName}.
+            Full RenderedRelease CR (metadata + spec + status).
           allOf:
-            - $ref: '#/components/schemas/Release'
+            - $ref: '#/components/schemas/RenderedRelease'
 
     # -------------------------------------------------------------------------
     # Deploy/Promote Requests
@@ -8256,6 +8553,16 @@ components:
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: AuthzClusterRole
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -8300,6 +8607,16 @@ components:
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: AuthzRole
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -8344,6 +8661,16 @@ components:
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: AuthzClusterRoleBinding
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -8389,6 +8716,16 @@ components:
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: AuthzRoleBinding
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -8993,11 +9330,21 @@ components:
     SecretReference:
       type: object
       description: |
-        SecretReference resource (Kubernetes object without kind/apiVersion).
+        SecretReference resource.
         Defines references to external secrets that are synced into the cluster.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: SecretReference
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -9152,11 +9499,21 @@ components:
     Workload:
       type: object
       description: |
-        Workload resource (Kubernetes object without kind/apiVersion).
+        Workload resource.
         Defines the source code, container, endpoints and connections for a component.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: Workload
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -9342,11 +9699,21 @@ components:
     DeploymentPipeline:
       type: object
       description: |
-        DeploymentPipeline resource (Kubernetes object without kind/apiVersion).
+        DeploymentPipeline resource.
         Defines promotion paths between environments for component deployments.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: DeploymentPipeline
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:
@@ -9432,11 +9799,21 @@ components:
     ObservabilityAlertsNotificationChannel:
       type: object
       description: |
-        ObservabilityAlertsNotificationChannel resource (Kubernetes object without kind/apiVersion).
+        ObservabilityAlertsNotificationChannel resource.
         Defines a channel for sending alert notifications. Currently email and webhook notifications are supported.
       required:
         - metadata
       properties:
+        apiVersion:
+          type: string
+          readOnly: true
+          description: API version of the resource
+          example: openchoreo.dev/v1alpha1
+        kind:
+          type: string
+          readOnly: true
+          description: Kind of the resource
+          example: ObservabilityAlertsNotificationChannel
         metadata:
           $ref: '#/components/schemas/ObjectMeta'
         spec:

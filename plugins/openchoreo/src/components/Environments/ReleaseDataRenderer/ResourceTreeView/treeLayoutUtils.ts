@@ -19,7 +19,7 @@ const ROOT_NODE_ID = '__release_binding__';
 export function getResourceTreeNodes(
   resourceTreeData?: ResourceTreeData | null,
 ): ResourceTreeNode[] {
-  return resourceTreeData?.releases?.flatMap(r => r.nodes) ?? [];
+  return resourceTreeData?.renderedReleases?.flatMap(r => r.nodes) ?? [];
 }
 
 /**
@@ -45,7 +45,7 @@ function aggregateHealth(nodes: ResourceTreeNode[]): HealthStatus {
 
 /**
  * Transform resource tree data into tree nodes.
- * When resourceTreeData contains `releases`, intermediate Release nodes are created.
+ * When resourceTreeData contains `renderedReleases`, intermediate Release nodes are created.
  */
 export function buildTreeNodes(
   resourceTreeData: ResourceTreeData,
@@ -97,7 +97,7 @@ export function buildTreeNodes(
   });
 
   // Create intermediate Release nodes, then resource nodes per release
-  const releases = resourceTreeData?.releases ?? [];
+  const releases = resourceTreeData?.renderedReleases ?? [];
   for (const release of releases) {
     const releaseNodeId = `__release__${release.name}`;
 

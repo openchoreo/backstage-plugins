@@ -8,9 +8,9 @@ export function extractInvokeUrlFromTree(
   resourceTreeData: ResourceTreeData | null,
   port: number = 19080,
 ): string | null {
-  if (!resourceTreeData?.releases) return null;
+  if (!resourceTreeData?.renderedReleases) return null;
 
-  for (const release of resourceTreeData.releases) {
+  for (const release of resourceTreeData.renderedReleases) {
     for (const node of release.nodes) {
       if (node.kind !== 'HTTPRoute') continue;
 
