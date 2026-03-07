@@ -103,7 +103,7 @@ export function buildTreeNodes(
 
     nodes.push({
       id: releaseNodeId,
-      kind: 'Release',
+      kind: 'RenderedRelease',
       name: release.name,
       version: release.targetPlane,
       healthStatus: aggregateHealth(release.nodes),

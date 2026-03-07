@@ -85,7 +85,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
           {node.isRoot && (
             <ReleaseBindingDetailTabs releaseBindingData={releaseBindingData} />
           )}
-          {!node.isRoot && node.kind === 'Release' && (
+          {!node.isRoot && node.kind === 'RenderedRelease' && (
             <Box padding={2}>
               <Typography variant="subtitle2" gutterBottom>
                 Release Name
@@ -103,7 +103,7 @@ export const ResourceDetailPanel: FC<ResourceDetailPanelProps> = ({
               <Typography variant="body2">{node.version}</Typography>
             </Box>
           )}
-          {!node.isRoot && node.kind !== 'Release' && (
+          {!node.isRoot && node.kind !== 'RenderedRelease' && (
             <ResourceDetailTabs
               node={node}
               namespaceName={namespaceName}
