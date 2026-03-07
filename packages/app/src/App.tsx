@@ -85,7 +85,6 @@ import {
   UserSettingsPage,
   SettingsLayout,
   UserSettingsGeneral,
-  UserSettingsAuthProviders,
 } from '@backstage/plugin-user-settings';
 import CategoryIcon from '@material-ui/icons/Category';
 import ExtensionIcon from '@material-ui/icons/Extension';
@@ -94,7 +93,6 @@ import SettingsApplicationsIcon from '@material-ui/icons/SettingsApplications';
 import { UnifiedThemeProvider } from '@backstage/theme';
 import { VisitListener } from '@backstage/plugin-home';
 import { configApiRef, useApi } from '@backstage/core-plugin-api';
-import { OpenChoreoProviderSettings } from './components/settings/OpenChoreoProviderSettings';
 import { DependencyGraphZoomOverrides } from './components/graph/DependencyGraphZoomOverrides';
 
 /**
@@ -285,11 +283,6 @@ const routes = (
       <SettingsLayout>
         <SettingsLayout.Route path="general" title="General">
           <UserSettingsGeneral />
-        </SettingsLayout.Route>
-        <SettingsLayout.Route path="auth-providers" title="Auth Providers">
-          <UserSettingsAuthProviders
-            providerSettings={<OpenChoreoProviderSettings />}
-          />
         </SettingsLayout.Route>
         <SettingsLayout.Route path="access-control" title="Access Control">
           <AccessControlContent />
