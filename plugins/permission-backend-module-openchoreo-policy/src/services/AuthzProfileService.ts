@@ -144,10 +144,9 @@ export class AuthzProfileService {
         namespace?: string;
         project?: string;
         component?: string;
-      } = {
-        namespace: namespace ?? 'default',
-      };
+      } = {};
 
+      if (namespace) query.namespace = namespace;
       if (project) query.project = project;
       if (component) query.component = component;
 
