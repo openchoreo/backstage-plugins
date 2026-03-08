@@ -262,6 +262,18 @@ catalog:
       target: ../../templates/create-openchoreo-namespace/template.yaml
       rules:
         - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-clustercomponenttype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-clustertrait/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: ../../templates/create-openchoreo-clusterworkflow/template.yaml
+      rules:
+        - allow: [Template]
     # - type: file
     #   target: ../../templates/create-openchoreo-component/template.yaml
     #   rules:

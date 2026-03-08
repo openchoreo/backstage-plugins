@@ -14,4 +14,5 @@ export { ClusterTraitTypeEntityProcessor } from './ClusterTraitTypeEntityProcess
 export { ClusterDataplaneEntityProcessor } from './ClusterDataplaneEntityProcessor';
 export { ClusterObservabilityPlaneEntityProcessor } from './ClusterObservabilityPlaneEntityProcessor';
 export { ClusterBuildPlaneEntityProcessor } from './ClusterBuildPlaneEntityProcessor';
+export { ClusterWorkflowEntityProcessor } from './ClusterWorkflowEntityProcessor';
 export { SystemBuildPlaneProcessor } from './SystemBuildPlaneProcessor';

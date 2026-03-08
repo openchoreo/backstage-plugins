@@ -867,4 +867,99 @@ export class WorkflowService {
       throw error;
     }
   }
+
+  /**
+   * Fetch all cluster-scoped workflows
+   */
+  async fetchClusterWorkflows(
+    token?: string,
+  ): Promise<{ success: boolean; data: { items: WorkflowResponse[] } }> {
+    this.logger.debug('Fetching cluster workflows');
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      // TODO: Remove 'as any' once OpenAPI client is regenerated with ClusterWorkflow types
+      const { data, error, response } = await (client as any).GET(
+        '/api/v1/clusterworkflows',
+        {
+          params: {
+            query: {},
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch cluster workflows: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const items: WorkflowResponse[] = ((data as any)?.items || []).map(
+        (wf: any) => ({
+          name: wf.metadata?.name ?? '',
+          displayName:
+            wf.metadata?.annotations?.['openchoreo.dev/display-name'] ??
+            wf.metadata?.name,
+          description: wf.metadata?.annotations?.['openchoreo.dev/description'],
+          createdAt: wf.metadata?.creationTimestamp,
+        }),
+      );
+
+      this.logger.debug(
+        `Successfully fetched ${items.length} cluster workflows`,
+      );
+      return { success: true, data: { items } };
+    } catch (error) {
+      this.logger.error(`Failed to fetch cluster workflows: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch JSONSchema for a specific cluster workflow
+   */
+  async fetchClusterWorkflowSchema(
+    workflowName: string,
+    token?: string,
+  ): Promise<unknown> {
+    this.logger.debug(`Fetching schema for cluster workflow: ${workflowName}`);
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/clusterworkflows/{clusterWorkflowName}/schema' as any,
+        {
+          params: {
+            path: { clusterWorkflowName: workflowName },
+          },
+        } as any,
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch cluster workflow schema: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully fetched schema for cluster workflow: ${workflowName}`,
+      );
+      return data;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch schema for cluster workflow ${workflowName}: ${error}`,
+      );
+      throw error;
+    }
+  }
 }

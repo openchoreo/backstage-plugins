@@ -291,6 +291,11 @@ export const BuildWorkflowPicker = ({
     typeof uiSchema?.['ui:options']?.namespaceName === 'string'
       ? uiSchema['ui:options'].namespaceName
       : '';
+  const ctdKind =
+    typeof uiSchema?.['ui:options']?.ctdKind === 'string'
+      ? (uiSchema['ui:options'].ctdKind as string)
+      : 'ComponentType';
+  const isClusterComponentType = ctdKind === 'ClusterComponentType';
 
   const showLanguageSelector =
     enumWorkflows &&
@@ -323,8 +328,9 @@ export const BuildWorkflowPicker = ({
         return;
       }
 
-      // Otherwise, fetch from API
-      if (!namespaceName) {
+      // For ClusterComponentType without enum, fetch cluster workflows only
+      // For ComponentType without enum, fetch both namespace + cluster workflows
+      if (!isClusterComponentType && !namespaceName) {
         setError('Namespace name is required to fetch workflows');
         return;
       }
@@ -341,22 +347,56 @@ export const BuildWorkflowPicker = ({
           return parts[parts.length - 1];
         };
 
-        const nsName = extractNsName(namespaceName);
+        const allWorkflows: string[] = [];
 
-        // Use fetchApi which automatically injects Backstage + IDP tokens
-        const response = await fetchApi.fetch(
-          `${baseUrl}/workflows?namespaceName=${encodeURIComponent(nsName)}`,
-        );
+        if (isClusterComponentType) {
+          // ClusterComponentType: only fetch cluster workflows
+          const response = await fetchApi.fetch(`${baseUrl}/cluster-workflows`);
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              allWorkflows.push(
+                ...result.data.items.map((item: any) => item.name),
+              );
+            }
+          }
+        } else {
+          // ComponentType: fetch both namespace workflows and cluster workflows
+          const nsName = extractNsName(namespaceName);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const [nsResponse, clusterResponse] = await Promise.all([
+            fetchApi.fetch(
+              `${baseUrl}/workflows?namespaceName=${encodeURIComponent(
+                nsName,
+              )}`,
+            ),
+            fetchApi.fetch(`${baseUrl}/cluster-workflows`),
+          ]);
+
+          if (nsResponse.ok) {
+            const nsResult = await nsResponse.json();
+            if (nsResult.success) {
+              allWorkflows.push(
+                ...nsResult.data.items.map((item: any) => item.name),
+              );
+            }
+          }
+
+          if (clusterResponse.ok) {
+            const clusterResult = await clusterResponse.json();
+            if (clusterResult.success) {
+              // Prefix cluster workflow names to distinguish them
+              allWorkflows.push(
+                ...clusterResult.data.items.map(
+                  (item: any) => `ClusterWorkflow:${item.name}`,
+                ),
+              );
+            }
+          }
         }
 
-        const result = await response.json();
-
-        if (!ignore && result.success) {
-          const workflows = result.data.items.map((item: any) => item.name);
-          setWorkflowOptions(workflows);
+        if (!ignore) {
+          setWorkflowOptions(allWorkflows);
         }
       } catch (err) {
         if (!ignore) {
@@ -374,7 +414,13 @@ export const BuildWorkflowPicker = ({
     return () => {
       ignore = true;
     };
-  }, [namespaceName, enumWorkflows, discoveryApi, fetchApi]);
+  }, [
+    namespaceName,
+    enumWorkflows,
+    discoveryApi,
+    fetchApi,
+    isClusterComponentType,
+  ]);
 
   const handleDropdownChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedWorkflow = event.target.value as string;

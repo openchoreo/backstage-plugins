@@ -145,11 +145,14 @@ export class CtdToTemplateConverter {
   private generateParameters(
     componentType: ComponentType,
     namespaceName: string,
+    ctdKind: 'ComponentType' | 'ClusterComponentType' = 'ComponentType',
   ): any[] {
     const parameters: any[] = [];
 
     // Section 1: Build & Deploy (deployment source selection + conditional fields)
-    parameters.push(this.generateCISetupSection(componentType, namespaceName));
+    parameters.push(
+      this.generateCISetupSection(componentType, namespaceName, ctdKind),
+    );
 
     // Section 2: Workload Details (CTD params, endpoints, env vars, file mounts, traits)
     parameters.push(
@@ -236,6 +239,7 @@ export class CtdToTemplateConverter {
   private generateCISetupSection(
     componentType: ComponentType,
     namespaceName: string,
+    ctdKind: 'ComponentType' | 'ClusterComponentType' = 'ComponentType',
   ): any {
     const allowedWorkflowNames = this.normalizeWorkflowNames(
       componentType.metadata.allowedWorkflows,
@@ -250,6 +254,7 @@ export class CtdToTemplateConverter {
       'ui:field': 'BuildWorkflowPicker',
       'ui:options': {
         namespaceName: namespaceName,
+        ctdKind: ctdKind,
       },
     };
 
@@ -429,13 +434,19 @@ export class CtdToTemplateConverter {
           [CHOREO_ANNOTATIONS.CTD_NAME]: componentType.metadata.name,
           [CHOREO_ANNOTATIONS.CTD_GENERATED]: 'true',
           [CHOREO_ANNOTATIONS.CTD_KIND]: 'ClusterComponentType',
+          [CHOREO_ANNOTATIONS.WORKLOAD_TYPE]:
+            componentType.metadata.workloadType,
         },
       },
       spec: {
         owner: this.defaultOwner,
         type: 'Component',
         EXPERIMENTAL_formDecorators: [{ id: 'openchoreo:inject-user-token' }],
-        parameters: this.generateParameters(componentType, ''),
+        parameters: this.generateParameters(
+          componentType,
+          '',
+          'ClusterComponentType',
+        ),
         steps: this.generateSteps(componentType, 'ClusterComponentType'),
         output: {
           links: [

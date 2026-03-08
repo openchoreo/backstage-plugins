@@ -251,6 +251,29 @@ export async function createRouter({
     );
   });
 
+  router.get('/cluster-workflows', async (req, res) => {
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(await workflowService.fetchClusterWorkflows(userToken));
+  });
+
+  router.get('/cluster-workflow-schema', async (req, res) => {
+    const { workflowName } = req.query;
+
+    if (!workflowName) {
+      throw new InputError('workflowName is required query parameter');
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await workflowService.fetchClusterWorkflowSchema(
+        workflowName as string,
+        userToken,
+      ),
+    );
+  });
+
   router.patch('/workflow-parameters', requireAuth, async (req, res) => {
     const { namespaceName, projectName, componentName } = req.query;
 

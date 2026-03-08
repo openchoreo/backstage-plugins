@@ -122,6 +122,18 @@ catalog:
       target: /app/templates/create-openchoreo-namespace/template.yaml
       rules:
         - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-clustercomponenttype/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-clustertrait/template.yaml
+      rules:
+        - allow: [Template]
+    - type: file
+      target: /app/templates/create-openchoreo-clusterworkflow/template.yaml
+      rules:
+        - allow: [Template]
 
 openchoreo:
   # Environment variables are injected by Helm chart (see https://github.com/openchoreo/openchoreo install/helm/openchoreo/templates/backstage/deployment.yaml)

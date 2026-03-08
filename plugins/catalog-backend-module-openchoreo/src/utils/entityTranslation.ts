@@ -14,6 +14,7 @@ import type {
   ComponentWorkflowEntityV1alpha1,
   ClusterComponentTypeEntityV1alpha1,
   ClusterTraitTypeEntityV1alpha1,
+  ClusterWorkflowEntityV1alpha1,
 } from '../kinds';
 
 type ModelsComponent = ComponentResponse;
@@ -653,5 +654,47 @@ export function translateClusterTraitToEntity(
       },
     },
     spec: {},
+  };
+}
+
+/**
+ * Translates an OpenChoreo ClusterWorkflow to a Backstage ClusterWorkflow entity.
+ * Shared utility used by both scheduled sync and immediate insertion.
+ */
+export function translateClusterWorkflowToEntity(
+  wf: {
+    name: string;
+    displayName?: string;
+    description?: string;
+    createdAt?: string;
+    parameters?: string;
+    type?: string;
+  },
+  config: EntityTranslationConfig,
+): ClusterWorkflowEntityV1alpha1 {
+  return {
+    apiVersion: 'backstage.io/v1alpha1',
+    kind: 'ClusterWorkflow',
+    metadata: {
+      name: wf.name,
+      namespace: 'openchoreo-cluster',
+      title: wf.displayName || wf.name,
+      description: wf.description || `${wf.name} cluster workflow`,
+      tags: ['openchoreo', 'cluster-workflow', 'platform-engineering'],
+      annotations: {
+        'backstage.io/managed-by-location': `provider:${config.locationKey}`,
+        'backstage.io/managed-by-origin-location': `provider:${config.locationKey}`,
+        [CHOREO_ANNOTATIONS.CREATED_AT]: wf.createdAt || '',
+        ...(wf.parameters && {
+          [CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS]: wf.parameters,
+        }),
+      },
+      labels: {
+        [CHOREO_LABELS.MANAGED]: 'true',
+      },
+    },
+    spec: {
+      ...(wf.type && { type: wf.type }),
+    },
   };
 }

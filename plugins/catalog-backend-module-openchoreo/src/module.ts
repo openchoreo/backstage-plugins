@@ -26,6 +26,7 @@ import {
   ClusterDataplaneEntityProcessor,
   ClusterObservabilityPlaneEntityProcessor,
   ClusterBuildPlaneEntityProcessor,
+  ClusterWorkflowEntityProcessor,
   SystemBuildPlaneProcessor,
 } from './processors';
 import {
@@ -138,6 +139,9 @@ export const catalogModuleOpenchoreo = createBackendModule({
 
         // Register the ClusterBuildPlane entity processor
         catalog.addProcessor(new ClusterBuildPlaneEntityProcessor());
+
+        // Register the ClusterWorkflow entity processor
+        catalog.addProcessor(new ClusterWorkflowEntityProcessor());
 
         // Register the SystemBuildPlane processor (emits buildsOn/builds relations)
         catalog.addProcessor(new SystemBuildPlaneProcessor());

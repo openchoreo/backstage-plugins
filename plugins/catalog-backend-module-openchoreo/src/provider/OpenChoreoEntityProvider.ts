@@ -87,6 +87,7 @@ import {
   ClusterDataplaneEntityV1alpha1,
   ClusterObservabilityPlaneEntityV1alpha1,
   ClusterBuildPlaneEntityV1alpha1,
+  ClusterWorkflowEntityV1alpha1,
 } from '../kinds';
 import { CtdToTemplateConverter } from '../converters/CtdToTemplateConverter';
 import {
@@ -97,6 +98,7 @@ import {
   translateTraitToEntity as translateTrait,
   translateClusterComponentTypeToEntity as translateClusterCT,
   translateClusterTraitToEntity as translateClusterTrait,
+  translateClusterWorkflowToEntity as translateClusterWF,
   translateWorkflowToEntity as translateWF,
 } from '../utils/entityTranslation';
 
@@ -931,6 +933,40 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         this.logger.warn(`Failed to fetch cluster traits: ${error}`);
       }
 
+      // Fetch cluster workflows (once, not per namespace)
+      try {
+        // TODO: Remove 'as any' once OpenAPI client is regenerated with ClusterWorkflow types
+        const clusterWorkflows = await fetchAllPages<any>(cursor =>
+          (client as any)
+            .GET('/api/v1/clusterworkflows', {
+              params: { query: { limit: 100, cursor } },
+            })
+            .then((res: any) => {
+              if (res.error)
+                throw new Error('Failed to fetch cluster workflows');
+              return res.data;
+            }),
+        );
+
+        this.logger.debug(`Found ${clusterWorkflows.length} cluster workflows`);
+
+        const cwfEntities: Entity[] = clusterWorkflows
+          .map(cwf => {
+            try {
+              return this.translateNewClusterWorkflowToEntity(cwf) as Entity;
+            } catch (err) {
+              this.logger.warn(
+                `Failed to translate ClusterWorkflow ${getName(cwf)}: ${err}`,
+              );
+              return null;
+            }
+          })
+          .filter((e): e is Entity => e !== null);
+        allEntities.push(...cwfEntities);
+      } catch (error) {
+        this.logger.warn(`Failed to fetch cluster workflows: ${error}`);
+      }
+
       // Fetch cluster dataplanes (once, not per namespace)
       try {
         const clusterDataplanes = await fetchAllPages<NewClusterDataPlane>(
@@ -1655,6 +1691,28 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         displayName: getDisplayName(ct),
         description: getDescription(ct),
         createdAt: getCreatedAt(ct),
+      },
+      { locationKey: this.getProviderName() },
+    );
+  }
+
+  /**
+   * Translates a new API ClusterWorkflow to a Backstage ClusterWorkflow entity.
+   */
+  private translateNewClusterWorkflowToEntity(
+    cwf: any,
+  ): ClusterWorkflowEntityV1alpha1 {
+    const isCI =
+      cwf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===
+      'component';
+    return translateClusterWF(
+      {
+        name: getName(cwf)!,
+        displayName: getDisplayName(cwf),
+        description: getDescription(cwf),
+        createdAt: getCreatedAt(cwf),
+        parameters: getAnnotation(cwf, CHOREO_ANNOTATIONS.WORKFLOW_PARAMETERS),
+        type: isCI ? 'CI' : 'Generic',
       },
       { locationKey: this.getProviderName() },
     );
