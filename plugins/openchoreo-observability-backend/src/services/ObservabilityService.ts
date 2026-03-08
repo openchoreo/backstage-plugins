@@ -157,7 +157,6 @@ export class ObservabilityService {
       return [];
     }
   }
-
 }
 
 export const observabilityServiceRef = createServiceRef<

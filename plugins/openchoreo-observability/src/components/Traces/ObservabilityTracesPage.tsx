@@ -14,11 +14,12 @@ import {
 import { useTraceSpans } from '../../hooks/useTraceSpans';
 import { useSpanDetails } from '../../hooks/useSpanDetails';
 import { Environment } from '../../types';
-import { Progress } from '@backstage/core-components';
+import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
+import { useTracesPermission } from '@openchoreo/backstage-plugin-react';
 import { calculateTimeRange } from './utils';
 
-export const ObservabilityTracesPage = () => {
+const ObservabilityTracesContent = () => {
   const { entity } = useEntity();
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] ?? '';
@@ -96,18 +97,20 @@ export const ObservabilityTracesPage = () => {
     );
 
     return (
-      <Alert severity={isObservabilityDisabled ? 'info' : 'error'}>
-        <Typography variant="body1">
-          {isObservabilityDisabled
-            ? 'Observability is not enabled for this project in this environment. Please enable observability to view traces'
-            : error}
-        </Typography>
-        {!isObservabilityDisabled && (
-          <Button onClick={handleRefresh} color="inherit" size="small">
-            Retry
-          </Button>
-        )}
-      </Alert>
+      <Box mt={2} mb={2}>
+        <Alert severity={isObservabilityDisabled ? 'info' : 'error'}>
+          <Typography variant="body1">
+            {isObservabilityDisabled
+              ? 'Observability is not enabled for this project in this environment. Please enable observability to view traces'
+              : error}
+          </Typography>
+          {!isObservabilityDisabled && (
+            <Button onClick={handleRefresh} color="inherit" size="small">
+              Retry
+            </Button>
+          )}
+        </Alert>
+      </Box>
     );
   };
 
@@ -144,4 +147,33 @@ export const ObservabilityTracesPage = () => {
       )}
     </Box>
   );
+};
+
+export const ObservabilityTracesPage = () => {
+  const {
+    canViewTraces,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useTracesPermission();
+
+  if (permissionLoading) {
+    return <Progress />;
+  }
+
+  if (!canViewTraces) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
+    );
+  }
+
+  return <ObservabilityTracesContent />;
 };

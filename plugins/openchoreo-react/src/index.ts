@@ -203,6 +203,14 @@ export {
   type UseMetricsPermissionResult,
 } from './hooks/useMetricsPermission';
 export {
+  useTracesPermission,
+  type UseTracesPermissionResult,
+} from './hooks/useTracesPermission';
+export {
+  useRcaPermission,
+  type UseRcaPermissionResult,
+} from './hooks/useRcaPermission';
+export {
   useTraitsPermission,
   type UseTraitsPermissionResult,
 } from './hooks/useTraitsPermission';

@@ -452,9 +452,18 @@ export class ObservabilityClient implements ObservabilityApi {
     if (options?.limit !== undefined)
       url.searchParams.set('limit', String(options.limit));
 
-    const response = await this.fetchApi.fetch(url.toString(), {
-      headers: { ...DIRECT_HEADER },
-    });
+    let response: Response;
+    try {
+      response = await this.fetchApi.fetch(url.toString(), {
+        headers: { ...DIRECT_HEADER },
+      });
+    } catch (err) {
+      throw new Error(
+        `RCA service is unreachable: ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+    }
 
     if (!response.ok) {
       const error = await this.parseError(response);
@@ -494,9 +503,18 @@ export class ObservabilityClient implements ObservabilityApi {
       `${rcaAgentUrl}/api/v1/rca-agent/reports/${encodeURIComponent(reportId)}`,
     );
 
-    const response = await this.fetchApi.fetch(url.toString(), {
-      headers: { ...DIRECT_HEADER },
-    });
+    let response: Response;
+    try {
+      response = await this.fetchApi.fetch(url.toString(), {
+        headers: { ...DIRECT_HEADER },
+      });
+    } catch (err) {
+      throw new Error(
+        `RCA service is unreachable: ${
+          err instanceof Error ? err.message : err
+        }`,
+      );
+    }
 
     if (!response.ok) {
       const error = await this.parseError(response);

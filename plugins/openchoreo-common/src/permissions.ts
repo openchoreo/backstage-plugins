@@ -277,6 +277,26 @@ export const openchoreoMetricsViewPermission = createPermission({
 });
 
 /**
+ * Permission to view traces for a project.
+ * Resource-based: requires the specific project context.
+ */
+export const openchoreoTracesViewPermission = createPermission({
+  name: 'openchoreo.traces.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_PROJECT,
+});
+
+/**
+ * Permission to view RCA reports for a project.
+ * Resource-based: requires the specific project context.
+ */
+export const openchoreoRcaViewPermission = createPermission({
+  name: 'openchoreo.rca.view',
+  attributes: { action: 'read' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_PROJECT,
+});
+
+/**
  * Permission to view traits for a component.
  * Resource-based: requires the specific component context.
  */
@@ -315,6 +335,8 @@ export const openchoreoPermissions = [
   openchoreoRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
   openchoreoMetricsViewPermission,
+  openchoreoTracesViewPermission,
+  openchoreoRcaViewPermission,
   openchoreoTraitsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
@@ -353,6 +375,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.rolemapping.delete': 'rolemapping:delete',
   'openchoreo.logs.view': 'logs:view',
   'openchoreo.metrics.view': 'metrics:view',
+  'openchoreo.traces.view': 'traces:view',
+  'openchoreo.rca.view': 'rcareport:view',
   'openchoreo.traits.view': 'trait:view',
   'openchoreo.trait.create': 'trait:create',
   'openchoreo.componenttype.create': 'componenttype:create',

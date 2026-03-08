@@ -45,6 +45,8 @@ export {
   openchoreoRoleMappingDeletePermission,
   openchoreoLogsViewPermission,
   openchoreoMetricsViewPermission,
+  openchoreoTracesViewPermission,
+  openchoreoRcaViewPermission,
   openchoreoTraitsViewPermission,
   openchoreoTraitCreatePermission,
   openchoreoComponentTypeCreatePermission,
