@@ -115,6 +115,7 @@ export type {
   ReleaseBindingEndpointURLDetails,
   ReleaseBindingEndpoint,
   ReleaseBindingResponse,
+  ReleaseBindingCondition,
   WorkloadOverrides,
   ContainerOverride,
   ComponentReleaseResponse,

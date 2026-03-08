@@ -541,6 +541,17 @@ export interface ReleaseBindingResponse {
   lastSpecUpdateTime?: string;
   status?: string;
   endpoints?: ReleaseBindingEndpoint[];
+  conditions?: ReleaseBindingCondition[];
+}
+
+export interface ReleaseBindingCondition {
+  type: string;
+  status: string;
+  reason?: string;
+  message?: string;
+  /** Format: date-time */
+  lastTransitionTime?: string;
+  observedGeneration?: number;
 }
 
 export interface WorkloadOverrides {
