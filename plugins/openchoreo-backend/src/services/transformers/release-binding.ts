@@ -53,10 +53,13 @@ export function deriveBindingStatus(
     return 'NotReady';
   }
 
-  // Any condition with status False and reason ResourcesDegraded → Failed
+  // Any condition with a failure reason → Failed
+  const FAILURE_REASONS = ['ResourcesDegraded', 'ResourceApplyFailed'] as const;
   if (
     conditionsForGeneration.some(
-      c => c.status === 'False' && c.reason === 'ResourcesDegraded',
+      c =>
+        c.status === 'False' &&
+        FAILURE_REASONS.includes(c.reason as (typeof FAILURE_REASONS)[number]),
     )
   ) {
     return 'Failed';
