@@ -13,6 +13,8 @@ export interface UseTraitsPermissionResult {
   loading: boolean;
   /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
   deniedTooltip: string;
+  /** The permission name identifier */
+  permissionName: string;
 }
 
 /**
@@ -46,5 +48,10 @@ export const useTraitsPermission = (): UseTraitsPermissionResult => {
       ? 'You do not have permission to view traits of this component.'
       : '';
 
-  return { canViewTraits: allowed, loading, deniedTooltip };
+  return {
+    canViewTraits: allowed,
+    loading,
+    deniedTooltip,
+    permissionName: openchoreoTraitsViewPermission.name,
+  };
 };

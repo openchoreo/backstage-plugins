@@ -122,7 +122,7 @@ export const ProjectComponentsCard = () => {
               <Box display="flex" alignItems="center" gridGap={4}>
                 <LockIcon style={{ fontSize: 16, color: '#999' }} />
                 <Typography variant="body2" color="textSecondary">
-                  Limited access
+                  Insufficient Permissions
                 </Typography>
               </Box>
             </Tooltip>

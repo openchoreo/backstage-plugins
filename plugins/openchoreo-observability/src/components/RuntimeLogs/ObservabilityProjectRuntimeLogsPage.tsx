@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -16,6 +16,7 @@ import {
 import {
   useInfiniteScroll,
   useLogsPermission,
+  ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from './styles';
 import { Environment as RuntimeLogsEnvironment, LogEntryField } from './types';
@@ -242,6 +243,7 @@ export const ObservabilityProjectRuntimeLogsPage = () => {
     canViewLogs,
     loading: permissionLoading,
     deniedTooltip,
+    permissionName,
   } = useLogsPermission();
 
   if (permissionLoading) {
@@ -250,16 +252,7 @@ export const ObservabilityProjectRuntimeLogsPage = () => {
 
   if (!canViewLogs) {
     return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
-      />
+      <ForbiddenState message={deniedTooltip} permissionName={permissionName} />
     );
   }
 

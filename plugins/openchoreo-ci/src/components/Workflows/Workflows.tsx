@@ -9,7 +9,6 @@ import {
   Progress,
   ResponseErrorPanel,
   EmptyState,
-  WarningIcon,
 } from '@backstage/core-components';
 import {
   Typography,
@@ -43,6 +42,7 @@ import {
   useComponentEntityDetails,
   useBuildPermission,
   useAsyncOperation,
+  ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useStyles } from './styles';
 
@@ -79,6 +79,7 @@ export const Workflows = () => {
     triggerLoading: permissionLoading,
     viewLoading,
     triggerBuildDeniedTooltip: deniedTooltip,
+    viewPermissionName,
   } = useBuildPermission();
 
   // URL-based routing
@@ -318,17 +319,9 @@ export const Workflows = () => {
 
   if (!canView && !viewLoading) {
     return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            <Typography>
-              You do not have permission to view workflows of this component
-            </Typography>
-          </Box>
-        }
+      <ForbiddenState
+        message="You do not have permission to view workflows of this component."
+        permissionName={viewPermissionName}
       />
     );
   }

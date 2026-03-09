@@ -1,13 +1,6 @@
 import { useState, RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  Button,
-  Box,
-  IconButton,
-  Tooltip,
-  Typography,
-} from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { Button, Box, IconButton, Tooltip } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
@@ -25,13 +18,6 @@ import { RolesTable, BindingSummary } from './RolesTable';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
 
-const useStyles = makeStyles(theme => ({
-  emptyState: {
-    textAlign: 'center',
-    padding: theme.spacing(4),
-  },
-}));
-
 interface ClusterRolesContentProps {
   actionsContainerRef: RefObject<HTMLDivElement>;
 }
@@ -39,7 +25,6 @@ interface ClusterRolesContentProps {
 export const ClusterRolesContent = ({
   actionsContainerRef,
 }: ClusterRolesContentProps) => {
-  const classes = useStyles();
   const notification = useNotification();
   const {
     canView,
@@ -168,11 +153,7 @@ export const ClusterRolesContent = ({
 
   if (!canView) {
     return (
-      <Box className={classes.emptyState}>
-        <Typography variant="body1" color="textSecondary">
-          You do not have permission to view cluster roles.
-        </Typography>
-      </Box>
+      <ForbiddenState message="You do not have permission to view cluster roles." />
     );
   }
 

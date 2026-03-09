@@ -9,6 +9,10 @@ export interface UseEnvironmentReadPermissionResult {
   canViewEnvironments: boolean;
   /** Whether the permission check is still loading */
   loading: boolean;
+  /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
+  deniedTooltip: string;
+  /** The permission name identifier */
+  permissionName: string;
 }
 
 /**
@@ -22,5 +26,15 @@ export const useEnvironmentReadPermission =
       permission: openchoreoEnvironmentReadPermission,
     });
 
-    return { canViewEnvironments, loading };
+    const deniedTooltip =
+      !canViewEnvironments && !loading
+        ? 'You do not have permission to view environments.'
+        : '';
+
+    return {
+      canViewEnvironments,
+      loading,
+      deniedTooltip,
+      permissionName: openchoreoEnvironmentReadPermission.name,
+    };
   };

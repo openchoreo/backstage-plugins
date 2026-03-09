@@ -11,9 +11,12 @@ import {
   useGetEnvironmentsByNamespace,
   useRCAReports,
 } from '../../hooks';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
-import { useRcaPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useRcaPermission,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 import { RCAReport } from './RCAReport';
 import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 
@@ -129,6 +132,7 @@ const RCAListView = () => {
     canViewRca,
     loading: permissionLoading,
     deniedTooltip,
+    permissionName,
   } = useRcaPermission();
 
   if (permissionLoading) {
@@ -137,16 +141,7 @@ const RCAListView = () => {
 
   if (!canViewRca) {
     return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
-      />
+      <ForbiddenState message={deniedTooltip} permissionName={permissionName} />
     );
   }
 

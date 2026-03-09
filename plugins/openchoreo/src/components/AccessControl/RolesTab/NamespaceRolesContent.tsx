@@ -149,11 +149,7 @@ export const NamespaceRolesContent = ({
 
   if (!canView) {
     return (
-      <Box className={classes.emptyState}>
-        <Typography variant="body1" color="textSecondary">
-          You do not have permission to view namespace roles.
-        </Typography>
-      </Box>
+      <ForbiddenState message="You do not have permission to view namespace roles." />
     );
   }
 

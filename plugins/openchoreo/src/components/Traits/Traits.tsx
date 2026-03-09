@@ -17,7 +17,6 @@ import WarningRounded from '@material-ui/icons/WarningRounded';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { EmptyState, WarningIcon } from '@backstage/core-components';
 import {
   UnsavedChangesDialog,
   useTraitsPermission,
@@ -46,6 +45,7 @@ export const Traits = () => {
     canViewTraits,
     loading: permissionLoading,
     deniedTooltip,
+    permissionName,
   } = useTraitsPermission();
   const openChoreoClient = useApi(openChoreoClientApiRef);
   const notification = useNotification();
@@ -257,16 +257,7 @@ export const Traits = () => {
   // Show permission denied notification if user doesn't have access
   if (!permissionLoading && !canViewTraits) {
     return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
-      />
+      <ForbiddenState message={deniedTooltip} permissionName={permissionName} />
     );
   }
 

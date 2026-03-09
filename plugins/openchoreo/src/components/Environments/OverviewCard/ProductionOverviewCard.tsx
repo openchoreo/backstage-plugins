@@ -15,12 +15,12 @@ import AccessTimeIcon from '@material-ui/icons/AccessTime';
 import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
-import LockIcon from '@material-ui/icons/Lock';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import { Card, StatusBadge } from '@openchoreo/backstage-design-system';
 import {
   formatRelativeTime,
   useEnvironmentReadPermission,
+  ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useProductionStatus } from './useProductionStatus';
 import { useOverviewCardStyles } from './styles';
@@ -224,13 +224,10 @@ export const ProductionOverviewCard = () => {
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>Production</Typography>
         </Box>
-        <Box className={classes.disabledState}>
-          <LockIcon className={classes.disabledIcon} />
-          <Typography variant="body2">Insufficient Permissions</Typography>
-          <Typography variant="caption" color="textSecondary">
-            You do not have permission to view deployment information
-          </Typography>
-        </Box>
+        <ForbiddenState
+          variant="compact"
+          message="You do not have permission to view deployment information."
+        />
         <Box className={classes.actions}>
           <Tooltip title="Retry">
             <IconButton

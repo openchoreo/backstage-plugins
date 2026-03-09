@@ -13,6 +13,8 @@ export interface UseDeployPermissionResult {
   loading: boolean;
   /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
   deniedTooltip: string;
+  /** The permission name identifier */
+  permissionName: string;
 }
 
 /**
@@ -44,5 +46,10 @@ export const useDeployPermission = (): UseDeployPermissionResult => {
   const deniedTooltip =
     !allowed && !loading ? 'You do not have permission to deploy' : '';
 
-  return { canDeploy: allowed, loading, deniedTooltip };
+  return {
+    canDeploy: allowed,
+    loading,
+    deniedTooltip,
+    permissionName: openchoreoComponentDeployPermission.name,
+  };
 };
