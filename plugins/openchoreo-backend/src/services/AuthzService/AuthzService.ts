@@ -91,7 +91,9 @@ export class AuthzService {
 
     try {
       const client = this.createNewClient(userToken);
-      const { data, error, response } = await client.GET('/api/v1/user-types');
+      const { data, error, response } = await client.GET(
+        '/api/v1/authn/subject-types',
+      );
 
       if (error || !response.ok) {
         const errorMsg = extractErrorMessage(

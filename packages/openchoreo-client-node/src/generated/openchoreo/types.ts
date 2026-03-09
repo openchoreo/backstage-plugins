@@ -1585,7 +1585,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/user-types': {
+  '/api/v1/authn/subject-types': {
     parameters: {
       query?: never;
       header?: never;
