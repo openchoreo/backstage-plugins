@@ -3690,7 +3690,7 @@ paths:
   # User Types Endpoint
   # =============================================================================
 
-  /api/v1/user-types:
+  /api/v1/authn/subject-types:
     get:
       operationId: listUserTypes
       summary: List user types
