@@ -124,6 +124,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1alpha1/incidents/query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Query incidents
+     * @description Query incidents from the observer service
+     */
+    post: operations['queryIncidents'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1alpha1/alerts/query': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Query alerts
+     * @description Query alerts from the observer service
+     */
+    post: operations['queryAlerts'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -303,7 +343,7 @@ export interface components {
        * @default desc
        * @enum {string}
        */
-      sort: 'asc' | 'desc';
+      sortOrder: 'asc' | 'desc';
       searchScope: components['schemas']['ComponentSearchScope'];
     };
     TracesQueryResponse: {
@@ -390,6 +430,207 @@ export interface components {
         /** @description The value of the attribute */
         value?: string;
       }[];
+    };
+    AlertsQueryRequest: {
+      /**
+       * Format: date-time
+       * @description The start time of the query
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description The end time of the query
+       */
+      endTime: string;
+      /**
+       * @description The maximum number of items to return
+       * @default 100
+       */
+      limit: number;
+      /**
+       * @description The sort order of the query
+       * @default desc
+       * @enum {string}
+       */
+      sortOrder: 'asc' | 'desc';
+      searchScope: components['schemas']['ComponentSearchScope'];
+    };
+    AlertsQueryResponse: {
+      /** @description The list of alerts */
+      alerts?: {
+        /**
+         * Format: date-time
+         * @description The timestamp of the alert
+         */
+        timestamp?: string;
+        /** @description The alert ID */
+        alertId?: string;
+        /** @description The value of the alert */
+        alertValue?: string;
+        /** @description The notification channels of the alert. Empty if failed to notify. */
+        notificationChannels?: string[];
+        metadata?: {
+          alertRule?: {
+            /** @description The name of the alert rule */
+            name?: string;
+            /** @description The description of the alert rule */
+            description?: string;
+            /**
+             * @description The severity of the alert rule
+             * @enum {string}
+             */
+            severity?: 'info' | 'warning' | 'critical';
+            /** @description The source configuration of the alert rule */
+            source?: {
+              /**
+               * @description The type of the alert source
+               * @enum {string}
+               */
+              type?: 'log' | 'metric';
+              /** @description The query used for log-based alerts */
+              query?: string;
+              /** @description The metric used for metric-based alerts */
+              metric?: string;
+            };
+            /** @description The condition configuration of the alert rule */
+            condition?: {
+              /**
+               * @description The comparison operator used for evaluation
+               * @enum {string}
+               */
+              operator?: 'gt' | 'lt' | 'gte' | 'lte' | 'eq' | 'neq';
+              /** @description The threshold value that triggers the alert */
+              threshold?: number;
+              /** @description The time window for aggregation (e.g. "5m", "1h") */
+              window?: string;
+              /** @description The evaluation interval (e.g. "1m", "5m") */
+              interval?: string;
+            };
+          };
+          labels?: {
+            /** @description The name of the component */
+            componentName?: string;
+            /** @description The name of the environment */
+            environmentName?: string;
+            /** @description The name of the project */
+            projectName?: string;
+            /** @description The name of the namespace */
+            namespaceName?: string;
+            /**
+             * Format: uuid
+             * @description The UID of the component
+             */
+            componentUid?: string;
+            /**
+             * Format: uuid
+             * @description The UID of the environment
+             */
+            environmentUid?: string;
+            /**
+             * Format: uuid
+             * @description The UID of the project
+             */
+            projectUid?: string;
+          };
+        };
+      }[];
+      /** @description The total number of alerts */
+      total?: number;
+      /** @description The time taken to query the alerts in milliseconds */
+      tookMs?: number;
+    };
+    IncidentsQueryRequest: {
+      /**
+       * Format: date-time
+       * @description The start time of the query
+       */
+      startTime: string;
+      /**
+       * Format: date-time
+       * @description The end time of the query
+       */
+      endTime: string;
+      /**
+       * @description The maximum number of items to return
+       * @default 100
+       */
+      limit: number;
+      /**
+       * @description The sort order of the query
+       * @default desc
+       * @enum {string}
+       */
+      sortOrder: 'asc' | 'desc';
+      searchScope: components['schemas']['ComponentSearchScope'];
+    };
+    IncidentsQueryResponse: {
+      /** @description The list of incidents */
+      incidents?: {
+        /**
+         * Format: date-time
+         * @description The timestamp of the incident
+         */
+        timestamp?: string;
+        /** @description The ID of the alert that triggered the incident */
+        alertId?: string;
+        /** @description The ID of the incident */
+        incidentId?: string;
+        /** @description Whether AI RCA was triggered for the incident */
+        incidentTriggerAiRca?: boolean;
+        /**
+         * @description The status of the incident
+         * @enum {string}
+         */
+        status?: 'triggered' | 'acknowledged' | 'resolved';
+        /**
+         * Format: date-time
+         * @description The timestamp when the incident was triggered
+         */
+        triggeredAt?: string;
+        /**
+         * Format: date-time
+         * @description The timestamp when the incident was acknowledged
+         */
+        acknowledgedAt?: string;
+        /**
+         * Format: date-time
+         * @description The timestamp when the incident was resolved
+         */
+        resolvedAt?: string;
+        /** @description Notes associated with the incident */
+        notes?: string;
+        /** @description The description of the incident */
+        description?: string;
+        labels?: {
+          /** @description The name of the component */
+          componentName?: string;
+          /** @description The name of the environment */
+          environmentName?: string;
+          /** @description The name of the project */
+          projectName?: string;
+          /** @description The name of the namespace */
+          namespaceName?: string;
+          /**
+           * Format: uuid
+           * @description The UID of the component
+           */
+          componentUid?: string;
+          /**
+           * Format: uuid
+           * @description The UID of the environment
+           */
+          environmentUid?: string;
+          /**
+           * Format: uuid
+           * @description The UID of the project
+           */
+          projectUid?: string;
+        };
+      }[];
+      /** @description The total number of incidents */
+      total?: number;
+      /** @description The time taken to query the incidents in milliseconds */
+      tookMs?: number;
     };
     ErrorResponse: {
       /**
@@ -719,6 +960,126 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['TraceSpanDetailsResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  queryIncidents: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IncidentsQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Incidents queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['IncidentsQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  queryAlerts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AlertsQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Alerts queried successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AlertsQueryResponse'];
         };
       };
       /** @description Invalid request */

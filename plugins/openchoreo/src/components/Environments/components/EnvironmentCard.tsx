@@ -25,6 +25,7 @@ export const EnvironmentCard = ({
   onOpenReleaseDetails,
   onPromote,
   onSuspend,
+  activeIncidentCount,
 }: EnvironmentCardProps) => {
   const classes = useEnvironmentCardStyles();
 
@@ -51,6 +52,8 @@ export const EnvironmentCard = ({
               releaseName={deployment.releaseName}
               endpoints={endpoints}
               onOpenReleaseDetails={onOpenReleaseDetails}
+              activeIncidentCount={activeIncidentCount}
+              environmentName={environmentName}
             />
 
             <EnvironmentActions
