@@ -126,6 +126,7 @@ export interface EnvironmentCardProps {
   hasComponentTypeOverrides?: boolean;
   dataPlaneRef?: string;
   canViewBindings?: boolean;
+  bindingsPermissionLoading?: boolean;
   deployment: {
     status?: 'Ready' | 'NotReady' | 'Failed';
     lastDeployed?: string;

@@ -35,6 +35,7 @@ export const EnvironmentCard = ({
   bindingName,
   hasComponentTypeOverrides,
   canViewBindings,
+  bindingsPermissionLoading,
   deployment,
   endpoints,
   promotionTargets,
@@ -54,7 +55,7 @@ export const EnvironmentCard = ({
     if (isRefreshing) {
       return <LoadingSkeleton variant="card" />;
     }
-    if (canViewBindings === false) {
+    if (canViewBindings === false && !bindingsPermissionLoading) {
       return <LimitedAccessMessage />;
     }
     return (

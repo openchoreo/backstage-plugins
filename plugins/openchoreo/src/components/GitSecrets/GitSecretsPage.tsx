@@ -157,13 +157,15 @@ export const GitSecretsContent = () => {
           </Typography>
         </Box>
       ) : (
-        <SecretsTable
-          secrets={secrets}
-          loading={secretsLoading}
-          onDelete={handleDeleteSecret}
-          onCreateClick={() => setCreateDialogOpen(true)}
-          namespaceName={selectedNamespace}
-        />
+        !secretsForbidden && (
+          <SecretsTable
+            secrets={secrets}
+            loading={secretsLoading}
+            onDelete={handleDeleteSecret}
+            onCreateClick={() => setCreateDialogOpen(true)}
+            namespaceName={selectedNamespace}
+          />
+        )
       )}
 
       {/* Create Secret Dialog */}

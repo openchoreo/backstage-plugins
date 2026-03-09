@@ -199,7 +199,9 @@ export const createEnvironmentAction = (
         );
       } catch (err) {
         ctx.logger.error(`Error creating environment: ${err}`);
-        throw new Error(`Failed to create environment: ${err}`);
+        throw err instanceof Error
+          ? err
+          : new Error(`Failed to create environment: ${String(err)}`);
       }
     },
   });

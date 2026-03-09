@@ -295,7 +295,7 @@ export function ResourceDefinitionTab() {
       <ErrorState
         title="Failed to load resource definition"
         message={fetchError}
-        onRetry={() => window.location.reload()}
+        onRetry={refresh}
       />
     );
   }

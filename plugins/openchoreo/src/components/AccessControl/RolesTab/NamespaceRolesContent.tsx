@@ -188,10 +188,13 @@ export const NamespaceRolesContent = ({
     </>
   );
 
+  const hasForbiddenError = !loading && error && isForbiddenError(error);
+
   return (
     <Box>
       <NotificationBanner notification={notification.notification} />
-      {actionsContainerRef.current &&
+      {!hasForbiddenError &&
+        actionsContainerRef.current &&
         createPortal(actionButtons, actionsContainerRef.current)}
 
       {!selectedNamespace ? (

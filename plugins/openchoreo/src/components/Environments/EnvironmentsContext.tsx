@@ -27,6 +27,8 @@ interface EnvironmentsContextValue {
   canViewEnvironments: boolean;
   /** Whether the user has permission to view release bindings */
   canViewBindings: boolean;
+  /** Whether the release binding permission check is still loading */
+  bindingsPermissionLoading: boolean;
 }
 
 const EnvironmentsContext = createContext<EnvironmentsContextValue | null>(

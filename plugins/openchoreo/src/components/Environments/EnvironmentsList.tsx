@@ -35,6 +35,7 @@ export const EnvironmentsList = () => {
     onAutoDeployChange,
     canViewEnvironments,
     canViewBindings,
+    bindingsPermissionLoading,
   } = useEnvironmentsContext();
 
   const {
@@ -160,6 +161,7 @@ export const EnvironmentsList = () => {
               bindingName={env.bindingName}
               hasComponentTypeOverrides={env.hasComponentTypeOverrides}
               canViewBindings={canViewBindings}
+              bindingsPermissionLoading={bindingsPermissionLoading}
               dataPlaneRef={env.dataPlaneRef}
               deployment={env.deployment}
               endpoints={env.endpoints}

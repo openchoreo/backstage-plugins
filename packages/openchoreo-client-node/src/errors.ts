@@ -82,9 +82,7 @@ export function assertApiResponse<T>(
     case 409:
       throw new ConflictError(message);
     default:
-      throw new Error(
-        `Failed to ${context}: ${result.response.status} ${result.response.statusText}`,
-      );
+      throw new Error(message);
   }
 }
 

@@ -193,7 +193,9 @@ export const createProjectAction = (
         ctx.output('entityRef', `system:${namespaceName}/${projectName}`);
       } catch (error) {
         ctx.logger.error(`Error creating project: ${error}`);
-        throw new Error(`Failed to create project: ${error}`);
+        throw error instanceof Error
+          ? error
+          : new Error(`Failed to create project: ${String(error)}`);
       }
     },
   });

@@ -177,7 +177,9 @@ export const createTraitDefinitionAction = (
         ctx.output('entityRef', `traittype:${namespaceName}/${resultName}`);
       } catch (err) {
         ctx.logger.error(`Error creating Trait: ${err}`);
-        throw new Error(`Failed to create Trait: ${err}`);
+        throw err instanceof Error
+          ? err
+          : new Error(`Failed to create Trait: ${String(err)}`);
       }
     },
   });
