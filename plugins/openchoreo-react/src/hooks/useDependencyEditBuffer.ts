@@ -60,11 +60,7 @@ function isDependencyEmpty(dependency: Dependency | undefined | null): boolean {
  */
 function isDependencyValid(dependency: Dependency | undefined | null): boolean {
   if (!dependency) return false;
-  return !!(
-    dependency.component &&
-    dependency.name &&
-    dependency.visibility
-  );
+  return !!(dependency.component && dependency.name && dependency.visibility);
 }
 
 /**

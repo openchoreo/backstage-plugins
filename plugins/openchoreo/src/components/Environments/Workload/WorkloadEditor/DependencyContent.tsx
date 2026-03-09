@@ -234,11 +234,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     (index: number): ('project' | 'namespace')[] => {
       const dependency = getEffectiveDependency(index);
       const effectiveProject = dependency?.project || currentProject;
-      if (
-        !effectiveProject ||
-        !dependency?.component ||
-        !dependency?.name
-      ) {
+      if (!effectiveProject || !dependency?.component || !dependency?.name) {
         return [];
       }
 
@@ -334,4 +330,3 @@ export const DependencyContent: FC<DependencyContentProps> = ({
     />
   );
 };
-
