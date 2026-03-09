@@ -1,6 +1,6 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Connection,
+  Dependency,
   ModelsWorkload,
   WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
@@ -19,8 +19,8 @@ import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import { useWorkloadContext } from '../WorkloadContext';
 
 interface DependencyContentProps {
-  dependencies: Connection[];
-  onDependencyReplace: (index: number, dependency: Connection) => void;
+  dependencies: Dependency[];
+  onDependencyReplace: (index: number, dependency: Dependency) => void;
   onAddDependency: () => number;
   onRemoveDependency: (index: number) => void;
   disabled: boolean;
@@ -146,7 +146,7 @@ export const DependencyContent: FC<DependencyContentProps> = ({
 
   /** Get the effective dependency for a given index (buffer if editing, else stored) */
   const getEffectiveDependency = useCallback(
-    (index: number): Connection | undefined => {
+    (index: number): Dependency | undefined => {
       return editBuffer.isRowEditing(index) && editBuffer.editBuffer
         ? editBuffer.editBuffer
         : dependencies[index];
@@ -335,5 +335,3 @@ export const DependencyContent: FC<DependencyContentProps> = ({
   );
 };
 
-/** @deprecated Use DependencyContent instead */
-export const ConnectionContent = DependencyContent;

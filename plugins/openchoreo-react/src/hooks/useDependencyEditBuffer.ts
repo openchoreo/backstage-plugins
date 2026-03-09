@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { Connection } from '@openchoreo/backstage-plugin-common';
+import type { Dependency } from '@openchoreo/backstage-plugin-common';
 
 /** Tracks which dependency row is currently being edited */
 export interface DependencyEditingRowState {
@@ -7,28 +7,22 @@ export interface DependencyEditingRowState {
   isNew?: boolean;
 }
 
-/** @deprecated Use DependencyEditingRowState instead */
-export type ConnectionEditingRowState = DependencyEditingRowState;
-
 export interface UseDependencyEditBufferOptions {
   /** Dependency data to reference when starting edits */
-  dependencies: Connection[];
+  dependencies: Dependency[];
   /** Callback to replace an entire dependency at an index */
-  onDependencyReplace?: (index: number, dependency: Connection) => void;
+  onDependencyReplace?: (index: number, dependency: Dependency) => void;
   /** Callback to remove a dependency by index */
   onRemoveDependency: (index: number) => void;
   /** Default project to populate when a dependency has no project set (API omits it for same-project) */
   defaultProject?: string;
 }
 
-/** @deprecated Use UseDependencyEditBufferOptions instead */
-export type UseConnectionEditBufferOptions = UseDependencyEditBufferOptions;
-
 export interface UseDependencyEditBufferResult {
   /** Currently editing row info, or null if not editing */
   editingRow: DependencyEditingRowState | null;
   /** Buffer holding uncommitted changes */
-  editBuffer: Connection | null;
+  editBuffer: Dependency | null;
   /** Whether any row is currently being edited */
   isAnyRowEditing: boolean;
   /** Whether the current buffer is valid (all required fields filled) */
@@ -38,28 +32,25 @@ export interface UseDependencyEditBufferResult {
   /** Start editing an existing dependency row */
   startEdit: (index: number) => void;
   /** Start editing a new dependency row */
-  startNew: (index: number, initialDependency?: Connection) => void;
+  startNew: (index: number, initialDependency?: Dependency) => void;
   /** Apply buffered changes to parent state */
   applyEdit: () => void;
   /** Cancel editing and discard buffer (removes new rows) */
   cancelEdit: () => void;
   /** Update a field in the edit buffer (does not commit to parent) */
-  updateBuffer: (field: keyof Connection, value: any) => void;
+  updateBuffer: (field: keyof Dependency, value: any) => void;
   /** Update a nested field in envBindings */
   updateBufferEnvBindings: (field: string, value: string) => void;
   /** Set the entire buffer (useful for complex updates) */
-  setBuffer: (dependency: Connection) => void;
+  setBuffer: (dependency: Dependency) => void;
   /** Clear edit state without side effects (used when row is deleted externally) */
   clearEditState: () => void;
 }
 
-/** @deprecated Use UseDependencyEditBufferResult instead */
-export type UseConnectionEditBufferResult = UseDependencyEditBufferResult;
-
 /**
  * Check if a dependency is truly empty (no data entered at all)
  */
-function isDependencyEmpty(dependency: Connection | undefined | null): boolean {
+function isDependencyEmpty(dependency: Dependency | undefined | null): boolean {
   if (!dependency) return true;
   return !dependency.component && !dependency.name;
 }
@@ -67,7 +58,7 @@ function isDependencyEmpty(dependency: Connection | undefined | null): boolean {
 /**
  * Check if a dependency is valid (all required fields filled)
  */
-function isDependencyValid(dependency: Connection | undefined | null): boolean {
+function isDependencyValid(dependency: Dependency | undefined | null): boolean {
   if (!dependency) return false;
   return !!(
     dependency.component &&
@@ -100,7 +91,7 @@ export function useDependencyEditBuffer(
     useState<DependencyEditingRowState | null>(null);
 
   // Buffer for edits - changes are stored here until Apply is clicked
-  const [editBuffer, setEditBuffer] = useState<Connection | null>(null);
+  const [editBuffer, setEditBuffer] = useState<Dependency | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
   const isBufferValid = isDependencyValid(editBuffer);
@@ -117,7 +108,7 @@ export function useDependencyEditBuffer(
     (index: number) => {
       const dependency = dependencies[index];
       // Deep copy to buffer for editing
-      const buffer: Connection = dependency
+      const buffer: Dependency = dependency
         ? JSON.parse(JSON.stringify(dependency))
         : {
             component: '',
@@ -137,8 +128,8 @@ export function useDependencyEditBuffer(
 
   // Start editing a new row - optionally pre-fill with initial values
   const startNew = useCallback(
-    (index: number, initialDependency?: Connection) => {
-      const buffer: Connection = initialDependency
+    (index: number, initialDependency?: Dependency) => {
+      const buffer: Dependency = initialDependency
         ? JSON.parse(JSON.stringify(initialDependency))
         : {
             component: '',
@@ -203,7 +194,7 @@ export function useDependencyEditBuffer(
   }, []);
 
   // Update a single field in the buffer
-  const updateBuffer = useCallback((field: keyof Connection, value: any) => {
+  const updateBuffer = useCallback((field: keyof Dependency, value: any) => {
     setEditBuffer(prev => (prev ? { ...prev, [field]: value } : null));
   }, []);
 
@@ -223,7 +214,7 @@ export function useDependencyEditBuffer(
   );
 
   // Set the entire buffer
-  const setBuffer = useCallback((dependency: Connection) => {
+  const setBuffer = useCallback((dependency: Dependency) => {
     setEditBuffer(dependency);
   }, []);
 
@@ -243,6 +234,3 @@ export function useDependencyEditBuffer(
     clearEditState,
   };
 }
-
-/** @deprecated Use useDependencyEditBuffer instead */
-export const useConnectionEditBuffer = useDependencyEditBuffer;

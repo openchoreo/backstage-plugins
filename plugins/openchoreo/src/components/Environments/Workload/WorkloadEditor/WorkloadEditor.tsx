@@ -6,12 +6,12 @@ import {
   WorkloadEndpoint,
   EnvVar,
   FileVar,
-  Connection,
+  Dependency,
   WorkloadType,
 } from '@openchoreo/backstage-plugin-common';
 import { ContainerContent } from './ContainerContent';
 import { EndpointContent } from './EndpointContent';
-import { DependencyContent } from './ConnectionContent';
+import { DependencyContent } from './DependencyContent';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
@@ -219,7 +219,7 @@ export function WorkloadEditor({
     updateWorkloadSpec(updatedData);
   };
 
-  const handleDependencyReplace = (index: number, dependency: Connection) => {
+  const handleDependencyReplace = (index: number, dependency: Dependency) => {
     const currentEndpoints = formData.dependencies?.endpoints || [];
     const updatedEndpoints = [...currentEndpoints];
     updatedEndpoints[index] = dependency;
@@ -232,7 +232,7 @@ export function WorkloadEditor({
   };
 
   const addDependency = (): number => {
-    const newDependency: Connection = {
+    const newDependency: Dependency = {
       component: '',
       name: '',
       visibility: 'project',

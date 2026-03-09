@@ -674,7 +674,7 @@ export interface WorkloadResponse {
     [key: string]: WorkloadEndpoint;
   };
   dependencies?: {
-    endpoints?: Connection[];
+    endpoints?: Dependency[];
   };
 }
 
@@ -729,9 +729,6 @@ export interface Dependency {
   envBindings?: DependencyEnvBindings;
 }
 
-/** @deprecated Use Dependency instead */
-export type Connection = Dependency;
-
 export interface DependencyEnvBindings {
   /** Env var name for the protocol-appropriate connection string */
   address?: string;
@@ -742,9 +739,6 @@ export interface DependencyEnvBindings {
   /** Env var name for just the base path */
   basePath?: string;
 }
-
-/** @deprecated Use DependencyEnvBindings instead */
-export type ConnectionEnvBindings = DependencyEnvBindings;
 
 export interface WorkloadOwner {
   projectName: string;

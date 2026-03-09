@@ -16,7 +16,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
-import type { Connection } from '@openchoreo/backstage-plugin-common';
+import type { Dependency } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
@@ -72,7 +72,7 @@ export interface DependencyEditorProps {
   /** The dependency index */
   index: number;
   /** The dependency to edit */
-  dependency: Connection;
+  dependency: Dependency;
   /** Whether the editor is disabled */
   disabled?: boolean;
   /** Optional CSS class name */
@@ -112,9 +112,6 @@ export interface DependencyEditorProps {
   /** Callback when the dependency should be removed */
   onRemove: () => void;
 }
-
-/** @deprecated Use DependencyEditorProps instead */
-export type ConnectionEditorProps = DependencyEditorProps;
 
 /**
  * Editor component for a single dependency.
@@ -371,6 +368,3 @@ export const DependencyEditor: FC<DependencyEditorProps> = ({
     </Box>
   );
 };
-
-/** @deprecated Use DependencyEditor instead */
-export const ConnectionEditor = DependencyEditor;

@@ -2,14 +2,14 @@ import type { FC } from 'react';
 import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import type { Connection } from '@openchoreo/backstage-plugin-common';
+import type { Dependency } from '@openchoreo/backstage-plugin-common';
 import {
   DependencyEditor,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
-} from '../ConnectionEditor';
-import type { UseDependencyEditBufferResult } from '../../hooks/useConnectionEditBuffer';
+} from '../DependencyEditor';
+import type { UseDependencyEditBufferResult } from '../../hooks/useDependencyEditBuffer';
 
 const useStyles = makeStyles(theme => ({
   rowWrapper: {
@@ -22,7 +22,7 @@ const useStyles = makeStyles(theme => ({
 
 export interface DependencyListProps {
   /** Dependencies to display */
-  dependencies: Connection[];
+  dependencies: Dependency[];
   /** Whether editing is disabled */
   disabled: boolean;
   /** Edit buffer state and handlers from useDependencyEditBuffer */
@@ -46,9 +46,6 @@ export interface DependencyListProps {
   /** Callback to get available visibility options for a dependency */
   getAvailableVisibilities: (index: number) => ('project' | 'namespace')[];
 }
-
-/** @deprecated Use DependencyListProps instead */
-export type ConnectionListProps = DependencyListProps;
 
 /**
  * Dependency list with inline editing support.
@@ -163,6 +160,3 @@ export const DependencyList: FC<DependencyListProps> = ({
     </Box>
   );
 };
-
-/** @deprecated Use DependencyList instead */
-export const ConnectionList = DependencyList;

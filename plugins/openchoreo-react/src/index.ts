@@ -70,19 +70,15 @@ export {
 } from './components/EndpointList';
 export {
   DependencyEditor,
-  ConnectionEditor,
   type DependencyEditorProps,
-  type ConnectionEditorProps,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
-} from './components/ConnectionEditor';
+} from './components/DependencyEditor';
 export {
   DependencyList,
-  ConnectionList,
   type DependencyListProps,
-  type ConnectionListProps,
-} from './components/ConnectionList';
+} from './components/DependencyList';
 export {
   GroupedSection,
   type GroupedSectionProps,
@@ -177,14 +173,10 @@ export {
 } from './hooks/useEndpointEditBuffer';
 export {
   useDependencyEditBuffer,
-  useConnectionEditBuffer,
   type UseDependencyEditBufferOptions,
-  type UseConnectionEditBufferOptions,
   type UseDependencyEditBufferResult,
-  type UseConnectionEditBufferResult,
   type DependencyEditingRowState,
-  type ConnectionEditingRowState,
-} from './hooks/useConnectionEditBuffer';
+} from './hooks/useDependencyEditBuffer';
 export {
   useChangeDetection,
   type UseChangeDetectionResult,
