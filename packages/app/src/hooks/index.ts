@@ -1,4 +1,4 @@
-export { useUserGroups } from './useUserGroups';
+export { useUserInfo } from './useUserInfo';
 
 // Feature flags hooks and types are now in @openchoreo/backstage-plugin-react
 // Import from: import { useOpenChoreoFeatures, FeatureGate } from '@openchoreo/backstage-plugin-react';
