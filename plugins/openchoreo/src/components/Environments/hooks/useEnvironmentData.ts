@@ -2,6 +2,7 @@ import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { useAsyncRetry } from 'react-use';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { isForbiddenError } from '../../../utils/errorUtils';
 
 export interface EndpointURLDetails {
   host: string;
@@ -57,6 +58,7 @@ export function useEnvironmentData(entity: Entity) {
     environments: environments ?? [],
     loading,
     error,
+    isForbidden: isForbiddenError(error),
     refetch: retry,
   };
 }

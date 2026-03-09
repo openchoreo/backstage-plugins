@@ -1,5 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 
 // Type for GET definition response - returns full CRD as unstructured JSON
 type ResourceDefinitionResponse = {
@@ -224,11 +227,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -241,11 +243,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -258,11 +259,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -275,11 +275,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -292,11 +291,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -309,11 +307,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -326,11 +323,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -343,11 +339,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -360,11 +355,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -377,11 +371,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -394,11 +387,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -411,11 +403,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -428,11 +419,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -445,11 +435,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data, error, response },
+            `fetch ${crdKind} definition`,
+          );
           resource = data as Record<string, unknown>;
           break;
         }
@@ -499,11 +488,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'dataplanes': {
@@ -516,11 +504,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'buildplanes': {
@@ -533,11 +520,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'observabilityplanes': {
@@ -550,11 +536,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'componenttypes': {
@@ -567,11 +552,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'traits': {
@@ -584,11 +568,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'deploymentpipelines': {
@@ -601,11 +584,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'clustercomponenttypes': {
@@ -618,11 +600,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'clustertraits': {
@@ -635,11 +616,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterworkflows': {
@@ -652,11 +632,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterdataplanes': {
@@ -669,11 +648,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterobservabilityplanes': {
@@ -686,11 +664,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterbuildplanes': {
@@ -703,11 +680,10 @@ export class PlatformResourceService {
               body,
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to update ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `update ${crdKind} definition`,
+          );
           break;
         }
         default:
@@ -760,11 +736,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'buildplanes': {
@@ -776,11 +751,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'observabilityplanes': {
@@ -792,11 +766,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'componenttypes': {
@@ -808,11 +781,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'traits': {
@@ -824,11 +796,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'deploymentpipelines': {
@@ -840,11 +811,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'clustercomponenttypes': {
@@ -856,11 +826,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'clustertraits': {
@@ -872,11 +841,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterworkflows': {
@@ -888,11 +856,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterdataplanes': {
@@ -904,11 +871,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterobservabilityplanes': {
@@ -920,11 +886,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         case 'clusterbuildplanes': {
@@ -936,11 +901,10 @@ export class PlatformResourceService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to delete ${crdKind} definition: ${response.status} ${response.statusText}`,
-            );
-          }
+          assertApiResponse(
+            { data: undefined, error, response },
+            `delete ${crdKind} definition`,
+          );
           break;
         }
         default:

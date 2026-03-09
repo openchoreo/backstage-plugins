@@ -1,6 +1,7 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
+  assertApiResponse,
   fetchAllPages,
 } from '@openchoreo/openchoreo-client-node';
 import type { DataPlaneResponse } from '@openchoreo/backstage-plugin-common';
@@ -47,11 +48,7 @@ export class DataPlaneInfoService {
             },
           })
           .then(res => {
-            if (res.error) {
-              throw new Error(
-                `Failed to list data planes: ${res.response.status} ${res.response.statusText}`,
-              );
-            }
+            assertApiResponse(res, 'list data planes');
             return res.data;
           }),
       );
@@ -103,18 +100,14 @@ export class DataPlaneInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch data plane: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch data plane');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
         `Data plane fetch completed for ${request.dataplaneName}: Total: ${totalTime}ms`,
       );
 
-      return transformDataPlane(data);
+      return transformDataPlane(data!);
     } catch (error: unknown) {
       const totalTime = Date.now() - startTime;
       this.logger.error(

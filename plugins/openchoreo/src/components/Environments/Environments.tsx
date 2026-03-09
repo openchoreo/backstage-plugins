@@ -18,6 +18,7 @@ import { EnvironmentsRouter } from './EnvironmentsRouter';
 import { EnvironmentsProvider } from './EnvironmentsContext';
 import { NotificationBanner } from './components';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 
 export const Environments = () => {
   // Initialize global styles (includes keyframe animation)
@@ -30,7 +31,8 @@ export const Environments = () => {
   const { navigateToList } = useEnvironmentRouting();
 
   // Data fetching
-  const { environments, loading, refetch } = useEnvironmentData(entity);
+  const { environments, loading, isForbidden, refetch } =
+    useEnvironmentData(entity);
   const { displayEnvironments, isPending } = useStaleEnvironments(environments);
 
   // Auto deploy state
@@ -137,6 +139,17 @@ export const Environments = () => {
       handlePendingActionComplete,
     ],
   );
+
+  // Forbidden state
+  if (isForbidden) {
+    return (
+      <ForbiddenState
+        message="You do not have permission to view deployments."
+        onRetry={refetch}
+        minHeight="400px"
+      />
+    );
+  }
 
   // Loading state - only show initial loading spinner
   if (loading && environments.length === 0) {

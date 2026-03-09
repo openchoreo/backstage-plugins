@@ -17,6 +17,7 @@ import {
   SCOPE_NAMESPACE,
   type BindingScope,
 } from '../constants';
+import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { ActionSelectionDialog } from './ActionSelectionDialog';
 import { getActionDisplayLabel } from './actionUtils';
 
@@ -145,7 +146,13 @@ export const RoleDialog = ({
           : { name: name.trim(), actions: selectedActions };
       await onSave(roleData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save role');
+      if (isForbiddenError(err)) {
+        setError(
+          'You do not have permission to save this role. Contact your administrator.',
+        );
+      } else {
+        setError(getErrorMessage(err));
+      }
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import type { GitSecretResponse } from '@openchoreo/backstage-plugin-common';
 
 export type { GitSecretResponse };
@@ -42,18 +45,14 @@ export class GitSecretsService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to list git secrets: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'list git secrets');
 
       this.logger.debug(
         `Successfully listed ${
-          data.items?.length || 0
+          data!.items?.length || 0
         } git secrets for namespace: ${namespaceName}`,
       );
-      return data as GitSecretListResponse;
+      return data! as GitSecretListResponse;
     } catch (err) {
       this.logger.error(
         `Failed to list git secrets for ${namespaceName}: ${err}`,
@@ -100,13 +99,7 @@ export class GitSecretsService {
         },
       );
 
-      if (error || !response.ok) {
-        const errorMessage =
-          response.status === 409
-            ? 'Git secret already exists'
-            : `Failed to create git secret: ${response.status} ${response.statusText}`;
-        throw new Error(errorMessage);
-      }
+      assertApiResponse({ data, error, response }, 'create git secret');
 
       this.logger.debug(
         `Successfully created git secret ${secretName} in namespace: ${namespaceName}`,
@@ -145,13 +138,7 @@ export class GitSecretsService {
         },
       );
 
-      if (error || !response.ok) {
-        const errorMessage =
-          response.status === 404
-            ? 'Git secret not found'
-            : `Failed to delete git secret: ${response.status} ${response.statusText}`;
-        throw new Error(errorMessage);
-      }
+      assertApiResponse({ error, response }, 'delete git secret');
 
       this.logger.debug(
         `Successfully deleted git secret ${secretName} from namespace: ${namespaceName}`,

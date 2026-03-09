@@ -6,6 +6,7 @@ import { Entity } from '@backstage/catalog-model';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { DetailPageLayout } from '@openchoreo/backstage-plugin-react';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { useEnvironmentPolling } from './hooks';
 import { ResourceTreeView } from './ReleaseDataRenderer/ResourceTreeView';
 import type { Environment } from './hooks';
@@ -115,7 +116,11 @@ export const ReleaseDetailsPage = ({
         setResourceTreeData(nextResourceTreeData);
       } catch (err: any) {
         if (showLoadingState) {
-          setError(err.message || 'Failed to load release details');
+          setError(
+            isForbiddenError(err)
+              ? 'You do not have permission to view release details. Contact your administrator.'
+              : getErrorMessage(err),
+          );
         }
       } finally {
         if (showLoadingState) {

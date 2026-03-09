@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import { RuntimeLogsService, RuntimeLogsResponse } from '../../types';
 import {
   createObservabilityClientWithUrl,
+  assertApiResponse,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 
@@ -107,27 +108,18 @@ export class RuntimeLogsInfoService implements RuntimeLogsService {
         },
       );
 
-      if (error || !response.ok) {
-        const errorText = await response.text();
-        this.logger.error(
-          `Failed to fetch runtime logs for component ${componentName}: ${response.status} ${response.statusText}`,
-          { error: errorText },
-        );
-        throw new Error(
-          `Failed to fetch runtime logs: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch runtime logs');
 
       this.logger.info(
         `Successfully fetched ${
-          data.logs?.length || 0
+          data!.logs?.length || 0
         } runtime logs for component ${componentName}`,
       );
 
       return {
-        logs: data.logs || [],
-        total: data.total || 0,
-        tookMs: data.tookMs || 0,
+        logs: data!.logs || [],
+        total: data!.total || 0,
+        tookMs: data!.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {

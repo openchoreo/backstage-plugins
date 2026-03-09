@@ -26,6 +26,7 @@ import validator from '@rjsf/validator-ajv8';
 import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { ComponentTrait } from '../../api/OpenChoreoClientApi';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { extractEntityMetadata } from '../../utils/entityUtils';
 import {
   sanitizeLabel,
@@ -312,7 +313,13 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         }
       } catch (err) {
         if (!ignore) {
-          setError(`Failed to fetch traits: ${err}`);
+          if (isForbiddenError(err)) {
+            setError(
+              'You do not have permission to view available traits. Contact your administrator.',
+            );
+          } else {
+            setError(`Failed to fetch traits: ${getErrorMessage(err)}`);
+          }
         }
       } finally {
         if (!ignore) {
@@ -386,7 +393,13 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         }
       } catch (err) {
         if (!ignore) {
-          setError(`Failed to fetch trait schema: ${err}`);
+          if (isForbiddenError(err)) {
+            setError(
+              'You do not have permission to view this trait schema. Contact your administrator.',
+            );
+          } else {
+            setError(`Failed to fetch trait schema: ${getErrorMessage(err)}`);
+          }
         }
       } finally {
         if (!ignore) {

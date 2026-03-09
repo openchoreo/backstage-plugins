@@ -34,7 +34,11 @@ import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
-import { useRoleMappingPermissions } from '@openchoreo/backstage-plugin-react';
+import {
+  useRoleMappingPermissions,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
+import { isForbiddenError } from '../../../utils/errorUtils';
 import {
   useClusterRoleBindings,
   useClusterRoles,
@@ -235,6 +239,14 @@ export const ClusterRoleBindingsContent = ({
   }
 
   if (error) {
+    if (isForbiddenError(error)) {
+      return (
+        <ForbiddenState
+          message="You do not have permission to view role bindings."
+          onRetry={fetchBindings}
+        />
+      );
+    }
     return <ResponseErrorPanel error={error} />;
   }
 

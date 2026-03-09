@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import { EnvironmentService, Environment, EndpointInfo } from '../../types';
 import {
   createOpenChoreoApiClient,
+  assertApiResponse,
   fetchAllPages,
   type OpenChoreoComponents,
 } from '@openchoreo/openchoreo-client-node';
@@ -76,6 +77,12 @@ export class EnvironmentInfoService implements EnvironmentService {
             duration: Date.now() - start,
           }))
           .catch(error => {
+            if (
+              error.name === 'NotAllowedError' ||
+              error.name === 'AuthenticationError'
+            ) {
+              throw error;
+            }
             const duration = Date.now() - start;
             if (name === 'bindings') {
               this.logger.warn(
@@ -109,11 +116,7 @@ export class EnvironmentInfoService implements EnvironmentService {
               },
             })
             .then(res => {
-              if (res.error || !res.response.ok) {
-                throw new Error(
-                  `Failed to fetch environments: ${res.response.status}`,
-                );
-              }
+              assertApiResponse(res, 'fetch environments');
               return res.data;
             }),
         ),
@@ -132,12 +135,11 @@ export class EnvironmentInfoService implements EnvironmentService {
               },
             },
           );
-          if (error || !response.ok) {
-            throw new Error(
-              `Failed to fetch release bindings: ${response.status}`,
-            );
-          }
-          return data.items || [];
+          assertApiResponse(
+            { data, error, response },
+            'fetch release bindings',
+          );
+          return data!.items || [];
         })(),
         'bindings',
       );
@@ -217,6 +219,13 @@ export class EnvironmentInfoService implements EnvironmentService {
 
       return result;
     } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error.name === 'NotAllowedError' ||
+          error.name === 'AuthenticationError')
+      ) {
+        throw error;
+      }
       const totalTime = Date.now() - startTime;
       this.logger.error(
         `Error fetching deployment info for ${request.projectName} (${totalTime}ms):`,
@@ -559,9 +568,10 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(`Failed to promote component: ${response.status}`);
-      }
+      assertApiResponse(
+        { data: undefined, error, response },
+        'promote component',
+      );
 
       this.logger.debug(`Promotion completed successfully.`);
 
@@ -638,9 +648,10 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(`Failed to delete release binding: ${response.status}`);
-      }
+      assertApiResponse(
+        { data: undefined, error, response },
+        'delete release binding',
+      );
 
       this.logger.debug(
         `Release binding deleted successfully for ${request.componentName} from ${request.environment}`,
@@ -724,11 +735,10 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (getError || !getResponse.ok) {
-        throw new Error(
-          `Failed to fetch binding for update: ${getResponse.status}`,
-        );
-      }
+      assertApiResponse(
+        { data: existing, error: getError, response: getResponse },
+        'fetch binding for update',
+      );
 
       // Map legacy releaseState to new API state field
       const stateMap: Record<string, 'Active' | 'Undeploy'> = {
@@ -738,9 +748,9 @@ export class EnvironmentInfoService implements EnvironmentService {
       };
 
       const updated = {
-        ...existing,
+        ...existing!,
         spec: {
-          ...existing.spec!,
+          ...existing!.spec!,
           state: stateMap[request.releaseState] ?? 'Active',
         },
       };
@@ -758,9 +768,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(`Failed to update binding: ${response.status}`);
-      }
+      assertApiResponse({ data: undefined, error, response }, 'update binding');
 
       this.logger.debug(
         `Binding update completed successfully for ${request.bindingName}.`,
@@ -839,11 +847,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to create component release: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'create component release');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -925,15 +929,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        const errorMessage = error
-          ? JSON.stringify(error)
-          : `${response.status} ${response.statusText}`;
-        this.logger.error(
-          `Deploy release API error for ${request.componentName}: ${errorMessage}`,
-        );
-        throw new Error(`Failed to deploy release: ${errorMessage}`);
-      }
+      assertApiResponse({ data: undefined, error, response }, 'deploy release');
 
       // Fetch fresh environment data to return updated information
       const refreshedEnvironments = await this.fetchDeploymentInfo(
@@ -1007,11 +1003,10 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component release schema: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data, error, response },
+        'fetch component release schema',
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -1068,11 +1063,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch release bindings: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch release bindings');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -1174,11 +1165,7 @@ export class EnvironmentInfoService implements EnvironmentService {
           },
         );
 
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to update release binding: ${response.status} ${response.statusText}`,
-          );
-        }
+        assertApiResponse({ data, error, response }, 'update release binding');
 
         const totalTime = Date.now() - startTime;
         this.logger.debug(
@@ -1261,20 +1248,22 @@ export class EnvironmentInfoService implements EnvironmentService {
           },
         );
 
-        if (conflictGetError || !conflictGetResponse.ok) {
-          throw new Error(
-            `Failed to fetch release binding after 409 conflict: ${conflictGetResponse.status} ${conflictGetResponse.statusText}`,
-          );
-        }
+        assertApiResponse(
+          {
+            data: conflictExisting,
+            error: conflictGetError,
+            response: conflictGetResponse,
+          },
+          'fetch release binding after 409 conflict',
+        );
 
         return conflictExisting;
       }
 
-      if (createError || !createResponse.ok) {
-        throw new Error(
-          `Failed to create release binding: ${createResponse.status} ${createResponse.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data: createData, error: createError, response: createResponse },
+        'create release binding',
+      );
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -1350,16 +1339,15 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (getError || !getResponse.ok) {
-        throw new Error(
-          `Failed to fetch binding for patch: ${getResponse.status} ${getResponse.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data: existing, error: getError, response: getResponse },
+        'fetch binding for patch',
+      );
 
       const updated = {
-        ...existing,
+        ...existing!,
         spec: {
-          ...existing.spec!,
+          ...existing!.spec!,
           componentTypeEnvOverrides: request.componentTypeEnvOverrides,
           traitOverrides: request.traitOverrides,
           workloadOverrides: request.workloadOverrides,
@@ -1380,11 +1368,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to patch release binding: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'patch release binding');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -1442,11 +1426,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch resource tree: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch resource tree');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -1505,11 +1485,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch resource events: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch resource events');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(
@@ -1564,11 +1540,7 @@ export class EnvironmentInfoService implements EnvironmentService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch pod logs: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch pod logs');
 
       const totalTime = Date.now() - startTime;
       this.logger.debug(

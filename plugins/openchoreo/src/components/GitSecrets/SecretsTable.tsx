@@ -24,6 +24,7 @@ import SearchIcon from '@material-ui/icons/Search';
 import AddIcon from '@material-ui/icons/Add';
 import { makeStyles } from '@material-ui/core/styles';
 import { GitSecret } from '../../api/OpenChoreoClientApi';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 
 const useStyles = makeStyles(theme => ({
   toolbar: {
@@ -89,9 +90,13 @@ export const SecretsTable = ({
       setDeleteDialogOpen(false);
       setSecretToDelete(null);
     } catch (err) {
-      setDeleteError(
-        err instanceof Error ? err.message : 'Failed to delete secret',
-      );
+      if (isForbiddenError(err)) {
+        setDeleteError(
+          'You do not have permission to delete this secret. Contact your administrator.',
+        );
+      } else {
+        setDeleteError(getErrorMessage(err));
+      }
     } finally {
       setDeleting(false);
     }

@@ -1,6 +1,9 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import { WorkloadService } from '../../types';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import type { WorkloadResponse } from '@openchoreo/backstage-plugin-common';
 
 type ModelsWorkload = WorkloadResponse;
@@ -50,13 +53,9 @@ export class WorkloadInfoService implements WorkloadService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workloads: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch workloads');
 
-      const workload = data.items[0];
+      const workload = data!.items[0];
       if (!workload) {
         throw new Error('No workload data returned');
       }
@@ -104,13 +103,12 @@ export class WorkloadInfoService implements WorkloadService {
         },
       });
 
-      if (listError || !listResponse.ok) {
-        throw new Error(
-          `Failed to list workloads: ${listResponse.status} ${listResponse.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data: listData, error: listError, response: listResponse },
+        'list workloads',
+      );
 
-      const existingWorkload = listData.items[0];
+      const existingWorkload = listData!.items[0];
 
       if (existingWorkload) {
         // Update existing workload
@@ -134,13 +132,9 @@ export class WorkloadInfoService implements WorkloadService {
           },
         );
 
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to update workload: ${response.status} ${response.statusText}`,
-          );
-        }
+        assertApiResponse({ data, error, response }, 'update workload');
 
-        return data.spec;
+        return data!.spec;
       }
 
       // Create new workload
@@ -165,13 +159,9 @@ export class WorkloadInfoService implements WorkloadService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to create workload: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'create workload');
 
-      return data.spec;
+      return data!.spec;
     } catch (error) {
       this.logger.error(`Failed to apply workload: ${error}`);
       throw error;

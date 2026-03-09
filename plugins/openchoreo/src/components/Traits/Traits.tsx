@@ -21,6 +21,7 @@ import { EmptyState, WarningIcon } from '@backstage/core-components';
 import {
   UnsavedChangesDialog,
   useTraitsPermission,
+  ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { useTraitsData } from './hooks/useTraitsData';
@@ -35,6 +36,7 @@ import {
   ComponentTrait,
 } from '../../api/OpenChoreoClientApi';
 import { useNotification } from '../../hooks';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { NotificationBanner } from '../Environments/components';
 
 export const Traits = () => {
@@ -203,11 +205,11 @@ export const Traits = () => {
       // Show success notification
       notification.showSuccess('Traits updated successfully');
     } catch (err) {
-      const errorMessage = (err as Error).message || 'Failed to save changes';
+      const errorMessage = isForbiddenError(err)
+        ? 'You do not have permission to update traits. Contact your administrator.'
+        : getErrorMessage(err);
       setSaveError(errorMessage);
-
-      // Show error notification
-      notification.showError(`Failed to update traits: ${errorMessage}`);
+      notification.showError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -235,10 +237,18 @@ export const Traits = () => {
   }
 
   if (error) {
+    if (isForbiddenError(error)) {
+      return (
+        <ForbiddenState
+          message="You do not have permission to view traits."
+          onRetry={refetch}
+        />
+      );
+    }
     return (
       <Box className={classes.container}>
         <Alert severity="error">
-          Failed to load traits: {error.message || 'Unknown error'}
+          Failed to load traits: {getErrorMessage(error)}
         </Alert>
       </Box>
     );

@@ -23,6 +23,10 @@ export {
   type LoadingStateProps,
 } from './components/LoadingState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
+export {
+  ForbiddenState,
+  type ForbiddenStateProps,
+} from './components/ForbiddenState';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export {
   ImageSelector,
