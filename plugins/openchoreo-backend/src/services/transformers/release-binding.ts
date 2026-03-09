@@ -2,6 +2,7 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 import type {
   ReleaseBindingResponse,
   ReleaseBindingEndpoint,
+  ReleaseBindingCondition,
 } from '@openchoreo/backstage-plugin-common';
 import { getName, getNamespace, getCreatedAt } from './common';
 
@@ -53,10 +54,13 @@ export function deriveBindingStatus(
     return 'NotReady';
   }
 
-  // Any condition with status False and reason ResourcesDegraded → Failed
+  // Any condition with a failure reason → Failed
+  const FAILURE_REASONS = ['ResourcesDegraded', 'ResourceApplyFailed'] as const;
   if (
     conditionsForGeneration.some(
-      c => c.status === 'False' && c.reason === 'ResourcesDegraded',
+      c =>
+        c.status === 'False' &&
+        FAILURE_REASONS.includes(c.reason as (typeof FAILURE_REASONS)[number]),
     )
   ) {
     return 'Failed';
@@ -105,6 +109,20 @@ export function transformReleaseBinding(
       return raw.filter(
         (e): e is ReleaseBindingEndpoint =>
           e !== null && typeof e === 'object' && typeof e.name === 'string',
+      );
+    })(),
+    conditions: (() => {
+      const raw = binding.status?.conditions;
+      if (!Array.isArray(raw)) return undefined;
+      return raw.map(
+        (c: any): ReleaseBindingCondition => ({
+          type: c.type,
+          status: c.status,
+          reason: c.reason,
+          message: c.message,
+          lastTransitionTime: c.lastTransitionTime,
+          observedGeneration: c.observedGeneration,
+        }),
       );
     })(),
   };

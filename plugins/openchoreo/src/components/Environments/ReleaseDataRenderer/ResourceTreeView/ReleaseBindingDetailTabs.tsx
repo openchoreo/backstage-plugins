@@ -47,7 +47,9 @@ function getBindingStatus(
 }
 
 function getBindingConditions(binding: Record<string, unknown>): any[] {
-  // New API: binding.status.conditions
+  // Flat format: binding.conditions (transformed by backend)
+  if (Array.isArray(binding.conditions)) return binding.conditions;
+  // K8s format: binding.status.conditions
   const status = binding.status as Record<string, unknown> | undefined;
   if (status && Array.isArray(status.conditions)) return status.conditions;
   return [];
