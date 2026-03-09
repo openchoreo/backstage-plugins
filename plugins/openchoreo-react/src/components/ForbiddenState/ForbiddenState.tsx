@@ -1,6 +1,7 @@
 import { Box, Typography, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import LockIcon from '@material-ui/icons/Lock';
+import { EmptyState } from '@backstage/core-components';
 
 const useStyles = makeStyles(theme => ({
   container: {
@@ -48,7 +49,7 @@ export interface ForbiddenStateProps {
   message?: string;
   guidance?: string;
   permissionName?: string;
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'fullpage';
   onRetry?: () => void;
   minHeight?: string | number;
 }
@@ -63,6 +64,45 @@ export const ForbiddenState = ({
 }: ForbiddenStateProps) => {
   const classes = useStyles();
   const isCompact = variant === 'compact';
+
+  if (variant === 'fullpage') {
+    return (
+      <EmptyState
+        missing="data"
+        title={title}
+        description={
+          <Box
+            display="flex"
+            flexDirection="column"
+            alignItems="flex-start"
+            style={{ gap: 8 }}
+          >
+            <Typography
+              variant="body2"
+              className={classes.message}
+              style={{ textAlign: 'left' }}
+            >
+              {message}
+            </Typography>
+            <Typography
+              variant="caption"
+              className={classes.guidance}
+              style={{ textAlign: 'left' }}
+            >
+              {guidance}
+            </Typography>
+          </Box>
+        }
+        action={
+          onRetry ? (
+            <Button variant="outlined" color="primary" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  }
 
   return (
     <Box

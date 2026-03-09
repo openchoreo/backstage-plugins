@@ -322,6 +322,7 @@ export const Workflows = () => {
       <ForbiddenState
         message="You do not have permission to view workflows of this component."
         permissionName={viewPermissionName}
+        variant="fullpage"
       />
     );
   }

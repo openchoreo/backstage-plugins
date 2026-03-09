@@ -242,6 +242,7 @@ export const Traits = () => {
         <ForbiddenState
           message="You do not have permission to view traits."
           onRetry={refetch}
+          variant="fullpage"
         />
       );
     }
@@ -257,7 +258,11 @@ export const Traits = () => {
   // Show permission denied notification if user doesn't have access
   if (!permissionLoading && !canViewTraits) {
     return (
-      <ForbiddenState message={deniedTooltip} permissionName={permissionName} />
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
+      />
     );
   }
 

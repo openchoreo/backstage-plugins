@@ -226,7 +226,11 @@ export const ObservabilityMetricsPage = () => {
 
   if (!canViewMetrics) {
     return (
-      <ForbiddenState message={deniedTooltip} permissionName={permissionName} />
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
+      />
     );
   }
 

@@ -252,7 +252,11 @@ export const ObservabilityRuntimeLogsPage = () => {
 
   if (!canViewLogs) {
     return (
-      <ForbiddenState message={deniedTooltip} permissionName={permissionName} />
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
+      />
     );
   }
 

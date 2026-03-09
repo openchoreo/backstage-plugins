@@ -166,7 +166,11 @@ export const ObservabilityTracesPage = () => {
 
   if (!canViewTraces) {
     return (
-      <ForbiddenState message={deniedTooltip} permissionName={permissionName} />
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
+      />
     );
   }
 

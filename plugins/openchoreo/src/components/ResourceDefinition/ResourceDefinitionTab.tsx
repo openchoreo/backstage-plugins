@@ -288,6 +288,7 @@ export function ResourceDefinitionTab() {
         <ForbiddenState
           message="You do not have permission to view this resource definition."
           onRetry={refresh}
+          variant="fullpage"
         />
       );
     }
