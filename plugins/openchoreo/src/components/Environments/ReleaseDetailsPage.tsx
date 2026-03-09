@@ -121,6 +121,8 @@ export const ReleaseDetailsPage = ({
               ? 'You do not have permission to view release details. Contact your administrator.'
               : getErrorMessage(err),
           );
+        } else {
+          throw err;
         }
       } finally {
         if (showLoadingState) {
@@ -137,7 +139,9 @@ export const ReleaseDetailsPage = ({
 
   const shouldPollReleaseDetails = Boolean(environmentName);
   const pollReleaseData = useCallback(() => {
-    void loadReleaseData(false);
+    void loadReleaseData(false).catch(() => {
+      // Silently ignore errors during background polling
+    });
   }, [loadReleaseData]);
   useEnvironmentPolling(shouldPollReleaseDetails, pollReleaseData);
 
@@ -149,6 +153,12 @@ export const ReleaseDetailsPage = ({
     setRefreshing(true);
     try {
       await loadReleaseData(false);
+    } catch (err: any) {
+      setError(
+        isForbiddenError(err)
+          ? 'You do not have permission to view release details. Contact your administrator.'
+          : getErrorMessage(err),
+      );
     } finally {
       setRefreshing(false);
     }

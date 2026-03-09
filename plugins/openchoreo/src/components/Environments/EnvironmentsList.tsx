@@ -34,6 +34,7 @@ export const EnvironmentsList = () => {
     autoDeployUpdating,
     onAutoDeployChange,
     canViewEnvironments,
+    environmentReadPermissionLoading,
     canViewBindings,
     bindingsPermissionLoading,
   } = useEnvironmentsContext();
@@ -130,16 +131,21 @@ export const EnvironmentsList = () => {
         </Grid>
 
         {/* No environments: show forbidden or empty state as a card */}
-        {!loading && environments.length === 0 && !canViewEnvironments && (
-          <Grid item xs={12} md={3} style={{ display: 'flex' }}>
-            <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>
-              <ForbiddenState
-                message="You do not have permission to view deployment environments."
-                onRetry={refetch}
-              />
-            </Card>
-          </Grid>
-        )}
+        {!loading &&
+          !environmentReadPermissionLoading &&
+          environments.length === 0 &&
+          !canViewEnvironments && (
+            <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+              <Card
+                style={{ height: '100%', minHeight: '300px', width: '100%' }}
+              >
+                <ForbiddenState
+                  message="You do not have permission to view deployment environments."
+                  onRetry={refetch}
+                />
+              </Card>
+            </Grid>
+          )}
         {!loading && environments.length === 0 && canViewEnvironments && (
           <Grid item xs={12} md={3} style={{ display: 'flex' }}>
             <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>

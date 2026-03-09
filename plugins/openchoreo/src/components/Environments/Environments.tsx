@@ -40,7 +40,8 @@ export const Environments = () => {
   const { displayEnvironments, isPending } = useStaleEnvironments(environments);
 
   // Permission checks
-  const { canViewEnvironments } = useEnvironmentReadPermission();
+  const { canViewEnvironments, loading: environmentReadPermissionLoading } =
+    useEnvironmentReadPermission();
   const { canViewBindings, loading: bindingsPermissionLoading } =
     useReleaseBindingPermission();
 
@@ -136,6 +137,7 @@ export const Environments = () => {
       onAutoDeployChange: handleAutoDeployChange,
       onPendingActionComplete: handlePendingActionComplete,
       canViewEnvironments,
+      environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
     }),
@@ -150,6 +152,7 @@ export const Environments = () => {
       handleAutoDeployChange,
       handlePendingActionComplete,
       canViewEnvironments,
+      environmentReadPermissionLoading,
       canViewBindings,
       bindingsPermissionLoading,
     ],

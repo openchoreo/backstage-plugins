@@ -448,7 +448,7 @@ export function EditAnnotationsDialog({
                         size="small"
                         variant="outlined"
                         onClick={() => handleAddSuggestion(suggestion)}
-                        disabled={saving}
+                        disabled={saving || isForbidden}
                         clickable
                       />
                     </Tooltip>
