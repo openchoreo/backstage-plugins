@@ -3,6 +3,8 @@ import { Link, Table, TableColumn } from '@backstage/core-components';
 import { useApp } from '@backstage/core-plugin-api';
 import { Box, Button, Typography } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
+import LockIcon from '@material-ui/icons/LockOutlined';
+import { isForbiddenError } from '../../../utils/errorUtils';
 import { useNavigate } from 'react-router-dom';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useCreateComponentPath } from '@openchoreo/backstage-plugin-react';
@@ -24,8 +26,11 @@ export const ProjectComponentsCard = () => {
   const { entity } = useEntity();
   const { components, loading } = useComponentsWithDeployment(entity);
   const { environments, loading: envsLoading } = useEnvironments(entity);
-  const { data: pipelineData, loading: pipelineLoading } =
-    useDeploymentPipeline();
+  const {
+    data: pipelineData,
+    loading: pipelineLoading,
+    error: pipelineError,
+  } = useDeploymentPipeline();
   const navigate = useNavigate();
   const { path: createComponentPath, loading: createPathLoading } =
     useCreateComponentPath(entity);
@@ -105,12 +110,24 @@ export const ProjectComponentsCard = () => {
     {
       title: 'Deployment',
       width: '40%',
-      render: (component: ComponentWithDeployment) => (
-        <DeploymentStatusCell
-          component={component}
-          environments={pipelineEnvironments}
-        />
-      ),
+      render: (component: ComponentWithDeployment) => {
+        if (isForbiddenError(pipelineError)) {
+          return (
+            <Box display="flex" alignItems="center" gridGap={4}>
+              <LockIcon style={{ fontSize: 16, color: '#999' }} />
+              <Typography variant="body2" color="textSecondary">
+                Insufficient permissions
+              </Typography>
+            </Box>
+          );
+        }
+        return (
+          <DeploymentStatusCell
+            component={component}
+            environments={pipelineEnvironments}
+          />
+        );
+      },
     },
   ];
 
