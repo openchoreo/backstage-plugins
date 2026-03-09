@@ -6,12 +6,12 @@ import {
   WorkloadEndpoint,
   EnvVar,
   FileVar,
-  Connection,
+  Dependency,
   WorkloadType,
 } from '@openchoreo/backstage-plugin-common';
 import { ContainerContent } from './ContainerContent';
 import { EndpointContent } from './EndpointContent';
-import { ConnectionContent } from './ConnectionContent';
+import { DependencyContent } from './DependencyContent';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
@@ -48,7 +48,7 @@ const useStyles = makeStyles(() => ({
  */
 function getTabStatus(
   changes: WorkloadChanges,
-  section: 'container' | 'endpoints' | 'connections',
+  section: 'container' | 'endpoints' | 'dependencies',
   hasData: boolean,
 ): TabItemData['status'] {
   const sectionChanges = changes[section];
@@ -78,7 +78,7 @@ export function WorkloadEditor({
       componentName: componentName || '',
     },
     endpoints: {},
-    connections: [],
+    dependencies: { endpoints: [] },
   });
 
   const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
@@ -219,33 +219,44 @@ export function WorkloadEditor({
     updateWorkloadSpec(updatedData);
   };
 
-  const handleConnectionReplace = (index: number, connection: Connection) => {
-    const updatedConnections = [...(formData.connections || [])];
-    updatedConnections[index] = connection;
-    const updatedData = { ...formData, connections: updatedConnections };
+  const handleDependencyReplace = (index: number, dependency: Dependency) => {
+    const currentEndpoints = formData.dependencies?.endpoints || [];
+    const updatedEndpoints = [...currentEndpoints];
+    updatedEndpoints[index] = dependency;
+    const updatedData = {
+      ...formData,
+      dependencies: { endpoints: updatedEndpoints },
+    };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
   };
 
-  const addConnection = (): number => {
-    const newConnection: Connection = {
+  const addDependency = (): number => {
+    const newDependency: Dependency = {
       component: '',
-      endpoint: '',
+      name: '',
       visibility: 'project',
       envBindings: {},
     };
-    const updatedConnections = [...(formData.connections || []), newConnection];
-    const updatedData = { ...formData, connections: updatedConnections };
+    const currentEndpoints = formData.dependencies?.endpoints || [];
+    const updatedEndpoints = [...currentEndpoints, newDependency];
+    const updatedData = {
+      ...formData,
+      dependencies: { endpoints: updatedEndpoints },
+    };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
-    return updatedConnections.length - 1;
+    return updatedEndpoints.length - 1;
   };
 
-  const removeConnection = (index: number) => {
-    const updatedConnections = (formData.connections || []).filter(
+  const removeDependency = (index: number) => {
+    const updatedEndpoints = (formData.dependencies?.endpoints || []).filter(
       (_, i) => i !== index,
     );
-    const updatedData = { ...formData, connections: updatedConnections };
+    const updatedData = {
+      ...formData,
+      dependencies: { endpoints: updatedEndpoints },
+    };
     setFormData(updatedData);
     updateWorkloadSpec(updatedData);
   };
@@ -260,7 +271,7 @@ export function WorkloadEditor({
 
   const containerCount = formData.container ? 1 : 0;
   const endpointCount = Object.keys(formData.endpoints || {}).length;
-  const connectionCount = (formData.connections || []).length;
+  const dependencyCount = (formData.dependencies?.endpoints || []).length;
 
   // Memoize tabs with status based on changes
   const tabs: TabItemData[] = useMemo(
@@ -280,14 +291,14 @@ export function WorkloadEditor({
         status: getTabStatus(changes, 'endpoints', endpointCount > 0),
       },
       {
-        id: 'connections',
-        label: 'Connections',
+        id: 'dependencies',
+        label: 'Dependencies',
         icon: <LinkIcon />,
-        count: connectionCount,
-        status: getTabStatus(changes, 'connections', connectionCount > 0),
+        count: dependencyCount,
+        status: getTabStatus(changes, 'dependencies', dependencyCount > 0),
       },
     ],
-    [containerCount, endpointCount, connectionCount, changes],
+    [containerCount, endpointCount, dependencyCount, changes],
   );
 
   return (
@@ -323,13 +334,13 @@ export function WorkloadEditor({
           onRemoveEndpoint={removeEndpoint}
         />
       )}
-      {activeTab === 'connections' && (
-        <ConnectionContent
+      {activeTab === 'dependencies' && (
+        <DependencyContent
           disabled={isDeploying}
-          connections={formData.connections || []}
-          onConnectionReplace={handleConnectionReplace}
-          onAddConnection={addConnection}
-          onRemoveConnection={removeConnection}
+          dependencies={formData.dependencies?.endpoints || []}
+          onDependencyReplace={handleDependencyReplace}
+          onAddDependency={addDependency}
+          onRemoveDependency={removeDependency}
         />
       )}
     </VerticalTabNav>

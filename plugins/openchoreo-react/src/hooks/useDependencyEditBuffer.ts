@@ -1,74 +1,70 @@
 import { useState, useCallback } from 'react';
-import type { Connection } from '@openchoreo/backstage-plugin-common';
+import type { Dependency } from '@openchoreo/backstage-plugin-common';
 
-/** Tracks which connection row is currently being edited */
-export interface ConnectionEditingRowState {
+/** Tracks which dependency row is currently being edited */
+export interface DependencyEditingRowState {
   index: number;
   isNew?: boolean;
 }
 
-export interface UseConnectionEditBufferOptions {
-  /** Connection data to reference when starting edits */
-  connections: Connection[];
-  /** Callback to replace an entire connection at an index */
-  onConnectionReplace?: (index: number, connection: Connection) => void;
-  /** Callback to remove a connection by index */
-  onRemoveConnection: (index: number) => void;
-  /** Default project to populate when a connection has no project set (API omits it for same-project) */
+export interface UseDependencyEditBufferOptions {
+  /** Dependency data to reference when starting edits */
+  dependencies: Dependency[];
+  /** Callback to replace an entire dependency at an index */
+  onDependencyReplace?: (index: number, dependency: Dependency) => void;
+  /** Callback to remove a dependency by index */
+  onRemoveDependency: (index: number) => void;
+  /** Default project to populate when a dependency has no project set (API omits it for same-project) */
   defaultProject?: string;
 }
 
-export interface UseConnectionEditBufferResult {
+export interface UseDependencyEditBufferResult {
   /** Currently editing row info, or null if not editing */
-  editingRow: ConnectionEditingRowState | null;
+  editingRow: DependencyEditingRowState | null;
   /** Buffer holding uncommitted changes */
-  editBuffer: Connection | null;
+  editBuffer: Dependency | null;
   /** Whether any row is currently being edited */
   isAnyRowEditing: boolean;
   /** Whether the current buffer is valid (all required fields filled) */
   isBufferValid: boolean;
   /** Check if a specific row is being edited */
   isRowEditing: (index: number) => boolean;
-  /** Start editing an existing connection row */
+  /** Start editing an existing dependency row */
   startEdit: (index: number) => void;
-  /** Start editing a new connection row */
-  startNew: (index: number, initialConnection?: Connection) => void;
+  /** Start editing a new dependency row */
+  startNew: (index: number, initialDependency?: Dependency) => void;
   /** Apply buffered changes to parent state */
   applyEdit: () => void;
   /** Cancel editing and discard buffer (removes new rows) */
   cancelEdit: () => void;
   /** Update a field in the edit buffer (does not commit to parent) */
-  updateBuffer: (field: keyof Connection, value: any) => void;
+  updateBuffer: (field: keyof Dependency, value: any) => void;
   /** Update a nested field in envBindings */
   updateBufferEnvBindings: (field: string, value: string) => void;
   /** Set the entire buffer (useful for complex updates) */
-  setBuffer: (connection: Connection) => void;
+  setBuffer: (dependency: Dependency) => void;
   /** Clear edit state without side effects (used when row is deleted externally) */
   clearEditState: () => void;
 }
 
 /**
- * Check if a connection is truly empty (no data entered at all)
+ * Check if a dependency is truly empty (no data entered at all)
  */
-function isConnectionEmpty(connection: Connection | undefined | null): boolean {
-  if (!connection) return true;
-  return !connection.component && !connection.endpoint;
+function isDependencyEmpty(dependency: Dependency | undefined | null): boolean {
+  if (!dependency) return true;
+  return !dependency.component && !dependency.name;
 }
 
 /**
- * Check if a connection is valid (all required fields filled)
+ * Check if a dependency is valid (all required fields filled)
  */
-function isConnectionValid(connection: Connection | undefined | null): boolean {
-  if (!connection) return false;
-  return !!(
-    connection.component &&
-    connection.endpoint &&
-    connection.visibility
-  );
+function isDependencyValid(dependency: Dependency | undefined | null): boolean {
+  if (!dependency) return false;
+  return !!(dependency.component && dependency.name && dependency.visibility);
 }
 
 /**
- * Hook for managing single-row editing of connections with a local buffer.
+ * Hook for managing single-row editing of dependencies with a local buffer.
  *
  * This hook implements a pattern where:
  * - Only one row can be edited at a time
@@ -76,25 +72,25 @@ function isConnectionValid(connection: Connection | undefined | null): boolean {
  * - Cancel discards the buffer (and removes new rows)
  * - Apply commits the buffer to parent state
  */
-export function useConnectionEditBuffer(
-  options: UseConnectionEditBufferOptions,
-): UseConnectionEditBufferResult {
+export function useDependencyEditBuffer(
+  options: UseDependencyEditBufferOptions,
+): UseDependencyEditBufferResult {
   const {
-    connections,
-    onConnectionReplace,
-    onRemoveConnection,
+    dependencies,
+    onDependencyReplace,
+    onRemoveDependency,
     defaultProject,
   } = options;
 
   // Track which row is currently being edited (only one at a time)
   const [editingRow, setEditingRow] =
-    useState<ConnectionEditingRowState | null>(null);
+    useState<DependencyEditingRowState | null>(null);
 
   // Buffer for edits - changes are stored here until Apply is clicked
-  const [editBuffer, setEditBuffer] = useState<Connection | null>(null);
+  const [editBuffer, setEditBuffer] = useState<Dependency | null>(null);
 
   const isAnyRowEditing = editingRow !== null;
-  const isBufferValid = isConnectionValid(editBuffer);
+  const isBufferValid = isDependencyValid(editBuffer);
 
   const isRowEditing = useCallback(
     (index: number): boolean => {
@@ -106,13 +102,13 @@ export function useConnectionEditBuffer(
   // Start editing an existing row - initialize buffer with current values
   const startEdit = useCallback(
     (index: number) => {
-      const connection = connections[index];
+      const dependency = dependencies[index];
       // Deep copy to buffer for editing
-      const buffer: Connection = connection
-        ? JSON.parse(JSON.stringify(connection))
+      const buffer: Dependency = dependency
+        ? JSON.parse(JSON.stringify(dependency))
         : {
             component: '',
-            endpoint: '',
+            name: '',
             visibility: 'project' as const,
             envBindings: {},
           };
@@ -123,17 +119,17 @@ export function useConnectionEditBuffer(
       setEditBuffer(buffer);
       setEditingRow({ index, isNew: false });
     },
-    [connections, defaultProject],
+    [dependencies, defaultProject],
   );
 
   // Start editing a new row - optionally pre-fill with initial values
   const startNew = useCallback(
-    (index: number, initialConnection?: Connection) => {
-      const buffer: Connection = initialConnection
-        ? JSON.parse(JSON.stringify(initialConnection))
+    (index: number, initialDependency?: Dependency) => {
+      const buffer: Dependency = initialDependency
+        ? JSON.parse(JSON.stringify(initialDependency))
         : {
             component: '',
-            endpoint: '',
+            name: '',
             visibility: 'project' as const,
             envBindings: {},
           };
@@ -153,25 +149,25 @@ export function useConnectionEditBuffer(
     const { index } = editingRow;
 
     // If buffer is empty, remove the row
-    if (isConnectionEmpty(editBuffer)) {
-      onRemoveConnection(index);
+    if (isDependencyEmpty(editBuffer)) {
+      onRemoveDependency(index);
       setEditBuffer(null);
       setEditingRow(null);
       return;
     }
 
     // Don't commit invalid buffers — keep the row editable so the user can fix it
-    if (!isConnectionValid(editBuffer)) {
+    if (!isDependencyValid(editBuffer)) {
       return;
     }
 
-    if (onConnectionReplace) {
-      onConnectionReplace(index, editBuffer);
+    if (onDependencyReplace) {
+      onDependencyReplace(index, editBuffer);
     }
 
     setEditBuffer(null);
     setEditingRow(null);
-  }, [editingRow, editBuffer, onConnectionReplace, onRemoveConnection]);
+  }, [editingRow, editBuffer, onDependencyReplace, onRemoveDependency]);
 
   // Cancel editing - discards buffer, removes new rows
   const cancelEdit = useCallback(() => {
@@ -179,13 +175,13 @@ export function useConnectionEditBuffer(
 
     if (editingRow.isNew) {
       // NEW row: Cancel = Delete the row entirely
-      onRemoveConnection(editingRow.index);
+      onRemoveDependency(editingRow.index);
     }
-    // For existing rows: just discard buffer, original values are still in connections prop
+    // For existing rows: just discard buffer, original values are still in dependencies prop
 
     setEditBuffer(null);
     setEditingRow(null);
-  }, [editingRow, onRemoveConnection]);
+  }, [editingRow, onRemoveDependency]);
 
   // Clear edit state without any side effects (used when row is deleted externally)
   const clearEditState = useCallback(() => {
@@ -194,7 +190,7 @@ export function useConnectionEditBuffer(
   }, []);
 
   // Update a single field in the buffer
-  const updateBuffer = useCallback((field: keyof Connection, value: any) => {
+  const updateBuffer = useCallback((field: keyof Dependency, value: any) => {
     setEditBuffer(prev => (prev ? { ...prev, [field]: value } : null));
   }, []);
 
@@ -214,8 +210,8 @@ export function useConnectionEditBuffer(
   );
 
   // Set the entire buffer
-  const setBuffer = useCallback((connection: Connection) => {
-    setEditBuffer(connection);
+  const setBuffer = useCallback((dependency: Dependency) => {
+    setEditBuffer(dependency);
   }, []);
 
   return {

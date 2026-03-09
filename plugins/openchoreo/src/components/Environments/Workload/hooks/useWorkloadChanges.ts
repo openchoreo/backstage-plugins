@@ -13,8 +13,8 @@ export interface WorkloadChanges {
   container: Change[];
   /** Changes in endpoints */
   endpoints: Change[];
-  /** Changes in connections */
-  connections: Change[];
+  /** Changes in dependencies */
+  dependencies: Change[];
   /** Total number of changes */
   total: number;
   /** Whether there are any changes */
@@ -23,7 +23,7 @@ export interface WorkloadChanges {
 
 /**
  * Hook for detecting changes between initial and current workload data.
- * Compares containers, endpoints, and connections separately.
+ * Compares containers, endpoints, and dependencies separately.
  *
  * @param initialWorkload - The original workload data from the server
  * @param currentWorkload - The current modified workload data
@@ -46,21 +46,21 @@ export function useWorkloadChanges(
       currentWorkload?.endpoints || {},
     );
 
-    // Compare connections (arrays)
-    const connectionChanges = deepCompareObjects(
-      initialWorkload?.connections || [],
-      currentWorkload?.connections || [],
+    // Compare dependencies (nested endpoints array)
+    const dependencyChanges = deepCompareObjects(
+      initialWorkload?.dependencies?.endpoints || [],
+      currentWorkload?.dependencies?.endpoints || [],
     );
 
     const total =
       containerChanges.length +
       endpointChanges.length +
-      connectionChanges.length;
+      dependencyChanges.length;
 
     return {
       container: containerChanges,
       endpoints: endpointChanges,
-      connections: connectionChanges,
+      dependencies: dependencyChanges,
       total,
       hasChanges: total > 0,
     };

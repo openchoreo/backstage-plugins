@@ -14,8 +14,9 @@ import {
 import {
   ComponentTypeUtils,
   type ComponentResponse,
-  type Connection,
+  type Dependency,
   type WorkloadEndpoint,
+  type WorkloadResponse,
 } from '@openchoreo/backstage-plugin-common';
 
 type ModelsCompleteComponent = ComponentResponse;
@@ -117,13 +118,13 @@ export class CellDiagramInfoService implements CellDiagramService {
 
       // Build a map from component name to workload spec
       // Key by owner.componentName (not workload metadata name, which differs)
-      const workloadMap = new Map<string, Record<string, unknown>>();
+      const workloadMap = new Map<string, WorkloadResponse>();
       for (const workload of workloadItems) {
         const componentName = (
           workload.spec?.owner as { componentName?: string } | undefined
         )?.componentName;
         if (componentName && workload.spec) {
-          workloadMap.set(componentName, workload.spec);
+          workloadMap.set(componentName, workload.spec as WorkloadResponse);
         }
       }
 
@@ -142,7 +143,7 @@ export class CellDiagramInfoService implements CellDiagramService {
           return {
             name,
             type: componentType,
-            workload: workloadSpec as ModelsCompleteComponent['workload'],
+            workload: workloadSpec,
           } as ModelsCompleteComponent;
         })
         .filter(comp => comp.name);
@@ -168,9 +169,9 @@ export class CellDiagramInfoService implements CellDiagramService {
         return !component.type.startsWith('job/');
       })
       .map(component => {
-        // Get connections from workload data included in component response
+        // Get dependencies from workload data included in component response
         const connections = this.generateConnections(
-          component.workload?.connections as Connection[] | undefined,
+          component.workload?.dependencies?.endpoints,
           namespaceName,
           projectName,
           completeComponents,
@@ -288,18 +289,18 @@ export class CellDiagramInfoService implements CellDiagramService {
   }
 
   private generateConnections(
-    connections: Connection[] | undefined,
+    dependencies: Dependency[] | undefined,
     namespaceName: string,
     projectName: string,
     completeComponents: ModelsCompleteComponent[],
   ): CellDiagramConnection[] {
-    if (!connections || connections.length === 0) {
+    if (!dependencies || dependencies.length === 0) {
       return [];
     }
 
-    return connections.map(connection => {
-      const dependentComponentName = connection.component;
-      const dependentProjectName = connection.project || projectName;
+    return dependencies.map(dependency => {
+      const dependentComponentName = dependency.component;
+      const dependentProjectName = dependency.project || projectName;
 
       // Check if dependent component is within the same project
       const isInternal = dependentProjectName === projectName;
@@ -309,15 +310,15 @@ export class CellDiagramInfoService implements CellDiagramService {
 
       const connectionId =
         isInternal && dependentComponent
-          ? `${namespaceName}:${projectName}:${dependentComponent.name}:${connection.endpoint}`
-          : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${connection.endpoint}`;
+          ? `${namespaceName}:${projectName}:${dependentComponent.name}:${dependency.name}`
+          : `${namespaceName}:${dependentProjectName}:${dependentComponentName}:${dependency.name}`;
 
       return {
         id: connectionId,
-        label: `${dependentComponentName}/${connection.endpoint}`,
+        label: `${dependentComponentName}/${dependency.name}`,
         type: ConnectionType.HTTP, // TODO Infer based on api response
         onPlatform: isInternal,
-        tooltip: `Connection to ${dependentComponentName} in ${dependentProjectName}`,
+        tooltip: `Dependency on ${dependentComponentName} in ${dependentProjectName}`,
       };
     });
   }

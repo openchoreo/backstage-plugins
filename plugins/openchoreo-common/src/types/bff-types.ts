@@ -121,9 +121,7 @@ export interface ComponentResponse {
   api?: {
     [key: string]: unknown;
   };
-  workload?: {
-    [key: string]: unknown;
-  };
+  workload?: WorkloadResponse;
   componentWorkflow?: ComponentWorkflow;
 }
 
@@ -675,7 +673,9 @@ export interface WorkloadResponse {
   endpoints?: {
     [key: string]: WorkloadEndpoint;
   };
-  connections?: Connection[];
+  dependencies?: {
+    endpoints?: Dependency[];
+  };
 }
 
 export interface Container {
@@ -716,20 +716,20 @@ export interface WorkloadEndpoint {
   schema?: Schema;
 }
 
-export interface Connection {
+export interface Dependency {
   /** Target component's project name. If empty, defaults to the same project as the consumer. */
   project?: string;
   /** Target component name */
   component: string;
   /** Target endpoint name on the target component */
-  endpoint: string;
-  /** Visibility level at which this connection consumes the endpoint */
+  name: string;
+  /** Visibility level at which this dependency consumes the endpoint */
   visibility: 'project' | 'namespace';
-  /** Maps resolved connection address components to environment variable names */
-  envBindings?: ConnectionEnvBindings;
+  /** Maps resolved dependency address components to environment variable names */
+  envBindings?: DependencyEnvBindings;
 }
 
-export interface ConnectionEnvBindings {
+export interface DependencyEnvBindings {
   /** Env var name for the protocol-appropriate connection string */
   address?: string;
   /** Env var name for just the hostname */

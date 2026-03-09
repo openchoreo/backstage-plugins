@@ -42,10 +42,10 @@ export const WorkloadSaveConfirmationDialog: FC<
       });
     }
 
-    if (changes.connections.length > 0) {
+    if (changes.dependencies.length > 0) {
       result.push({
-        title: 'Connections',
-        changes: changes.connections,
+        title: 'Dependencies',
+        changes: changes.dependencies,
       });
     }
 

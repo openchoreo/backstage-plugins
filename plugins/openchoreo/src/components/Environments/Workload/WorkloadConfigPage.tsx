@@ -130,7 +130,7 @@ export const WorkloadConfigPage = ({
               image: '',
             },
             endpoints: {},
-            connections: [],
+            dependencies: { endpoints: [] },
           };
           setWorkloadSpec(defaultWorkload);
           setInitialWorkload(JSON.parse(JSON.stringify(defaultWorkload)));
@@ -307,7 +307,7 @@ export const WorkloadConfigPage = ({
       variant="contained"
       color="primary"
       onClick={handleButtonClick}
-      disabled={isProcessing || isLoading || !enableNext}
+      disabled={isProcessing || isLoading || !enableNext || isEditing}
       startIcon={
         isProcessing ? (
           <CircularProgress size={20} color="inherit" />
@@ -321,7 +321,7 @@ export const WorkloadConfigPage = ({
   return (
     <DetailPageLayout
       title="Configure Workload"
-      subtitle="Configure containers, endpoints, and connections for deployment"
+      subtitle="Configure containers, endpoints, and dependencies for deployment"
       onBack={handleBackClick}
       actions={headerActions}
     >

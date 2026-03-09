@@ -5154,7 +5154,7 @@ export interface components {
       pagination: components['schemas']['Pagination'];
     };
     /** @description Workload resource.
-     *     Defines the source code, container, endpoints and connections for a component.
+     *     Defines the source code, container, endpoints and dependencies for a component.
      *      */
     Workload: {
       /**
@@ -5191,8 +5191,11 @@ export interface components {
       endpoints?: {
         [key: string]: components['schemas']['WorkloadEndpoint'];
       };
-      /** @description Connection specifications for endpoints consumed by this workload */
-      connections?: components['schemas']['WorkloadConnection'][];
+      /** @description Dependencies on other components' endpoints */
+      dependencies?: {
+        /** @description Endpoint connections to other components */
+        endpoints?: components['schemas']['WorkloadConnection'][];
+      };
     };
     /** @description Observed state of a Workload */
     WorkloadStatus: Record<string, never>;
@@ -5242,7 +5245,7 @@ export interface components {
       /** @description Target component name */
       component: string;
       /** @description Target endpoint name on the target component */
-      endpoint: string;
+      name: string;
       /**
        * @description Visibility level at which this connection consumes the endpoint
        * @enum {string}

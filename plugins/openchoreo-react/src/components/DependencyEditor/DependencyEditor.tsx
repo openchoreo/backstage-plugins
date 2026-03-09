@@ -16,7 +16,7 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import EditIcon from '@material-ui/icons/Edit';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
-import type { Connection } from '@openchoreo/backstage-plugin-common';
+import type { Dependency } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles((theme: Theme) => ({
   container: {
@@ -68,11 +68,11 @@ export interface EndpointOption {
   name: string;
 }
 
-export interface ConnectionEditorProps {
-  /** The connection index */
+export interface DependencyEditorProps {
+  /** The dependency index */
   index: number;
-  /** The connection to edit */
-  connection: Connection;
+  /** The dependency to edit */
+  dependency: Dependency;
   /** Whether the editor is disabled */
   disabled?: boolean;
   /** Optional CSS class name */
@@ -109,16 +109,16 @@ export interface ConnectionEditorProps {
   onVisibilityChange: (visibility: 'project' | 'namespace') => void;
   /** Callback when an env binding field changes */
   onEnvBindingChange: (field: string, value: string) => void;
-  /** Callback when the connection should be removed */
+  /** Callback when the dependency should be removed */
   onRemove: () => void;
 }
 
 /**
- * Editor component for a single connection.
+ * Editor component for a single dependency.
  * Has two visual states: read-only (displays values) and edit mode (input fields).
  */
-export const ConnectionEditor: FC<ConnectionEditorProps> = ({
-  connection,
+export const DependencyEditor: FC<DependencyEditorProps> = ({
+  dependency,
   disabled = false,
   className,
   isEditing,
@@ -141,12 +141,12 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
 }) => {
   const classes = useStyles();
 
-  const formatConnectionSummary = () => {
+  const formatDependencySummary = () => {
     const parts = [];
-    if (connection.project) parts.push(connection.project);
-    if (connection.component) parts.push(connection.component);
-    if (connection.endpoint) parts.push(connection.endpoint);
-    if (connection.visibility) parts.push(`[${connection.visibility}]`);
+    if (dependency.project) parts.push(dependency.project);
+    if (dependency.component) parts.push(dependency.component);
+    if (dependency.name) parts.push(dependency.name);
+    if (dependency.visibility) parts.push(`[${dependency.visibility}]`);
     return parts.join(' → ') || '(not configured)';
   };
 
@@ -157,10 +157,10 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
         <Box display="flex" alignItems="center">
           <Box flex={1} className={classes.readOnlyContent}>
             <Typography className={classes.readOnlyName}>
-              {connection.component || '(no component)'}
+              {dependency.component || '(no component)'}
             </Typography>
             <Typography className={classes.readOnlyDetails}>
-              {formatConnectionSummary()}
+              {formatDependencySummary()}
             </Typography>
           </Box>
           <Button
@@ -179,7 +179,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
             size="small"
             disabled={disabled || deleteDisabled}
             className={classes.actionButton}
-            aria-label="Remove connection"
+            aria-label="Remove dependency"
           >
             <DeleteIcon />
           </IconButton>
@@ -198,7 +198,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
               <FormControl fullWidth variant="outlined" size="small">
                 <InputLabel>Project</InputLabel>
                 <Select
-                  value={connection.project || ''}
+                  value={dependency.project || ''}
                   onChange={e => onProjectChange(e.target.value as string)}
                   label="Project"
                   disabled={disabled}
@@ -215,10 +215,10 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
               <FormControl fullWidth variant="outlined" size="small">
                 <InputLabel>Component</InputLabel>
                 <Select
-                  value={connection.component || ''}
+                  value={dependency.component || ''}
                   onChange={e => onComponentChange(e.target.value as string)}
                   label="Component"
-                  disabled={disabled || !connection.project}
+                  disabled={disabled || !dependency.project}
                 >
                   {components.map(component => (
                     <MenuItem key={component.name} value={component.name}>
@@ -232,10 +232,10 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
               <FormControl fullWidth variant="outlined" size="small">
                 <InputLabel>Endpoint</InputLabel>
                 <Select
-                  value={connection.endpoint || ''}
+                  value={dependency.name || ''}
                   onChange={e => onEndpointChange(e.target.value as string)}
                   label="Endpoint"
-                  disabled={disabled || !connection.component}
+                  disabled={disabled || !dependency.component}
                 >
                   {endpoints.map(endpoint => (
                     <MenuItem key={endpoint.name} value={endpoint.name}>
@@ -250,9 +250,9 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
                 <InputLabel>Visibility</InputLabel>
                 <Select
                   value={
-                    connection.visibility &&
-                    availableVisibilities.includes(connection.visibility)
-                      ? connection.visibility
+                    dependency.visibility &&
+                    availableVisibilities.includes(dependency.visibility)
+                      ? dependency.visibility
                       : ''
                   }
                   onChange={e =>
@@ -280,7 +280,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
             <Grid item xs={6}>
               <TextField
                 label="Address Env Var"
-                value={connection.envBindings?.address || ''}
+                value={dependency.envBindings?.address || ''}
                 onChange={e => onEnvBindingChange('address', e.target.value)}
                 fullWidth
                 variant="outlined"
@@ -293,7 +293,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
             <Grid item xs={6}>
               <TextField
                 label="Host Env Var"
-                value={connection.envBindings?.host || ''}
+                value={dependency.envBindings?.host || ''}
                 onChange={e => onEnvBindingChange('host', e.target.value)}
                 fullWidth
                 variant="outlined"
@@ -306,7 +306,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
             <Grid item xs={6}>
               <TextField
                 label="Port Env Var"
-                value={connection.envBindings?.port || ''}
+                value={dependency.envBindings?.port || ''}
                 onChange={e => onEnvBindingChange('port', e.target.value)}
                 fullWidth
                 variant="outlined"
@@ -319,7 +319,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
             <Grid item xs={6}>
               <TextField
                 label="Base Path Env Var"
-                value={connection.envBindings?.basePath || ''}
+                value={dependency.envBindings?.basePath || ''}
                 onChange={e => onEnvBindingChange('basePath', e.target.value)}
                 fullWidth
                 variant="outlined"
@@ -359,7 +359,7 @@ export const ConnectionEditor: FC<ConnectionEditorProps> = ({
             size="small"
             disabled={disabled}
             className={classes.actionButton}
-            aria-label="Remove connection"
+            aria-label="Remove dependency"
           >
             <DeleteIcon />
           </IconButton>

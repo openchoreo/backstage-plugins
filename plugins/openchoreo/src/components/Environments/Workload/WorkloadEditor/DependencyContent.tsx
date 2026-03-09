@@ -1,12 +1,12 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Connection,
+  Dependency,
   ModelsWorkload,
   WorkloadEndpoint,
 } from '@openchoreo/backstage-plugin-common';
 import {
-  ConnectionList,
-  useConnectionEditBuffer,
+  DependencyList,
+  useDependencyEditBuffer,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
@@ -18,22 +18,22 @@ import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { openChoreoClientApiRef } from '../../../../api/OpenChoreoClientApi';
 import { useWorkloadContext } from '../WorkloadContext';
 
-interface ConnectionContentProps {
-  connections: Connection[];
-  onConnectionReplace: (index: number, connection: Connection) => void;
-  onAddConnection: () => number;
-  onRemoveConnection: (index: number) => void;
+interface DependencyContentProps {
+  dependencies: Dependency[];
+  onDependencyReplace: (index: number, dependency: Dependency) => void;
+  onAddDependency: () => number;
+  onRemoveDependency: (index: number) => void;
   disabled: boolean;
 }
 
 /** Cached endpoint data for a component, keyed by endpoint name */
 type EndpointMap = { [endpointName: string]: WorkloadEndpoint };
 
-export const ConnectionContent: FC<ConnectionContentProps> = ({
-  connections,
-  onConnectionReplace,
-  onAddConnection,
-  onRemoveConnection,
+export const DependencyContent: FC<DependencyContentProps> = ({
+  dependencies,
+  onDependencyReplace,
+  onAddDependency,
+  onRemoveDependency,
   disabled,
 }) => {
   const catalogApi = useApi(catalogApiRef);
@@ -52,16 +52,16 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
     [key: string]: EndpointMap;
   }>({});
 
-  const editBuffer = useConnectionEditBuffer({
-    connections,
-    onConnectionReplace,
-    onRemoveConnection,
+  const editBuffer = useDependencyEditBuffer({
+    dependencies,
+    onDependencyReplace,
+    onRemoveDependency,
     defaultProject: currentProject,
   });
 
   // Report editing state to context
   useEffect(() => {
-    setEditingSection('connections', editBuffer.isAnyRowEditing);
+    setEditingSection('dependencies', editBuffer.isAnyRowEditing);
   }, [editBuffer.isAnyRowEditing, setEditingSection]);
 
   // Fetch all components from catalog
@@ -144,23 +144,23 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
     [allComponents, client, endpointCache],
   );
 
-  /** Get the effective connection for a given index (buffer if editing, else stored) */
-  const getEffectiveConnection = useCallback(
-    (index: number): Connection | undefined => {
+  /** Get the effective dependency for a given index (buffer if editing, else stored) */
+  const getEffectiveDependency = useCallback(
+    (index: number): Dependency | undefined => {
       return editBuffer.isRowEditing(index) && editBuffer.editBuffer
         ? editBuffer.editBuffer
-        : connections[index];
+        : dependencies[index];
     },
-    [connections, editBuffer],
+    [dependencies, editBuffer],
   );
 
-  // Fetch endpoints when connections or edit buffer reference uncached components
+  // Fetch endpoints when dependencies or edit buffer reference uncached components
   useEffect(() => {
     const keysToFetch = new Set<string>();
 
-    connections.forEach(conn => {
-      const projectName = conn?.project || currentProject;
-      const componentName = conn?.component;
+    dependencies.forEach(dep => {
+      const projectName = dep?.project || currentProject;
+      const componentName = dep?.component;
       if (projectName && componentName) {
         const cacheKey = `${projectName}/${componentName}`;
         if (!endpointCache[cacheKey]) {
@@ -185,36 +185,36 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
       fetchEndpoints(projectName, componentName);
     });
   }, [
-    connections,
+    dependencies,
     editBuffer.editBuffer,
     currentProject,
     endpointCache,
     fetchEndpoints,
   ]);
 
-  // Get projects for a connection
+  // Get projects for a dependency
   const getProjects = useCallback((): ProjectOption[] => {
     return projectList;
   }, [projectList]);
 
-  // Get components for a connection based on its selected project
+  // Get components for a dependency based on its selected project
   // When project is omitted, the API contract means "same project as the consumer"
   const getComponents = useCallback(
     (index: number): ComponentOption[] => {
-      const connection = getEffectiveConnection(index);
-      const projectName = connection?.project || currentProject;
+      const dependency = getEffectiveDependency(index);
+      const projectName = dependency?.project || currentProject;
       if (!projectName) return [];
       return getComponentsForProject(projectName);
     },
-    [getEffectiveConnection, getComponentsForProject, currentProject],
+    [getEffectiveDependency, getComponentsForProject, currentProject],
   );
 
-  // Get endpoints for a connection based on its selected component
+  // Get endpoints for a dependency based on its selected component
   const getEndpoints = useCallback(
     (index: number): EndpointOption[] => {
-      const connection = getEffectiveConnection(index);
-      const projectName = connection?.project || currentProject;
-      const componentName = connection?.component;
+      const dependency = getEffectiveDependency(index);
+      const projectName = dependency?.project || currentProject;
+      const componentName = dependency?.component;
       if (!projectName || !componentName) return [];
 
       const cacheKey = `${projectName}/${componentName}`;
@@ -226,28 +226,24 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
       // Cache miss — the useEffect will trigger the fetch
       return [];
     },
-    [getEffectiveConnection, endpointCache, currentProject],
+    [getEffectiveDependency, endpointCache, currentProject],
   );
 
   // Get available visibility options based on target endpoint and relationship
   const getAvailableVisibilities = useCallback(
     (index: number): ('project' | 'namespace')[] => {
-      const connection = getEffectiveConnection(index);
-      const effectiveProject = connection?.project || currentProject;
-      if (
-        !effectiveProject ||
-        !connection?.component ||
-        !connection?.endpoint
-      ) {
+      const dependency = getEffectiveDependency(index);
+      const effectiveProject = dependency?.project || currentProject;
+      if (!effectiveProject || !dependency?.component || !dependency?.name) {
         return [];
       }
 
       // Look up the target endpoint's declared visibilities
-      const cacheKey = `${effectiveProject}/${connection.component}`;
+      const cacheKey = `${effectiveProject}/${dependency.component}`;
       const cached = endpointCache[cacheKey];
       if (!cached) return [];
 
-      const targetEndpoint = cached[connection.endpoint];
+      const targetEndpoint = cached[dependency.name];
       if (!targetEndpoint) return [];
 
       // 'project' visibility is implicitly always available on every endpoint
@@ -259,7 +255,7 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
       // Find the target component's entity to check namespace
       const targetEntity = allComponents.find(
         c =>
-          c.metadata.name === connection.component &&
+          c.metadata.name === dependency.component &&
           c.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ===
             effectiveProject,
       );
@@ -288,7 +284,7 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
       return available;
     },
     [
-      getEffectiveConnection,
+      getEffectiveDependency,
       endpointCache,
       allComponents,
       currentProject,
@@ -307,7 +303,7 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
   // Handle component change - endpoint fetching is handled by the useEffect
   const handleComponentChange = useCallback(
     (_index: number, _componentName: string) => {
-      // Endpoint fetching is driven by the useEffect that watches connection state
+      // Endpoint fetching is driven by the useEffect that watches dependency state
     },
     [],
   );
@@ -318,12 +314,12 @@ export const ConnectionContent: FC<ConnectionContentProps> = ({
   }, []);
 
   return (
-    <ConnectionList
-      connections={connections}
+    <DependencyList
+      dependencies={dependencies}
       disabled={disabled}
       editBuffer={editBuffer}
-      onRemoveConnection={onRemoveConnection}
-      onAddConnection={onAddConnection}
+      onRemoveDependency={onRemoveDependency}
+      onAddDependency={onAddDependency}
       getProjects={getProjects}
       getComponents={getComponents}
       getEndpoints={getEndpoints}

@@ -2,14 +2,14 @@ import type { FC } from 'react';
 import { Box, Button } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
-import type { Connection } from '@openchoreo/backstage-plugin-common';
+import type { Dependency } from '@openchoreo/backstage-plugin-common';
 import {
-  ConnectionEditor,
+  DependencyEditor,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
-} from '../ConnectionEditor';
-import type { UseConnectionEditBufferResult } from '../../hooks/useConnectionEditBuffer';
+} from '../DependencyEditor';
+import type { UseDependencyEditBufferResult } from '../../hooks/useDependencyEditBuffer';
 
 const useStyles = makeStyles(theme => ({
   rowWrapper: {
@@ -20,22 +20,22 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export interface ConnectionListProps {
-  /** Connections to display */
-  connections: Connection[];
+export interface DependencyListProps {
+  /** Dependencies to display */
+  dependencies: Dependency[];
   /** Whether editing is disabled */
   disabled: boolean;
-  /** Edit buffer state and handlers from useConnectionEditBuffer */
-  editBuffer: UseConnectionEditBufferResult;
-  /** Callback when connection should be removed */
-  onRemoveConnection: (index: number) => void;
-  /** Callback to add new connection (returns the new index) */
-  onAddConnection: () => number;
-  /** Callback to get projects for a connection */
+  /** Edit buffer state and handlers from useDependencyEditBuffer */
+  editBuffer: UseDependencyEditBufferResult;
+  /** Callback when dependency should be removed */
+  onRemoveDependency: (index: number) => void;
+  /** Callback to add new dependency (returns the new index) */
+  onAddDependency: () => number;
+  /** Callback to get projects for a dependency */
   getProjects: (index: number) => ProjectOption[];
-  /** Callback to get components for a connection */
+  /** Callback to get components for a dependency */
   getComponents: (index: number) => ComponentOption[];
-  /** Callback to get endpoints for a connection */
+  /** Callback to get endpoints for a dependency */
   getEndpoints: (index: number) => EndpointOption[];
   /** Callback when project changes */
   onProjectChange: (index: number, projectName: string) => void;
@@ -43,20 +43,20 @@ export interface ConnectionListProps {
   onComponentChange: (index: number, componentName: string) => void;
   /** Callback when endpoint changes */
   onEndpointChange: (index: number, endpoint: string) => void;
-  /** Callback to get available visibility options for a connection */
+  /** Callback to get available visibility options for a dependency */
   getAvailableVisibilities: (index: number) => ('project' | 'namespace')[];
 }
 
 /**
- * Connection list with inline editing support.
- * Only one connection can be edited at a time.
+ * Dependency list with inline editing support.
+ * Only one dependency can be edited at a time.
  */
-export const ConnectionList: FC<ConnectionListProps> = ({
-  connections,
+export const DependencyList: FC<DependencyListProps> = ({
+  dependencies,
   disabled,
   editBuffer,
-  onRemoveConnection,
-  onAddConnection,
+  onRemoveDependency,
+  onAddDependency,
   getProjects,
   getComponents,
   getEndpoints,
@@ -67,33 +67,33 @@ export const ConnectionList: FC<ConnectionListProps> = ({
 }) => {
   const classes = useStyles();
 
-  const handleAddConnection = () => {
-    const newIndex = onAddConnection();
+  const handleAddDependency = () => {
+    const newIndex = onAddDependency();
     editBuffer.startNew(newIndex);
   };
 
-  const handleRemoveConnection = (index: number) => {
+  const handleRemoveDependency = (index: number) => {
     // If deleting the row being edited, clear edit state first
     if (editBuffer.isRowEditing(index)) {
       editBuffer.clearEditState();
     }
-    onRemoveConnection(index);
+    onRemoveDependency(index);
   };
 
   return (
     <Box>
-      {connections.map((connection, index) => {
+      {dependencies.map((dependency, index) => {
         const isCurrentlyEditing = editBuffer.isRowEditing(index);
-        const effectiveConnection =
+        const effectiveDependency =
           isCurrentlyEditing && editBuffer.editBuffer
             ? editBuffer.editBuffer
-            : connection;
+            : dependency;
 
         return (
           <Box key={index} className={classes.rowWrapper}>
-            <ConnectionEditor
+            <DependencyEditor
               index={index}
-              connection={effectiveConnection}
+              dependency={effectiveDependency}
               disabled={disabled}
               isEditing={isCurrentlyEditing}
               onEdit={() => editBuffer.startEdit(index)}
@@ -109,7 +109,7 @@ export const ConnectionList: FC<ConnectionListProps> = ({
                 if (isCurrentlyEditing) {
                   editBuffer.updateBuffer('project', projectName);
                   editBuffer.updateBuffer('component', '');
-                  editBuffer.updateBuffer('endpoint', '');
+                  editBuffer.updateBuffer('name', '');
                   editBuffer.updateBuffer('visibility', '');
                 }
                 onProjectChange(index, projectName);
@@ -117,14 +117,14 @@ export const ConnectionList: FC<ConnectionListProps> = ({
               onComponentChange={componentName => {
                 if (isCurrentlyEditing) {
                   editBuffer.updateBuffer('component', componentName);
-                  editBuffer.updateBuffer('endpoint', '');
+                  editBuffer.updateBuffer('name', '');
                   editBuffer.updateBuffer('visibility', '');
                 }
                 onComponentChange(index, componentName);
               }}
               onEndpointChange={endpoint => {
                 if (isCurrentlyEditing) {
-                  editBuffer.updateBuffer('endpoint', endpoint);
+                  editBuffer.updateBuffer('name', endpoint);
                   // Reset visibility since available options may change
                   editBuffer.updateBuffer('visibility', '');
                 }
@@ -141,21 +141,21 @@ export const ConnectionList: FC<ConnectionListProps> = ({
                   editBuffer.updateBufferEnvBindings(field, value);
                 }
               }}
-              onRemove={() => handleRemoveConnection(index)}
+              onRemove={() => handleRemoveDependency(index)}
             />
           </Box>
         );
       })}
       <Button
         startIcon={<AddIcon />}
-        onClick={handleAddConnection}
+        onClick={handleAddDependency}
         variant="outlined"
         size="small"
         className={classes.addButton}
         disabled={disabled || editBuffer.isAnyRowEditing}
         color="primary"
       >
-        Add Connection
+        Add Dependency
       </Button>
     </Box>
   );
