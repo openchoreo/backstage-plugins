@@ -69,14 +69,18 @@ export {
   type EndpointListProps,
 } from './components/EndpointList';
 export {
+  DependencyEditor,
   ConnectionEditor,
+  type DependencyEditorProps,
   type ConnectionEditorProps,
   type ProjectOption,
   type ComponentOption,
   type EndpointOption,
 } from './components/ConnectionEditor';
 export {
+  DependencyList,
   ConnectionList,
+  type DependencyListProps,
   type ConnectionListProps,
 } from './components/ConnectionList';
 export {
@@ -172,9 +176,13 @@ export {
   type EndpointEditingRowState,
 } from './hooks/useEndpointEditBuffer';
 export {
+  useDependencyEditBuffer,
   useConnectionEditBuffer,
+  type UseDependencyEditBufferOptions,
   type UseConnectionEditBufferOptions,
+  type UseDependencyEditBufferResult,
   type UseConnectionEditBufferResult,
+  type DependencyEditingRowState,
   type ConnectionEditingRowState,
 } from './hooks/useConnectionEditBuffer';
 export {

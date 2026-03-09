@@ -14,7 +14,7 @@ export const WorkloadConfigWrapper = () => {
   const { lowestEnvironment } = useEnvironmentsContext();
   const { navigateToList, navigateToOverrides } = useEnvironmentRouting();
 
-  // Get active tab from URL (container, endpoints, connections)
+  // Get active tab from URL (container, endpoints, dependencies)
   const activeTab = searchParams.get('tab') || 'container';
 
   // Handle tab change - update URL

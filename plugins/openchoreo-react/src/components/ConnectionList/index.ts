@@ -1,2 +1,2 @@
-export { ConnectionList } from './ConnectionList';
-export type { ConnectionListProps } from './ConnectionList';
+export { DependencyList, ConnectionList } from './ConnectionList';
+export type { DependencyListProps, ConnectionListProps } from './ConnectionList';
