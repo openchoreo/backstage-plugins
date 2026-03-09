@@ -48,7 +48,9 @@ const baseMeta: OpenChoreoComponents['schemas']['ObjectMeta'] = {
 describe('transformProject', () => {
   const project: OpenChoreoComponents['schemas']['Project'] = {
     metadata: { ...baseMeta, name: 'my-project' },
-    spec: { deploymentPipelineRef: 'default' },
+    spec: {
+      deploymentPipelineRef: { kind: 'DeploymentPipeline', name: 'default' },
+    },
     status: { conditions: [readyCondition] },
   };
 

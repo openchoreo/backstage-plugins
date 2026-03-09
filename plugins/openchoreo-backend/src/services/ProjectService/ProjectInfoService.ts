@@ -94,7 +94,7 @@ export class ProjectInfoService {
         );
       }
 
-      const pipelineName = project.spec?.deploymentPipelineRef;
+      const pipelineName = project.spec?.deploymentPipelineRef?.name;
       if (!pipelineName) {
         throw new Error(
           `Project ${projectName} has no deployment pipeline reference`,

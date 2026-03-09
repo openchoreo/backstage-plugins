@@ -121,7 +121,14 @@ export const createProjectAction = (
                 },
               },
               spec: {
-                deploymentPipelineRef: ctx.input.deploymentPipeline,
+                ...(ctx.input.deploymentPipeline
+                  ? {
+                      deploymentPipelineRef: {
+                        kind: 'DeploymentPipeline' as const,
+                        name: ctx.input.deploymentPipeline,
+                      },
+                    }
+                  : {}),
               },
             },
           },

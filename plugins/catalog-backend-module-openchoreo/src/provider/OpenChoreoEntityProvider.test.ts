@@ -136,7 +136,12 @@ const k8sObservabilityPlane = {
 
 const k8sProject = {
   metadata: k8sMeta('my-project'),
-  spec: { deploymentPipelineRef: 'default-pipeline' },
+  spec: {
+    deploymentPipelineRef: {
+      kind: 'DeploymentPipeline',
+      name: 'default-pipeline',
+    },
+  },
   status: { conditions: [readyCondition] },
 };
 
@@ -635,12 +640,22 @@ describe('OpenChoreoEntityProvider', () => {
     it('creates single pipeline entity when multiple projects reference it', async () => {
       const project1 = {
         metadata: k8sMeta('project-a'),
-        spec: { deploymentPipelineRef: 'shared-pipeline' },
+        spec: {
+          deploymentPipelineRef: {
+            kind: 'DeploymentPipeline',
+            name: 'shared-pipeline',
+          },
+        },
         status: { conditions: [readyCondition] },
       };
       const project2 = {
         metadata: k8sMeta('project-b'),
-        spec: { deploymentPipelineRef: 'shared-pipeline' },
+        spec: {
+          deploymentPipelineRef: {
+            kind: 'DeploymentPipeline',
+            name: 'shared-pipeline',
+          },
+        },
         status: { conditions: [readyCondition] },
       };
       const sharedPipeline = {
