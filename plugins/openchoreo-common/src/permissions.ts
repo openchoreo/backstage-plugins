@@ -185,6 +185,15 @@ export const openchoreoReleaseReadPermission = createPermission({
 });
 
 /**
+ * Permission to read/view release bindings.
+ * Org-scoped permission.
+ */
+export const openchoreoReleaseBindingReadPermission = createPermission({
+  name: 'openchoreo.releasebinding.read',
+  attributes: { action: 'read' },
+});
+
+/**
  * Permission to view roles.
  * Org-scoped permission.
  */
@@ -325,6 +334,7 @@ export const openchoreoPermissions = [
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
+  openchoreoReleaseBindingReadPermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -365,6 +375,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
+  'openchoreo.releasebinding.read': 'releasebinding:view',
   'openchoreo.role.view': 'role:view',
   'openchoreo.role.create': 'role:create',
   'openchoreo.role.update': 'role:update',

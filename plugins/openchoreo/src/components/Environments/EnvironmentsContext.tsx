@@ -25,6 +25,8 @@ interface EnvironmentsContextValue {
   onPendingActionComplete: (action: PendingAction) => Promise<void>;
   /** Whether the deployment pipeline indicates environments should exist but user lacks permissions */
   pipelineUnavailable: boolean;
+  /** Whether the user has permission to view release bindings */
+  canViewBindings: boolean;
 }
 
 const EnvironmentsContext = createContext<EnvironmentsContextValue | null>(

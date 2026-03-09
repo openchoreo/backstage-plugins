@@ -19,7 +19,10 @@ import { EnvironmentsRouter } from './EnvironmentsRouter';
 import { EnvironmentsProvider } from './EnvironmentsContext';
 import { NotificationBanner } from './components';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
-import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import {
+  ForbiddenState,
+  useReleaseBindingPermission,
+} from '@openchoreo/backstage-plugin-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import { isForbiddenError } from '../../utils/errorUtils';
 
@@ -55,6 +58,9 @@ export const Environments = () => {
     ((pipelineData?.promotionPaths?.length ?? 0) > 0 &&
       environments.length === 0 &&
       !loading);
+
+  // Permission check for release binding access
+  const { canViewBindings } = useReleaseBindingPermission();
 
   // Auto deploy state
   const [autoDeploy, setAutoDeploy] = useState<boolean | undefined>(undefined);
@@ -148,6 +154,7 @@ export const Environments = () => {
       onAutoDeployChange: handleAutoDeployChange,
       onPendingActionComplete: handlePendingActionComplete,
       pipelineUnavailable,
+      canViewBindings,
     }),
     [
       environments,
@@ -160,6 +167,7 @@ export const Environments = () => {
       handleAutoDeployChange,
       handlePendingActionComplete,
       pipelineUnavailable,
+      canViewBindings,
     ],
   );
 
