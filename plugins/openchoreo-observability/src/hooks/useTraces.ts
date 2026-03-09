@@ -59,7 +59,7 @@ export function useTraces(filters: Filters, entity: Entity) {
           limit: 100,
           startTime,
           endTime,
-          sort: 'desc',
+          sortOrder: 'desc',
         },
       );
 

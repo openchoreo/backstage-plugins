@@ -12,6 +12,7 @@ import type { Environment } from './hooks';
 import type { PendingAction } from './types';
 import { NotificationBanner, SetupCard, EnvironmentCard } from './components';
 import { useEnvironmentsContext } from './EnvironmentsContext';
+import { useIncidentsSummary } from './hooks/useIncidentsSummary';
 
 /**
  * List view for the Environments page.
@@ -41,6 +42,9 @@ export const EnvironmentsList = () => {
   const refreshTracker = useItemActionTracker<string>();
   const promotionTracker = useItemActionTracker<string>();
   const suspendTracker = useItemActionTracker<string>();
+
+  // Incidents summary per environment
+  const incidentsSummaries = useIncidentsSummary(displayEnvironments);
 
   // Notifications
   const notification = useNotification();
@@ -154,6 +158,9 @@ export const EnvironmentsList = () => {
                   .catch(err =>
                     notification.showError(`Error suspending: ${err}`),
                   )
+              }
+              activeIncidentCount={
+                incidentsSummaries.get(env.name)?.activeCount
               }
             />
           </Grid>
