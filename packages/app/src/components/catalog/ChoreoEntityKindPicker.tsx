@@ -12,7 +12,6 @@ import {
   useEntityList,
   catalogApiRef,
 } from '@backstage/plugin-catalog-react';
-import { useUserGroups } from '../../hooks';
 
 // Mapping of internal kind names to OpenChoreo display names
 const kindDisplayNames: Record<string, string> = {
@@ -43,7 +42,6 @@ const kindDisplayNames: Record<string, string> = {
 
 interface KindCategory {
   label: string;
-  platformOnly?: boolean;
   kinds: string[];
 }
 
@@ -54,7 +52,6 @@ const kindCategories: KindCategory[] = [
   },
   {
     label: 'Platform Resources',
-    platformOnly: true,
     kinds: [
       'dataplane',
       'clusterdataplane',
@@ -68,7 +65,6 @@ const kindCategories: KindCategory[] = [
   },
   {
     label: 'Platform Configuration',
-    platformOnly: true,
     kinds: [
       'clustercomponenttype',
       'componenttype',
@@ -269,10 +265,6 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
       initialFilter: initialFilter,
     });
 
-  // Get user groups to check if user is a platform engineer
-  const { userGroups } = useUserGroups();
-  const isPlatformEngineer = userGroups.includes('platformengineer');
-
   useEffect(() => {
     if (error) {
       alertApi.post({
@@ -319,9 +311,6 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     }
 
     for (const category of kindCategories) {
-      // Skip platform-only categories for non-platform engineers
-      if (category.platformOnly && !isPlatformEngineer) continue;
-
       // Filter to only kinds that exist in the catalog
       const visibleKinds = category.kinds.filter(k => availableKinds.has(k));
 
@@ -354,7 +343,7 @@ export const ChoreoEntityKindPicker = (props: ChoreoEntityKindPickerProps) => {
     }
 
     return items;
-  }, [availableKinds, isPlatformEngineer, error, classes, app]);
+  }, [availableKinds, error, classes, app]);
 
   if (error) return null;
 
