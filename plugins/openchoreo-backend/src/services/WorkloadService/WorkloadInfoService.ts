@@ -28,7 +28,7 @@ export class WorkloadInfoService implements WorkloadService {
       namespaceName: string;
     },
     token?: string,
-  ): Promise<ModelsWorkload> {
+  ): Promise<ModelsWorkload | null> {
     const { projectName, componentName, namespaceName } = request;
 
     try {
@@ -57,7 +57,8 @@ export class WorkloadInfoService implements WorkloadService {
 
       const workload = data!.items[0];
       if (!workload) {
-        throw new Error('No workload data returned');
+        this.logger.debug(`No workload found for component ${componentName}`);
+        return null;
       }
 
       // Return the spec directly — the spec object contains the same
@@ -65,7 +66,7 @@ export class WorkloadInfoService implements WorkloadService {
       return workload.spec as ModelsWorkload;
     } catch (error) {
       this.logger.error(`Failed to fetch workload info: ${error}`);
-      throw new Error('Failed to fetch workload info', { cause: error });
+      throw error;
     }
   }
 

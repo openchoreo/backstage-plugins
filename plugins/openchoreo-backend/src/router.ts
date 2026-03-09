@@ -1,4 +1,4 @@
-import { InputError } from '@backstage/errors';
+import { InputError, NotFoundError } from '@backstage/errors';
 import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
@@ -543,26 +543,19 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    try {
-      const result = await workloadInfoService.fetchWorkloadInfo(
-        {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-        },
-        userToken,
-      );
+    const result = await workloadInfoService.fetchWorkloadInfo(
+      {
+        componentName: componentName as string,
+        projectName: projectName as string,
+        namespaceName: namespaceName as string,
+      },
+      userToken,
+    );
 
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({
-        error: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          name: error instanceof Error ? error.name : 'UnknownError',
-          ...(error instanceof Error && error.stack && { stack: error.stack }),
-        },
-      });
+    if (!result) {
+      throw new NotFoundError('No workload found for this component');
     }
+    res.json(result);
   });
 
   router.post('/workload', requireAuth, async (req, res) => {
@@ -583,27 +576,17 @@ export async function createRouter({
 
     const userToken = getUserTokenFromRequest(req);
 
-    try {
-      const result = await workloadInfoService.applyWorkload(
-        {
-          componentName: componentName as string,
-          projectName: projectName as string,
-          namespaceName: namespaceName as string,
-          workloadSpec,
-        },
-        userToken,
-      );
+    const result = await workloadInfoService.applyWorkload(
+      {
+        componentName: componentName as string,
+        projectName: projectName as string,
+        namespaceName: namespaceName as string,
+        workloadSpec,
+      },
+      userToken,
+    );
 
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({
-        error: {
-          message: error instanceof Error ? error.message : 'Unknown error',
-          name: error instanceof Error ? error.name : 'UnknownError',
-          ...(error instanceof Error && error.stack && { stack: error.stack }),
-        },
-      });
-    }
+    res.json(result);
   });
 
   router.post('/dashboard/bindings-count', async (req, res) => {
