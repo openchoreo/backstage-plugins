@@ -10,6 +10,8 @@ import {
   SpanDetails,
   RCAReportSummary,
   RCAReportDetailed,
+  AlertSummary,
+  IncidentSummary,
 } from '../types';
 import { LogsResponse } from '../components/RuntimeLogs/types';
 import { ObserverUrlCache } from './ObserverUrlCache';
@@ -110,6 +112,22 @@ export interface ObservabilityApi {
     namespaceName: string,
     projectName: string,
     environmentName: string,
+    componentName?: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    incidents: IncidentSummary[];
+    total: number;
+  }>;
+
+  getAlerts(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
     componentName: string,
     options?: {
       startTime?: string;
@@ -118,14 +136,7 @@ export interface ObservabilityApi {
       sortOrder?: 'asc' | 'desc';
     },
   ): Promise<{
-    incidents: Array<{
-      incidentId: string;
-      alertId: string;
-      status: 'triggered' | 'acknowledged' | 'resolved';
-      description?: string;
-      triggeredAt?: string;
-      resolvedAt?: string;
-    }>;
+    alerts: AlertSummary[];
     total: number;
   }>;
 }
@@ -537,7 +548,7 @@ export class ObservabilityClient implements ObservabilityApi {
     namespaceName: string,
     projectName: string,
     environmentName: string,
-    componentName: string,
+    componentName?: string,
     options?: {
       startTime?: string;
       endTime?: string;
@@ -545,14 +556,7 @@ export class ObservabilityClient implements ObservabilityApi {
       sortOrder?: 'asc' | 'desc';
     },
   ): Promise<{
-    incidents: Array<{
-      incidentId: string;
-      alertId: string;
-      status: 'triggered' | 'acknowledged' | 'resolved';
-      description?: string;
-      triggeredAt?: string;
-      resolvedAt?: string;
-    }>;
+    incidents: IncidentSummary[];
     total: number;
   }> {
     const { observerUrl } = await this.urlCache.resolveUrls(
@@ -562,6 +566,84 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const response = await this.fetchApi.fetch(
       `${observerUrl}/api/v1alpha1/incidents/query`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({
+          startTime:
+            options?.startTime ?? new Date(Date.now() - 3600000).toISOString(),
+          endTime: options?.endTime ?? new Date().toISOString(),
+          limit: options?.limit ?? 100,
+          sortOrder: options?.sortOrder ?? 'desc',
+          searchScope: {
+            namespace: namespaceName,
+            project: projectName,
+            ...(componentName ? { component: componentName } : {}),
+            environment: environmentName,
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      if (error.includes('Observability is not configured for component')) {
+        throw new Error('Observability is not enabled for this component');
+      }
+      throw new Error(
+        error || `Failed to fetch incidents: ${response.statusText}`,
+      );
+    }
+
+    const data = await response.json();
+    const validStatuses = ['active', 'acknowledged', 'resolved'];
+    return {
+      incidents: (data.incidents ?? [])
+        .filter((i: any) => validStatuses.includes(i.status))
+        .map(
+          (i: any): IncidentSummary => ({
+            incidentId: i.incidentId ?? '',
+            alertId: i.alertId ?? '',
+            status: i.status,
+            description: i.description,
+            notes: i.notes,
+            timestamp: i.timestamp,
+            triggeredAt: i.triggeredAt,
+            acknowledgedAt: i.acknowledgedAt,
+            resolvedAt: i.resolvedAt,
+            incidentTriggerAiRca: i.incidentTriggerAiRca ?? false,
+            projectName: i.labels?.projectName,
+            componentName: i.labels?.componentName,
+            environmentName: i.labels?.environmentName,
+            namespaceName: i.labels?.namespaceName,
+          }),
+        ),
+      total: data.total ?? 0,
+    };
+  }
+
+  async getAlerts(
+    namespaceName: string,
+    projectName: string,
+    environmentName: string,
+    componentName: string,
+    options?: {
+      startTime?: string;
+      endTime?: string;
+      limit?: number;
+      sortOrder?: 'asc' | 'desc';
+    },
+  ): Promise<{
+    alerts: AlertSummary[];
+    total: number;
+  }> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/alerts/query`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
@@ -587,23 +669,32 @@ export class ObservabilityClient implements ObservabilityApi {
         throw new Error('Observability is not enabled for this component');
       }
       throw new Error(
-        error || `Failed to fetch incidents: ${response.statusText}`,
+        error || `Failed to fetch alerts: ${response.statusText}`,
       );
     }
 
     const data = await response.json();
-    const validStatuses = ['triggered', 'acknowledged', 'resolved'];
+
     return {
-      incidents: (data.incidents ?? [])
-        .filter((i: any) => validStatuses.includes(i.status))
-        .map((i: any) => ({
-          incidentId: i.incidentId ?? '',
-          alertId: i.alertId ?? '',
-          status: i.status,
-          description: i.description,
-          triggeredAt: i.triggeredAt,
-          resolvedAt: i.resolvedAt,
-        })),
+      alerts: (data.alerts ?? []).map(
+        (a: any): AlertSummary => ({
+          timestamp: a.timestamp,
+          alertId: a.alertId ?? '',
+          alertValue: a.alertValue,
+          ruleName: a.metadata?.alertRule?.name,
+          ruleDescription: a.metadata?.alertRule?.description,
+          severity: a.metadata?.alertRule?.severity,
+          sourceType: a.metadata?.alertRule?.source?.type,
+          sourceQuery: a.metadata?.alertRule?.source?.query,
+          sourceMetric: a.metadata?.alertRule?.source?.metric,
+          projectName: a.metadata?.labels?.projectName,
+          componentName: a.metadata?.labels?.componentName,
+          environmentName: a.metadata?.labels?.environmentName,
+          namespaceName: a.metadata?.labels?.namespaceName,
+          notificationChannels: a.notificationChannels ?? [],
+          incidentEnabled: a.incidentEnabled ?? false,
+        }),
+      ),
       total: data.total ?? 0,
     };
   }

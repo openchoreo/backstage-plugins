@@ -68,6 +68,16 @@ export const useLogEntryStyles = makeStyles(theme => ({
     '& > td': {
       padding: '4px 8px !important',
     },
+    // Reveal the hover-action button when this row is hovered
+    '&:hover $hoverActionButton': {
+      opacity: 1,
+      pointerEvents: 'auto',
+    },
+  },
+  hoverActionButton: {
+    opacity: 0,
+    pointerEvents: 'none',
+    transition: 'opacity 0.15s ease',
   },
   expandedRow: {
     backgroundColor: theme.palette.action.selected,

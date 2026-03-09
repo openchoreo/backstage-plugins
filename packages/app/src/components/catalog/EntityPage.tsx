@@ -117,6 +117,8 @@ import {
   ObservabilityRCA,
   ObservabilityRuntimeLogs,
   ObservabilityProjectRuntimeLogs,
+  ObservabilityAlerts,
+  ObservabilityProjectIncidents,
 } from '@openchoreo/backstage-plugin-openchoreo-observability';
 
 import {
@@ -275,6 +277,12 @@ const serviceEntityPage = (
       </FeatureGatedContent>
     </EntityLayout.Route>
 
+    <EntityLayout.Route path="/alerts" title="Alerts">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityAlerts />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
     <EntityLayout.Route
       path="/kubernetes"
       title="Kubernetes"
@@ -365,6 +373,12 @@ const genericComponentEntityPage = (
     <EntityLayout.Route path="/metrics" title="Metrics">
       <FeatureGatedContent feature="observability">
         <ObservabilityMetrics />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+
+    <EntityLayout.Route path="/alerts" title="Alerts">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityAlerts />
       </FeatureGatedContent>
     </EntityLayout.Route>
 
@@ -612,6 +626,11 @@ const systemPage = (
     <EntityLayout.Route path="/traces" title="Traces">
       <FeatureGatedContent feature="observability">
         <ObservabilityTraces />
+      </FeatureGatedContent>
+    </EntityLayout.Route>
+    <EntityLayout.Route path="/incidents" title="Incidents">
+      <FeatureGatedContent feature="observability">
+        <ObservabilityProjectIncidents />
       </FeatureGatedContent>
     </EntityLayout.Route>
     <EntityLayout.Route path="/rca-reports" title="RCA Reports">

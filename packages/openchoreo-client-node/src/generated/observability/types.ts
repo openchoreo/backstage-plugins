@@ -144,6 +144,29 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1alpha1/incidents/{incidentId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The ID of the incident to update */
+        incidentId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /**
+     * Update incident
+     * @description Update an incident in the observer service
+     */
+    put: operations['updateIncident'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1alpha1/alerts/query': {
     parameters: {
       query?: never;
@@ -469,6 +492,8 @@ export interface components {
         alertValue?: string;
         /** @description The notification channels of the alert. Empty if failed to notify. */
         notificationChannels?: string[];
+        /** @description Whether the alert rule is configured to trigger incidents when fired */
+        incidentEnabled?: boolean;
         metadata?: {
           alertRule?: {
             /** @description The name of the alert rule */
@@ -581,7 +606,7 @@ export interface components {
          * @description The status of the incident
          * @enum {string}
          */
-        status?: 'triggered' | 'acknowledged' | 'resolved';
+        status?: 'active' | 'acknowledged' | 'resolved';
         /**
          * Format: date-time
          * @description The timestamp when the incident was triggered
@@ -631,6 +656,74 @@ export interface components {
       total?: number;
       /** @description The time taken to query the incidents in milliseconds */
       tookMs?: number;
+    };
+    IncidentPutRequest: {
+      /**
+       * @description The status of the incident
+       * @enum {string}
+       */
+      status: 'active' | 'acknowledged' | 'resolved';
+      /** @description Notes associated with the incident */
+      notes?: string;
+      /** @description The description of the incident */
+      description?: string;
+    };
+    IncidentPutResponse: {
+      /** @description The ID of the incident */
+      incidentId?: string;
+      /** @description The ID of the alert that triggered the incident */
+      alertId?: string;
+      /**
+       * @description The status of the incident
+       * @enum {string}
+       */
+      status?: 'active' | 'acknowledged' | 'resolved';
+      /**
+       * Format: date-time
+       * @description The timestamp when the incident was triggered
+       */
+      triggeredAt?: string;
+      /**
+       * Format: date-time
+       * @description The timestamp when the incident was acknowledged
+       */
+      acknowledgedAt?: string;
+      /**
+       * Format: date-time
+       * @description The timestamp when the incident was resolved
+       */
+      resolvedAt?: string;
+      /** @description Notes associated with the incident */
+      notes?: string;
+      /** @description The description of the incident */
+      description?: string;
+      /** @description Whether AI RCA was triggered for the incident */
+      incidentTriggerAiRca?: boolean;
+      labels?: {
+        /** @description The name of the component */
+        componentName?: string;
+        /** @description The name of the environment */
+        environmentName?: string;
+        /** @description The name of the project */
+        projectName?: string;
+        /** @description The name of the namespace */
+        namespaceName?: string;
+        /**
+         * Format: uuid
+         * @description The UID of the component
+         */
+        componentUid?: string;
+        /**
+         * Format: uuid
+         * @description The UID of the environment
+         */
+        environmentUid?: string;
+        /**
+         * Format: uuid
+         * @description The UID of the project
+         */
+        projectUid?: string;
+      };
     };
     ErrorResponse: {
       /**
@@ -1020,6 +1113,69 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['IncidentsQueryResponse'];
+        };
+      };
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+      /** @description Internal Server Error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorResponse'];
+        };
+      };
+    };
+  };
+  updateIncident: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The ID of the incident to update */
+        incidentId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IncidentPutRequest'];
+      };
+    };
+    responses: {
+      /** @description Incident updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['IncidentPutResponse'];
         };
       };
       /** @description Invalid request */
