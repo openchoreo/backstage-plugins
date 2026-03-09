@@ -239,10 +239,7 @@ export class CellDiagramInfoService implements CellDiagramService {
                     isExposed: visibility.includes('external'),
                   },
                   intranet: {
-                    isExposed:
-                      visibility.includes('external') ||
-                      visibility.includes('internal') ||
-                      visibility.includes('namespace'),
+                    isExposed: visibility.includes('internal'),
                   },
                 },
               },
