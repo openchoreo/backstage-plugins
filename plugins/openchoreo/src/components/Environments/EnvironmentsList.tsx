@@ -15,6 +15,7 @@ import { useEnvironmentsContext } from './EnvironmentsContext';
 import { useIncidentsSummary } from './hooks/useIncidentsSummary';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import { Card } from '@openchoreo/backstage-design-system';
 
 /**
  * List view for the Environments page.
@@ -32,7 +33,7 @@ export const EnvironmentsList = () => {
     autoDeploy,
     autoDeployUpdating,
     onAutoDeployChange,
-    pipelineUnavailable,
+    canViewEnvironments,
     canViewBindings,
   } = useEnvironmentsContext();
 
@@ -109,26 +110,6 @@ export const EnvironmentsList = () => {
     [navigateToOverrides],
   );
 
-  if (!loading && environments.length === 0) {
-    if (pipelineUnavailable) {
-      return (
-        <ForbiddenState
-          message="You do not have permission to view deployment environments."
-          onRetry={refetch}
-          minHeight="400px"
-        />
-      );
-    }
-    return (
-      <EmptyState
-        title="No environments available"
-        description="No deployment environments were found for this component."
-        action={{ label: 'Retry', onClick: refetch }}
-        minHeight="400px"
-      />
-    );
-  }
-
   return (
     <>
       <NotificationBanner notification={notification.notification} />
@@ -146,6 +127,29 @@ export const EnvironmentsList = () => {
             autoDeployUpdating={autoDeployUpdating}
           />
         </Grid>
+
+        {/* No environments: show forbidden or empty state as a card */}
+        {!loading && environments.length === 0 && !canViewEnvironments && (
+          <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+            <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>
+              <ForbiddenState
+                message="You do not have permission to view deployment environments."
+                onRetry={refetch}
+              />
+            </Card>
+          </Grid>
+        )}
+        {!loading && environments.length === 0 && canViewEnvironments && (
+          <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+            <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>
+              <EmptyState
+                title="No environments available"
+                description="No deployment environments were found for this component."
+                action={{ label: 'Retry', onClick: refetch }}
+              />
+            </Card>
+          </Grid>
+        )}
 
         {/* Environment Cards */}
         {displayEnvironments.map(env => (

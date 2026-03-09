@@ -3,7 +3,6 @@ import { useEntity } from '@backstage/plugin-catalog-react';
 import { Progress } from '@backstage/core-components';
 import { Box } from '@material-ui/core';
 import { useApi } from '@backstage/core-plugin-api';
-import { useAsyncRetry } from 'react-use';
 
 import { useNotification } from '../../hooks';
 import {
@@ -22,9 +21,8 @@ import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import {
   ForbiddenState,
   useReleaseBindingPermission,
+  useEnvironmentReadPermission,
 } from '@openchoreo/backstage-plugin-react';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { isForbiddenError } from '../../utils/errorUtils';
 
 export const Environments = () => {
   // Initialize global styles (includes keyframe animation)
@@ -41,25 +39,8 @@ export const Environments = () => {
     useEnvironmentData(entity);
   const { displayEnvironments, isPending } = useStaleEnvironments(environments);
 
-  // Pipeline fetch for permission detection
-  const projectName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
-  const namespaceName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
-
-  const { value: pipelineData, error: pipelineError } =
-    useAsyncRetry(async () => {
-      if (!projectName || !namespaceName) return null;
-      return client.fetchDeploymentPipeline(projectName, namespaceName);
-    }, [projectName, namespaceName, client]);
-
-  // If the pipeline indicates environments should exist but user can't see them
-  const pipelineUnavailable =
-    isForbiddenError(pipelineError) ||
-    ((pipelineData?.promotionPaths?.length ?? 0) > 0 &&
-      environments.length === 0 &&
-      !loading);
-
-  // Permission check for release binding access
+  // Permission checks
+  const { canViewEnvironments } = useEnvironmentReadPermission();
   const { canViewBindings } = useReleaseBindingPermission();
 
   // Auto deploy state
@@ -153,7 +134,7 @@ export const Environments = () => {
       autoDeployUpdating,
       onAutoDeployChange: handleAutoDeployChange,
       onPendingActionComplete: handlePendingActionComplete,
-      pipelineUnavailable,
+      canViewEnvironments,
       canViewBindings,
     }),
     [
@@ -166,7 +147,7 @@ export const Environments = () => {
       autoDeployUpdating,
       handleAutoDeployChange,
       handlePendingActionComplete,
-      pipelineUnavailable,
+      canViewEnvironments,
       canViewBindings,
     ],
   );
