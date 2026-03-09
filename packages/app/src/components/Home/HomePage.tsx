@@ -7,7 +7,7 @@ import { HomePageSearchBar } from '@backstage/plugin-search';
 import { SearchContextProvider } from '@backstage/plugin-search-react';
 import { Grid, Typography, Box } from '@material-ui/core';
 import { useStyles } from './styles';
-import { useUserGroups } from '../../hooks';
+import { useUserInfo } from '../../hooks';
 import { useNamespacePermission } from '@openchoreo/backstage-plugin-react';
 import { HomePagePlatformDetailsCard } from '@openchoreo/backstage-plugin-platform-engineer-core';
 
@@ -16,7 +16,7 @@ import { HomePagePlatformDetailsCard } from '@openchoreo/backstage-plugin-platfo
  */
 export const HomePage = () => {
   const classes = useStyles();
-  const { userName, loading } = useUserGroups();
+  const { userName, loading } = useUserInfo();
   const { canView: canViewPlatformDetails } = useNamespacePermission();
 
   if (loading) {
