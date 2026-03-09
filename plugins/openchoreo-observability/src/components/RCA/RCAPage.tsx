@@ -11,12 +11,13 @@ import {
   useGetEnvironmentsByNamespace,
   useRCAReports,
 } from '../../hooks';
-import { Progress } from '@backstage/core-components';
+import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
+import { useRcaPermission } from '@openchoreo/backstage-plugin-react';
 import { RCAReport } from './RCAReport';
 import { EntityLinkContext } from './RCAReport/EntityLinkContext';
 
-const RCAListView = () => {
+const RCAListContent = () => {
   const { entity } = useEntity();
   const namespace = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
   const namespaceValue = useMemo(
@@ -68,27 +69,28 @@ const RCAListView = () => {
     const isRCAServiceDisabled = error.includes(
       'RCA service is not configured',
     );
-
     const isInfoAlert = isObservabilityDisabled || isRCAServiceDisabled;
 
     let errorMessage = error;
     if (isObservabilityDisabled) {
       errorMessage =
-        'Observability is not enabled for this environment. Please enable observability to view RCA reports.';
+        'Observability is not enabled for this environment. Please enable observability and enable the AI RCA agent.';
     } else if (isRCAServiceDisabled) {
       errorMessage =
-        'AI-powered RCA is not configured. Please enable it to view RCA reports.';
+        'AI RCA is not configured. Please enable it to view RCA reports.';
     }
 
     return (
-      <Alert severity={isInfoAlert ? 'info' : 'error'}>
-        <Typography variant="body1">{errorMessage}</Typography>
-        {!isInfoAlert && (
-          <Button onClick={handleRefresh} color="inherit" size="small">
-            Retry
-          </Button>
-        )}
-      </Alert>
+      <Box mt={2} mb={2}>
+        <Alert severity={isInfoAlert ? 'info' : 'error'}>
+          <Typography variant="body1">{errorMessage}</Typography>
+          {!isInfoAlert && (
+            <Button onClick={handleRefresh} color="inherit" size="small">
+              Retry
+            </Button>
+          )}
+        </Alert>
+      </Box>
     );
   };
 
@@ -120,6 +122,35 @@ const RCAListView = () => {
       )}
     </Box>
   );
+};
+
+const RCAListView = () => {
+  const {
+    canViewRca,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useRcaPermission();
+
+  if (permissionLoading) {
+    return <Progress />;
+  }
+
+  if (!canViewRca) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
+    );
+  }
+
+  return <RCAListContent />;
 };
 
 export const RCAPage = () => {

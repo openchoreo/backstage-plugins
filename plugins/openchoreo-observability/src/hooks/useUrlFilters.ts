@@ -60,9 +60,19 @@ export function useUrlFilters({ environments }: UseUrlFiltersOptions) {
     };
   }, [searchParams, environments]);
 
-  // Auto-select first environment if none in URL and environments are loaded
+  // Auto-select first environment if none selected or URL has a stale env name
   useEffect(() => {
-    if (environments.length > 0 && !searchParams.get('env')) {
+    if (environments.length === 0) return;
+    const envParam = searchParams.get('env');
+    const isValid =
+      envParam &&
+      environments.some(
+        e =>
+          e.name === envParam ||
+          e.displayName === envParam ||
+          e.name.toLowerCase() === envParam.toLowerCase(),
+      );
+    if (!isValid) {
       const newParams = new URLSearchParams(searchParams);
       newParams.set('env', environments[0].name);
       setSearchParams(newParams, { replace: true });

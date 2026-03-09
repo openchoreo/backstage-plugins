@@ -41,9 +41,10 @@ export const useLogsPermission = (): UseLogsPermissionResult => {
     resourceRef: stringifyEntityRef(entity),
   });
 
+  const scope = entity.kind === 'System' ? 'project' : 'component';
   const deniedTooltip =
     !allowed && !loading
-      ? 'You do not have permission to view logs of this component.'
+      ? `You do not have permission to view logs of this ${scope}.`
       : '';
 
   return { canViewLogs: allowed, loading, deniedTooltip };

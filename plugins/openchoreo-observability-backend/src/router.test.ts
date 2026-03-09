@@ -20,15 +20,10 @@ describe('createRouter', () => {
 
   beforeEach(async () => {
     observabilityService = {
-      fetchMetricsByComponent: jest.fn(),
-      fetchEnvironmentsByNamespace: jest.fn(),
-      fetchTraces: jest.fn(),
-      fetchTraceSpans: jest.fn(),
-      fetchSpanDetails: jest.fn(),
-      fetchRuntimeLogsByComponent: jest.fn(),
       resolveUrls: jest.fn(),
       getReleaseBinding: jest.fn(),
       updateReleaseBinding: jest.fn(),
+      fetchEnvironmentsByNamespace: jest.fn(),
     };
     tokenService = {
       getUserToken: jest.fn().mockReturnValue(undefined),

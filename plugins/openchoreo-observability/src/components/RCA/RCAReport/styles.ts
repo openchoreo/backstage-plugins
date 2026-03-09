@@ -67,13 +67,6 @@ export const useRCAReportStyles = makeStyles(theme => ({
     fontSize: theme.typography.caption.fontSize,
     marginTop: theme.spacing(0.25),
   },
-  stepOutcomeBox: {
-    marginTop: theme.spacing(0.75),
-    padding: theme.spacing(0.75, 1),
-    backgroundColor: theme.palette.action.hover,
-    borderRadius: theme.shape.borderRadius,
-    borderLeft: `3px solid ${theme.palette.success.main}`,
-  },
   timelineHeaderRow: {
     display: 'flex',
     alignItems: 'center',
@@ -85,35 +78,6 @@ export const useRCAReportStyles = makeStyles(theme => ({
   },
   infoCardSpacing: {
     marginBottom: theme.spacing(1),
-  },
-  summaryRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: theme.spacing(0.5),
-    paddingBottom: theme.spacing(0.5),
-  },
-  summaryLabel: {
-    color: theme.palette.text.secondary,
-    fontSize: theme.typography.caption.fontSize,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    fontWeight: 500,
-    marginBottom: theme.spacing(0.5),
-  },
-  summaryValue: {
-    color: theme.palette.text.primary,
-    fontSize: theme.typography.body2.fontSize,
-    fontWeight: 500,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    maxWidth: '60%',
-    textAlign: 'right',
-  },
-  overviewMetaValue: {
-    fontSize: theme.typography.body2.fontSize,
-    color: theme.palette.text.primary,
   },
   sidebarColumn: {},
   chatPanelWrapper: {
@@ -344,15 +308,6 @@ export const useRCAReportStyles = makeStyles(theme => ({
     backgroundColor: theme.palette.error.light,
     textAlign: 'center',
   },
-  severityBadge: {
-    display: 'inline-block',
-    padding: theme.spacing(0.5, 1.5),
-    borderRadius: theme.shape.borderRadius,
-    fontWeight: 500,
-    fontSize: theme.typography.caption.fontSize,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
   severityCritical: {
     backgroundColor: theme.palette.error.light,
     color: theme.palette.error.dark,
@@ -364,14 +319,6 @@ export const useRCAReportStyles = makeStyles(theme => ({
   severityNormal: {
     backgroundColor: theme.palette.success.light,
     color: theme.palette.success.dark,
-  },
-  outcomeBadge: {
-    display: 'inline-block',
-    padding: theme.spacing(0.5, 1.5),
-    borderRadius: theme.shape.borderRadius,
-    fontWeight: 500,
-    fontSize: theme.typography.caption.fontSize,
-    letterSpacing: '0.5px',
   },
   outcomeNoAnomaly: {
     backgroundColor: theme.palette.success.light,
@@ -388,51 +335,6 @@ export const useRCAReportStyles = makeStyles(theme => ({
   outcomeExternal: {
     backgroundColor: theme.palette.grey[300],
     color: theme.palette.grey[800],
-  },
-  outcomeSection: {
-    marginTop: theme.spacing(2),
-    padding: theme.spacing(2),
-    backgroundColor: theme.palette.action.hover,
-    borderRadius: theme.shape.borderRadius,
-    borderLeft: `4px solid ${theme.palette.warning.main}`,
-  },
-  outcomeSectionTransient: {
-    borderLeftColor: theme.palette.grey[400],
-  },
-  outcomeSectionNoAnomaly: {
-    borderLeftColor: theme.palette.success.main,
-  },
-  outcomeSectionInsufficientData: {
-    borderLeftColor: theme.palette.warning.main,
-  },
-  outcomeSectionExternal: {
-    borderLeftColor: theme.palette.grey[500],
-  },
-  outcomeHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1.5),
-    marginBottom: theme.spacing(1.5),
-  },
-  outcomeTitle: {
-    fontSize: theme.typography.body1.fontSize,
-    fontWeight: 500,
-    color: theme.palette.text.primary,
-  },
-  outcomeExplanation: {
-    fontSize: theme.typography.body2.fontSize,
-    color: theme.palette.text.secondary,
-    lineHeight: 1.6,
-  },
-  assessmentExplanation: {
-    fontSize: theme.typography.body2.fontSize,
-    color: theme.palette.text.primary,
-    lineHeight: 1.6,
-    marginTop: theme.spacing(1.5),
-  },
-  summaryText: {
-    fontSize: theme.typography.body1.fontSize,
-    lineHeight: 1.7,
   },
   // Alert Context pane styles
   alertContextHeader: {

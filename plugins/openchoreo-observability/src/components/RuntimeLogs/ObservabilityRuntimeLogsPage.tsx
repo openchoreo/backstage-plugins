@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
-import { EmptyState, WarningIcon } from '@backstage/core-components';
+import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -20,14 +20,8 @@ import {
 import { useRuntimeLogsStyles } from './styles';
 import { Environment as RuntimeLogsEnvironment } from './types';
 
-export const ObservabilityRuntimeLogsPage = () => {
+const ObservabilityRuntimeLogsContent = () => {
   const classes = useRuntimeLogsStyles();
-  const {
-    canViewLogs,
-    loading: permissionLoading,
-    deniedTooltip,
-  } = useLogsPermission();
-
   const { entity } = useEntity();
 
   // Get namespace and project names from entity
@@ -43,9 +37,9 @@ export const ObservabilityRuntimeLogsPage = () => {
   // Map observability Environment type to RuntimeLogs Environment type
   const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
     return observabilityEnvironments.map(env => ({
-      id: env.uid || env.name,
+      id: env.name,
       name: env.displayName || env.name,
-      resourceName: env.name, // Use name as resourceName for observability environments
+      resourceName: env.name,
     }));
   }, [observabilityEnvironments]);
 
@@ -193,22 +187,6 @@ export const ObservabilityRuntimeLogsPage = () => {
     return <Box>{renderError(environmentsError)}</Box>;
   }
 
-  // Show permission denied notification if user doesn't have access
-  if (!permissionLoading && !canViewLogs) {
-    return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
-      />
-    );
-  }
-
   return (
     <Box>
       <LogsFilter
@@ -257,4 +235,33 @@ export const ObservabilityRuntimeLogsPage = () => {
       )}
     </Box>
   );
+};
+
+export const ObservabilityRuntimeLogsPage = () => {
+  const {
+    canViewLogs,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useLogsPermission();
+
+  if (permissionLoading) {
+    return <Progress />;
+  }
+
+  if (!canViewLogs) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
+    );
+  }
+
+  return <ObservabilityRuntimeLogsContent />;
 };

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, Button } from '@material-ui/core';
-import { EmptyState, WarningIcon } from '@backstage/core-components';
+import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
@@ -20,13 +20,8 @@ import {
 import { useRuntimeLogsStyles } from './styles';
 import { Environment as RuntimeLogsEnvironment, LogEntryField } from './types';
 
-export const ObservabilityProjectRuntimeLogsPage = () => {
+const ObservabilityProjectRuntimeLogsContent = () => {
   const classes = useRuntimeLogsStyles();
-  const {
-    canViewLogs,
-    loading: permissionLoading,
-    deniedTooltip,
-  } = useLogsPermission();
   const { entity } = useEntity();
 
   const namespace =
@@ -47,7 +42,7 @@ export const ObservabilityProjectRuntimeLogsPage = () => {
 
   const environments = useMemo<RuntimeLogsEnvironment[]>(() => {
     return observabilityEnvironments.map(env => ({
-      id: env.uid || env.name,
+      id: env.name,
       name: env.displayName || env.name,
       resourceName: env.name,
     }));
@@ -192,21 +187,6 @@ export const ObservabilityProjectRuntimeLogsPage = () => {
     return <Box>{renderError(componentsError)}</Box>;
   }
 
-  if (!permissionLoading && !canViewLogs) {
-    return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
-      />
-    );
-  }
-
   return (
     <Box>
       <LogsFilter
@@ -255,4 +235,33 @@ export const ObservabilityProjectRuntimeLogsPage = () => {
       )}
     </Box>
   );
+};
+
+export const ObservabilityProjectRuntimeLogsPage = () => {
+  const {
+    canViewLogs,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useLogsPermission();
+
+  if (permissionLoading) {
+    return <Progress />;
+  }
+
+  if (!canViewLogs) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
+    );
+  }
+
+  return <ObservabilityProjectRuntimeLogsContent />;
 };

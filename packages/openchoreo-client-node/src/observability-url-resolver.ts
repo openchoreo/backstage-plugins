@@ -293,6 +293,12 @@ export class ObservabilityUrlResolver {
         },
       );
       if (opError || !opResp.ok) {
+        if (opResp.status === 404) {
+          this.logger?.info(
+            `ObservabilityPlane '${ref.name}' not found in namespace '${namespaceName}', observability is not configured`,
+          );
+          return {};
+        }
         throw new Error(
           `Failed to get ObservabilityPlane '${ref.name}': ${opResp.status} ${opResp.statusText}`,
         );
@@ -317,6 +323,12 @@ export class ObservabilityUrlResolver {
         },
       );
       if (copError || !copResp.ok) {
+        if (copResp.status === 404) {
+          this.logger?.info(
+            `ClusterObservabilityPlane '${ref.name}' not found, observability is not configured`,
+          );
+          return {};
+        }
         throw new Error(
           `Failed to get ClusterObservabilityPlane '${ref.name}': ${copResp.status} ${copResp.statusText}`,
         );
@@ -343,6 +355,10 @@ export class ObservabilityUrlResolver {
   }
 
   private putInCache(key: string, result: ObservabilityUrlsResult): void {
+    // Don't cache empty results (e.g. from 404s) so they are re-checked on the next request
+    if (!result.observerUrl && !result.rcaAgentUrl) {
+      return;
+    }
     this.cache.set(key, {
       result,
       expiresAt: Date.now() + this.cacheTtlMs,

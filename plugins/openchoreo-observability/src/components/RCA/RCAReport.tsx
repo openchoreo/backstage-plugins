@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Typography } from '@material-ui/core';
-import { Progress } from '@backstage/core-components';
+import { Box, Typography } from '@material-ui/core';
+import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
+import { useRcaPermission } from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useRCAReport,
@@ -14,7 +15,7 @@ import { RCAReportView } from './RCAReport/RCAReportView';
 import { useApi, discoveryApiRef } from '@backstage/core-plugin-api';
 import { rcaAgentApiRef } from '../../api/RCAAgentApi';
 
-export const RCAReport = () => {
+const RCAReportContent = () => {
   const { reportId } = useParams<{ reportId: string }>();
   const navigate = useNavigate();
   const { entity } = useEntity();
@@ -67,18 +68,20 @@ export const RCAReport = () => {
 
     if (error.includes('RCA service is not configured')) {
       errorMessage =
-        'AI-powered RCA is not configured. Please enable it to view RCA reports.';
+        'AI RCA is not configured. Please enable it to view RCA reports.';
       severity = 'info';
     } else if (error.includes('Observability is not enabled')) {
       errorMessage =
-        'Observability is not enabled for this component. Please enable observability to view RCA reports.';
+        'Observability is not enabled for this environment. Please enable observability and enable the AI RCA agent.';
       severity = 'info';
     }
 
     return (
-      <Alert severity={severity}>
-        <Typography variant="body1">{errorMessage}</Typography>
-      </Alert>
+      <Box mt={2} mb={2}>
+        <Alert severity={severity}>
+          <Typography variant="body1">{errorMessage}</Typography>
+        </Alert>
+      </Box>
     );
   }
 
@@ -98,4 +101,33 @@ export const RCAReport = () => {
       chatContext={chatContext}
     />
   );
+};
+
+export const RCAReport = () => {
+  const {
+    canViewRca,
+    loading: permissionLoading,
+    deniedTooltip,
+  } = useRcaPermission();
+
+  if (permissionLoading) {
+    return <Progress />;
+  }
+
+  if (!canViewRca) {
+    return (
+      <EmptyState
+        missing="data"
+        title="Permission Denied"
+        description={
+          <Box display="flex" alignItems="center" gridGap={8}>
+            <WarningIcon />
+            {deniedTooltip}
+          </Box>
+        }
+      />
+    );
+  }
+
+  return <RCAReportContent />;
 };

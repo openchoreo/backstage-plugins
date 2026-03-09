@@ -91,9 +91,12 @@ export function useUrlFiltersForRuntimeLogs({
     };
   }, [searchParams, environments]);
 
-  // Auto-select first environment if none in URL and environments are loaded
+  // Auto-select first environment if none selected or URL has a stale env id
   useEffect(() => {
-    if (environments.length > 0 && !searchParams.get('env')) {
+    if (environments.length === 0) return;
+    const envParam = searchParams.get('env');
+    const isValid = envParam && environments.some(e => e.id === envParam);
+    if (!isValid) {
       const newParams = new URLSearchParams(searchParams);
       newParams.set('env', environments[0].id);
       setSearchParams(newParams, { replace: true });
