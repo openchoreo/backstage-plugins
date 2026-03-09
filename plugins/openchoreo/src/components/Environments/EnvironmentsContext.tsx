@@ -23,6 +23,8 @@ interface EnvironmentsContextValue {
   onAutoDeployChange: (enabled: boolean) => Promise<void>;
   /** Handler for completing a pending action (deploy/promote) */
   onPendingActionComplete: (action: PendingAction) => Promise<void>;
+  /** Whether the deployment pipeline indicates environments should exist but user lacks permissions */
+  pipelineUnavailable: boolean;
 }
 
 const EnvironmentsContext = createContext<EnvironmentsContextValue | null>(
