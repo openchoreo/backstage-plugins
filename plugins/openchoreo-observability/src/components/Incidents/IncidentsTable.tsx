@@ -58,6 +58,9 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
         <TableCell>
           <Skeleton variant="text" width="100%" />
         </TableCell>
+        <TableCell>
+          <Skeleton variant="text" width="100%" />
+        </TableCell>
       </TableRow>
     ));
 

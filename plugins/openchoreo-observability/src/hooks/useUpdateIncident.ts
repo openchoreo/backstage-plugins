@@ -24,14 +24,17 @@ export function useUpdateIncident(): UseUpdateIncidentResult {
       incident: IncidentSummary,
       newStatus: 'acknowledged' | 'resolved',
     ): Promise<void> => {
-      if (inFlightRef.current) return;
+      if (inFlightRef.current) {
+        throw new Error('An incident update is already in progress.');
+      }
 
       const namespaceName = incident.namespaceName || '';
       const environmentName = incident.environmentName || '';
 
       if (!namespaceName || !environmentName) {
-        setError('Cannot update incident: missing namespace or environment.');
-        return;
+        const msg = 'Cannot update incident: missing namespace or environment.';
+        setError(msg);
+        throw new Error(msg);
       }
 
       inFlightRef.current = true;

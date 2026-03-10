@@ -34,7 +34,7 @@ export function useComponentAlerts(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const inFlightRef = useRef(false);
+  const requestVersionRef = useRef(0);
 
   const componentName =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
@@ -51,10 +51,9 @@ export function useComponentAlerts(
         return;
       }
 
-      if (inFlightRef.current) return;
+      const version = ++requestVersionRef.current;
 
       try {
-        inFlightRef.current = true;
         setLoading(true);
         setError(null);
 
@@ -73,13 +72,18 @@ export function useComponentAlerts(
           },
         );
 
+        // Discard result if a newer request has been started
+        if (version !== requestVersionRef.current) return;
+
         setAlerts(response.alerts ?? []);
         setTotalCount(response.total ?? 0);
       } catch (err) {
+        if (version !== requestVersionRef.current) return;
         setError(err instanceof Error ? err.message : 'Failed to fetch alerts');
       } finally {
-        setLoading(false);
-        inFlightRef.current = false;
+        if (version === requestVersionRef.current) {
+          setLoading(false);
+        }
       }
     },
     [

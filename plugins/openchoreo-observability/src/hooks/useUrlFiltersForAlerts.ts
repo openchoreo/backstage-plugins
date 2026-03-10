@@ -2,8 +2,16 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { Environment } from '../components/RuntimeLogs/types';
 import type { AlertsFilters } from '../components/Alerts/types';
+import {
+  ALERTS_TIME_RANGE_OPTIONS,
+  ALERT_SEVERITIES,
+} from '../components/Alerts/types';
 
 const DEFAULT_TIME_RANGE = '1h';
+const VALID_TIME_RANGES: readonly string[] = ALERTS_TIME_RANGE_OPTIONS.map(
+  o => o.value,
+);
+const VALID_SEVERITIES: readonly string[] = ALERT_SEVERITIES;
 
 interface UseUrlFiltersForAlertsOptions {
   environments: Environment[];
@@ -20,13 +28,18 @@ export function useUrlFiltersForAlerts({
 
   const filters = useMemo<AlertsFilters>(() => {
     const envId = searchParams.get('env');
-    const timeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
+    const rawTimeRange = searchParams.get('timeRange') || DEFAULT_TIME_RANGE;
+    const timeRange = VALID_TIME_RANGES.includes(rawTimeRange)
+      ? rawTimeRange
+      : DEFAULT_TIME_RANGE;
     const rawSortOrder = searchParams.get('sort');
     const sortOrder: 'asc' | 'desc' =
       rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : 'desc';
     const severityParam = searchParams.get('severity');
     const severity = severityParam
-      ? severityParam.split(',').filter(Boolean)
+      ? severityParam
+          .split(',')
+          .filter(s => Boolean(s) && VALID_SEVERITIES.includes(s))
       : [];
     const searchQuery = searchParams.get('search') || undefined;
 

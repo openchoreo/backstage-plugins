@@ -169,9 +169,10 @@ const ObservabilityProjectIncidentsContent = () => {
         await updateIncident(incident, 'acknowledged');
         refresh();
         setLastUpdated(new Date());
-      } catch {
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
         setSnackbarMessage(
-          `Failed to acknowledge incident ${incident.incidentId}: check your permissions and try again.`,
+          `Failed to acknowledge incident ${incident.incidentId}: ${detail}`,
         );
       } finally {
         setUpdatingIncidentId(null);
@@ -187,9 +188,10 @@ const ObservabilityProjectIncidentsContent = () => {
         await updateIncident(incident, 'resolved');
         refresh();
         setLastUpdated(new Date());
-      } catch {
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
         setSnackbarMessage(
-          `Failed to resolve incident ${incident.incidentId}: check your permissions and try again.`,
+          `Failed to resolve incident ${incident.incidentId}: ${detail}`,
         );
       } finally {
         setUpdatingIncidentId(null);

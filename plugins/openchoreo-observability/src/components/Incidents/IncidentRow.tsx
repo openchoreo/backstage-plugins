@@ -281,7 +281,9 @@ export const IncidentRow: FC<IncidentRowProps> = ({
                     <Box className={classes.metadataItem}>
                       <span className={classes.metadataKey}>Triggered At:</span>
                       <span className={classes.metadataValue}>
-                        {formatTimestamp(incident.triggeredAt)}
+                        {formatTimestamp(
+                          incident.triggeredAt || incident.timestamp,
+                        )}
                       </span>
                     </Box>
 

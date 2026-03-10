@@ -32,7 +32,7 @@ export function useProjectIncidents(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const inFlightRef = useRef(false);
+  const requestVersionRef = useRef(0);
 
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
@@ -54,10 +54,9 @@ export function useProjectIncidents(
         return;
       }
 
-      if (inFlightRef.current) return;
+      const version = ++requestVersionRef.current;
 
       try {
-        inFlightRef.current = true;
         setLoading(true);
         setError(null);
 
@@ -83,6 +82,9 @@ export function useProjectIncidents(
               ),
             ),
           );
+
+          if (version !== requestVersionRef.current) return;
+
           const merged = responses.flatMap(r => r.incidents);
           merged.sort((a, b) => {
             const at = (a.triggeredAt || a.timestamp || '').toString();
@@ -92,7 +94,7 @@ export function useProjectIncidents(
               : at.localeCompare(bt);
           });
           setIncidents(merged);
-          setTotalCount(merged.length);
+          setTotalCount(responses.reduce((acc, r) => acc + (r.total || 0), 0));
         } else {
           const response = await observabilityApi.getIncidents(
             namespace,
@@ -101,16 +103,21 @@ export function useProjectIncidents(
             undefined,
             queryOptions,
           );
+
+          if (version !== requestVersionRef.current) return;
+
           setIncidents(response.incidents);
           setTotalCount(response.total);
         }
       } catch (err) {
+        if (version !== requestVersionRef.current) return;
         setError(
           err instanceof Error ? err.message : 'Failed to fetch incidents',
         );
       } finally {
-        setLoading(false);
-        inFlightRef.current = false;
+        if (version === requestVersionRef.current) {
+          setLoading(false);
+        }
       }
     },
     [

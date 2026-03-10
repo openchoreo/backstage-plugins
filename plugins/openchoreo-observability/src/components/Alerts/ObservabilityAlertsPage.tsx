@@ -169,11 +169,12 @@ const ObservabilityAlertsContent = () => {
       const params = new URLSearchParams({
         search: alert.alertId,
         timeRange,
+        ...(filters.environmentId ? { env: filters.environmentId } : {}),
       });
       const url = `/catalog/${catalogNs}/system/${parentProject}/incidents?${params.toString()}`;
       window.open(url, '_blank', 'noopener,noreferrer');
     },
-    [entity, project],
+    [entity, project, filters.environmentId],
   );
 
   const renderError = (error: string) => {
