@@ -20,8 +20,8 @@ import {
   hasCatalogProcessingErrors,
   isOrphan,
   hasRelationWarnings,
-  EntityRelationWarning,
 } from '@backstage/plugin-catalog';
+import { EntityRelationWarning } from './EntityRelationWarning';
 import {
   ComponentTypeUtils,
   type PageVariant,
