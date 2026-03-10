@@ -57,12 +57,12 @@ interface WorkloadEditorProps {
   parameterChangesCount?: number;
 }
 
-const WORKLOAD_SUB_TABS = new Set(['container', 'endpoints', 'connections']);
+const WORKLOAD_SUB_TABS = new Set(['container', 'endpoints', 'dependencies']);
 
 const WORKLOAD_NAV_IDS = [
   { id: 'container', label: 'Container' },
   { id: 'endpoints', label: 'Endpoints' },
-  { id: 'connections', label: 'Connections' },
+  { id: 'dependencies', label: 'Dependencies' },
 ];
 
 const useStyles = makeStyles(theme => ({
@@ -216,8 +216,7 @@ export function WorkloadEditor({
   parameterChangesCount = 0,
 }: WorkloadEditorProps) {
   const classes = useStyles();
-  const { workloadSpec, setWorkloadSpec, isDeploying } =
-    useWorkloadContext();
+  const { workloadSpec, setWorkloadSpec, isDeploying } = useWorkloadContext();
   const { secretReferences } = useSecretReferences();
 
   const componentName =
@@ -242,7 +241,9 @@ export function WorkloadEditor({
   const [yamlError, setYamlError] = useState<string | undefined>();
 
   // Local copy of the raw workload resource so YAML edits to metadata etc. persist
-  const localRawRef = useRef<Record<string, unknown> | null>(rawWorkload ?? null);
+  const localRawRef = useRef<Record<string, unknown> | null>(
+    rawWorkload ?? null,
+  );
   // Sync when the prop changes (e.g. initial fetch)
   useEffect(() => {
     localRawRef.current = rawWorkload ?? null;
@@ -259,7 +260,9 @@ export function WorkloadEditor({
   });
 
   // Derive which outer section is active from the current sub-tab
-  const outerSection = WORKLOAD_SUB_TABS.has(activeTab) ? 'workload' : 'component';
+  const outerSection = WORKLOAD_SUB_TABS.has(activeTab)
+    ? 'workload'
+    : 'component';
 
   // Remember last sub-tab per section
   useEffect(() => {
@@ -498,7 +501,8 @@ export function WorkloadEditor({
   const traitChangesCount = traitsState
     ? traitsState.filter(t => t.state !== 'original').length
     : 0;
-  const hasComponentChanges = traitChangesCount > 0 || parameterChangesCount > 0;
+  const hasComponentChanges =
+    traitChangesCount > 0 || parameterChangesCount > 0;
 
   const outerTabs: TabItemData[] = useMemo(
     () => [
@@ -545,7 +549,9 @@ export function WorkloadEditor({
   );
 
   // Show Traits tab only if the CT has allowedTraits or there are already existing traits
-  const hasTraits = (allowedTraits && allowedTraits.length > 0) || (traitsState && traitsState.length > 0);
+  const hasTraits =
+    (allowedTraits && allowedTraits.length > 0) ||
+    (traitsState && traitsState.length > 0);
 
   const componentNavItems = useMemo(() => {
     const items: { id: string; label: string; count?: number }[] = [];
@@ -553,7 +559,11 @@ export function WorkloadEditor({
       items.push({ id: 'parameters', label: 'Parameters' });
     }
     if (hasTraits) {
-      items.push({ id: 'traits', label: 'Traits', count: traitsState?.length ?? 0 });
+      items.push({
+        id: 'traits',
+        label: 'Traits',
+        count: traitsState?.length ?? 0,
+      });
     }
     return items;
   }, [hasParameters, hasTraits, traitsState?.length]);
@@ -656,13 +666,13 @@ export function WorkloadEditor({
                       onRemoveEndpoint={removeEndpoint}
                     />
                   )}
-                  {activeTab === 'connections' && (
-                    <ConnectionContent
+                  {activeTab === 'dependencies' && (
+                    <DependencyContent
                       disabled={isDeploying}
-                      connections={formData.connections || []}
-                      onConnectionReplace={handleConnectionReplace}
-                      onAddConnection={addConnection}
-                      onRemoveConnection={removeConnection}
+                      dependencies={formData.dependencies?.endpoints || []}
+                      onDependencyReplace={handleDependencyReplace}
+                      onAddDependency={addDependency}
+                      onRemoveDependency={removeDependency}
                     />
                   )}
                 </Box>

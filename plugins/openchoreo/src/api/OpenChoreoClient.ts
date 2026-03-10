@@ -522,9 +522,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Runtime Logs
   // ============================================
 
-  async getComponentDetails(
-    entity: Entity,
-  ): Promise<{
+  async getComponentDetails(entity: Entity): Promise<{
     uid?: string;
     deletionTimestamp?: string;
     parameters?: Record<string, unknown>;

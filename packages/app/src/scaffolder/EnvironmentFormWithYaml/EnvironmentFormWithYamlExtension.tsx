@@ -283,10 +283,7 @@ export const EnvironmentFormWithYamlExtension = ({
     <div>
       {/* Toggle */}
       <div className={classes.toggleContainer}>
-        <FormYamlToggle
-          value={mode}
-          onChange={handleModeChange}
-        />
+        <FormYamlToggle value={mode} onChange={handleModeChange} />
       </div>
 
       {mode === 'form' ? (

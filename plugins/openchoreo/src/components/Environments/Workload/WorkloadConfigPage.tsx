@@ -1,4 +1,11 @@
-import { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  useContext,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   useNavigate,
   useLocation,
@@ -26,9 +33,7 @@ import { isFromSourceComponent } from '../../../utils/componentUtils';
 import { useWorkloadChanges } from './hooks/useWorkloadChanges';
 import { WorkloadSaveConfirmationDialog } from './WorkloadSaveConfirmationDialog';
 import { usePendingChanges } from '../../Traits/hooks/usePendingChanges';
-import {
-  deepCompareObjects,
-} from '@openchoreo/backstage-plugin-react';
+import { deepCompareObjects } from '@openchoreo/backstage-plugin-react';
 
 /** Stable empty array to avoid unnecessary rerenders in WorkloadProvider */
 const EMPTY_BUILDS: never[] = [];
@@ -82,7 +87,10 @@ export const WorkloadConfigPage = ({
   const [initialWorkload, setInitialWorkload] = useState<ModelsWorkload | null>(
     null,
   );
-  const [rawWorkload, setRawWorkload] = useState<Record<string, unknown> | null>(null);
+  const [rawWorkload, setRawWorkload] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,12 +101,23 @@ export const WorkloadConfigPage = ({
   const [isEditing, setIsEditing] = useState(false);
 
   // Component config state (traits + parameters)
-  const [initialTraits, setInitialTraits] = useState<ComponentTrait[]>(EMPTY_TRAITS);
+  const [initialTraits, setInitialTraits] =
+    useState<ComponentTrait[]>(EMPTY_TRAITS);
   const [hasParameters, setHasParameters] = useState(false);
-  const [parametersSchema, setParametersSchema] = useState<Record<string, unknown> | null>(null);
-  const [componentParameters, setComponentParameters] = useState<Record<string, unknown>>({});
-  const [initialParameters, setInitialParameters] = useState<Record<string, unknown>>({});
-  const [allowedTraits, setAllowedTraits] = useState<Array<{ kind?: string; name: string }> | null>(null);
+  const [parametersSchema, setParametersSchema] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [componentParameters, setComponentParameters] = useState<
+    Record<string, unknown>
+  >({});
+  const [initialParameters, setInitialParameters] = useState<
+    Record<string, unknown>
+  >({});
+  const [allowedTraits, setAllowedTraits] = useState<Array<{
+    kind?: string;
+    name: string;
+  }> | null>(null);
 
   // Traits management via usePendingChanges
   const {
@@ -114,7 +133,10 @@ export const WorkloadConfigPage = ({
   // Parameter changes — exclude fields where the value matches the schema default
   // and the user never had a stored value (initialParameters doesn't have the key).
   const parameterChanges = useMemo(() => {
-    const allChanges = deepCompareObjects(initialParameters, componentParameters);
+    const allChanges = deepCompareObjects(
+      initialParameters,
+      componentParameters,
+    );
     if (!parametersSchema) return allChanges;
     const schemaProps = (parametersSchema as any)?.properties || {};
     return allChanges.filter(change => {
@@ -124,7 +146,10 @@ export const WorkloadConfigPage = ({
       // Otherwise, check if the current value is just the schema default
       const schemaDef = schemaProps[key];
       if (schemaDef?.default !== undefined) {
-        return JSON.stringify(componentParameters[key]) !== JSON.stringify(schemaDef.default);
+        return (
+          JSON.stringify(componentParameters[key]) !==
+          JSON.stringify(schemaDef.default)
+        );
       }
       return true;
     });
@@ -190,9 +215,7 @@ export const WorkloadConfigPage = ({
             setRawWorkload(_raw);
           }
           setWorkloadSpec(spec as ModelsWorkload);
-          setInitialWorkload(
-            spec ? JSON.parse(JSON.stringify(spec)) : null,
-          );
+          setInitialWorkload(spec ? JSON.parse(JSON.stringify(spec)) : null);
           setIsNewWorkload(false);
         } else {
           if (isFromSourceComponent(entity)) {
@@ -205,7 +228,8 @@ export const WorkloadConfigPage = ({
               name: entity.metadata.name,
               owner: {
                 projectName:
-                  entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] || '',
+                  entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ||
+                  '',
                 componentName: entity.metadata.name,
               },
               container: {
@@ -225,8 +249,10 @@ export const WorkloadConfigPage = ({
         }
 
         // Fetch the component type info: schema (for parameters) and allowedTraits.
-        const componentTypeName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
-        const componentTypeKind = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND];
+        const componentTypeName =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
+        const componentTypeKind =
+          entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND];
         if (componentTypeName) {
           // Fetch CT schema from backend
           try {
@@ -234,7 +260,11 @@ export const WorkloadConfigPage = ({
             if (schemaResult.success && schemaResult.data) {
               const schema = schemaResult.data;
               const properties = (schema as any)?.properties;
-              if (properties && typeof properties === 'object' && Object.keys(properties).length > 0) {
+              if (
+                properties &&
+                typeof properties === 'object' &&
+                Object.keys(properties).length > 0
+              ) {
                 setHasParameters(true);
                 setParametersSchema(schema);
               }
@@ -245,14 +275,17 @@ export const WorkloadConfigPage = ({
 
           // Fetch CT entity from catalog for allowedTraits
           try {
-            const ctKind = componentTypeKind === 'ClusterComponentType'
-              ? 'ClusterComponentType'
-              : 'ComponentType';
+            const ctKind =
+              componentTypeKind === 'ClusterComponentType'
+                ? 'ClusterComponentType'
+                : 'ComponentType';
             const ctEntities = await catalogApi.getEntities({
               filter: { kind: ctKind },
             });
             const matchingCt = ctEntities.items.find(
-              e => `${e.spec?.workloadType}/${e.metadata.name}` === componentTypeName,
+              e =>
+                `${e.spec?.workloadType}/${e.metadata.name}` ===
+                componentTypeName,
             );
             const ctAllowedTraits = (matchingCt?.spec as any)?.allowedTraits as
               | Array<{ kind?: string; name: string }>
@@ -268,7 +301,11 @@ export const WorkloadConfigPage = ({
         try {
           const componentDetails = await client.getComponentDetails(entity);
           const params = componentDetails?.parameters;
-          if (params && typeof params === 'object' && Object.keys(params).length > 0) {
+          if (
+            params &&
+            typeof params === 'object' &&
+            Object.keys(params).length > 0
+          ) {
             setComponentParameters(params);
             setInitialParameters(JSON.parse(JSON.stringify(params)));
           }
@@ -298,7 +335,10 @@ export const WorkloadConfigPage = ({
 
   // Combined unsaved state
   const hasUnsavedWork =
-    workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges || isEditing;
+    workloadChanges.hasChanges ||
+    hasTraitChanges ||
+    hasParameterChanges ||
+    isEditing;
 
   // Warn user before leaving page with unsaved changes (browser navigation/tab close)
   useEffect(() => {
@@ -363,7 +403,8 @@ export const WorkloadConfigPage = ({
   const isFromSource = isFromSourceComponent(entity);
   const hasImage = !!workloadSpec?.container?.image?.trim();
 
-  const hasAnyChanges = workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges;
+  const hasAnyChanges =
+    workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges;
 
   const handleNext = async () => {
     if (!workloadSpec) {

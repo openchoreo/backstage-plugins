@@ -162,9 +162,7 @@ export const WorkloadSaveConfirmationDialog: FC<
       <DialogContent dividers>
         {hasWorkloadChanges && (
           <Box className={classes.groupSection}>
-            <Typography className={classes.groupHeader}>
-              Workload
-            </Typography>
+            <Typography className={classes.groupHeader}>Workload</Typography>
             <ChangesList
               sections={workloadSections}
               emptyMessage="No changes"
@@ -174,9 +172,7 @@ export const WorkloadSaveConfirmationDialog: FC<
 
         {hasComponentChanges && (
           <Box className={classes.groupSection}>
-            <Typography className={classes.groupHeader}>
-              Component
-            </Typography>
+            <Typography className={classes.groupHeader}>Component</Typography>
             <ChangesList
               sections={componentSections}
               emptyMessage="No changes"
@@ -189,7 +185,6 @@ export const WorkloadSaveConfirmationDialog: FC<
             No changes to save.
           </Typography>
         )}
-
       </DialogContent>
 
       <DialogActions>

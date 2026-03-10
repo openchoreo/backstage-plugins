@@ -448,9 +448,7 @@ export interface OpenChoreoClientApi {
   // === Component & Environment Info ===
 
   /** Get component details (including UID, deletionTimestamp, and parameters) */
-  getComponentDetails(
-    entity: Entity,
-  ): Promise<{
+  getComponentDetails(entity: Entity): Promise<{
     uid?: string;
     deletionTimestamp?: string;
     parameters?: Record<string, unknown>;

@@ -26,10 +26,7 @@ const useStyles = makeStyles(theme => ({
 /**
  * Recursively generates a UI Schema with sanitized titles and default value hints.
  */
-function generateUiSchema(
-  schema: any,
-  formData: Record<string, unknown>,
-): any {
+function generateUiSchema(schema: any, formData: Record<string, unknown>): any {
   if (!schema || typeof schema !== 'object') return {};
 
   const uiSchema: any = {};
@@ -50,8 +47,7 @@ function generateUiSchema(
           const currentValue = formData[key];
           const isDefault =
             currentValue === undefined ||
-            JSON.stringify(currentValue) ===
-              JSON.stringify(propSchema.default);
+            JSON.stringify(currentValue) === JSON.stringify(propSchema.default);
 
           if (!isDefault) {
             const defaultStr =
@@ -65,8 +61,7 @@ function generateUiSchema(
         uiSchema[key] = fieldUiSchema;
 
         if (propSchema.type === 'object' && propSchema.properties) {
-          const nestedData =
-            (formData[key] as Record<string, unknown>) || {};
+          const nestedData = (formData[key] as Record<string, unknown>) || {};
           uiSchema[key] = {
             ...uiSchema[key],
             ...generateUiSchema(propSchema, nestedData),

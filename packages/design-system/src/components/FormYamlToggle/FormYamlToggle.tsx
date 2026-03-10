@@ -57,10 +57,7 @@ export const FormYamlToggle = ({
 }: FormYamlToggleProps) => {
   const classes = useStyles();
 
-  const handleChange = (
-    _: unknown,
-    newMode: FormYamlMode | null,
-  ) => {
+  const handleChange = (_: unknown, newMode: FormYamlMode | null) => {
     if (newMode) {
       onChange(newMode);
     }
