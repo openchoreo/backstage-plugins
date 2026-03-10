@@ -271,6 +271,10 @@ export {
   type UseClusterComponentTypePermissionResult,
 } from './hooks/useClusterComponentTypePermission';
 export {
+  useResourceDefinitionPermission,
+  type UseResourceDefinitionPermissionResult,
+} from './hooks/useResourceDefinitionPermission';
+export {
   useAsyncOperation,
   type AsyncStatus,
   type AsyncState,
