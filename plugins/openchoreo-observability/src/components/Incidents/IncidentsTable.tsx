@@ -22,6 +22,9 @@ interface IncidentsTableProps {
   projectName: string;
   environmentName?: string;
   onViewRCA?: (incident: IncidentSummary) => void;
+  onAcknowledge?: (incident: IncidentSummary) => void;
+  onResolve?: (incident: IncidentSummary) => void;
+  updatingIncidentId?: string | null;
 }
 
 export const IncidentsTable: FC<IncidentsTableProps> = ({
@@ -31,6 +34,9 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
   projectName,
   environmentName = '',
   onViewRCA,
+  onAcknowledge,
+  onResolve,
+  updatingIncidentId,
 }) => {
   const classes = useLogsTableStyles();
 
@@ -106,6 +112,9 @@ export const IncidentsTable: FC<IncidentsTableProps> = ({
                   projectName={projectName}
                   environmentName={environmentName}
                   onViewRCA={onViewRCA ?? (() => {})}
+                  onAcknowledge={onAcknowledge}
+                  onResolve={onResolve}
+                  updating={updatingIncidentId === incident.incidentId}
                 />
               ))}
           </TableBody>

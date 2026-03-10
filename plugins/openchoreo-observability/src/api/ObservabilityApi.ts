@@ -139,6 +139,13 @@ export interface ObservabilityApi {
     alerts: AlertSummary[];
     total: number;
   }>;
+
+  updateIncidentStatus(
+    incidentId: string,
+    status: 'acknowledged' | 'resolved',
+    namespaceName: string,
+    environmentName: string,
+  ): Promise<void>;
 }
 
 export const observabilityApiRef = createApiRef<ObservabilityApi>({
@@ -761,6 +768,34 @@ export class ObservabilityClient implements ObservabilityApi {
 
     const data = await response.json();
     return data;
+  }
+
+  async updateIncidentStatus(
+    incidentId: string,
+    status: 'acknowledged' | 'resolved',
+    namespaceName: string,
+    environmentName: string,
+  ): Promise<void> {
+    const { observerUrl } = await this.urlCache.resolveUrls(
+      namespaceName,
+      environmentName,
+    );
+
+    const response = await this.fetchApi.fetch(
+      `${observerUrl}/api/v1alpha1/incidents/${encodeURIComponent(incidentId)}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...DIRECT_HEADER },
+        body: JSON.stringify({ status }),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await this.parseError(response);
+      throw new Error(
+        error || `Failed to update incident: ${response.statusText}`,
+      );
+    }
   }
 
   private async parseError(response: Response): Promise<string> {

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Button } from '@material-ui/core';
 import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
@@ -22,7 +21,6 @@ import type { AlertSummary } from '../../types';
 const ObservabilityAlertsContent = () => {
   const classes = useRuntimeLogsStyles();
   const { entity } = useEntity();
-  const navigate = useNavigate();
 
   const { namespace, project } = useGetNamespaceAndProjectByEntity(entity);
 
@@ -143,9 +141,8 @@ const ObservabilityAlertsContent = () => {
     return result;
   }, [alerts, filters.severity, filters.searchQuery]);
 
-  // Navigate to the parent project's Incidents tab, pre-filtering by alertId.
-  // Also set the timeRange filter to the smallest preset that covers from the
-  // alert timestamp to now, so the incident is guaranteed to be visible.
+  // Open the parent project's Incidents tab in a new browser tab, pre-filtered
+  // by alertId and with a time range that covers the alert's age.
   const handleViewIncident = useCallback(
     (alert: AlertSummary) => {
       const parentProject =
@@ -174,9 +171,9 @@ const ObservabilityAlertsContent = () => {
         timeRange,
       });
       const url = `/catalog/${catalogNs}/system/${parentProject}/incidents?${params.toString()}`;
-      navigate(url);
+      window.open(url, '_blank', 'noopener,noreferrer');
     },
-    [entity, project, navigate],
+    [entity, project],
   );
 
   const renderError = (error: string) => {

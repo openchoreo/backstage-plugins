@@ -16,3 +16,4 @@ export { useUrlFiltersForAlerts } from './useUrlFiltersForAlerts';
 export { useComponentAlerts } from './useComponentAlerts';
 export { useUrlFiltersForIncidents } from './useUrlFiltersForIncidents';
 export { useProjectIncidents } from './useProjectIncidents';
+export { useUpdateIncident } from './useUpdateIncident';

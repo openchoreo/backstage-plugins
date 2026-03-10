@@ -8,8 +8,11 @@ import {
   Collapse,
   Button,
   Tooltip,
+  CircularProgress,
 } from '@material-ui/core';
 import OpenInNewIcon from '@material-ui/icons/OpenInNew';
+import CheckIcon from '@material-ui/icons/Check';
+import DoneAllIcon from '@material-ui/icons/DoneAll';
 import type { IncidentSummary } from '../../types';
 import { useLogEntryStyles } from '../RuntimeLogs/styles';
 
@@ -19,6 +22,9 @@ interface IncidentRowProps {
   projectName: string;
   environmentName?: string;
   onViewRCA: (incident: IncidentSummary) => void;
+  onAcknowledge?: (incident: IncidentSummary) => void;
+  onResolve?: (incident: IncidentSummary) => void;
+  updating?: boolean;
 }
 
 const formatTimestamp = (ts?: string) => {
@@ -53,6 +59,9 @@ export const IncidentRow: FC<IncidentRowProps> = ({
   projectName,
   environmentName,
   onViewRCA,
+  onAcknowledge,
+  onResolve,
+  updating = false,
 }) => {
   const classes = useLogEntryStyles();
   const [expanded, setExpanded] = useState(false);
@@ -64,6 +73,16 @@ export const IncidentRow: FC<IncidentRowProps> = ({
   const handleViewRCAClick = (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onViewRCA(incident);
+  };
+
+  const handleAcknowledgeClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onAcknowledge?.(incident);
+  };
+
+  const handleResolveClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onResolve?.(incident);
   };
 
   const effectiveProject = incident.projectName || projectName || '—';
@@ -145,12 +164,75 @@ export const IncidentRow: FC<IncidentRowProps> = ({
           <TableCell colSpan={6} style={{ paddingBottom: 0, paddingTop: 0 }}>
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <Box className={classes.expandedContent}>
-                <Typography
-                  className={classes.expandedSectionTitle}
-                  gutterBottom
+                <Box
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  style={{ marginBottom: 8 }}
                 >
-                  Incident details
-                </Typography>
+                  <Typography className={classes.expandedSectionTitle}>
+                    Incident details
+                  </Typography>
+
+                  <Box display="flex" style={{ gap: 8 }}>
+                    {incident.incidentTriggerAiRca && (
+                      <Tooltip title="Open RCA Reports tab for this incident">
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<OpenInNewIcon fontSize="small" />}
+                          onClick={handleViewRCAClick}
+                        >
+                          View RCA
+                        </Button>
+                      </Tooltip>
+                    )}
+
+                    {incident.status === 'active' && onAcknowledge && (
+                      <Tooltip title="Mark this incident as acknowledged">
+                        <span>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={updating}
+                            startIcon={
+                              updating ? (
+                                <CircularProgress size={14} />
+                              ) : (
+                                <CheckIcon fontSize="small" />
+                              )
+                            }
+                            onClick={handleAcknowledgeClick}
+                          >
+                            Acknowledge
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    )}
+
+                    {incident.status === 'acknowledged' && onResolve && (
+                      <Tooltip title="Mark this incident as resolved">
+                        <span>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={updating}
+                            startIcon={
+                              updating ? (
+                                <CircularProgress size={14} />
+                              ) : (
+                                <DoneAllIcon fontSize="small" />
+                              )
+                            }
+                            onClick={handleResolveClick}
+                          >
+                            Resolve
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    )}
+                  </Box>
+                </Box>
 
                 <Box className={classes.metadataBox}>
                   <Box className={classes.metadataGrid}>

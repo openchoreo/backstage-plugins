@@ -1,6 +1,5 @@
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button } from '@material-ui/core';
+import { Box, Typography, Button, Snackbar } from '@material-ui/core';
 import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
@@ -13,6 +12,7 @@ import {
   useGetComponentsByProject,
   useProjectIncidents,
   useUrlFiltersForIncidents,
+  useUpdateIncident,
 } from '../../hooks';
 import { useLogsPermission } from '@openchoreo/backstage-plugin-react';
 import { useRuntimeLogsStyles } from '../RuntimeLogs/styles';
@@ -22,7 +22,6 @@ import type { IncidentSummary } from '../../types';
 const ObservabilityProjectIncidentsContent = () => {
   const classes = useRuntimeLogsStyles();
   const { entity } = useEntity();
-  const navigate = useNavigate();
 
   const namespace =
     entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE] || '';
@@ -57,6 +56,12 @@ const ObservabilityProjectIncidentsContent = () => {
   );
 
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [updatingIncidentId, setUpdatingIncidentId] = useState<string | null>(
+    null,
+  );
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
+
+  const { updateIncident } = useUpdateIncident();
 
   const {
     incidents,
@@ -150,12 +155,48 @@ const ObservabilityProjectIncidentsContent = () => {
     return result;
   }, [incidents, filters.status, filters.searchQuery]);
 
-  // Navigate to the RCA Reports tab of this project entity
+  // Open the RCA Reports tab of this project entity in a new browser tab
   const handleViewRCA = useCallback(() => {
     const catalogNs = entity.metadata.namespace || 'default';
     const url = `/catalog/${catalogNs}/system/${projectName}/rca-reports`;
-    navigate(url);
-  }, [entity, projectName, navigate]);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, [entity, projectName]);
+
+  const handleAcknowledge = useCallback(
+    async (incident: IncidentSummary) => {
+      setUpdatingIncidentId(incident.incidentId);
+      try {
+        await updateIncident(incident, 'acknowledged');
+        refresh();
+        setLastUpdated(new Date());
+      } catch {
+        setSnackbarMessage(
+          `Failed to acknowledge incident ${incident.incidentId}: check your permissions and try again.`,
+        );
+      } finally {
+        setUpdatingIncidentId(null);
+      }
+    },
+    [updateIncident, refresh],
+  );
+
+  const handleResolve = useCallback(
+    async (incident: IncidentSummary) => {
+      setUpdatingIncidentId(incident.incidentId);
+      try {
+        await updateIncident(incident, 'resolved');
+        refresh();
+        setLastUpdated(new Date());
+      } catch {
+        setSnackbarMessage(
+          `Failed to resolve incident ${incident.incidentId}: check your permissions and try again.`,
+        );
+      } finally {
+        setUpdatingIncidentId(null);
+      }
+    },
+    [updateIncident, refresh],
+  );
 
   const renderError = (error: string) => {
     const isObservabilityDisabled = error.includes(
@@ -230,9 +271,23 @@ const ObservabilityProjectIncidentsContent = () => {
             projectName={projectName}
             environmentName={selectedEnvironment?.name}
             onViewRCA={handleViewRCA}
+            onAcknowledge={handleAcknowledge}
+            onResolve={handleResolve}
+            updatingIncidentId={updatingIncidentId}
           />
         </>
       )}
+
+      <Snackbar
+        open={!!snackbarMessage}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={() => setSnackbarMessage(null)}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
