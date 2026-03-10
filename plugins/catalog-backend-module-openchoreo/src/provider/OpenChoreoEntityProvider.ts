@@ -413,7 +413,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
               // Find all projects that reference this pipeline
               const referencingProjects = projects.filter(
-                p => p.spec?.deploymentPipelineRef === pipelineName,
+                p => p.spec?.deploymentPipelineRef?.name === pipelineName,
               );
 
               if (referencingProjects.length > 0) {

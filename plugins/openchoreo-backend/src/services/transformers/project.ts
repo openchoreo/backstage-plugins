@@ -19,7 +19,7 @@ export function transformProject(project: Project): ProjectResponse {
     namespaceName: getNamespace(project) ?? '',
     displayName: getDisplayName(project),
     description: getDescription(project),
-    deploymentPipeline: project.spec?.deploymentPipelineRef,
+    deploymentPipeline: project.spec?.deploymentPipelineRef?.name,
     createdAt: getCreatedAt(project) ?? '',
     status: deriveStatus(project),
   };
