@@ -3,7 +3,8 @@ import { ResponseError } from '@backstage/errors';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
-  ModelsWorkload,
+  type ModelsWorkload,
+  type WorkloadWithRaw,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -465,10 +466,10 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Workload Operations
   // ============================================
 
-  async fetchWorkloadInfo(entity: Entity): Promise<ModelsWorkload> {
+  async fetchWorkloadInfo(entity: Entity): Promise<WorkloadWithRaw> {
     const metadata = extractEntityMetadata(entity);
 
-    return this.apiFetch<ModelsWorkload>(API_ENDPOINTS.DEPLOYEMNT_WORKLOAD, {
+    return this.apiFetch<WorkloadWithRaw>(API_ENDPOINTS.DEPLOYEMNT_WORKLOAD, {
       params: entityMetadataToParams(metadata),
     });
   }

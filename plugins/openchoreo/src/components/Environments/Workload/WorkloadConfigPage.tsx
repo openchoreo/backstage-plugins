@@ -18,7 +18,8 @@ import { Alert, Skeleton } from '@material-ui/lab';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
-  ModelsWorkload,
+  type ModelsWorkload,
+  type WorkloadWithRaw,
   CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
 import {
@@ -208,11 +209,11 @@ export const WorkloadConfigPage = ({
 
         // Handle workload result
         if (workloadResult.status === 'fulfilled') {
-          const response = workloadResult.value;
+          const response: WorkloadWithRaw = workloadResult.value;
           // Extract the full raw workload resource for YAML display
-          const { _raw, ...spec } = (response || {}) as any;
+          const { _raw, ...spec } = response;
           if (_raw) {
-            setRawWorkload(_raw);
+            setRawWorkload(_raw as Record<string, unknown>);
           }
           setWorkloadSpec(spec as ModelsWorkload);
           setInitialWorkload(spec ? JSON.parse(JSON.stringify(spec)) : null);

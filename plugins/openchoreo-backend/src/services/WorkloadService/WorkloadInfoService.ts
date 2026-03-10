@@ -4,7 +4,10 @@ import {
   createOpenChoreoApiClient,
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
-import type { WorkloadResponse } from '@openchoreo/backstage-plugin-common';
+import type {
+  WorkloadResponse,
+  WorkloadWithRaw,
+} from '@openchoreo/backstage-plugin-common';
 
 type ModelsWorkload = WorkloadResponse;
 
@@ -28,7 +31,7 @@ export class WorkloadInfoService implements WorkloadService {
       namespaceName: string;
     },
     token?: string,
-  ): Promise<ModelsWorkload | null> {
+  ): Promise<WorkloadWithRaw | null> {
     const { projectName, componentName, namespaceName } = request;
 
     try {
@@ -61,12 +64,12 @@ export class WorkloadInfoService implements WorkloadService {
         return null;
       }
 
-      // Return the full workload resource (metadata + spec)
-      // so the frontend can display the complete YAML
+      // Return spec fields spread at top level (for form editing)
+      // plus the full K8s resource as _raw (for YAML display)
       return {
         ...(workload.spec as ModelsWorkload),
         _raw: workload,
-      } as ModelsWorkload & { _raw: unknown };
+      } as WorkloadWithRaw;
     } catch (error) {
       this.logger.error(`Failed to fetch workload info: ${error}`);
       throw error;
