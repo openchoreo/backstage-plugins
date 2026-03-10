@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Box, Button } from '@material-ui/core';
+import { Alert } from '@material-ui/lab';
 import AddIcon from '@material-ui/icons/Add';
+import RefreshIcon from '@material-ui/icons/Refresh';
 import { TraitAccordion } from '../../../Traits/TraitAccordion';
 import { TraitsEmptyState } from '../../../Traits/TraitsEmptyState';
 import { AddTraitDialog } from '../../../Traits/AddTraitDialog';
@@ -16,6 +18,10 @@ interface TraitsContentProps {
   onUndo: (instanceName: string) => void;
   allowedTraits?: Array<{ kind?: string; name: string }>;
   disabled?: boolean;
+  /** Error message when traits failed to load */
+  loadError?: string | null;
+  /** Callback to retry loading traits */
+  onRetry?: () => void;
 }
 
 export const TraitsContent = ({
@@ -26,6 +32,8 @@ export const TraitsContent = ({
   onUndo,
   allowedTraits,
   disabled,
+  loadError,
+  onRetry,
 }: TraitsContentProps) => {
   const [expandedTraitIds, setExpandedTraitIds] = useState<Set<string>>(
     new Set(),
@@ -70,6 +78,36 @@ export const TraitsContent = ({
   };
 
   const showEmptyState = traitsState.length === 0;
+
+  if (loadError) {
+    return (
+      <Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        minHeight={200}
+        p={3}
+        textAlign="center"
+      >
+        <Alert severity="error" style={{ maxWidth: 420, marginBottom: 16 }}>
+          Failed to load traits attached to this component. You can still
+          proceed, but trait configuration is unavailable until a successful
+          reload.
+        </Alert>
+        {onRetry && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<RefreshIcon />}
+            onClick={onRetry}
+          >
+            Reload Traits
+          </Button>
+        )}
+      </Box>
+    );
+  }
 
   return (
     <Box>

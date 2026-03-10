@@ -119,6 +119,7 @@ export const WorkloadConfigPage = ({
     kind?: string;
     name: string;
   }> | null>(null);
+  const [traitsLoadError, setTraitsLoadError] = useState<string | null>(null);
 
   // Traits management via usePendingChanges
   const {
@@ -247,6 +248,13 @@ export const WorkloadConfigPage = ({
         // Handle traits result
         if (traitsResult.status === 'fulfilled') {
           setInitialTraits(traitsResult.value);
+          setTraitsLoadError(null);
+        } else {
+          // Don't overwrite initialTraits with EMPTY_TRAITS — leave them unset
+          // so the UI shows an error instead of silently treating all traits as absent
+          setTraitsLoadError(
+            'Failed to load traits. Trait editing is disabled until traits are loaded.',
+          );
         }
 
         // Fetch the component type info: schema (for parameters) and allowedTraits.
@@ -280,8 +288,17 @@ export const WorkloadConfigPage = ({
               componentTypeKind === 'ClusterComponentType'
                 ? 'ClusterComponentType'
                 : 'ComponentType';
+            const ctFilter: Record<string, string> = { kind: ctKind };
+            // Namespaced ComponentTypes live under the same namespace as the component
+            if (ctKind === 'ComponentType') {
+              const ns =
+                entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE];
+              if (ns) {
+                ctFilter['metadata.namespace'] = ns;
+              }
+            }
             const ctEntities = await catalogApi.getEntities({
-              filter: { kind: ctKind },
+              filter: ctFilter,
             });
             const matchingCt = ctEntities.items.find(
               e =>
@@ -331,8 +348,22 @@ export const WorkloadConfigPage = ({
       setComponentParameters({});
       setInitialParameters({});
       setAllowedTraits(null);
+      setTraitsLoadError(null);
     };
   }, [entity, client, catalogApi]);
+
+  // Retry fetching traits when initial load failed
+  const retryTraitsFetch = useCallback(async () => {
+    try {
+      setTraitsLoadError(null);
+      const traits = await client.fetchComponentTraits(entity);
+      setInitialTraits(traits);
+    } catch {
+      setTraitsLoadError(
+        'Failed to load traits. Trait editing is disabled until traits are loaded.',
+      );
+    }
+  }, [client, entity]);
 
   // Combined unsaved state
   const hasUnsavedWork =
@@ -590,6 +621,8 @@ export const WorkloadConfigPage = ({
             onDeleteTrait={handleDeleteTrait}
             onUndoDeleteTrait={handleUndoDeleteTrait}
             hasTraitChanges={hasTraitChanges}
+            traitsLoadError={traitsLoadError}
+            onRetryTraits={retryTraitsFetch}
             hasParameters={hasParameters}
             parametersSchema={parametersSchema}
             parameters={componentParameters}

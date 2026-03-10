@@ -48,6 +48,8 @@ interface WorkloadEditorProps {
   onDeleteTrait?: (instanceName: string) => void;
   onUndoDeleteTrait?: (instanceName: string) => void;
   hasTraitChanges?: boolean;
+  traitsLoadError?: string | null;
+  onRetryTraits?: () => void;
   hasParameters?: boolean;
   parametersSchema?: Record<string, unknown> | null;
   parameters?: Record<string, unknown>;
@@ -207,6 +209,8 @@ export function WorkloadEditor({
   onDeleteTrait,
   onUndoDeleteTrait,
   hasTraitChanges: _hasTraitChanges,
+  traitsLoadError,
+  onRetryTraits,
   hasParameters,
   parametersSchema,
   parameters,
@@ -251,7 +255,7 @@ export function WorkloadEditor({
 
   // Track last active sub-tab per section for smooth outer tab switching
   const lastWorkloadTabRef = useRef('container');
-  const lastComponentTabRef = useRef(hasParameters ? 'parameters' : 'traits');
+  const lastComponentTabRef = useRef<string | null>(null);
 
   const [activeTab, setActiveTab] = useUrlSyncedTab({
     initialTab,
@@ -504,35 +508,6 @@ export function WorkloadEditor({
   const hasComponentChanges =
     traitChangesCount > 0 || parameterChangesCount > 0;
 
-  const outerTabs: TabItemData[] = useMemo(
-    () => [
-      {
-        id: 'workload',
-        label: 'Workload',
-        icon: <SettingsIcon />,
-        ...(hasWorkloadChanges && { status: 'info' as const }),
-      },
-      {
-        id: 'component',
-        label: 'Component',
-        icon: <MemoryIcon />,
-        ...(hasComponentChanges && { status: 'info' as const }),
-      },
-    ],
-    [hasWorkloadChanges, hasComponentChanges],
-  );
-
-  const handleOuterTabChange = useCallback(
-    (tabId: string) => {
-      if (tabId === 'workload') {
-        setActiveTab(lastWorkloadTabRef.current);
-      } else {
-        setActiveTab(lastComponentTabRef.current);
-      }
-    },
-    [setActiveTab],
-  );
-
   // --- Inner nav items with counts ---
 
   const endpointCount = Object.keys(formData.endpoints || {}).length;
@@ -567,6 +542,58 @@ export function WorkloadEditor({
     }
     return items;
   }, [hasParameters, hasTraits, traitsState?.length]);
+
+  const showComponentTab = componentNavItems.length > 0 || !!traitsLoadError;
+
+  const outerTabs: TabItemData[] = useMemo(() => {
+    const tabs: TabItemData[] = [
+      {
+        id: 'workload',
+        label: 'Workload',
+        icon: <SettingsIcon />,
+        ...(hasWorkloadChanges && { status: 'info' as const }),
+      },
+    ];
+    if (showComponentTab) {
+      tabs.push({
+        id: 'component',
+        label: 'Component',
+        icon: <MemoryIcon />,
+        ...(hasComponentChanges && { status: 'info' as const }),
+      });
+    }
+    return tabs;
+  }, [hasWorkloadChanges, hasComponentChanges, showComponentTab]);
+
+  const handleOuterTabChange = useCallback(
+    (tabId: string) => {
+      if (tabId === 'workload') {
+        setActiveTab(lastWorkloadTabRef.current);
+      } else {
+        // Use last remembered tab if it's still valid, otherwise first available
+        const validIds = new Set(componentNavItems.map(i => i.id));
+        const target =
+          lastComponentTabRef.current &&
+          validIds.has(lastComponentTabRef.current)
+            ? lastComponentTabRef.current
+            : componentNavItems[0]?.id ?? 'component';
+        setActiveTab(target);
+      }
+    },
+    [setActiveTab, componentNavItems],
+  );
+
+  // Guard: redirect to a valid component sub-tab when the current activeTab
+  // is in the component section but doesn't match any available item.
+  useEffect(() => {
+    if (
+      !WORKLOAD_SUB_TABS.has(activeTab) &&
+      componentNavItems.length > 0 &&
+      !componentNavItems.some(item => item.id === activeTab)
+    ) {
+      setActiveTab(componentNavItems[0].id);
+    }
+  }, [activeTab, componentNavItems, setActiveTab]);
 
   // --- Render helpers ---
 
@@ -733,21 +760,34 @@ export function WorkloadEditor({
                   />
                 )}
               {activeTab === 'traits' &&
-                traitsState &&
-                onAddTrait &&
-                onEditTrait &&
-                onDeleteTrait &&
-                onUndoDeleteTrait && (
+                (traitsLoadError ? (
                   <TraitsContent
-                    traitsState={traitsState}
-                    onAdd={onAddTrait}
-                    onEdit={onEditTrait}
-                    onDelete={onDeleteTrait}
-                    onUndo={onUndoDeleteTrait}
-                    allowedTraits={allowedTraits ?? undefined}
-                    disabled={isDeploying}
+                    traitsState={[]}
+                    onAdd={() => {}}
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                    onUndo={() => {}}
+                    disabled
+                    loadError={traitsLoadError}
+                    onRetry={onRetryTraits}
                   />
-                )}
+                ) : (
+                  traitsState &&
+                  onAddTrait &&
+                  onEditTrait &&
+                  onDeleteTrait &&
+                  onUndoDeleteTrait && (
+                    <TraitsContent
+                      traitsState={traitsState}
+                      onAdd={onAddTrait}
+                      onEdit={onEditTrait}
+                      onDelete={onDeleteTrait}
+                      onUndo={onUndoDeleteTrait}
+                      allowedTraits={allowedTraits ?? undefined}
+                      disabled={isDeploying}
+                    />
+                  )
+                ))}
             </Box>
           </Box>
         </Box>
