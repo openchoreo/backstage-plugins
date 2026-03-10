@@ -26,8 +26,12 @@ const NAMESPACE_SCOPED_KINDS = new Set([
 ]);
 
 /**
- * Permission resource reference for OpenChoreo component resources.
- * Used for resource-based permission checks on catalog entities.
+ * Permission resource reference for OpenChoreo namespace-scoped resources.
+ * Used for `ResourcePermission` checks that authorize actions/mutations
+ * (deploy, update, delete, etc.) on components and namespace-scoped resource
+ * definitions (Dataplane, ComponentType, etc.).
+ *
+ * @see matchesCapability — the rule that uses this resource ref
  */
 export const openchoreoNamespaceResourceRef = createPermissionResourceRef<
   Entity,
@@ -161,11 +165,28 @@ function matchesScope(
 }
 
 /**
- * Permission rule that checks if a user's OpenChoreo capabilities
- * allow a specific action on a catalog entity.
+ * Permission rule that authorizes **actions/mutations** on OpenChoreo resources
+ * (e.g., deploy, update, delete a component or namespace-scoped definition).
  *
- * The rule extracts the scope (namespace/project/component) from entity
- * annotations and matches it against the user's capability patterns.
+ * - **Resource type**: `OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE` — used for
+ *   `ResourcePermission` checks, NOT catalog entity reads.
+ * - **Scope**: Components and namespace-scoped resource definitions (Dataplane,
+ *   ComponentType, Environment, etc.).
+ * - **Default behavior**: Denies if the entity has no namespace annotation
+ *   (strict — unknown entities cannot be acted upon).
+ * - **No `toQuery` filtering**: Always evaluates the full entity at apply-time
+ *   because mutations target individual resources, not bulk listings.
+ *
+ * ### How it differs from `matchesCatalogEntityCapability`
+ *
+ * `matchesCatalogEntityCapability` controls **catalog visibility** — whether a
+ * user can see/list entities in the Backstage catalog. It operates on
+ * `RESOURCE_TYPE_CATALOG_ENTITY` (Backstage's built-in type), is permissive by
+ * default (allows non-OpenChoreo entities), and provides a `toQuery` for
+ * DB-level pre-filtering.
+ *
+ * This rule (`matchesCapability`) controls **what the user can do** to a
+ * resource they can already see.
  */
 export const matchesCapability = createPermissionRule({
   name: 'MATCHES_CAPABILITY',

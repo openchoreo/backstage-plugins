@@ -238,13 +238,32 @@ function isPathValidForLevel(path: string, entityLevel: EntityLevel): boolean {
 }
 
 /**
- * Permission rule that checks if a user's OpenChoreo capabilities
- * allow a specific action on a catalog entity.
+ * Permission rule that controls **catalog visibility** — whether a user can
+ * see/list an entity in the Backstage catalog.
  *
- * This rule works with catalog-entity resource type and:
- * - First checks if the entity kind matches the allowed kinds
- * - Then extracts scope from OpenChoreo annotations
- * - Finally matches against capability paths
+ * - **Resource type**: `RESOURCE_TYPE_CATALOG_ENTITY` — Backstage's built-in
+ *   catalog entity type, used for `catalogEntityReadPermission` checks.
+ * - **Scope**: All managed entity kinds — Component, System, Domain,
+ *   namespace-scoped definitions (Dataplane, ComponentType, etc.), and
+ *   cluster-scoped definitions (ClusterDataplane, ClusterComponentType, etc.).
+ * - **Default behavior**: Permissive — entities whose kind is not in the
+ *   managed `kinds` list, or that lack the OpenChoreo namespace annotation, are
+ *   allowed through (they are not OpenChoreo-managed, so this rule doesn't
+ *   restrict them).
+ * - **Has `toQuery`**: Provides DB-level pre-filtering via
+ *   `EntitiesSearchFilter` so the catalog can efficiently exclude entities the
+ *   user cannot see without loading every row.
+ *
+ * ### How it differs from `matchesCapability`
+ *
+ * `matchesCapability` authorizes **actions/mutations** (deploy, update, delete)
+ * on resources the user can already see. It operates on
+ * `OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE` (a custom resource type), is
+ * strict by default (denies if no namespace annotation), and has no `toQuery`
+ * because mutations target individual resources.
+ *
+ * This rule (`matchesCatalogEntityCapability`) controls **what the user can
+ * see** in the catalog.
  */
 export const matchesCatalogEntityCapability = createCatalogPermissionRule({
   name: 'MATCHES_CATALOG_ENTITY_CAPABILITY',
