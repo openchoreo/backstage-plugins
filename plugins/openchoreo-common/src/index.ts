@@ -209,8 +209,7 @@ import type { OpenChoreoComponents } from '@openchoreo/openchoreo-client-node';
 export type ModelsBuild = BuildResponse;
 export type ModelsWorkload = WorkloadResponse;
 /** Full K8s Workload resource type from the OpenAPI spec */
-export type WorkloadResource =
-  OpenChoreoComponents['schemas']['Workload'];
+export type WorkloadResource = OpenChoreoComponents['schemas']['Workload'];
 
 /** Workload response with the full raw K8s resource attached for YAML display */
 export type WorkloadWithRaw = ModelsWorkload & { _raw: WorkloadResource };

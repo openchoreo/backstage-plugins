@@ -26,7 +26,7 @@ import {
   VerticalTabNav,
   TabItemData,
 } from '@openchoreo/backstage-design-system';
-import WidgetsIcon from '@material-ui/icons/Widgets';
+import MemoryIcon from '@material-ui/icons/Memory';
 import SettingsIcon from '@material-ui/icons/Settings';
 import ExtensionIcon from '@material-ui/icons/Extension';
 import { ContainerContent } from './Workload/WorkloadEditor';
@@ -199,26 +199,7 @@ export const EnvironmentOverridesPage = ({
   const tabs = useMemo<TabItemData[]>(() => {
     const tabList: TabItemData[] = [];
 
-    // Add Component Overrides tab if schema exists
-    if (schemas.componentTypeSchema) {
-      // Use hasActualComponentOverrides to check if backend has real overrides (not just defaults)
-      const hasInitialComponentData = formState.hasActualComponentOverrides;
-      const hasComponentChanges = changes.component.length > 0;
-      const hasMissingComponentRequired = missingRequiredFields.length > 0;
-
-      tabList.push({
-        id: 'component',
-        label: 'Component',
-        icon: <WidgetsIcon />,
-        status: getTabStatus(
-          hasInitialComponentData,
-          hasComponentChanges,
-          hasMissingComponentRequired,
-        ),
-      });
-    }
-
-    // Add Workload tab
+    // Add Workload tab first (matches Configure Component order)
     // Use hasActualWorkloadOverrides to check if backend has real overrides
     const hasInitialWorkloadData = formState.hasActualWorkloadOverrides;
     const hasWorkloadChanges = (changes.workload?.length || 0) > 0;
@@ -229,6 +210,25 @@ export const EnvironmentOverridesPage = ({
       icon: <SettingsIcon />,
       status: getTabStatus(hasInitialWorkloadData, hasWorkloadChanges, false),
     });
+
+    // Add Component Overrides tab if schema exists
+    if (schemas.componentTypeSchema) {
+      // Use hasActualComponentOverrides to check if backend has real overrides (not just defaults)
+      const hasInitialComponentData = formState.hasActualComponentOverrides;
+      const hasComponentChanges = changes.component.length > 0;
+      const hasMissingComponentRequired = missingRequiredFields.length > 0;
+
+      tabList.push({
+        id: 'component',
+        label: 'Component',
+        icon: <MemoryIcon />,
+        status: getTabStatus(
+          hasInitialComponentData,
+          hasComponentChanges,
+          hasMissingComponentRequired,
+        ),
+      });
+    }
 
     // Build trait child tabs
     const traitTabs: TabItemData[] = [];
@@ -770,6 +770,12 @@ export const EnvironmentOverridesPage = ({
           onChange={setWorkloadFormData}
           onDelete={() => handleDeleteClick('workload')}
           hasInitialData={initialOverrides.hasWorkloadOverrides}
+          wrapCustomContent
+          sectionTitle={
+            <Box mb={3}>
+              <Typography variant="h4">Container</Typography>
+            </Box>
+          }
           customContent={
             <ContainerContent
               container={formState.workloadFormData.container}

@@ -138,7 +138,7 @@ const useStyles = makeStyles(theme => ({
   innerContent: {
     flex: 1,
     overflowY: 'auto',
-    padding: theme.spacing(2),
+    padding: theme.spacing(3),
     minWidth: 0,
   },
   yamlEditorContainer: {
