@@ -31,6 +31,7 @@ export const ENTITY_KIND_COLORS: Record<string, string> = {
   clusterobservabilityplane: '#8b5cf6', // Purple for cluster observability planes (same as observabilityplane)
   clusterbuildplane: '#3b82f6', // Blue for cluster build planes (same as buildplane)
   workflow: '#8b5cf6', // Purple for workflows
+  clusterworkflow: '#8b5cf6', // Purple for cluster workflows (same as workflow)
   componentworkflow: '#3b82f6', // Blue for component workflows
 };
 
@@ -94,7 +95,8 @@ export const KIND_LABEL_PREFIXES: Record<string, string> = {
   clusterobservabilityplane: 'CObs',
   clusterbuildplane: 'CBP',
   workflow: 'WF',
-  componentworkflow: 'CWF',
+  clusterworkflow: 'CWF',
+  componentworkflow: 'CompWF',
 };
 
 /**
@@ -128,6 +130,7 @@ export const KIND_FULL_LABELS: Record<string, string> = {
   clusterobservabilityplane: 'Cluster Obs Plane',
   clusterbuildplane: 'Cluster Build Plane',
   workflow: 'Workflow',
+  clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
 };
 

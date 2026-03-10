@@ -28,14 +28,14 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'clustercomponenttypes';
     case 'clustertraittype':
       return 'clustertraits';
+    case 'clusterworkflow':
+      return 'clusterworkflows';
     case 'clusterdataplane':
       return 'clusterdataplanes';
     case 'clusterobservabilityplane':
       return 'clusterobservabilityplanes';
     case 'clusterbuildplane':
       return 'clusterbuildplanes';
-    case 'clusterworkflow':
-      return 'clusterworkflows';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -70,14 +70,14 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ClusterComponentType';
     case 'clustertraittype':
       return 'ClusterTrait'; // ClusterTraitType in Backstage maps to ClusterTrait CRD
+    case 'clusterworkflow':
+      return 'ClusterWorkflow';
     case 'clusterdataplane':
       return 'ClusterDataPlane';
     case 'clusterobservabilityplane':
       return 'ClusterObservabilityPlane';
     case 'clusterbuildplane':
       return 'ClusterBuildPlane';
-    case 'clusterworkflow':
-      return 'ClusterWorkflow';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -91,10 +91,10 @@ export function isClusterScopedKind(kind: string): boolean {
   return [
     'clustercomponenttype',
     'clustertraittype',
+    'clusterworkflow',
     'clusterdataplane',
     'clusterobservabilityplane',
     'clusterbuildplane',
-    'clusterworkflow',
   ].includes(kindLower);
 }
 
@@ -149,9 +149,9 @@ export function isSupportedKind(kind: string): boolean {
     'deploymentpipeline',
     'clustercomponenttype',
     'clustertraittype',
+    'clusterworkflow',
     'clusterdataplane',
     'clusterobservabilityplane',
     'clusterbuildplane',
-    'clusterworkflow',
   ].includes(kindLower);
 }

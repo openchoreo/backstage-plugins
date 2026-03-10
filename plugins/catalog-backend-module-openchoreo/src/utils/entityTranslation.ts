@@ -49,11 +49,15 @@ const normalizeAllowedTraits = (
     );
 };
 
-const WORKFLOW_KINDS = new Set(['ComponentWorkflow', 'Workflow']);
+const WORKFLOW_KINDS = new Set([
+  'ComponentWorkflow',
+  'Workflow',
+  'ClusterWorkflow',
+]);
 
 const normalizeAllowedWorkflows = (
   workflows: Array<string | AllowedWorkflowRef> | undefined,
-  defaultKind: 'Workflow',
+  defaultKind: 'Workflow' | 'ClusterWorkflow',
 ): AllowedWorkflowRef[] | undefined => {
   if (!workflows) return undefined;
   if (workflows.length === 0) return [];
@@ -615,7 +619,7 @@ export function translateClusterComponentTypeToEntity(
       workloadType: ct.workloadType || 'deployment',
       allowedWorkflows: normalizeAllowedWorkflows(
         ct.allowedWorkflows,
-        'Workflow',
+        'ClusterWorkflow',
       ),
       allowedTraits: normalizeAllowedTraits(ct.allowedTraits, 'ClusterTrait'),
     },

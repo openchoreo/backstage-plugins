@@ -277,7 +277,10 @@ export function ResourceDefinitionTab() {
         </Typography>
         <Typography variant="body2" color="textSecondary">
           Supported kinds: ComponentType, TraitType, Workflow,
-          ComponentWorkflow, ClusterComponentType, ClusterTraitType
+          ComponentWorkflow, Environment, DataPlane, BuildPlane,
+          ObservabilityPlane, DeploymentPipeline, ClusterComponentType,
+          ClusterTraitType, ClusterWorkflow, ClusterDataPlane,
+          ClusterObservabilityPlane, ClusterBuildPlane
         </Typography>
       </Box>
     );
