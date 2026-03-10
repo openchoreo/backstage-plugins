@@ -166,6 +166,280 @@ export const openchoreoComponentWorkflowCreatePermission = createPermission({
   attributes: { action: 'create' },
 });
 
+// --- Update & Delete permissions for resource definition kinds ---
+
+/**
+ * Permission to update a component type.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoComponentTypeUpdatePermission = createPermission({
+  name: 'openchoreo.componenttype.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a component type.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoComponentTypeDeletePermission = createPermission({
+  name: 'openchoreo.componenttype.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a trait.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoTraitUpdatePermission = createPermission({
+  name: 'openchoreo.trait.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a trait.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoTraitDeletePermission = createPermission({
+  name: 'openchoreo.trait.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a workflow.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoWorkflowUpdatePermission = createPermission({
+  name: 'openchoreo.workflow.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a workflow.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoWorkflowDeletePermission = createPermission({
+  name: 'openchoreo.workflow.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a component workflow.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoComponentWorkflowUpdatePermission = createPermission({
+  name: 'openchoreo.componentworkflow.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a component workflow.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoComponentWorkflowDeletePermission = createPermission({
+  name: 'openchoreo.componentworkflow.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update an environment.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoEnvironmentUpdatePermission = createPermission({
+  name: 'openchoreo.environment.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete an environment.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoEnvironmentDeletePermission = createPermission({
+  name: 'openchoreo.environment.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a dataplane.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoDataplaneUpdatePermission = createPermission({
+  name: 'openchoreo.dataplane.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a dataplane.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoDataplaneDeletePermission = createPermission({
+  name: 'openchoreo.dataplane.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a buildplane.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoBuildplaneUpdatePermission = createPermission({
+  name: 'openchoreo.buildplane.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a buildplane.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoBuildplaneDeletePermission = createPermission({
+  name: 'openchoreo.buildplane.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update an observability plane.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoObservabilityplaneUpdatePermission = createPermission({
+  name: 'openchoreo.observabilityplane.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete an observability plane.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoObservabilityplaneDeletePermission = createPermission({
+  name: 'openchoreo.observabilityplane.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a deployment pipeline.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoDeploymentpipelineUpdatePermission = createPermission({
+  name: 'openchoreo.deploymentpipeline.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a deployment pipeline.
+ * Org-level permission (no resource context required).
+ */
+export const openchoreoDeploymentpipelineDeletePermission = createPermission({
+  name: 'openchoreo.deploymentpipeline.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster component type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterComponentTypeUpdatePermission = createPermission({
+  name: 'openchoreo.clustercomponenttype.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster component type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterComponentTypeDeletePermission = createPermission({
+  name: 'openchoreo.clustercomponenttype.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster trait.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterTraitUpdatePermission = createPermission({
+  name: 'openchoreo.clustertrait.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster trait.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterTraitDeletePermission = createPermission({
+  name: 'openchoreo.clustertrait.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster dataplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterDataplaneUpdatePermission = createPermission({
+  name: 'openchoreo.clusterdataplane.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster dataplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterDataplaneDeletePermission = createPermission({
+  name: 'openchoreo.clusterdataplane.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster buildplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterBuildplaneUpdatePermission = createPermission({
+  name: 'openchoreo.clusterbuildplane.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster buildplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterBuildplaneDeletePermission = createPermission({
+  name: 'openchoreo.clusterbuildplane.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster observability plane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterObservabilityplaneUpdatePermission =
+  createPermission({
+    name: 'openchoreo.clusterobservabilityplane.update',
+    attributes: { action: 'update' },
+  });
+
+/**
+ * Permission to delete a cluster observability plane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterObservabilityplaneDeletePermission =
+  createPermission({
+    name: 'openchoreo.clusterobservabilityplane.delete',
+    attributes: { action: 'delete' },
+  });
+
+/**
+ * Permission to update a cluster workflow.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterWorkflowUpdatePermission = createPermission({
+  name: 'openchoreo.clusterworkflow.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster workflow.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterWorkflowDeletePermission = createPermission({
+  name: 'openchoreo.clusterworkflow.delete',
+  attributes: { action: 'delete' },
+});
+
 /**
  * Permission to create a new component release.
  * Requires component context.
@@ -353,6 +627,37 @@ export const openchoreoPermissions = [
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterTraitCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
+  // Update & Delete permissions for resource definition kinds
+  openchoreoComponentTypeUpdatePermission,
+  openchoreoComponentTypeDeletePermission,
+  openchoreoTraitUpdatePermission,
+  openchoreoTraitDeletePermission,
+  openchoreoWorkflowUpdatePermission,
+  openchoreoWorkflowDeletePermission,
+  openchoreoComponentWorkflowUpdatePermission,
+  openchoreoComponentWorkflowDeletePermission,
+  openchoreoEnvironmentUpdatePermission,
+  openchoreoEnvironmentDeletePermission,
+  openchoreoDataplaneUpdatePermission,
+  openchoreoDataplaneDeletePermission,
+  openchoreoBuildplaneUpdatePermission,
+  openchoreoBuildplaneDeletePermission,
+  openchoreoObservabilityplaneUpdatePermission,
+  openchoreoObservabilityplaneDeletePermission,
+  openchoreoDeploymentpipelineUpdatePermission,
+  openchoreoDeploymentpipelineDeletePermission,
+  openchoreoClusterComponentTypeUpdatePermission,
+  openchoreoClusterComponentTypeDeletePermission,
+  openchoreoClusterTraitUpdatePermission,
+  openchoreoClusterTraitDeletePermission,
+  openchoreoClusterDataplaneUpdatePermission,
+  openchoreoClusterDataplaneDeletePermission,
+  openchoreoClusterBuildplaneUpdatePermission,
+  openchoreoClusterBuildplaneDeletePermission,
+  openchoreoClusterObservabilityplaneUpdatePermission,
+  openchoreoClusterObservabilityplaneDeletePermission,
+  openchoreoClusterWorkflowUpdatePermission,
+  openchoreoClusterWorkflowDeletePermission,
 ];
 
 /**
@@ -394,6 +699,39 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.componentworkflow.create': 'workflow:create',
   'openchoreo.clustercomponenttype.create': 'clustercomponenttype:create',
   'openchoreo.clustertrait.create': 'clustertrait:create',
+  // Update & Delete actions for resource definition kinds
+  'openchoreo.componenttype.update': 'componenttype:update',
+  'openchoreo.componenttype.delete': 'componenttype:delete',
+  'openchoreo.trait.update': 'trait:update',
+  'openchoreo.trait.delete': 'trait:delete',
+  'openchoreo.workflow.update': 'workflow:update',
+  'openchoreo.workflow.delete': 'workflow:delete',
+  'openchoreo.componentworkflow.update': 'workflow:update',
+  'openchoreo.componentworkflow.delete': 'workflow:delete',
+  'openchoreo.environment.update': 'environment:update',
+  'openchoreo.environment.delete': 'environment:delete',
+  'openchoreo.dataplane.update': 'dataplane:update',
+  'openchoreo.dataplane.delete': 'dataplane:delete',
+  'openchoreo.buildplane.update': 'buildplane:update',
+  'openchoreo.buildplane.delete': 'buildplane:delete',
+  'openchoreo.observabilityplane.update': 'observabilityplane:update',
+  'openchoreo.observabilityplane.delete': 'observabilityplane:delete',
+  'openchoreo.deploymentpipeline.update': 'deploymentpipeline:update',
+  'openchoreo.deploymentpipeline.delete': 'deploymentpipeline:delete',
+  'openchoreo.clustercomponenttype.update': 'clustercomponenttype:update',
+  'openchoreo.clustercomponenttype.delete': 'clustercomponenttype:delete',
+  'openchoreo.clustertrait.update': 'clustertrait:update',
+  'openchoreo.clustertrait.delete': 'clustertrait:delete',
+  'openchoreo.clusterdataplane.update': 'clusterdataplane:update',
+  'openchoreo.clusterdataplane.delete': 'clusterdataplane:delete',
+  'openchoreo.clusterbuildplane.update': 'clusterbuildplane:update',
+  'openchoreo.clusterbuildplane.delete': 'clusterbuildplane:delete',
+  'openchoreo.clusterobservabilityplane.update':
+    'clusterobservabilityplane:update',
+  'openchoreo.clusterobservabilityplane.delete':
+    'clusterobservabilityplane:delete',
+  'openchoreo.clusterworkflow.update': 'clusterworkflow:update',
+  'openchoreo.clusterworkflow.delete': 'clusterworkflow:delete',
 };
 
 /**

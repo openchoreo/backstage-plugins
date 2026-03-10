@@ -34,6 +34,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'clusterobservabilityplanes';
     case 'clusterbuildplane':
       return 'clusterbuildplanes';
+    case 'clusterworkflow':
+      return 'clusterworkflows';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -74,6 +76,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ClusterObservabilityPlane';
     case 'clusterbuildplane':
       return 'ClusterBuildPlane';
+    case 'clusterworkflow':
+      return 'ClusterWorkflow';
     default:
       throw new Error(`Unsupported entity kind: ${backstageKind}`);
   }
@@ -90,6 +94,7 @@ export function isClusterScopedKind(kind: string): boolean {
     'clusterdataplane',
     'clusterobservabilityplane',
     'clusterbuildplane',
+    'clusterworkflow',
   ].includes(kindLower);
 }
 
@@ -147,5 +152,6 @@ export function isSupportedKind(kind: string): boolean {
     'clusterdataplane',
     'clusterobservabilityplane',
     'clusterbuildplane',
+    'clusterworkflow',
   ].includes(kindLower);
 }
