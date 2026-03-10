@@ -87,8 +87,49 @@ function parseCapabilityPath(path: string): {
 
 /**
  * Entity level type for path specificity checking.
+ * - domain/namespace-scoped: namespace-level only (no project/component paths)
+ * - system: project-level (no component paths)
+ * - component: any level
+ * - cluster-scoped: only global wildcard "*" path
  */
-type EntityLevel = 'domain' | 'system' | 'component';
+type EntityLevel =
+  | 'domain'
+  | 'system'
+  | 'component'
+  | 'namespace-scoped'
+  | 'cluster-scoped';
+
+/** Maps each managed entity kind to its entity level for path specificity. */
+const KIND_TO_ENTITY_LEVEL: Record<string, EntityLevel> = {
+  domain: 'domain',
+  system: 'system',
+  component: 'component',
+  dataplane: 'namespace-scoped',
+  buildplane: 'namespace-scoped',
+  observabilityplane: 'namespace-scoped',
+  deploymentpipeline: 'namespace-scoped',
+  componenttype: 'namespace-scoped',
+  traittype: 'namespace-scoped',
+  workflow: 'namespace-scoped',
+  componentworkflow: 'namespace-scoped',
+  environment: 'namespace-scoped',
+  clusterdataplane: 'cluster-scoped',
+  clusterbuildplane: 'cluster-scoped',
+  clusterobservabilityplane: 'cluster-scoped',
+  clustercomponenttype: 'cluster-scoped',
+  clustertraittype: 'cluster-scoped',
+  clusterworkflow: 'cluster-scoped',
+};
+
+/** Entity kinds that are cluster-scoped (no namespace annotation). */
+const CLUSTER_SCOPED_KINDS = new Set([
+  'clusterdataplane',
+  'clusterbuildplane',
+  'clusterobservabilityplane',
+  'clustercomponenttype',
+  'clustertraittype',
+  'clusterworkflow',
+]);
 
 /**
  * Checks if a capability path matches the given scope.
@@ -109,11 +150,17 @@ function matchesScope(
     return true;
   }
 
+  // Cluster-scoped entities only match the global wildcard "*"
+  // Since path !== '*' at this point, cluster-scoped never matches non-wildcard paths
+  if (entityLevel === 'cluster-scoped') {
+    return false;
+  }
+
   const parsed = parseCapabilityPath(path);
 
   // Check path specificity - reject paths more specific than entity level
-  // Domain entities: path must NOT have project or component
-  if (entityLevel === 'domain') {
+  // Domain and namespace-scoped entities: path must NOT have project or component
+  if (entityLevel === 'domain' || entityLevel === 'namespace-scoped') {
     if (parsed.project || parsed.component) {
       return false; // Path is more specific than entity level
     }
@@ -171,9 +218,15 @@ function isPathValidForLevel(path: string, entityLevel: EntityLevel): boolean {
     return true;
   }
 
+  // Cluster-scoped entities only accept the global wildcard
+  if (entityLevel === 'cluster-scoped') {
+    return false;
+  }
+
   const parsed = parseCapabilityPath(path);
 
-  if (entityLevel === 'domain') {
+  // Domain and namespace-scoped: reject project/component-specific paths
+  if (entityLevel === 'domain' || entityLevel === 'namespace-scoped') {
     return !parsed.project && !parsed.component;
   }
 
@@ -217,27 +270,37 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
 
     // Get the capability config for this entity kind
     const kindCapability = kindCapabilities[entityKind];
+    const entityLevel = KIND_TO_ENTITY_LEVEL[entityKind] ?? 'component';
 
-    // Extract scope from entity annotations based on entity kind
-    // Different entity kinds use different annotations:
-    // - Domain: only organization
-    // - System: organization + project-id
-    // - Component: organization + project + component
+    // Handle cluster-scoped entities (no namespace annotation)
+    if (entityLevel === 'cluster-scoped') {
+      if (!kindCapability) {
+        return false;
+      }
+      const { allowedPaths, deniedPaths } = kindCapability;
+      // For cluster-scoped, only '*' path is meaningful
+      if (deniedPaths.some(p => p === '*')) {
+        return false;
+      }
+      if (allowedPaths.some(p => p === '*')) {
+        return true;
+      }
+      return false;
+    }
+
+    // Extract scope from entity annotations based on entity level
     let scope: { ns?: string; project?: string; component?: string };
 
-    if (entityKind === 'domain') {
-      // Domain only has organization
+    if (entityLevel === 'domain' || entityLevel === 'namespace-scoped') {
       scope = {
         ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
       };
-    } else if (entityKind === 'system') {
-      // System has organization and project-id
+    } else if (entityLevel === 'system') {
       scope = {
         ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
         project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT_ID],
       };
     } else {
-      // Component has organization, project, and component
       scope = {
         ns: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.NAMESPACE],
         project: entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT],
@@ -256,9 +319,6 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
     }
 
     const { allowedPaths, deniedPaths } = kindCapability;
-
-    // Determine entity level for path specificity checking
-    const entityLevel = entityKind as EntityLevel;
 
     // Check if explicitly denied at this scope
     for (const deniedPath of deniedPaths) {
@@ -305,7 +365,7 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
     for (const kind of kinds) {
       const kindLower = kind.toLowerCase();
       const capability = kindCapabilities[kindLower];
-      const entityLevel = kindLower as EntityLevel;
+      const entityLevel = KIND_TO_ENTITY_LEVEL[kindLower] ?? 'component';
 
       const singleKindFilter: EntitiesSearchFilter = {
         key: 'kind',
@@ -313,14 +373,30 @@ export const matchesCatalogEntityCapability = createCatalogPermissionRule({
       };
 
       if (!capability) {
+        if (CLUSTER_SCOPED_KINDS.has(kindLower)) {
+          // Cluster-scoped without capability: exclude entirely
+          // (not added to kindFilters, so excluded by otherKindsFilter)
+          continue;
+        }
         // No capability defined for this kind - only allow non-OpenChoreo entities
-        // (those without openchoreo.io/organization annotation)
+        // (those without openchoreo.io/namespace annotation)
         kindFilters.push({
           allOf: [singleKindFilter, { not: noOrgAnnotationFilter }] as [
             PermissionCriteria<EntitiesSearchFilter>,
             ...PermissionCriteria<EntitiesSearchFilter>[],
           ],
         });
+        continue;
+      }
+
+      // Handle cluster-scoped kinds
+      if (CLUSTER_SCOPED_KINDS.has(kindLower)) {
+        const hasWildcard = capability.allowedPaths.some(p => p === '*');
+        if (hasWildcard) {
+          // Allow all entities of this cluster-scoped kind
+          kindFilters.push(singleKindFilter);
+        }
+        // If no wildcard, kind is excluded entirely
         continue;
       }
 

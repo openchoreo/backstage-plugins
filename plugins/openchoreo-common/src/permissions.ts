@@ -413,12 +413,31 @@ export const CATALOG_PERMISSION_TO_ACTION: Record<string, string> = {
  *
  * - Component: Maps to OpenChoreo components
  * - System: Maps to OpenChoreo projects
- * - Domain: Maps to OpenChoreo organizations
+ * - Domain: Maps to OpenChoreo namespaces
+ * - Dataplane, BuildPlane, ObservabilityPlane, DeploymentPipeline: Namespace-scoped infrastructure
+ * - ClusterDataplane, ClusterBuildPlane, ClusterObservabilityPlane: Cluster-scoped infrastructure
+ * - ComponentType, TraitType, Workflow, ComponentWorkflow, Environment: Namespace-scoped platform resources
+ * - ClusterComponentType, ClusterTraitType, ClusterWorkflow: Cluster-scoped platform resources
  */
 export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'Component',
   'System',
   'Domain',
+  'Dataplane',
+  'BuildPlane',
+  'ObservabilityPlane',
+  'DeploymentPipeline',
+  'ClusterDataplane',
+  'ClusterBuildPlane',
+  'ClusterObservabilityPlane',
+  'ComponentType',
+  'ClusterComponentType',
+  'TraitType',
+  'ClusterTraitType',
+  'Workflow',
+  'ClusterWorkflow',
+  'ComponentWorkflow',
+  'Environment',
 ];
 
 /**
@@ -429,7 +448,11 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
  * Each kind maps to a different resource type in OpenChoreo:
  * - Component → component:* actions
  * - System → project:* actions
- * - Domain → organization:* actions
+ * - Domain → namespace:* actions
+ * - Dataplane/BuildPlane/ObservabilityPlane/DeploymentPipeline → respective :view actions
+ * - ClusterDataplane/ClusterBuildPlane/ClusterObservabilityPlane → respective cluster:view actions
+ * - ComponentType/TraitType/Workflow/ComponentWorkflow/Environment → respective :view actions
+ * - ClusterComponentType/ClusterTraitType/ClusterWorkflow → respective cluster:view actions
  */
 export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   component: {
@@ -442,5 +465,50 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   },
   domain: {
     'catalog.entity.read': 'namespace:view',
+  },
+  dataplane: {
+    'catalog.entity.read': 'dataplane:view',
+  },
+  buildplane: {
+    'catalog.entity.read': 'buildplane:view',
+  },
+  observabilityplane: {
+    'catalog.entity.read': 'observabilityplane:view',
+  },
+  deploymentpipeline: {
+    'catalog.entity.read': 'deploymentpipeline:view',
+  },
+  clusterdataplane: {
+    'catalog.entity.read': 'clusterdataplane:view',
+  },
+  clusterbuildplane: {
+    'catalog.entity.read': 'clusterbuildplane:view',
+  },
+  clusterobservabilityplane: {
+    'catalog.entity.read': 'clusterobservabilityplane:view',
+  },
+  componenttype: {
+    'catalog.entity.read': 'componenttype:view',
+  },
+  clustercomponenttype: {
+    'catalog.entity.read': 'clustercomponenttype:view',
+  },
+  traittype: {
+    'catalog.entity.read': 'trait:view',
+  },
+  clustertraittype: {
+    'catalog.entity.read': 'clustertrait:view',
+  },
+  workflow: {
+    'catalog.entity.read': 'workflow:view',
+  },
+  clusterworkflow: {
+    'catalog.entity.read': 'clusterworkflow:view',
+  },
+  componentworkflow: {
+    'catalog.entity.read': 'workflow:view',
+  },
+  environment: {
+    'catalog.entity.read': 'environment:view',
   },
 };
