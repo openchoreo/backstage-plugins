@@ -2,7 +2,6 @@ import {
   TextField,
   Card,
   CardContent,
-  CardHeader,
   Grid,
   Typography,
   Box,
@@ -84,10 +83,10 @@ const useStyles = makeStyles(theme => ({
   containerCard: {
     padding: theme.spacing(0),
     marginBottom: theme.spacing(2),
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: 8,
-    backgroundColor: theme.palette.background.paper,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    border: 'none',
+    borderRadius: 0,
+    backgroundColor: 'transparent',
+    boxShadow: 'none',
   },
 }));
 
@@ -229,11 +228,7 @@ export function ContainerContent({
   return (
     <Box>
       <Card className={classes.containerCard}>
-        <CardHeader
-          style={{ paddingBottom: 8 }}
-          title={<Typography variant="h4">Container</Typography>}
-        />
-        <CardContent style={{ paddingTop: 8 }}>
+        <CardContent>
           <Grid container spacing={2}>
             {!hideContainerFields && (
               <>

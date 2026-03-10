@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, ReactNode } from 'react';
-import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
+import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import { JSONSchema7 } from 'json-schema';
 import YAML from 'yaml';
 import { YamlEditor } from '../YamlEditor';
@@ -135,8 +135,8 @@ export const TraitConfigToggle = ({
   );
 
   const handleModeChange = useCallback(
-    (_: unknown, newMode: 'form' | 'yaml' | null) => {
-      if (!newMode || newMode === mode) return;
+    (newMode: 'form' | 'yaml') => {
+      if (newMode === mode) return;
 
       if (newMode === 'yaml') {
         setYamlContent(buildYamlString(schema, formData));
@@ -208,19 +208,10 @@ export const TraitConfigToggle = ({
   return (
     <div>
       <div className={classes.toggleContainer}>
-        <ToggleButtonGroup
+        <FormYamlToggle
           value={mode}
-          exclusive
           onChange={handleModeChange}
-          size="small"
-        >
-          <ToggleButton value="yaml" className={classes.toggleButton}>
-            YAML
-          </ToggleButton>
-          <ToggleButton value="form" className={classes.toggleButton}>
-            Form
-          </ToggleButton>
-        </ToggleButtonGroup>
+        />
       </div>
 
       {mode === 'form' ? (

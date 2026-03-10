@@ -23,3 +23,8 @@ export { JsonViewer } from './components/JsonViewer';
 export type { JsonViewerProps } from './components/JsonViewer';
 export { YamlViewer } from './components/YamlViewer';
 export type { YamlViewerProps } from './components/YamlViewer';
+export { FormYamlToggle } from './components/FormYamlToggle';
+export type {
+  FormYamlToggleProps,
+  FormYamlMode,
+} from './components/FormYamlToggle';

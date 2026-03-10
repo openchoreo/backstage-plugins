@@ -336,6 +336,27 @@ export async function createRouter({
     );
   });
 
+  // Endpoint for fetching namespace-scoped component type schema
+  router.get('/component-type-schema', async (req, res) => {
+    const { namespaceName, ctName } = req.query;
+
+    if (!namespaceName || !ctName) {
+      throw new InputError(
+        'namespaceName and ctName are required query parameters',
+      );
+    }
+
+    const userToken = getUserTokenFromRequest(req);
+
+    res.json(
+      await componentInfoService.fetchComponentTypeSchema(
+        namespaceName as string,
+        ctName as string,
+        userToken,
+      ),
+    );
+  });
+
   // Endpoint for fetching cluster component type schema
   router.get('/cluster-component-type-schema', async (req, res) => {
     const { cctName } = req.query;

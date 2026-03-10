@@ -4,6 +4,7 @@ import {
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
 import type {
+  APIResponse,
   ComponentResponse,
   ComponentTraitRequest,
 } from '@openchoreo/backstage-plugin-common';
@@ -223,6 +224,56 @@ export class ComponentInfoService {
     } catch (error) {
       this.logger.error(
         `Failed to update component config for ${componentName}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetches the input parameter schema for a namespace-scoped ComponentType.
+   */
+  async fetchComponentTypeSchema(
+    namespaceName: string,
+    ctName: string,
+    token?: string,
+  ): Promise<APIResponse & { data?: { [key: string]: unknown } }> {
+    this.logger.debug(
+      `Fetching schema for component type: ${ctName} in namespace: ${namespaceName}`,
+    );
+
+    try {
+      const client = createOpenChoreoApiClient({
+        baseUrl: this.baseUrl,
+        token,
+        logger: this.logger,
+      });
+
+      const { data, error, response } = await client.GET(
+        '/api/v1/namespaces/{namespaceName}/componenttypes/{ctName}/schema',
+        {
+          params: {
+            path: { namespaceName, ctName },
+          },
+        },
+      );
+
+      if (error || !response.ok) {
+        throw new Error(
+          `Failed to fetch component type schema: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      this.logger.debug(
+        `Successfully fetched schema for component type: ${ctName}`,
+      );
+
+      return {
+        success: true,
+        data: data,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch schema for component type ${ctName}: ${error}`,
       );
       throw error;
     }

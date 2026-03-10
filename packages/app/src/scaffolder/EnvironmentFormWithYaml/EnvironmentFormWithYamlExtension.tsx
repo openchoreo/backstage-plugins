@@ -11,10 +11,10 @@ import {
   Box,
   Typography,
 } from '@material-ui/core';
-import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import { useApi } from '@backstage/core-plugin-api';
 import { catalogApiRef } from '@backstage/plugin-catalog-react';
 import { YamlEditor } from '@openchoreo/backstage-plugin-react';
+import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 import YAML from 'yaml';
 import { useStyles } from './styles';
@@ -240,8 +240,8 @@ export const EnvironmentFormWithYamlExtension = ({
   );
 
   const handleModeChange = useCallback(
-    (_: unknown, newMode: 'form' | 'yaml' | null) => {
-      if (!newMode || newMode === mode) return;
+    (newMode: 'form' | 'yaml') => {
+      if (newMode === mode) return;
 
       if (newMode === 'yaml') {
         // Form -> YAML: generate YAML from current form values
@@ -283,19 +283,10 @@ export const EnvironmentFormWithYamlExtension = ({
     <div>
       {/* Toggle */}
       <div className={classes.toggleContainer}>
-        <ToggleButtonGroup
+        <FormYamlToggle
           value={mode}
-          exclusive
           onChange={handleModeChange}
-          size="small"
-        >
-          <ToggleButton value="form" className={classes.toggleButton}>
-            Form
-          </ToggleButton>
-          <ToggleButton value="yaml" className={classes.toggleButton}>
-            YAML
-          </ToggleButton>
-        </ToggleButtonGroup>
+        />
       </div>
 
       {mode === 'form' ? (

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Button, Typography } from '@material-ui/core';
+import { Box, Button } from '@material-ui/core';
 import AddIcon from '@material-ui/icons/Add';
 import { TraitAccordion } from '../../../Traits/TraitAccordion';
 import { TraitsEmptyState } from '../../../Traits/TraitsEmptyState';
@@ -14,6 +14,7 @@ interface TraitsContentProps {
   onEdit: (instanceName: string, updated: ComponentTrait) => void;
   onDelete: (instanceName: string) => void;
   onUndo: (instanceName: string) => void;
+  allowedTraits?: Array<{ kind?: string; name: string }>;
   disabled?: boolean;
 }
 
@@ -23,6 +24,7 @@ export const TraitsContent = ({
   onEdit,
   onDelete,
   onUndo,
+  allowedTraits,
   disabled,
 }: TraitsContentProps) => {
   const [expandedTraitIds, setExpandedTraitIds] = useState<Set<string>>(
@@ -79,7 +81,7 @@ export const TraitsContent = ({
           alignItems="center"
           mb={2}
         >
-          <Typography variant="h6">Traits</Typography>
+          <Box />
           <Button
             variant="outlined"
             color="primary"
@@ -122,6 +124,7 @@ export const TraitsContent = ({
         onClose={() => setAddDialogOpen(false)}
         onAdd={handleAddTrait}
         existingInstanceNames={existingInstanceNames}
+        allowedTraits={allowedTraits}
       />
       <EditTraitDialog
         open={editDialogOpen}

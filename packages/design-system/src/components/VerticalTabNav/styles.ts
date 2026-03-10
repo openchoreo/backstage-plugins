@@ -110,7 +110,8 @@ export const useStyles = makeStyles((theme: Theme) => ({
   contentPanel: {
     flex: 1,
     overflowY: 'auto',
-    padding: theme.spacing(2),
+    paddingLeft: theme.spacing(2),
+    paddingRight: theme.spacing(2),
   },
   tabItemGroup: {
     fontWeight: 600,

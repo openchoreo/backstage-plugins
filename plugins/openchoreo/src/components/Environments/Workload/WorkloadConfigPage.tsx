@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useContext, useCallback } from 'react';
+import { useEffect, useState, useRef, useContext, useCallback, useMemo } from 'react';
 import {
   useNavigate,
   useLocation,
@@ -8,7 +8,7 @@ import type { Navigator } from 'react-router-dom';
 import { Box, Button, CircularProgress, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Alert, Skeleton } from '@material-ui/lab';
-import { useEntity } from '@backstage/plugin-catalog-react';
+import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
   ModelsWorkload,
@@ -74,6 +74,7 @@ export const WorkloadConfigPage = ({
 }: WorkloadConfigPageProps) => {
   const classes = useStyles();
   const client = useApi(openChoreoClientApiRef);
+  const catalogApi = useApi(catalogApiRef);
   const { entity } = useEntity();
 
   // Workload state
@@ -81,6 +82,7 @@ export const WorkloadConfigPage = ({
   const [initialWorkload, setInitialWorkload] = useState<ModelsWorkload | null>(
     null,
   );
+  const [rawWorkload, setRawWorkload] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,8 +95,10 @@ export const WorkloadConfigPage = ({
   // Component config state (traits + parameters)
   const [initialTraits, setInitialTraits] = useState<ComponentTrait[]>(EMPTY_TRAITS);
   const [hasParameters, setHasParameters] = useState(false);
+  const [parametersSchema, setParametersSchema] = useState<Record<string, unknown> | null>(null);
   const [componentParameters, setComponentParameters] = useState<Record<string, unknown>>({});
   const [initialParameters, setInitialParameters] = useState<Record<string, unknown>>({});
+  const [allowedTraits, setAllowedTraits] = useState<Array<{ kind?: string; name: string }> | null>(null);
 
   // Traits management via usePendingChanges
   const {
@@ -107,9 +111,50 @@ export const WorkloadConfigPage = ({
     getTraitsForSave,
   } = usePendingChanges(initialTraits);
 
-  // Parameter changes
-  const parameterChanges = deepCompareObjects(initialParameters, componentParameters);
+  // Parameter changes — exclude fields where the value matches the schema default
+  // and the user never had a stored value (initialParameters doesn't have the key).
+  const parameterChanges = useMemo(() => {
+    const allChanges = deepCompareObjects(initialParameters, componentParameters);
+    if (!parametersSchema) return allChanges;
+    const schemaProps = (parametersSchema as any)?.properties || {};
+    return allChanges.filter(change => {
+      const key = change.path.split('.')[0];
+      // If the initial parameters already had this key, it's a real change
+      if (key in initialParameters) return true;
+      // Otherwise, check if the current value is just the schema default
+      const schemaDef = schemaProps[key];
+      if (schemaDef?.default !== undefined) {
+        return JSON.stringify(componentParameters[key]) !== JSON.stringify(schemaDef.default);
+      }
+      return true;
+    });
+  }, [initialParameters, componentParameters, parametersSchema]);
   const hasParameterChanges = parameterChanges.length > 0;
+
+  // Build the parameters payload for saving — only include keys that the user
+  // has explicitly set or that already existed on the component CR.
+  // Keys populated purely from schema defaults (with no stored value) are excluded.
+  const getParametersForSave = useCallback((): Record<string, unknown> => {
+    if (!parametersSchema) return componentParameters;
+    const schemaProps = (parametersSchema as any)?.properties || {};
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(componentParameters)) {
+      if (key in initialParameters) {
+        // Key existed on the component — always include
+        result[key] = value;
+      } else {
+        // Key only from schema defaults — include only if user changed it from default
+        const schemaDef = schemaProps[key];
+        if (
+          schemaDef?.default === undefined ||
+          JSON.stringify(value) !== JSON.stringify(schemaDef.default)
+        ) {
+          result[key] = value;
+        }
+      }
+    }
+    return result;
+  }, [componentParameters, initialParameters, parametersSchema]);
 
   // Track if we should allow navigation (when user confirms discard)
   const allowNavigationRef = useRef(false);
@@ -139,9 +184,14 @@ export const WorkloadConfigPage = ({
         // Handle workload result
         if (workloadResult.status === 'fulfilled') {
           const response = workloadResult.value;
-          setWorkloadSpec(response);
+          // Extract the full raw workload resource for YAML display
+          const { _raw, ...spec } = (response || {}) as any;
+          if (_raw) {
+            setRawWorkload(_raw);
+          }
+          setWorkloadSpec(spec as ModelsWorkload);
           setInitialWorkload(
-            response ? JSON.parse(JSON.stringify(response)) : null,
+            spec ? JSON.parse(JSON.stringify(spec)) : null,
           );
           setIsNewWorkload(false);
         } else {
@@ -174,15 +224,51 @@ export const WorkloadConfigPage = ({
           setInitialTraits(traitsResult.value);
         }
 
-        // Note: Parameters are fetched from component details.
-        // For now, we check if the component has parameters by looking at
-        // the component spec. We don't show the Parameters tab if the
-        // component response doesn't have spec.parameters.
+        // Fetch the component type info: schema (for parameters) and allowedTraits.
+        const componentTypeName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE];
+        const componentTypeKind = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND];
+        if (componentTypeName) {
+          // Fetch CT schema from backend
+          try {
+            const schemaResult = await client.fetchComponentTypeSchema(entity);
+            if (schemaResult.success && schemaResult.data) {
+              const schema = schemaResult.data;
+              const properties = (schema as any)?.properties;
+              if (properties && typeof properties === 'object' && Object.keys(properties).length > 0) {
+                setHasParameters(true);
+                setParametersSchema(schema);
+              }
+            }
+          } catch {
+            // Schema fetch failure is non-critical
+          }
+
+          // Fetch CT entity from catalog for allowedTraits
+          try {
+            const ctKind = componentTypeKind === 'ClusterComponentType'
+              ? 'ClusterComponentType'
+              : 'ComponentType';
+            const ctEntities = await catalogApi.getEntities({
+              filter: { kind: ctKind },
+            });
+            const matchingCt = ctEntities.items.find(
+              e => `${e.spec?.workloadType}/${e.metadata.name}` === componentTypeName,
+            );
+            const ctAllowedTraits = (matchingCt?.spec as any)?.allowedTraits as
+              | Array<{ kind?: string; name: string }>
+              | undefined;
+            if (ctAllowedTraits && ctAllowedTraits.length > 0) {
+              setAllowedTraits(ctAllowedTraits);
+            }
+          } catch {
+            // CT entity fetch failure is non-critical
+          }
+        }
+
         try {
           const componentDetails = await client.getComponentDetails(entity);
-          const params = (componentDetails as any)?.parameters;
+          const params = componentDetails?.parameters;
           if (params && typeof params === 'object' && Object.keys(params).length > 0) {
-            setHasParameters(true);
             setComponentParameters(params);
             setInitialParameters(JSON.parse(JSON.stringify(params)));
           }
@@ -198,14 +284,17 @@ export const WorkloadConfigPage = ({
     return () => {
       setWorkloadSpec(null);
       setInitialWorkload(null);
+      setRawWorkload(null);
       setError(null);
       setIsNewWorkload(false);
       setInitialTraits(EMPTY_TRAITS);
       setHasParameters(false);
+      setParametersSchema(null);
       setComponentParameters({});
       setInitialParameters({});
+      setAllowedTraits(null);
     };
-  }, [entity, client]);
+  }, [entity, client, catalogApi]);
 
   // Combined unsaved state
   const hasUnsavedWork =
@@ -297,7 +386,7 @@ export const WorkloadConfigPage = ({
         await client.updateComponentConfig(
           entity,
           hasTraitChanges ? getTraitsForSave() : undefined,
-          hasParameterChanges ? componentParameters : undefined,
+          hasParameterChanges ? getParametersForSave() : undefined,
         );
       }
 
@@ -404,7 +493,7 @@ export const WorkloadConfigPage = ({
   return (
     <DetailPageLayout
       title="Configure Component"
-      subtitle="Configure workload, parameters, and traits for deployment"
+      subtitle="Review and update your component's runtime configuration"
       onBack={handleBackClick}
       actions={headerActions}
     >
@@ -449,18 +538,23 @@ export const WorkloadConfigPage = ({
         >
           <WorkloadEditor
             entity={entity}
+            rawWorkload={rawWorkload}
             initialTab={initialTab}
             onTabChange={onTabChange}
             traitsState={traitsState}
+            allowedTraits={allowedTraits}
             onAddTrait={handleAddTrait}
             onEditTrait={handleEditTrait}
             onDeleteTrait={handleDeleteTrait}
             onUndoDeleteTrait={handleUndoDeleteTrait}
             hasTraitChanges={hasTraitChanges}
             hasParameters={hasParameters}
+            parametersSchema={parametersSchema}
             parameters={componentParameters}
             onParametersChange={setComponentParameters}
             hasParameterChanges={hasParameterChanges}
+            workloadChanges={workloadChanges}
+            parameterChangesCount={parameterChanges.length}
           />
         </WorkloadProvider>
       )}
@@ -471,12 +565,8 @@ export const WorkloadConfigPage = ({
         onConfirm={handleConfirmSave}
         changes={workloadChanges}
         saving={isProcessing}
-        traitChangesCount={
-          hasTraitChanges
-            ? traitsState.filter(t => t.state !== 'original').length
-            : 0
-        }
-        parameterChangesCount={parameterChanges.length}
+        traitsState={hasTraitChanges ? traitsState : undefined}
+        parameterChanges={parameterChanges}
       />
 
       <UnsavedChangesDialog

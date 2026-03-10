@@ -61,9 +61,12 @@ export class WorkloadInfoService implements WorkloadService {
         return null;
       }
 
-      // Return the spec directly — the spec object contains the same
-      // flexible structure the frontend expects
-      return workload.spec as ModelsWorkload;
+      // Return the full workload resource (metadata + spec)
+      // so the frontend can display the complete YAML
+      return {
+        ...(workload.spec as ModelsWorkload),
+        _raw: workload,
+      } as ModelsWorkload & { _raw: unknown };
     } catch (error) {
       this.logger.error(`Failed to fetch workload info: ${error}`);
       throw error;

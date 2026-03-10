@@ -447,10 +447,14 @@ export interface OpenChoreoClientApi {
 
   // === Component & Environment Info ===
 
-  /** Get component details (including UID and deletionTimestamp) */
+  /** Get component details (including UID, deletionTimestamp, and parameters) */
   getComponentDetails(
     entity: Entity,
-  ): Promise<{ uid?: string; deletionTimestamp?: string }>;
+  ): Promise<{
+    uid?: string;
+    deletionTimestamp?: string;
+    parameters?: Record<string, unknown>;
+  }>;
 
   /** Get project details (including UID and deletionTimestamp) */
   getProjectDetails(
@@ -499,6 +503,11 @@ export interface OpenChoreoClientApi {
     entity: Entity,
     traits: ComponentTrait[],
   ): Promise<ComponentTrait[]>;
+
+  /** Fetch the input parameter schema for a component type */
+  fetchComponentTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }>;
 
   /** Update component config (traits and/or parameters) in a single call */
   updateComponentConfig(

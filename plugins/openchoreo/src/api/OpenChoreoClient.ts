@@ -65,6 +65,8 @@ const API_ENDPOINTS = {
   COMPONENT: '/component',
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
+  COMPONENT_TYPE_SCHEMA: '/component-type-schema',
+  CLUSTER_COMPONENT_TYPE_SCHEMA: '/cluster-component-type-schema',
   COMPONENT_TRAITS: '/component-traits',
   COMPONENT_CONFIG: '/component-config',
   TRAITS: '/traits',
@@ -522,7 +524,11 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
 
   async getComponentDetails(
     entity: Entity,
-  ): Promise<{ uid?: string; deletionTimestamp?: string }> {
+  ): Promise<{
+    uid?: string;
+    deletionTimestamp?: string;
+    parameters?: Record<string, unknown>;
+  }> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch(API_ENDPOINTS.COMPONENT, {
@@ -686,6 +692,35 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: metadata.project,
         componentName: metadata.component,
         traits,
+      },
+    });
+  }
+
+  async fetchComponentTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    const metadata = extractEntityMetadata(entity);
+    const componentTypeName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE] || '';
+    const componentTypeKind =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND] ||
+      '';
+
+    // Extract the CT name from the annotation (format: "workloadType/ctName")
+    const ctName = componentTypeName.includes('/')
+      ? componentTypeName.split('/').pop()!
+      : componentTypeName;
+
+    if (componentTypeKind === 'ClusterComponentType') {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_COMPONENT_TYPE_SCHEMA, {
+        params: { cctName: ctName },
+      });
+    }
+
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_TYPE_SCHEMA, {
+      params: {
+        namespaceName: metadata.namespace,
+        ctName,
       },
     });
   }
