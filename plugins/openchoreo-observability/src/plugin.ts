@@ -92,3 +92,26 @@ export const ObservabilityProjectRuntimeLogs =
       mountPoint: rootRouteRef,
     }),
   );
+
+export const ObservabilityAlerts = openchoreoObservabilityPlugin.provide(
+  createRoutableExtension({
+    name: 'ObservabilityAlerts',
+    component: () =>
+      import('./components/Alerts/ObservabilityAlertsPage').then(
+        m => m.ObservabilityAlertsPage,
+      ),
+    mountPoint: rootRouteRef,
+  }),
+);
+
+export const ObservabilityProjectIncidents =
+  openchoreoObservabilityPlugin.provide(
+    createRoutableExtension({
+      name: 'ObservabilityProjectIncidents',
+      component: () =>
+        import('./components/Incidents/ObservabilityProjectIncidentsPage').then(
+          m => m.ObservabilityProjectIncidentsPage,
+        ),
+      mountPoint: rootRouteRef,
+    }),
+  );

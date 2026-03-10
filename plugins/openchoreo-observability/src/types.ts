@@ -120,3 +120,40 @@ export type RCAReportSummary =
   AIRCAAgentComponents['schemas']['RCAReportSummary'];
 export type RCAReportDetailed =
   AIRCAAgentComponents['schemas']['RCAReportDetailed'];
+
+// Alerts & Incidents shared types
+
+export interface AlertSummary {
+  timestamp?: string;
+  alertId: string;
+  alertValue?: string;
+  ruleName?: string;
+  ruleDescription?: string;
+  severity?: 'info' | 'warning' | 'critical';
+  sourceType?: 'log' | 'metric';
+  sourceQuery?: string;
+  sourceMetric?: string;
+  projectName?: string;
+  componentName?: string;
+  environmentName?: string;
+  namespaceName?: string;
+  notificationChannels?: string[];
+  incidentEnabled?: boolean;
+}
+
+export interface IncidentSummary {
+  incidentId: string;
+  alertId: string;
+  status: 'active' | 'acknowledged' | 'resolved';
+  description?: string;
+  notes?: string;
+  timestamp?: string;
+  triggeredAt?: string;
+  acknowledgedAt?: string;
+  resolvedAt?: string;
+  incidentTriggerAiRca?: boolean;
+  projectName?: string;
+  componentName?: string;
+  environmentName?: string;
+  namespaceName?: string;
+}
