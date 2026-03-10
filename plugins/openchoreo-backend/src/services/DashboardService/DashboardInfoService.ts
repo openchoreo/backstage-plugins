@@ -1,5 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 
 export interface DashboardMetrics {
   totalBindings: number;
@@ -40,13 +43,9 @@ export class DashboardInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch release bindings: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch release bindings');
 
-      const bindingsCount = data.items.length;
+      const bindingsCount = data!.items.length;
 
       this.logger.info(
         `Successfully fetched ${bindingsCount} release bindings for component: ${componentName}`,

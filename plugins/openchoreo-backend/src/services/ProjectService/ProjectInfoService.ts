@@ -1,5 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import type {
   ProjectResponse,
   DeploymentPipelineResponse,
@@ -43,16 +46,12 @@ export class ProjectInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch project: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch project');
 
       this.logger.debug(
         `Successfully fetched project details for: ${projectName}`,
       );
-      return transformProject(data);
+      return transformProject(data!);
     } catch (error) {
       this.logger.error(
         `Failed to fetch project details for ${projectName}: ${error}`,
@@ -88,13 +87,12 @@ export class ProjectInfoService {
         },
       );
 
-      if (projectError || !projectResponse.ok) {
-        throw new Error(
-          `Failed to fetch project: ${projectResponse.status} ${projectResponse.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data: project, error: projectError, response: projectResponse },
+        'fetch project',
+      );
 
-      const pipelineName = project.spec?.deploymentPipelineRef?.name;
+      const pipelineName = project!.spec?.deploymentPipelineRef?.name;
       if (!pipelineName) {
         throw new Error(
           `Project ${projectName} has no deployment pipeline reference`,
@@ -111,16 +109,12 @@ export class ProjectInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch deployment pipeline: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch deployment pipeline');
 
       this.logger.debug(
         `Successfully fetched deployment pipeline for project: ${projectName}`,
       );
-      return transformDeploymentPipeline(data);
+      return transformDeploymentPipeline(data!);
     } catch (error) {
       this.logger.error(
         `Failed to fetch deployment pipeline for ${projectName}: ${error}`,
@@ -161,11 +155,7 @@ export class ProjectInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to delete project: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ error, response }, 'delete project');
 
       this.logger.info(`Successfully deleted project: ${projectName}`);
     } catch (error) {

@@ -22,6 +22,10 @@ export interface UseBuildPermissionResult {
   triggerBuildDeniedTooltip: string;
   /** Tooltip message to show when trigger build permission is denied (empty string when allowed/loading) */
   viewBuildDeniedTooltip: string;
+  /** The view builds permission name identifier */
+  viewPermissionName: string;
+  /** The trigger build permission name identifier */
+  triggerPermissionName: string;
 }
 
 /**
@@ -72,5 +76,7 @@ export const useBuildPermission = (): UseBuildPermissionResult => {
     viewLoading,
     triggerBuildDeniedTooltip,
     viewBuildDeniedTooltip,
+    viewPermissionName: openchoreoComponentViewBuildsPermission.name,
+    triggerPermissionName: openchoreoComponentBuildPermission.name,
   };
 };

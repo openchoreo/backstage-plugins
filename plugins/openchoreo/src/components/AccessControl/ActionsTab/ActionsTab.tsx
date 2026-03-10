@@ -18,6 +18,8 @@ import ExpandMore from '@material-ui/icons/ExpandMore';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
 import { useActions } from '../hooks';
 import { useStyles } from './styles';
+import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import { isForbiddenError } from '../../../utils/errorUtils';
 
 interface ActionGroup {
   resource: string;
@@ -109,15 +111,12 @@ export const ActionsTab = () => {
   }
 
   if (error) {
-    // Check if it's a permission denied error (403)
-    const isPermissionDenied = error.message?.includes('403');
-    if (isPermissionDenied) {
+    if (isForbiddenError(error)) {
       return (
-        <Box className={classes.emptyState}>
-          <Typography variant="body1" color="textSecondary">
-            You do not have permission to view available actions.
-          </Typography>
-        </Box>
+        <ForbiddenState
+          message="You do not have permission to view available actions."
+          onRetry={fetchActions}
+        />
       );
     }
     return <ResponseErrorPanel error={error} />;

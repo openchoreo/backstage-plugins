@@ -16,6 +16,7 @@ import {
   FormHelperText,
   Box,
 } from '@material-ui/core';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 
 type SecretType = 'basic-auth' | 'ssh-auth';
 
@@ -133,9 +134,13 @@ export const CreateSecretDialog = ({
       // Close the dialog
       onClose();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to create git secret',
-      );
+      if (isForbiddenError(err)) {
+        setError(
+          'You do not have permission to create git secrets. Contact your administrator.',
+        );
+      } else {
+        setError(getErrorMessage(err));
+      }
     } finally {
       setLoading(false);
     }

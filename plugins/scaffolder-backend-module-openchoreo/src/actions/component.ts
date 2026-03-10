@@ -1,5 +1,8 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
@@ -430,13 +433,10 @@ export const createComponentAction = (
             body: componentResource as any,
           });
 
-        if (applyError || !applyResponse.ok) {
-          throw new Error(
-            `Failed to create component: ${applyResponse.status} ${
-              applyResponse.statusText
-            }. Error: ${JSON.stringify(applyError)}`,
-          );
-        }
+        assertApiResponse(
+          { data: undefined, error: applyError, response: applyResponse },
+          'create component',
+        );
 
         // Create Workload CR when there's workload data or when deploying from image.
         //

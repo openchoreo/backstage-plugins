@@ -14,6 +14,7 @@ import {
   Content,
   WarningPanel,
 } from '@backstage/core-components';
+import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { makeStyles } from '@material-ui/core/styles';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
@@ -61,8 +62,10 @@ export const GitSecretsContent = () => {
     secrets,
     loading: secretsLoading,
     error: secretsError,
+    isForbidden: secretsForbidden,
     createSecret,
     deleteSecret,
+    fetchSecrets,
   } = useGitSecrets(selectedNamespace);
 
   const handleNamespaceChange = (
@@ -131,14 +134,20 @@ export const GitSecretsContent = () => {
         </WarningPanel>
       )}
 
-      {secretsError && (
-        <WarningPanel severity="error" title="Failed to load git secrets">
-          <Typography>
-            {secretsError.message ||
-              'An error occurred while loading git secrets.'}
-          </Typography>
-        </WarningPanel>
-      )}
+      {secretsError &&
+        (secretsForbidden ? (
+          <ForbiddenState
+            message="You do not have permission to view git secrets."
+            onRetry={fetchSecrets}
+          />
+        ) : (
+          <WarningPanel severity="error" title="Failed to load git secrets">
+            <Typography>
+              {secretsError.message ||
+                'An error occurred while loading git secrets.'}
+            </Typography>
+          </WarningPanel>
+        ))}
 
       {/* Content */}
       {!selectedNamespace ? (
@@ -148,13 +157,15 @@ export const GitSecretsContent = () => {
           </Typography>
         </Box>
       ) : (
-        <SecretsTable
-          secrets={secrets}
-          loading={secretsLoading}
-          onDelete={handleDeleteSecret}
-          onCreateClick={() => setCreateDialogOpen(true)}
-          namespaceName={selectedNamespace}
-        />
+        !secretsForbidden && (
+          <SecretsTable
+            secrets={secrets}
+            loading={secretsLoading}
+            onDelete={handleDeleteSecret}
+            onCreateClick={() => setCreateDialogOpen(true)}
+            namespaceName={selectedNamespace}
+          />
+        )
       )}
 
       {/* Create Secret Dialog */}

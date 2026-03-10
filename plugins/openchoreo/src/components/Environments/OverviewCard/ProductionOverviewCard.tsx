@@ -17,7 +17,11 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import CloudOffIcon from '@material-ui/icons/CloudOff';
 import FileCopyOutlinedIcon from '@material-ui/icons/FileCopyOutlined';
 import { Card, StatusBadge } from '@openchoreo/backstage-design-system';
-import { formatRelativeTime } from '@openchoreo/backstage-plugin-react';
+import {
+  formatRelativeTime,
+  useEnvironmentReadPermission,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 import { useProductionStatus } from './useProductionStatus';
 import { useOverviewCardStyles } from './styles';
 import type {
@@ -192,12 +196,15 @@ export const ProductionOverviewCard = () => {
     deploymentStatus,
     loading,
     error,
+    isForbidden,
     refreshing,
     refresh,
   } = useProductionStatus();
+  const { canViewEnvironments, loading: permissionLoading } =
+    useEnvironmentReadPermission();
 
   // Loading state
-  if (loading) {
+  if (loading || permissionLoading) {
     return (
       <Card padding={16} className={classes.card}>
         <Box className={classes.cardHeader}>
@@ -205,6 +212,37 @@ export const ProductionOverviewCard = () => {
         </Box>
         <Box className={classes.content}>
           <Skeleton variant="rect" height={60} />
+        </Box>
+      </Card>
+    );
+  }
+
+  // Permission denied state
+  if (isForbidden || !canViewEnvironments) {
+    return (
+      <Card padding={16} className={classes.card}>
+        <Box className={classes.cardHeader}>
+          <Typography className={classes.cardTitle}>Production</Typography>
+        </Box>
+        <ForbiddenState
+          variant="compact"
+          message="You do not have permission to view deployment information."
+        />
+        <Box className={classes.actions}>
+          <Tooltip title="Retry">
+            <IconButton
+              size="small"
+              onClick={refresh}
+              disabled={refreshing}
+              aria-label="retry"
+            >
+              {refreshing ? (
+                <CircularProgress size={18} />
+              ) : (
+                <RefreshIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
         </Box>
       </Card>
     );

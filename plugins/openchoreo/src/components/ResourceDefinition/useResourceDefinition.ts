@@ -21,6 +21,8 @@ export interface UseResourceDefinitionResult {
   isLoading: boolean;
   /** Error message if loading failed */
   error: string | null;
+  /** Raw error object for type checking (e.g., isForbiddenError) */
+  rawError: Error | null;
   /** Refresh the definition from the API */
   refresh: () => Promise<void>;
   /** Save the updated definition */
@@ -47,6 +49,7 @@ export function useResourceDefinition({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rawError, setRawError] = useState<Error | null>(null);
 
   const kind = entity.kind;
   const clusterScoped = isClusterScopedKind(kind);
@@ -62,6 +65,7 @@ export function useResourceDefinition({
 
     setIsLoading(true);
     setError(null);
+    setRawError(null);
 
     try {
       const apiKind = mapKindToApiKind(kind);
@@ -78,6 +82,7 @@ export function useResourceDefinition({
           ? err.message
           : 'Failed to fetch resource definition';
       setError(message);
+      setRawError(err instanceof Error ? err : new Error(message));
       setDefinition(null);
     } finally {
       setIsLoading(false);
@@ -158,6 +163,7 @@ export function useResourceDefinition({
     definition,
     isLoading,
     error,
+    rawError,
     refresh: fetchDefinition,
     save,
     deleteResource,

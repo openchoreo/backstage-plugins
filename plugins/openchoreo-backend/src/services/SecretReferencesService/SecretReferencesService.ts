@@ -1,5 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import type { SecretReferenceResponse } from '@openchoreo/backstage-plugin-common';
 import { transformSecretReference } from '../transformers';
 
@@ -47,13 +50,9 @@ export class SecretReferencesService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch secret references: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch secret references');
 
-      const items = data.items.map(transformSecretReference);
+      const items = data!.items.map(transformSecretReference);
 
       this.logger.debug(
         `Successfully fetched ${items.length} secret references for namespace: ${namespaceName}`,

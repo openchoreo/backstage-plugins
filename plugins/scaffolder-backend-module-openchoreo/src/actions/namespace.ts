@@ -1,6 +1,7 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
 import {
   createOpenChoreoApiClient,
+  assertApiResponse,
   getName,
   getDisplayName,
   getDescription,
@@ -104,11 +105,7 @@ export const createNamespaceAction = (
           },
         );
 
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to create namespace: ${response.status} ${response.statusText}`,
-          );
-        }
+        assertApiResponse({ data, error, response }, 'create namespace');
 
         if (!data) {
           throw new Error('API request returned no data');

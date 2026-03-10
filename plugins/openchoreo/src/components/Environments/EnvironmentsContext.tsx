@@ -23,6 +23,14 @@ interface EnvironmentsContextValue {
   onAutoDeployChange: (enabled: boolean) => Promise<void>;
   /** Handler for completing a pending action (deploy/promote) */
   onPendingActionComplete: (action: PendingAction) => Promise<void>;
+  /** Whether the user has permission to view environments */
+  canViewEnvironments: boolean;
+  /** Whether the environment read permission check is still loading */
+  environmentReadPermissionLoading: boolean;
+  /** Whether the user has permission to view release bindings */
+  canViewBindings: boolean;
+  /** Whether the release binding permission check is still loading */
+  bindingsPermissionLoading: boolean;
 }
 
 const EnvironmentsContext = createContext<EnvironmentsContextValue | null>(

@@ -1,6 +1,7 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
+  assertApiResponse,
   fetchAllPages,
 } from '@openchoreo/openchoreo-client-node';
 import type {
@@ -66,11 +67,7 @@ export class TraitInfoService {
             },
           })
           .then(res => {
-            if (res.error) {
-              throw new Error(
-                `Failed to fetch traits: ${res.response.status} ${res.response.statusText}`,
-              );
-            }
+            assertApiResponse(res, 'fetch traits');
             return res.data;
           }),
       );
@@ -126,11 +123,7 @@ export class TraitInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch trait schema: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch trait schema');
 
       this.logger.debug(`Successfully fetched schema for trait: ${traitName}`);
 
@@ -174,14 +167,10 @@ export class TraitInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch component');
 
       // Extract traits from component spec — shape matches ComponentTrait
-      const traits = (data.spec?.traits ?? []) as ComponentTrait[];
+      const traits = (data!.spec?.traits ?? []) as ComponentTrait[];
 
       this.logger.debug(
         `Successfully fetched ${traits.length} traits for component: ${componentName}`,
@@ -227,25 +216,24 @@ export class TraitInfoService {
         },
       );
 
-      if (getError || !getResponse.ok) {
-        throw new Error(
-          `Failed to fetch component: ${getResponse.status} ${getResponse.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data: component, error: getError, response: getResponse },
+        'fetch component',
+      );
 
-      if (!component.spec?.owner) {
+      if (!component!.spec?.owner) {
         throw new Error(`Component ${componentName} is missing spec.owner`);
       }
 
       // Update the component with the new traits
       const updatedComponent = {
-        metadata: component.metadata,
+        metadata: component!.metadata,
         spec: {
-          ...component.spec,
-          owner: component.spec.owner,
+          ...component!.spec,
+          owner: component!.spec.owner,
           traits: traits.traits,
         },
-      } as typeof component;
+      } as NonNullable<typeof component>;
 
       const { data, error, response } = await client.PUT(
         '/api/v1/namespaces/{namespaceName}/components/{componentName}',
@@ -257,14 +245,10 @@ export class TraitInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to update component traits: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'update component traits');
 
       // Extract updated traits from response
-      const updatedTraits = (data.spec?.traits ?? []) as ComponentTrait[];
+      const updatedTraits = (data!.spec?.traits ?? []) as ComponentTrait[];
 
       this.logger.debug(
         `Successfully updated traits for component: ${componentName}`,

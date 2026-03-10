@@ -1,5 +1,8 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import {
@@ -134,11 +137,7 @@ export const createProjectAction = (
           },
         );
 
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to create project: ${response.status} ${response.statusText}`,
-          );
-        }
+        assertApiResponse({ data, error, response }, 'create project');
 
         ctx.logger.debug(
           `Project created successfully: ${JSON.stringify(data)}`,
@@ -194,7 +193,9 @@ export const createProjectAction = (
         ctx.output('entityRef', `system:${namespaceName}/${projectName}`);
       } catch (error) {
         ctx.logger.error(`Error creating project: ${error}`);
-        throw new Error(`Failed to create project: ${error}`);
+        throw error instanceof Error
+          ? error
+          : new Error(`Failed to create project: ${String(error)}`);
       }
     },
   });

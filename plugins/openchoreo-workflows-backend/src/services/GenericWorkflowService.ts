@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
+  assertApiResponse,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
 import { CHOREO_LABELS } from '@openchoreo/backstage-plugin-common';
@@ -123,11 +124,7 @@ export class GenericWorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflows: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflows');
 
       // Map K8s-style Workflow to the local flat Workflow interface
       const items: Workflow[] = ((data as any)?.items || []).map((wf: any) => {
@@ -191,11 +188,7 @@ export class GenericWorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow schema: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow schema');
 
       this.logger.debug(
         `Successfully fetched schema for workflow: ${workflowName}`,
@@ -242,11 +235,7 @@ export class GenericWorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow runs: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow runs');
 
       const rawItems = ((data as any)?.items || []) as any[];
 
@@ -328,15 +317,7 @@ export class GenericWorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data) {
-        throw new Error('No workflow run data returned');
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow run');
 
       this.logger.debug(`Successfully fetched workflow run: ${runName}`);
 
@@ -392,15 +373,7 @@ export class GenericWorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to create workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data) {
-        throw new Error('No workflow run data returned');
-      }
+      assertApiResponse({ data, error, response }, 'create workflow run');
 
       this.logger.debug(
         `Successfully created workflow run: ${(data as any).metadata?.name}`,
@@ -595,15 +568,7 @@ export class GenericWorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow run status: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data) {
-        throw new Error('No workflow run status data returned');
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow run status');
 
       this.logger.debug(
         `Successfully fetched status for workflow run: ${runName}`,
@@ -652,11 +617,7 @@ export class GenericWorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow run events: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow run events');
 
       if (!Array.isArray(data)) {
         return [];

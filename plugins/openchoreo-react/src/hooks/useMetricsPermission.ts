@@ -13,6 +13,8 @@ export interface UseMetricsPermissionResult {
   loading: boolean;
   /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
   deniedTooltip: string;
+  /** The permission name identifier */
+  permissionName: string;
 }
 
 /**
@@ -46,5 +48,10 @@ export const useMetricsPermission = (): UseMetricsPermissionResult => {
       ? 'You do not have permission to view metrics of this component.'
       : '';
 
-  return { canViewMetrics: allowed, loading, deniedTooltip };
+  return {
+    canViewMetrics: allowed,
+    loading,
+    deniedTooltip,
+    permissionName: openchoreoMetricsViewPermission.name,
+  };
 };

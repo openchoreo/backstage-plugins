@@ -1,4 +1,5 @@
 import { DiscoveryApi, FetchApi } from '@backstage/core-plugin-api';
+import { ResponseError } from '@backstage/errors';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
@@ -185,8 +186,7 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed (${response.status}): ${errorText}`);
+      throw await ResponseError.fromResponse(response);
     }
 
     // Handle 204 No Content responses (e.g., successful deletes)

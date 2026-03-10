@@ -9,7 +9,7 @@ import {
   Typography,
   Box,
 } from '@material-ui/core';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { Progress } from '@backstage/core-components';
 import { MetricsFilters } from './MetricsFilters';
 import { MetricGraphByComponent } from './MetricGraphByComponent';
 import { MetricsActions } from './MetricsActions';
@@ -29,7 +29,10 @@ import {
 } from '../../types';
 import { useObservabilityMetricsPageStyles } from './styles';
 import { Alert } from '@material-ui/lab';
-import { useMetricsPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useMetricsPermission,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 
 const ObservabilityMetricsContent = () => {
   const classes = useObservabilityMetricsPageStyles();
@@ -214,6 +217,7 @@ export const ObservabilityMetricsPage = () => {
     canViewMetrics,
     loading: permissionLoading,
     deniedTooltip,
+    permissionName,
   } = useMetricsPermission();
 
   if (permissionLoading) {
@@ -222,15 +226,10 @@ export const ObservabilityMetricsPage = () => {
 
   if (!canViewMetrics) {
     return (
-      <EmptyState
-        missing="info"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
       />
     );
   }

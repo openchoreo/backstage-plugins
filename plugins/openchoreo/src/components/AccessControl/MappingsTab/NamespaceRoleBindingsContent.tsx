@@ -34,7 +34,10 @@ import SearchIcon from '@material-ui/icons/Search';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import ClearIcon from '@material-ui/icons/Clear';
 import { Progress, ResponseErrorPanel } from '@backstage/core-components';
-import { useRoleMappingPermissions } from '@openchoreo/backstage-plugin-react';
+import {
+  useRoleMappingPermissions,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 import {
   useNamespaceRoleBindings,
   useNamespaceRoles,
@@ -43,6 +46,7 @@ import {
   NamespaceRoleBindingRequest,
 } from '../hooks';
 import { useNotification } from '../../../hooks';
+import { isForbiddenError } from '../../../utils/errorUtils';
 import { NotificationBanner } from '../../Environments/components';
 import { SCOPE_NAMESPACE } from '../constants';
 import { MappingDialog } from './MappingDialog';
@@ -248,11 +252,17 @@ export const NamespaceRoleBindingsContent = ({
       setDeleteConfirmOpen(false);
       setBindingToDelete(null);
     } catch (err) {
-      notification.showError(
-        `Failed to delete binding: ${
-          err instanceof Error ? err.message : 'Unknown error'
-        }`,
-      );
+      if (isForbiddenError(err)) {
+        notification.showError(
+          'You do not have permission to delete this binding. Contact your administrator.',
+        );
+      } else {
+        notification.showError(
+          `Failed to delete binding: ${
+            err instanceof Error ? err.message : 'Unknown error'
+          }`,
+        );
+      }
     }
   };
 
@@ -339,7 +349,15 @@ export const NamespaceRoleBindingsContent = ({
           {!loading &&
             !namespaceRolesLoading &&
             !clusterRolesLoading &&
-            error && <ResponseErrorPanel error={error} />}
+            error &&
+            (isForbiddenError(error) ? (
+              <ForbiddenState
+                message="You do not have permission to view namespace role bindings."
+                onRetry={() => fetchBindings()}
+              />
+            ) : (
+              <ResponseErrorPanel error={error} />
+            ))}
           {!loading &&
             !namespaceRolesLoading &&
             !clusterRolesLoading &&

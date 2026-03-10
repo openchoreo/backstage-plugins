@@ -68,6 +68,13 @@ export type { components as OpenChoreoComponents } from './generated/openchoreo/
 export type { components as ObservabilityComponents } from './generated/observability/types';
 export type { components as AIRCAAgentComponents } from './generated/ai-rca-agent/types';
 
+// Export error utilities
+export {
+  assertApiResponse,
+  requireApiResponse,
+  extractErrorMessage,
+} from './errors';
+
 // Export version
 export { API_VERSION } from './version';
 

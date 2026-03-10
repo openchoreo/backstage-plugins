@@ -13,6 +13,8 @@ export interface UseTracesPermissionResult {
   loading: boolean;
   /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
   deniedTooltip: string;
+  /** The permission name identifier */
+  permissionName: string;
 }
 
 export const useTracesPermission = (): UseTracesPermissionResult => {
@@ -25,5 +27,10 @@ export const useTracesPermission = (): UseTracesPermissionResult => {
   const deniedTooltip =
     !allowed && !loading ? 'You do not have permission to view traces.' : '';
 
-  return { canViewTraces: allowed, loading, deniedTooltip };
+  return {
+    canViewTraces: allowed,
+    loading,
+    deniedTooltip,
+    permissionName: openchoreoTracesViewPermission.name,
+  };
 };

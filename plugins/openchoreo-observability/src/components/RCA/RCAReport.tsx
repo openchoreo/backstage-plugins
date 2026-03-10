@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography } from '@material-ui/core';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
-import { useRcaPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useRcaPermission,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import {
   useRCAReport,
@@ -108,6 +111,7 @@ export const RCAReport = () => {
     canViewRca,
     loading: permissionLoading,
     deniedTooltip,
+    permissionName,
   } = useRcaPermission();
 
   if (permissionLoading) {
@@ -116,15 +120,10 @@ export const RCAReport = () => {
 
   if (!canViewRca) {
     return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
       />
     );
   }

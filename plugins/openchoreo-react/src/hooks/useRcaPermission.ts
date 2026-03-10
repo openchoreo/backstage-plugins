@@ -13,6 +13,8 @@ export interface UseRcaPermissionResult {
   loading: boolean;
   /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
   deniedTooltip: string;
+  /** The permission name identifier */
+  permissionName: string;
 }
 
 export const useRcaPermission = (): UseRcaPermissionResult => {
@@ -27,5 +29,10 @@ export const useRcaPermission = (): UseRcaPermissionResult => {
       ? 'You do not have permission to view RCA reports.'
       : '';
 
-  return { canViewRca: allowed, loading, deniedTooltip };
+  return {
+    canViewRca: allowed,
+    loading,
+    deniedTooltip,
+    permissionName: openchoreoRcaViewPermission.name,
+  };
 };

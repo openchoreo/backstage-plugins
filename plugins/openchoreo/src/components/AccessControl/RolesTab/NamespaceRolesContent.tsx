@@ -11,7 +11,11 @@ import { makeStyles } from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/Add';
 import RefreshIcon from '@material-ui/icons/Refresh';
 import { Progress } from '@backstage/core-components';
-import { useRolePermissions } from '@openchoreo/backstage-plugin-react';
+import {
+  useRolePermissions,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
+import { isForbiddenError } from '../../../utils/errorUtils';
 import { useNamespaceRoles, NamespaceRole } from '../hooks';
 import type { RoleInput } from './RoleDialog';
 import { useNotification } from '../../../hooks';
@@ -145,11 +149,7 @@ export const NamespaceRolesContent = ({
 
   if (!canView) {
     return (
-      <Box className={classes.emptyState}>
-        <Typography variant="body1" color="textSecondary">
-          You do not have permission to view namespace roles.
-        </Typography>
-      </Box>
+      <ForbiddenState message="You do not have permission to view namespace roles." />
     );
   }
 
@@ -184,10 +184,13 @@ export const NamespaceRolesContent = ({
     </>
   );
 
+  const hasForbiddenError = !loading && error && isForbiddenError(error);
+
   return (
     <Box>
       <NotificationBanner notification={notification.notification} />
-      {actionsContainerRef.current &&
+      {!hasForbiddenError &&
+        actionsContainerRef.current &&
         createPortal(actionButtons, actionsContainerRef.current)}
 
       {!selectedNamespace ? (
@@ -199,13 +202,20 @@ export const NamespaceRolesContent = ({
       ) : (
         <>
           {loading && <Progress />}
-          {!loading && error && (
-            <Box className={classes.emptyState}>
-              <Typography variant="body1" color="textSecondary">
-                Failed to load namespace roles.
-              </Typography>
-            </Box>
-          )}
+          {!loading &&
+            error &&
+            (isForbiddenError(error) ? (
+              <ForbiddenState
+                message="You do not have permission to view namespace roles."
+                onRetry={fetchRoles}
+              />
+            ) : (
+              <Box className={classes.emptyState}>
+                <Typography variant="body1" color="textSecondary">
+                  Failed to load namespace roles.
+                </Typography>
+              </Box>
+            ))}
           {!loading && !error && (
             <RolesTable
               roles={roles}

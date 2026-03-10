@@ -1,5 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import type { ComponentResponse } from '@openchoreo/backstage-plugin-common';
 import { transformComponent } from '../transformers';
 
@@ -49,16 +52,12 @@ export class ComponentInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch component');
 
       this.logger.debug(
         `Successfully fetched component details for: ${componentName}`,
       );
-      return transformComponent(data);
+      return transformComponent(data!);
     } catch (error) {
       this.logger.error(
         `Failed to fetch component details for ${componentName}: ${error}`,
@@ -106,16 +105,15 @@ export class ComponentInfoService {
         },
       );
 
-      if (getError || !getResponse.ok) {
-        throw new Error(
-          `Failed to fetch component for patch: ${getResponse.status} ${getResponse.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data: existing, error: getError, response: getResponse },
+        'fetch component for patch',
+      );
 
       const updated = {
-        ...existing,
+        ...existing!,
         spec: {
-          ...existing.spec!,
+          ...existing!.spec!,
           autoDeploy,
         },
       };
@@ -128,14 +126,10 @@ export class ComponentInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to patch component: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'patch component');
 
       this.logger.debug(`Successfully patched component: ${componentName}`);
-      return transformComponent(data);
+      return transformComponent(data!);
     } catch (error) {
       this.logger.error(`Failed to patch component ${componentName}: ${error}`);
       throw error;
@@ -177,11 +171,7 @@ export class ComponentInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to delete component: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ error, response }, 'delete component');
 
       this.logger.info(`Successfully deleted component: ${componentName}`);
     } catch (error) {

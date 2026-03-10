@@ -13,6 +13,8 @@ export interface UseLogsPermissionResult {
   loading: boolean;
   /** Tooltip message to show when permission is denied (empty string when allowed/loading) */
   deniedTooltip: string;
+  /** The permission name identifier */
+  permissionName: string;
 }
 
 /**
@@ -47,5 +49,10 @@ export const useLogsPermission = (): UseLogsPermissionResult => {
       ? `You do not have permission to view logs of this ${scope}.`
       : '';
 
-  return { canViewLogs: allowed, loading, deniedTooltip };
+  return {
+    canViewLogs: allowed,
+    loading,
+    deniedTooltip,
+    permissionName: openchoreoLogsViewPermission.name,
+  };
 };
