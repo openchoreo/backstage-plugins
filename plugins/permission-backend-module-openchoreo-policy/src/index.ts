@@ -26,7 +26,7 @@ export type {
 // Re-export permission rules and condition exports for integration
 export {
   matchesCapability,
-  openchoreoComponentResourceRef,
+  openchoreoNamespacedResourceRef,
   openchoreoPermissionRules,
   openchoreoConditions,
   createOpenChoreoConditionalDecision,

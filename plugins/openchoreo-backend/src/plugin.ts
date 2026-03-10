@@ -24,7 +24,7 @@ import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
 import {
   matchesCapability,
-  openchoreoComponentResourceRef,
+  openchoreoNamespacedResourceRef,
 } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
 import { annotationStoreRef } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
@@ -130,15 +130,15 @@ export const choreoPlugin = createBackendPlugin({
 
         // Register OpenChoreo component permissions with the permissions registry
         // This enables CONDITIONAL permission checks against catalog entities
-        const componentPermissions = openchoreoPermissions.filter(
+        const namespacedResourcePermissions = openchoreoPermissions.filter(
           p =>
             'resourceType' in p &&
-            p.resourceType === openchoreoComponentResourceRef.resourceType,
+            p.resourceType === openchoreoNamespacedResourceRef.resourceType,
         );
 
         permissionsRegistry.addResourceType({
-          resourceRef: openchoreoComponentResourceRef,
-          permissions: componentPermissions,
+          resourceRef: openchoreoNamespacedResourceRef,
+          permissions: namespacedResourcePermissions,
           rules: [matchesCapability],
           getResources: async (resourceRefs: string[]) => {
             try {

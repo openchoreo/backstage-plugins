@@ -19,7 +19,7 @@ export {
 
 // Permissions
 export {
-  OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
   OPENCHOREO_RESOURCE_TYPE_PROJECT,
   openchoreoComponentCreatePermission,
   openchoreoComponentReadPermission,

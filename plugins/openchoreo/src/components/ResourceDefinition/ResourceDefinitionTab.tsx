@@ -81,7 +81,7 @@ export function ResourceDefinitionTab() {
     canUpdate,
     canDelete,
     loading: permissionsLoading,
-  } = useResourceDefinitionPermission(entity.kind);
+  } = useResourceDefinitionPermission();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
