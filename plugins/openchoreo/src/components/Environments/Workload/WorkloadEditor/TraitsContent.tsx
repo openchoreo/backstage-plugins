@@ -91,9 +91,7 @@ export const TraitsContent = ({
         textAlign="center"
       >
         <Alert severity="error" style={{ maxWidth: 420, marginBottom: 16 }}>
-          Failed to load traits attached to this component. You can still
-          proceed, but trait configuration is unavailable until a successful
-          reload.
+          Failed to load traits attached to this component.
         </Alert>
         {onRetry && (
           <Button
