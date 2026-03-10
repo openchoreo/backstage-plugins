@@ -22,6 +22,8 @@ import {
   ErrorState,
   ForbiddenState,
   UnsavedChangesDialog,
+  NotificationBanner,
+  useResourceDefinitionPermission,
 } from '@openchoreo/backstage-plugin-react';
 import { useResourceDefinition } from './useResourceDefinition';
 import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
@@ -75,6 +77,11 @@ export function ResourceDefinitionTab() {
   const { entity } = useEntity();
   const navigate = useNavigate();
   const navigation = useContext(NavigationContext);
+  const {
+    canUpdate,
+    canDelete,
+    loading: permissionsLoading,
+  } = useResourceDefinitionPermission(entity.kind);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -276,6 +283,11 @@ export function ResourceDefinitionTab() {
     );
   }
 
+  // Permission loading state
+  if (permissionsLoading) {
+    return <LoadingState message="Checking permissions..." />;
+  }
+
   // Loading state
   if (isLoading) {
     return <LoadingState message="Loading resource definition..." />;
@@ -324,16 +336,25 @@ export function ResourceDefinitionTab() {
         </Typography>
       </Box>
 
+      {!canUpdate && (
+        <NotificationBanner
+          variant="info"
+          showIcon
+          message="You have read-only access to this resource definition. Contact your administrator for edit permissions."
+        />
+      )}
+
       <Box className={classes.editorContainer}>
         <YamlEditor
           content={yamlEditor.content}
           onChange={yamlEditor.setContent}
           onSave={yamlEditor.handleSave}
           onDiscard={yamlEditor.handleDiscard}
-          onDelete={() => setDeleteDialogOpen(true)}
+          onDelete={canDelete ? () => setDeleteDialogOpen(true) : undefined}
           errorText={editorError}
           isDirty={yamlEditor.isDirty}
           isSaving={isSaving}
+          readOnly={!canUpdate}
         />
       </Box>
 
