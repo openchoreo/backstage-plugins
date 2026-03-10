@@ -144,24 +144,50 @@ export class EnvironmentInfoService implements EnvironmentService {
         'bindings',
       );
 
-      // Fetch deployment pipelines filtered by project
+      // Fetch project-specific deployment pipeline
       const pipelinePromise = createTimedPromise(
         (async () => {
-          const { data, error, response } = await client.GET(
-            '/api/v1/namespaces/{namespaceName}/deploymentpipelines',
+          // First, fetch the project to get its pipeline reference
+          const {
+            data: project,
+            error: projectError,
+            response: projectResponse,
+          } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/projects/{projectName}',
             {
               params: {
-                path: { namespaceName: request.namespaceName },
-                query: {},
+                path: {
+                  namespaceName: request.namespaceName,
+                  projectName: request.projectName,
+                },
+              },
+            },
+          );
+          if (
+            projectError ||
+            !projectResponse.ok ||
+            !project?.spec?.deploymentPipelineRef?.name
+          ) {
+            return null;
+          }
+
+          // Then fetch the specific deployment pipeline by name
+          const pipelineName = project.spec.deploymentPipelineRef.name;
+          const { data, error, response } = await client.GET(
+            '/api/v1/namespaces/{namespaceName}/deploymentpipelines/{deploymentPipelineName}',
+            {
+              params: {
+                path: {
+                  namespaceName: request.namespaceName,
+                  deploymentPipelineName: pipelineName,
+                },
               },
             },
           );
           if (error || !response.ok) {
             return null;
           }
-          // Take the first pipeline for this project
-          const pipeline = data.items?.[0];
-          return pipeline ? transformDeploymentPipeline(pipeline) : null;
+          return transformDeploymentPipeline(data!);
         })(),
         'pipeline',
       );
