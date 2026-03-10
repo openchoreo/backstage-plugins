@@ -5,7 +5,7 @@ import {
 } from '@backstage/plugin-permission-node';
 import { Entity } from '@backstage/catalog-model';
 import {
-  OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
   CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
 
@@ -13,12 +13,12 @@ import {
  * Permission resource reference for OpenChoreo component resources.
  * Used for resource-based permission checks on catalog entities.
  */
-export const openchoreoComponentResourceRef = createPermissionResourceRef<
+export const openchoreoNamespaceResourceRef = createPermissionResourceRef<
   Entity,
   {}
 >().with({
   pluginId: 'openchoreo',
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -149,7 +149,7 @@ export const matchesCapability = createPermissionRule({
   name: 'MATCHES_CAPABILITY',
   description:
     'Allow if user has OpenChoreo capability for this resource scope',
-  resourceRef: openchoreoComponentResourceRef,
+  resourceRef: openchoreoNamespaceResourceRef,
   paramsSchema,
   apply: (entity: Entity, params: MatchesCapabilityParams) => {
     const { allowedPaths, deniedPaths } = params;

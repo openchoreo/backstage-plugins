@@ -1,13 +1,13 @@
 import { createConditionExports } from '@backstage/plugin-permission-node';
 import {
   matchesCapability,
-  openchoreoComponentResourceRef,
+  openchoreoNamespaceResourceRef,
 } from './matchesCapability';
 import { matchesCatalogEntityCapability } from './matchesCatalogEntityCapability';
 
 export {
   matchesCapability,
-  openchoreoComponentResourceRef,
+  openchoreoNamespaceResourceRef,
 } from './matchesCapability';
 export type { MatchesCapabilityParams } from './matchesCapability';
 
@@ -36,7 +36,7 @@ export const openchoreoСatalogPermissionRules = {
  * Provides helper functions for creating conditional decisions.
  */
 const { conditions, createConditionalDecision } = createConditionExports({
-  resourceRef: openchoreoComponentResourceRef,
+  resourceRef: openchoreoNamespaceResourceRef,
   rules: openchoreoPermissionRules,
 });
 

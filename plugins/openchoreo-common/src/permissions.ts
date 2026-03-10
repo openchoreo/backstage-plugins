@@ -4,7 +4,8 @@ import { createPermission } from '@backstage/plugin-permission-common';
  * Resource type identifiers for OpenChoreo entities.
  * Used for resource-based permission checks.
  */
-export const OPENCHOREO_RESOURCE_TYPE_COMPONENT = 'openchoreo-component';
+export const OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE =
+  'openchoreo-namespace-resource';
 export const OPENCHOREO_RESOURCE_TYPE_PROJECT = 'openchoreo-project';
 
 /**
@@ -23,7 +24,7 @@ export const openchoreoComponentCreatePermission = createPermission({
 export const openchoreoComponentReadPermission = createPermission({
   name: 'openchoreo.component.read',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -33,7 +34,7 @@ export const openchoreoComponentReadPermission = createPermission({
 export const openchoreoComponentBuildPermission = createPermission({
   name: 'openchoreo.component.build',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -43,7 +44,7 @@ export const openchoreoComponentBuildPermission = createPermission({
 export const openchoreoComponentViewBuildsPermission = createPermission({
   name: 'openchoreo.component.viewbuilds',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -53,7 +54,7 @@ export const openchoreoComponentViewBuildsPermission = createPermission({
 export const openchoreoComponentDeployPermission = createPermission({
   name: 'openchoreo.component.deploy',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -63,7 +64,7 @@ export const openchoreoComponentDeployPermission = createPermission({
 export const openchoreoComponentUpdatePermission = createPermission({
   name: 'openchoreo.component.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -170,164 +171,182 @@ export const openchoreoComponentWorkflowCreatePermission = createPermission({
 
 /**
  * Permission to update a component type.
- * Org-level permission (no resource context required).
+ * Resource-based: requires the specific entity context.
  */
 export const openchoreoComponentTypeUpdatePermission = createPermission({
   name: 'openchoreo.componenttype.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete a component type.
- * Org-level permission (no resource context required).
+ * Resource-based: requires the specific entity context.
  */
 export const openchoreoComponentTypeDeletePermission = createPermission({
   name: 'openchoreo.componenttype.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update a trait.
- * Org-level permission (no resource context required).
+ * Resource-based: requires the specific entity context.
  */
 export const openchoreoTraitUpdatePermission = createPermission({
   name: 'openchoreo.trait.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete a trait.
- * Org-level permission (no resource context required).
+ * Resource-based: requires the specific entity context.
  */
 export const openchoreoTraitDeletePermission = createPermission({
   name: 'openchoreo.trait.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update a workflow.
- * Org-level permission (no resource context required).
+ * Resource-based: requires the specific entity context.
  */
 export const openchoreoWorkflowUpdatePermission = createPermission({
   name: 'openchoreo.workflow.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete a workflow.
- * Org-level permission (no resource context required).
+ * Resource-based: requires the specific entity context.
  */
 export const openchoreoWorkflowDeletePermission = createPermission({
   name: 'openchoreo.workflow.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update a component workflow.
- * Org-level permission (no resource context required).
+ * Resource-based: requires the specific entity context.
  */
 export const openchoreoComponentWorkflowUpdatePermission = createPermission({
   name: 'openchoreo.componentworkflow.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete a component workflow.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoComponentWorkflowDeletePermission = createPermission({
   name: 'openchoreo.componentworkflow.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update an environment.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoEnvironmentUpdatePermission = createPermission({
   name: 'openchoreo.environment.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete an environment.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoEnvironmentDeletePermission = createPermission({
   name: 'openchoreo.environment.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update a dataplane.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoDataplaneUpdatePermission = createPermission({
   name: 'openchoreo.dataplane.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete a dataplane.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoDataplaneDeletePermission = createPermission({
   name: 'openchoreo.dataplane.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update a buildplane.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoBuildplaneUpdatePermission = createPermission({
   name: 'openchoreo.buildplane.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete a buildplane.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoBuildplaneDeletePermission = createPermission({
   name: 'openchoreo.buildplane.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update an observability plane.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoObservabilityplaneUpdatePermission = createPermission({
   name: 'openchoreo.observabilityplane.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete an observability plane.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoObservabilityplaneDeletePermission = createPermission({
   name: 'openchoreo.observabilityplane.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to update a deployment pipeline.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoDeploymentpipelineUpdatePermission = createPermission({
   name: 'openchoreo.deploymentpipeline.update',
   attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
  * Permission to delete a deployment pipeline.
- * Org-level permission (no resource context required).
+ * Resource-based: requires entity context.
  */
 export const openchoreoDeploymentpipelineDeletePermission = createPermission({
   name: 'openchoreo.deploymentpipeline.delete',
   attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -546,7 +565,7 @@ export const openchoreoRoleMappingDeletePermission = createPermission({
 export const openchoreoLogsViewPermission = createPermission({
   name: 'openchoreo.logs.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -556,7 +575,7 @@ export const openchoreoLogsViewPermission = createPermission({
 export const openchoreoMetricsViewPermission = createPermission({
   name: 'openchoreo.metrics.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**
@@ -586,7 +605,7 @@ export const openchoreoRcaViewPermission = createPermission({
 export const openchoreoTraitsViewPermission = createPermission({
   name: 'openchoreo.traits.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
 });
 
 /**

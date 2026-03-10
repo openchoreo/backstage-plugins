@@ -24,7 +24,7 @@ import { openChoreoTokenServiceRef } from '@openchoreo/openchoreo-auth';
 import { openchoreoPermissions } from '@openchoreo/backstage-plugin-common';
 import {
   matchesCapability,
-  openchoreoComponentResourceRef,
+  openchoreoNamespaceResourceRef,
 } from '@openchoreo/backstage-plugin-permission-backend-module-openchoreo-policy';
 import { annotationStoreRef } from '@openchoreo/backstage-plugin-catalog-backend-module';
 
@@ -133,11 +133,11 @@ export const choreoPlugin = createBackendPlugin({
         const componentPermissions = openchoreoPermissions.filter(
           p =>
             'resourceType' in p &&
-            p.resourceType === openchoreoComponentResourceRef.resourceType,
+            p.resourceType === openchoreoNamespaceResourceRef.resourceType,
         );
 
         permissionsRegistry.addResourceType({
-          resourceRef: openchoreoComponentResourceRef,
+          resourceRef: openchoreoNamespaceResourceRef,
           permissions: componentPermissions,
           rules: [matchesCapability],
           getResources: async (resourceRefs: string[]) => {
