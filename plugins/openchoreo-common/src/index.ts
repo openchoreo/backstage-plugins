@@ -82,6 +82,8 @@ export {
   openchoreoClusterBuildplaneDeletePermission,
   openchoreoClusterObservabilityplaneUpdatePermission,
   openchoreoClusterObservabilityplaneDeletePermission,
+  openchoreoClusterWorkflowUpdatePermission,
+  openchoreoClusterWorkflowDeletePermission,
   openchoreoPermissions,
   OPENCHOREO_PERMISSION_TO_ACTION,
   CATALOG_PERMISSION_TO_ACTION,

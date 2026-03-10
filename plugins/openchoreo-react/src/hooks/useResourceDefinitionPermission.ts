@@ -29,6 +29,8 @@ import {
   openchoreoClusterBuildplaneDeletePermission,
   openchoreoClusterObservabilityplaneUpdatePermission,
   openchoreoClusterObservabilityplaneDeletePermission,
+  openchoreoClusterWorkflowUpdatePermission,
+  openchoreoClusterWorkflowDeletePermission,
 } from '@openchoreo/backstage-plugin-common';
 
 /**
@@ -109,6 +111,10 @@ const KIND_TO_PERMISSIONS: Record<
   clusterobservabilityplane: {
     update: openchoreoClusterObservabilityplaneUpdatePermission,
     delete: openchoreoClusterObservabilityplaneDeletePermission,
+  },
+  clusterworkflow: {
+    update: openchoreoClusterWorkflowUpdatePermission,
+    delete: openchoreoClusterWorkflowDeletePermission,
   },
 };
 

@@ -423,6 +423,24 @@ export const openchoreoClusterObservabilityplaneDeletePermission =
   });
 
 /**
+ * Permission to update a cluster workflow.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterWorkflowUpdatePermission = createPermission({
+  name: 'openchoreo.clusterworkflow.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster workflow.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterWorkflowDeletePermission = createPermission({
+  name: 'openchoreo.clusterworkflow.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
  * Permission to create a new component release.
  * Requires component context.
  */
@@ -638,6 +656,8 @@ export const openchoreoPermissions = [
   openchoreoClusterBuildplaneDeletePermission,
   openchoreoClusterObservabilityplaneUpdatePermission,
   openchoreoClusterObservabilityplaneDeletePermission,
+  openchoreoClusterWorkflowUpdatePermission,
+  openchoreoClusterWorkflowDeletePermission,
 ];
 
 /**
@@ -710,6 +730,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
     'clusterobservabilityplane:update',
   'openchoreo.clusterobservabilityplane.delete':
     'clusterobservabilityplane:delete',
+  'openchoreo.clusterworkflow.update': 'clusterworkflow:update',
+  'openchoreo.clusterworkflow.delete': 'clusterworkflow:delete',
 };
 
 /**
