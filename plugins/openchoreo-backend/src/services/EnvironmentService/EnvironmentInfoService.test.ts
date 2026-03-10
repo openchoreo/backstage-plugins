@@ -114,6 +114,16 @@ const k8sReleaseBinding = {
   },
 };
 
+const k8sProject = {
+  metadata: { name: 'my-project', namespace: 'test-ns' },
+  spec: { deploymentPipelineRef: 'default-pipeline' },
+};
+
+const k8sProjectNoPipeline = {
+  metadata: { name: 'my-project', namespace: 'test-ns' },
+  spec: {},
+};
+
 const k8sPipeline = {
   metadata: {
     name: 'default-pipeline',
@@ -176,8 +186,10 @@ describe('EnvironmentInfoService', () => {
       );
       // 2. release bindings
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
-      // 3. deployment pipelines
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
+      // 3. project (to get deploymentPipelineRef)
+      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      // 4. deployment pipeline by name
+      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -203,8 +215,10 @@ describe('EnvironmentInfoService', () => {
       );
       // bindings fail
       mockGET.mockResolvedValueOnce(errorResponse());
-      // pipeline
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
+      // project
+      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      // pipeline by name
+      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -224,7 +238,8 @@ describe('EnvironmentInfoService', () => {
     it('returns empty array when no environments found', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [], pagination: {} }));
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      // project with no pipeline ref
+      mockGET.mockResolvedValueOnce(okResponse(k8sProjectNoPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -244,12 +259,13 @@ describe('EnvironmentInfoService', () => {
     it('calls promote endpoint then refetches deployment info', async () => {
       // POST promote
       mockPOST.mockResolvedValueOnce(okResponse({}));
-      // Then fetchDeploymentInfo internally calls 3 GETs:
+      // Then fetchDeploymentInfo internally calls 4 GETs:
       mockGET.mockResolvedValueOnce(
         okResponse({ items: [k8sEnvironment], pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
+      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.promoteComponent(
@@ -297,7 +313,8 @@ describe('EnvironmentInfoService', () => {
         okResponse({ items: [k8sEnvironment], pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      // project with no pipeline ref
+      mockGET.mockResolvedValueOnce(okResponse(k8sProjectNoPipeline));
 
       const service = createService();
       const result = await service.deleteReleaseBinding(
@@ -322,7 +339,8 @@ describe('EnvironmentInfoService', () => {
         okResponse({ items: [k8sEnvironment], pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sReleaseBinding] }));
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sPipeline] }));
+      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(okResponse(k8sPipeline));
 
       const service = createService();
       const result = await service.deployRelease(
@@ -486,10 +504,10 @@ describe('EnvironmentInfoService', () => {
       );
       // bindings (none)
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      // pipeline with dev -> staging -> prod
-      mockGET.mockResolvedValueOnce(
-        okResponse({ items: [pipelineDevStagingProd] }),
-      );
+      // project
+      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      // pipeline by name
+      mockGET.mockResolvedValueOnce(okResponse(pipelineDevStagingProd));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -512,9 +530,8 @@ describe('EnvironmentInfoService', () => {
         okResponse({ items: allEnvs, pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      mockGET.mockResolvedValueOnce(
-        okResponse({ items: [pipelineDevStagingProd] }),
-      );
+      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(okResponse(pipelineDevStagingProd));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -536,8 +553,8 @@ describe('EnvironmentInfoService', () => {
         okResponse({ items: allEnvs, pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      // no pipeline
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+      // project with no pipeline ref
+      mockGET.mockResolvedValueOnce(okResponse(k8sProjectNoPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
@@ -561,7 +578,8 @@ describe('EnvironmentInfoService', () => {
         okResponse({ items: allEnvs, pagination: {} }),
       );
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
-      mockGET.mockResolvedValueOnce(okResponse({ items: [emptyPipeline] }));
+      mockGET.mockResolvedValueOnce(okResponse(k8sProject));
+      mockGET.mockResolvedValueOnce(okResponse(emptyPipeline));
 
       const service = createService();
       const result = await service.fetchDeploymentInfo(
