@@ -149,6 +149,7 @@ const PLATFORM_KIND_DISPLAY_NAMES: Record<string, string> = {
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
+  clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
 };
 
@@ -1189,6 +1190,35 @@ const workflowPage = (
   </OpenChoreoEntityLayout>
 );
 
+const clusterWorkflowPage = (
+  <OpenChoreoEntityLayout
+    contextMenuOptions={{ disableUnregister: 'hidden' }}
+    kindDisplayNames={PLATFORM_KIND_DISPLAY_NAMES}
+  >
+    <OpenChoreoEntityLayout.Route path="/" title="Overview">
+      <Grid container spacing={3} alignItems="stretch">
+        {entityWarningContent}
+        <Grid item md={6} xs={12}>
+          <WorkflowOverviewCard />
+        </Grid>
+        <Grid item md={6} xs={12}>
+          <EntityCatalogGraphCard
+            variant="gridItem"
+            height={400}
+            renderNode={CustomGraphNode}
+          />
+        </Grid>
+        <Grid item md={12} xs={12}>
+          <EntityAboutCard variant="gridItem" />
+        </Grid>
+      </Grid>
+    </OpenChoreoEntityLayout.Route>
+    <OpenChoreoEntityLayout.Route path="/definition" title="Definition">
+      <ResourceDefinitionTab />
+    </OpenChoreoEntityLayout.Route>
+  </OpenChoreoEntityLayout>
+);
+
 const componentWorkflowPage = (
   <OpenChoreoEntityLayout
     contextMenuOptions={{ disableUnregister: 'hidden' }}
@@ -1269,6 +1299,9 @@ export const entityPage = (
       children={clusterTraitTypePage}
     />
     <EntitySwitch.Case if={isKind('workflow')} children={workflowPage} />
+    <EntitySwitch.Case if={isKind('clusterworkflow')}>
+      {clusterWorkflowPage}
+    </EntitySwitch.Case>
     <EntitySwitch.Case
       if={isKind('componentworkflow')}
       children={componentWorkflowPage}

@@ -73,7 +73,11 @@ function getGridTemplate(selectedKind: string | undefined): GridTemplateKey {
   const kind = selectedKind?.toLowerCase();
   if (kind === 'component') return 'gridTemplateComponent';
   if (kind === 'api') return 'gridTemplateApi';
-  if (kind === 'environment' || kind === 'workflow')
+  if (
+    kind === 'environment' ||
+    kind === 'workflow' ||
+    kind === 'clusterworkflow'
+  )
     return 'gridTemplateEnvironment';
   if (kind && PLANE_KINDS.has(kind)) return 'gridTemplatePlane';
   if (kind === 'namespace' || kind === 'domain') return 'gridTemplateMinimal';
@@ -103,7 +107,11 @@ function getHeaderColumns(selectedKind: string | undefined): string[] {
       'Type',
       'Actions',
     ];
-  if (kind === 'environment' || kind === 'workflow')
+  if (
+    kind === 'environment' ||
+    kind === 'workflow' ||
+    kind === 'clusterworkflow'
+  )
     return ['', 'Name', 'Description', 'Namespace', 'Type', 'Actions'];
   if (kind && PLANE_KINDS.has(kind))
     return ['', 'Name', 'Description', 'Namespace', 'Agent', 'Actions'];
@@ -226,7 +234,8 @@ export const CatalogCardList = ({ actionButton }: CatalogCardListProps) => {
               selectedKind === 'component' ||
               selectedKind === 'api' ||
               selectedKind === 'environment' ||
-              selectedKind === 'workflow';
+              selectedKind === 'workflow' ||
+              selectedKind === 'clusterworkflow';
             const isPlane = selectedKind && PLANE_KINDS.has(selectedKind);
 
             return (

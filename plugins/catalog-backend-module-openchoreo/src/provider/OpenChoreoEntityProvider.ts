@@ -50,8 +50,8 @@ type NewClusterObservabilityPlane =
   OpenChoreoComponents['schemas']['ClusterObservabilityPlane'];
 type NewClusterBuildPlane =
   OpenChoreoComponents['schemas']['ClusterBuildPlane'];
-type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
+type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 type NewAgentConnectionStatus =
   OpenChoreoComponents['schemas']['AgentConnectionStatus'];
@@ -950,13 +950,15 @@ export class OpenChoreoEntityProvider implements EntityProvider {
                     'message' in res.error
                       ? (res.error as { message: string }).message
                       : JSON.stringify(res.error);
-                  throw new Error(`Failed to fetch cluster workflows: ${msg}`);
+                  throw new Error(
+                    `Failed to fetch cluster workflows: ${res.response.status} ${res.response.statusText} - ${msg}`,
+                  );
                 }
                 return res.data;
               }),
         );
 
-        this.logger.debug(`Found ${clusterWorkflows.length} cluster workflows`);
+        this.logger.info(`Found ${clusterWorkflows.length} cluster workflows`);
 
         const cwfEntities: Entity[] = clusterWorkflows
           .map(cwf => {
@@ -1679,7 +1681,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         displayName: getDisplayName(cct),
         description: getDescription(cct),
         workloadType: cct.spec?.workloadType,
-        allowedWorkflows: cct.spec?.allowedWorkflows?.map(w => w.name),
+        allowedWorkflows: cct.spec?.allowedWorkflows,
         allowedTraits: cct.spec?.allowedTraits,
         createdAt: getCreatedAt(cct),
       },
