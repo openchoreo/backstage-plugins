@@ -10,6 +10,22 @@ import {
 } from '@openchoreo/backstage-plugin-common';
 
 /**
+ * Entity kinds that are namespace-scoped (not project or component level).
+ * These should only match namespace-level capability paths, not project/component paths.
+ */
+const NAMESPACE_SCOPED_KINDS = new Set([
+  'componenttype',
+  'traittype',
+  'workflow',
+  'componentworkflow',
+  'environment',
+  'dataplane',
+  'buildplane',
+  'observabilityplane',
+  'deploymentpipeline',
+]);
+
+/**
  * Permission resource reference for OpenChoreo component resources.
  * Used for resource-based permission checks on catalog entities.
  */
@@ -90,6 +106,7 @@ function parseCapabilityPath(path: string): {
 function matchesScope(
   path: string,
   scope: { namespace?: string; project?: string; component?: string },
+  namespaceOnly?: boolean,
 ): boolean {
   // Wildcard matches everything
   if (path === '*') {
@@ -104,6 +121,11 @@ function matchesScope(
     parsed.namespace !== '*' &&
     parsed.namespace !== scope.namespace
   ) {
+    return false;
+  }
+
+  // Namespace-scoped entities: reject paths with project or component segments
+  if (namespaceOnly && (parsed.project || parsed.component)) {
     return false;
   }
 
@@ -168,17 +190,18 @@ export const matchesCapability = createPermissionRule({
     }
 
     const scope = { namespace, project, component };
+    const namespaceOnly = NAMESPACE_SCOPED_KINDS.has(entity.kind.toLowerCase());
 
     // Check if explicitly denied at this scope
     for (const deniedPath of deniedPaths) {
-      if (matchesScope(deniedPath, scope)) {
+      if (matchesScope(deniedPath, scope, namespaceOnly)) {
         return false;
       }
     }
 
     // Check if explicitly allowed at this scope
     for (const allowedPath of allowedPaths) {
-      if (matchesScope(allowedPath, scope)) {
+      if (matchesScope(allowedPath, scope, namespaceOnly)) {
         return true;
       }
     }
