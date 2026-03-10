@@ -258,7 +258,7 @@ function isPathValidForLevel(path: string, entityLevel: EntityLevel): boolean {
  *
  * `matchesCapability` authorizes **actions/mutations** (deploy, update, delete)
  * on resources the user can already see. It operates on
- * `OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE` (a custom resource type), is
+ * `OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE` (a custom resource type), is
  * strict by default (denies if no namespace annotation), and has no `toQuery`
  * because mutations target individual resources.
  *

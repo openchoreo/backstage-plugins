@@ -5,7 +5,7 @@ import {
 } from '@backstage/plugin-permission-node';
 import { Entity } from '@backstage/catalog-model';
 import {
-  OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
   CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
 
@@ -33,12 +33,12 @@ const NAMESPACE_SCOPED_KINDS = new Set([
  *
  * @see matchesCapability — the rule that uses this resource ref
  */
-export const openchoreoNamespaceResourceRef = createPermissionResourceRef<
+export const openchoreoNamespacedResourceRef = createPermissionResourceRef<
   Entity,
   {}
 >().with({
   pluginId: 'openchoreo',
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -168,7 +168,7 @@ function matchesScope(
  * Permission rule that authorizes **actions/mutations** on OpenChoreo resources
  * (e.g., deploy, update, delete a component or namespace-scoped definition).
  *
- * - **Resource type**: `OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE` — used for
+ * - **Resource type**: `OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE` — used for
  *   `ResourcePermission` checks, NOT catalog entity reads.
  * - **Scope**: Components and namespace-scoped resource definitions (Dataplane,
  *   ComponentType, Environment, etc.).
@@ -192,7 +192,7 @@ export const matchesCapability = createPermissionRule({
   name: 'MATCHES_CAPABILITY',
   description:
     'Allow if user has OpenChoreo capability for this resource scope',
-  resourceRef: openchoreoNamespaceResourceRef,
+  resourceRef: openchoreoNamespacedResourceRef,
   paramsSchema,
   apply: (entity: Entity, params: MatchesCapabilityParams) => {
     const { allowedPaths, deniedPaths } = params;

@@ -4,8 +4,8 @@ import { createPermission } from '@backstage/plugin-permission-common';
  * Resource type identifiers for OpenChoreo entities.
  * Used for resource-based permission checks.
  */
-export const OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE =
-  'openchoreo-namespace-resource';
+export const OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE =
+  'openchoreo-namespaced-resource';
 export const OPENCHOREO_RESOURCE_TYPE_PROJECT = 'openchoreo-project';
 
 /**
@@ -24,7 +24,7 @@ export const openchoreoComponentCreatePermission = createPermission({
 export const openchoreoComponentReadPermission = createPermission({
   name: 'openchoreo.component.read',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -34,7 +34,7 @@ export const openchoreoComponentReadPermission = createPermission({
 export const openchoreoComponentBuildPermission = createPermission({
   name: 'openchoreo.component.build',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -44,7 +44,7 @@ export const openchoreoComponentBuildPermission = createPermission({
 export const openchoreoComponentViewBuildsPermission = createPermission({
   name: 'openchoreo.component.viewbuilds',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -54,7 +54,7 @@ export const openchoreoComponentViewBuildsPermission = createPermission({
 export const openchoreoComponentDeployPermission = createPermission({
   name: 'openchoreo.component.deploy',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -64,7 +64,7 @@ export const openchoreoComponentDeployPermission = createPermission({
 export const openchoreoComponentUpdatePermission = createPermission({
   name: 'openchoreo.component.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -176,7 +176,7 @@ export const openchoreoComponentWorkflowCreatePermission = createPermission({
 export const openchoreoComponentTypeUpdatePermission = createPermission({
   name: 'openchoreo.componenttype.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -186,7 +186,7 @@ export const openchoreoComponentTypeUpdatePermission = createPermission({
 export const openchoreoComponentTypeDeletePermission = createPermission({
   name: 'openchoreo.componenttype.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -196,7 +196,7 @@ export const openchoreoComponentTypeDeletePermission = createPermission({
 export const openchoreoTraitUpdatePermission = createPermission({
   name: 'openchoreo.trait.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -206,7 +206,7 @@ export const openchoreoTraitUpdatePermission = createPermission({
 export const openchoreoTraitDeletePermission = createPermission({
   name: 'openchoreo.trait.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -216,7 +216,7 @@ export const openchoreoTraitDeletePermission = createPermission({
 export const openchoreoWorkflowUpdatePermission = createPermission({
   name: 'openchoreo.workflow.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -226,7 +226,7 @@ export const openchoreoWorkflowUpdatePermission = createPermission({
 export const openchoreoWorkflowDeletePermission = createPermission({
   name: 'openchoreo.workflow.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -236,7 +236,7 @@ export const openchoreoWorkflowDeletePermission = createPermission({
 export const openchoreoComponentWorkflowUpdatePermission = createPermission({
   name: 'openchoreo.componentworkflow.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -246,7 +246,7 @@ export const openchoreoComponentWorkflowUpdatePermission = createPermission({
 export const openchoreoComponentWorkflowDeletePermission = createPermission({
   name: 'openchoreo.componentworkflow.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -256,7 +256,7 @@ export const openchoreoComponentWorkflowDeletePermission = createPermission({
 export const openchoreoEnvironmentUpdatePermission = createPermission({
   name: 'openchoreo.environment.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -266,7 +266,7 @@ export const openchoreoEnvironmentUpdatePermission = createPermission({
 export const openchoreoEnvironmentDeletePermission = createPermission({
   name: 'openchoreo.environment.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -276,7 +276,7 @@ export const openchoreoEnvironmentDeletePermission = createPermission({
 export const openchoreoDataplaneUpdatePermission = createPermission({
   name: 'openchoreo.dataplane.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -286,7 +286,7 @@ export const openchoreoDataplaneUpdatePermission = createPermission({
 export const openchoreoDataplaneDeletePermission = createPermission({
   name: 'openchoreo.dataplane.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -296,7 +296,7 @@ export const openchoreoDataplaneDeletePermission = createPermission({
 export const openchoreoBuildplaneUpdatePermission = createPermission({
   name: 'openchoreo.buildplane.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -306,7 +306,7 @@ export const openchoreoBuildplaneUpdatePermission = createPermission({
 export const openchoreoBuildplaneDeletePermission = createPermission({
   name: 'openchoreo.buildplane.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -316,7 +316,7 @@ export const openchoreoBuildplaneDeletePermission = createPermission({
 export const openchoreoObservabilityplaneUpdatePermission = createPermission({
   name: 'openchoreo.observabilityplane.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -326,7 +326,7 @@ export const openchoreoObservabilityplaneUpdatePermission = createPermission({
 export const openchoreoObservabilityplaneDeletePermission = createPermission({
   name: 'openchoreo.observabilityplane.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -336,7 +336,7 @@ export const openchoreoObservabilityplaneDeletePermission = createPermission({
 export const openchoreoDeploymentpipelineUpdatePermission = createPermission({
   name: 'openchoreo.deploymentpipeline.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -346,7 +346,7 @@ export const openchoreoDeploymentpipelineUpdatePermission = createPermission({
 export const openchoreoDeploymentpipelineDeletePermission = createPermission({
   name: 'openchoreo.deploymentpipeline.delete',
   attributes: { action: 'delete' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -565,7 +565,7 @@ export const openchoreoRoleMappingDeletePermission = createPermission({
 export const openchoreoLogsViewPermission = createPermission({
   name: 'openchoreo.logs.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -575,7 +575,7 @@ export const openchoreoLogsViewPermission = createPermission({
 export const openchoreoMetricsViewPermission = createPermission({
   name: 'openchoreo.metrics.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -605,7 +605,7 @@ export const openchoreoRcaViewPermission = createPermission({
 export const openchoreoTraitsViewPermission = createPermission({
   name: 'openchoreo.traits.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**

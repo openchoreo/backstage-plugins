@@ -14,7 +14,7 @@ import { RESOURCE_TYPE_CATALOG_ENTITY } from '@backstage/plugin-catalog-common/a
 import { getUserTokenFromContext } from '@openchoreo/openchoreo-auth';
 import {
   OPENCHOREO_PERMISSION_TO_ACTION,
-  OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+  OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
   CATALOG_KIND_TO_ACTION,
   OPENCHOREO_MANAGED_ENTITY_KINDS,
 } from '@openchoreo/backstage-plugin-common';
@@ -150,7 +150,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
       if (
         isResourcePermission(
           permission,
-          OPENCHOREO_RESOURCE_TYPE_NAMESPACE_RESOURCE,
+          OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
         )
       ) {
         // Look up the specific action first, then fall back to wildcard "*"
