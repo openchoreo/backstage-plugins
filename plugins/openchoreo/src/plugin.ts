@@ -10,7 +10,6 @@ import { openChoreoClientApiRef } from './api/OpenChoreoClientApi';
 import { OpenChoreoClient } from './api/OpenChoreoClient';
 import {
   rootCatalogEnvironmentRouteRef,
-  rootCatalogTraitsRouteRef,
   accessControlRouteRef,
 } from './routes';
 
@@ -46,15 +45,6 @@ export const CellDiagram = choreoPlugin.provide(
     component: () =>
       import('./components/CellDiagram/CellDiagram').then(m => m.CellDiagram),
     mountPoint: rootCatalogEnvironmentRouteRef,
-  }),
-);
-
-// Traits page tab
-export const Traits = choreoPlugin.provide(
-  createRoutableExtension({
-    name: 'ChoreoTraits',
-    component: () => import('./components/Traits').then(m => m.Traits),
-    mountPoint: rootCatalogTraitsRouteRef,
   }),
 );
 

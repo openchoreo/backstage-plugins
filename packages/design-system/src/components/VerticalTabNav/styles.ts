@@ -110,7 +110,8 @@ export const useStyles = makeStyles((theme: Theme) => ({
   contentPanel: {
     flex: 1,
     overflowY: 'auto',
-    padding: theme.spacing(2),
+    paddingLeft: theme.spacing(2),
+    paddingRight: theme.spacing(2),
   },
   tabItemGroup: {
     fontWeight: 600,
@@ -137,5 +138,29 @@ export const useStyles = makeStyles((theme: Theme) => ({
   },
   expandIconExpanded: {
     transform: 'rotate(180deg)',
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing(1.5, 2, 1.5),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    marginTop: theme.spacing(0.5),
+    '&:first-child': {
+      borderTop: 'none',
+      marginTop: 0,
+    },
+  },
+  sectionHeaderLabel: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: theme.palette.text.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  sectionHeaderActions: {
+    display: 'flex',
+    alignItems: 'center',
+    flexShrink: 0,
   },
 }));

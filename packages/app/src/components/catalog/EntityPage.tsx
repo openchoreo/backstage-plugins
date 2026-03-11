@@ -78,7 +78,6 @@ import {
   ProjectComponentsCard,
   NamespaceProjectsCard,
   NamespaceResourcesCard,
-  Traits,
   EnvironmentStatusSummaryCard,
   EnvironmentDeployedComponentsCard,
   EnvironmentPromotionCard,
@@ -262,10 +261,6 @@ const serviceEntityPage = (
       <Environments />
     </EntityLayout.Route>
 
-    <EntityLayout.Route path="/traits" title="Traits">
-      <Traits />
-    </EntityLayout.Route>
-
     <EntityLayout.Route path="/runtime-logs" title="Logs">
       <FeatureGatedContent feature="observability">
         <ObservabilityRuntimeLogs />
@@ -359,10 +354,6 @@ const genericComponentEntityPage = (
 
     <EntityLayout.Route path="/environments" title="Deploy">
       <Environments />
-    </EntityLayout.Route>
-
-    <EntityLayout.Route path="/traits" title="Traits">
-      <Traits />
     </EntityLayout.Route>
 
     <EntityLayout.Route path="/runtime-logs" title="Logs">

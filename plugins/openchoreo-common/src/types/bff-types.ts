@@ -123,6 +123,7 @@ export interface ComponentResponse {
   };
   workload?: WorkloadResponse;
   componentWorkflow?: ComponentWorkflow;
+  parameters?: Record<string, unknown>;
 }
 
 export interface ComponentTypeRef {

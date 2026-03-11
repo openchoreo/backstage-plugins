@@ -3,7 +3,8 @@ import { ResponseError } from '@backstage/errors';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import {
   CHOREO_ANNOTATIONS,
-  ModelsWorkload,
+  type ModelsWorkload,
+  type WorkloadWithRaw,
 } from '@openchoreo/backstage-plugin-common';
 import { CLUSTER_SCOPED_RESOURCE_KINDS } from './OpenChoreoClientApi';
 import type {
@@ -65,7 +66,10 @@ const API_ENDPOINTS = {
   COMPONENT: '/component',
   DEPLOYMENT_PIPELINE: '/deployment-pipeline',
   BUILDS: '/builds',
+  COMPONENT_TYPE_SCHEMA: '/component-type-schema',
+  CLUSTER_COMPONENT_TYPE_SCHEMA: '/cluster-component-type-schema',
   COMPONENT_TRAITS: '/component-traits',
+  COMPONENT_CONFIG: '/component-config',
   TRAITS: '/traits',
   TRAIT_SCHEMA: '/trait-schema',
   CLUSTER_TRAITS: '/cluster-traits',
@@ -462,10 +466,10 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Workload Operations
   // ============================================
 
-  async fetchWorkloadInfo(entity: Entity): Promise<ModelsWorkload> {
+  async fetchWorkloadInfo(entity: Entity): Promise<WorkloadWithRaw> {
     const metadata = extractEntityMetadata(entity);
 
-    return this.apiFetch<ModelsWorkload>(API_ENDPOINTS.DEPLOYEMNT_WORKLOAD, {
+    return this.apiFetch<WorkloadWithRaw>(API_ENDPOINTS.DEPLOYEMNT_WORKLOAD, {
       params: entityMetadataToParams(metadata),
     });
   }
@@ -519,9 +523,11 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   // Runtime Logs
   // ============================================
 
-  async getComponentDetails(
-    entity: Entity,
-  ): Promise<{ uid?: string; deletionTimestamp?: string }> {
+  async getComponentDetails(entity: Entity): Promise<{
+    uid?: string;
+    deletionTimestamp?: string;
+    parameters?: Record<string, unknown>;
+  }> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch(API_ENDPOINTS.COMPONENT, {
@@ -685,6 +691,53 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
         projectName: metadata.project,
         componentName: metadata.component,
         traits,
+      },
+    });
+  }
+
+  async fetchComponentTypeSchema(
+    entity: Entity,
+  ): Promise<{ success: boolean; data?: Record<string, unknown> }> {
+    const metadata = extractEntityMetadata(entity);
+    const componentTypeName =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE] || '';
+    const componentTypeKind =
+      entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT_TYPE_KIND] ||
+      '';
+
+    // Extract the CT name from the annotation (format: "workloadType/ctName")
+    const ctName = componentTypeName.includes('/')
+      ? componentTypeName.split('/').pop()!
+      : componentTypeName;
+
+    if (componentTypeKind === 'ClusterComponentType') {
+      return this.apiFetch(API_ENDPOINTS.CLUSTER_COMPONENT_TYPE_SCHEMA, {
+        params: { cctName: ctName },
+      });
+    }
+
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_TYPE_SCHEMA, {
+      params: {
+        namespaceName: metadata.namespace,
+        ctName,
+      },
+    });
+  }
+
+  async updateComponentConfig(
+    entity: Entity,
+    traits?: ComponentTrait[],
+    parameters?: Record<string, unknown>,
+  ): Promise<any> {
+    const metadata = extractEntityMetadata(entity);
+
+    return this.apiFetch(API_ENDPOINTS.COMPONENT_CONFIG, {
+      method: 'PUT',
+      body: {
+        namespaceName: metadata.namespace,
+        componentName: metadata.component,
+        ...(traits !== undefined && { traits }),
+        ...(parameters !== undefined && { parameters }),
       },
     });
   }

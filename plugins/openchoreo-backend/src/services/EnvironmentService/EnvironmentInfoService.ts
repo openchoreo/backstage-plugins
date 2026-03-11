@@ -21,6 +21,18 @@ type ModelsEnvironment = EnvironmentResponse;
 type NewReleaseBinding = OpenChoreoComponents['schemas']['ReleaseBinding'];
 
 /**
+ * Extracts the environment name from a sourceEnvironmentRef which may be
+ * a plain string (old API) or an object { kind, name } (new API).
+ */
+function getSourceEnvName(ref: unknown): string {
+  if (typeof ref === 'string') return ref;
+  if (ref && typeof ref === 'object' && 'name' in ref) {
+    return (ref as { name: string }).name;
+  }
+  return '';
+}
+
+/**
  * Service for managing and retrieving environment-related information for deployments.
  * This service handles fetching environment details from the OpenChoreo API.
  * All methods require a user token to be passed for authentication.
@@ -309,9 +321,8 @@ export class EnvironmentInfoService implements EnvironmentService {
     // Build promotion map from pipeline data (normalized to actual env names)
     const promotionMap = new Map<string, any[]>();
     for (const path of deploymentPipeline.promotionPaths) {
-      const sourceEnv =
-        envNameMap.get(path.sourceEnvironmentRef.toLowerCase()) ||
-        path.sourceEnvironmentRef;
+      const sourceRef = getSourceEnvName(path.sourceEnvironmentRef);
+      const sourceEnv = envNameMap.get(sourceRef.toLowerCase()) || sourceRef;
       const targets = path.targetEnvironmentRefs.map((ref: any) => ({
         ...ref,
         name: envNameMap.get(ref.name.toLowerCase()) || ref.name,
@@ -434,9 +445,8 @@ export class EnvironmentInfoService implements EnvironmentService {
 
     // Initialize graph and collect all environments
     for (const path of promotionPaths) {
-      const source =
-        envNameMap.get(path.sourceEnvironmentRef.toLowerCase()) ||
-        path.sourceEnvironmentRef;
+      const sourceRef = getSourceEnvName(path.sourceEnvironmentRef);
+      const source = envNameMap.get(sourceRef.toLowerCase()) || sourceRef;
       allEnvs.add(source);
 
       if (!graph.has(source)) {

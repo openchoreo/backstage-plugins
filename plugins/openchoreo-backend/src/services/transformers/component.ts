@@ -39,6 +39,7 @@ export function transformComponent(component: Component): ComponentResponse {
     componentWorkflow: workflow
       ? transformComponentWorkflow(workflow)
       : undefined,
+    parameters: (component.spec as any)?.parameters,
   };
 }
 

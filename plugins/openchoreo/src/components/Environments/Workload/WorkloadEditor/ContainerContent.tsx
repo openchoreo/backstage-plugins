@@ -1,13 +1,4 @@
-import {
-  TextField,
-  Card,
-  CardContent,
-  CardHeader,
-  Grid,
-  Typography,
-  Box,
-} from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import { TextField, Grid, Typography, Box } from '@material-ui/core';
 import {
   Container,
   EnvVar,
@@ -80,17 +71,6 @@ export interface ContainerContentProps {
   environmentName?: string;
 }
 
-const useStyles = makeStyles(theme => ({
-  containerCard: {
-    padding: theme.spacing(0),
-    marginBottom: theme.spacing(2),
-    border: `1px solid ${theme.palette.divider}`,
-    borderRadius: 8,
-    backgroundColor: theme.palette.background.paper,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-  },
-}));
-
 /**
  * Component for editing a single container configuration including image, command, args,
  * environment variables, and file mounts.
@@ -119,8 +99,6 @@ export function ContainerContent({
   onFileVarReplace,
   environmentName,
 }: ContainerContentProps) {
-  const classes = useStyles();
-
   // Wrap the single container in a map for hooks that expect the map format.
   const containerMap: Record<string, Container> = container
     ? { [CONTAINER_KEY]: container }
@@ -228,132 +206,120 @@ export function ContainerContent({
 
   return (
     <Box>
-      <Card className={classes.containerCard}>
-        <CardHeader
-          style={{ paddingBottom: 8 }}
-          title={<Typography variant="h4">Container</Typography>}
-        />
-        <CardContent style={{ paddingTop: 8 }}>
-          <Grid container spacing={2}>
-            {!hideContainerFields && (
-              <>
-                <Grid item xs={12}>
-                  <Box mb={2}>
-                    <TextField
-                      label="Image"
-                      value={container.image || ''}
-                      onChange={e => onContainerChange('image', e.target.value)}
-                      fullWidth
-                      variant="outlined"
-                      disabled={disabled}
-                    />
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Command"
-                    value={container.command?.join(', ') || ''}
-                    onChange={e =>
-                      onArrayFieldChange('command', e.target.value)
-                    }
-                    fullWidth
-                    variant="outlined"
-                    placeholder="Comma-separated commands"
-                    helperText="Separate multiple commands with commas"
-                    disabled={disabled}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Arguments"
-                    value={container.args?.join(', ') || ''}
-                    onChange={e => onArrayFieldChange('args', e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    placeholder="Comma-separated arguments"
-                    helperText="Separate multiple arguments with commas"
-                    disabled={disabled}
-                  />
-                </Grid>
-              </>
-            )}
+      {!hideContainerFields && (
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Box mb={2}>
+              <TextField
+                label="Image"
+                value={container.image || ''}
+                onChange={e => onContainerChange('image', e.target.value)}
+                fullWidth
+                variant="outlined"
+                disabled={disabled}
+              />
+            </Box>
           </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Command"
+              value={container.command?.join(', ') || ''}
+              onChange={e => onArrayFieldChange('command', e.target.value)}
+              fullWidth
+              variant="outlined"
+              placeholder="Comma-separated commands"
+              helperText="Separate multiple commands with commas"
+              disabled={disabled}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <TextField
+              label="Arguments"
+              value={container.args?.join(', ') || ''}
+              onChange={e => onArrayFieldChange('args', e.target.value)}
+              fullWidth
+              variant="outlined"
+              placeholder="Comma-separated arguments"
+              helperText="Separate multiple arguments with commas"
+              disabled={disabled}
+            />
+          </Grid>
+        </Grid>
+      )}
 
-          {/* Environment Variables */}
-          <Box mt={3}>
-            <Typography variant="h5" gutterBottom>
-              Environment Variables
-            </Typography>
-            {showEnvVarStatus && baseWorkloadData ? (
-              <OverrideEnvVarList
-                containerName={CONTAINER_KEY}
-                envVars={container.env || []}
-                baseEnvVars={getBaseEnvVarsForContainer(baseWorkloadData)}
-                environmentName={environmentName}
-                secretOptions={secretOptions}
-                envModes={envModes}
-                disabled={disabled}
-                editBuffer={envEditBuffer}
-                onStartOverride={(_cn, ev) => onStartOverride?.(ev)}
-                onEnvVarChange={internalOnEnvVarChange}
-                onRemoveEnvVar={internalOnRemoveEnvVar}
-                onEnvVarModeChange={handleEnvVarModeChange}
-                onAddEnvVar={() => onAddEnvVar()}
-              />
-            ) : (
-              <StandardEnvVarList
-                containerName={CONTAINER_KEY}
-                envVars={container.env || []}
-                secretOptions={secretOptions}
-                envModes={envModes}
-                disabled={disabled}
-                editBuffer={envEditBuffer}
-                onEnvVarChange={internalOnEnvVarChange}
-                onRemoveEnvVar={internalOnRemoveEnvVar}
-                onEnvVarModeChange={handleEnvVarModeChange}
-                onAddEnvVar={() => onAddEnvVar()}
-              />
-            )}
-          </Box>
+      {/* Environment Variables */}
+      <Box mt={hideContainerFields ? 0 : 3}>
+        <Typography variant="h5" gutterBottom>
+          Environment Variables
+        </Typography>
+        {showEnvVarStatus && baseWorkloadData ? (
+          <OverrideEnvVarList
+            containerName={CONTAINER_KEY}
+            envVars={container.env || []}
+            baseEnvVars={getBaseEnvVarsForContainer(baseWorkloadData)}
+            environmentName={environmentName}
+            secretOptions={secretOptions}
+            envModes={envModes}
+            disabled={disabled}
+            editBuffer={envEditBuffer}
+            onStartOverride={(_cn, ev) => onStartOverride?.(ev)}
+            onEnvVarChange={internalOnEnvVarChange}
+            onRemoveEnvVar={internalOnRemoveEnvVar}
+            onEnvVarModeChange={handleEnvVarModeChange}
+            onAddEnvVar={() => onAddEnvVar()}
+          />
+        ) : (
+          <StandardEnvVarList
+            containerName={CONTAINER_KEY}
+            envVars={container.env || []}
+            secretOptions={secretOptions}
+            envModes={envModes}
+            disabled={disabled}
+            editBuffer={envEditBuffer}
+            onEnvVarChange={internalOnEnvVarChange}
+            onRemoveEnvVar={internalOnRemoveEnvVar}
+            onEnvVarModeChange={handleEnvVarModeChange}
+            onAddEnvVar={() => onAddEnvVar()}
+          />
+        )}
+      </Box>
 
-          {/* File Mounts */}
-          <Box mt={3}>
-            <Typography variant="h5" gutterBottom>
-              File Mounts
-            </Typography>
-            {showEnvVarStatus && baseWorkloadData ? (
-              <OverrideFileVarList
-                containerName={CONTAINER_KEY}
-                fileVars={(container as any).files || []}
-                baseFileVars={getBaseFileVarsForContainer(baseWorkloadData)}
-                environmentName={environmentName}
-                secretOptions={secretOptions}
-                fileModes={fileModes}
-                disabled={disabled}
-                editBuffer={fileEditBuffer}
-                onStartOverride={(_cn, fv) => onStartFileOverride?.(fv)}
-                onFileVarChange={internalOnFileVarChange}
-                onRemoveFileVar={internalOnRemoveFileVar}
-                onFileVarModeChange={handleFileVarModeChange}
-                onAddFileVar={() => onAddFileVar()}
-              />
-            ) : (
-              <StandardFileVarList
-                containerName={CONTAINER_KEY}
-                fileVars={(container as any).files || []}
-                secretOptions={secretOptions}
-                fileModes={fileModes}
-                disabled={disabled}
-                editBuffer={fileEditBuffer}
-                onFileVarChange={internalOnFileVarChange}
-                onRemoveFileVar={internalOnRemoveFileVar}
-                onFileVarModeChange={handleFileVarModeChange}
-                onAddFileVar={() => onAddFileVar()}
-              />
-            )}
-          </Box>
-        </CardContent>
-      </Card>
+      {/* File Mounts */}
+      <Box mt={3}>
+        <Typography variant="h5" gutterBottom>
+          File Mounts
+        </Typography>
+        {showEnvVarStatus && baseWorkloadData ? (
+          <OverrideFileVarList
+            containerName={CONTAINER_KEY}
+            fileVars={(container as any).files || []}
+            baseFileVars={getBaseFileVarsForContainer(baseWorkloadData)}
+            environmentName={environmentName}
+            secretOptions={secretOptions}
+            fileModes={fileModes}
+            disabled={disabled}
+            editBuffer={fileEditBuffer}
+            onStartOverride={(_cn, fv) => onStartFileOverride?.(fv)}
+            onFileVarChange={internalOnFileVarChange}
+            onRemoveFileVar={internalOnRemoveFileVar}
+            onFileVarModeChange={handleFileVarModeChange}
+            onAddFileVar={() => onAddFileVar()}
+          />
+        ) : (
+          <StandardFileVarList
+            containerName={CONTAINER_KEY}
+            fileVars={(container as any).files || []}
+            secretOptions={secretOptions}
+            fileModes={fileModes}
+            disabled={disabled}
+            editBuffer={fileEditBuffer}
+            onFileVarChange={internalOnFileVarChange}
+            onRemoveFileVar={internalOnRemoveFileVar}
+            onFileVarModeChange={handleFileVarModeChange}
+            onAddFileVar={() => onAddFileVar()}
+          />
+        )}
+      </Box>
     </Box>
   );
 }

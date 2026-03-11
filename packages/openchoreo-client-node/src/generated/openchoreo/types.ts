@@ -5308,11 +5308,20 @@ export interface components {
     };
     /** @description Promotion path between environments */
     PromotionPath: {
-      /**
-       * @description Source environment name
-       * @example dev
-       */
-      sourceEnvironmentRef: string;
+      /** @description Reference to the source environment for this promotion path. */
+      sourceEnvironmentRef: {
+        /**
+         * @description Kind of environment resource
+         * @default Environment
+         * @enum {string}
+         */
+        kind: 'Environment';
+        /**
+         * @description Name of the environment resource
+         * @example dev
+         */
+        name: string;
+      };
       /** @description Target environments for promotion */
       targetEnvironmentRefs: components['schemas']['TargetEnvironmentRef'][];
     };

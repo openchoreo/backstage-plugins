@@ -20,6 +20,10 @@ export interface TabItemData {
   children?: TabItemData[];
   /** Whether this is a group item (collapsible) */
   isGroup?: boolean;
+  /** Whether this is a non-interactive section header (divider label) */
+  isSectionHeader?: boolean;
+  /** Optional actions to render in the section header (e.g., a toggle) */
+  headerActions?: React.ReactNode;
 }
 
 interface VerticalTabItemProps {
@@ -39,6 +43,22 @@ export const VerticalTabItem: React.FC<VerticalTabItemProps> = ({
 }) => {
   const classes = useStyles();
   const [expanded, setExpanded] = useState(true);
+
+  // Render section header (non-interactive divider label)
+  if (tab.isSectionHeader) {
+    return (
+      <Box className={classes.sectionHeader}>
+        <Typography className={classes.sectionHeaderLabel} component="span">
+          {tab.label}
+        </Typography>
+        {tab.headerActions && (
+          <Box className={classes.sectionHeaderActions}>
+            {tab.headerActions}
+          </Box>
+        )}
+      </Box>
+    );
+  }
 
   const isGroup = tab.isGroup || (tab.children && tab.children.length > 0);
   // const hasActiveChild = tab.children?.some(

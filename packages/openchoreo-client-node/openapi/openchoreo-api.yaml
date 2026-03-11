@@ -9788,9 +9788,20 @@ components:
         - targetEnvironmentRefs
       properties:
         sourceEnvironmentRef:
-          type: string
-          description: Source environment name
-          example: dev
+          type: object
+          description: Reference to the source environment for this promotion path.
+          required:
+            - name
+          properties:
+            kind:
+              type: string
+              description: Kind of environment resource
+              enum: [Environment]
+              default: Environment
+            name:
+              type: string
+              description: Name of the environment resource
+              example: dev
         targetEnvironmentRefs:
           type: array
           description: Target environments for promotion

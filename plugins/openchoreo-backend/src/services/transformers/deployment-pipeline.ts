@@ -21,6 +21,13 @@ export function transformDeploymentPipeline(
     namespaceName: getNamespace(pipeline) ?? '',
     createdAt: getCreatedAt(pipeline) ?? '',
     status: deriveStatus(pipeline),
-    promotionPaths: pipeline.spec?.promotionPaths,
+    promotionPaths: pipeline.spec?.promotionPaths?.map(path => ({
+      ...path,
+      sourceEnvironmentRef:
+        typeof path.sourceEnvironmentRef === 'string'
+          ? path.sourceEnvironmentRef
+          : (path.sourceEnvironmentRef as unknown as { name: string })?.name ??
+            '',
+    })),
   };
 }
