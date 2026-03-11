@@ -18,8 +18,7 @@ import { Alert, Skeleton } from '@material-ui/lab';
 import { useEntity, catalogApiRef } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import {
-  type ModelsWorkload,
-  type WorkloadWithRaw,
+  type WorkloadResource,
   CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
 import {
@@ -83,18 +82,15 @@ export const WorkloadConfigPage = ({
   const catalogApi = useApi(catalogApiRef);
   const { entity } = useEntity();
 
-  // Workload state
-  const [workloadSpec, setWorkloadSpec] = useState<ModelsWorkload | null>(null);
-  const [initialWorkload, setInitialWorkload] = useState<ModelsWorkload | null>(
-    null,
-  );
-  const [rawWorkload, setRawWorkload] = useState<Record<
-    string,
-    unknown
-  > | null>(null);
+  // Single source of truth: the full K8s workload resource
+  const [workloadResource, setWorkloadResource] =
+    useState<WorkloadResource | null>(null);
+  const [initialResource, setInitialResource] =
+    useState<WorkloadResource | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isNewWorkload, setIsNewWorkload] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] =
@@ -193,8 +189,8 @@ export const WorkloadConfigPage = ({
   const location = useLocation();
   const navigation = useContext(NavigationContext);
 
-  // Calculate workload changes
-  const workloadChanges = useWorkloadChanges(initialWorkload, workloadSpec);
+  // Calculate workload changes — compares full resources
+  const workloadChanges = useWorkloadChanges(initialResource, workloadResource);
 
   // Fetch workload and component config
   useEffect(() => {
@@ -210,38 +206,34 @@ export const WorkloadConfigPage = ({
 
         // Handle workload result
         if (workloadResult.status === 'fulfilled') {
-          const response: WorkloadWithRaw = workloadResult.value;
-          // Extract the full raw workload resource for YAML display
-          const { _raw, ...spec } = response;
-          if (_raw) {
-            setRawWorkload(_raw as Record<string, unknown>);
-          }
-          setWorkloadSpec(spec as ModelsWorkload);
-          setInitialWorkload(spec ? JSON.parse(JSON.stringify(spec)) : null);
+          const resource = workloadResult.value;
+          setWorkloadResource(resource);
+          setInitialResource(JSON.parse(JSON.stringify(resource)));
           setIsNewWorkload(false);
         } else {
           if (isFromSourceComponent(entity)) {
-            setError(
+            setLoadError(
               'Workload configuration not found. The workload should have been created automatically after a successful build. Please re-run the build workflow.',
             );
           } else {
             setIsNewWorkload(true);
-            const defaultWorkload = {
-              name: entity.metadata.name,
-              owner: {
-                projectName:
-                  entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ||
-                  '',
-                componentName: entity.metadata.name,
+            const defaultResource: WorkloadResource = {
+              metadata: { name: entity.metadata.name },
+              spec: {
+                owner: {
+                  projectName:
+                    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ||
+                    '',
+                  componentName: entity.metadata.name,
+                },
+                container: {
+                  image: '',
+                },
+                dependencies: { endpoints: [] },
               },
-              container: {
-                image: '',
-              },
-              dependencies: { endpoints: [] },
-              connections: [],
-            };
-            setWorkloadSpec(defaultWorkload);
-            setInitialWorkload(JSON.parse(JSON.stringify(defaultWorkload)));
+            } as WorkloadResource;
+            setWorkloadResource(defaultResource);
+            setInitialResource(JSON.parse(JSON.stringify(defaultResource)));
           }
         }
 
@@ -250,8 +242,6 @@ export const WorkloadConfigPage = ({
           setInitialTraits(traitsResult.value);
           setTraitsLoadError(null);
         } else {
-          // Don't overwrite initialTraits with EMPTY_TRAITS — leave them unset
-          // so the UI shows an error instead of silently treating all traits as absent
           setTraitsLoadError(
             'Failed to load traits. Trait editing is disabled until traits are loaded.',
           );
@@ -331,16 +321,16 @@ export const WorkloadConfigPage = ({
           // Component details fetch failure is non-critical for parameters
         }
       } catch (e) {
-        setError('Failed to load configuration');
+        setLoadError('Failed to load configuration');
       }
       setIsLoading(false);
     };
     fetchData();
     return () => {
-      setWorkloadSpec(null);
-      setInitialWorkload(null);
-      setRawWorkload(null);
-      setError(null);
+      setWorkloadResource(null);
+      setInitialResource(null);
+      setLoadError(null);
+      setSaveError(null);
       setIsNewWorkload(false);
       setInitialTraits(EMPTY_TRAITS);
       setHasParameters(false);
@@ -433,25 +423,34 @@ export const WorkloadConfigPage = ({
   }, [hasUnsavedWork, navigation, location.pathname]);
 
   const isFromSource = isFromSourceComponent(entity);
-  const hasImage = !!workloadSpec?.container?.image?.trim();
+  const spec = workloadResource?.spec;
+  const hasImage = !!spec?.container?.image?.trim();
 
   const hasAnyChanges =
     workloadChanges.hasChanges || hasTraitChanges || hasParameterChanges;
 
   const handleNext = async () => {
-    if (!workloadSpec) {
+    if (!workloadResource) {
       return;
     }
-    if (!isFromSource && !workloadSpec.container?.image?.trim()) {
-      setError('A container image is required before proceeding.');
+    if (!isFromSource && !spec?.container?.image?.trim()) {
+      setSaveError('A container image is required before proceeding.');
       return;
     }
     setIsProcessing(true);
-    setError(null);
+    setSaveError(null);
     try {
-      // Step 1: Apply workload (if changed)
+      // Step 1: Apply workload (if changed) — send the full resource as-is
       if (workloadChanges.hasChanges) {
-        await client.applyWorkload(entity, workloadSpec);
+        const result = await client.applyWorkload(
+          entity,
+          workloadResource,
+          isNewWorkload,
+        );
+        // Advance the saved baseline so retries don't reapply the same change
+        setWorkloadResource(result);
+        setInitialResource(JSON.parse(JSON.stringify(result)));
+        setIsNewWorkload(false);
       }
 
       // Step 2: Update component config (traits/parameters) if changed
@@ -478,13 +477,13 @@ export const WorkloadConfigPage = ({
       onNext(releaseName, lowestEnvironment);
     } catch (e: any) {
       setIsProcessing(false);
-      setError(e.message || 'Failed to create release');
+      setSaveError(e.message || 'Failed to save changes');
     }
   };
 
   const enableNext = isFromSource
     ? hasImage && !isLoading
-    : !isLoading && !!workloadSpec?.container?.image?.trim();
+    : !isLoading && !!spec?.container?.image?.trim();
 
   const getAlertMessage = () => {
     if (isFromSource && !hasImage) {
@@ -578,13 +577,21 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {error && !isLoading && (
+      {loadError && !isLoading && (
         <Box className={classes.errorContainer}>
-          <Typography variant="body1">{error}</Typography>
+          <Typography variant="body1">{loadError}</Typography>
         </Box>
       )}
 
-      {!isLoading && !error && isNewWorkload && (
+      {saveError && !isLoading && (
+        <Box mb={2}>
+          <Alert severity="error" onClose={() => setSaveError(null)}>
+            {saveError}
+          </Alert>
+        </Box>
+      )}
+
+      {!isLoading && !loadError && isNewWorkload && (
         <Box mb={2}>
           <Alert severity="info">
             Configure your workload below to enable deployment.
@@ -592,7 +599,7 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && !error && !isNewWorkload && !enableNext && (
+      {!isLoading && !loadError && !isNewWorkload && !enableNext && (
         <Box mb={2}>
           <Alert severity={isFromSource && !hasImage ? 'warning' : 'info'}>
             {getAlertMessage()}
@@ -600,18 +607,16 @@ export const WorkloadConfigPage = ({
         </Box>
       )}
 
-      {!isLoading && !error && (
+      {!isLoading && !loadError && (
         <WorkloadProvider
           builds={EMPTY_BUILDS}
-          workloadSpec={workloadSpec}
-          setWorkloadSpec={setWorkloadSpec}
+          workloadResource={workloadResource}
+          setWorkloadResource={setWorkloadResource}
           isDeploying={isProcessing || isLoading}
-          initialWorkload={initialWorkload}
+          initialResource={initialResource}
           onEditingChange={setIsEditing}
         >
           <WorkloadEditor
-            entity={entity}
-            rawWorkload={rawWorkload}
             initialTab={initialTab}
             onTabChange={onTabChange}
             traitsState={traitsState}

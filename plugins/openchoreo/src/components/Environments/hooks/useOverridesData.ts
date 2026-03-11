@@ -273,9 +273,12 @@ export function useOverridesData(
           setHasActualWorkloadOverrides(hasActualWorkload);
 
           // Fetch base workload info for reference display (non-blocking — may not exist yet)
-          const workloadInfo = await client
+          const workloadResource = await client
             .fetchWorkloadInfo(entity)
             .catch(() => null);
+          // Extract spec for form/display use — fetchWorkloadInfo returns the full K8s resource
+          const workloadInfo = (workloadResource?.spec ??
+            workloadResource) as ModelsWorkload | null;
           setBaseWorkloadData(workloadInfo);
 
           // If no workload overrides exist, populate container structure from base workload
@@ -302,9 +305,12 @@ export function useOverridesData(
           setInitialTraitFormDataMap({});
 
           // Fetch base workload info for reference display (non-blocking — may not exist yet)
-          const workloadInfo = await client
+          const workloadResource = await client
             .fetchWorkloadInfo(entity)
             .catch(() => null);
+          // Extract spec for form/display use — fetchWorkloadInfo returns the full K8s resource
+          const workloadInfo = (workloadResource?.spec ??
+            workloadResource) as ModelsWorkload | null;
           setBaseWorkloadData(workloadInfo);
 
           // Populate container structure from base workload

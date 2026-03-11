@@ -1,8 +1,8 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dependency,
-  ModelsWorkload,
   WorkloadEndpoint,
+  WorkloadResource,
 } from '@openchoreo/backstage-plugin-common';
 import {
   DependencyList,
@@ -131,10 +131,10 @@ export const DependencyContent: FC<DependencyContentProps> = ({
       if (!component) return {};
 
       try {
-        const workload: ModelsWorkload = await client.fetchWorkloadInfo(
+        const workload: WorkloadResource = await client.fetchWorkloadInfo(
           component,
         );
-        const endpoints: EndpointMap = workload?.endpoints || {};
+        const endpoints: EndpointMap = workload?.spec?.endpoints || {};
         setEndpointCache(prev => ({ ...prev, [cacheKey]: endpoints }));
         return endpoints;
       } catch {

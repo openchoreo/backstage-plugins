@@ -4,12 +4,7 @@ import {
   createOpenChoreoApiClient,
   assertApiResponse,
 } from '@openchoreo/openchoreo-client-node';
-import type {
-  WorkloadResponse,
-  WorkloadWithRaw,
-} from '@openchoreo/backstage-plugin-common';
-
-type ModelsWorkload = WorkloadResponse;
+import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
 
 export class WorkloadInfoService implements WorkloadService {
   private readonly logger: LoggerService;
@@ -31,7 +26,7 @@ export class WorkloadInfoService implements WorkloadService {
       namespaceName: string;
     },
     token?: string,
-  ): Promise<WorkloadWithRaw | null> {
+  ): Promise<WorkloadResource | null> {
     const { projectName, componentName, namespaceName } = request;
 
     try {
@@ -64,12 +59,8 @@ export class WorkloadInfoService implements WorkloadService {
         return null;
       }
 
-      // Return spec fields spread at top level (for form editing)
-      // plus the full K8s resource as _raw (for YAML display)
-      return {
-        ...(workload.spec as ModelsWorkload),
-        _raw: workload,
-      } as WorkloadWithRaw;
+      // Return the full K8s workload resource as-is
+      return workload as WorkloadResource;
     } catch (error) {
       this.logger.error(`Failed to fetch workload info: ${error}`);
       throw error;
@@ -81,15 +72,19 @@ export class WorkloadInfoService implements WorkloadService {
       projectName: string;
       componentName: string;
       namespaceName: string;
-      workloadSpec: ModelsWorkload;
+      workload: WorkloadResource;
+      isNew: boolean;
     },
     token?: string,
-  ): Promise<any> {
-    const { projectName, componentName, namespaceName, workloadSpec } = request;
+  ): Promise<WorkloadResource> {
+    const { projectName, componentName, namespaceName, workload, isNew } =
+      request;
 
     try {
       this.logger.info(
-        `Applying workload for component: ${componentName} in namespace: ${namespaceName}`,
+        `${
+          isNew ? 'Creating' : 'Updating'
+        } workload for component: ${componentName} in namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -98,31 +93,12 @@ export class WorkloadInfoService implements WorkloadService {
         logger: this.logger,
       });
 
-      // First find the existing workload for this component
-      const {
-        data: listData,
-        error: listError,
-        response: listResponse,
-      } = await client.GET('/api/v1/namespaces/{namespaceName}/workloads', {
-        params: {
-          path: { namespaceName },
-          query: { project: projectName, component: componentName },
-        },
-      });
-
-      assertApiResponse(
-        { data: listData, error: listError, response: listResponse },
-        'list workloads',
-      );
-
-      const existingWorkload = listData!.items[0];
-
-      if (existingWorkload) {
-        // Update existing workload
-        const workloadName = existingWorkload.metadata.name;
+      if (!isNew) {
+        // Update existing workload — use the resource name as the path param
+        const workloadName = workload.metadata?.name;
         if (!workloadName) {
           throw new Error(
-            `Workload for component ${componentName} has no name in metadata`,
+            'Workload metadata.name is required for updating an existing workload',
           );
         }
 
@@ -132,43 +108,44 @@ export class WorkloadInfoService implements WorkloadService {
             params: {
               path: { namespaceName, workloadName },
             },
-            body: {
-              ...existingWorkload,
-              spec: workloadSpec as { [key: string]: unknown },
-            },
+            body: workload as any,
           },
         );
 
         assertApiResponse({ data, error, response }, 'update workload');
 
-        return data!.spec;
+        return data! as WorkloadResource;
       }
 
       // Create new workload
+      const newWorkload = {
+        ...workload,
+        metadata: {
+          ...workload.metadata,
+          name: workload.metadata?.name || `${componentName}-workload`,
+        },
+        spec: {
+          ...(workload.spec as { [key: string]: unknown }),
+          owner: {
+            projectName,
+            componentName,
+          },
+        },
+      };
+
       const { data, error, response } = await client.POST(
         '/api/v1/namespaces/{namespaceName}/workloads',
         {
           params: {
             path: { namespaceName },
           },
-          body: {
-            metadata: {
-              name: `${componentName}-workload`,
-            },
-            spec: {
-              ...(workloadSpec as { [key: string]: unknown }),
-              owner: {
-                projectName,
-                componentName,
-              },
-            },
-          },
+          body: newWorkload as any,
         },
       );
 
       assertApiResponse({ data, error, response }, 'create workload');
 
-      return data!.spec;
+      return data! as WorkloadResource;
     } catch (error) {
       this.logger.error(`Failed to apply workload: ${error}`);
       throw error;
