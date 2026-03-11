@@ -50,6 +50,7 @@ type NewClusterObservabilityPlane =
   OpenChoreoComponents['schemas']['ClusterObservabilityPlane'];
 type NewClusterBuildPlane =
   OpenChoreoComponents['schemas']['ClusterBuildPlane'];
+type NewClusterWorkflow = OpenChoreoComponents['schemas']['ClusterWorkflow'];
 type NewWorkflow = OpenChoreoComponents['schemas']['Workflow'];
 type NewWorkload = OpenChoreoComponents['schemas']['Workload'];
 type NewAgentConnectionStatus =
@@ -413,7 +414,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
               // Find all projects that reference this pipeline
               const referencingProjects = projects.filter(
-                p => p.spec?.deploymentPipelineRef === pipelineName,
+                p => p.spec?.deploymentPipelineRef?.name === pipelineName,
               );
 
               if (referencingProjects.length > 0) {
@@ -935,20 +936,29 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
       // Fetch cluster workflows (once, not per namespace)
       try {
-        // TODO: Remove 'as any' once OpenAPI client is regenerated with ClusterWorkflow types
-        const clusterWorkflows = await fetchAllPages<any>(cursor =>
-          (client as any)
-            .GET('/api/v1/clusterworkflows', {
-              params: { query: { limit: 100, cursor } },
-            })
-            .then((res: any) => {
-              if (res.error)
-                throw new Error('Failed to fetch cluster workflows');
-              return res.data;
-            }),
+        const clusterWorkflows = await fetchAllPages<NewClusterWorkflow>(
+          cursor =>
+            client
+              .GET('/api/v1/clusterworkflows', {
+                params: { query: { limit: 100, cursor } },
+              })
+              .then(res => {
+                if (res.error) {
+                  const msg =
+                    typeof res.error === 'object' &&
+                    res.error !== null &&
+                    'message' in res.error
+                      ? (res.error as { message: string }).message
+                      : JSON.stringify(res.error);
+                  throw new Error(
+                    `Failed to fetch cluster workflows: ${res.response.status} ${res.response.statusText} - ${msg}`,
+                  );
+                }
+                return res.data;
+              }),
         );
 
-        this.logger.debug(`Found ${clusterWorkflows.length} cluster workflows`);
+        this.logger.info(`Found ${clusterWorkflows.length} cluster workflows`);
 
         const cwfEntities: Entity[] = clusterWorkflows
           .map(cwf => {
@@ -1149,11 +1159,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
       e => e.kind === 'ClusterBuildPlane',
     ).length;
     const workflowCount = allEntities.filter(e => e.kind === 'Workflow').length;
-    const componentWorkflowCount = allEntities.filter(
-      e => e.kind === 'ComponentWorkflow',
+    const clusterWorkflowCount = allEntities.filter(
+      e => e.kind === 'ClusterWorkflow',
     ).length;
     this.logger.info(
-      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterBuildPlaneCount} cluster build planes, ${workflowCount} workflows, ${componentWorkflowCount} component workflows)`,
+      `Successfully processed ${allEntities.length} entities (${domainCount} domains, ${systemCount} systems, ${componentCount} components, ${apiCount} apis, ${environmentCount} environments, ${dataplaneCount} dataplanes, ${buildplaneCount} buildplanes, ${observabilityplaneCount} observabilityplanes, ${pipelineCount} deployment pipelines, ${componentTypeCount} component types, ${traitTypeCount} trait types, ${clusterComponentTypeCount} cluster component types, ${clusterTraitTypeCount} cluster trait types, ${clusterDataplaneCount} cluster dataplanes, ${clusterObservabilityPlaneCount} cluster observability planes, ${clusterBuildPlaneCount} cluster build planes, ${workflowCount} workflows, ${clusterWorkflowCount} cluster workflows)`,
     );
   }
 
@@ -1671,7 +1681,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
         displayName: getDisplayName(cct),
         description: getDescription(cct),
         workloadType: cct.spec?.workloadType,
-        allowedWorkflows: cct.spec?.allowedWorkflows?.map(w => w.name),
+        allowedWorkflows: cct.spec?.allowedWorkflows,
         allowedTraits: cct.spec?.allowedTraits,
         createdAt: getCreatedAt(cct),
       },
@@ -1700,7 +1710,7 @@ export class OpenChoreoEntityProvider implements EntityProvider {
    * Translates a new API ClusterWorkflow to a Backstage ClusterWorkflow entity.
    */
   private translateNewClusterWorkflowToEntity(
-    cwf: any,
+    cwf: NewClusterWorkflow,
   ): ClusterWorkflowEntityV1alpha1 {
     const isCI =
       cwf.metadata?.annotations?.['openchoreo.dev/workflow-scope'] ===

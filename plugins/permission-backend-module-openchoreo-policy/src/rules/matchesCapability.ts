@@ -5,20 +5,40 @@ import {
 } from '@backstage/plugin-permission-node';
 import { Entity } from '@backstage/catalog-model';
 import {
-  OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
   CHOREO_ANNOTATIONS,
 } from '@openchoreo/backstage-plugin-common';
 
 /**
- * Permission resource reference for OpenChoreo component resources.
- * Used for resource-based permission checks on catalog entities.
+ * Entity kinds that are namespace-scoped (not project or component level).
+ * These should only match namespace-level capability paths, not project/component paths.
  */
-export const openchoreoComponentResourceRef = createPermissionResourceRef<
+const NAMESPACE_SCOPED_KINDS = new Set([
+  'componenttype',
+  'traittype',
+  'workflow',
+  'componentworkflow',
+  'environment',
+  'dataplane',
+  'buildplane',
+  'observabilityplane',
+  'deploymentpipeline',
+]);
+
+/**
+ * Permission resource reference for OpenChoreo namespace-scoped resources.
+ * Used for `ResourcePermission` checks that authorize actions/mutations
+ * (deploy, update, delete, etc.) on components and namespace-scoped resource
+ * definitions (Dataplane, ComponentType, etc.).
+ *
+ * @see matchesCapability — the rule that uses this resource ref
+ */
+export const openchoreoNamespacedResourceRef = createPermissionResourceRef<
   Entity,
   {}
 >().with({
   pluginId: 'openchoreo',
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -90,6 +110,7 @@ function parseCapabilityPath(path: string): {
 function matchesScope(
   path: string,
   scope: { namespace?: string; project?: string; component?: string },
+  namespaceOnly?: boolean,
 ): boolean {
   // Wildcard matches everything
   if (path === '*') {
@@ -104,6 +125,11 @@ function matchesScope(
     parsed.namespace !== '*' &&
     parsed.namespace !== scope.namespace
   ) {
+    return false;
+  }
+
+  // Namespace-scoped entities: reject paths with project or component segments
+  if (namespaceOnly && (parsed.project || parsed.component)) {
     return false;
   }
 
@@ -139,17 +165,34 @@ function matchesScope(
 }
 
 /**
- * Permission rule that checks if a user's OpenChoreo capabilities
- * allow a specific action on a catalog entity.
+ * Permission rule that authorizes **actions/mutations** on OpenChoreo resources
+ * (e.g., deploy, update, delete a component or namespace-scoped definition).
  *
- * The rule extracts the scope (namespace/project/component) from entity
- * annotations and matches it against the user's capability patterns.
+ * - **Resource type**: `OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE` — used for
+ *   `ResourcePermission` checks, NOT catalog entity reads.
+ * - **Scope**: Components and namespace-scoped resource definitions (Dataplane,
+ *   ComponentType, Environment, etc.).
+ * - **Default behavior**: Denies if the entity has no namespace annotation
+ *   (strict — unknown entities cannot be acted upon).
+ * - **No `toQuery` filtering**: Always evaluates the full entity at apply-time
+ *   because mutations target individual resources, not bulk listings.
+ *
+ * ### How it differs from `matchesCatalogEntityCapability`
+ *
+ * `matchesCatalogEntityCapability` controls **catalog visibility** — whether a
+ * user can see/list entities in the Backstage catalog. It operates on
+ * `RESOURCE_TYPE_CATALOG_ENTITY` (Backstage's built-in type), is permissive by
+ * default (allows non-OpenChoreo entities), and provides a `toQuery` for
+ * DB-level pre-filtering.
+ *
+ * This rule (`matchesCapability`) controls **what the user can do** to a
+ * resource they can already see.
  */
 export const matchesCapability = createPermissionRule({
   name: 'MATCHES_CAPABILITY',
   description:
     'Allow if user has OpenChoreo capability for this resource scope',
-  resourceRef: openchoreoComponentResourceRef,
+  resourceRef: openchoreoNamespacedResourceRef,
   paramsSchema,
   apply: (entity: Entity, params: MatchesCapabilityParams) => {
     const { allowedPaths, deniedPaths } = params;
@@ -168,17 +211,18 @@ export const matchesCapability = createPermissionRule({
     }
 
     const scope = { namespace, project, component };
+    const namespaceOnly = NAMESPACE_SCOPED_KINDS.has(entity.kind.toLowerCase());
 
     // Check if explicitly denied at this scope
     for (const deniedPath of deniedPaths) {
-      if (matchesScope(deniedPath, scope)) {
+      if (matchesScope(deniedPath, scope, namespaceOnly)) {
         return false;
       }
     }
 
     // Check if explicitly allowed at this scope
     for (const allowedPath of allowedPaths) {
-      if (matchesScope(allowedPath, scope)) {
+      if (matchesScope(allowedPath, scope, namespaceOnly)) {
         return true;
       }
     }

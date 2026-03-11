@@ -1,6 +1,7 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
+  assertApiResponse,
   fetchAllPages,
 } from '@openchoreo/openchoreo-client-node';
 import type {
@@ -54,11 +55,7 @@ export class ClusterTraitInfoService {
             },
           })
           .then(res => {
-            if (res.error) {
-              throw new Error(
-                `Failed to fetch cluster traits: ${res.response.status} ${res.response.statusText}`,
-              );
-            }
+            assertApiResponse(res, 'fetch cluster traits');
             return res.data;
           }),
       );
@@ -107,11 +104,10 @@ export class ClusterTraitInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch cluster trait schema: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data, error, response },
+        'fetch cluster trait schema',
+      );
 
       this.logger.debug(
         `Successfully fetched schema for cluster trait: ${clusterTraitName}`,

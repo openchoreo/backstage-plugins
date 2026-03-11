@@ -26,6 +26,7 @@ export class ClusterWorkflowEntityProcessor implements CatalogProcessor {
     _emit: CatalogProcessorEmit,
   ): Promise<ClusterWorkflowEntityV1alpha1> {
     // No domain relationship for cluster-scoped entities
+    // Workflow relationships are emitted by ClusterComponentTypeEntityProcessor
     return entity;
   }
 

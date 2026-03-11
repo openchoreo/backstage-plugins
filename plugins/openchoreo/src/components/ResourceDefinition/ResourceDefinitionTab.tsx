@@ -20,9 +20,13 @@ import {
   useYamlEditor,
   LoadingState,
   ErrorState,
+  ForbiddenState,
   UnsavedChangesDialog,
+  NotificationBanner,
+  useResourceDefinitionPermission,
 } from '@openchoreo/backstage-plugin-react';
 import { useResourceDefinition } from './useResourceDefinition';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { isSupportedKind } from './utils';
 
 // Navigator type for overriding push/replace methods
@@ -73,6 +77,11 @@ export function ResourceDefinitionTab() {
   const { entity } = useEntity();
   const navigate = useNavigate();
   const navigation = useContext(NavigationContext);
+  const {
+    canUpdate,
+    canDelete,
+    loading: permissionsLoading,
+  } = useResourceDefinitionPermission();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -94,9 +103,11 @@ export function ResourceDefinitionTab() {
     definition,
     isLoading,
     error: fetchError,
+    rawError: fetchRawError,
     save,
     deleteResource,
     isSaving,
+    refresh,
   } = useResourceDefinition({ entity });
 
   // Show success/error snackbar
@@ -116,9 +127,14 @@ export function ResourceDefinitionTab() {
         await save(content);
         showSnackbar('Resource saved successfully', 'success');
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Failed to save resource';
-        showSnackbar(message, 'error');
+        if (isForbiddenError(err)) {
+          showSnackbar(
+            'You do not have permission to save this resource. Contact your administrator.',
+            'error',
+          );
+        } else {
+          showSnackbar(getErrorMessage(err), 'error');
+        }
         throw err; // Re-throw so useYamlEditor knows it failed
       }
     },
@@ -134,9 +150,14 @@ export function ResourceDefinitionTab() {
       // Navigate back to catalog after deletion
       navigate('/catalog');
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to delete resource';
-      showSnackbar(message, 'error');
+      if (isForbiddenError(err)) {
+        showSnackbar(
+          'You do not have permission to delete this resource. Contact your administrator.',
+          'error',
+        );
+      } else {
+        showSnackbar(getErrorMessage(err), 'error');
+      }
     }
   }, [deleteResource, showSnackbar, navigate]);
 
@@ -256,10 +277,18 @@ export function ResourceDefinitionTab() {
         </Typography>
         <Typography variant="body2" color="textSecondary">
           Supported kinds: ComponentType, TraitType, Workflow,
-          ComponentWorkflow, ClusterComponentType, ClusterTraitType
+          ComponentWorkflow, Environment, DataPlane, BuildPlane,
+          ObservabilityPlane, DeploymentPipeline, ClusterComponentType,
+          ClusterTraitType, ClusterWorkflow, ClusterDataPlane,
+          ClusterObservabilityPlane, ClusterBuildPlane
         </Typography>
       </Box>
     );
+  }
+
+  // Permission loading state
+  if (permissionsLoading) {
+    return <LoadingState message="Checking permissions..." />;
   }
 
   // Loading state
@@ -269,11 +298,20 @@ export function ResourceDefinitionTab() {
 
   // Error state
   if (fetchError && !definition) {
+    if (isForbiddenError(fetchRawError)) {
+      return (
+        <ForbiddenState
+          message="You do not have permission to view this resource definition."
+          onRetry={refresh}
+          variant="fullpage"
+        />
+      );
+    }
     return (
       <ErrorState
         title="Failed to load resource definition"
         message={fetchError}
-        onRetry={() => window.location.reload()}
+        onRetry={refresh}
       />
     );
   }
@@ -301,16 +339,25 @@ export function ResourceDefinitionTab() {
         </Typography>
       </Box>
 
+      {!canUpdate && (
+        <NotificationBanner
+          variant="info"
+          showIcon
+          message="You have read-only access to this resource definition. Contact your administrator for edit permissions."
+        />
+      )}
+
       <Box className={classes.editorContainer}>
         <YamlEditor
           content={yamlEditor.content}
           onChange={yamlEditor.setContent}
           onSave={yamlEditor.handleSave}
           onDiscard={yamlEditor.handleDiscard}
-          onDelete={() => setDeleteDialogOpen(true)}
+          onDelete={canDelete ? () => setDeleteDialogOpen(true) : undefined}
           errorText={editorError}
           isDirty={yamlEditor.isDirty}
           isSaving={isSaving}
+          readOnly={!canUpdate}
         />
       </Box>
 

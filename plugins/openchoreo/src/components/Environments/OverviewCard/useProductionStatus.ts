@@ -2,12 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { isForbiddenError } from '../../../utils/errorUtils';
 import type { Environment } from '../hooks/useEnvironmentData';
 
 interface ProductionStatusState {
   productionEnv: Environment | null;
   loading: boolean;
   error: Error | null;
+  isForbidden: boolean;
   refreshing: boolean;
 }
 
@@ -23,6 +25,7 @@ export function useProductionStatus() {
     productionEnv: null,
     loading: true,
     error: null,
+    isForbidden: false,
     refreshing: false,
   });
 
@@ -49,6 +52,7 @@ export function useProductionStatus() {
         ...prev,
         loading: false,
         error: err as Error,
+        isForbidden: isForbiddenError(err),
       }));
     }
   }, [entity, client]);
@@ -89,6 +93,7 @@ export function useProductionStatus() {
     deploymentStatus,
     loading: state.loading,
     error: state.error,
+    isForbidden: state.isForbidden,
     refreshing: state.refreshing,
     refresh,
   };

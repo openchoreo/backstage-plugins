@@ -14,9 +14,12 @@ import {
 import { useTraceSpans } from '../../hooks/useTraceSpans';
 import { useSpanDetails } from '../../hooks/useSpanDetails';
 import { Environment } from '../../types';
-import { EmptyState, Progress, WarningIcon } from '@backstage/core-components';
+import { Progress } from '@backstage/core-components';
 import { Alert } from '@material-ui/lab';
-import { useTracesPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useTracesPermission,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 import { calculateTimeRange } from './utils';
 
 const ObservabilityTracesContent = () => {
@@ -154,6 +157,7 @@ export const ObservabilityTracesPage = () => {
     canViewTraces,
     loading: permissionLoading,
     deniedTooltip,
+    permissionName,
   } = useTracesPermission();
 
   if (permissionLoading) {
@@ -162,15 +166,10 @@ export const ObservabilityTracesPage = () => {
 
   if (!canViewTraces) {
     return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
       />
     );
   }

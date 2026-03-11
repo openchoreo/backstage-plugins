@@ -4,7 +4,8 @@ import { createPermission } from '@backstage/plugin-permission-common';
  * Resource type identifiers for OpenChoreo entities.
  * Used for resource-based permission checks.
  */
-export const OPENCHOREO_RESOURCE_TYPE_COMPONENT = 'openchoreo-component';
+export const OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE =
+  'openchoreo-namespaced-resource';
 export const OPENCHOREO_RESOURCE_TYPE_PROJECT = 'openchoreo-project';
 
 /**
@@ -23,7 +24,7 @@ export const openchoreoComponentCreatePermission = createPermission({
 export const openchoreoComponentReadPermission = createPermission({
   name: 'openchoreo.component.read',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -33,7 +34,7 @@ export const openchoreoComponentReadPermission = createPermission({
 export const openchoreoComponentBuildPermission = createPermission({
   name: 'openchoreo.component.build',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -43,7 +44,7 @@ export const openchoreoComponentBuildPermission = createPermission({
 export const openchoreoComponentViewBuildsPermission = createPermission({
   name: 'openchoreo.component.viewbuilds',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -53,7 +54,7 @@ export const openchoreoComponentViewBuildsPermission = createPermission({
 export const openchoreoComponentDeployPermission = createPermission({
   name: 'openchoreo.component.deploy',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -63,7 +64,7 @@ export const openchoreoComponentDeployPermission = createPermission({
 export const openchoreoComponentUpdatePermission = createPermission({
   name: 'openchoreo.component.update',
   attributes: { action: 'update' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -166,6 +167,298 @@ export const openchoreoComponentWorkflowCreatePermission = createPermission({
   attributes: { action: 'create' },
 });
 
+// --- Update & Delete permissions for resource definition kinds ---
+
+/**
+ * Permission to update a component type.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoComponentTypeUpdatePermission = createPermission({
+  name: 'openchoreo.componenttype.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a component type.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoComponentTypeDeletePermission = createPermission({
+  name: 'openchoreo.componenttype.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a trait.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoTraitUpdatePermission = createPermission({
+  name: 'openchoreo.trait.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a trait.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoTraitDeletePermission = createPermission({
+  name: 'openchoreo.trait.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a workflow.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoWorkflowUpdatePermission = createPermission({
+  name: 'openchoreo.workflow.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a workflow.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoWorkflowDeletePermission = createPermission({
+  name: 'openchoreo.workflow.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a component workflow.
+ * Resource-based: requires the specific entity context.
+ */
+export const openchoreoComponentWorkflowUpdatePermission = createPermission({
+  name: 'openchoreo.componentworkflow.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a component workflow.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoComponentWorkflowDeletePermission = createPermission({
+  name: 'openchoreo.componentworkflow.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update an environment.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoEnvironmentUpdatePermission = createPermission({
+  name: 'openchoreo.environment.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete an environment.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoEnvironmentDeletePermission = createPermission({
+  name: 'openchoreo.environment.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a dataplane.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoDataplaneUpdatePermission = createPermission({
+  name: 'openchoreo.dataplane.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a dataplane.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoDataplaneDeletePermission = createPermission({
+  name: 'openchoreo.dataplane.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a buildplane.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoBuildplaneUpdatePermission = createPermission({
+  name: 'openchoreo.buildplane.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a buildplane.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoBuildplaneDeletePermission = createPermission({
+  name: 'openchoreo.buildplane.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update an observability plane.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoObservabilityplaneUpdatePermission = createPermission({
+  name: 'openchoreo.observabilityplane.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete an observability plane.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoObservabilityplaneDeletePermission = createPermission({
+  name: 'openchoreo.observabilityplane.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a deployment pipeline.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoDeploymentpipelineUpdatePermission = createPermission({
+  name: 'openchoreo.deploymentpipeline.update',
+  attributes: { action: 'update' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to delete a deployment pipeline.
+ * Resource-based: requires entity context.
+ */
+export const openchoreoDeploymentpipelineDeletePermission = createPermission({
+  name: 'openchoreo.deploymentpipeline.delete',
+  attributes: { action: 'delete' },
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
+});
+
+/**
+ * Permission to update a cluster component type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterComponentTypeUpdatePermission = createPermission({
+  name: 'openchoreo.clustercomponenttype.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster component type.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterComponentTypeDeletePermission = createPermission({
+  name: 'openchoreo.clustercomponenttype.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster trait.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterTraitUpdatePermission = createPermission({
+  name: 'openchoreo.clustertrait.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster trait.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterTraitDeletePermission = createPermission({
+  name: 'openchoreo.clustertrait.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster dataplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterDataplaneUpdatePermission = createPermission({
+  name: 'openchoreo.clusterdataplane.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster dataplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterDataplaneDeletePermission = createPermission({
+  name: 'openchoreo.clusterdataplane.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster buildplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterBuildplaneUpdatePermission = createPermission({
+  name: 'openchoreo.clusterbuildplane.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster buildplane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterBuildplaneDeletePermission = createPermission({
+  name: 'openchoreo.clusterbuildplane.delete',
+  attributes: { action: 'delete' },
+});
+
+/**
+ * Permission to update a cluster observability plane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterObservabilityplaneUpdatePermission =
+  createPermission({
+    name: 'openchoreo.clusterobservabilityplane.update',
+    attributes: { action: 'update' },
+  });
+
+/**
+ * Permission to delete a cluster observability plane.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterObservabilityplaneDeletePermission =
+  createPermission({
+    name: 'openchoreo.clusterobservabilityplane.delete',
+    attributes: { action: 'delete' },
+  });
+
+/**
+ * Permission to update a cluster workflow.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterWorkflowUpdatePermission = createPermission({
+  name: 'openchoreo.clusterworkflow.update',
+  attributes: { action: 'update' },
+});
+
+/**
+ * Permission to delete a cluster workflow.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterWorkflowDeletePermission = createPermission({
+  name: 'openchoreo.clusterworkflow.delete',
+  attributes: { action: 'delete' },
+});
+
 /**
  * Permission to create a new component release.
  * Requires component context.
@@ -181,6 +474,15 @@ export const openchoreoReleaseCreatePermission = createPermission({
  */
 export const openchoreoReleaseReadPermission = createPermission({
   name: 'openchoreo.release.read',
+  attributes: { action: 'read' },
+});
+
+/**
+ * Permission to read/view release bindings.
+ * Org-scoped permission.
+ */
+export const openchoreoReleaseBindingReadPermission = createPermission({
+  name: 'openchoreo.releasebinding.read',
   attributes: { action: 'read' },
 });
 
@@ -263,7 +565,7 @@ export const openchoreoRoleMappingDeletePermission = createPermission({
 export const openchoreoLogsViewPermission = createPermission({
   name: 'openchoreo.logs.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -273,7 +575,7 @@ export const openchoreoLogsViewPermission = createPermission({
 export const openchoreoMetricsViewPermission = createPermission({
   name: 'openchoreo.metrics.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -303,7 +605,7 @@ export const openchoreoRcaViewPermission = createPermission({
 export const openchoreoTraitsViewPermission = createPermission({
   name: 'openchoreo.traits.view',
   attributes: { action: 'read' },
-  resourceType: OPENCHOREO_RESOURCE_TYPE_COMPONENT,
+  resourceType: OPENCHOREO_RESOURCE_TYPE_NAMESPACED_RESOURCE,
 });
 
 /**
@@ -325,6 +627,7 @@ export const openchoreoPermissions = [
   openchoreoEnvironmentReadPermission,
   openchoreoReleaseCreatePermission,
   openchoreoReleaseReadPermission,
+  openchoreoReleaseBindingReadPermission,
   openchoreoRoleViewPermission,
   openchoreoRoleCreatePermission,
   openchoreoRoleUpdatePermission,
@@ -343,6 +646,37 @@ export const openchoreoPermissions = [
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterTraitCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
+  // Update & Delete permissions for resource definition kinds
+  openchoreoComponentTypeUpdatePermission,
+  openchoreoComponentTypeDeletePermission,
+  openchoreoTraitUpdatePermission,
+  openchoreoTraitDeletePermission,
+  openchoreoWorkflowUpdatePermission,
+  openchoreoWorkflowDeletePermission,
+  openchoreoComponentWorkflowUpdatePermission,
+  openchoreoComponentWorkflowDeletePermission,
+  openchoreoEnvironmentUpdatePermission,
+  openchoreoEnvironmentDeletePermission,
+  openchoreoDataplaneUpdatePermission,
+  openchoreoDataplaneDeletePermission,
+  openchoreoBuildplaneUpdatePermission,
+  openchoreoBuildplaneDeletePermission,
+  openchoreoObservabilityplaneUpdatePermission,
+  openchoreoObservabilityplaneDeletePermission,
+  openchoreoDeploymentpipelineUpdatePermission,
+  openchoreoDeploymentpipelineDeletePermission,
+  openchoreoClusterComponentTypeUpdatePermission,
+  openchoreoClusterComponentTypeDeletePermission,
+  openchoreoClusterTraitUpdatePermission,
+  openchoreoClusterTraitDeletePermission,
+  openchoreoClusterDataplaneUpdatePermission,
+  openchoreoClusterDataplaneDeletePermission,
+  openchoreoClusterBuildplaneUpdatePermission,
+  openchoreoClusterBuildplaneDeletePermission,
+  openchoreoClusterObservabilityplaneUpdatePermission,
+  openchoreoClusterObservabilityplaneDeletePermission,
+  openchoreoClusterWorkflowUpdatePermission,
+  openchoreoClusterWorkflowDeletePermission,
 ];
 
 /**
@@ -365,6 +699,7 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.environment.read': 'environment:view',
   'openchoreo.release.create': 'componentrelease:create',
   'openchoreo.release.read': 'componentrelease:view',
+  'openchoreo.releasebinding.read': 'releasebinding:view',
   'openchoreo.role.view': 'role:view',
   'openchoreo.role.create': 'role:create',
   'openchoreo.role.update': 'role:update',
@@ -383,6 +718,39 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.componentworkflow.create': 'workflow:create',
   'openchoreo.clustercomponenttype.create': 'clustercomponenttype:create',
   'openchoreo.clustertrait.create': 'clustertrait:create',
+  // Update & Delete actions for resource definition kinds
+  'openchoreo.componenttype.update': 'componenttype:update',
+  'openchoreo.componenttype.delete': 'componenttype:delete',
+  'openchoreo.trait.update': 'trait:update',
+  'openchoreo.trait.delete': 'trait:delete',
+  'openchoreo.workflow.update': 'workflow:update',
+  'openchoreo.workflow.delete': 'workflow:delete',
+  'openchoreo.componentworkflow.update': 'workflow:update',
+  'openchoreo.componentworkflow.delete': 'workflow:delete',
+  'openchoreo.environment.update': 'environment:update',
+  'openchoreo.environment.delete': 'environment:delete',
+  'openchoreo.dataplane.update': 'dataplane:update',
+  'openchoreo.dataplane.delete': 'dataplane:delete',
+  'openchoreo.buildplane.update': 'buildplane:update',
+  'openchoreo.buildplane.delete': 'buildplane:delete',
+  'openchoreo.observabilityplane.update': 'observabilityplane:update',
+  'openchoreo.observabilityplane.delete': 'observabilityplane:delete',
+  'openchoreo.deploymentpipeline.update': 'deploymentpipeline:update',
+  'openchoreo.deploymentpipeline.delete': 'deploymentpipeline:delete',
+  'openchoreo.clustercomponenttype.update': 'clustercomponenttype:update',
+  'openchoreo.clustercomponenttype.delete': 'clustercomponenttype:delete',
+  'openchoreo.clustertrait.update': 'clustertrait:update',
+  'openchoreo.clustertrait.delete': 'clustertrait:delete',
+  'openchoreo.clusterdataplane.update': 'clusterdataplane:update',
+  'openchoreo.clusterdataplane.delete': 'clusterdataplane:delete',
+  'openchoreo.clusterbuildplane.update': 'clusterbuildplane:update',
+  'openchoreo.clusterbuildplane.delete': 'clusterbuildplane:delete',
+  'openchoreo.clusterobservabilityplane.update':
+    'clusterobservabilityplane:update',
+  'openchoreo.clusterobservabilityplane.delete':
+    'clusterobservabilityplane:delete',
+  'openchoreo.clusterworkflow.update': 'clusterworkflow:update',
+  'openchoreo.clusterworkflow.delete': 'clusterworkflow:delete',
 };
 
 /**
@@ -402,12 +770,31 @@ export const CATALOG_PERMISSION_TO_ACTION: Record<string, string> = {
  *
  * - Component: Maps to OpenChoreo components
  * - System: Maps to OpenChoreo projects
- * - Domain: Maps to OpenChoreo organizations
+ * - Domain: Maps to OpenChoreo namespaces
+ * - Dataplane, BuildPlane, ObservabilityPlane, DeploymentPipeline: Namespace-scoped infrastructure
+ * - ClusterDataplane, ClusterBuildPlane, ClusterObservabilityPlane: Cluster-scoped infrastructure
+ * - ComponentType, TraitType, Workflow, ComponentWorkflow, Environment: Namespace-scoped platform resources
+ * - ClusterComponentType, ClusterTraitType, ClusterWorkflow: Cluster-scoped platform resources
  */
 export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
   'Component',
   'System',
   'Domain',
+  'Dataplane',
+  'BuildPlane',
+  'ObservabilityPlane',
+  'DeploymentPipeline',
+  'ClusterDataplane',
+  'ClusterBuildPlane',
+  'ClusterObservabilityPlane',
+  'ComponentType',
+  'ClusterComponentType',
+  'TraitType',
+  'ClusterTraitType',
+  'Workflow',
+  'ClusterWorkflow',
+  'ComponentWorkflow',
+  'Environment',
 ];
 
 /**
@@ -418,7 +805,11 @@ export const OPENCHOREO_MANAGED_ENTITY_KINDS = [
  * Each kind maps to a different resource type in OpenChoreo:
  * - Component → component:* actions
  * - System → project:* actions
- * - Domain → organization:* actions
+ * - Domain → namespace:* actions
+ * - Dataplane/BuildPlane/ObservabilityPlane/DeploymentPipeline → respective :view actions
+ * - ClusterDataplane/ClusterBuildPlane/ClusterObservabilityPlane → respective cluster:view actions
+ * - ComponentType/TraitType/Workflow/ComponentWorkflow/Environment → respective :view actions
+ * - ClusterComponentType/ClusterTraitType/ClusterWorkflow → respective cluster:view actions
  */
 export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   component: {
@@ -431,5 +822,50 @@ export const CATALOG_KIND_TO_ACTION: Record<string, Record<string, string>> = {
   },
   domain: {
     'catalog.entity.read': 'namespace:view',
+  },
+  dataplane: {
+    'catalog.entity.read': 'dataplane:view',
+  },
+  buildplane: {
+    'catalog.entity.read': 'buildplane:view',
+  },
+  observabilityplane: {
+    'catalog.entity.read': 'observabilityplane:view',
+  },
+  deploymentpipeline: {
+    'catalog.entity.read': 'deploymentpipeline:view',
+  },
+  clusterdataplane: {
+    'catalog.entity.read': 'clusterdataplane:view',
+  },
+  clusterbuildplane: {
+    'catalog.entity.read': 'clusterbuildplane:view',
+  },
+  clusterobservabilityplane: {
+    'catalog.entity.read': 'clusterobservabilityplane:view',
+  },
+  componenttype: {
+    'catalog.entity.read': 'componenttype:view',
+  },
+  clustercomponenttype: {
+    'catalog.entity.read': 'clustercomponenttype:view',
+  },
+  traittype: {
+    'catalog.entity.read': 'trait:view',
+  },
+  clustertraittype: {
+    'catalog.entity.read': 'clustertrait:view',
+  },
+  workflow: {
+    'catalog.entity.read': 'workflow:view',
+  },
+  clusterworkflow: {
+    'catalog.entity.read': 'clusterworkflow:view',
+  },
+  componentworkflow: {
+    'catalog.entity.read': 'workflow:view',
+  },
+  environment: {
+    'catalog.entity.read': 'environment:view',
   },
 };

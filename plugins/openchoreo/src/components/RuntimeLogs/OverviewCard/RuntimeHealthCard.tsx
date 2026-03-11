@@ -18,10 +18,10 @@ import { Card } from '@openchoreo/backstage-design-system';
 import {
   formatRelativeTime,
   useLogsPermission,
+  ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useLogsSummary } from './useLogsSummary';
 import { useOverviewCardStyles } from './styles';
-import BlockIcon from '@material-ui/icons/Block';
 
 export const RuntimeHealthCard = () => {
   const classes = useOverviewCardStyles();
@@ -48,13 +48,7 @@ export const RuntimeHealthCard = () => {
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>Runtime Health</Typography>
         </Box>
-        <Box className={classes.disabledState}>
-          <BlockIcon className={classes.disabledIcon} />
-          <Typography variant="body2">Permission Denied</Typography>
-          <Typography variant="caption" color="textSecondary">
-            {deniedTooltip}
-          </Typography>
-        </Box>
+        <ForbiddenState variant="compact" message={deniedTooltip} />
       </Card>
     );
   }

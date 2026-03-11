@@ -4,11 +4,13 @@ import {
   openChoreoClientApiRef,
   GitSecret,
 } from '../../../api/OpenChoreoClientApi';
+import { isForbiddenError } from '../../../utils/errorUtils';
 
 export interface UseGitSecretsResult {
   secrets: GitSecret[];
   loading: boolean;
   error: Error | null;
+  isForbidden: boolean;
   fetchSecrets: () => Promise<void>;
   createSecret: (
     secretName: string,
@@ -90,6 +92,7 @@ export function useGitSecrets(namespaceName: string): UseGitSecretsResult {
     secrets,
     loading,
     error,
+    isForbidden: isForbiddenError(error),
     fetchSecrets,
     createSecret,
     deleteSecret,

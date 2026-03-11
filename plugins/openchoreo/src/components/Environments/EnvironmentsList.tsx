@@ -13,6 +13,9 @@ import type { PendingAction } from './types';
 import { NotificationBanner, SetupCard, EnvironmentCard } from './components';
 import { useEnvironmentsContext } from './EnvironmentsContext';
 import { useIncidentsSummary } from './hooks/useIncidentsSummary';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
+import { EmptyState, ForbiddenState } from '@openchoreo/backstage-plugin-react';
+import { Card } from '@openchoreo/backstage-design-system';
 
 /**
  * List view for the Environments page.
@@ -30,6 +33,10 @@ export const EnvironmentsList = () => {
     autoDeploy,
     autoDeployUpdating,
     onAutoDeployChange,
+    canViewEnvironments,
+    environmentReadPermissionLoading,
+    canViewBindings,
+    bindingsPermissionLoading,
   } = useEnvironmentsContext();
 
   const {
@@ -123,6 +130,34 @@ export const EnvironmentsList = () => {
           />
         </Grid>
 
+        {/* No environments: show forbidden or empty state as a card */}
+        {!loading &&
+          !environmentReadPermissionLoading &&
+          environments.length === 0 &&
+          !canViewEnvironments && (
+            <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+              <Card
+                style={{ height: '100%', minHeight: '300px', width: '100%' }}
+              >
+                <ForbiddenState
+                  message="You do not have permission to view deployment environments."
+                  onRetry={refetch}
+                />
+              </Card>
+            </Grid>
+          )}
+        {!loading && environments.length === 0 && canViewEnvironments && (
+          <Grid item xs={12} md={3} style={{ display: 'flex' }}>
+            <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>
+              <EmptyState
+                title="No environments available"
+                description="No deployment environments were found for this component."
+                action={{ label: 'Retry', onClick: refetch }}
+              />
+            </Card>
+          </Grid>
+        )}
+
         {/* Environment Cards */}
         {displayEnvironments.map(env => (
           <Grid key={env.name} item xs={12} md={3} style={{ display: 'flex' }}>
@@ -131,6 +166,8 @@ export const EnvironmentsList = () => {
               resourceName={env.resourceName}
               bindingName={env.bindingName}
               hasComponentTypeOverrides={env.hasComponentTypeOverrides}
+              canViewBindings={canViewBindings}
+              bindingsPermissionLoading={bindingsPermissionLoading}
               dataPlaneRef={env.dataPlaneRef}
               deployment={env.deployment}
               endpoints={env.endpoints}
@@ -147,7 +184,11 @@ export const EnvironmentsList = () => {
                     handlePromoteWithOverridesCheck(env, targetName),
                   )
                   .catch(err =>
-                    notification.showError(`Error promoting: ${err}`),
+                    notification.showError(
+                      isForbiddenError(err)
+                        ? 'You do not have permission to promote. Contact your administrator.'
+                        : `Error promoting: ${getErrorMessage(err)}`,
+                    ),
                   )
               }
               onSuspend={() =>
@@ -156,7 +197,11 @@ export const EnvironmentsList = () => {
                     handleSuspend(env.resourceName ?? env.name),
                   )
                   .catch(err =>
-                    notification.showError(`Error suspending: ${err}`),
+                    notification.showError(
+                      isForbiddenError(err)
+                        ? 'You do not have permission to suspend. Contact your administrator.'
+                        : `Error suspending: ${getErrorMessage(err)}`,
+                    ),
                   )
               }
               activeIncidentCount={

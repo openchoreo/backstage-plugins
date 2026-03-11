@@ -5,6 +5,7 @@ import {
   openChoreoClientApiRef,
   ComponentTrait,
 } from '../../../api/OpenChoreoClientApi';
+import { isForbiddenError } from '../../../utils/errorUtils';
 
 export const useTraitsData = () => {
   const { entity } = useEntity();
@@ -35,6 +36,7 @@ export const useTraitsData = () => {
     traits,
     loading,
     error,
+    isForbidden: isForbiddenError(error),
     refetch: fetchTraits,
   };
 };

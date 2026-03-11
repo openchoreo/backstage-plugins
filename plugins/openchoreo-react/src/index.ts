@@ -23,6 +23,10 @@ export {
   type LoadingStateProps,
 } from './components/LoadingState';
 export { ErrorState, type ErrorStateProps } from './components/ErrorState';
+export {
+  ForbiddenState,
+  type ForbiddenStateProps,
+} from './components/ForbiddenState';
 export { EmptyState, type EmptyStateProps } from './components/EmptyState';
 export {
   ImageSelector,
@@ -239,6 +243,14 @@ export {
   type UseEnvironmentPermissionResult,
 } from './hooks/useEnvironmentPermission';
 export {
+  useEnvironmentReadPermission,
+  type UseEnvironmentReadPermissionResult,
+} from './hooks/useEnvironmentReadPermission';
+export {
+  useReleaseBindingPermission,
+  type UseReleaseBindingPermissionResult,
+} from './hooks/useReleaseBindingPermission';
+export {
   useTraitCreatePermission,
   type UseTraitCreatePermissionResult,
 } from './hooks/useTraitCreatePermission';
@@ -258,6 +270,10 @@ export {
   useClusterComponentTypePermission,
   type UseClusterComponentTypePermissionResult,
 } from './hooks/useClusterComponentTypePermission';
+export {
+  useResourceDefinitionPermission,
+  type UseResourceDefinitionPermissionResult,
+} from './hooks/useResourceDefinitionPermission';
 export {
   useAsyncOperation,
   type AsyncStatus,

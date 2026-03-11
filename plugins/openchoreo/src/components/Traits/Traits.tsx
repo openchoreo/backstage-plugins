@@ -17,10 +17,10 @@ import WarningRounded from '@material-ui/icons/WarningRounded';
 import { Alert } from '@material-ui/lab';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useApi } from '@backstage/core-plugin-api';
-import { EmptyState, WarningIcon } from '@backstage/core-components';
 import {
   UnsavedChangesDialog,
   useTraitsPermission,
+  ForbiddenState,
 } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { useTraitsData } from './hooks/useTraitsData';
@@ -35,6 +35,7 @@ import {
   ComponentTrait,
 } from '../../api/OpenChoreoClientApi';
 import { useNotification } from '../../hooks';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { NotificationBanner } from '../Environments/components';
 
 export const Traits = () => {
@@ -44,6 +45,7 @@ export const Traits = () => {
     canViewTraits,
     loading: permissionLoading,
     deniedTooltip,
+    permissionName,
   } = useTraitsPermission();
   const openChoreoClient = useApi(openChoreoClientApiRef);
   const notification = useNotification();
@@ -203,11 +205,11 @@ export const Traits = () => {
       // Show success notification
       notification.showSuccess('Traits updated successfully');
     } catch (err) {
-      const errorMessage = (err as Error).message || 'Failed to save changes';
+      const errorMessage = isForbiddenError(err)
+        ? 'You do not have permission to update traits. Contact your administrator.'
+        : getErrorMessage(err);
       setSaveError(errorMessage);
-
-      // Show error notification
-      notification.showError(`Failed to update traits: ${errorMessage}`);
+      notification.showError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -235,10 +237,19 @@ export const Traits = () => {
   }
 
   if (error) {
+    if (isForbiddenError(error)) {
+      return (
+        <ForbiddenState
+          message="You do not have permission to view traits."
+          onRetry={refetch}
+          variant="fullpage"
+        />
+      );
+    }
     return (
       <Box className={classes.container}>
         <Alert severity="error">
-          Failed to load traits: {error.message || 'Unknown error'}
+          Failed to load traits: {getErrorMessage(error)}
         </Alert>
       </Box>
     );
@@ -247,15 +258,10 @@ export const Traits = () => {
   // Show permission denied notification if user doesn't have access
   if (!permissionLoading && !canViewTraits) {
     return (
-      <EmptyState
-        missing="data"
-        title="Permission Denied"
-        description={
-          <Box display="flex" alignItems="center" gridGap={8}>
-            <WarningIcon />
-            {deniedTooltip}
-          </Box>
-        }
+      <ForbiddenState
+        message={deniedTooltip}
+        permissionName={permissionName}
+        variant="fullpage"
       />
     );
   }

@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
+  assertApiResponse,
   fetchAllPages,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
@@ -143,11 +144,7 @@ export class WorkflowService {
             },
           })
           .then(res => {
-            if (res.error || !res.response.ok) {
-              throw new Error(
-                `Failed to fetch component workflow runs: ${res.response.status} ${res.response.statusText}`,
-              );
-            }
+            assertApiResponse(res, 'fetch component workflow runs');
             return res.data;
           }),
       );
@@ -199,15 +196,7 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data) {
-        throw new Error('No workflow run data returned');
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow run');
 
       const runLabels = (data as any).metadata?.labels ?? {};
       if (
@@ -256,15 +245,7 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow run status: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data) {
-        throw new Error('No workflow run status data returned');
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow run status');
 
       this.logger.debug(`Successfully fetched workflow run status: ${runName}`);
       return data as WorkflowRunStatusResponse;
@@ -297,18 +278,18 @@ export class WorkflowService {
       });
 
       // Fetch component to get its configured workflow name
-      const { data: compData, error: compError } = await client.GET(
+      const compResult = await client.GET(
         '/api/v1/namespaces/{namespaceName}/components/{componentName}',
         {
           params: { path: { namespaceName, componentName } },
         },
       );
 
-      if (compError || !compData) {
-        throw new Error(
-          `Failed to fetch component ${componentName} to determine workflow name`,
-        );
-      }
+      assertApiResponse(
+        compResult,
+        `fetch component ${componentName} to determine workflow name`,
+      );
+      const compData = compResult.data;
 
       const workflowName = (compData as any)?.spec?.workflow?.name;
       if (!workflowName) {
@@ -344,15 +325,10 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to create component workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      if (!data) {
-        throw new Error('No workflow run data returned');
-      }
+      assertApiResponse(
+        { data, error, response },
+        'create component workflow run',
+      );
 
       this.logger.debug(
         `Successfully triggered component workflow for component: ${componentName}, workflow run name: ${
@@ -420,27 +396,18 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        const errorText = await response.text();
-        this.logger.error(
-          `Failed to fetch build logs for component ${componentName}: ${response.status} ${response.statusText}`,
-          { error: errorText },
-        );
-        throw new Error(
-          `Failed to fetch build logs: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch build logs');
 
       this.logger.debug(
         `Successfully fetched ${
-          data.logs?.length || 0
+          data!.logs?.length || 0
         } build logs for component ${componentName}`,
       );
 
       return {
-        logs: (data.logs as WorkflowLogEntry[]) || [],
-        total: data.total || 0,
-        tookMs: data.tookMs || 0,
+        logs: (data!.logs as WorkflowLogEntry[]) || [],
+        total: data!.total || 0,
+        tookMs: data!.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {
@@ -498,11 +465,7 @@ export class WorkflowService {
           },
         );
 
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
-          );
-        }
+        assertApiResponse({ data, error, response }, 'fetch workflow run logs');
 
         if (!Array.isArray(data)) {
           throw new Error('Failed to fetch workflow run logs: invalid payload');
@@ -571,14 +534,7 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        this.logger.error(
-          `Failed to fetch workflow run logs for component ${componentName}: ${response.status} ${response.statusText}`,
-        );
-        throw new Error(
-          `Failed to fetch workflow run logs: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow run logs');
 
       const entries: LogEntry[] = ((data?.logs || []) as any[]).map(
         (entry: any) => ({
@@ -650,11 +606,10 @@ export class WorkflowService {
           },
         );
 
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to fetch workflow run events: ${response.status} ${response.statusText}`,
-          );
-        }
+        assertApiResponse(
+          { data, error, response },
+          'fetch workflow run events',
+        );
 
         if (!Array.isArray(data)) {
           throw new Error(
@@ -713,11 +668,7 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component workflows: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch component workflows');
 
       // Map K8s-style Workflow to flat WorkflowResponse
       const items: WorkflowResponse[] = (data?.items || []).map((wf: any) => ({
@@ -769,11 +720,10 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch component workflow schema: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data, error, response },
+        'fetch component workflow schema',
+      );
 
       this.logger.debug(
         `Successfully fetched schema for component workflow: ${workflowName}`,
@@ -810,20 +760,15 @@ export class WorkflowService {
       });
 
       // 1. GET the current component
-      const { data: component, error: getError } = await client.GET(
+      const getResult = await client.GET(
         '/api/v1/namespaces/{namespaceName}/components/{componentName}',
         {
           params: { path: { namespaceName, componentName } },
         },
       );
 
-      if (getError || !component) {
-        throw new Error(
-          `Failed to fetch component '${componentName}': ${
-            getError ?? 'no data'
-          }`,
-        );
-      }
+      assertApiResponse(getResult, `fetch component '${componentName}'`);
+      const component = getResult.data;
 
       // 2. Update only workflow.parameters
       const updatedComponent = {
@@ -850,11 +795,10 @@ export class WorkflowService {
         },
       );
 
-      if (putError || !response.ok) {
-        throw new Error(
-          `Failed to update component '${componentName}': ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data: result, error: putError, response },
+        `update component '${componentName}'`,
+      );
 
       this.logger.debug(
         `Successfully updated workflow parameters for component: ${componentName}`,
@@ -893,11 +837,7 @@ export class WorkflowService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch cluster workflows: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch cluster workflows');
 
       const items: WorkflowResponse[] = ((data as any)?.items || []).map(
         (wf: any) => ({
@@ -945,11 +885,10 @@ export class WorkflowService {
         } as any,
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch cluster workflow schema: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data, error, response },
+        'fetch cluster workflow schema',
+      );
 
       this.logger.debug(
         `Successfully fetched schema for cluster workflow: ${workflowName}`,

@@ -1,5 +1,8 @@
 import { createTemplateAction } from '@backstage/plugin-scaffolder-node';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import { Config } from '@backstage/config';
 import { z } from 'zod';
 import YAML from 'yaml';
@@ -108,11 +111,7 @@ export const createClusterWorkflowDefinitionAction = (
           },
         );
 
-        if (error || !response.ok) {
-          throw new Error(
-            `Failed to create ClusterWorkflow: ${response.status} ${response.statusText}`,
-          );
-        }
+        assertApiResponse({ data, error, response }, 'create ClusterWorkflow');
 
         const resultData = data as Record<string, unknown>;
         const metadata = resultData.metadata as

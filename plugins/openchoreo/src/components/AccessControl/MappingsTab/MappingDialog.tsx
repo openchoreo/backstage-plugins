@@ -20,6 +20,7 @@ import {
   ClusterRoleBindingRequest,
   NamespaceRoleBindingRequest,
 } from '../../../api/OpenChoreoClientApi';
+import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { SCOPE_CLUSTER, SCOPE_NAMESPACE } from '../constants';
 import {
   WizardState,
@@ -232,7 +233,13 @@ export const MappingDialog = ({
         await onSave(binding);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      if (isForbiddenError(err)) {
+        setError(
+          'You do not have permission to save this role binding. Contact your administrator.',
+        );
+      } else {
+        setError(getErrorMessage(err));
+      }
     } finally {
       setSaving(false);
     }

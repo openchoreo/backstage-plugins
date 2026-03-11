@@ -5,7 +5,10 @@ import {
   CircularProgress,
   Tooltip,
 } from '@material-ui/core';
-import { useBuildPermission } from '@openchoreo/backstage-plugin-react';
+import {
+  useBuildPermission,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
 import { Skeleton } from '@material-ui/lab';
 import { Link } from '@backstage/core-components';
 import AccessTimeIcon from '@material-ui/icons/AccessTime';
@@ -45,13 +48,7 @@ export const WorkflowsOverviewCard = () => {
         <Box className={classes.cardHeader}>
           <Typography className={classes.cardTitle}>Workflows</Typography>
         </Box>
-        <Box className={classes.disabledState}>
-          <BlockIcon className={classes.disabledIcon} />
-          <Typography variant="body2">Permission Denied</Typography>
-          <Typography variant="caption" color="textSecondary">
-            {viewBuildDeniedTooltip}
-          </Typography>
-        </Box>
+        <ForbiddenState variant="compact" message={viewBuildDeniedTooltip} />
       </Card>
     );
   }

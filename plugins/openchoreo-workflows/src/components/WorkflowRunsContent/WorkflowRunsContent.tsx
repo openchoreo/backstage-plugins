@@ -10,7 +10,12 @@ import {
 } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { Alert, AlertTitle } from '@material-ui/lab';
+import {
+  Alert,
+  AlertTitle,
+  ToggleButton,
+  ToggleButtonGroup,
+} from '@material-ui/lab';
 import {
   Box,
   IconButton,
@@ -37,6 +42,8 @@ import {
 import {
   DetailPageLayout,
   formatRelativeTime,
+  YamlEditor,
+  useYamlEditor,
 } from '@openchoreo/backstage-plugin-react';
 import { useWorkflowRuns } from '../../hooks/useWorkflowRuns';
 import { useWorkflowRunDetails } from '../../hooks/useWorkflowRunDetails';
@@ -106,6 +113,21 @@ const useStyles = makeStyles(theme => ({
     textAlign: 'center',
     color: theme.palette.text.secondary,
   },
+  modeToggle: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: theme.spacing(2),
+  },
+  toggleButton: {
+    textTransform: 'none',
+    padding: theme.spacing(0.5, 2),
+  },
+  editorContainer: {
+    minHeight: 320,
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    overflow: 'hidden',
+  },
 }));
 
 // Helper to calculate duration
@@ -139,6 +161,8 @@ function formatDate(dateString?: string): string {
 /**
  * Inline trigger form component shown within the runs page.
  */
+type EditorMode = 'form' | 'yaml';
+
 const TriggerForm = ({
   workflowName,
   onTriggered,
@@ -153,19 +177,206 @@ const TriggerForm = ({
   const client = useApi(genericWorkflowsClientApiRef);
   const { schema, loading, error } = useWorkflowSchema(workflowName);
 
+  const [mode, setMode] = useState<EditorMode>('form');
   const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [schemaError, setSchemaError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<Error | null>(null);
 
-  const handleSubmit = async (data: IChangeEvent) => {
+  const yamlEditor = useYamlEditor({ initialContent: '' });
+
+  const isPlainObject = (val: unknown): val is Record<string, unknown> =>
+    val !== null && typeof val === 'object' && !Array.isArray(val);
+
+  // Recursively build a params object from schema with defaults or type-appropriate empty values
+  const buildParamsFromSchema = (
+    schemaObj: unknown,
+  ): Record<string, unknown> => {
+    if (!isPlainObject(schemaObj)) return {};
+    const props = schemaObj.properties;
+    if (!isPlainObject(props)) return {};
+    return Object.fromEntries(
+      Object.entries(props).map(([key, propSchema]) => {
+        if (isPlainObject(propSchema) && 'default' in propSchema) {
+          return [key, propSchema.default];
+        }
+        const type = isPlainObject(propSchema) ? propSchema.type : undefined;
+        if (type === 'object') {
+          return [key, buildParamsFromSchema(propSchema)];
+        }
+        if (type === 'number' || type === 'integer') return [key, 0];
+        if (type === 'boolean') return [key, false];
+        if (type === 'array') return [key, []];
+        return [key, ''];
+      }),
+    );
+  };
+
+  // Deep merge: schema defaults fill in missing/empty fields; formData values win otherwise
+  const deepMergeWithDefaults = (
+    defaults: Record<string, unknown>,
+    override: Record<string, unknown>,
+  ): Record<string, unknown> => {
+    const result = { ...defaults };
+    for (const [key, val] of Object.entries(override)) {
+      // Skip rjsf-generated empty objects — they mean "no value entered", so keep the default
+      if (isPlainObject(val) && Object.keys(val).length === 0) continue;
+      if (isPlainObject(val) && isPlainObject(result[key])) {
+        result[key] = deepMergeWithDefaults(
+          result[key] as Record<string, unknown>,
+          val,
+        );
+      } else {
+        result[key] = val;
+      }
+    }
+    return result;
+  };
+
+  const buildWorkflowRunManifest = (
+    params: Record<string, unknown>,
+  ): Record<string, unknown> => {
+    // Omit params that are empty objects (rjsf initializes object-type fields
+    // to {} when there's no default value — not useful to show in YAML)
+    const meaningful = Object.fromEntries(
+      Object.entries(params).filter(
+        ([, v]) =>
+          !(
+            v !== null &&
+            typeof v === 'object' &&
+            !Array.isArray(v) &&
+            Object.keys(v as object).length === 0
+          ),
+      ),
+    );
+    return {
+      apiVersion: 'openchoreo.dev/v1alpha1',
+      kind: 'WorkflowRun',
+      metadata: {
+        namespace: namespaceName,
+      },
+      spec: {
+        workflow: {
+          name: workflowName,
+          ...(Object.keys(meaningful).length > 0
+            ? { parameters: meaningful }
+            : {}),
+        },
+      },
+    };
+  };
+
+  const extractParametersFromYaml = (
+    parsed: Record<string, unknown>,
+  ): Record<string, unknown> | null => {
+    if (parsed.kind === 'WorkflowRun' && isPlainObject(parsed.spec)) {
+      const spec = parsed.spec as Record<string, unknown>;
+      if (isPlainObject(spec.workflow)) {
+        const workflow = spec.workflow as Record<string, unknown>;
+        if ('parameters' in workflow) {
+          if (!isPlainObject(workflow.parameters)) return null;
+          return workflow.parameters;
+        }
+        return {};
+      }
+    }
+    // Fallback: treat entire parsed object as raw parameters
+    return parsed;
+  };
+
+  const switchToYaml = () => {
+    const schemaDefaults = buildParamsFromSchema(schema);
+    const merged = deepMergeWithDefaults(schemaDefaults, formData);
+    yamlEditor.reset(buildWorkflowRunManifest(merged));
+    setSchemaError(null);
+    setMode('yaml');
+  };
+
+  const switchToForm = () => {
+    if (yamlEditor.parseError) return;
+    const parsed = yamlEditor.parseYaml();
+    if (parsed) {
+      if (!isPlainObject(parsed)) {
+        setSchemaError('Invalid YAML: root must be a mapping/object');
+        return;
+      }
+      const params = extractParametersFromYaml(parsed);
+      if (params === null) {
+        setSchemaError('Invalid YAML: parameters must be a mapping/object');
+        return;
+      }
+      setFormData(params);
+    } else {
+      setFormData({});
+    }
+    setSchemaError(null);
+    setMode('form');
+  };
+
+  const getParameters = (): Record<string, unknown> | null => {
+    if (mode === 'yaml') {
+      if (yamlEditor.parseError) return null;
+      const parsed = yamlEditor.parseYaml();
+      if (parsed === null) return {};
+      if (!isPlainObject(parsed)) {
+        setSchemaError('Invalid YAML: root must be a mapping/object');
+        return null;
+      }
+      const params = extractParametersFromYaml(parsed);
+      if (params === null) {
+        setSchemaError('Invalid YAML: parameters must be a mapping/object');
+        return null;
+      }
+      return params;
+    }
+    return formData;
+  };
+
+  const handleSubmit = async (data?: IChangeEvent) => {
+    if (mode === 'yaml') {
+      if (yamlEditor.parseError) return;
+      const parameters = getParameters();
+      if (parameters === null) return;
+
+      if (schema && typeof schema === 'object' && 'properties' in schema) {
+        const { errors } = validator.validateFormData(
+          parameters,
+          schema as RJSFSchema,
+        );
+        if (errors.length > 0) {
+          setSchemaError(errors.map(e => e.stack).join('\n'));
+          return;
+        }
+      }
+
+      try {
+        setSubmitting(true);
+        setSubmitError(null);
+
+        const run = await client.createWorkflowRun(
+          namespaceName,
+          workflowName,
+          parameters,
+        );
+
+        onTriggered(run.name);
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err : new Error(String(err)));
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
     try {
       setSubmitting(true);
       setSubmitError(null);
 
+      const parameters = data ? data.formData ?? {} : getParameters() ?? {};
       const run = await client.createWorkflowRun(
         namespaceName,
         workflowName,
-        data.formData ?? {},
+        parameters,
       );
 
       onTriggered(run.name);
@@ -222,21 +433,65 @@ const TriggerForm = ({
         </Alert>
       )}
 
-      {hasSchema ? (
-        <Box className={classes.triggerFormContainer}>
-          <Form
-            schema={schema as RJSFSchema}
-            uiSchema={uiSchema}
-            formData={formData}
-            validator={validator}
-            onChange={e => setFormData(e.formData || {})}
-            onSubmit={handleSubmit}
-          >
+      <Box className={classes.modeToggle}>
+        <ToggleButtonGroup
+          value={mode}
+          exclusive
+          onChange={(_e, val) => {
+            if (val === 'form') switchToForm();
+            else if (val === 'yaml') switchToYaml();
+          }}
+          size="small"
+        >
+          <ToggleButton value="form" className={classes.toggleButton}>
+            Form
+          </ToggleButton>
+          <ToggleButton value="yaml" className={classes.toggleButton}>
+            YAML
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {mode === 'form' ? (
+        hasSchema ? (
+          <Box className={classes.triggerFormContainer}>
+            <Form
+              schema={schema as RJSFSchema}
+              uiSchema={uiSchema}
+              formData={formData}
+              validator={validator}
+              onChange={e => setFormData(e.formData || {})}
+              onSubmit={handleSubmit}
+            >
+              <Box className={classes.triggerActions}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  type="submit"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Triggering...' : 'Trigger Workflow'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={onCancel}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+              </Box>
+            </Form>
+          </Box>
+        ) : (
+          <Box>
+            <Typography className={classes.noSchemaMessage}>
+              This workflow has no configurable parameters.
+            </Typography>
             <Box className={classes.triggerActions}>
               <Button
                 variant="contained"
                 color="primary"
-                type="submit"
+                onClick={() => handleSubmit({ formData: {} } as IChangeEvent)}
                 disabled={submitting}
               >
                 {submitting ? 'Triggering...' : 'Trigger Workflow'}
@@ -249,18 +504,25 @@ const TriggerForm = ({
                 Cancel
               </Button>
             </Box>
-          </Form>
-        </Box>
+          </Box>
+        )
       ) : (
         <Box>
-          <Typography className={classes.noSchemaMessage}>
-            This workflow has no configurable parameters.
-          </Typography>
+          <Box className={classes.editorContainer}>
+            <YamlEditor
+              content={yamlEditor.content}
+              onChange={content => {
+                yamlEditor.setContent(content);
+                setSchemaError(null);
+              }}
+              errorText={yamlEditor.parseError || schemaError || undefined}
+            />
+          </Box>
           <Box className={classes.triggerActions}>
             <Button
               variant="contained"
               color="primary"
-              onClick={() => handleSubmit({ formData: {} } as IChangeEvent)}
+              onClick={() => handleSubmit()}
               disabled={submitting}
             >
               {submitting ? 'Triggering...' : 'Trigger Workflow'}

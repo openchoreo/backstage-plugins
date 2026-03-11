@@ -37,6 +37,7 @@ const kindDisplayNames: Record<string, string> = {
   traittype: 'Trait Type',
   clustertraittype: 'Cluster Trait Type',
   workflow: 'Workflow',
+  clusterworkflow: 'Cluster Workflow',
   componentworkflow: 'Component Workflow',
 };
 
@@ -70,6 +71,7 @@ const kindCategories: KindCategory[] = [
       'componenttype',
       'clustertraittype',
       'traittype',
+      'clusterworkflow',
       'workflow',
       'componentworkflow',
     ],

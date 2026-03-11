@@ -28,6 +28,8 @@ export function mapKindToApiKind(backstageKind: string): PlatformResourceKind {
       return 'clustercomponenttypes';
     case 'clustertraittype':
       return 'clustertraits';
+    case 'clusterworkflow':
+      return 'clusterworkflows';
     case 'clusterdataplane':
       return 'clusterdataplanes';
     case 'clusterobservabilityplane':
@@ -68,6 +70,8 @@ export function mapKindToCrdKind(backstageKind: string): string {
       return 'ClusterComponentType';
     case 'clustertraittype':
       return 'ClusterTrait'; // ClusterTraitType in Backstage maps to ClusterTrait CRD
+    case 'clusterworkflow':
+      return 'ClusterWorkflow';
     case 'clusterdataplane':
       return 'ClusterDataPlane';
     case 'clusterobservabilityplane':
@@ -87,6 +91,7 @@ export function isClusterScopedKind(kind: string): boolean {
   return [
     'clustercomponenttype',
     'clustertraittype',
+    'clusterworkflow',
     'clusterdataplane',
     'clusterobservabilityplane',
     'clusterbuildplane',
@@ -144,6 +149,7 @@ export function isSupportedKind(kind: string): boolean {
     'deploymentpipeline',
     'clustercomponenttype',
     'clustertraittype',
+    'clusterworkflow',
     'clusterdataplane',
     'clusterobservabilityplane',
     'clusterbuildplane',

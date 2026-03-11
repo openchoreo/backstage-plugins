@@ -24,6 +24,7 @@ import AddIcon from '@material-ui/icons/Add';
 import { useApi, alertApiRef } from '@backstage/core-plugin-api';
 import { Entity, stringifyEntityRef } from '@backstage/catalog-model';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 
 interface AnnotationSuggestion {
   key: string;
@@ -167,6 +168,7 @@ export function EditAnnotationsDialog({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isForbidden, setIsForbidden] = useState(false);
 
   // Load existing annotations when dialog opens
   useEffect(() => {
@@ -174,6 +176,7 @@ export function EditAnnotationsDialog({
 
     setLoading(true);
     setError(null);
+    setIsForbidden(false);
 
     openChoreoClient
       .fetchEntityAnnotations(entity)
@@ -187,7 +190,13 @@ export function EditAnnotationsDialog({
         );
       })
       .catch(err => {
-        setError(err.message || 'Failed to load annotations');
+        const forbidden = isForbiddenError(err);
+        setIsForbidden(forbidden);
+        setError(
+          forbidden
+            ? 'You do not have permission to view annotations. Contact your administrator.'
+            : getErrorMessage(err),
+        );
         setRows([]);
       })
       .finally(() => {
@@ -296,9 +305,11 @@ export function EditAnnotationsDialog({
 
       onClose();
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to update annotations';
-      setError(errorMessage);
+      setError(
+        isForbiddenError(err)
+          ? 'You do not have permission to update annotations. Contact your administrator.'
+          : getErrorMessage(err),
+      );
     } finally {
       setSaving(false);
     }
@@ -415,7 +426,7 @@ export function EditAnnotationsDialog({
               className={classes.addButton}
               startIcon={<AddIcon />}
               onClick={handleAddRow}
-              disabled={saving}
+              disabled={saving || isForbidden}
               size="small"
             >
               Add Annotation
@@ -437,7 +448,7 @@ export function EditAnnotationsDialog({
                         size="small"
                         variant="outlined"
                         onClick={() => handleAddSuggestion(suggestion)}
-                        disabled={saving}
+                        disabled={saving || isForbidden}
                         clickable
                       />
                     </Tooltip>
@@ -461,7 +472,7 @@ export function EditAnnotationsDialog({
           onClick={handleSave}
           color="primary"
           variant="outlined"
-          disabled={saving || loading}
+          disabled={saving || loading || isForbidden}
           startIcon={
             saving ? <CircularProgress size={16} color="inherit" /> : null
           }

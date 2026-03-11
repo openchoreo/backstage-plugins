@@ -1,5 +1,8 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
-import { createOpenChoreoApiClient } from '@openchoreo/openchoreo-client-node';
+import {
+  createOpenChoreoApiClient,
+  assertApiResponse,
+} from '@openchoreo/openchoreo-client-node';
 import { AuthzProfileCache } from './AuthzProfileCache';
 import type { UserCapabilitiesResponse, OpenChoreoScope } from './types';
 
@@ -157,13 +160,7 @@ export class AuthzProfileService {
         },
       );
 
-      if (error || !response.ok) {
-        const errorMsg =
-          error && typeof error === 'object' && 'message' in error
-            ? (error as { message: string }).message
-            : `Failed to fetch capabilities: ${response.status} ${response.statusText}`;
-        throw new Error(errorMsg);
-      }
+      assertApiResponse({ data, error, response }, 'fetch capabilities');
 
       const capabilities = data as UserCapabilitiesResponse;
 

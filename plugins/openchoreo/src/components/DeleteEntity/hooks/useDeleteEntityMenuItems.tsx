@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApi, alertApiRef, IconComponent } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import { isForbiddenError, getErrorMessage } from '../../../utils/errorUtils';
 import { useStyles } from '../styles';
 import { isMarkedForDeletion } from '../utils';
 
@@ -109,11 +110,12 @@ export function useDeleteEntityMenuItems(
       // Navigate to catalog after successful deletion
       navigate('/catalog');
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Unknown error occurred';
+      const errorMessage = isForbiddenError(err)
+        ? 'You do not have permission to delete this resource. Contact your administrator.'
+        : getErrorMessage(err);
       setError(errorMessage);
       alertApi.post({
-        message: `Failed to delete ${entityDisplayType.toLowerCase()}: ${errorMessage}`,
+        message: errorMessage,
         severity: 'error',
       });
     } finally {

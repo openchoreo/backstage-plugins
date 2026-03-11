@@ -26,6 +26,8 @@ import validator from '@rjsf/validator-ajv8';
 import { TraitConfigToggle } from '@openchoreo/backstage-plugin-react';
 import { useTraitsStyles } from './styles';
 import { ComponentTrait } from '../../api/OpenChoreoClientApi';
+import { ResponseError } from '@backstage/errors';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { extractEntityMetadata } from '../../utils/entityUtils';
 import {
   sanitizeLabel,
@@ -222,7 +224,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
             )}&page=1&pageSize=100`,
           );
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw await ResponseError.fromResponse(response);
           }
           const result = await response.json();
           if (!result.success) {
@@ -239,7 +241,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         const fetchClusterTraits = async (): Promise<TraitListItem[]> => {
           const response = await fetchApi.fetch(`${baseUrl}/cluster-traits`);
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw await ResponseError.fromResponse(response);
           }
           const result = await response.json();
           if (!result.success) {
@@ -312,7 +314,13 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         }
       } catch (err) {
         if (!ignore) {
-          setError(`Failed to fetch traits: ${err}`);
+          if (isForbiddenError(err)) {
+            setError(
+              'You do not have permission to view available traits. Contact your administrator.',
+            );
+          } else {
+            setError(`Failed to fetch traits: ${getErrorMessage(err)}`);
+          }
         }
       } finally {
         if (!ignore) {
@@ -367,7 +375,7 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         const response = await fetchApi.fetch(schemaUrl);
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw await ResponseError.fromResponse(response);
         }
 
         const result = await response.json();
@@ -386,7 +394,18 @@ export const AddTraitDialog: React.FC<AddTraitDialogProps> = ({
         }
       } catch (err) {
         if (!ignore) {
-          setError(`Failed to fetch trait schema: ${err}`);
+          setTraitSchema(null);
+          setUiSchema({});
+          setParameters({});
+          setInstanceName('');
+          setShowFormErrors(false);
+          if (isForbiddenError(err)) {
+            setError(
+              'You do not have permission to view this trait schema. Contact your administrator.',
+            );
+          } else {
+            setError(`Failed to fetch trait schema: ${getErrorMessage(err)}`);
+          }
         }
       } finally {
         if (!ignore) {

@@ -266,18 +266,22 @@ export type PlatformResourceKind =
   | 'deploymentpipelines'
   | 'clustercomponenttypes'
   | 'clustertraits'
+  | 'clusterworkflows'
   | 'clusterdataplanes'
   | 'clusterobservabilityplanes'
-  | 'clusterbuildplanes';
+  | 'clusterbuildplanes'
+  | 'clusterworkflows';
 
 /** Cluster-scoped resource kinds that don't require a namespace */
 export const CLUSTER_SCOPED_RESOURCE_KINDS: ReadonlySet<PlatformResourceKind> =
   new Set([
     'clustercomponenttypes',
     'clustertraits',
+    'clusterworkflows',
     'clusterdataplanes',
     'clusterobservabilityplanes',
     'clusterbuildplanes',
+    'clusterworkflows',
   ]);
 
 /** Response for resource CRUD operations */

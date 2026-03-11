@@ -1,5 +1,6 @@
 import { CardContent } from '@material-ui/core';
 import { Card } from '@openchoreo/backstage-design-system';
+import { ForbiddenState } from '@openchoreo/backstage-plugin-react';
 import { useEnvironmentCardStyles } from '../styles';
 import { EnvironmentCardProps } from '../types';
 import { EnvironmentCardHeader } from './EnvironmentCardHeader';
@@ -14,6 +15,8 @@ export const EnvironmentCard = ({
   environmentName,
   bindingName,
   hasComponentTypeOverrides,
+  canViewBindings,
+  bindingsPermissionLoading,
   deployment,
   endpoints,
   promotionTargets,
@@ -29,6 +32,46 @@ export const EnvironmentCard = ({
 }: EnvironmentCardProps) => {
   const classes = useEnvironmentCardStyles();
 
+  const renderCardBody = () => {
+    if (isRefreshing) {
+      return <LoadingSkeleton variant="card" />;
+    }
+    if (canViewBindings === false && !bindingsPermissionLoading) {
+      return (
+        <ForbiddenState
+          variant="compact"
+          message="You do not have permission to view release bindings."
+        />
+      );
+    }
+    return (
+      <>
+        <EnvironmentCardContent
+          status={deployment.status}
+          lastDeployed={deployment.lastDeployed}
+          image={deployment.image}
+          releaseName={deployment.releaseName}
+          endpoints={endpoints}
+          onOpenReleaseDetails={onOpenReleaseDetails}
+          activeIncidentCount={activeIncidentCount}
+          environmentName={environmentName}
+        />
+
+        <EnvironmentActions
+          environmentName={environmentName}
+          bindingName={bindingName}
+          deploymentStatus={deployment.status}
+          promotionTargets={promotionTargets}
+          isAlreadyPromoted={isAlreadyPromoted}
+          promotionTracker={actionTrackers.promotionTracker}
+          suspendTracker={actionTrackers.suspendTracker}
+          onPromote={onPromote}
+          onSuspend={onSuspend}
+        />
+      </>
+    );
+  };
+
   return (
     <Card style={{ height: '100%', minHeight: '300px', width: '100%' }}>
       <CardContent className={classes.cardContent}>
@@ -40,35 +83,7 @@ export const EnvironmentCard = ({
           onOpenOverrides={onOpenOverrides}
           onRefresh={onRefresh}
         />
-
-        {isRefreshing ? (
-          <LoadingSkeleton variant="card" />
-        ) : (
-          <>
-            <EnvironmentCardContent
-              status={deployment.status}
-              lastDeployed={deployment.lastDeployed}
-              image={deployment.image}
-              releaseName={deployment.releaseName}
-              endpoints={endpoints}
-              onOpenReleaseDetails={onOpenReleaseDetails}
-              activeIncidentCount={activeIncidentCount}
-              environmentName={environmentName}
-            />
-
-            <EnvironmentActions
-              environmentName={environmentName}
-              bindingName={bindingName}
-              deploymentStatus={deployment.status}
-              promotionTargets={promotionTargets}
-              isAlreadyPromoted={isAlreadyPromoted}
-              promotionTracker={actionTrackers.promotionTracker}
-              suspendTracker={actionTrackers.suspendTracker}
-              onPromote={onPromote}
-              onSuspend={onSuspend}
-            />
-          </>
-        )}
+        {renderCardBody()}
       </CardContent>
     </Card>
   );

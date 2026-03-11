@@ -38,7 +38,12 @@ const baseMeta = {
 
 const k8sProject = {
   metadata: baseMeta,
-  spec: { deploymentPipelineRef: 'default-pipeline' },
+  spec: {
+    deploymentPipelineRef: {
+      kind: 'DeploymentPipeline' as const,
+      name: 'default-pipeline',
+    },
+  },
   status: {
     conditions: [
       {

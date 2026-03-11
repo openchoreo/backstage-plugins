@@ -68,6 +68,16 @@ export const useLogEntryStyles = makeStyles(theme => ({
     '& > td': {
       padding: '4px 8px !important',
     },
+    // Reveal the hover-action button when this row is hovered
+    '&:hover $hoverActionButton': {
+      opacity: 1,
+      pointerEvents: 'auto',
+    },
+  },
+  hoverActionButton: {
+    opacity: 0,
+    pointerEvents: 'none',
+    transition: 'opacity 0.15s ease',
   },
   expandedRow: {
     backgroundColor: theme.palette.action.selected,
@@ -89,24 +99,29 @@ export const useLogEntryStyles = makeStyles(theme => ({
     },
   },
   errorChip: {
-    backgroundColor: theme.palette.error.main,
-    color: theme.palette.error.contrastText,
+    backgroundColor: theme.palette.error.light,
+    color: theme.palette.error.dark,
+    outline: `1px solid ${theme.palette.error.main}`,
   },
   warnChip: {
-    backgroundColor: theme.palette.warning.main,
-    color: theme.palette.warning.contrastText,
+    backgroundColor: theme.palette.warning.light,
+    color: theme.palette.warning.dark,
+    outline: `1px solid ${theme.palette.warning.main}`,
   },
   infoChip: {
-    backgroundColor: theme.palette.info.main,
-    color: theme.palette.info.contrastText,
+    backgroundColor: theme.palette.info.light,
+    color: theme.palette.info.dark,
+    outline: `1px solid ${theme.palette.info.main}`,
   },
   debugChip: {
-    backgroundColor: theme.palette.action.disabled,
-    color: theme.palette.text.secondary,
+    backgroundColor: theme.palette.action.disabledBackground,
+    color: theme.palette.text.disabled,
+    outline: `1px solid ${theme.palette.text.secondary}`,
   },
   undefinedChip: {
     backgroundColor: theme.palette.action.disabledBackground,
     color: theme.palette.text.disabled,
+    outline: `1px solid ${theme.palette.text.secondary}`,
   },
   logMessage: {
     fontFamily: 'monospace',

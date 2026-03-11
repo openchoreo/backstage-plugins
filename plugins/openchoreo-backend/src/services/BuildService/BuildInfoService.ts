@@ -2,6 +2,7 @@ import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
   createObservabilityClientWithUrl,
+  assertApiResponse,
   fetchAllPages,
   ObservabilityUrlResolver,
 } from '@openchoreo/openchoreo-client-node';
@@ -55,11 +56,7 @@ export class BuildInfoService {
             },
           })
           .then(res => {
-            if (res.error || !res.response.ok) {
-              throw new Error(
-                `Failed to fetch component workflow runs: ${res.response.status} ${res.response.statusText}`,
-              );
-            }
+            assertApiResponse(res, 'fetch component workflow runs');
             return res.data;
           }),
       );
@@ -117,11 +114,7 @@ export class BuildInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to fetch workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch workflow run');
 
       const runLabels = (data as any)?.metadata?.labels ?? {};
       if (
@@ -134,7 +127,7 @@ export class BuildInfoService {
       }
 
       this.logger.debug(`Successfully fetched workflow run: ${runName}`);
-      return transformComponentWorkflowRun(data);
+      return transformComponentWorkflowRun(data!);
     } catch (error) {
       this.logger.error(`Failed to fetch workflow run ${runName}: ${error}`);
       throw error;
@@ -162,15 +155,15 @@ export class BuildInfoService {
       });
 
       // Fetch component to resolve its configured workflow name
-      const { data: compData, error: compError } = await client.GET(
+      const compResult = await client.GET(
         '/api/v1/namespaces/{namespaceName}/components/{componentName}',
         { params: { path: { namespaceName, componentName } } },
       );
-      if (compError || !compData) {
-        throw new Error(
-          `Failed to fetch component ${componentName} to determine workflow name`,
-        );
-      }
+      assertApiResponse(
+        compResult,
+        'fetch component to determine workflow name',
+      );
+      const compData = compResult.data;
       const workflowName = (compData as any)?.spec?.workflow?.name;
       if (!workflowName) {
         throw new Error(
@@ -198,16 +191,15 @@ export class BuildInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        throw new Error(
-          `Failed to create component workflow run: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse(
+        { data, error, response },
+        'create component workflow run',
+      );
 
       this.logger.debug(
         `Successfully triggered component workflow for component: ${componentName}`,
       );
-      return transformComponentWorkflowRun(data);
+      return transformComponentWorkflowRun(data!);
     } catch (error) {
       this.logger.error(
         `Failed to trigger component workflow for component ${componentName}: ${error}`,
@@ -267,27 +259,18 @@ export class BuildInfoService {
         },
       );
 
-      if (error || !response.ok) {
-        const errorText = await response.text();
-        this.logger.error(
-          `Failed to fetch build logs for component ${componentName}: ${response.status} ${response.statusText}`,
-          { error: errorText },
-        );
-        throw new Error(
-          `Failed to fetch build logs: ${response.status} ${response.statusText}`,
-        );
-      }
+      assertApiResponse({ data, error, response }, 'fetch build logs');
 
       this.logger.debug(
         `Successfully fetched ${
-          data.logs?.length || 0
+          data!.logs?.length || 0
         } build logs for component ${componentName}`,
       );
 
       return {
-        logs: data.logs || [],
-        total: data.total || 0,
-        tookMs: data.tookMs || 0,
+        logs: data!.logs || [],
+        total: data!.total || 0,
+        tookMs: data!.tookMs || 0,
       };
     } catch (error: unknown) {
       if (error instanceof ObservabilityNotConfiguredError) {

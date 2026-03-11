@@ -6,7 +6,11 @@ import { Card } from '@openchoreo/backstage-design-system';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { useDeploymentPipeline } from '../hooks';
 import { useProjectOverviewCardStyles } from './styles';
-import { PipelineFlowVisualization } from '@openchoreo/backstage-plugin-react';
+import {
+  PipelineFlowVisualization,
+  ForbiddenState,
+} from '@openchoreo/backstage-plugin-react';
+import { isForbiddenError } from '../../../utils/errorUtils';
 
 export const DeploymentPipelineCard = () => {
   const classes = useProjectOverviewCardStyles();
@@ -31,6 +35,13 @@ export const DeploymentPipelineCard = () => {
 
   // Error state
   if (error || !data) {
+    if (isForbiddenError(error)) {
+      return (
+        <Card padding={24} className={classes.card}>
+          <ForbiddenState message="You do not have permission to view the deployment pipeline." />
+        </Card>
+      );
+    }
     return (
       <Card padding={24} className={classes.card}>
         <Box className={classes.cardHeader}>

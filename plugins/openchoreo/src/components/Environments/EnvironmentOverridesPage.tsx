@@ -5,6 +5,7 @@ import { Entity } from '@backstage/catalog-model';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../api/OpenChoreoClientApi';
 import { makeStyles } from '@material-ui/core/styles';
+import { isForbiddenError, getErrorMessage } from '../../utils/errorUtils';
 import { OverrideContent } from './OverrideContent';
 import { useOverrideChanges } from './hooks/useOverrideChanges';
 import { useOverridesData } from './hooks/useOverridesData';
@@ -482,7 +483,11 @@ export const EnvironmentOverridesPage = ({
         );
         await onPendingActionComplete(pendingAction);
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : 'Failed to deploy');
+        setSaveError(
+          isForbiddenError(err)
+            ? 'You do not have permission to perform this action. Contact your administrator.'
+            : getErrorMessage(err),
+        );
       } finally {
         setSaving(false);
       }
@@ -536,7 +541,9 @@ export const EnvironmentOverridesPage = ({
       }
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : 'Failed to save overrides',
+        isForbiddenError(err)
+          ? 'You do not have permission to perform this action. Contact your administrator.'
+          : getErrorMessage(err),
       );
       setShowSaveConfirm(false);
     } finally {
@@ -587,7 +594,9 @@ export const EnvironmentOverridesPage = ({
       }
     } catch (err) {
       setSaveError(
-        err instanceof Error ? err.message : 'Failed to delete overrides',
+        isForbiddenError(err)
+          ? 'You do not have permission to perform this action. Contact your administrator.'
+          : getErrorMessage(err),
       );
       setShowDeleteConfirm(false);
       setDeleteTarget(null);

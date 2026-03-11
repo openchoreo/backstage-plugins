@@ -40,6 +40,7 @@ const useStyles = makeStyles(theme => ({
     borderTop: `1px solid ${theme.palette.error.main}`,
     fontFamily: 'monospace',
     fontSize: '0.875rem',
+    whiteSpace: 'pre-wrap',
   },
   floatingButtons: {
     position: 'absolute',

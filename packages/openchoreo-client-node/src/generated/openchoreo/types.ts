@@ -2332,13 +2332,19 @@ export interface components {
     };
     /** @description Desired state of a Project */
     ProjectSpec: {
-      /**
-       * @description Reference to the DeploymentPipeline that defines the environments
+      /** @description Reference to the DeploymentPipeline that defines the environments
        *     and deployment progression for components in this project.
-       *
-       * @example default
-       */
-      deploymentPipelineRef?: string;
+       *      */
+      deploymentPipelineRef?: {
+        /**
+         * @description Kind of deployment pipeline resource
+         * @default DeploymentPipeline
+         * @enum {string}
+         */
+        kind: 'DeploymentPipeline';
+        /** @description Name of the deployment pipeline resource */
+        name?: string;
+      };
     };
     /** @description Observed state of a Project */
     ProjectStatus: {

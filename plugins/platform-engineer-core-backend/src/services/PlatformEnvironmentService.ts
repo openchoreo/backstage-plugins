@@ -1,6 +1,7 @@
 import { LoggerService } from '@backstage/backend-plugin-api';
 import {
   createOpenChoreoApiClient,
+  assertApiResponse,
   fetchAllPages,
   getName,
   getNamespace,
@@ -373,9 +374,8 @@ export class PlatformEnvironmentInfoService
                   },
                 })
                 .then(res => {
-                  if (res.error)
-                    throw new Error('Failed to fetch release bindings');
-                  return res.data!;
+                  assertApiResponse(res, 'fetch release bindings');
+                  return res.data;
                 }),
             );
 
@@ -544,9 +544,8 @@ export class PlatformEnvironmentInfoService
                   },
                 })
                 .then(res => {
-                  if (res.error)
-                    throw new Error('Failed to fetch release bindings');
-                  return res.data!;
+                  assertApiResponse(res, 'fetch release bindings');
+                  return res.data;
                 }),
             );
 
