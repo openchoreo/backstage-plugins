@@ -135,6 +135,12 @@ export const WorkloadSaveConfirmationDialog: FC<
         changes: changes.dependencies,
       });
     }
+    if (changes.other.length > 0) {
+      result.push({
+        title: 'Other',
+        changes: changes.other,
+      });
+    }
     return result;
   }, [changes]);
 

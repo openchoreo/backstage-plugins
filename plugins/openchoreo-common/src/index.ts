@@ -210,9 +210,8 @@ export type ModelsBuild = BuildResponse;
 export type ModelsWorkload = WorkloadResponse;
 /** Full K8s Workload resource type from the OpenAPI spec */
 export type WorkloadResource = OpenChoreoComponents['schemas']['Workload'];
-
-/** Workload response with the full raw K8s resource attached for YAML display */
-export type WorkloadWithRaw = ModelsWorkload & { _raw: WorkloadResource };
+/** Spec portion of a WorkloadResource */
+export type WorkloadSpec = NonNullable<WorkloadResource['spec']>;
 export type ModelsCompleteComponent = ComponentResponse;
 export type WorkflowRunStatusResponse = ComponentWorkflowRunStatusResponse;
 

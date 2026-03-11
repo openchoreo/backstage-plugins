@@ -3,10 +3,7 @@ import {
   deepCompareObjects,
   type Change,
 } from '@openchoreo/backstage-plugin-react';
-import type {
-  ModelsWorkload,
-  Dependency,
-} from '@openchoreo/backstage-plugin-common';
+import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
 
 /**
  * Workload changes grouped by section
@@ -18,16 +15,26 @@ export interface WorkloadChanges {
   endpoints: Change[];
   /** Changes in dependencies */
   dependencies: Change[];
+  /** Changes in other fields (metadata, owner, etc.) */
+  other: Change[];
   /** Total number of changes */
   total: number;
   /** Whether there are any changes */
   hasChanges: boolean;
 }
 
+type Dep = {
+  project?: string;
+  component: string;
+  name: string;
+  visibility: string;
+  envBindings: Record<string, string | undefined>;
+};
+
 /**
  * Build a human-readable label for a dependency.
  */
-function dependencyLabel(dep: Dependency): string {
+function dependencyLabel(dep: Dep): string {
   const parts: string[] = [];
   if (dep.project) parts.push(dep.project);
   if (dep.component) parts.push(dep.component);
@@ -39,10 +46,7 @@ function dependencyLabel(dep: Dependency): string {
  * Compare dependency arrays and produce changes with readable labels
  * instead of raw array indices.
  */
-function compareDependencies(
-  initial: Dependency[],
-  current: Dependency[],
-): Change[] {
+function compareDependencies(initial: Dep[], current: Dep[]): Change[] {
   const changes: Change[] = [];
   const maxLen = Math.max(initial.length, current.length);
 
@@ -51,21 +55,18 @@ function compareDependencies(
     const newDep = current[i];
 
     if (!oldDep && newDep) {
-      // New dependency added
       changes.push({
         path: dependencyLabel(newDep),
         type: 'new',
         newValue: 'Added',
       });
     } else if (oldDep && !newDep) {
-      // Dependency removed
       changes.push({
         path: dependencyLabel(oldDep),
         type: 'removed',
         oldValue: 'Removed',
       });
     } else if (oldDep && newDep) {
-      // Compare fields of an existing dependency
       const fieldDiffs = deepCompareObjects(oldDep, newDep);
       if (fieldDiffs.length > 0) {
         const label = dependencyLabel(newDep);
@@ -79,48 +80,93 @@ function compareDependencies(
   return changes;
 }
 
+/** Spec fields that have their own dedicated sections */
+const DEDICATED_SPEC_SECTIONS = new Set([
+  'container',
+  'endpoints',
+  'dependencies',
+]);
+
 /**
- * Hook for detecting changes between initial and current workload data.
- * Compares containers, endpoints, and dependencies separately.
- *
- * @param initialWorkload - The original workload data from the server
- * @param currentWorkload - The current modified workload data
- * @returns WorkloadChanges object with grouped changes and summary
+ * Hook for detecting changes between initial and current workload resources.
+ * Compares the full K8s resource: spec sections individually + metadata + other fields.
  */
 export function useWorkloadChanges(
-  initialWorkload: ModelsWorkload | null,
-  currentWorkload: ModelsWorkload | null,
+  initialResource: WorkloadResource | null,
+  currentResource: WorkloadResource | null,
 ): WorkloadChanges {
   return useMemo(() => {
-    // Compare container (single container, wrapped for deepCompareObjects)
+    const initialSpec = initialResource?.spec;
+    const currentSpec = currentResource?.spec;
+
+    // Compare container
     const containerChanges = deepCompareObjects(
-      initialWorkload?.container || {},
-      currentWorkload?.container || {},
+      initialSpec?.container || {},
+      currentSpec?.container || {},
     );
 
     // Compare endpoints
     const endpointChanges = deepCompareObjects(
-      initialWorkload?.endpoints || {},
-      currentWorkload?.endpoints || {},
+      initialSpec?.endpoints || {},
+      currentSpec?.endpoints || {},
     );
 
     // Compare dependencies with human-readable labels
     const dependencyChanges = compareDependencies(
-      initialWorkload?.dependencies?.endpoints || [],
-      currentWorkload?.dependencies?.endpoints || [],
+      (initialSpec?.dependencies?.endpoints || []) as Dep[],
+      (currentSpec?.dependencies?.endpoints || []) as Dep[],
     );
+
+    // Compare everything else: remaining spec fields + resource-level fields (metadata, etc.)
+    const pickOtherSpec = (
+      spec: Record<string, unknown> | null | undefined,
+    ) => {
+      if (!spec) return {};
+      const rest: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(spec)) {
+        if (!DEDICATED_SPEC_SECTIONS.has(key)) {
+          rest[key] = value;
+        }
+      }
+      return rest;
+    };
+
+    const pickResourceLevel = (r: WorkloadResource | null) => {
+      if (!r) return {};
+      // Compare metadata (excluding server-managed fields) and any other top-level fields
+      const {
+        spec: _spec,
+        status: _status,
+        apiVersion: _av,
+        kind: _k,
+        ...rest
+      } = r as any;
+      return rest;
+    };
+
+    const otherSpecChanges = deepCompareObjects(
+      pickOtherSpec(initialSpec as any),
+      pickOtherSpec(currentSpec as any),
+    );
+    const metadataChanges = deepCompareObjects(
+      pickResourceLevel(initialResource),
+      pickResourceLevel(currentResource),
+    );
+    const otherChanges = [...otherSpecChanges, ...metadataChanges];
 
     const total =
       containerChanges.length +
       endpointChanges.length +
-      dependencyChanges.length;
+      dependencyChanges.length +
+      otherChanges.length;
 
     return {
       container: containerChanges,
       endpoints: endpointChanges,
       dependencies: dependencyChanges,
+      other: otherChanges,
       total,
       hasChanges: total > 0,
     };
-  }, [initialWorkload, currentWorkload]);
+  }, [initialResource, currentResource]);
 }

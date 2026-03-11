@@ -1,9 +1,6 @@
 import { createApiRef } from '@backstage/core-plugin-api';
 import { Entity } from '@backstage/catalog-model';
-import type {
-  ModelsWorkload,
-  WorkloadWithRaw,
-} from '@openchoreo/backstage-plugin-common';
+import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
 import type { Environment } from '../components/RuntimeLogs/types';
 
 // ============================================
@@ -428,11 +425,14 @@ export interface OpenChoreoClientApi {
 
   // === Workload Operations ===
 
-  /** Fetch workload configuration for an entity */
-  fetchWorkloadInfo(entity: Entity): Promise<WorkloadWithRaw>;
+  /** Fetch full workload K8s resource for an entity */
+  fetchWorkloadInfo(entity: Entity): Promise<WorkloadResource>;
 
-  /** Apply workload configuration changes */
-  applyWorkload(entity: Entity, workloadSpec: ModelsWorkload): Promise<any>;
+  /** Apply full workload resource (create or update) */
+  applyWorkload(
+    entity: Entity,
+    workload: WorkloadResource,
+  ): Promise<WorkloadResource>;
 
   // === Workflow Operations ===
 

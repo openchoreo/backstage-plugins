@@ -1,4 +1,10 @@
-import { InputError, NotFoundError } from '@backstage/errors';
+import {
+  InputError,
+  NotFoundError,
+  NotAllowedError,
+  ConflictError,
+  AuthenticationError,
+} from '@backstage/errors';
 import express from 'express';
 import Router from 'express-promise-router';
 import { EnvironmentInfoService } from './services/EnvironmentService/EnvironmentInfoService';
@@ -612,7 +618,7 @@ export async function createRouter({
 
   router.post('/workload', requireAuth, async (req, res) => {
     const { componentName, projectName, namespaceName } = req.query;
-    const workloadSpec = req.body;
+    const workload = req.body;
 
     if (!componentName || !projectName || !namespaceName) {
       throw new InputError(
@@ -620,25 +626,44 @@ export async function createRouter({
       );
     }
 
-    if (!workloadSpec) {
-      throw new InputError(
-        'Workload specification is required in request body',
-      );
+    if (!workload) {
+      throw new InputError('Workload resource is required in request body');
     }
 
     const userToken = getUserTokenFromRequest(req);
 
-    const result = await workloadInfoService.applyWorkload(
-      {
-        componentName: componentName as string,
-        projectName: projectName as string,
-        namespaceName: namespaceName as string,
-        workloadSpec,
-      },
-      userToken,
-    );
+    try {
+      const result = await workloadInfoService.applyWorkload(
+        {
+          componentName: componentName as string,
+          projectName: projectName as string,
+          namespaceName: namespaceName as string,
+          workload,
+        },
+        userToken,
+      );
 
-    res.json(result);
+      res.json(result);
+    } catch (error) {
+      const statusCode =
+        error instanceof InputError
+          ? 400
+          : error instanceof AuthenticationError
+          ? 401
+          : error instanceof NotAllowedError
+          ? 403
+          : error instanceof NotFoundError
+          ? 404
+          : error instanceof ConflictError
+          ? 409
+          : 500;
+      res.status(statusCode).json({
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          name: error instanceof Error ? error.name : 'UnknownError',
+        },
+      });
+    }
   });
 
   router.post('/dashboard/bindings-count', async (req, res) => {

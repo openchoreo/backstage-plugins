@@ -7,12 +7,14 @@ import { WorkloadInfoService } from './WorkloadInfoService';
 
 const mockGET = jest.fn();
 const mockPUT = jest.fn();
+const mockPOST = jest.fn();
 
 jest.mock('@openchoreo/openchoreo-client-node', () => ({
   ...jest.requireActual('@openchoreo/openchoreo-client-node'),
   createOpenChoreoApiClient: jest.fn(() => ({
     GET: mockGET,
     PUT: mockPUT,
+    POST: mockPOST,
   })),
   createOpenChoreoLegacyApiClient: jest.fn(() => ({
     GET: mockGET,
@@ -75,7 +77,7 @@ describe('WorkloadInfoService', () => {
   });
 
   describe('fetchWorkloadInfo', () => {
-    it('fetches workload via new API and returns spec', async () => {
+    it('fetches workload and returns full resource', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [k8sWorkload] }));
 
       const service = createService();
@@ -88,23 +90,23 @@ describe('WorkloadInfoService', () => {
         'token-123',
       );
 
-      expect(result).toEqual(workloadSpec);
+      expect(result).toEqual(k8sWorkload);
     });
 
-    it('throws when no workload found', async () => {
+    it('returns null when no workload found', async () => {
       mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
 
       const service = createService();
-      await expect(
-        service.fetchWorkloadInfo(
-          {
-            projectName: 'my-project',
-            componentName: 'api-service',
-            namespaceName: 'test-ns',
-          },
-          'token',
-        ),
-      ).rejects.toThrow('Failed to fetch workload info');
+      const result = await service.fetchWorkloadInfo(
+        {
+          projectName: 'my-project',
+          componentName: 'api-service',
+          namespaceName: 'test-ns',
+        },
+        'token',
+      );
+
+      expect(result).toBeNull();
     });
 
     it('throws on API error', async () => {
@@ -125,10 +127,7 @@ describe('WorkloadInfoService', () => {
   });
 
   describe('applyWorkload', () => {
-    it('GETs existing workload then PUTs updated spec', async () => {
-      // First: list workloads
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sWorkload] }));
-      // Then: PUT updated workload
+    it('PUTs the full resource when it has a name', async () => {
       const updatedWorkload = {
         ...k8sWorkload,
         spec: { ...workloadSpec, replicas: 3 },
@@ -141,35 +140,41 @@ describe('WorkloadInfoService', () => {
           projectName: 'my-project',
           componentName: 'api-service',
           namespaceName: 'test-ns',
-          workloadSpec: { ...workloadSpec, replicas: 3 } as any,
+          workload: updatedWorkload as any,
         },
         'token-123',
       );
 
-      expect(result).toEqual({ ...workloadSpec, replicas: 3 });
-      expect(mockGET).toHaveBeenCalledTimes(1);
+      expect(result).toEqual(updatedWorkload);
       expect(mockPUT).toHaveBeenCalledTimes(1);
+      expect(mockGET).not.toHaveBeenCalled();
     });
 
-    it('throws when no existing workload found', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [] }));
+    it('POSTs a new workload when it has no name', async () => {
+      const newWorkload = { spec: workloadSpec } as any;
+      const createdWorkload = {
+        metadata: { name: 'api-service-workload' },
+        spec: workloadSpec,
+      };
+      mockPOST.mockResolvedValueOnce(okResponse(createdWorkload));
 
       const service = createService();
-      await expect(
-        service.applyWorkload(
-          {
-            projectName: 'my-project',
-            componentName: 'api-service',
-            namespaceName: 'test-ns',
-            workloadSpec: workloadSpec as any,
-          },
-          'token',
-        ),
-      ).rejects.toThrow('No existing workload found');
+      const result = await service.applyWorkload(
+        {
+          projectName: 'my-project',
+          componentName: 'api-service',
+          namespaceName: 'test-ns',
+          workload: newWorkload,
+        },
+        'token',
+      );
+
+      expect(result).toEqual(createdWorkload);
+      expect(mockPOST).toHaveBeenCalledTimes(1);
+      expect(mockPUT).not.toHaveBeenCalled();
     });
 
     it('throws when PUT fails', async () => {
-      mockGET.mockResolvedValueOnce(okResponse({ items: [k8sWorkload] }));
       mockPUT.mockResolvedValueOnce(errorResponse());
 
       const service = createService();
@@ -179,11 +184,11 @@ describe('WorkloadInfoService', () => {
             projectName: 'my-project',
             componentName: 'api-service',
             namespaceName: 'test-ns',
-            workloadSpec: workloadSpec as any,
+            workload: k8sWorkload as any,
           },
           'token',
         ),
-      ).rejects.toThrow('Failed to update workload');
+      ).rejects.toThrow('Failed to apply workload');
     });
   });
 });

@@ -1,6 +1,6 @@
 import { Project } from '@wso2/cell-diagram';
 import type { ObservabilityComponents } from '@openchoreo/openchoreo-client-node';
-import type { WorkloadWithRaw } from '@openchoreo/backstage-plugin-common';
+import type { WorkloadResource } from '@openchoreo/backstage-plugin-common';
 import type { ModelsSecretReferences } from './services/SecretReferencesService/SecretReferencesService';
 import type {
   GitSecretResponse,
@@ -143,17 +143,17 @@ export interface WorkloadService {
       namespaceName: string;
     },
     token?: string,
-  ): Promise<WorkloadWithRaw | null>;
+  ): Promise<WorkloadResource | null>;
 
   applyWorkload(
     request: {
       projectName: string;
       componentName: string;
       namespaceName: string;
-      workloadSpec: any;
+      workload: WorkloadResource;
     },
     token?: string,
-  ): Promise<any>;
+  ): Promise<WorkloadResource>;
 }
 
 export interface RuntimeLogsService {

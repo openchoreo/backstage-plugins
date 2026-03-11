@@ -7,9 +7,9 @@ import {
   useState,
   useCallback,
 } from 'react';
-import {
+import type {
   ModelsBuild,
-  ModelsWorkload,
+  WorkloadResource,
 } from '@openchoreo/backstage-plugin-common';
 import {
   useWorkloadChanges,
@@ -18,11 +18,12 @@ import {
 
 interface WorkloadContextType {
   builds: ModelsBuild[];
-  workloadSpec: ModelsWorkload | null;
-  setWorkloadSpec: (spec: ModelsWorkload | null) => void;
+  /** The full K8s workload resource (single source of truth) */
+  workloadResource: WorkloadResource | null;
+  setWorkloadResource: (resource: WorkloadResource | null) => void;
   isDeploying: boolean;
-  /** Initial workload data for change comparison */
-  initialWorkload: ModelsWorkload | null;
+  /** Initial workload resource for change comparison */
+  initialResource: WorkloadResource | null;
   /** Detected changes between initial and current workload */
   changes: WorkloadChanges;
   /** Whether any row is currently being edited (in edit buffer) */
@@ -37,25 +38,25 @@ const WorkloadContext = createContext<WorkloadContextType | undefined>(
 
 export const WorkloadProvider: FC<{
   builds: ModelsBuild[];
-  workloadSpec: ModelsWorkload | null;
-  setWorkloadSpec: (spec: ModelsWorkload | null) => void;
+  workloadResource: WorkloadResource | null;
+  setWorkloadResource: (resource: WorkloadResource | null) => void;
   children: ReactNode;
   isDeploying: boolean;
-  /** Initial workload data for change comparison */
-  initialWorkload?: ModelsWorkload | null;
+  /** Initial workload resource for change comparison */
+  initialResource?: WorkloadResource | null;
   /** Callback when editing state changes */
   onEditingChange?: (isEditing: boolean) => void;
 }> = ({
   builds,
-  workloadSpec,
-  setWorkloadSpec,
+  workloadResource,
+  setWorkloadResource,
   children,
   isDeploying,
-  initialWorkload = null,
+  initialResource = null,
   onEditingChange,
 }) => {
   // Calculate changes between initial and current workload
-  const changes = useWorkloadChanges(initialWorkload, workloadSpec);
+  const changes = useWorkloadChanges(initialResource, workloadResource);
 
   // Track which sections are currently being edited
   const [editingSections, setEditingSections] = useState<Set<string>>(
@@ -88,20 +89,20 @@ export const WorkloadProvider: FC<{
   const value = useMemo(
     () => ({
       builds,
-      workloadSpec,
-      setWorkloadSpec,
+      workloadResource,
+      setWorkloadResource,
       isDeploying,
-      initialWorkload,
+      initialResource,
       changes,
       isEditing,
       setEditingSection,
     }),
     [
       builds,
-      workloadSpec,
-      setWorkloadSpec,
+      workloadResource,
+      setWorkloadResource,
       isDeploying,
-      initialWorkload,
+      initialResource,
       changes,
       isEditing,
       setEditingSection,

@@ -3,22 +3,20 @@ import { makeStyles } from '@material-ui/core/styles';
 import { Box, Typography } from '@material-ui/core';
 import { FormYamlToggle } from '@openchoreo/backstage-design-system';
 import YAML from 'yaml';
-import {
-  ModelsWorkload,
+import type {
   Container,
   WorkloadEndpoint,
   EnvVar,
   FileVar,
   Dependency,
-  WorkloadType,
+  WorkloadResource,
+  WorkloadSpec,
 } from '@openchoreo/backstage-plugin-common';
 import { ContainerContent } from './ContainerContent';
 import { EndpointContent } from './EndpointContent';
 import { DependencyContent } from './DependencyContent';
 import { TraitsContent } from './TraitsContent';
 import { ParametersContent } from './ParametersContent';
-import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
-import { Entity } from '@backstage/catalog-model';
 import { useWorkloadContext } from '../WorkloadContext';
 import {
   useSecretReferences,
@@ -36,9 +34,6 @@ import type { TraitWithState } from '../../../Traits/types';
 import type { WorkloadChanges } from '../hooks/useWorkloadChanges';
 
 interface WorkloadEditorProps {
-  entity: Entity;
-  /** Full raw workload resource from the API (for YAML display) */
-  rawWorkload?: Record<string, unknown> | null;
   initialTab?: string;
   onTabChange?: (tab: string) => void;
   traitsState?: TraitWithState[];
@@ -158,48 +153,29 @@ const useStyles = makeStyles(theme => ({
 }));
 
 /**
- * Build a YAML representation of the full workload resource.
- * Merges current form data into the raw resource's spec so that form
- * edits are always reflected in the YAML view.
+ * Serialize the full workload resource to YAML.
  */
-function workloadToYaml(
-  rawWorkload: Record<string, unknown> | null | undefined,
-  formData: Omit<ModelsWorkload, 'type'>,
-): string {
-  if (rawWorkload) {
-    // Merge the current form data into the raw resource's spec
-    const merged = { ...rawWorkload, spec: { ...formData } };
-    return YAML.stringify(merged, { indent: 2 });
-  }
-  return YAML.stringify(formData, { indent: 2 });
+function resourceToYaml(resource: WorkloadResource | null): string {
+  if (!resource) return '';
+  return YAML.stringify(resource, { indent: 2 });
 }
 
 /**
- * Parse YAML string and extract spec fields for the form.
- * Returns spec from the parsed workload resource.
+ * Parse YAML string back into a WorkloadResource.
  */
-function yamlToWorkload(
-  yamlStr: string,
-): { spec: Omit<ModelsWorkload, 'type'>; raw: Record<string, unknown> } | null {
+function yamlToResource(yamlStr: string): WorkloadResource | null {
   try {
     const parsed = YAML.parse(yamlStr);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return null;
     }
-    // If the parsed YAML has a spec field, it's a full resource
-    if (parsed.spec && typeof parsed.spec === 'object') {
-      return { spec: parsed.spec, raw: parsed };
-    }
-    // Fallback: treat entire YAML as spec
-    return { spec: parsed, raw: parsed };
+    return parsed as WorkloadResource;
   } catch {
     return null;
   }
 }
 
 export function WorkloadEditor({
-  entity,
-  rawWorkload,
   initialTab,
   onTabChange,
   traitsState,
@@ -220,38 +196,27 @@ export function WorkloadEditor({
   parameterChangesCount = 0,
 }: WorkloadEditorProps) {
   const classes = useStyles();
-  const { workloadSpec, setWorkloadSpec, isDeploying } = useWorkloadContext();
+  const { workloadResource, setWorkloadResource, isDeploying } =
+    useWorkloadContext();
   const { secretReferences } = useSecretReferences();
 
-  const componentName =
-    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.COMPONENT];
-  const projectName = entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT];
+  // Derive spec from the resource for form use
+  const spec = workloadResource?.spec;
 
-  const [formData, setFormData] = useState<Omit<ModelsWorkload, 'type'>>({
-    name: entity.metadata.name,
-    owner: {
-      projectName: projectName || '',
-      componentName: componentName || '',
-    },
-    endpoints: {},
-    dependencies: { endpoints: [] },
-  });
+  // Local form buffer derived from spec — avoids re-rendering context on every keystroke
+  const [formData, setFormData] = useState<WorkloadSpec>(() => spec ?? {});
 
-  const [workloadType, setWorkloadType] = useState<WorkloadType>('Service');
+  // Sync formData when the context resource changes (e.g. initial fetch, server response)
+  useEffect(() => {
+    if (spec) {
+      setFormData(spec);
+    }
+  }, [spec]);
 
   // YAML mode state
   const [isYamlMode, setIsYamlMode] = useState(false);
   const [yamlContent, setYamlContent] = useState('');
   const [yamlError, setYamlError] = useState<string | undefined>();
-
-  // Local copy of the raw workload resource so YAML edits to metadata etc. persist
-  const localRawRef = useRef<Record<string, unknown> | null>(
-    rawWorkload ?? null,
-  );
-  // Sync when the prop changes (e.g. initial fetch)
-  useEffect(() => {
-    localRawRef.current = rawWorkload ?? null;
-  }, [rawWorkload]);
 
   // Track last active sub-tab per section for smooth outer tab switching
   const lastWorkloadTabRef = useRef('container');
@@ -277,23 +242,23 @@ export function WorkloadEditor({
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    if (workloadSpec) {
-      const { type, ...rest } = workloadSpec;
-      setFormData(rest);
-      if (type) setWorkloadType(type);
-    }
-  }, [workloadSpec]);
+  // --- Helpers to update the resource via context ---
 
-  const updateWorkloadSpec = (updatedData: Omit<ModelsWorkload, 'type'>) => {
-    setFormData(updatedData);
-    setWorkloadSpec({ ...updatedData, type: workloadType });
-  };
+  /** Update spec fields in the resource. Merges the given spec into the current resource. */
+  const updateSpec = useCallback(
+    (updatedSpec: WorkloadSpec) => {
+      setFormData(updatedSpec);
+      setWorkloadResource(
+        workloadResource
+          ? { ...workloadResource, spec: updatedSpec }
+          : ({ spec: updatedSpec } as WorkloadResource),
+      );
+    },
+    [workloadResource, setWorkloadResource],
+  );
 
   const updateContainer = (updated: Container) => {
-    const updatedData = { ...formData, container: updated };
-    setFormData(updatedData);
-    setWorkloadSpec({ ...updatedData, type: workloadType });
+    updateSpec({ ...formData, container: updated } as unknown as WorkloadSpec);
   };
 
   const handleContainerChange = (field: keyof Container, value: any) => {
@@ -307,28 +272,33 @@ export function WorkloadEditor({
     value: string,
   ) => {
     if (!formData.container) return;
-    const env = [...(formData.container.env || [])];
+    const env = [...(formData.container.env || [])] as EnvVar[];
     env[envIndex] = { ...env[envIndex], [field]: value };
-    updateContainer({ ...formData.container, env });
+    updateContainer({ ...formData.container, env } as Container);
   };
 
   const handleEnvVarReplace = (envIndex: number, envVar: EnvVar) => {
     if (!formData.container) return;
-    const env = [...(formData.container.env || [])];
+    const env = [...(formData.container.env || [])] as EnvVar[];
     env[envIndex] = envVar;
-    updateContainer({ ...formData.container, env });
+    updateContainer({ ...formData.container, env } as Container);
   };
 
   const addEnvVar = () => {
     if (!formData.container) return;
-    const env = [...(formData.container.env || []), { key: '', value: '' }];
-    updateContainer({ ...formData.container, env });
+    const env = [
+      ...(formData.container.env || []),
+      { key: '', value: '' },
+    ] as EnvVar[];
+    updateContainer({ ...formData.container, env } as Container);
   };
 
   const removeEnvVar = (envIndex: number) => {
     if (!formData.container) return;
-    const env = (formData.container.env || []).filter((_, i) => i !== envIndex);
-    updateContainer({ ...formData.container, env });
+    const env = (formData.container.env || []).filter(
+      (_, i) => i !== envIndex,
+    ) as EnvVar[];
+    updateContainer({ ...formData.container, env } as Container);
   };
 
   const handleFileVarChange = (
@@ -376,9 +346,7 @@ export function WorkloadEditor({
       delete updatedEndpoints[oldNameToRemove];
     }
     updatedEndpoints[endpointName] = endpoint;
-    const updatedData = { ...formData, endpoints: updatedEndpoints };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+    updateSpec({ ...formData, endpoints: updatedEndpoints } as WorkloadSpec);
   };
 
   const addEndpoint = (): string => {
@@ -393,30 +361,24 @@ export function WorkloadEditor({
         visibility: ['external'],
       } as WorkloadEndpoint,
     };
-    const updatedData = { ...formData, endpoints: updatedEndpoints };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+    updateSpec({ ...formData, endpoints: updatedEndpoints } as WorkloadSpec);
     return endpointName;
   };
 
   const removeEndpoint = (endpointName: string) => {
     const updatedEndpoints = { ...formData.endpoints };
     delete updatedEndpoints[endpointName];
-    const updatedData = { ...formData, endpoints: updatedEndpoints };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+    updateSpec({ ...formData, endpoints: updatedEndpoints } as WorkloadSpec);
   };
 
   const handleDependencyReplace = (index: number, dependency: Dependency) => {
     const currentEndpoints = formData.dependencies?.endpoints || [];
     const updatedEndpoints = [...currentEndpoints];
-    updatedEndpoints[index] = dependency;
-    const updatedData = {
+    updatedEndpoints[index] = dependency as (typeof updatedEndpoints)[number];
+    updateSpec({
       ...formData,
       dependencies: { endpoints: updatedEndpoints },
-    };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+    } as WorkloadSpec);
   };
 
   const addDependency = (): number => {
@@ -428,12 +390,10 @@ export function WorkloadEditor({
     };
     const currentEndpoints = formData.dependencies?.endpoints || [];
     const updatedEndpoints = [...currentEndpoints, newDependency];
-    const updatedData = {
+    updateSpec({
       ...formData,
       dependencies: { endpoints: updatedEndpoints },
-    };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+    } as WorkloadSpec);
     return updatedEndpoints.length - 1;
   };
 
@@ -441,12 +401,10 @@ export function WorkloadEditor({
     const updatedEndpoints = (formData.dependencies?.endpoints || []).filter(
       (_, i) => i !== index,
     );
-    const updatedData = {
+    updateSpec({
       ...formData,
       dependencies: { endpoints: updatedEndpoints },
-    };
-    setFormData(updatedData);
-    updateWorkloadSpec(updatedData);
+    } as WorkloadSpec);
   };
 
   const handleArrayFieldChange = (field: 'command' | 'args', value: string) => {
@@ -462,15 +420,13 @@ export function WorkloadEditor({
   const handleModeToggle = useCallback(
     (newMode: 'form' | 'yaml') => {
       if (newMode === 'yaml' && !isYamlMode) {
-        setYamlContent(workloadToYaml(localRawRef.current, formData));
+        setYamlContent(resourceToYaml(workloadResource));
         setYamlError(undefined);
         setIsYamlMode(true);
       } else if (newMode === 'form' && isYamlMode) {
-        const parsed = yamlToWorkload(yamlContent);
+        const parsed = yamlToResource(yamlContent);
         if (parsed) {
-          localRawRef.current = parsed.raw;
-          setFormData(parsed.spec);
-          setWorkloadSpec({ ...parsed.spec, type: workloadType });
+          setWorkloadResource(parsed);
           setYamlError(undefined);
           setIsYamlMode(false);
         } else {
@@ -478,24 +434,21 @@ export function WorkloadEditor({
         }
       }
     },
-    [isYamlMode, formData, yamlContent, workloadType, setWorkloadSpec],
+    [isYamlMode, yamlContent, workloadResource, setWorkloadResource],
   );
 
   const handleYamlChange = useCallback(
     (content: string) => {
       setYamlContent(content);
-      const parsed = yamlToWorkload(content);
+      const parsed = yamlToResource(content);
       if (parsed) {
         setYamlError(undefined);
-        localRawRef.current = parsed.raw;
-        // Apply valid YAML spec to workload state in real-time
-        setFormData(parsed.spec);
-        setWorkloadSpec({ ...parsed.spec, type: workloadType });
+        setWorkloadResource(parsed);
       } else {
         setYamlError('Invalid YAML');
       }
     },
-    [workloadType, setWorkloadSpec],
+    [setWorkloadResource],
   );
 
   // --- Outer nav ---
@@ -670,7 +623,7 @@ export function WorkloadEditor({
                   {activeTab === 'container' && (
                     <ContainerContent
                       disabled={isDeploying}
-                      container={formData.container}
+                      container={formData.container as Container | undefined}
                       onContainerChange={handleContainerChange}
                       onEnvVarChange={handleEnvVarChange}
                       onEnvVarReplace={handleEnvVarReplace}
