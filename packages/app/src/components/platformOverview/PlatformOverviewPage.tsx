@@ -28,6 +28,7 @@ import {
   getEffectiveKinds,
   APPLICATION_VIEW,
   CLUSTER_NAMESPACE,
+  CLUSTER_SCOPED_KINDS,
   useProjects,
   type ProjectEntry,
   type EntityNode,
@@ -137,9 +138,11 @@ export function PlatformOverviewPage() {
     [selectedScopes],
   );
 
-  // Namespaces for project fetching (excludes cluster namespace)
+  // Namespaces for project fetching (excludes cluster namespace).
+  // Pass [] when no namespaces selected (cluster-only) so useProjects returns
+  // empty instead of fetching all projects unfiltered.
   const projectNamespaces = useMemo(
-    () => (selectedNamespaces.length > 0 ? selectedNamespaces : undefined),
+    () => (selectedNamespaces.length > 0 ? selectedNamespaces : []),
     [selectedNamespaces],
   );
   const projects = useProjects(projectNamespaces);
@@ -173,21 +176,35 @@ export function PlatformOverviewPage() {
   );
 
   // --- Clear excluded projects when scope changes or system kind is deselected ---
+  // --- Also strip cluster kinds from URL when cluster scope is toggled off ---
   const currentScope = params.scope;
   const systemKindSelected = selectedKinds.includes('system');
   const prevScopeRef = useRef(currentScope);
   const prevSystemKindRef = useRef(systemKindSelected);
+  const prevClusterRef = useRef(clusterSelected);
   useEffect(() => {
     const scopeChanged = currentScope !== prevScopeRef.current;
     const systemDeselected = prevSystemKindRef.current && !systemKindSelected;
+    const clusterTurnedOff = prevClusterRef.current && !clusterSelected;
     prevScopeRef.current = currentScope;
     prevSystemKindRef.current = systemKindSelected;
+    prevClusterRef.current = clusterSelected;
 
     if ((scopeChanged || systemDeselected) && params.excludedProjects) {
       setParams({ excludedProjects: undefined }, { replace: true });
     }
+
+    // When cluster scope is turned off, remove cluster-scoped kinds from the URL
+    if (clusterTurnedOff) {
+      const cleaned = selectedKinds.filter(
+        k => !CLUSTER_SCOPED_KINDS.includes(k),
+      );
+      if (cleaned.length > 0 && cleaned.length < selectedKinds.length) {
+        setParams({ kinds: cleaned.join(',') }, { replace: true });
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentScope, systemKindSelected]);
+  }, [currentScope, systemKindSelected, clusterSelected]);
 
   // --- Project filter ---
   const excludedSet = useMemo(

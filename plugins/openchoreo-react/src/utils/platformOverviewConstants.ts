@@ -131,7 +131,7 @@ const ALL_KINDS = [
 export function getFilterPresets(clusterScopeActive: boolean): FilterPreset[] {
   const allKinds = clusterScopeActive
     ? ALL_KINDS
-    : [...APPLICATION_VIEW.kinds, ...INFRASTRUCTURE_VIEW.kinds];
+    : [...new Set([...APPLICATION_VIEW.kinds, ...INFRASTRUCTURE_VIEW.kinds])];
   const platformKinds = clusterScopeActive
     ? [...INFRASTRUCTURE_VIEW.kinds, ...CLUSTER_VIEW.kinds]
     : INFRASTRUCTURE_VIEW.kinds;

@@ -13,12 +13,20 @@ export function useProjects(namespaces?: string[]) {
   const [projects, setProjects] = useState<ProjectEntry[]>([]);
   const requestIdRef = useRef(0);
 
+  // Explicit empty array means "no namespaces selected" → no projects to fetch.
+  // undefined means "fetch all" (no namespace filter).
+  const isEmptyNamespaces = namespaces !== undefined && namespaces.length === 0;
+
   const namespacesKey = useMemo(
     () => namespaces?.slice().sort().join(',') ?? '',
     [namespaces],
   );
 
   const fetchProjects = useCallback(async () => {
+    if (isEmptyNamespaces) {
+      setProjects([]);
+      return;
+    }
     const id = ++requestIdRef.current;
     try {
       const response = await catalogApi.getEntities({
@@ -48,7 +56,7 @@ export function useProjects(namespaces?: string[]) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalogApi, namespacesKey]);
+  }, [catalogApi, namespacesKey, isEmptyNamespaces]);
 
   useEffect(() => {
     fetchProjects();
