@@ -496,7 +496,7 @@ describe('transformDeploymentPipeline', () => {
     spec: {
       promotionPaths: [
         {
-          sourceEnvironmentRef: 'dev',
+          sourceEnvironmentRef: { kind: 'Environment' as const, name: 'dev' },
           targetEnvironmentRefs: [{ name: 'staging', requiresApproval: true }],
         },
       ],
