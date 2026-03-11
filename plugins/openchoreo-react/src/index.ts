@@ -263,6 +263,14 @@ export {
   type UseComponentWorkflowPermissionResult,
 } from './hooks/useComponentWorkflowPermission';
 export {
+  useWorkflowPermission,
+  type UseWorkflowPermissionResult,
+} from './hooks/useWorkflowPermission';
+export {
+  useClusterWorkflowPermission,
+  type UseClusterWorkflowPermissionResult,
+} from './hooks/useClusterWorkflowPermission';
+export {
   useClusterTraitCreatePermission,
   type UseClusterTraitCreatePermissionResult,
 } from './hooks/useClusterTraitCreatePermission';
