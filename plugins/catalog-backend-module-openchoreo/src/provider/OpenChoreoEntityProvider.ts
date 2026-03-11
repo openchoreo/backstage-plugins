@@ -1581,7 +1581,11 @@ export class OpenChoreoEntityProvider implements EntityProvider {
 
     const promotionPaths =
       pipeline.spec?.promotionPaths?.map(path => ({
-        sourceEnvironment: path.sourceEnvironmentRef,
+        sourceEnvironment:
+          typeof path.sourceEnvironmentRef === 'string'
+            ? path.sourceEnvironmentRef
+            : (path.sourceEnvironmentRef as unknown as { name: string })
+                ?.name ?? '',
         targetEnvironments:
           path.targetEnvironmentRefs?.map(target => ({
             name: target.name,

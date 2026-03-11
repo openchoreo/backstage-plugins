@@ -53,12 +53,15 @@ export const useDeploymentPipeline = () => {
         ) {
           pipelineData.promotionPaths.forEach(path => {
             // Add source environment first
-            if (
-              path.sourceEnvironmentRef &&
-              !addedEnvs.has(path.sourceEnvironmentRef)
-            ) {
-              environments.push(path.sourceEnvironmentRef);
-              addedEnvs.add(path.sourceEnvironmentRef);
+            // sourceEnvironmentRef may be a string (old API) or object { name } (new API)
+            const sourceEnvName =
+              typeof path.sourceEnvironmentRef === 'string'
+                ? path.sourceEnvironmentRef
+                : (path.sourceEnvironmentRef as unknown as { name: string })
+                    ?.name ?? '';
+            if (sourceEnvName && !addedEnvs.has(sourceEnvName)) {
+              environments.push(sourceEnvName);
+              addedEnvs.add(sourceEnvName);
             }
             // Then add target environments in order
             if (path.targetEnvironmentRefs) {
