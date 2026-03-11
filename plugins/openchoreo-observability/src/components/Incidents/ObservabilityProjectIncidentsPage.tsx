@@ -155,12 +155,24 @@ const ObservabilityProjectIncidentsContent = () => {
     return result;
   }, [incidents, filters.status, filters.searchQuery]);
 
-  // Open the RCA Reports tab of this project entity in a new browser tab
-  const handleViewRCA = useCallback(() => {
-    const catalogNs = entity.metadata.namespace || 'default';
-    const url = `/catalog/${catalogNs}/system/${projectName}/rca-reports`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }, [entity, projectName]);
+  // Open the RCA Reports tab of this project entity in a new browser tab,
+  // pre-filtered by environment, time range, and alert ID.
+  const handleViewRCA = useCallback(
+    (incident: IncidentSummary) => {
+      const catalogNs = entity.metadata.namespace || 'default';
+      const params = new URLSearchParams({
+        ...(filters.environmentId ? { env: filters.environmentId } : {}),
+        ...(filters.timeRange ? { timeRange: filters.timeRange } : {}),
+        ...(incident.alertId ? { q: incident.alertId } : {}),
+      });
+      const query = params.toString();
+      const url = `/catalog/${catalogNs}/system/${projectName}/rca-reports${
+        query ? `?${query}` : ''
+      }`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    },
+    [entity, projectName, filters.environmentId, filters.timeRange],
+  );
 
   const handleAcknowledge = useCallback(
     async (incident: IncidentSummary) => {

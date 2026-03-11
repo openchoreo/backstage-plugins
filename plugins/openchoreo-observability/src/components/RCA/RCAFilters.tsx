@@ -1,12 +1,14 @@
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useState, useEffect } from 'react';
 import {
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Grid,
+  TextField,
 } from '@material-ui/core';
 import { Skeleton } from '@material-ui/lab';
+import { useDebounce } from 'react-use';
 import {
   Filters,
   TIME_RANGE_OPTIONS,
@@ -30,27 +32,63 @@ export const RCAFilters = ({
   environmentsLoading,
   disabled = false,
 }: RCAFiltersProps) => {
+  const [searchInput, setSearchInput] = useState(filters.searchQuery || '');
+
+  useEffect(() => {
+    setSearchInput(filters.searchQuery || '');
+  }, [filters.searchQuery]);
+
+  const DEFAULT_DEBOUNCE_MS = 1000;
+  useDebounce(
+    () => {
+      onFiltersChange({ searchQuery: searchInput });
+    },
+    DEFAULT_DEBOUNCE_MS,
+    [searchInput],
+  );
+
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(event.target.value);
+  };
+
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
     const selectedEnvironment = environments.find(
       env => env.uid === (event.target.value as string),
     );
     if (selectedEnvironment) {
-      onFiltersChange({ environment: selectedEnvironment });
+      onFiltersChange({ environment: selectedEnvironment, searchQuery: '' });
     }
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ timeRange: event.target.value as string });
+    onFiltersChange({
+      timeRange: event.target.value as string,
+      searchQuery: '',
+    });
   };
 
   const handleStatusChange = (event: ChangeEvent<{ value: unknown }>) => {
     const value = event.target.value as string;
-    onFiltersChange({ rcaStatus: value ? (value as RCAStatus) : undefined });
+    onFiltersChange({
+      rcaStatus: value ? (value as RCAStatus) : undefined,
+      searchQuery: '',
+    });
   };
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12} md={4}>
+      <Grid item xs={12} md={3}>
+        <TextField
+          fullWidth
+          placeholder="Search RCA reports..."
+          variant="outlined"
+          value={searchInput}
+          onChange={handleSearchChange}
+          disabled={disabled}
+        />
+      </Grid>
+
+      <Grid item xs={12} md={3}>
         <FormControl
           fullWidth
           disabled={disabled || environmentsLoading}
@@ -76,7 +114,7 @@ export const RCAFilters = ({
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} md={4}>
+      <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="status-label">Status</InputLabel>
           <Select
@@ -95,7 +133,7 @@ export const RCAFilters = ({
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} md={4}>
+      <Grid item xs={12} md={3}>
         <FormControl fullWidth disabled={disabled} variant="outlined">
           <InputLabel id="time-range-label">Time Range</InputLabel>
           <Select

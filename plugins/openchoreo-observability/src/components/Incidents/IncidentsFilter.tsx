@@ -54,19 +54,31 @@ export const IncidentsFilter: FC<IncidentsFilterProps> = ({
   };
 
   const handleEnvironmentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ environmentId: event.target.value as string });
+    onFiltersChange({
+      environmentId: event.target.value as string,
+      searchQuery: '',
+    });
   };
 
   const handleTimeRangeChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ timeRange: event.target.value as string });
+    onFiltersChange({
+      timeRange: event.target.value as string,
+      searchQuery: '',
+    });
   };
 
   const handleComponentChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ componentIds: event.target.value as string[] });
+    onFiltersChange({
+      componentIds: event.target.value as string[],
+      searchQuery: '',
+    });
   };
 
   const handleStatusChange = (event: ChangeEvent<{ value: unknown }>) => {
-    onFiltersChange({ status: event.target.value as string[] });
+    onFiltersChange({
+      status: event.target.value as string[],
+      searchQuery: '',
+    });
   };
 
   return (

@@ -20,7 +20,7 @@ interface ObservabilityIncidentsApi {
     incidents: Array<{
       incidentId: string;
       alertId: string;
-      status: 'triggered' | 'acknowledged' | 'resolved';
+      status: 'active' | 'acknowledged' | 'resolved';
       description?: string;
       triggeredAt?: string;
       resolvedAt?: string;
@@ -93,7 +93,7 @@ export function useIncidentsSummary(
         );
 
         const activeCount = result.incidents.filter(
-          i => i.status === 'triggered' || i.status === 'acknowledged',
+          i => i.status === 'active',
         ).length;
 
         return { envName: env.name, activeCount };
