@@ -2,7 +2,7 @@ import { Box, Link, Tooltip, Typography } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import WarningIcon from '@material-ui/icons/Warning';
 import { useEntity } from '@backstage/plugin-catalog-react';
-import { buildEntityPath } from '@openchoreo/backstage-plugin-react';
+import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
 
 const useStyles = makeStyles(theme => ({
   banner: {
@@ -56,9 +56,15 @@ export const IncidentsBanner = ({
   const tooltip = `${count} incident${
     count === 1 ? '' : 's'
   } detected during last hour`;
-  const viewUrl = `${buildEntityPath(
-    entity,
-  )}/incidents?env=${encodeURIComponent(environmentName.toLowerCase())}`;
+  const namespace = entity.metadata.namespace || 'default';
+  const projectName =
+    entity.metadata.annotations?.[CHOREO_ANNOTATIONS.PROJECT] ?? '';
+  const params = new URLSearchParams({
+    env: environmentName.toLowerCase(),
+    timeRange: '1h',
+    status: 'active',
+  });
+  const viewUrl = `/catalog/${namespace}/system/${projectName}/incidents?${params.toString()}`;
 
   return (
     <Tooltip title={tooltip} arrow placement="top">

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Box, Typography, Button } from '@material-ui/core';
 import { RCAFilters } from './RCAFilters';
@@ -6,8 +6,9 @@ import { RCAActions } from './RCAActions';
 import { RCATable } from './RCATable';
 import { useEntity } from '@backstage/plugin-catalog-react';
 import { CHOREO_ANNOTATIONS } from '@openchoreo/backstage-plugin-common';
+import type { RCAReportSummary } from '../../types';
 import {
-  useFilters,
+  useUrlFilters,
   useGetEnvironmentsByNamespace,
   useRCAReports,
 } from '../../hooks';
@@ -32,22 +33,26 @@ const RCAListContent = () => {
     loading: environmentsLoading,
     error: environmentsError,
   } = useGetEnvironmentsByNamespace(namespace);
-  const { filters, updateFilters } = useFilters();
+  const { filters, updateFilters } = useUrlFilters({ environments });
 
   const {
     reports,
     loading: reportsLoading,
     error: reportsError,
     refresh,
-    totalCount,
   } = useRCAReports(filters, entity);
 
-  // Auto-select first environment when environments are loaded
-  useEffect(() => {
-    if (environments.length > 0 && !filters.environment) {
-      updateFilters({ environment: environments[0] });
-    }
-  }, [environments, filters.environment, updateFilters]);
+  const filteredReports = useMemo((): RCAReportSummary[] => {
+    if (!filters.searchQuery) return reports;
+    const q = filters.searchQuery.toLowerCase();
+    return reports.filter(
+      r =>
+        (r.alertId || '').toLowerCase().includes(q) ||
+        (r.reportId || '').toLowerCase().includes(q) ||
+        (r.summary || '').toLowerCase().includes(q) ||
+        (r.status || '').toLowerCase().includes(q),
+    );
+  }, [reports, filters.searchQuery]);
 
   const handleFiltersChange = useCallback(
     (newFilters: Partial<typeof filters>) => {
@@ -115,11 +120,11 @@ const RCAListContent = () => {
           <RCAActions
             disabled={reportsLoading}
             onRefresh={handleRefresh}
-            totalCount={totalCount}
+            totalCount={filteredReports.length}
           />
 
           <EntityLinkContext.Provider value={namespaceValue}>
-            <RCATable reports={reports} loading={reportsLoading} />
+            <RCATable reports={filteredReports} loading={reportsLoading} />
           </EntityLinkContext.Provider>
         </>
       )}
