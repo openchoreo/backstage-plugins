@@ -25,6 +25,19 @@ import { usePersonalFilterStyles } from './styles';
 
 const whiteIconStyle = { color: 'inherit' } as const;
 
+function toQueryArray(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return value ? [value] : [];
+}
+
+function isSameSelection(current: string[], next: string[]): boolean {
+  if (current.length !== next.length) return false;
+  const currentSorted = [...current].sort();
+  const nextSorted = [...next].sort();
+  return currentSorted.every((value, index) => value === nextSorted[index]);
+}
+
 export const StarredFilter = () => {
   const classes = usePersonalFilterStyles();
   const { filters, updateFilters, backendEntities } = useEntityList();
@@ -250,7 +263,7 @@ class EntityProjectFilter {
 export const ProjectChip = () => {
   const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
-  const { filters, updateFilters } = useEntityList();
+  const { filters, updateFilters, queryParameters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
@@ -258,6 +271,19 @@ export const ProjectChip = () => {
   const kind = filters.kind?.value;
   const kindLower = kind?.toLowerCase();
   const prevKindRef = useRef(kind);
+  const queryProjects = useMemo(() => {
+    const params = queryParameters as Record<
+      string,
+      string | string[] | undefined
+    >;
+    return Array.from(
+      new Set([
+        ...toQueryArray(params.project),
+        ...toQueryArray(params['metadata.annotations.openchoreo.io/project']),
+      ]),
+    );
+  }, [queryParameters]);
+  const prevQueryProjectsRef = useRef<string[]>(queryProjects);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -287,6 +313,32 @@ export const ProjectChip = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
+
+  useEffect(() => {
+    if (kindLower !== 'component' && kindLower !== 'api') {
+      return;
+    }
+    const hadQueryProjects = prevQueryProjectsRef.current.length > 0;
+    prevQueryProjectsRef.current = queryProjects;
+    if (queryProjects.length === 0) {
+      if (!hadQueryProjects) {
+        return;
+      }
+      if (selectedProjects.length === 0) {
+        return;
+      }
+      setSelectedProjects([]);
+      updateFilters({ project: undefined } as any);
+      return;
+    }
+    if (isSameSelection(selectedProjects, queryProjects)) {
+      return;
+    }
+    setSelectedProjects(queryProjects);
+    updateFilters({
+      project: new EntityProjectFilter(queryProjects),
+    } as any);
+  }, [kindLower, queryProjects, selectedProjects, updateFilters]);
 
   if (kindLower !== 'component' && kindLower !== 'api') {
     return null;
@@ -391,13 +443,26 @@ class EntityComponentFilter {
 export const ComponentChip = () => {
   const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
-  const { filters, updateFilters } = useEntityList();
+  const { filters, updateFilters, queryParameters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [availableComponents, setAvailableComponents] = useState<string[]>([]);
   const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
 
   const kind = filters.kind?.value;
   const prevKindRef = useRef(kind);
+  const queryComponents = useMemo(() => {
+    const params = queryParameters as Record<
+      string,
+      string | string[] | undefined
+    >;
+    return Array.from(
+      new Set([
+        ...toQueryArray(params.component),
+        ...toQueryArray(params['metadata.annotations.openchoreo.io/component']),
+      ]),
+    );
+  }, [queryParameters]);
+  const prevQueryComponentsRef = useRef<string[]>(queryComponents);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -427,6 +492,32 @@ export const ComponentChip = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, catalogApi]);
+
+  useEffect(() => {
+    if (kind?.toLowerCase() !== 'api') {
+      return;
+    }
+    const hadQueryComponents = prevQueryComponentsRef.current.length > 0;
+    prevQueryComponentsRef.current = queryComponents;
+    if (queryComponents.length === 0) {
+      if (!hadQueryComponents) {
+        return;
+      }
+      if (selectedComponents.length === 0) {
+        return;
+      }
+      setSelectedComponents([]);
+      updateFilters({ component: undefined } as any);
+      return;
+    }
+    if (isSameSelection(selectedComponents, queryComponents)) {
+      return;
+    }
+    setSelectedComponents(queryComponents);
+    updateFilters({
+      component: new EntityComponentFilter(queryComponents),
+    } as any);
+  }, [kind, queryComponents, selectedComponents, updateFilters]);
 
   if (kind?.toLowerCase() !== 'api') {
     return null;
@@ -512,13 +603,22 @@ export const ComponentChip = () => {
 export const NamespaceChip = () => {
   const theme = useTheme();
   const catalogApi = useApi(catalogApiRef);
-  const { filters, updateFilters } = useEntityList();
+  const { filters, updateFilters, queryParameters } = useEntityList();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [availableNamespaces, setAvailableNamespaces] = useState<string[]>([]);
   const [selectedNamespaces, setSelectedNamespaces] = useState<string[]>([]);
 
   const kind = filters.kind?.value;
   const prevKindRef = useRef(kind);
+  const queryNamespaces = useMemo(
+    () =>
+      toQueryArray(
+        (queryParameters as Record<string, string | string[] | undefined>)
+          .namespace,
+      ),
+    [queryParameters],
+  );
+  const prevQueryNamespacesRef = useRef<string[]>(queryNamespaces);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -550,6 +650,34 @@ export const NamespaceChip = () => {
   }, [kind, catalogApi]);
 
   const isDisabled = availableNamespaces.length <= 1;
+
+  useEffect(() => {
+    if (!kind) {
+      return;
+    }
+    const hadQueryNamespaces = prevQueryNamespacesRef.current.length > 0;
+    prevQueryNamespacesRef.current = queryNamespaces;
+    if (queryNamespaces.length === 0) {
+      if (!hadQueryNamespaces) {
+        return;
+      }
+      if (selectedNamespaces.length === 0) {
+        return;
+      }
+      setSelectedNamespaces([]);
+      updateFilters({
+        namespace: undefined,
+      });
+      return;
+    }
+    if (isSameSelection(selectedNamespaces, queryNamespaces)) {
+      return;
+    }
+    setSelectedNamespaces(queryNamespaces);
+    updateFilters({
+      namespace: new EntityNamespaceFilter(queryNamespaces),
+    });
+  }, [kind, queryNamespaces, selectedNamespaces, updateFilters]);
 
   const handleToggleNamespace = (namespace: string) => {
     const newNamespaces = selectedNamespaces.includes(namespace)
