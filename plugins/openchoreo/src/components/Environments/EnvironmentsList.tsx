@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Grid } from '@material-ui/core';
 import { useEntity } from '@backstage/plugin-catalog-react';
 
@@ -51,7 +51,11 @@ export const EnvironmentsList = () => {
   const suspendTracker = useItemActionTracker<string>();
 
   // Incidents summary per environment
-  const incidentsSummaries = useIncidentsSummary(displayEnvironments);
+  const deployedEnvironments = useMemo(
+    () => displayEnvironments.filter(env => env.deployment.status === 'Ready'),
+    [displayEnvironments],
+  );
+  const incidentsSummaries = useIncidentsSummary(deployedEnvironments);
 
   // Notifications
   const notification = useNotification();
