@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useCallback,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import Box from '@material-ui/core/Box';
@@ -357,6 +358,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
   >([]);
   const [breadcrumbMenuTitle, setBreadcrumbMenuTitle] = useState('Resources');
   const [isBreadcrumbMenuLoading, setIsBreadcrumbMenuLoading] = useState(false);
+  const breadcrumbMenuRequestIdRef = useRef(0);
 
   const kindLabel = kindDisplayNames?.[kind.toLowerCase()] ?? kind;
 
@@ -449,7 +451,9 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
   );
 
   const loadBreadcrumbLevelItems = useCallback(
-    async (targetNodeIndex: number) => {
+    async (targetNodeIndex: number, requestId: number) => {
+      const isCurrentRequest = () =>
+        breadcrumbMenuRequestIdRef.current === requestId;
       const leftNode = breadcrumbNodes[targetNodeIndex - 1];
       const targetNode = breadcrumbNodes[targetNodeIndex];
       const fallbackItems = targetNode
@@ -463,12 +467,17 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
           ]
         : [];
 
+      if (!isCurrentRequest()) {
+        return;
+      }
       setIsBreadcrumbMenuLoading(true);
       setBreadcrumbMenuItems(fallbackItems);
       setBreadcrumbMenuTitle(getMenuTitleForNodeIndex(targetNodeIndex));
 
       if (!targetNode) {
-        setIsBreadcrumbMenuLoading(false);
+        if (isCurrentRequest()) {
+          setIsBreadcrumbMenuLoading(false);
+        }
         return;
       }
 
@@ -481,6 +490,9 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
             },
           ],
         });
+        if (!isCurrentRequest()) {
+          return;
+        }
 
         const sameKindCandidates = response.items;
         const siblingCandidates =
@@ -515,9 +527,13 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
 
         setBreadcrumbMenuItems(siblingItems);
       } catch {
-        setBreadcrumbMenuItems(fallbackItems);
+        if (isCurrentRequest()) {
+          setBreadcrumbMenuItems(fallbackItems);
+        }
       } finally {
-        setIsBreadcrumbMenuLoading(false);
+        if (isCurrentRequest()) {
+          setIsBreadcrumbMenuLoading(false);
+        }
       }
     },
     [breadcrumbNodes, getMenuTitleForNodeIndex, catalogApi],
@@ -577,12 +593,15 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       );
     }
     event.currentTarget.classList.add(classes.breadcrumbSeparatorButtonOpen);
+    const requestId = breadcrumbMenuRequestIdRef.current + 1;
+    breadcrumbMenuRequestIdRef.current = requestId;
     setBreadcrumbMenuAnchor(event.currentTarget);
     setBreadcrumbMenuTitle(getMenuTitleForNodeIndex(targetNodeIndex));
-    void loadBreadcrumbLevelItems(targetNodeIndex);
+    void loadBreadcrumbLevelItems(targetNodeIndex, requestId);
   };
 
   const closeBreadcrumbMenu = () => {
+    breadcrumbMenuRequestIdRef.current += 1;
     if (breadcrumbMenuAnchor) {
       breadcrumbMenuAnchor.classList.remove(
         classes.breadcrumbSeparatorButtonOpen,
