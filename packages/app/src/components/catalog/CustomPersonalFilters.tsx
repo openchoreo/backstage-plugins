@@ -283,6 +283,7 @@ export const ProjectChip = () => {
       ]),
     );
   }, [queryParameters]);
+  const prevQueryProjectsRef = useRef<string[]>(queryProjects);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -317,7 +318,17 @@ export const ProjectChip = () => {
     if (kindLower !== 'component' && kindLower !== 'api') {
       return;
     }
+    const hadQueryProjects = prevQueryProjectsRef.current.length > 0;
+    prevQueryProjectsRef.current = queryProjects;
     if (queryProjects.length === 0) {
+      if (!hadQueryProjects) {
+        return;
+      }
+      if (selectedProjects.length === 0) {
+        return;
+      }
+      setSelectedProjects([]);
+      updateFilters({ project: undefined } as any);
       return;
     }
     if (isSameSelection(selectedProjects, queryProjects)) {
@@ -451,6 +462,7 @@ export const ComponentChip = () => {
       ]),
     );
   }, [queryParameters]);
+  const prevQueryComponentsRef = useRef<string[]>(queryComponents);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -485,7 +497,17 @@ export const ComponentChip = () => {
     if (kind?.toLowerCase() !== 'api') {
       return;
     }
+    const hadQueryComponents = prevQueryComponentsRef.current.length > 0;
+    prevQueryComponentsRef.current = queryComponents;
     if (queryComponents.length === 0) {
+      if (!hadQueryComponents) {
+        return;
+      }
+      if (selectedComponents.length === 0) {
+        return;
+      }
+      setSelectedComponents([]);
+      updateFilters({ component: undefined } as any);
       return;
     }
     if (isSameSelection(selectedComponents, queryComponents)) {
@@ -596,6 +618,7 @@ export const NamespaceChip = () => {
       ),
     [queryParameters],
   );
+  const prevQueryNamespacesRef = useRef<string[]>(queryNamespaces);
 
   useEffect(() => {
     if (prevKindRef.current !== kind) {
@@ -632,7 +655,19 @@ export const NamespaceChip = () => {
     if (!kind) {
       return;
     }
+    const hadQueryNamespaces = prevQueryNamespacesRef.current.length > 0;
+    prevQueryNamespacesRef.current = queryNamespaces;
     if (queryNamespaces.length === 0) {
+      if (!hadQueryNamespaces) {
+        return;
+      }
+      if (selectedNamespaces.length === 0) {
+        return;
+      }
+      setSelectedNamespaces([]);
+      updateFilters({
+        namespace: undefined,
+      });
       return;
     }
     if (isSameSelection(selectedNamespaces, queryNamespaces)) {

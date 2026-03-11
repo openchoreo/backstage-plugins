@@ -374,6 +374,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     value: string;
     displayType: string;
     path: string | null;
+    relationType?: string;
     isCurrent: boolean;
   };
 
@@ -383,7 +384,11 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     const makeNode = (
       key: string,
       entityRef: string,
-      options?: { isCurrent?: boolean; valueOverride?: string },
+      options?: {
+        isCurrent?: boolean;
+        valueOverride?: string;
+        relationType?: string;
+      },
     ): BreadcrumbNode => {
       const parsed = parseEntityRef(entityRef, {
         defaultNamespace: entity.metadata.namespace ?? 'default',
@@ -401,6 +406,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
           kindDisplayNames?.[parsed.kind.toLowerCase()] ??
           formatResourceTypeLabel(parsed.kind),
         path: buildCatalogEntityPath(entityRef),
+        relationType: options?.relationType,
         isCurrent: options?.isCurrent ?? false,
       };
     };
@@ -416,7 +422,9 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
 
     if (parentEntity?.targetRef) {
       nodes.push(
-        makeNode(`parent-${parentEntity.targetRef}`, parentEntity.targetRef),
+        makeNode(`parent-${parentEntity.targetRef}`, parentEntity.targetRef, {
+          relationType: ancestorEntity?.type,
+        }),
       );
     }
 
@@ -425,6 +433,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
       makeNode(`current-${currentRef}`, currentRef, {
         isCurrent: true,
         valueOverride: entity.metadata.title ?? entityName,
+        relationType: parentEntity?.type,
       }),
     );
 
@@ -480,7 +489,10 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
                 (candidate.relations ?? []).some(
                   relation =>
                     normalizeEntityRef(relation.targetRef) ===
-                    leftNode.normalizedRef,
+                      leftNode.normalizedRef &&
+                    (targetNode.relationType
+                      ? relation.type === targetNode.relationType
+                      : true),
                 ),
               )
             : sameKindCandidates;
