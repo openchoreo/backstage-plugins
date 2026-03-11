@@ -151,6 +151,7 @@ export interface WorkloadService {
       componentName: string;
       namespaceName: string;
       workload: WorkloadResource;
+      isNew: boolean;
     },
     token?: string,
   ): Promise<WorkloadResource>;

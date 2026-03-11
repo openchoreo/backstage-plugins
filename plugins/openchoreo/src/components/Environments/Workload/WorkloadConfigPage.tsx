@@ -442,7 +442,7 @@ export const WorkloadConfigPage = ({
     try {
       // Step 1: Apply workload (if changed) — send the full resource as-is
       if (workloadChanges.hasChanges) {
-        const result = await client.applyWorkload(entity, workloadResource);
+        const result = await client.applyWorkload(entity, workloadResource, isNewWorkload);
         // Update local resource with the server response
         setWorkloadResource(result);
       }

@@ -432,6 +432,7 @@ export interface OpenChoreoClientApi {
   applyWorkload(
     entity: Entity,
     workload: WorkloadResource,
+    isNew: boolean,
   ): Promise<WorkloadResource>;
 
   // === Workflow Operations ===

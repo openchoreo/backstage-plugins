@@ -617,7 +617,7 @@ export async function createRouter({
   });
 
   router.post('/workload', requireAuth, async (req, res) => {
-    const { componentName, projectName, namespaceName } = req.query;
+    const { componentName, projectName, namespaceName, isNew } = req.query;
     const workload = req.body;
 
     if (!componentName || !projectName || !namespaceName) {
@@ -626,8 +626,10 @@ export async function createRouter({
       );
     }
 
-    if (!workload) {
-      throw new InputError('Workload resource is required in request body');
+    if (!workload || typeof workload !== 'object' || Array.isArray(workload)) {
+      throw new InputError(
+        'Workload resource object is required in request body',
+      );
     }
 
     const userToken = getUserTokenFromRequest(req);
@@ -639,6 +641,7 @@ export async function createRouter({
           projectName: projectName as string,
           namespaceName: namespaceName as string,
           workload,
+          isNew: isNew === 'true',
         },
         userToken,
       );

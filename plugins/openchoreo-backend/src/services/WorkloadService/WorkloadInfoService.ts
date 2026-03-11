@@ -73,14 +73,16 @@ export class WorkloadInfoService implements WorkloadService {
       componentName: string;
       namespaceName: string;
       workload: WorkloadResource;
+      isNew: boolean;
     },
     token?: string,
   ): Promise<WorkloadResource> {
-    const { projectName, componentName, namespaceName, workload } = request;
+    const { projectName, componentName, namespaceName, workload, isNew } =
+      request;
 
     try {
       this.logger.info(
-        `Applying workload for component: ${componentName} in namespace: ${namespaceName}`,
+        `${isNew ? 'Creating' : 'Updating'} workload for component: ${componentName} in namespace: ${namespaceName}`,
       );
 
       const client = createOpenChoreoApiClient({
@@ -89,10 +91,15 @@ export class WorkloadInfoService implements WorkloadService {
         logger: this.logger,
       });
 
-      const workloadName = workload.metadata?.name;
+      if (!isNew) {
+        // Update existing workload — use the resource name as the path param
+        const workloadName = workload.metadata?.name;
+        if (!workloadName) {
+          throw new Error(
+            'Workload metadata.name is required for updating an existing workload',
+          );
+        }
 
-      if (workloadName) {
-        // Update existing workload — send the full resource as-is
         const { data, error, response } = await client.PUT(
           '/api/v1/namespaces/{namespaceName}/workloads/{workloadName}',
           {

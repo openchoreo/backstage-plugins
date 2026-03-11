@@ -476,12 +476,16 @@ export class OpenChoreoClient implements OpenChoreoClientApi {
   async applyWorkload(
     entity: Entity,
     workload: WorkloadResource,
+    isNew: boolean,
   ): Promise<WorkloadResource> {
     const metadata = extractEntityMetadata(entity);
 
     return this.apiFetch<WorkloadResource>(API_ENDPOINTS.DEPLOYEMNT_WORKLOAD, {
       method: 'POST',
-      params: entityMetadataToParams(metadata),
+      params: {
+        ...entityMetadataToParams(metadata),
+        isNew: String(isNew),
+      },
       body: workload,
     });
   }

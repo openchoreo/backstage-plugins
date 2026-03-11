@@ -127,7 +127,7 @@ describe('WorkloadInfoService', () => {
   });
 
   describe('applyWorkload', () => {
-    it('PUTs the full resource when it has a name', async () => {
+    it('PUTs the full resource when isNew is false', async () => {
       const updatedWorkload = {
         ...k8sWorkload,
         spec: { ...workloadSpec, replicas: 3 },
@@ -141,17 +141,21 @@ describe('WorkloadInfoService', () => {
           componentName: 'api-service',
           namespaceName: 'test-ns',
           workload: updatedWorkload as any,
+          isNew: false,
         },
         'token-123',
       );
 
       expect(result).toEqual(updatedWorkload);
       expect(mockPUT).toHaveBeenCalledTimes(1);
-      expect(mockGET).not.toHaveBeenCalled();
+      expect(mockPOST).not.toHaveBeenCalled();
     });
 
-    it('POSTs a new workload when it has no name', async () => {
-      const newWorkload = { spec: workloadSpec } as any;
+    it('POSTs a new workload when isNew is true', async () => {
+      const newWorkload = {
+        metadata: { name: 'api-service' },
+        spec: workloadSpec,
+      } as any;
       const createdWorkload = {
         metadata: { name: 'api-service-workload' },
         spec: workloadSpec,
@@ -165,6 +169,7 @@ describe('WorkloadInfoService', () => {
           componentName: 'api-service',
           namespaceName: 'test-ns',
           workload: newWorkload,
+          isNew: true,
         },
         'token',
       );
@@ -185,6 +190,7 @@ describe('WorkloadInfoService', () => {
             componentName: 'api-service',
             namespaceName: 'test-ns',
             workload: k8sWorkload as any,
+            isNew: false,
           },
           'token',
         ),
