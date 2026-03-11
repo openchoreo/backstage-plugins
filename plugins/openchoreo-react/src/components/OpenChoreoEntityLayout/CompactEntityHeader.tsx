@@ -55,7 +55,9 @@ function buildCatalogEntityPath(entityRef: string): string | null {
 }
 
 function buildCatalogEntityPathFromEntity(entity: Entity): string {
-  return `/catalog/${(entity.metadata.namespace ?? 'default').toLowerCase()}/${entity.kind.toLowerCase()}/${entity.metadata.name}`;
+  return `/catalog/${(
+    entity.metadata.namespace ?? 'default'
+  ).toLowerCase()}/${entity.kind.toLowerCase()}/${entity.metadata.name}`;
 }
 
 function normalizeEntityRef(ref: string): string | null {
@@ -404,11 +406,18 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     };
 
     if (ancestorEntity?.targetRef) {
-      nodes.push(makeNode(`ancestor-${ancestorEntity.targetRef}`, ancestorEntity.targetRef));
+      nodes.push(
+        makeNode(
+          `ancestor-${ancestorEntity.targetRef}`,
+          ancestorEntity.targetRef,
+        ),
+      );
     }
 
     if (parentEntity?.targetRef) {
-      nodes.push(makeNode(`parent-${parentEntity.targetRef}`, parentEntity.targetRef));
+      nodes.push(
+        makeNode(`parent-${parentEntity.targetRef}`, parentEntity.targetRef),
+      );
     }
 
     const currentRef = stringifyEntityRef(entity);
@@ -420,13 +429,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     );
 
     return nodes;
-  }, [
-    ancestorEntity,
-    parentEntity,
-    entity,
-    entityName,
-    kindDisplayNames,
-  ]);
+  }, [ancestorEntity, parentEntity, entity, entityName, kindDisplayNames]);
 
   const getMenuTitleForNodeIndex = useCallback(
     (targetNodeIndex: number) => {
@@ -476,7 +479,8 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
             ? sameKindCandidates.filter(candidate =>
                 (candidate.relations ?? []).some(
                   relation =>
-                    normalizeEntityRef(relation.targetRef) === leftNode.normalizedRef,
+                    normalizeEntityRef(relation.targetRef) ===
+                    leftNode.normalizedRef,
                 ),
               )
             : sameKindCandidates;
@@ -504,11 +508,7 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
         setIsBreadcrumbMenuLoading(false);
       }
     },
-    [
-      breadcrumbNodes,
-      getMenuTitleForNodeIndex,
-      catalogApi,
-    ],
+    [breadcrumbNodes, getMenuTitleForNodeIndex, catalogApi],
   );
 
   const buildKindCatalogPath = useCallback(
@@ -560,7 +560,9 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
     event.preventDefault();
     event.stopPropagation();
     if (breadcrumbMenuAnchor && breadcrumbMenuAnchor !== event.currentTarget) {
-      breadcrumbMenuAnchor.classList.remove(classes.breadcrumbSeparatorButtonOpen);
+      breadcrumbMenuAnchor.classList.remove(
+        classes.breadcrumbSeparatorButtonOpen,
+      );
     }
     event.currentTarget.classList.add(classes.breadcrumbSeparatorButtonOpen);
     setBreadcrumbMenuAnchor(event.currentTarget);
@@ -570,12 +572,17 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
 
   const closeBreadcrumbMenu = () => {
     if (breadcrumbMenuAnchor) {
-      breadcrumbMenuAnchor.classList.remove(classes.breadcrumbSeparatorButtonOpen);
+      breadcrumbMenuAnchor.classList.remove(
+        classes.breadcrumbSeparatorButtonOpen,
+      );
     }
     setBreadcrumbMenuAnchor(null);
   };
 
-  const navigateFromBreadcrumbMenu = (path: string | null, isCurrent?: boolean) => {
+  const navigateFromBreadcrumbMenu = (
+    path: string | null,
+    isCurrent?: boolean,
+  ) => {
     closeBreadcrumbMenu();
     if (path && !isCurrent) {
       navigate(path);
@@ -634,18 +641,31 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
               );
             } else {
               nameNode = (
-                <Typography component="span" className={classes.breadcrumbPlainText}>
+                <Typography
+                  component="span"
+                  className={classes.breadcrumbPlainText}
+                >
                   {node.value}
                 </Typography>
               );
             }
 
             return (
-              <Box key={node.key} component="span" className={classes.breadcrumbLevelBox}>
-                <a href={kindCatalogPath} className={classes.breadcrumbKindLink}>
+              <Box
+                key={node.key}
+                component="span"
+                className={classes.breadcrumbLevelBox}
+              >
+                <a
+                  href={kindCatalogPath}
+                  className={classes.breadcrumbKindLink}
+                >
                   {levelLabel}
                 </a>
-                <Typography component="span" className={classes.breadcrumbKindDivider}>
+                <Typography
+                  component="span"
+                  className={classes.breadcrumbKindDivider}
+                >
                   {' / '}
                 </Typography>
                 {nameNode}
@@ -710,7 +730,9 @@ export function CompactEntityHeader(props: CompactEntityHeaderProps) {
                       }
                       aria-label={`Open ${item.value} in new tab`}
                     >
-                      <OpenInNewIcon className={classes.breadcrumbMenuOpenIcon} />
+                      <OpenInNewIcon
+                        className={classes.breadcrumbMenuOpenIcon}
+                      />
                     </IconButton>
                   </Tooltip>
                 )}

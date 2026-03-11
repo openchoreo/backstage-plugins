@@ -272,13 +272,14 @@ export const ProjectChip = () => {
   const kindLower = kind?.toLowerCase();
   const prevKindRef = useRef(kind);
   const queryProjects = useMemo(() => {
-    const params = queryParameters as Record<string, string | string[] | undefined>;
+    const params = queryParameters as Record<
+      string,
+      string | string[] | undefined
+    >;
     return Array.from(
       new Set([
         ...toQueryArray(params.project),
-        ...toQueryArray(
-          params['metadata.annotations.openchoreo.io/project'],
-        ),
+        ...toQueryArray(params['metadata.annotations.openchoreo.io/project']),
       ]),
     );
   }, [queryParameters]);
@@ -326,12 +327,7 @@ export const ProjectChip = () => {
     updateFilters({
       project: new EntityProjectFilter(queryProjects),
     } as any);
-  }, [
-    kindLower,
-    queryProjects,
-    selectedProjects,
-    updateFilters,
-  ]);
+  }, [kindLower, queryProjects, selectedProjects, updateFilters]);
 
   if (kindLower !== 'component' && kindLower !== 'api') {
     return null;
@@ -444,13 +440,14 @@ export const ComponentChip = () => {
   const kind = filters.kind?.value;
   const prevKindRef = useRef(kind);
   const queryComponents = useMemo(() => {
-    const params = queryParameters as Record<string, string | string[] | undefined>;
+    const params = queryParameters as Record<
+      string,
+      string | string[] | undefined
+    >;
     return Array.from(
       new Set([
         ...toQueryArray(params.component),
-        ...toQueryArray(
-          params['metadata.annotations.openchoreo.io/component'],
-        ),
+        ...toQueryArray(params['metadata.annotations.openchoreo.io/component']),
       ]),
     );
   }, [queryParameters]);
@@ -498,12 +495,7 @@ export const ComponentChip = () => {
     updateFilters({
       component: new EntityComponentFilter(queryComponents),
     } as any);
-  }, [
-    kind,
-    queryComponents,
-    selectedComponents,
-    updateFilters,
-  ]);
+  }, [kind, queryComponents, selectedComponents, updateFilters]);
 
   if (kind?.toLowerCase() !== 'api') {
     return null;
@@ -650,12 +642,7 @@ export const NamespaceChip = () => {
     updateFilters({
       namespace: new EntityNamespaceFilter(queryNamespaces),
     });
-  }, [
-    kind,
-    queryNamespaces,
-    selectedNamespaces,
-    updateFilters,
-  ]);
+  }, [kind, queryNamespaces, selectedNamespaces, updateFilters]);
 
   const handleToggleNamespace = (namespace: string) => {
     const newNamespaces = selectedNamespaces.includes(namespace)
