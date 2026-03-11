@@ -9,6 +9,7 @@ import {
 } from '@openchoreo/openchoreo-client-node';
 
 // Type definitions from the OpenAPI spec
+export type ActionInfo = OpenChoreoComponents['schemas']['ActionInfo'];
 export type Entitlement = OpenChoreoComponents['schemas']['Entitlement'];
 export type UserTypeConfig = OpenChoreoComponents['schemas']['UserTypeConfig'];
 
@@ -33,7 +34,7 @@ export class AuthzService {
   // Actions
   // =====================
 
-  async listActions(userToken?: string): Promise<{ data: string[] }> {
+  async listActions(userToken?: string): Promise<{ data: ActionInfo[] }> {
     this.logger.debug('Fetching all available actions');
 
     try {

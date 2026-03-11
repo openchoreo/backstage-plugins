@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -99,7 +99,12 @@ export const RoleDialog = ({
   namespace,
 }: RoleDialogProps) => {
   const classes = useStyles();
-  const { actions: availableActions, loading: actionsLoading } = useActions();
+  const { actions: availableActionInfos, loading: actionsLoading } =
+    useActions();
+  const availableActions = useMemo(
+    () => availableActionInfos.map(a => a.name),
+    [availableActionInfos],
+  );
 
   const [name, setName] = useState('');
   const [selectedActions, setSelectedActions] = useState<string[]>([]);

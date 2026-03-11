@@ -1,16 +1,17 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useApi } from '@backstage/core-plugin-api';
 import { openChoreoClientApiRef } from '../../../api/OpenChoreoClientApi';
+import type { ActionInfo } from '../../../api/OpenChoreoClientApi';
 
 interface UseActionsResult {
-  actions: string[];
+  actions: ActionInfo[];
   loading: boolean;
   error: Error | null;
   fetchActions: () => Promise<void>;
 }
 
 export function useActions(): UseActionsResult {
-  const [actions, setActions] = useState<string[]>([]);
+  const [actions, setActions] = useState<ActionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

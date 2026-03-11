@@ -118,6 +118,12 @@ export type PolicyEffect = 'allow' | 'deny';
 // Cluster & Namespace Scoped Authorization Types
 // ============================================
 
+/** Authorization action with its scope in the resource hierarchy */
+export interface ActionInfo {
+  name: string;
+  lowestScope: 'cluster' | 'namespace' | 'project' | 'component';
+}
+
 /** Cluster Role - cluster-wide role definition */
 export interface ClusterRole {
   name: string;
@@ -540,7 +546,7 @@ export interface OpenChoreoClientApi {
   // === Authorization Operations ===
 
   /** List all available actions */
-  listActions(): Promise<string[]>;
+  listActions(): Promise<ActionInfo[]>;
 
   /** List all user types */
   listUserTypes(): Promise<UserTypeConfig[]>;
