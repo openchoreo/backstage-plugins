@@ -347,9 +347,14 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
   /**
    * Handles scaffolder.task.create permission.
    *
+   * `scaffolder.task.create` is a basic permission with no resource type and
+   * no template context — Backstage fires it before the template is selected,
+   * so we cannot know which resource the user intends to create. This check
+   * acts as a gate for "can this user use the scaffolder at all?". Actual
+   * resource-level permissions (e.g. component:create, workflow:create) are
+   * enforced separately when the template's actions execute.
+   *
    * Allows if user has ANY create capability for scaffolder resource types.
-   * This is a global check - we cannot filter by scope at this point
-   * since the template hasn't been executed yet.
    */
   private async handleScaffolderTaskCreate(
     user?: PolicyQueryUser,
@@ -377,6 +382,7 @@ export class OpenChoreoPermissionPolicy implements PermissionPolicy {
         'trait:create',
         'componenttype:create',
         'workflow:create',
+        'clusterworkflow:create',
         'namespace:create',
       ];
 

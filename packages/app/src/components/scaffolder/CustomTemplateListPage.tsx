@@ -47,6 +47,8 @@ import {
   useClusterTraitCreatePermission,
   useClusterComponentTypePermission,
   useComponentWorkflowPermission,
+  useWorkflowPermission,
+  useClusterWorkflowPermission,
   useNamespacePermission,
 } from '@openchoreo/backstage-plugin-react';
 import { ScaffolderStarredFilter } from './ScaffolderStarredFilter';
@@ -131,6 +133,8 @@ const TemplateListContent = (props: TemplateListPageProps) => {
   const clusterTraitPerm = useClusterTraitCreatePermission();
   const clusterComponentTypePerm = useClusterComponentTypePermission();
   const componentWorkflowPerm = useComponentWorkflowPermission();
+  const workflowPerm = useWorkflowPermission();
+  const clusterWorkflowPerm = useClusterWorkflowPermission();
   const namespacePerm = useNamespacePermission();
 
   // Map template spec.type to whether the card should be disabled
@@ -158,6 +162,10 @@ const TemplateListContent = (props: TemplateListPageProps) => {
           return (
             !componentWorkflowPerm.loading && !componentWorkflowPerm.canCreate
           );
+        case 'Workflow':
+          return !workflowPerm.loading && !workflowPerm.canCreate;
+        case 'ClusterWorkflow':
+          return !clusterWorkflowPerm.loading && !clusterWorkflowPerm.canCreate;
         case 'Namespace':
           return !namespacePerm.loading && !namespacePerm.canCreate;
         default:
@@ -173,6 +181,8 @@ const TemplateListContent = (props: TemplateListPageProps) => {
       componentTypePerm,
       clusterComponentTypePerm,
       componentWorkflowPerm,
+      workflowPerm,
+      clusterWorkflowPerm,
       namespacePerm,
     ],
   );

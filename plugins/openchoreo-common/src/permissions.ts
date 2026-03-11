@@ -159,6 +159,24 @@ export const openchoreoClusterTraitCreatePermission = createPermission({
 });
 
 /**
+ * Permission to create a new workflow.
+ * Requires organization context.
+ */
+export const openchoreoWorkflowCreatePermission = createPermission({
+  name: 'openchoreo.workflow.create',
+  attributes: { action: 'create' },
+});
+
+/**
+ * Permission to create a new cluster workflow.
+ * Cluster-scoped permission (no namespace context required).
+ */
+export const openchoreoClusterWorkflowCreatePermission = createPermission({
+  name: 'openchoreo.clusterworkflow.create',
+  attributes: { action: 'create' },
+});
+
+/**
  * Permission to create a new component workflow.
  * Requires organization context.
  */
@@ -645,6 +663,8 @@ export const openchoreoPermissions = [
   openchoreoComponentTypeCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterTraitCreatePermission,
+  openchoreoWorkflowCreatePermission,
+  openchoreoClusterWorkflowCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
   // Update & Delete permissions for resource definition kinds
   openchoreoComponentTypeUpdatePermission,
@@ -715,6 +735,8 @@ export const OPENCHOREO_PERMISSION_TO_ACTION: Record<string, string> = {
   'openchoreo.traits.view': 'trait:view',
   'openchoreo.trait.create': 'trait:create',
   'openchoreo.componenttype.create': 'componenttype:create',
+  'openchoreo.workflow.create': 'workflow:create',
+  'openchoreo.clusterworkflow.create': 'clusterworkflow:create',
   'openchoreo.componentworkflow.create': 'workflow:create',
   'openchoreo.clustercomponenttype.create': 'clustercomponenttype:create',
   'openchoreo.clustertrait.create': 'clustertrait:create',
