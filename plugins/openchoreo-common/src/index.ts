@@ -53,6 +53,8 @@ export {
   openchoreoComponentTypeCreatePermission,
   openchoreoClusterComponentTypeCreatePermission,
   openchoreoClusterTraitCreatePermission,
+  openchoreoWorkflowCreatePermission,
+  openchoreoClusterWorkflowCreatePermission,
   openchoreoComponentWorkflowCreatePermission,
   openchoreoComponentTypeUpdatePermission,
   openchoreoComponentTypeDeletePermission,
